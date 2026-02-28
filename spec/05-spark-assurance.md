@@ -65,7 +65,7 @@ The compiler shall automatically generate SPARK annotations in the emitted Ada s
 
 11. The compiler shall generate an `Initializes` aspect on every package in the emitted Ada. The `Initializes` aspect lists all package-level variables that are initialized at elaboration time.
 
-12. Since Safe packages are purely declarative with mandatory initialization expressions (D7), every package-level variable is initialized at elaboration. The `Initializes` aspect lists all package-level variables.
+12. Since Safe packages are purely declarative with the legality rule requiring initialization expressions on package-level variables (Section 3, §3.2), every package-level variable is initialized at elaboration. The `Initializes` aspect lists all package-level variables.
 
 13. **Emitted Ada format:**
 
@@ -83,11 +83,9 @@ The compiler shall automatically generate SPARK annotations in the emitted Ada s
 
 ### 5.2.5 Bronze Guarantee Statement
 
-16. **Normative:** Every conforming Safe program, when emitted as Ada/SPARK and submitted to GNATprove, shall pass flow analysis with no errors and no user-supplied annotations. The required GNATprove invocation is:
+16. **Normative:** Every conforming Safe program shall be free of data-flow defects — specifically, reads of uninitialized variables and unintended global effects — as guaranteed by the legality rules and compiler-generated annotations of this specification.
 
-    ```
-    gnatprove --mode=flow -P project.gpr
-    ```
+    *Informative note:* One validation method is submitting the emitted Ada/SPARK to GNATprove with `gnatprove --mode=flow -P project.gpr`. A conforming implementation that emits Ada/SPARK shall produce output that passes this analysis with no errors and no user-supplied annotations.
 
 17. This guarantee is achieved by the compiler-generated `Global`, `Depends`, `Initializes`, and `SPARK_Mode` annotations. No Safe developer action is needed.
 
@@ -221,7 +219,7 @@ The D27 language rules (Section 2, §2.8) guarantee that every conforming Safe p
 
 32. If the interval analysis cannot prove the range check from the types alone — for example, if the arithmetic result could exceed the target type's range — then the program is correct only if the developer has structured the computation such that the result is provably in range. Since Safe requires tighter types (D27's ergonomic effect), most range checks are automatically dischargeable.
 
-33. In cases where a range check cannot be proved from types alone, the developer must restructure the computation to use tighter types or add a conditional guard. A conforming implementation should produce a clear diagnostic identifying the unprovable range check.
+33. If a conforming implementation cannot establish absence of a runtime check failure from this specification's type rules for a given operation, the program is nonconforming and the implementation shall reject it with a diagnostic identifying the unprovable check.
 
 ### 5.3.6 Discriminant Checks
 
@@ -252,13 +250,11 @@ The D27 language rules (Section 2, §2.8) guarantee that every conforming Safe p
 
 ### 5.3.8 Silver Guarantee Statement
 
-37. **Normative:** Every conforming Safe program, when emitted as Ada/SPARK and submitted to GNATprove, shall pass AoRTE proof with no errors and no user-supplied annotations. The required GNATprove invocation is:
+37. **Normative:** Every conforming Safe program shall be free of the runtime errors enumerated in §5.3.7, as guaranteed by the D27 rules of this specification.
 
-    ```
-    gnatprove --mode=prove --level=2 -P project.gpr
-    ```
+    *Informative note:* One validation method is submitting the emitted Ada/SPARK to GNATprove with `gnatprove --mode=prove --level=2 -P project.gpr`. A conforming implementation that emits Ada/SPARK shall produce output that passes AoRTE proof with no errors and no user-supplied annotations. If GNATprove requires a higher proof level, the proof level shall be increased until all checks are discharged.
 
-38. If GNATprove requires a higher proof level to discharge all checks, the proof level shall be increased until all checks are discharged. Proof timeouts are treated as failures unless explicitly documented with a mitigation plan.
+38. Proof timeouts, when using such a validation method, are treated as failures unless explicitly documented with a mitigation plan.
 
 39. This guarantee is achieved by the combination of compiler-generated SPARK annotations (§5.2) and the D27 language rules (§2.8). No Safe developer action is needed.
 

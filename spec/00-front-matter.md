@@ -24,6 +24,8 @@
    - Implementation advice (Section 7b)
    - The complete consolidated grammar (Section 8)
 
+> **Compatibility note (non-normative):** Earlier internal drafts required a C emission backend and OpenBSD as a primary target. These requirements are removed. This specification defines Safe as a language; mapping to specific toolchains is described in the reference implementation sections (§6.1.2, §6.4, §6.5).
+
 ---
 
 ## Normative References

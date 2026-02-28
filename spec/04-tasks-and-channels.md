@@ -56,9 +56,9 @@ The `sequence_of_statements` within the task body follows the grammar of Section
 
 4.11. Task startup ordering is specified in 4.7 (Task Startup).
 
-4.12. When a task begins executing, its body's `sequence_of_statements` is executed. The task continues executing until it completes normally (by reaching `end`), executes a `return` statement, or is terminated by program termination.
+4.12. When a task begins executing, its body's `sequence_of_statements` is executed. The task executes indefinitely until program termination. A conforming Safe program shall contain a non-terminating control structure (e.g., `loop ... end loop`) in every task body.
 
-4.13. A `return` statement within a task body terminates that task. The semantics of task termination are specified in 4.8 (Task Termination).
+4.13. `return` shall not appear within a task body. A conforming implementation shall reject any `return` statement within a task body.
 
 ---
 
@@ -319,33 +319,11 @@ This subsection specifies the no-shared-mutable-state rule, which is the fundame
 
 ---
 
-## 4.8 Task Termination
+## 4.8 Task Non-Termination
 
-4.78. A task terminates when:
-- (a) Execution reaches the `end` of its body (normal completion), or
-- (b) A `return` statement is executed within the task body.
+4.78. A task executes indefinitely until program termination. Reaching the `end` of a task body is erroneous; conforming Safe programs shall contain a non-terminating control structure (e.g., `loop ... end loop`) in every task body. A conforming implementation shall reject any task body that does not contain a syntactically non-terminating loop.
 
-4.79. Task termination goes beyond the Ravenscar profile (which requires tasks to be non-terminating) but is within the capabilities of the Jorvik profile (8652:2023 Annex D.13).
-
-4.80. A `return` statement within a task body shall not include an expression. A conforming implementation shall reject a `return` statement with an expression inside a task body. (Tasks do not return values.)
-
-### Owned Variable Inaccessibility
-
-4.81. After a task terminates, the package-level variables owned by that task remain allocated but shall not be accessed by any other task. Since the ownership rule (4.6) guarantees that no other task accesses these variables, this is automatically satisfied. The variables become effectively dead storage for the remainder of program execution.
-
-4.82. A non-task subprogram that accesses a variable owned by a terminated task may execute if called from a non-task context. The variable remains in its last-assigned state. However, such a call pattern is atypical -- the programmer should design the system so that task-owned variables are not accessed after the owning task terminates.
-
-### Channel Endpoint Behavior
-
-4.83. When a task terminates, channel endpoints remain valid. Specifically:
-
-(a) If the terminated task was the sole producer (sender) on a channel, the channel retains any elements already in its buffer. Receivers may continue to dequeue elements until the buffer is empty. After the buffer is empty, a `receive` on that channel will block indefinitely. A `try_receive` will set the `Boolean` result to `False`.
-
-(b) If the terminated task was the sole consumer (receiver) on a channel, senders may continue to enqueue elements until the buffer is full. After the buffer is full, a `send` on that channel will block indefinitely. A `try_send` will set the `Boolean` result to `False`.
-
-(c) The implementation does not automatically close or invalidate a channel when a task terminates. Channels persist for the lifetime of the program.
-
-4.84. A program in which a task blocks indefinitely on a channel that can never become ready (because the corresponding producer or consumer has terminated) is not erroneous, but represents a potential livelock or deadlock. Implementations should provide static analysis warnings for such patterns where detectable.
+4.79. This aligns with the Jorvik profile (8652:2023 Annex D.13), which includes `No_Task_Termination`. Safe tasks, like Ravenscar and Jorvik tasks, are designed to run for the lifetime of the program.
 
 ---
 
@@ -356,6 +334,8 @@ This subsection specifies how Safe's task and channel constructs map to the emit
 ### Jorvik Profile
 
 4.85. The emitted Ada shall include `pragma Profile (Jorvik)` (8652:2023 Annex D.13). If the Jorvik profile is not available for the target runtime, the implementation shall document the chosen alternative profile and any resulting restrictions, as specified in the Toolchain Baseline of this specification.
+
+4.85a. The emitted Ada shall also include `pragma Partition_Elaboration_Policy (Sequential)` (8652:2023 §10.2.1). This pragma ensures that all library-level elaboration completes before any task activation occurs, enforcing the guarantee of §4.7 that all package-level initialization completes before any task begins executing. This is required by SPARK for programs that use tasks or protected objects under the Jorvik profile.
 
 ### Task Emission
 

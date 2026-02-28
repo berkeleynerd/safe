@@ -245,8 +245,8 @@ This annex provides non-normative implementation advice for Safe compilers. The 
     is
       entry Send (Item : in <Element_Type>);
       entry Receive (Item : out <Element_Type>);
-      function Try_Send (Item : in <Element_Type>) return Boolean;
-      function Try_Receive (Item : out <Element_Type>) return Boolean;
+      procedure Try_Send (Item : in <Element_Type>; Success : out Boolean);
+      procedure Try_Receive (Item : out <Element_Type>; Success : out Boolean);
     private
       Buffer : array (0 .. <Capacity> - 1) of <Element_Type>;
       Count  : Natural := 0;

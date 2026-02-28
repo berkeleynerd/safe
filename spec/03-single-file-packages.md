@@ -276,6 +276,12 @@ The parentheses are mandatory and are part of the syntactic form. The colon toke
 
 28. Package-level variable initialization is accomplished through initializer expressions in `object_declaration` productions. These expressions may reference previously declared constants, variables, and functions within the same package or imported packages (see §3.4, paragraph 63).
 
+### Mandatory Package-Level Initialization
+
+28a. An `object_declaration` that is not a `constant` declaration and that appears directly in the declarative region of a `package_unit` shall include an initialization expression (`:= expression`). A conforming implementation shall reject a package-level variable declaration that omits the initialization expression. [Rationale: Safe packages have no `begin...end` elaboration block (paragraph 27), so the only mechanism for package-level initialization is the declaration-time expression.]
+
+28b. This rule does not apply to variable declarations within subprogram bodies or task bodies. Local variables may omit initializers; SPARK flow analysis enforces write-before-read for locals.
+
 ### Public Keyword Visibility Rules
 
 29. All declarations within a package are private by default. A declaration bearing the `public` keyword is visible to client packages that `with` the enclosing package. A declaration without the `public` keyword is visible only within the enclosing package.

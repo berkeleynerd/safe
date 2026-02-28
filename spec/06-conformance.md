@@ -6,13 +6,21 @@ This section specifies what constitutes a conforming Safe implementation, what c
 
 ## 6.1 Conforming Implementation
 
+### 6.1.1 Language Conformance
+
 1. A conforming implementation of the Safe language shall:
 
    (a) Accept every conforming Safe program as defined in §6.2.
 
    (b) Reject every program that violates a legality rule stated in this specification, with a diagnostic identifying the violated rule.
 
-   (c) Implement the single-pass compilation model described in §6.3.
+   (c) Implement the semantics defined by this specification, including the single-pass compilation model described in §6.3.
+
+### 6.1.2 Reference Implementation Requirements
+
+1a. *The requirements in this subsection apply to the reference implementation and are not general language conformance requirements. An alternative implementation that does not emit Ada/SPARK may conform to §6.1.1 without satisfying these requirements.*
+
+1b. The reference implementation shall additionally:
 
    (d) Emit Ada 2022 / SPARK 2022 source code that meets the requirements of §6.4.
 
@@ -54,7 +62,7 @@ This section specifies what constitutes a conforming Safe implementation, what c
 
 ### 6.3.2 Symbol Files
 
-8. The compiler shall produce a binary symbol file for each compiled package. The symbol file contains the information needed for separate compilation of dependent packages (see Section 3, §3.3).
+8. The compiler shall produce a symbol file for each compiled package. The symbol file contains the information needed for separate compilation of dependent packages (see Section 3, §3.3).
 
 9. The symbol file shall include: exported names, types (including size and alignment for opaque types), subprogram signatures, channel declarations, and a dependency fingerprint. The format shall be text-based (UTF-8, line-oriented, versioned header) for debuggability and diffability.
 
@@ -73,6 +81,8 @@ This section specifies what constitutes a conforming Safe implementation, what c
 ---
 
 ## 6.4 Emitted Ada Requirements
+
+*This section applies to implementations that translate Safe to Ada/SPARK (see §6.1.2).*
 
 ### 6.4.1 File Structure
 
@@ -161,6 +171,8 @@ This section specifies what constitutes a conforming Safe implementation, what c
 
 ## 6.5 Runtime Requirements
 
+*This section applies to implementations that translate Safe to Ada/SPARK (see §6.1.2).*
+
 32. The emitted Ada uses GNAT's Jorvik-profile runtime. No custom runtime is required for the Safe language.
 
 33. GNAT provides task scheduling, protected object implementation, delay support, and memory allocation. The Safe compiler's responsibility ends at emitting correct Jorvik-profile Ada.
@@ -204,7 +216,9 @@ This section specifies what constitutes a conforming Safe implementation, what c
 
 ## 6.8 Compiler Verification Requirement (D29)
 
-40. A conforming implementation shall be written in Ada 2022 / SPARK 2022.
+*This requirement applies to the reference implementation (see §6.1.2).*
+
+40. The reference implementation shall be written in Ada 2022 / SPARK 2022.
 
 41. All compiler source code shall pass GNATprove at Silver level (Absence of Runtime Errors) with no unproven checks. The build process is:
 
@@ -236,6 +250,8 @@ This section specifies what constitutes a conforming Safe implementation, what c
 ---
 
 ## 6.9 Emitted Ada Quality
+
+*This section applies to implementations that translate Safe to Ada/SPARK (see §6.1.2).*
 
 45. The emitted `.ads`/`.adb` files shall be:
 
@@ -273,19 +289,27 @@ This section specifies what constitutes a conforming Safe implementation, what c
 
 50. The following table summarizes the conformance requirements:
 
+**Language Conformance (§6.1.1) — required of all implementations:**
+
 | Requirement | Section | Normative Level |
 |------------|---------|-----------------|
-| Accept conforming programs | §6.1(a) | Shall |
-| Reject non-conforming programs with diagnostic | §6.1(b) | Shall |
+| Accept conforming programs | §6.1.1(a) | Shall |
+| Reject non-conforming programs with diagnostic | §6.1.1(b) | Shall |
+| Implement specified semantics | §6.1.1(c) | Shall |
 | Single-pass compilation | §6.3.1 | Shall |
 | Symbol file emission | §6.3.2 | Shall |
+| Stable diagnostics | §6.7.2 | Shall |
+| Incremental recompilation | §6.10 | Shall |
+
+**Reference Implementation (§6.1.2) — required of Ada/SPARK-emitting implementations:**
+
+| Requirement | Section | Normative Level |
+|------------|---------|-----------------|
 | Emit valid Ada 2022 / SPARK 2022 | §6.4.1 | Shall |
 | Generate Bronze annotations | §6.4.2 | Shall |
 | Enforce D27 for Silver | §6.4.2 | Shall |
 | Jorvik-profile tasking | §6.4.3 | Shall |
 | Wide intermediate arithmetic | §6.4.4 | Shall |
 | Automatic deallocation | §6.4.5 | Shall |
-| Stable diagnostics | §6.7.2 | Shall |
 | Compiler written in Silver SPARK | §6.8 | Shall |
 | Deterministic emitted Ada | §6.9(a) | Shall |
-| Incremental recompilation | §6.10 | Shall |
