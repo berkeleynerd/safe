@@ -195,7 +195,7 @@ Additionally, dereference of an access value requires the access subtype to be `
 
 **Rationale:** Dynamic data structures (linked lists, trees, buffer pools, process tables) are essential for OS construction and systems programming. SPARK 2022 solved the safety problem for access types by adopting Rust-style ownership semantics — each access value has exactly one owner, ownership transfers are explicit via move semantics on assignment, and borrowing/observing provide temporary access without ownership transfer. These rules are enforced at compile time by local analysis (no whole-program reasoning), which is compatible with separate compilation. Safe retains the full SPARK 2022 ownership model for access-to-object types, including the extended access type kinds added in SPARK 2022 (anonymous access for local borrowing/observing, general access with ownership checking, named access-to-constant exempt from ownership). Excluding access-to-subprogram types eliminates indirect calls, preserving the property that every call resolves statically.
 
-**Drafting constraint:** In the generated LRM, specify all ownership and borrowing legality rules in Safe terms, following the SPARK 2022 ownership model as defined in the SPARK RM and SPARK User's Guide. You may cite SPARK RM/UG as the authoritative design reference for the ownership checking rules. Define borrowing, observing, moving, and reborrowing precisely for each access type kind, consistent with the SPARK 2022 semantics described in SPARK UG §5.9.
+**Drafting constraint:** In the generated LRM, specify all ownership and borrowing legality rules directly in Safe terms. The Safe LRM shall be self-contained: a reader shall not need to consult any external (non-ISO) specification to determine Safe's legality rules or semantics. You may cite SPARK RM/UG as informative precedent for the design of ownership checking rules, but the Safe LRM shall not define its semantics by reference to SPARK documents. Define borrowing, observing, moving, and reborrowing precisely for each access type kind, including all corner cases needed for a self-contained legality specification (scope exit, early return, goto interactions, reborrowing depth).
 
 ### D18. No Tagged Types or Dynamic Dispatch
 
@@ -522,7 +522,7 @@ channel Readings : Reading capacity 16;
 channel Commands : Command capacity 4;
 ```
 
-The element type must be a definite type (not unconstrained). The capacity is a static expression — known at compile time, so the buffer is statically allocated. Channels may be declared `public` for cross-package communication.
+The element type must be a definite type (not unconstrained). The capacity is a static expression — known at compile time, so the required storage bound for any channel is fixed for a given program. The allocation strategy (static, pre-allocated heap, or other) is implementation-defined. Channels may be declared `public` for cross-package communication.
 
 **Channel operations:**
 
@@ -670,7 +670,7 @@ spec/
 - Terms and definitions (reference 8652:2023 §1.3, state only additions/modifications)
 - Method of description (reference 8652:2023 §1.1.4 — use their BNF notation)
 - Summary of design decisions (reference this document's D1–D28)
-- **TBD Register** — the following items are acknowledged as unresolved and reserved for future specification revisions:
+- **TBD Register** — the following items are acknowledged as unresolved and reserved for future specification revisions. Each item should be resolved before baselining. When resolution ownership is assigned, annotate each item with: owner, resolution plan, and target milestone.
   - Target platform constraints beyond "Ada compiler exists"
   - Performance targets (compile time, proof time, code size)
   - Memory model constraints (stack bounds, heap bounds, allocation failure handling)
@@ -682,6 +682,9 @@ spec/
   - Deadlock freedom: determine whether additional language restrictions (e.g., static communication topology analysis, channel-dependency ordering, prohibition of blocking send) can provide a language-level deadlock-freedom guarantee. Currently, only data-race freedom is guaranteed by construction.
   - Numeric model: required ranges/representation assumptions for predefined integer types given the 64-bit signed bound in D27 Rule 1
   - Automatic deallocation semantics for owned access objects (ordering at scope exit, interaction with early return/goto, multiple owned objects exiting scope simultaneously)
+  - Modular arithmetic wrapping semantics: Safe retains modular types (D23) but D27's wide intermediate arithmetic applies only to signed integer types. Modular types wrap silently by Ada's definition. Evaluate whether non-wrapping should be the default for modular types (with explicit opt-in for intentional wrapping), extending Silver coverage to modular arithmetic. SPARK 21 (`No_Wrap_Around`) and SPARK 25 (`No_Bitwise_Operations`) provide design precedent. High priority — natural extension of D27's philosophy.
+  - Limited/private type views across packages: D7 prohibits circular `with` dependencies to simplify elaboration ordering. SPARK 26's `with type` mechanism provides named type views without full package dependency, which could relax this restriction surgically without creating elaboration-order hazards. Evaluate whether a limited type-view mechanism fits Safe's single-file package model.
+  - Partial initialisation facility: Safe currently requires full initialisation at declaration (supporting the Silver guarantee without contracts). For systems-programming patterns (buffers, arenas, staged construction), evaluate whether a Safe-level uninitialised/maybe-initialised facility can preserve Silver without requiring developer-authored proof annotations. SPARK 21–24's `Relaxed_Initialization` and `Initialized` aspects provide design precedent. Note: this may require a proof mechanism Safe currently lacks; feasibility depends on whether initialisation can be tracked through Safe's type system alone.
 - **Normative/informative status**: State this file's status (normative). State that §07-annex-b is informative. State that all code examples are non-normative unless explicitly labeled otherwise.
 
 ### 01-base-definition.md
@@ -748,7 +751,7 @@ Do this for every exclusion. Be exhaustive. Cross-reference related exclusions.
 - `Unchecked_Access` attribute is excluded
 - `Unchecked_Deallocation` is excluded
 - `'Access` attribute is retained for uses consistent with SPARK 2022 ownership rules
-- Reference the SPARK RM and SPARK UG §5.9 ownership rules; specify how they apply in Safe's single-file package model
+- Specify Safe ownership rules directly and self-containedly within this LRM. Use SPARK RM/UG §5.9 as informative design precedent, but do not define Safe semantics by reference to SPARK documents. State how Safe ownership rules apply in Safe's single-file package model.
 
 **Contract exclusions:** List every excluded contract aspect with a reference to its 8652:2023 or SPARK RM definition and the rationale "replaced by pragma Assert; Bronze and Silver assurance guaranteed by D26/D27 language rules."
 
@@ -790,7 +793,7 @@ Full specification of the single-file package model. Use Ada RM section conventi
 Full specification of Safe's concurrency model.
 
 - **Task declarations** — syntax, static constraints (one task per declaration, package-level only), priority assignment, task body scoping rules
-- **Channel declarations** — syntax, element type constraints (must be definite), capacity as static expression, static allocation of channel buffers
+- **Channel declarations** — syntax, element type constraints (must be definite), capacity as static expression (storage bound fixed at compile time; allocation strategy is implementation-defined)
 - **Channel operations** — `send`, `receive`, `try_send`, `try_receive` semantics, blocking behavior, interaction with task priorities
 - **Select statement** — syntax, receive-only restriction, deterministic arm selection (first-ready wins), delay timeout semantics
 - **Task-variable ownership** — the no-shared-mutable-state rule as a legality rule: each package-level variable shall be accessed by at most one task (transitively through the call graph). Specify that cross-package transitivity uses effect summaries from dependency interface information (see §03 Static Semantics). The ownership check shall be completable from the compilation unit's source plus its direct and transitive dependency interface information, without access to dependency source code.

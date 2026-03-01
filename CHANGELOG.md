@@ -797,3 +797,57 @@ return Integer(R) / Divisor;
 - Propagated D26 precision fix to D27 combined effect table and §06 conformance Silver bullet
 - "type information alone" → "static type and range information derivable from the program text" (2 edits)
 - Consistency check: zero occurrences of "type information alone" remain
+
+---
+
+## Round 7
+
+ECMA-track fitness fixes: self-containment of normative references and implementation-strategy neutrality. No technical design decisions changed.
+
+### P0-R7-1. SPARK References: "Authoritative" → "Informative Precedent"
+
+**Problem:** D17 drafting constraint and §02 restrictions drafting instructions told the drafter to treat SPARK RM/UG as "authoritative" for ownership rules. For ECMA submission, the generated Safe LRM must be self-contained — its legality rules cannot depend on external non-ISO vendor documentation.
+
+**Changes (2 edits):**
+- D17 Drafting constraint: "You may cite SPARK RM/UG as the authoritative design reference" → "You may cite SPARK RM/UG as informative precedent"; added "The Safe LRM shall be self-contained: a reader shall not need to consult any external (non-ISO) specification"; added corner-case coverage requirement (scope exit, early return, goto interactions, reborrowing depth)
+- §02 access types instruction: "Reference the SPARK RM and SPARK UG §5.9 ownership rules" → "Specify Safe ownership rules directly and self-containedly within this LRM. Use SPARK RM/UG §5.9 as informative design precedent"
+
+### P0-R7-2. Channel Buffer: "Statically Allocated" → Observable Property
+
+**Problem:** D28 said channel buffers are "statically allocated." This prescribes an allocation strategy. Language standards define observable properties, not implementation strategies.
+
+**Changes (2 edits):**
+- D28 Channel declarations: "the buffer is statically allocated" → "the required storage bound for any channel is fixed for a given program. The allocation strategy (static, pre-allocated heap, or other) is implementation-defined"
+- §04 Channel declarations instruction: "static allocation of channel buffers" → "storage bound fixed at compile time; allocation strategy is implementation-defined"
+
+### P1-R7-1. TBD Register Discipline
+
+**Problem:** TBD register had no ownership, resolution plan, or target milestone tracking.
+
+**Change (1 edit):**
+- §00 TBD register heading: added "Each item should be resolved before baselining. When resolution ownership is assigned, annotate each item with: owner, resolution plan, and target milestone."
+
+### P2-R7-1. TBD Register — New Items from SPARK 21–26 Feature Review
+
+**Problem:** A review of SPARK 21–26 release features identified three capabilities that Safe's current design does not address. Added to TBD register for tracking.
+
+**Change (1 edit):**
+- §00 TBD register: added three items:
+  - Modular arithmetic wrapping semantics (annotated "High priority" — natural extension of D27's philosophy; SPARK 21 `No_Wrap_Around` and SPARK 25 `No_Bitwise_Operations` as design precedent)
+  - Limited/private type views across packages (SPARK 26 `with type` mechanism as design precedent)
+  - Partial initialisation facility (SPARK 21–24 `Relaxed_Initialization` and `Initialized` aspects as design precedent)
+
+---
+
+## Round 7 Consistency Pass
+
+1. **"authoritative" only refers to Safe grammar (§08), not SPARK.** ✓
+2. **D17 drafting constraint says "self-contained."** ✓
+3. **D17 says "informative precedent," not "authoritative design reference."** ✓
+4. **§02 says "Use SPARK RM/UG §5.9 as informative design precedent."** ✓
+5. **Zero "statically allocated" in channel text; "implementation-defined" present.** ✓
+6. **§04 channel instruction updated to "storage bound fixed at compile time; allocation strategy is implementation-defined."** ✓
+7. **TBD register heading includes "owner, resolution plan, and target milestone."** ✓
+8. **No new GNAT/GNATprove references.** ✓
+9. **Reference Documents section still lists SPARK RM and UG (correctly, as drafter resources).** ✓
+10. **New TBD items present:** modular arithmetic wrapping semantics (with "High priority" annotation), limited/private type views, partial initialisation facility. ✓
