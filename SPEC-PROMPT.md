@@ -64,6 +64,8 @@ The emitted Ada maps these to Ada-legal identifiers (e.g., `channel Readings` em
 
 ---
 
+## Design Decisions and Rationale
+
 This section records every design decision made during the language design process, with rationale. These decisions are final. Do not revisit or propose alternatives.
 
 ### D1. Subtractive Language Definition
@@ -205,7 +207,7 @@ Additionally, dereference of an access value requires the access subtype to be `
 - `Unchecked_Access` and `Unchecked_Deallocation` are excluded from Safe source.
 - All ownership checking is local to the compilation unit — no whole-program analysis. This is compatible with SPARK's ownership model, which is also local.
 
-**Implementation note (deallocation emission):** The emitted Ada uses `Ada.Unchecked_Deallocation` generic instantiations to implement automatic deallocation when the owning object goes out of scope. The exclusion of generics (D16) applies to Safe source, not emitted Ada. Deallocation calls must be emitted at every scope exit point, including early `return` statements and loop `exit` statements, not just the textual end of the scope. GNATprove's leak checking on the emitted Ada provides independent verification that the compiler's deallocation logic is complete.
+**Implementation note (deallocation emission):** The emitted Ada uses `Ada.Unchecked_Deallocation` generic instantiations to implement automatic deallocation when the owning object goes out of scope. The exclusion of generics (D16) applies to Safe source, not emitted Ada. Deallocation calls must be emitted at every scope exit point, including early `return` statements, loop `exit` statements, and `goto` statements that leave the scope, not just the textual end of the scope. GNATprove's leak checking on the emitted Ada provides independent verification that the compiler's deallocation logic is complete.
 
 **Rationale:** Dynamic data structures (linked lists, trees, buffer pools, process tables) are essential for OS construction and systems programming. SPARK 2022 solved the safety problem for access types by adopting Rust-style ownership semantics — each access value has exactly one owner, ownership transfers are explicit via move semantics on assignment, and borrowing/observing provide temporary access without ownership transfer. These rules are enforced at compile time by local analysis (no whole-program reasoning), which is compatible with single-pass compilation. Excluding access-to-subprogram types eliminates indirect calls, preserving the property that every call resolves statically.
 
@@ -342,9 +344,9 @@ All integer arithmetic expressions are evaluated in a mathematical integer type 
 
 If the static range of any declared type in the program exceeds 64-bit signed range, the compiler shall reject the program. This is a legality rule, not a silent truncation. In practice, all Safe integer types will fit within 64 bits.
 
-**Intermediate overflow legality rule:** If the implementation's interval analysis determines that any intermediate `Wide_Integer` subexpression in an expression could overflow 64-bit signed range (e.g., chained multiplications of types with ranges approaching 32 bits), the expression shall be rejected with a diagnostic. This ensures the "no intermediate overflow" guarantee holds universally, not just for small-range types.
+**Intermediate overflow legality rule:** For types whose range fits within 32 bits, intermediate `Wide_Integer` arithmetic cannot overflow for single operations. For chained operations or types with larger ranges (e.g., products of two values near the 32-bit boundary), intermediate `Wide_Integer` subexpressions may approach the 64-bit bounds. If the implementation's interval analysis determines that any intermediate `Wide_Integer` subexpression in an expression could overflow 64-bit signed range, the expression shall be rejected with a diagnostic. This ensures the "no intermediate overflow" guarantee holds universally, not just for small-range types. Narrowing checks at assignment, return, and parameter points are discharged via interval analysis on the wide result.
 
-This means `A + B` where `A, B : Reading` (0..4095) computes in `Wide_Integer` — the intermediate result 8190 does not overflow. A range check fires only if the result is stored back into a `Reading`. For types whose range fits within 32 bits, intermediate `Wide_Integer` arithmetic cannot overflow for single operations. For chained operations or types with larger ranges (e.g., products of two values near the 32-bit boundary), intermediate `Wide_Integer` subexpressions may approach the 64-bit bounds. If the implementation's analysis determines that any intermediate `Wide_Integer` subexpression could overflow, the expression shall be rejected with a diagnostic. Narrowing checks at assignment, return, and parameter points are discharged via interval analysis on the wide result.
+This means `A + B` where `A, B : Reading` (0..4095) computes in `Wide_Integer` — the intermediate result 8190 does not overflow. A range check fires only if the result is stored back into a `Reading`.
 
 Example:
 
@@ -943,7 +945,7 @@ Implementation advice covering:
 - **Incremental recompilation:** Rules for when a symbol file change triggers recompilation of dependent units. Specify the fingerprinting strategy.
 - **Emitted Ada quality:** The emitted Ada should be human-readable and suitable for manual inspection, Gold/Platinum annotation, and DO-178C certification review.
 - **Elaboration and tasking configuration:** The emitted Ada shall include `pragma Partition_Elaboration_Policy(Sequential)` in the configuration file. This defers library-level task activation until all library units are elaborated, preventing elaboration-time data races. SPARK requires this pragma for programs using tasks or protected objects under Ravenscar/Jorvik profiles.
-- **Deallocation emission:** The emitted Ada uses `Ada.Unchecked_Deallocation` generic instantiations for automatic deallocation of owned access objects at scope exit. The exclusion of generics (D16) applies to Safe source only, not emitted Ada. The compiler must emit deallocation at every scope exit point: normal scope end, early `return`, and loop `exit`. GNATprove's leak checking on the emitted Ada independently verifies completeness of the compiler's deallocation logic.
+- **Deallocation emission:** The emitted Ada uses `Ada.Unchecked_Deallocation` generic instantiations for automatic deallocation of owned access objects at scope exit. The exclusion of generics (D16) applies to Safe source only, not emitted Ada. The compiler must emit deallocation at every scope exit point: normal scope end, early `return`, loop `exit`, and `goto` that leaves the scope. GNATprove's leak checking on the emitted Ada independently verifies completeness of the compiler's deallocation logic.
 
 ### 08-syntax-summary.md
 
