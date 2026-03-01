@@ -49,9 +49,9 @@ Per §06 requirements, two conformance levels were defined:
 
 This separation preserves flexibility for implementations at different maturity levels while maintaining the safety story.
 
-### 5. Abstract/Limited in Grammar
+### 5. Abstract/Limited in Grammar — Revised
 
-The grammar in §08 retains `[ 'abstract' ] 'limited'` in `record_type_definition` because this production is inherited from the 8652:2023 base. Since abstract types are excluded (D18), the legality rules in §02 reject any use of `abstract`. The grammar production is technically unreachable but was retained to avoid creating a confusing divergence from 8652:2023's production structure. This is flagged in FINDINGS.md.
+The grammar in §08 originally retained `[ 'abstract' ] 'limited'` in `record_type_definition` to avoid diverging from the 8652:2023 production structure. On review, this was inconsistent with the treatment of every other excluded feature (generics, tagged types, exceptions, etc.), whose productions were removed from §08 rather than retained and rejected by legality rules. The production has been corrected to `[ 'limited' ] record_definition`. The `abstract` keyword remains reserved per the all-reserved-words policy, and §02 paragraph 7 continues to reject abstract type declarations.
 
 ### 6. Task Non-Termination Strictness
 

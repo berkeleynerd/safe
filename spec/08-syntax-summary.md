@@ -156,7 +156,7 @@ component_definition ::=
   | [ 'aliased' ] access_definition
 
 record_type_definition ::=
-    [ [ 'abstract' ] 'limited' ] record_definition
+    [ 'limited' ] record_definition
   | [ 'public' ] 'type' defining_identifier 'is' 'private' record_definition
 
 record_definition ::=

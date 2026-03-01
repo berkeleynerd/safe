@@ -4,15 +4,13 @@
 
 ---
 
-## F1. `abstract` in Grammar Despite Being Excluded
+## F1. `abstract` in Grammar Despite Being Excluded — RESOLVED
 
 **Location:** D18 (No Tagged Types), D23 (Retained Ada Features)
 
 **Issue:** The 8652:2023 grammar for `record_type_definition` includes `[ 'abstract' ] 'limited'` as an optional prefix. Since abstract types are excluded by D18, the `abstract` keyword should not appear in the Safe grammar's record type productions. However, removing it creates a divergence from the 8652:2023 production structure that could confuse readers comparing the two grammars.
 
-**Decision taken:** Retained in grammar; excluded by legality rule in §02. This is consistent but slightly inelegant.
-
-**Recommendation:** Add an explicit note in SPEC-PROMPT.md §D18 or §08 instructions that `abstract` should be removed from grammar productions since the legality rule makes it unreachable.
+**Resolution:** Removed `abstract` from the `record_type_definition` production in §08 (syntax summary). The production now reads `[ 'limited' ] record_definition`. The `abstract` keyword remains reserved (per the policy that all Ada 2022 reserved words stay reserved in Safe) but no longer appears in any grammar production. The §02 paragraph 7 legality rule rejecting `abstract` type declarations is unchanged — it now serves as belt-and-suspenders reinforcement rather than the sole enforcement mechanism. This is consistent with how every other excluded feature (generics, tagged types, exceptions, etc.) was handled: productions removed from §08, legality rules in §02 for completeness.
 
 ---
 
