@@ -64,8 +64,8 @@ if [[ ! -f "${PROVE_OUT}" ]]; then
     echo "         Run gnatprove before diffing. Skipping proof summary check."
     echo ""
 else
-    # Extract the summary block (first 19 lines of gnatprove.out)
-    CURRENT_SUMMARY=$(head -n 19 "${PROVE_OUT}")
+    # Extract the summary block (from "Summary of SPARK" through "Total" line)
+    CURRENT_SUMMARY=$(sed -n '/^Summary of SPARK/,/^Total/p' "${PROVE_OUT}")
 
     if [[ -f "${PROVE_GOLDEN}" ]]; then
         GOLDEN_SUMMARY=$(cat "${PROVE_GOLDEN}")
@@ -87,14 +87,14 @@ else
             diff <(cat "${PROVE_GOLDEN}") <(echo "${CURRENT_SUMMARY}") || true
             echo ""
             echo "To accept the new summary:"
-            echo "  head -n 19 ${PROVE_OUT} > ${PROVE_GOLDEN}"
+            echo "  sed -n '/^Summary of SPARK/,/^Total/p' ${PROVE_OUT} > ${PROVE_GOLDEN}"
             echo "  git add ${PROVE_GOLDEN} && git commit"
             echo ""
             DRIFT_DETECTED=1
         fi
     else
         echo "No golden proof summary found. Creating initial baseline."
-        echo "${CURRENT_SUMMARY}" > "${PROVE_GOLDEN}"
+        printf '%s\n' "${CURRENT_SUMMARY}" > "${PROVE_GOLDEN}"
         echo "Saved: ${PROVE_GOLDEN}"
         echo ""
     fi
