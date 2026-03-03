@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# GNAT / Ada compiler artifacts
+*.o
+*.ali
+*.bexch
+
+# GNATprove build output (Object_Dir)
+companion/gen/obj/
+
+# Alire
+alire/
+config/
+
+# Python
+__pycache__/
+*.pyc

@@ -302,7 +302,7 @@ The companion relies on GNATprove Silver verification (Bronze flow + Silver proo
 |-------|--------|
 | No secrets in tracked files | PASS -- no API keys, tokens, or credentials |
 | No binary blobs | PASS -- all files are text |
-| `.gitignore` present | PASS |
+| `.gitignore` present | PASS -- added; excludes obj/, *.o, *.ali, .DS_Store |
 | License/copyright headers | All SPARK files have generator headers |
 | No unreferenced stale files | PASS -- all files referenced by at least one artifact |
 

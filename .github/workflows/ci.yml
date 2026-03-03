@@ -34,7 +34,7 @@ jobs:
       - name: Install Alire
         uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
         with:
-          toolchain: gnat_native=14.2.1 gprbuild=24.0.0
+          toolchain: gnat_native=14.2.1 gprbuild=24.0.1
 
       - name: Install GNATprove
         run: |
