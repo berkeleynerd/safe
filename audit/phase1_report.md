@@ -331,9 +331,9 @@ Every golden assertion has a corresponding or stronger template precondition/hoo
 
 | Line | Old | New | Rationale |
 |------|-----|-----|-----------|
-| 33 | `...--warnings=on` | CI adds `--warnings=error`; default is `--warnings=on`, overridden on command line | Clarify CI behavior vs project default |
+| 33 | `...--warnings=on` | `--warnings=error` | Unified to `--warnings=error` throughout |
 
-**Note:** Lines 42, 103, and 370 show `--warnings=on` for `companion.gpr` — these are accurate for the project file and are not changed. The templates.gpr Prove package already has `--warnings=error`.
+**Note:** Lines 42, 103, and 370 now also use `--warnings=error` for `companion.gpr`, matching the `templates.gpr` Prove package and the CI configuration.
 
 ---
 

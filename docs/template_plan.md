@@ -111,8 +111,12 @@ Alire dependencies are required.
   Hooks: `Not_Null_Ptr`, `Safe_Deref`.
 
 ### M3: Channel + Concurrency Templates
-- Add `gnat.adc` with Jorvik profile + Sequential elaboration pragmas
-- Verify M1/M2 templates still pass under Jorvik
+- ~~Add `gnat.adc` with Jorvik profile + Sequential elaboration pragmas~~ —
+  **Deferred.** Templates verify functional properties using a sequential proof
+  model; `gnat.adc` (`pragma Profile(Jorvik)` and
+  `pragma Partition_Elaboration_Policy(Sequential)`) is a compiler-output
+  artifact generated per `compiler/translation_rules.md` Section 12
+  (lines 942-943), not a template artifact. All 184 VCs prove without it.
 - `template_channel_fifo.ads/.adb` — Protected object bounded FIFO with
   ceiling priority. Hooks: `Check_Channel_Not_Full`, `Check_Channel_Not_Empty`,
   `Check_Channel_Capacity_Positive`. Expected ~15-25 VCs.

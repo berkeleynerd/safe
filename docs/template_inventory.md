@@ -49,3 +49,31 @@ under the existing companion assumptions (see `companion/assumptions.yaml`).
 | ID | Description | Clause | Introduced |
 |----|-------------|--------|------------|
 | —  | (none)      | —      | —          |
+
+## Coverage Boundary (M0–M4 vs M5–M7)
+
+This inventory covers the **M0–M4 template suite**. The table below maps
+`compiler/translation_rules.md` sections to template coverage status.
+
+**Covered by M0–M4 templates:**
+
+| Rule / Section | Clauses | Template(s) |
+|---------------|---------|-------------|
+| Rule 1 — Wide arithmetic & narrowing | 2.8.1.p126-p130, 5.3.6.p25 | `template_wide_arithmetic` |
+| Rule 2 — Safe indexing | 2.8.2.p131-p132, 5.3.1.p12 | `template_index_safety` |
+| Rule 3 — Safe division | 2.8.3.p133-p134, 5.3.1.p12 | `template_division_nonzero` |
+| Rule 4 — Not-null dereference | 2.8.4.p136, 5.3.1.p12 | `template_not_null_deref` |
+| §2.3 — Ownership (move, scope dealloc) | 2.3.2.p96a-p96c, 2.3.5.p104 | `template_ownership_move`, `template_scope_dealloc` |
+| §4.2-4.3 — Channel FIFO | 4.2.p15, 4.3.p27-p31 | `template_channel_fifo` |
+| §4.5 — Task declaration | 4.5.p45, 5.4.1.p32-p33 | `template_task_decl` |
+
+**Deferred to M5–M7 (see `docs/template_plan.md`):**
+
+| Rule / Section | Clauses | Planned Template | Milestone |
+|---------------|---------|-----------------|-----------|
+| §5.2 — Effect summaries | 5.2.p5, 5.2.2.p6, 5.2.3.p10, 5.2.4.p11 | `template_effect_summary` | M5 |
+| §3.1 — Package structure | 3.1.p1, 3.1.p6-p7, 3.2.6.p21-p24, 2.9.p140 | `template_package_structure` | M5 |
+| §4.4 — Select polling | 4.4.p32-p44, 4.4.p39, 4.4.p41-p42 | `template_select_polling` | M6 |
+| Rule 5 — FP safety | 2.8.5.p139-p139e, 5.3.7a.p28a | `template_fp_safety` | M6 |
+| §2.3 — Borrow & observe | 2.3.3.p99b, 2.3.4a.p102a | `template_borrow_observe` | M6 |
+| Rule 1 — Narrow conversion | 2.8.1.p127, 2.8.1.p130 | `template_narrow_conversion` | M7 |

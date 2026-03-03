@@ -1,6 +1,6 @@
 # Safe Companion -- Extracted Assumptions
 # Generated: 2026-03-03T21:35:20Z
-# Source: /Users/agentc1/src/github.com/agentc1/safe/companion/templates/obj/gnatprove
+# Source: companion/templates/obj/gnatprove
 #
 # This file lists all assumptions extracted from GNATprove output.
 # Compare against companion/assumptions.yaml to detect drift.

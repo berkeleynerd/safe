@@ -52,7 +52,7 @@ echo ""
 {
     echo "# Safe Companion -- Extracted Assumptions"
     echo "# Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    echo "# Source: ${PROVE_OUT}"
+    echo "# Source: ${PROVE_OUT#"${REPO_ROOT}"/}"
     echo "#"
     echo "# This file lists all assumptions extracted from GNATprove output."
     echo "# Compare against companion/assumptions.yaml to detect drift."
