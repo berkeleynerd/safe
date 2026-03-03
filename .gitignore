@@ -8,6 +8,7 @@
 
 # GNATprove build output (Object_Dir)
 companion/gen/obj/
+companion/templates/obj/
 
 # Alire
 alire/

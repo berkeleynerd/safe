@@ -1,0 +1,30 @@
+--  Safe Language Verified Emission Templates -- GNAT Project File
+--  Compilable, provable SPARK packages demonstrating each emission pattern
+--  from the Safe Language compiler, wired to Safe_PO proof hooks.
+
+project Templates is
+
+   for Source_Dirs use ("./", "../spark/");
+   for Object_Dir use "obj/";
+   for Main use ();
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnat2022",       --  Ada 2022 language level
+         "-gnatwa",         --  All warnings enabled
+         "-gnatwe",         --  Warnings as errors
+         "-gnata",          --  Enable assertions
+         "-gnatVa",         --  All validity checks
+         "-gnatyg",         --  GNAT style checks
+         "-gnatQ");         --  Generate ALI even on errors (for tool usage)
+   end Compiler;
+
+   package Prove is
+      for Proof_Switches ("Ada") use
+        ("--mode=prove",
+         "--level=2",
+         "--report=all",
+         "--warnings=on");
+   end Prove;
+
+end Templates;

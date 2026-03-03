@@ -1,0 +1,6 @@
+name = "templates"
+description = "Safe Language Verified Emission Templates"
+version = "0.1.0"
+authors = ["Safe Companion Team"]
+maintainers = ["Safe Companion Team <safe@example.com>"]
+maintainers-logins = ["berkeleynerd"]

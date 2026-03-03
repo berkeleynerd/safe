@@ -1,0 +1,135 @@
+=========================
+Summary of SPARK analysis
+=========================
+
+---------------------------------------------------------------------------------------------------
+SPARK Analysis results        Total        Flow                      Provers   Justified   Unproved
+---------------------------------------------------------------------------------------------------
+Data Dependencies                 .           .                            .           .          .
+Flow Dependencies                 .           .                            .           .          .
+Initialization                   12          12                            .           .          .
+Non-Aliasing                      .           .                            .           .          .
+Run-time Checks                  32           .                    31 (CVC5)           1          .
+Assertions                        9           .                     9 (CVC5)           .          .
+Functional Contracts             78           .    78 (CVC5 99%, Trivial 1%)           .          .
+LSP Verification                  .           .                            .           .          .
+Termination                      41          41                            .           .          .
+Concurrency                       .           .                            .           .          .
+---------------------------------------------------------------------------------------------------
+Total                           172    53 (31%)                    118 (69%)      1 (1%)          .
+
+
+max steps used for successful proof: 2
+
+============================
+Most difficult proved checks
+============================
+
+No check found with max time greater than 1 second
+
+========================
+Detailed analysis report
+========================
+
+Analyzed 11 units
+in unit safe_model, 26 subprograms and packages out of 26 analyzed
+  Safe_Model at safe_model.ads:17 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.After_Append at safe_model.ads:149 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (6 checks)
+  Safe_Model.After_Remove at safe_model.ads:158 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (5 checks)
+  Safe_Model.Assign_Owner at safe_model.ads:300 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Safe_Model.Cap at safe_model.ads:144 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Contains at safe_model.ads:42 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Excludes_Zero at safe_model.ads:71 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Exclusive_Owner at safe_model.ads:273 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Intersect at safe_model.ads:54 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Accessible at safe_model.ads:193 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Borrowable at safe_model.ads:211 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Dereferenceable at safe_model.ads:200 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Empty at safe_model.ads:134 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Full at safe_model.ads:139 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Movable at safe_model.ads:205 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Observable at safe_model.ads:217 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Unowned at safe_model.ads:284 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Valid_Channel at safe_model.ads:125 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Valid_Range at safe_model.ads:37 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Is_Valid_Transition at safe_model.ads:223 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Len at safe_model.ads:129 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Make_Channel at safe_model.ads:167 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (2 checks)
+  Safe_Model.No_Shared_Variables at safe_model.ads:313 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Owner_Of at safe_model.ads:292 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Subset at safe_model.ads:48 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_Model.Widen at safe_model.ads:64 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit safe_po, 24 subprograms and packages out of 24 analyzed
+  Safe_PO at safe_po.ads:19 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Borrow_Exclusive at safe_po.ads:287 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Channel_Capacity_Positive at safe_po.ads:335 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Channel_Not_Empty at safe_po.ads:325 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Channel_Not_Full at safe_po.ads:314 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Exclusive_Ownership at safe_po.ads:353 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Not_Moved at safe_po.ads:267 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Observe_Shared at safe_po.ads:297 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Check_Owned_For_Move at safe_po.ads:277 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.FP_Not_Infinity at safe_po.ads:230 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.FP_Not_NaN at safe_po.ads:218 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.FP_Safe_Div at safe_po.ads:243 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+   Justified check messages:
+    safe_po.adb:220:14: float overflow check justified (marked as: intentional, reason: "A-05: The compiler ensures the result is finite at narrowing points via range analysis.  See companion/assumptions.yaml A-05.")
+  Safe_PO.Narrow_Assignment at safe_po.ads:52 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Safe_PO.Narrow_Conversion at safe_po.ads:104 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Safe_PO.Narrow_Indexing at safe_po.ads:91 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Safe_PO.Narrow_Parameter at safe_po.ads:65 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Safe_PO.Narrow_Return at safe_po.ads:78 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Safe_PO.Nonzero at safe_po.ads:146 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Not_Null_Ptr at safe_po.ads:189 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Safe_Deref at safe_po.ads:199 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Safe_Div at safe_po.ads:37 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (5 checks)
+  Safe_PO.Safe_Index at safe_po.ads:125 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Safe_PO.Safe_Mod at safe_po.ads:156 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+  Safe_PO.Safe_Rem at safe_po.ads:168 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+in unit safe_runtime, 1 subprograms and packages out of 1 analyzed
+  Safe_Runtime at safe_runtime.ads:14 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit template_channel_fifo, 8 subprograms and packages out of 8 analyzed
+  Template_Channel_FIFO at template_channel_fifo.ads:32 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Channel_FIFO.Is_Empty at template_channel_fifo.ads:68 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Channel_FIFO.Is_Full at template_channel_fifo.ads:72 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Channel_FIFO.Is_Valid at template_channel_fifo.ads:56 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Channel_FIFO.Length at template_channel_fifo.ads:76 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Channel_FIFO.Make at template_channel_fifo.ads:62 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (2 checks)
+  Template_Channel_FIFO.Receive at template_channel_fifo.ads:87 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+  Template_Channel_FIFO.Send at template_channel_fifo.ads:80 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+in unit template_division_nonzero, 5 subprograms and packages out of 5 analyzed
+  Template_Division_Nonzero at template_division_nonzero.ads:19 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Division_Nonzero.Divide at template_division_nonzero.ads:25 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (5 checks)
+  Template_Division_Nonzero.Half at template_division_nonzero.ads:51 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+  Template_Division_Nonzero.Modulo at template_division_nonzero.ads:34 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+  Template_Division_Nonzero.Remainder at template_division_nonzero.ads:42 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+in unit template_index_safety, 5 subprograms and packages out of 5 analyzed
+  Template_Index_Safety at template_index_safety.ads:21 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Index_Safety.Read_At at template_index_safety.ads:43 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+  Template_Index_Safety.Read_First at template_index_safety.ads:35 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+  Template_Index_Safety.Safe_Read_At at template_index_safety.ads:50 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+  Template_Index_Safety.Sum at template_index_safety.ads:39 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (5 checks)
+in unit template_not_null_deref, 4 subprograms and packages out of 4 analyzed
+  Template_Not_Null_Deref at template_not_null_deref.ads:21 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Not_Null_Deref.Deref_Read at template_not_null_deref.ads:33 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (2 checks)
+  Template_Not_Null_Deref.Deref_Write at template_not_null_deref.ads:38 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+  Template_Not_Null_Deref.Safe_Read at template_not_null_deref.ads:46 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (2 checks)
+in unit template_ownership_move, 4 subprograms and packages out of 4 analyzed
+  Template_Ownership_Move at template_ownership_move.ads:26 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Ownership_Move.Move at template_ownership_move.ads:43 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (2 checks)
+  Template_Ownership_Move.Read_Value at template_ownership_move.ads:56 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Template_Ownership_Move.To_State at template_ownership_move.adb:14 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit template_scope_dealloc, 4 subprograms and packages out of 4 analyzed
+  Template_Scope_Dealloc at template_scope_dealloc.ads:18 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Scope_Dealloc.Dealloc at template_scope_dealloc.adb:26 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (1 checks)
+  Template_Scope_Dealloc.Run_Scope at template_scope_dealloc.ads:33 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (6 checks)
+  Template_Scope_Dealloc.To_State at template_scope_dealloc.adb:14 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+in unit template_task_decl, 4 subprograms and packages out of 4 analyzed
+  Template_Task_Decl at template_task_decl.ads:24 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Task_Decl.Task1_Access_Own_Var at template_task_decl.ads:29 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+  Template_Task_Decl.Task2_Access_Own_Var at template_task_decl.ads:33 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+  Template_Task_Decl.Verify_Ownership_Claim at template_task_decl.ads:38 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (4 checks)
+in unit template_wide_arithmetic, 3 subprograms and packages out of 3 analyzed
+  Template_Wide_Arithmetic at template_wide_arithmetic.ads:23 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (0 checks)
+  Template_Wide_Arithmetic.Add_Clamped at template_wide_arithmetic.ads:46 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (3 checks)
+  Template_Wide_Arithmetic.Average at template_wide_arithmetic.ads:40 flow analyzed (0 errors, 0 checks, 0 warnings and 0 pragma Assume statements) and proved (11 checks)
