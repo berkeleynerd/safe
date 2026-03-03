@@ -15,6 +15,10 @@ on:
 env:
   FROZEN_SHA: "4aecf219ffa5473bfc42b026a66c8bdea2ce5872"
 
+defaults:
+  run:
+    working-directory: companion/gen
+
 jobs:
   spark-verify:
     name: Build & Verify SPARK Companion
@@ -36,11 +40,15 @@ jobs:
         with:
           toolchain: gnat_native gprbuild
 
-      - name: Install GNATprove
+      - name: Initialize Alire workspace and install GNATprove
         run: |
           alr install gnatprove
-          echo "GNATprove version:"
-          gnatprove --version || echo "GNATprove installed via Alire"
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
+      - name: Verify tools
+        run: |
+          alr exec -- gprbuild --version | head -1
+          gnatprove --version | head -1
 
       - name: Record toolchain version for cache key
         id: toolchain-version
@@ -50,6 +58,7 @@ jobs:
       # Verify frozen commit SHA
       # ------------------------------------------------------------------
       - name: Verify frozen commit SHA
+        working-directory: .
         run: |
           REPO_SHA="$(cat meta/commit.txt | tr -d '[:space:]')"
           echo "Frozen SHA from meta/commit.txt: ${REPO_SHA}"
@@ -75,42 +84,45 @@ jobs:
       # Ensure build directory exists
       # ------------------------------------------------------------------
       - name: Prepare build directory
-        run: mkdir -p companion/gen/obj
+        run: mkdir -p obj
 
       # ------------------------------------------------------------------
       # Make scripts executable
       # ------------------------------------------------------------------
       - name: Make scripts executable
+        working-directory: .
         run: chmod +x scripts/*.sh
 
       # ------------------------------------------------------------------
       # Step 1: Compile
       # ------------------------------------------------------------------
-      - name: "Step 1: Compile (gprbuild)"
-        run: gprbuild -P companion/gen/companion.gpr -q
+      - name: "Step 1: Compile (alr build)"
+        run: alr build
 
       # ------------------------------------------------------------------
       # Step 2: GNATprove flow analysis (Bronze gate)
       # ------------------------------------------------------------------
       - name: "Step 2: GNATprove flow analysis"
-        run: scripts/run_gnatprove_flow.sh
+        run: alr exec -- gnatprove -P companion.gpr --mode=flow --report=all --warnings=on
 
       # ------------------------------------------------------------------
       # Step 3: GNATprove proof analysis (Silver gate)
       # ------------------------------------------------------------------
       - name: "Step 3: GNATprove proof"
-        run: scripts/run_gnatprove_prove.sh
+        run: alr exec -- gnatprove -P companion.gpr --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=120 --report=all --warnings=on --checks-as-errors=on
 
       # ------------------------------------------------------------------
       # Step 4: Extract assumptions
       # ------------------------------------------------------------------
       - name: "Step 4: Extract assumptions"
+        working-directory: .
         run: scripts/extract_assumptions.sh
 
       # ------------------------------------------------------------------
       # Step 5: Diff assumptions against baseline
       # ------------------------------------------------------------------
       - name: "Step 5: Diff assumptions"
+        working-directory: .
         run: scripts/diff_assumptions.sh
 
       # ------------------------------------------------------------------
