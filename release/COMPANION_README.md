@@ -209,6 +209,16 @@ The companion relies exclusively on GNATprove for formal verification at two ass
 
 GNATprove uses Why3 internally as its intermediate VC language and dispatches to CVC5, Z3, and Alt-Ergo solvers. No additional verification tools are required. See `docs/gnatprove_profile.md` for configuration details.
 
+### Deferred Scoping Documents
+
+The `docs/` directory also contains three supplementary scoping documents that analyze potential future verification approaches. These are **reference material only** -- not active deliverables and not included in the artifact inventory counts:
+
+| Document | Scope | Status |
+|----------|-------|--------|
+| `docs/why3_alignment.md` | Why3 intermediate VC alignment analysis | Deferred -- GNATprove uses Why3 internally |
+| `docs/mechanized_scope.md` | Coq/Isabelle mechanized proof scoping | Deferred -- requires compiler to verify |
+| `docs/k_semantics_scope.md` | K-Framework executable semantics scoping | Deferred -- requires compiler output to cross-check |
+
 ---
 
 ## 10. Traceability
