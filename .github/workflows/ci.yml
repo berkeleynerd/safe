@@ -213,10 +213,15 @@ jobs:
       # ----------------------------------------------------------------
       - name: "Step 4: Extract assumptions"
         working-directory: .
+        env:
+          PROVE_OUT: companion/templates/obj/gnatprove
         run: scripts/extract_assumptions.sh
 
       - name: "Step 5: Diff assumptions"
         working-directory: .
+        env:
+          PROVE_GOLDEN: companion/templates/prove_golden.txt
+          PROVE_OUT: companion/templates/obj/gnatprove/gnatprove.out
         run: scripts/diff_assumptions.sh
 
       # ----------------------------------------------------------------

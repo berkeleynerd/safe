@@ -20,9 +20,9 @@
 
 ## Proof Summary
 
-172 total VCs across 11 units (Safe_Model, Safe_PO, Safe_Runtime, 8 templates):
-- Flow (Bronze): 53 checks (31%) — all passed
-- Proof (Silver): 118 checks (69%) — all proved (CVC5 99%, Trivial 1%)
+178 total VCs across 11 units (Safe_Model, Safe_PO, Safe_Runtime, 8 templates):
+- Flow (Bronze): 54 checks (30%) — all passed
+- Proof (Silver): 123 checks (69%) — all proved (CVC5 99%, Trivial 1%)
 - Justified: 1 (FP_Safe_Div float overflow, see A-05)
 - Unproved: 0
 

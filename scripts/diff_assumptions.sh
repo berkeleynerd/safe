@@ -18,8 +18,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BASELINE="${REPO_ROOT}/companion/assumptions.yaml"
 EXTRACTED="${REPO_ROOT}/companion/assumptions_extracted.txt"
-PROVE_GOLDEN="${REPO_ROOT}/companion/gen/prove_golden.txt"
-PROVE_OUT="${REPO_ROOT}/companion/gen/obj/gnatprove/gnatprove.out"
+PROVE_GOLDEN="${REPO_ROOT}/${PROVE_GOLDEN:-companion/gen/prove_golden.txt}"
+PROVE_OUT="${REPO_ROOT}/${PROVE_OUT:-companion/gen/obj/gnatprove/gnatprove.out}"
 
 echo "================================================================"
 echo "  Diff Assumptions & Proof Summary Against Baseline"

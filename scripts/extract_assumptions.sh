@@ -13,8 +13,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GPR_FILE="${REPO_ROOT}/companion/gen/companion.gpr"
-PROVE_OUT="${REPO_ROOT}/companion/gen/obj/gnatprove"
+GPR_FILE="${REPO_ROOT}/${GPR_FILE:-companion/gen/companion.gpr}"
+PROVE_OUT="${REPO_ROOT}/${PROVE_OUT:-companion/gen/obj/gnatprove}"
 EXTRACTED="${REPO_ROOT}/companion/assumptions_extracted.txt"
 
 echo "================================================================"

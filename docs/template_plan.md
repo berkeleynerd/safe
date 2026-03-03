@@ -39,7 +39,6 @@ companion/templates/
 ├── template_task_decl.adb
 ├── template_index_safety.ads       M4: Safe array indexing
 ├── template_index_safety.adb
-├── gnat.adc                        M3: Jorvik profile pragmas
 └── prove_golden.txt                M1: Proof summary golden baseline
 ```
 
