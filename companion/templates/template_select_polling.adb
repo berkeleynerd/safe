@@ -14,7 +14,7 @@ is
    --
    --  Emission pattern from translation_rules.md Section 5.1:
    --    If channel is non-empty, dequeue and set Success := True.
-   --    Otherwise, set Item := 0 (default) and Success := False.
+   --    Otherwise, set Item := Default_Element and Success := False.
    --  The PO hook Check_Channel_Not_Empty is called when Count > 0.
    -------------------------------------------------------------------
    procedure Try_Receive
@@ -38,7 +38,7 @@ is
          Success := True;
       else
          --  Channel empty: no item available.
-         Item := 0;
+         Item := Default_Element;
          Success := False;
       end if;
    end Try_Receive;
@@ -62,7 +62,7 @@ is
       Success     : Boolean;
       Item        : Element_Type;
    begin
-      Result    := 0;
+      Result    := Default_Element;
       Timed_Out := False;
 
       for Iter in 1 .. Max_Poll_Iterations loop
@@ -120,7 +120,7 @@ is
       Success     : Boolean;
       Item        : Element_Type;
    begin
-      Result := 0;
+      Result := Default_Element;
       Found  := False;
 
       for Iter in 1 .. Max_Poll_Iterations loop

@@ -23,8 +23,8 @@
 --      5.2 specifies indefinite polling until an arm fires), but SPARK
 --      requires termination proof. Loop exhaustion yields default
 --      output (Result = 0, Found/Timed_Out = False).
---    - Item := 0 on failure paths satisfies SPARK flow analysis for
---      out parameter initialization.
+--    - Item := Default_Element on failure paths satisfies SPARK flow
+--      analysis for out parameter initialization.
 --
 --  PO hooks exercised: Check_Channel_Not_Empty
 
@@ -39,6 +39,7 @@ is
    Max_Poll_Iterations : constant := 100;
 
    subtype Element_Type is Integer;
+   Default_Element : constant Element_Type := 0;
    subtype Capacity_Range is Positive range 1 .. Max_Capacity;
    subtype Count_Range is Natural range 0 .. Max_Capacity;
    subtype Index_Range is Positive range 1 .. Max_Capacity;
