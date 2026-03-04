@@ -118,6 +118,8 @@ is
             and then
               (if Timed_Out then
                  Any_Elapsed (Deadline)
+                 and then Ch_A.Count'Old = 0
+                 and then Ch_B.Count'Old = 0
                  and then Ch_A.Count = Ch_A.Count'Old
                  and then Ch_B.Count = Ch_B.Count'Old
                elsif Ch_A.Count'Old > 0 then
