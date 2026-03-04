@@ -5,8 +5,8 @@
 
 ## Template Summary
 
-| # | Template                    | Milestone | PO Hooks                                          | VCs | Status   |
-|---|-----------------------------|-----------|----------------------------------------------------|-----|----------|
+| # | Template                    | Milestone | PO Hooks                                          | VCs\* | Status   |
+|---|-----------------------------|-----------|----------------------------------------------------|-------|----------|
 | 1 | `template_wide_arithmetic`  | M1        | `Narrow_Return`, `Narrow_Assignment`               | 16  | Proved   |
 | 2 | `template_division_nonzero` | M1        | `Nonzero`, `Safe_Div`, `Safe_Mod`, `Safe_Rem`      | 17  | Proved   |
 | 3 | `template_ownership_move`   | M2        | `Check_Owned_For_Move`, `Check_Not_Moved`           | 3   | Proved   |
@@ -15,16 +15,19 @@
 | 6 | `template_channel_fifo`     | M3        | `Check_Channel_Not_Full/Empty/Capacity_Positive`    | 13  | Proved   |
 | 7 | `template_task_decl`        | M3        | `Check_Exclusive_Ownership`                          | 12  | Proved   |
 | 8 | `template_index_safety`     | M4        | `Safe_Index`, `Narrow_Indexing`                      | 14  | Proved   |
-| 9 | `template_effect_summary`   | M5        | (none -- flow-analysis template)                     | 2   | Proved   |
+| 9 | `template_effect_summary`   | M5        | (none -- flow-analysis template)                     | 3   | Proved   |
 | 10| `template_package_structure` | M5       | `Narrow_Parameter`                                   | 6   | Proved   |
 
-**Total template VCs: 103** (all proved)
+\* VCs = proof checks discharged by SMT provers (Silver level); flow
+checks (Bronze level) are reported separately in the Proof Summary below.
+
+**Total template proof VCs: 104** (all proved)
 
 ## Proof Summary
 
-211 total VCs across 13 units (Safe_Model, Safe_PO, Safe_Runtime, 10 templates):
-- Flow (Bronze): 73 checks (35%) — all passed
-- Proof (Silver): 137 checks (65%) — all proved (CVC5 99%, Trivial 1%)
+215 total VCs across 13 units (Safe_Model, Safe_PO, Safe_Runtime, 10 templates):
+- Flow (Bronze): 76 checks (35%) — all passed
+- Proof (Silver): 138 checks (64%) — all proved (CVC5 99%, Trivial 1%)
 - Justified: 1 (FP_Safe_Div float overflow, see A-05)
 - Unproved: 0
 
@@ -38,7 +41,7 @@
 | `template_channel_fifo`     | 7    | 13    | 20    | CVC5    |
 | `template_task_decl`        | 2    | 12    | 14    | CVC5    |
 | `template_index_safety`     | 4    | 14    | 18    | CVC5    |
-| `template_effect_summary`   | 16   | 2     | 18    | CVC5    |
+| `template_effect_summary`   | 19   | 3     | 22    | CVC5    |
 | `template_package_structure` | 3   | 6     | 9     | CVC5    |
 
 ## Max Steps

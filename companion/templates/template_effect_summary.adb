@@ -74,4 +74,18 @@ is
       Accumulator := 0;
    end Reset;
 
+   ----------------------------------------------------------------
+   --  Pattern 6: Caller propagates callee effects
+   --
+   --  Emission pattern:
+   --    bump_and_accumulate(amount) ->
+   --      calls Increment then Accumulate; caller's
+   --      Global/Depends is the composition of both callees.
+   ----------------------------------------------------------------
+   procedure Bump_And_Accumulate (Amount : Integer) is
+   begin
+      Increment;
+      Accumulate (Amount);
+   end Bump_And_Accumulate;
+
 end Template_Effect_Summary;

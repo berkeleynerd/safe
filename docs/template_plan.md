@@ -139,7 +139,7 @@ Alire dependencies are required.
   while proof-mode confirms runtime behavior is consistent with declared
   effects. Hooks: none (flow aspects verified by GNATprove itself).
   Clauses: 5.2.2.p5, 5.2.3.p8, 5.2.4.p11.
-  Result: 18 VCs (16 flow, 2 proof) — all proved.
+  Result: 22 VCs (19 flow, 3 proof) — all proved.
 - `template_package_structure.ads/.adb` — Demonstrates the `.ads`/`.adb` split
   pattern, opaque type emission (`type T is private` in visible part, full
   record in private part), and interleaved-declaration-to-declare-block
@@ -148,8 +148,8 @@ Alire dependencies are required.
   narrowing at a parameter-passing point, previously unexercised).
   Clauses: 3.2.6.p23-p24, 2.9.p140.
   Result: 9 VCs (3 flow, 6 proof) — all proved.
-- M1-M4 templates verified: full regression passes (211 VCs, 0 unproved)
-- `prove_golden.txt` baseline updated (184 -> 211 VCs)
+- M1-M4 templates verified: full regression passes (215 VCs, 0 unproved)
+- `prove_golden.txt` baseline updated (184 -> 215 VCs)
 - `docs/template_inventory.md` updated with new template entries
 
 ### M6: Select Lowering + Floating-Point

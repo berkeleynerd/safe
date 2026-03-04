@@ -45,7 +45,10 @@ is
                       Last_Delta  => Amount),
           Pre     => Accumulator in
                        -4_000_000_000_000_000_000 ..
-                        4_000_000_000_000_000_000;
+                        4_000_000_000_000_000_000
+                     and then Amount in
+                       -2_000_000_000 ..
+                        2_000_000_000;
 
    --  Pattern 3: Two Input globals, result depends on both.
    function Is_Above_Threshold return Boolean
@@ -68,5 +71,21 @@ is
           Depends =>
             (Counter     => null,
              Accumulator => null);
+
+   --  Pattern 6: Caller propagates callee effects (composition).
+   --  The emitter must merge Global/Depends from Increment and
+   --  Accumulate into the caller's declared aspects.
+   procedure Bump_And_Accumulate (Amount : Integer)
+     with Global  => (In_Out => (Counter, Accumulator),
+                      Output => Last_Delta),
+          Depends => (Counter     => Counter,
+                      Accumulator => (Accumulator, Amount),
+                      Last_Delta  => Amount),
+          Pre     => Accumulator in
+                       -4_000_000_000_000_000_000 ..
+                        4_000_000_000_000_000_000
+                     and then Amount in
+                       -2_000_000_000 ..
+                        2_000_000_000;
 
 end Template_Effect_Summary;
