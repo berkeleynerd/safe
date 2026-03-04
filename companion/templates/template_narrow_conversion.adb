@@ -63,4 +63,26 @@ is
       Result := Percentage (Long_Long_Integer (Wide_Result));
    end Scale_And_Convert;
 
+   -------------------------------------------------------------------
+   --  Pattern 3: Wide input narrowed by explicit precondition
+   --
+   --  Emission pattern:
+   --    1. Caller-side range analysis establishes X in 0 .. 100
+   --    2. Narrow via type conversion to Percentage
+   --  Unlike Patterns 1-2 where narrow input types make the
+   --  conversion trivially safe, here the Pre is essential:
+   --  without it, X could be any Long_Long_Integer value and the
+   --  Narrow_Conversion hook would be unprovable.
+   -------------------------------------------------------------------
+   procedure Narrow_From_Wide
+     (X      : Long_Long_Integer;
+      Result :    out Percentage)
+   is
+   begin
+      --  Narrowing point (type conversion):
+      Narrow_Conversion (X, Percentage_Range);
+
+      Result := Percentage (X);
+   end Narrow_From_Wide;
+
 end Template_Narrow_Conversion;

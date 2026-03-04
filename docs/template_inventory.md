@@ -20,18 +20,18 @@
 | 11| `template_borrow_observe`   | M6       | `Check_Borrow_Exclusive`, `Check_Observe_Shared`     | 13  | Proved   |
 | 12| `template_fp_safety`        | M6       | `FP_Not_NaN`, `FP_Not_Infinity`, `FP_Safe_Div`       | 17  | Proved   |
 | 13| `template_select_polling`   | M6       | `Check_Channel_Not_Empty`                             | 32  | Proved   |
-| 14| `template_narrow_conversion`| M7       | `Narrow_Conversion`                                   | 13  | Proved   |
+| 14| `template_narrow_conversion`| M7       | `Narrow_Conversion`                                   | 17  | Proved   |
 
 \* VCs = proof checks discharged by SMT provers (Silver level); flow
 checks (Bronze level) are reported separately in the Proof Summary below.
 
-**Total template proof VCs: 179** (all proved)
+**Total template proof VCs: 183** (all proved)
 
 ## Proof Summary
 
-320 total VCs across 17 units (Safe_Model, Safe_PO, Safe_Runtime, 14 templates):
-- Flow (Bronze): 106 checks (33%) — all passed
-- Proof (Silver): 213 proved + 1 justified (67%) (CVC5 99%, Trivial 1%)
+325 total VCs across 17 units (Safe_Model, Safe_PO, Safe_Runtime, 14 templates):
+- Flow (Bronze): 107 checks (33%) — all passed
+- Proof (Silver): 217 proved + 1 justified (67%) (CVC5 99%, Trivial 1%)
 - Justified: 1 (FP_Safe_Div float overflow, see A-05)
 - Unproved: 0
 
@@ -50,7 +50,7 @@ checks (Bronze level) are reported separately in the Proof Summary below.
 | `template_borrow_observe`   | 7    | 13    | 20    | CVC5    |
 | `template_fp_safety`        | 7    | 17    | 24    | CVC5    |
 | `template_select_polling`   | 14   | 32    | 46    | CVC5    |
-| `template_narrow_conversion`| 2    | 13    | 15    | CVC5    |
+| `template_narrow_conversion`| 3    | 17    | 20    | CVC5    |
 
 ## Max Steps
 

@@ -33,7 +33,7 @@ The `companion/spark/` directory contains a formal verification artefact: 25 gho
 
 ### Verified Emission Templates
 
-The `companion/templates/` directory contains 14 templates (M1–M7 complete) demonstrating how a Safe compiler would emit provably correct Ada/SPARK for each D27 rule category. 320 verification conditions across 17 units, 0 unproved. All 23 `Safe_PO` proof obligation hooks are exercised. See [`docs/template_plan.md`](docs/template_plan.md) for milestone details and [`docs/template_inventory.md`](docs/template_inventory.md) for the full proof inventory.
+The `companion/templates/` directory contains 14 templates (M1–M7 complete) demonstrating how a Safe compiler would emit provably correct Ada/SPARK for each D27 rule category. 325 verification conditions across 17 units, 0 unproved. All 23 `Safe_PO` proof obligation hooks are exercised. See [`docs/template_plan.md`](docs/template_plan.md) for milestone details and [`docs/template_inventory.md`](docs/template_inventory.md) for the full proof inventory.
 
 ---
 
@@ -45,7 +45,7 @@ The `companion/templates/` directory contains 14 templates (M1–M7 complete) de
 | Normative clauses | 205 |
 | Ghost functions / PO procedures | 25 / 23 |
 | Companion VCs (flow / proved / justified / unproved) | 29 / 34 / 1 / 0 (64 total) |
-| Template VCs (flow / proved / justified / unproved) | 106 / 213 / 1 / 0 (320 total, 17 units) |
+| Template VCs (flow / proved / justified / unproved) | 107 / 217 / 1 / 0 (325 total, 17 units) |
 | Tracked assumptions | 14 (4 critical, 4 major, 5 minor, 1 template) |
 | Test files | 76 |
 
