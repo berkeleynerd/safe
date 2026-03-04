@@ -174,10 +174,10 @@ Alire dependencies are required.
   Boolean flag (assumption T-01).
   Hooks: `Check_Channel_Not_Empty` (at each Try_Receive point).
   Clauses: 4.4.p33-p42 (select semantics, arm ordering, determinism).
-  Result: 42 VCs (12 flow, 30 proof) — all proved.
+  Result: 46 VCs (14 flow, 32 proof) — all proved.
 - New assumption T-01 added to `companion/assumptions.yaml`
-- M1-M5 templates verified: full regression passes (296 VCs, 0 unproved)
-- `prove_golden.txt` baseline updated (215 → 296 VCs)
+- M1-M5 templates verified: full regression passes (300 VCs, 0 unproved)
+- `prove_golden.txt` baseline updated (215 → 300 VCs)
 - `docs/template_inventory.md` updated with new template entries
 - Assumption count: 14 total (13 baseline + T-01; within <= 15 budget)
 

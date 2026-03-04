@@ -52,11 +52,11 @@ is
    --    Loop exits when an arm fires or deadline elapses.
    -------------------------------------------------------------------
    procedure Select_With_Delay
-     (Ch_A             : in out Channel;
-      Ch_B             : in out Channel;
-      Deadline_Elapsed : Boolean;
-      Result           : out Element_Type;
-      Timed_Out        : out Boolean)
+     (Ch_A      : in out Channel;
+      Ch_B      : in out Channel;
+      Deadline  : Deadline_Schedule;
+      Result    : out Element_Type;
+      Timed_Out : out Boolean)
    is
       Select_Done : Boolean := False;
       Success     : Boolean;
@@ -65,7 +65,7 @@ is
       Result    := Default_Element;
       Timed_Out := False;
 
-      for Iter in 1 .. Max_Poll_Iterations loop
+      for Iter in Poll_Range loop
          pragma Loop_Invariant (Is_Valid (Ch_A));
          pragma Loop_Invariant (Is_Valid (Ch_B));
          pragma Loop_Invariant (not Select_Done);
@@ -73,6 +73,10 @@ is
          pragma Loop_Invariant
            (Ch_A.Count = Ch_A.Count'Loop_Entry
             and then Ch_B.Count = Ch_B.Count'Loop_Entry);
+         --  No previous iteration had the deadline elapsed.
+         pragma Loop_Invariant
+           (for all J in Poll_Range =>
+              (if J < Iter then not Deadline (J)));
 
          --  Arm 1: Ch_A (highest priority per declaration order).
          Try_Receive (Ch_A, Item, Success);
@@ -90,9 +94,9 @@ is
             end if;
          end if;
 
-         --  Delay arm: check deadline (tested only if no channel arm fired).
+         --  Delay arm: per-iteration deadline check.
          if not Select_Done then
-            if Deadline_Elapsed then
+            if Deadline (Iter) then
                Timed_Out := True;
                Select_Done := True;
             end if;
