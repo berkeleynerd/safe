@@ -170,8 +170,8 @@ Alire dependencies are required.
   Result: 24 VCs (7 flow, 17 proof) — all proved.
 - `template_select_polling.ads/.adb` — Demonstrates the select-to-polling-loop
   lowering pattern. Models two-arm selects (with and without delay arm) using
-  bounded `for` loops with loop invariants. Deadline check abstracted to
-  Boolean flag (assumption T-01).
+  bounded `for` loops with loop invariants. Deadline modeled as a
+  per-iteration `Deadline_Schedule` array (assumption T-01).
   Hooks: `Check_Channel_Not_Empty` (at each Try_Receive point).
   Clauses: 4.4.p33-p42 (select semantics, arm ordering, determinism).
   Result: 46 VCs (14 flow, 32 proof) — all proved.

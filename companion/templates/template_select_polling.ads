@@ -25,7 +25,7 @@
 --      while-not-Select_Done loop. Real polling is unbounded (Section
 --      5.2 specifies indefinite polling until an arm fires), but SPARK
 --      requires termination proof. Loop exhaustion yields default
---      output (Result = 0, Found/Timed_Out = False).
+--      output (Result = Default_Element, Found/Timed_Out = False).
 --    - Item := Default_Element on failure paths satisfies SPARK flow
 --      analysis for out parameter initialization.
 --
