@@ -147,7 +147,6 @@ See [`release/COMPANION_README.md`](release/COMPANION_README.md) Section 8 for t
 
 There is no compiler implementation yet. The translation rules and AST schema in `compiler/` define the interface a future compiler must satisfy.
 
-This repository is a fork of [berkeleynerd/safe](https://github.com/berkeleynerd/safe).
 
 ---
 
