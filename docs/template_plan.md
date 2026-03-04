@@ -186,11 +186,11 @@ Alire dependencies are required.
   type-conversion point, exercising the last unexercised narrowing hook.
   Hooks: `Narrow_Conversion`.
   Clauses: 2.8.1.p127, 2.8.1.p130.
-  Result: 15 VCs (2 flow, 13 proof) — all proved.
+  Result: 20 VCs (3 flow, 17 proof) — all proved.
 - Final PO hook coverage audit: all 23 `Safe_PO` procedures are exercised
   by at least one template (23/23 = 100%).
-- M1-M6 templates verified: full regression passes (320 VCs, 0 unproved)
-- `prove_golden.txt` baseline updated (305 → 320 VCs)
+- M1-M6 templates verified: full regression passes (325 VCs, 0 unproved)
+- `prove_golden.txt` baseline updated (305 → 325 VCs)
 - `docs/template_inventory.md` updated with final template entry
 - Assumption count: 14 total (13 baseline + T-01; within <= 15 budget)
 - No new assumptions introduced

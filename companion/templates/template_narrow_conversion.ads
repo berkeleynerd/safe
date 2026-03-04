@@ -54,4 +54,16 @@ is
      with Post => Result = (Long_Long_Integer (Value)
                             * Long_Long_Integer (Scale)) / 100;
 
+   --  Pattern 3: Wide input narrowed by explicit precondition.
+   --  Demonstrates a conversion that would fail without a guard:
+   --  Long_Long_Integer has range far exceeding Percentage, so the
+   --  Pre is the only thing making the Narrow_Conversion hook provable.
+   --  This is the realistic emitter pattern — the compiler's range
+   --  analysis supplies the Pre bound that the proof then discharges.
+   procedure Narrow_From_Wide
+     (X      : Long_Long_Integer;
+      Result :    out Percentage)
+     with Pre  => X in 0 .. 100,
+          Post => Result = Percentage (X);
+
 end Template_Narrow_Conversion;
