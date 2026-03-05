@@ -17,7 +17,7 @@ package Lifetime_Test is
       Ref : access Value;
    begin
       declare
-         Owner : Value_Ptr = new Value'(42);
+         Owner : Value_Ptr = new (42 as Value);
       begin
          Ref = Owner;  -- borrow from Owner
       end;

@@ -15,7 +15,7 @@ package Observe_Mutate_Test is
 
    --  Mutate_Through_Observer: attempts to write via a constant access.
    procedure Mutate_Through_Observer is
-      Owner    : Config_Ptr = new Config'(Rate = 100);
+      Owner    : Config_Ptr = new ((Rate = 100) as Config);
       Observer : access constant Config = Owner;  -- observe
    begin
       --  Observer is access constant; writing through it is illegal.

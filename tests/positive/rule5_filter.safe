@@ -20,7 +20,7 @@ package Low_Pass_Filter is
    function Init_Filter (Initial : Signal;
                          Coeff   : Alpha_Range) return Filter_State is
    begin
-      return Filter_State'(Output = Initial, Alpha = Coeff);
+      return ((Output = Initial, Alpha = Coeff) as Filter_State);
    end Init_Filter;
 
    --  Update: output = Alpha * input + (1 - Alpha) * previous_output.

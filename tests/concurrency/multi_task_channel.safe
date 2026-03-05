@@ -21,7 +21,7 @@ package Multi_Task_Channel is
       Seq : Natural = 0;
    begin
       loop
-         send Event_Ch, Event'(Source = 1, Code = Seq);
+         send Event_Ch, ((Source = 1, Code = Seq) as Event);
          Seq = Seq + 1;
          if Seq > 1_000_000 then
             Seq = 0;
@@ -34,7 +34,7 @@ package Multi_Task_Channel is
       Seq : Natural = 0;
    begin
       loop
-         send Event_Ch, Event'(Source = 2, Code = Seq);
+         send Event_Ch, ((Source = 2, Code = Seq) as Event);
          Seq = Seq + 1;
          if Seq > 1_000_000 then
             Seq = 0;

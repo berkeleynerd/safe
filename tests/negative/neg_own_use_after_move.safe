@@ -16,7 +16,7 @@ package Use_After_Move_Test is
 
    --  Read_After_Move: reads Source.all after moving Source to Target.
    procedure Read_After_Move is
-      Source : Item_Ptr = new Item'(Id = 1, Count = 10);
+      Source : Item_Ptr = new ((Id = 1, Count = 10) as Item);
       Target : Item_Ptr = null;
       V      : Natural;
    begin

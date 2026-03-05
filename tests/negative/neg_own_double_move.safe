@@ -13,7 +13,7 @@ package Double_Move_Test is
 
    --  Double_Move: moves Source twice.
    procedure Double_Move is
-      Source  : Payload_Ptr = new Payload'(42);
+      Source  : Payload_Ptr = new (42 as Payload);
       Target1 : Payload_Ptr = null;
       Target2 : Payload_Ptr = null;
    begin

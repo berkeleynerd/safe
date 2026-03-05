@@ -19,7 +19,7 @@ package Freed_Test is
       Outer_Ref : access Data;
    begin
       declare
-         Owner : Data_Ptr = new Data'(42);
+         Owner : Data_Ptr = new (42 as Data);
       begin
          Outer_Ref = Owner;  -- borrow
       end;

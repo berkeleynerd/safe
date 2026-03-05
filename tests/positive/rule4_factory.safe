@@ -20,7 +20,7 @@ package Safe_Factory is
    function Create_Sensor (Id : Natural;
                            Initial_Value : Integer) return Sensor_Ptr is
    begin
-      return new Sensor_Data'(Id = Id, Value = Initial_Value);
+      return new ((Id = Id, Value = Initial_Value) as Sensor_Data);
    end Create_Sensor;
 
    --  Read_Sensor: dereferences the factory-created pointer.

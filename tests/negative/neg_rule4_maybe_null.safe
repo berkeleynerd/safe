@@ -16,7 +16,7 @@ package Maybe_Null_Test is
       P : Value_Ptr = null;
    begin
       if Flag then
-         P = new Value'(50);
+         P = new (50 as Value);
       end if;
       --  If Flag was False, P is still null.
       return P.all;  -- ERROR: P may be null when Flag = False

@@ -48,6 +48,14 @@ while IFS= read -r -d '' f; do
       FAIL=1
     fi
   done
+  # Qualified expression ticks: T'( is banned (spec §2.2 item 25).
+  # Tick is only legal for character literals ('A').
+  # Match: word char followed by '( — but exclude character literals like 'A'.
+  if grep -nE "[A-Za-z_0-9]'\(" "${f}" >/dev/null 2>&1; then
+    echo "ERROR: ${f} contains qualified expression tick T'(...) (use (Expr as T)):"
+    grep -nE "[A-Za-z_0-9]'\(" "${f}" | head -5
+    FAIL=1
+  fi
 done < <(find tests -type f -name "*.safe" -print0)
 
 if [[ "${FAIL}" -ne 0 ]]; then
@@ -57,6 +65,7 @@ if [[ "${FAIL}" -ne 0 ]]; then
   echo "  /=  ->  !="
   echo "  =>  ->  then (arms) or = (associations)"
   echo "  X'First  ->  X.First  (and other tick attributes)"
+  echo "  T'(Expr) ->  (Expr as T)"
   exit 1
 fi
 

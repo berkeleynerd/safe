@@ -674,8 +674,8 @@ When multiple owning access objects exit scope simultaneously, they are dealloca
 
 ```ada
 -- Safe source:
-A : Node_Ptr = new Node'(...);
-B : Node_Ptr = new Node'(...);
+A : Node_Ptr = new (... as Node);
+B : Node_Ptr = new (... as Node);
 -- ... end of scope
 
 -- Emitted Ada (before end):
@@ -714,7 +714,7 @@ Deallocation calls are duplicated at each scope exit point (before each `return`
 -- Safe source:
 public procedure Process (Flag : Boolean) is
 begin
-   N : Node_Ptr = new Node'(Value = 0, Next = null);
+   N : Node_Ptr = new ((Value = 0, Next = null) as Node);
    if Flag then
       return;       -- early exit: N must be freed
    end if;

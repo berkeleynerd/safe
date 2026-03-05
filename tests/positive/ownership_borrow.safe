@@ -29,7 +29,7 @@ package Ownership_Borrow is
    --  Use_Borrow: creates an owned pointer, borrows it for mutation,
    --  then continues using it after the borrow scope ends.
    procedure Use_Borrow is
-      Owner : Data_Ptr = new Data'(X = 10, Y = 20);
+      Owner : Data_Ptr = new ((X = 10, Y = 20) as Data);
    begin
       --  Borrow: Owner is frozen during the call.
       Modify_Via_Borrow (Owner);

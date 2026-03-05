@@ -27,7 +27,7 @@ package Try_Send_Ownership is
       Counter : Natural = 0;
    begin
       loop
-         P = new Payload'(Id = Counter, Value = Counter * 10);
+         P = new ((Id = Counter, Value = Counter * 10) as Payload);
          try_send Data_Ch, P, Success;
          if Success then
             --  P is now null (moved to channel). Do not dereference.
