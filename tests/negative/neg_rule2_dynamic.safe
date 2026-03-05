@@ -2,8 +2,8 @@
 -- Description: Dynamic index from function return not provably in bounds.
 --   The function returns an arbitrary value that the compiler cannot
 --   statically prove is within the array's index range.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
 package Dynamic_Index_Test is

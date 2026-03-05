@@ -1,8 +1,8 @@
 --  Verified Emission Template: Effect Summary Generation
 --
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.2.2.p5:a07e15ef
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.2.3.p8:dfb93f2c
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.2.4.p11:b89bd341
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.2.2.p5:a07e15ef
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.2.3.p8:dfb93f2c
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.2.4.p11:b89bd341
 --  Reference: compiler/translation_rules.md Section 10
 --
 --  Demonstrates emitter-generated Global, Depends, Initializes,

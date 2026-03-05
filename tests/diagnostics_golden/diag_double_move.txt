@@ -1,7 +1,7 @@
 Diagnostics Golden: Double Move
 Source: tests/negative/neg_own_double_move.safe
-Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
-Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

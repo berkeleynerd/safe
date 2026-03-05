@@ -1,7 +1,7 @@
 # K-Framework Formal Semantics Scope for Safe
 
 **Status:** DRAFT
-**Frozen commit:** `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`
+**Frozen commit:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 **Date:** 2026-03-02
 **Author:** Runtime Designer
 
@@ -338,7 +338,7 @@ This section presents representative K semantic rules for the major language fea
 
 ### 4.1 Expression Evaluation with Wide Arithmetic
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126
 
 The fundamental semantic rule for integer arithmetic in Safe: all integer subexpressions evaluate to 64-bit signed intermediates. No intermediate overflow occurs within the 64-bit range; the compiler has statically verified that no intermediate exceeds the 64-bit range (spec/02-restrictions.md section 2.8.1, paragraph 129).
 
@@ -399,7 +399,7 @@ rule <k> boolVal(false) orElse  E => E ... </k>
 
 ### 4.2 Narrowing Points
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127
 
 Each narrowing point checks that the 64-bit intermediate value fits within the target type's declared range. These correspond to the five `Narrow_*` proof obligations in `companion/spark/safe_po.ads` (lines 52-109).
 
@@ -465,7 +465,7 @@ This corresponds to `Safe_PO.FP_Not_NaN` (safe_po.ads, line 218) and `Safe_PO.FP
 
 ### 4.3 Ownership State Machine
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3
 
 The ownership model is formalized as transitions on the `<ownership>` cell. Each rule matches an ownership operation and updates the ownership state of the relevant locations. The state machine corresponds directly to `Safe_Model.Is_Valid_Transition` (companion/spark/safe_model.ads, lines 223-238) and the ownership state enumeration `Ownership_State` (line 184).
 
@@ -590,7 +590,7 @@ rule <k> deref(nullVal()) => stuck("null-dereference") ... </k>
 
 ### 4.4 Channel Operations
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.3
 
 Channel operations interact with the `<channels>` configuration. Blocking semantics are modeled by setting `<blocked>` to `true` and recording the block reason.
 
@@ -719,7 +719,7 @@ The source nulling on send corresponds to spec/04-tasks-and-channels.md section 
 
 ### 4.5 Deterministic Select
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.4
 
 The `select` statement is the most complex concurrent construct in Safe. Its deterministic arm-ordering semantics are modeled as a sequential scan through the arm list.
 
@@ -765,7 +765,7 @@ The declaration-order priority is ensured by processing arms left-to-right. The 
 
 ### 4.6 Task Startup and Scheduling
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.7
 
 ```k
 // Elaboration: process all package-level declarations
@@ -788,7 +788,7 @@ This models the guarantee from spec/04-tasks-and-channels.md section 4.7 paragra
 
 ### 4.7 Task-Variable Ownership Check
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.5
 
 ```k
 // Task accesses a global variable: check exclusive ownership
@@ -1095,7 +1095,7 @@ The K syntax module (`safe-syntax.k`) encodes the 148 BNF productions from spec/
 | K framework maturity for Ada-like languages | Medium -- K has been used for C, Java, JavaScript, but not Ada. Ada-specific constructs (discriminated records, range constraints) may require novel encoding patterns. | Start with a minimal prototype (Phase 1 core subset) to validate the approach before committing to full formalization. |
 | Concurrency state-space explosion | High -- symbolic execution of concurrent programs can be expensive. Even with static tasks and bounded channels, the number of interleavings grows combinatorially. | Exploit Safe's task-variable ownership rule to reduce the state space: since no variable is shared between tasks, many interleavings are equivalent. Use K's `--smt-timeout` and partial-order reduction where available. |
 | Floating-point semantics in K | Medium -- K's support for IEEE 754 semantics is less mature than its integer support. NaN propagation and infinity handling require careful encoding. | Phase FP formalization (D27 Rule 5) into Phase 3, allowing time for the K team to address any framework limitations. Use concrete float testing before symbolic. |
-| Spec evolution | Low -- the spec is at frozen commit 4aecf21 and appears stable. | Pin all K rules to clause IDs from the frozen commit. Re-derive rules if the spec changes. |
+| Spec evolution | Low -- the spec is at frozen commit 468cf72 and appears stable. | Pin all K rules to clause IDs from the frozen commit. Re-derive rules if the spec changes. |
 
 ---
 
@@ -1172,7 +1172,7 @@ The SPARK companion tracks 14 assumptions in `companion/assumptions.yaml` -- dep
 | **C-01** | Flow analysis (Bronze gate) is sufficient for data-dependency proofs | Minor | Not directly relevant | **Not applicable.** C-01 concerns GNATprove's `--mode=flow` analysis, which is specific to the SPARK toolchain. The K semantics operates at a different abstraction level and does not model flow analysis. |
 | **C-02** | Proof-only (Ghost) procedures have no runtime effect | Minor | Not directly relevant | **Not applicable.** C-02 concerns the erasure of Ghost-annotated procedures in the SPARK companion. The K semantics does not include ghost code; all K rules model runtime behavior. |
 | **D-01** | Select lowering via polling is conformant | Minor | Select statement rules (section 4.5), `tryArms`/`pollDelay` rules | **Partially dischargeable.** The K `select` rules model polling semantics (retry loop with `pollDelay`), matching the compiler's lowering strategy. `kprove` can verify that the polling model satisfies the spec's determinism requirement: given identical channel states, the same arm is always chosen. Whether the polling latency is acceptable under real-time constraints remains outside the K model. |
-| **D-02** | Frozen spec commit is authoritative | Minor | All clause ID references throughout this document (e.g., `SAFE@4aecf21:...`) | **External dependency.** The K definition pins all clause references to commit `4aecf21`. D-02 is a process-level assumption that applies equally to the K semantics, the SPARK companion, and all other artifacts. If the spec evolves, K rules must be re-derived from updated clause IDs. |
+| **D-02** | Frozen spec commit is authoritative | Minor | All clause ID references throughout this document (e.g., `SAFE@468cf72:...`) | **External dependency.** The K definition pins all clause references to commit `468cf72`. D-02 is a process-level assumption that applies equally to the K semantics, the SPARK companion, and all other artifacts. If the spec evolves, K rules must be re-derived from updated clause IDs. |
 
 ### 10.2 Summary by Disposition
 

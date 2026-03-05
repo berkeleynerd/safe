@@ -3,8 +3,8 @@
 --   Multiplying two large floating-point values produces a result
 --   that exceeds the target type's model range. The result may be
 --   infinity or simply out of range.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139b:5e20032b
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d
 -- Expected: REJECT fp_overflow_at_narrowing
 
 package FP_Overflow_Test is

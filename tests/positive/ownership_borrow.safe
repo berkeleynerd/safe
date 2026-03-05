@@ -3,8 +3,8 @@
 --   An owning access value is borrowed via an anonymous access parameter.
 --   The lender is frozen during the borrow. After the borrow ends,
 --   the lender regains ownership.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p100a:ba849e66
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66
 -- Expected: ACCEPT
 
 package Ownership_Borrow is

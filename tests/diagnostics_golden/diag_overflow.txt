@@ -1,7 +1,7 @@
 Diagnostics Golden: Integer Overflow
 Source: tests/negative/neg_rule1_overflow.safe
-Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p129:9f3b1394
-Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
+Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129:9f3b1394
+Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

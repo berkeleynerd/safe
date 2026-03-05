@@ -2,9 +2,9 @@
 -- Description: Select statement arm priority test.
 --   When multiple channels have data available, the first arm in
 --   declaration order is selected. This test verifies that behavior.
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p39:1012f4db
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p35:2ad6e64f
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39:1012f4db
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p35:2ad6e64f
 -- Expected: ACCEPT
 
 package Select_Priority is

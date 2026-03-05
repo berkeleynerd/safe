@@ -2,8 +2,8 @@
 -- Description: Receiving from a channel that is provably empty.
 --   A task immediately receives from a channel that has no sender.
 --   This is a provable deadlock (no task can ever send to the channel).
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
 -- Expected: REJECT channel_deadlock
 
 package Empty_Recv_Test is

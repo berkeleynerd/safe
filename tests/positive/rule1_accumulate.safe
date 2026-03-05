@@ -2,9 +2,9 @@
 -- Description: Loop accumulation with range narrowing.
 --   Accumulates values from an array into a bounded sum, proving
 --   that the intermediate total stays within range at each iteration.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p129:9f3b1394
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129:9f3b1394
 -- Expected: ACCEPT
 
 package Accumulator is

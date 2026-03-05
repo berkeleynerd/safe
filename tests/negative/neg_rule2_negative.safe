@@ -1,8 +1,8 @@
 -- Test: neg_rule2_negative
 -- Description: Negative index used on a naturally-indexed array.
 --   The array is indexed from 0, but the computed index can be negative.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
 package Negative_Index_Test is

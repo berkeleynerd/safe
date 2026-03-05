@@ -3,9 +3,9 @@
 --   When try_send succeeds, ownership of the access value is transferred
 --   to the channel. When it fails, the sender retains ownership.
 --   The source is only nulled on success.
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29:f792d704
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29a:8d3f2225
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29b:7121ccd7
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29:f792d704
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29a:8d3f2225
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29b:7121ccd7
 -- Expected: ACCEPT
 
 package Try_Send_Ownership is

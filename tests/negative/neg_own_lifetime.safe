@@ -3,8 +3,8 @@
 --   The borrower is declared in an outer scope while the lender
 --   is in an inner scope. When the lender's scope ends, the
 --   borrower would reference a deallocated object.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
 -- Expected: REJECT lifetime_violation
 
 package Lifetime_Test is

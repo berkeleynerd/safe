@@ -38,15 +38,15 @@ def main():
             all_assumptions.add(a)
 
     def shorten(cid):
-        return cid.replace('SAFE@4aecf21:', '')
+        return cid.replace('SAFE@468cf72:', '')
 
     lines = []
     lines.append('# Proof Obligation Index')
     lines.append('')
     lines.append('## Overview')
     lines.append('')
-    lines.append('- **Source commit**: `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`')
-    lines.append('- **Generation date**: 2026-03-02')
+    lines.append('- **Source commit**: `468cf72332724b04b7c193b4d2a3b02f1584125d`')
+    lines.append('- **Generation date**: 2026-03-05')
     lines.append('- **Source clauses**: `clauses/clauses.yaml`')
     lines.append('- **Total clauses**: 205')
     lines.append('- **Total PO entries**: ' + str(len(entries)))

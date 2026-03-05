@@ -1,7 +1,7 @@
 -- Test: neg_rule4_null_deref
 -- Description: Dereference of a possibly-null access value without a null check.
 --   The access variable is of a nullable type and no guard is present.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT null_dereference
 
 package Null_Deref_Test is

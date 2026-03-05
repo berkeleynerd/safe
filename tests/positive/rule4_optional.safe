@@ -2,7 +2,7 @@
 -- Description: Optional value access with null check before dereference.
 --   The access value is checked for null before any dereference,
 --   so the dereference is proven safe.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: ACCEPT
 
 package Safe_Optional is

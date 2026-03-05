@@ -1,5 +1,5 @@
 --  Safe Language Annotated SPARK Companion
---  Source commit: 4aecf219ffa5473bfc42b026a66c8bdea2ce5872
+--  Source commit: 468cf72332724b04b7c193b4d2a3b02f1584125d
 --  Generated: 2026-03-02
 --  Generator: spec2spark v0.1.0
 --  Clauses: 2.8.1-2.8.5 (D27 Rules 1-5), 2.3.2-2.3.4a (Ownership),
@@ -30,9 +30,9 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Safe_Div: Division with provably nonzero divisor.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12:99a94209
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.1.p12:99a94209
    ---------------------------------------------------------------------------
    procedure Safe_Div
      (X : Long_Long_Integer;
@@ -45,9 +45,9 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Narrow_Assignment: Range check at assignment narrowing point.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p130:2289e5b2
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
    ---------------------------------------------------------------------------
    procedure Narrow_Assignment
      (V      : Long_Long_Integer;
@@ -59,8 +59,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Narrow_Parameter: Range check at parameter passing narrowing point.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p130:2289e5b2
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
    ---------------------------------------------------------------------------
    procedure Narrow_Parameter
      (V     : Long_Long_Integer;
@@ -72,8 +72,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Narrow_Return: Range check at function return narrowing point.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
    ---------------------------------------------------------------------------
    procedure Narrow_Return
      (V            : Long_Long_Integer;
@@ -85,8 +85,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Narrow_Indexing: Range check at array indexing narrowing point.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
    ---------------------------------------------------------------------------
    procedure Narrow_Indexing
      (V           : Long_Long_Integer;
@@ -98,8 +98,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Narrow_Conversion: Range check at type conversion narrowing point.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p130:2289e5b2
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
    ---------------------------------------------------------------------------
    procedure Narrow_Conversion
      (V            : Long_Long_Integer;
@@ -118,9 +118,9 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Safe_Index: Index expression provably within array bounds.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12:99a94209
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.1.p12:99a94209
    ---------------------------------------------------------------------------
    procedure Safe_Index
      (Arr_Lo : Long_Long_Integer;
@@ -140,8 +140,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Nonzero: Divisor is provably nonzero.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p134:90a17a3b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
    ---------------------------------------------------------------------------
    procedure Nonzero
      (V : Long_Long_Integer)
@@ -151,7 +151,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Safe_Mod: Modulo with provably nonzero divisor.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
    ---------------------------------------------------------------------------
    procedure Safe_Mod
      (X : Long_Long_Integer;
@@ -163,7 +163,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Safe_Rem: Remainder with provably nonzero divisor.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
    ---------------------------------------------------------------------------
    procedure Safe_Rem
      (X : Long_Long_Integer;
@@ -183,8 +183,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Not_Null_Ptr: Access subtype excludes null at dereference.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12:99a94209
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.1.p12:99a94209
    ---------------------------------------------------------------------------
    procedure Not_Null_Ptr
      (Is_Null : Boolean)
@@ -194,7 +194,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Safe_Deref: Dereference with not-null guarantee.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
    ---------------------------------------------------------------------------
    procedure Safe_Deref
      (Is_Null : Boolean)
@@ -212,8 +212,8 @@ package Safe_PO is
    --  FP_Not_NaN: Floating-point value is not NaN.
    --  NaN is the unique float value where V /= V.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.7a.p28a:5936dbea
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.7a.p28a:5936dbea
    ---------------------------------------------------------------------------
    procedure FP_Not_NaN
      (V : Long_Float)
@@ -224,8 +224,8 @@ package Safe_PO is
    --  FP_Not_Infinity: Floating-point value is finite.
    --  Under IEEE 754, Long_Float'First <= V <= Long_Float'Last implies finite.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139b:5e20032b
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
    ---------------------------------------------------------------------------
    procedure FP_Not_Infinity
      (V : Long_Float)
@@ -237,8 +237,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  FP_Safe_Div: Floating-point division with nonzero, non-NaN divisor.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139:d50bc714
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139b:5e20032b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139:d50bc714
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
    ---------------------------------------------------------------------------
    procedure FP_Safe_Div
      (X : Long_Float;
@@ -262,7 +262,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Not_Moved: Verify the access value has not been moved.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
    ---------------------------------------------------------------------------
    procedure Check_Not_Moved
      (State : Ownership_State)
@@ -272,7 +272,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Owned_For_Move: Verify the access value is owned before move.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
    ---------------------------------------------------------------------------
    procedure Check_Owned_For_Move
      (State : Ownership_State)
@@ -282,7 +282,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Borrow_Exclusive: Verify exclusive ownership before borrow.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
    ---------------------------------------------------------------------------
    procedure Check_Borrow_Exclusive
      (State : Ownership_State)
@@ -292,7 +292,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Observe_Shared: Verify state allows observation.
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
    ---------------------------------------------------------------------------
    procedure Check_Observe_Shared
      (State : Ownership_State)
@@ -308,8 +308,8 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Channel_Not_Full: Channel has space for send.
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29:f792d704
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29:f792d704
    ---------------------------------------------------------------------------
    procedure Check_Channel_Not_Full
      (Length   : Natural;
@@ -320,7 +320,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Channel_Not_Empty: Channel has data for receive.
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
    ---------------------------------------------------------------------------
    procedure Check_Channel_Not_Empty
      (Length : Natural)
@@ -330,7 +330,7 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Channel_Capacity_Positive: Channel capacity is at least 1.
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
    ---------------------------------------------------------------------------
    procedure Check_Channel_Capacity_Positive
      (Capacity : Natural)
@@ -346,9 +346,9 @@ package Safe_PO is
    ---------------------------------------------------------------------------
    --  Check_Exclusive_Ownership: Verify single-task ownership of a variable.
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.4.1.p32:90d4f527
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.4.1.p33:0fc25399
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.4.1.p32:90d4f527
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.4.1.p33:0fc25399
    ---------------------------------------------------------------------------
    procedure Check_Exclusive_Ownership
      (Var_Id  : Var_Id_Range;
@@ -361,5 +361,30 @@ package Safe_PO is
    --  Verifies that Var_Id is either unowned (first access) or already
    --  owned by the same task. If a different task claims ownership, the
    --  precondition fails, corresponding to a data-race violation.
+
+   --========================================================================
+   --  Discriminant Check
+   --
+   --  Variant field access requires the discriminant to match the
+   --  selected variant.  The compiler inserts a ghost assertion before
+   --  each variant field access.
+   --========================================================================
+
+   ---------------------------------------------------------------------------
+   --  Check_Discriminant: Assert that the discriminant has the expected value
+   --  before accessing a variant field.
+   --
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.6.p139f
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.12.p148
+   ---------------------------------------------------------------------------
+   procedure Check_Discriminant
+     (Actual   : Boolean;
+      Expected : Boolean)
+   with Pre => Actual = Expected,
+        Ghost;
+   --  Verifies that the discriminant value (Actual) matches the variant
+   --  being accessed (Expected).  A conditional branch on the discriminant
+   --  establishes Actual = Expected within that branch; the fact is
+   --  invalidated by assignment or in-out calls on the discriminated object.
 
 end Safe_PO;

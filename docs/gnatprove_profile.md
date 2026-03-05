@@ -1,7 +1,7 @@
 # GNATprove Configuration Profile
 
 **Safe Language Annotated SPARK Companion**
-Spec commit: `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`
+Spec commit: `468cf72332724b04b7c193b4d2a3b02f1584125d`
 Date: 2026-03-02
 
 ---
@@ -158,7 +158,7 @@ Ghost procedures have null bodies, so GNATprove generates no body VCs for them. 
 
 ### 4.5 Unproved VCs
 
-As of spec commit `4aecf21`, the Silver gate produces **64 total checks: 29 flow, 34 proved (CVC5), 1 justified (FP_Safe_Div float overflow -- see assumption A-05), 0 unproved**. The companion is intentionally structured so that:
+As of spec commit `468cf72`, the Silver gate produces **64 total checks: 29 flow, 34 proved (CVC5), 1 justified (FP_Safe_Div float overflow -- see assumption A-05), 0 unproved**. The companion is intentionally structured so that:
 
 - All Ghost procedure bodies are null, generating no body VCs.
 - All non-Ghost procedures (`Safe_Div`, `Safe_Mod`, `Safe_Rem`, `FP_Safe_Div`) have postconditions that are tautological given the body (the body literally computes the postcondition expression).

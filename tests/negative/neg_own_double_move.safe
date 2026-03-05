@@ -2,8 +2,8 @@
 -- Description: Moving an access value that has already been moved.
 --   After the first move, Source is null/moved. The second move
 --   attempts to transfer ownership from a moved variable.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 -- Expected: REJECT double_move
 
 package Double_Move_Test is

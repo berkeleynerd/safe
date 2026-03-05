@@ -1,8 +1,8 @@
 -- Test: neg_rule3_zero_rem
 -- Description: Remainder by a variable that may be zero.
 --   The divisor parameter includes zero in its type range.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p134:90a17a3b
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
 package Zero_Rem_Test is

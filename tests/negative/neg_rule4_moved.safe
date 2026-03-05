@@ -1,8 +1,8 @@
 -- Test: neg_rule4_moved
 -- Description: Dereference of an access value after it has been moved.
 --   After the move, the source variable is null and cannot be dereferenced.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT use_after_move
 
 package Moved_Deref_Test is

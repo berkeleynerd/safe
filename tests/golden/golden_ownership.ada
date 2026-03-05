@@ -1,9 +1,9 @@
 --  Golden output: Expected Ada/SPARK translation of ownership_move.safe
 --  Source: tests/positive/ownership_move.safe
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9
 --
 --  The Safe compiler translates ownership moves by:
 --  1. Copying the access value to the target.

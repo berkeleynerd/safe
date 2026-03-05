@@ -2,8 +2,8 @@
 -- Description: Dereference of an access value designating a deallocated object.
 --   After scope exit of the owning variable, any remaining reference
 --   to the designated object is dangling.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102b:2ed757bd
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102b-diag:ddab22c8
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b:2ed757bd
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b-diag:ddab22c8
 -- Expected: REJECT dangling_reference
 
 package Freed_Test is

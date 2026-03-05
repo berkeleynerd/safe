@@ -2,8 +2,8 @@
 -- Description: Array slice with proven range.
 --   Demonstrates safe array slicing where the slice bounds are
 --   provably within the array's index range.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: ACCEPT
 
 package Safe_Slice is

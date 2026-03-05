@@ -43,7 +43,7 @@ The mapping from Safe constructs to templates is defined in
 | `template_narrow_conversion` | Rule 1 | Type-conversion narrowing with wide intermediate | `Narrow_Conversion` |
 
 Each `.ads` file carries clause IDs in its header comment tracing to the
-frozen spec commit (`4aecf21`).
+frozen spec commit (`468cf72`).
 
 ## Roadmap
 

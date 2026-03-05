@@ -2,7 +2,7 @@
 
 ## Overview
 
-- **Source commit**: `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`
+- **Source commit**: `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Generation date**: 2026-03-02
 - **Source clauses**: `clauses/clauses.yaml`
 - **Total clauses**: 205

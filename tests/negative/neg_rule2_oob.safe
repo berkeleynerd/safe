@@ -2,8 +2,8 @@
 -- Description: Out-of-bounds array access with an unconstrained index.
 --   The index variable is of a wider type than the array index range,
 --   and no bounds check is performed.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
 package OOB_Test is

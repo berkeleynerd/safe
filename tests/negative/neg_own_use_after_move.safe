@@ -2,7 +2,7 @@
 -- Description: Using (reading) an access value after it has been moved.
 --   The source variable is read after ownership transfer, violating
 --   the post-move dereference rule.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 -- Expected: REJECT use_after_move
 
 package Use_After_Move_Test is

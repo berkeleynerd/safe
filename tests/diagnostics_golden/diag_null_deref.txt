@@ -1,6 +1,6 @@
 Diagnostics Golden: Null Dereference
 Source: tests/negative/neg_rule4_null_deref.safe
-Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

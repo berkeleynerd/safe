@@ -1,7 +1,7 @@
 -- Test: rule4_deref
 -- Description: Simple dereference with not-null proof.
 --   Uses a not null access subtype so dereference is always safe.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: ACCEPT
 
 package Safe_Deref is

@@ -3,9 +3,9 @@
 --   A producer sends sequential values 0, 1, 2, ... and a consumer
 --   verifies they arrive in the same order. FIFO ordering is a
 --   normative requirement of Safe channels.
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
 -- Expected: ACCEPT
 
 package FIFO_Ordering is

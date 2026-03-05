@@ -1,8 +1,8 @@
 --  Golden output: Expected Ada/SPARK translation of rule1_averaging.safe
 --  Source: tests/positive/rule1_averaging.safe
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 --
 --  The Safe compiler translates wide intermediate arithmetic into
 --  Long_Long_Integer operations and inserts explicit range assertions

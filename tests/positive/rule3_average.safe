@@ -2,8 +2,8 @@
 -- Description: Average computation with provably nonzero count.
 --   The count parameter is typed as Positive (range 1..Max),
 --   so division by count is always safe.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
 package Safe_Average is

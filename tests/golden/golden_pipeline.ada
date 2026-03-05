@@ -1,11 +1,11 @@
 --  Golden output: Expected Ada/SPARK translation of channel_pipeline.safe
 --  Source: tests/positive/channel_pipeline.safe
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p2:78f022f7
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p2:78f022f7
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
 --
 --  The Safe compiler translates channels into protected objects with
 --  ceiling priority, and task declarations into Ada task objects.

@@ -1,8 +1,8 @@
 --  Verified Emission Template: Division / Mod / Rem with Nonzero Guard
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p134:90a17a3b
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12:99a94209
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.1.p12:99a94209
 --  Reference: compiler/translation_rules.md Section 8
 --
 --  Demonstrates the compiler emission pattern for safe division, modulo,

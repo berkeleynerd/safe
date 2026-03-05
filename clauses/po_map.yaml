@@ -1,12 +1,12 @@
 ---
 meta:
-  source_commit: "4aecf219ffa5473bfc42b026a66c8bdea2ce5872"
+  source_commit: "468cf72332724b04b7c193b4d2a3b02f1584125d"
   generation_date: "2026-03-02"
   source_clauses: "clauses/clauses.yaml"
   total_clauses: 205
 
 po_entries:
-  - clause_id: "SAFE@4aecf21:spec/00-front-matter.md#0.1.p1:40d0d4cf"
+  - clause_id: "SAFE@468cf72:spec/00-front-matter.md#0.1.p1:40d0d4cf"
     summary: "Safe is defined subtractively from Ada 2022"
     target: "Conformance"
     mechanism: "manual_review"
@@ -14,7 +14,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/00-front-matter.md#0.1.p2:9e5cd9ab"
+  - clause_id: "SAFE@468cf72:spec/00-front-matter.md#0.1.p2:9e5cd9ab"
     summary: "Safe source files use .safe extension"
     target: "Conformance"
     mechanism: "test_assertion"
@@ -22,7 +22,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/00-front-matter.md#0.5.p21:5eb1de72"
+  - clause_id: "SAFE@468cf72:spec/00-front-matter.md#0.5.p21:5eb1de72"
     summary: "Specification voice conventions (shall/may/should)"
     target: "Conformance"
     mechanism: "manual_review"
@@ -30,7 +30,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/00-front-matter.md#0.8.p27:5000a79a"
+  - clause_id: "SAFE@468cf72:spec/00-front-matter.md#0.8.p27:5000a79a"
     summary: "All TBD items shall be resolved before baselining"
     target: "Conformance"
     mechanism: "assumption_tracking"
@@ -39,7 +39,7 @@ po_entries:
     assumptions:
       - "All 14 TBD items (TBD-01 through TBD-14) will be resolved"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/01-base-definition.md#1.p1:e7bf1014"
+  - clause_id: "SAFE@468cf72:spec/01-base-definition.md#1.p1:e7bf1014"
     summary: "Safe is Ada 2022 restricted by Section 2 and modified by Sections 3-4"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -47,7 +47,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/01-base-definition.md#1.p2:b610468e"
+  - clause_id: "SAFE@468cf72:spec/01-base-definition.md#1.p2:b610468e"
     summary: "All Ada 2022 rules apply except where explicitly excluded or modified"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -55,7 +55,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/01-base-definition.md#1.p3:a2ff4ad4"
+  - clause_id: "SAFE@468cf72:spec/01-base-definition.md#1.p3:a2ff4ad4"
     summary: "Unmentioned constructs retained with Ada 2022 semantics plus notation changes"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -63,7 +63,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/01-base-definition.md#1.p6:b83ece40"
+  - clause_id: "SAFE@468cf72:spec/01-base-definition.md#1.p6:b83ece40"
     summary: "Unaddressed features retained with standard semantics"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -71,7 +71,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.1.p2:75c5cfea"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.1.p2:75c5cfea"
     summary: "Reject reserved word used as identifier"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -79,7 +79,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.1.p3:f8550668"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.1.p3:f8550668"
     summary: "Additional reserved words (public, channel, send, receive, etc.)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -87,7 +87,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.1.p4:b8e73758"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.1.p4:b8e73758"
     summary: "Reject tick notation for attributes/qualified expressions"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -95,7 +95,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.2.p5:c8832ac8"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.2.p5:c8832ac8"
     summary: "Reject Static_Predicate and Dynamic_Predicate aspects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -103,7 +103,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.2.p7:2de62408"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.2.p7:2de62408"
     summary: "Reject tagged types, type extensions, abstract types, interfaces"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -111,7 +111,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.2.p9:faae18b9"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.2.p9:faae18b9"
     summary: "Reject access-to-subprogram type declarations"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -119,7 +119,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.2.p11:3fd55933"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.2.p11:3fd55933"
     summary: "Reject access discriminants"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -127,7 +127,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.2.p12:8da68138"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.2.p12:8da68138"
     summary: "Reject derivation from Controlled/Limited_Controlled"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -135,7 +135,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p14:4ab42f23"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p14:4ab42f23"
     summary: "Reject Implicit_Dereference aspect (user-defined references)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -143,7 +143,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p15:9092af85"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p15:9092af85"
     summary: "Reject Constant_Indexing/Variable_Indexing (user-defined indexing)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -151,7 +151,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p16:6436f829"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p16:6436f829"
     summary: "Reject user-defined literal aspects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -159,7 +159,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p17:be123e5f"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p17:be123e5f"
     summary: "Reject extension aggregates"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -167,7 +167,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p19:29c43768"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p19:29c43768"
     summary: "Reject container aggregates"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -175,7 +175,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p22:58a7c04c"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p22:58a7c04c"
     summary: "Reject quantified expressions (for all, for some)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -183,7 +183,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p23:e51d510c"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p23:e51d510c"
     summary: "Reject reduction expressions"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -191,7 +191,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.3.p25:f55ddbee"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.3.p25:f55ddbee"
     summary: "Reject qualified expressions using tick notation"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -199,7 +199,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.4.p29:f27b01a7"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.4.p29:f27b01a7"
     summary: "Reject Default_Iterator/Iterator_Element aspects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -207,7 +207,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.4.p31:3aff42cb"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.4.p31:3aff42cb"
     summary: "Reject procedural iterators"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -215,7 +215,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.4.p32:d090f2f1"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.4.p32:d090f2f1"
     summary: "Reject parallel block statements"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -223,7 +223,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.5.p34:70346a23"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.5.p34:70346a23"
     summary: "Reject Pre, Post, Pre.Class, Post.Class aspects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -231,7 +231,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.5.p35:9db565e8"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.5.p35:9db565e8"
     summary: "Reject user-authored Global/Global.Class aspects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -239,7 +239,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.5.p36:ba7835b4"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.5.p36:ba7835b4"
     summary: "Each subprogram identifier denotes exactly one subprogram"
     target: "Conformance"
     mechanism: "flow_contract_check"
@@ -247,7 +247,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.5.p38:872f4ec6"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.5.p38:872f4ec6"
     summary: "Return statement shall not appear within task body"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -255,7 +255,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.5.p40:cc41753d"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.5.p40:cc41753d"
     summary: "Reject user-defined operator functions"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -263,7 +263,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.6.p44:a5524a86"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.6.p44:a5524a86"
     summary: "Reject standalone package body compilation unit"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -271,7 +271,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.7.p51:3bd0226a"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.7.p51:3bd0226a"
     summary: "Reject use Package_Name clauses"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -279,7 +279,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p57:6fc7a14c"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.8.p57:6fc7a14c"
     summary: "Safe tasks shall not terminate"
     target: "Race-freedom"
     mechanism: "translation_validation"
@@ -287,7 +287,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p58:9bf4999c"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.8.p58:9bf4999c"
     summary: "Reject user-declared protected types/objects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -295,7 +295,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p59:95c073d3"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.8.p59:95c073d3"
     summary: "Reject entry declarations, accept statements, entry calls, requeue"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -303,7 +303,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p60:75dc85e6"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.8.p60:75dc85e6"
     summary: "Reject delay until statement"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -311,7 +311,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p61:f91fb172"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.8.p61:f91fb172"
     summary: "Reject Ada select model (selective accept, timed/conditional entry call, async select)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -319,7 +319,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p62:9053b623"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.8.p62:9053b623"
     summary: "Reject abort statement"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -327,7 +327,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.9.p65:a6f8ab1c"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.9.p65:a6f8ab1c"
     summary: "Library units shall be packages; library-level subprograms prohibited"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -335,7 +335,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.9.p66:3d98f9e9"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.9.p66:3d98f9e9"
     summary: "Reject circular with dependencies"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -343,7 +343,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.10.p67:50d815f0"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.10.p67:50d815f0"
     summary: "Reject exceptions, handlers, raise, pragma Suppress/Unsuppress"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -351,7 +351,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.11.p69:4ced1c77"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.11.p69:4ced1c77"
     summary: "Reject generic declarations, bodies, and instantiations"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -359,7 +359,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.12.p77:8b158e82"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.12.p77:8b158e82"
     summary: "Reject machine code insertions"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -367,7 +367,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.12.p78:803e4add"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.12.p78:803e4add"
     summary: "Reject Ada.Unchecked_Conversion"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -375,7 +375,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.12.p79:90727967"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.12.p79:90727967"
     summary: "Reject .Unchecked_Access"
     target: "Memory-safety"
     mechanism: "translation_validation"
@@ -383,7 +383,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.12.p80:15d3c6f7"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.12.p80:15d3c6f7"
     summary: "Reject Storage_Pool aspects and Ada.Unchecked_Deallocation"
     target: "Memory-safety"
     mechanism: "translation_validation"
@@ -391,7 +391,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.12.p82:453192f0"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.12.p82:453192f0"
     summary: "Reject stream attribute references and stream type declarations"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -399,7 +399,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.13.p84:84829058"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.13.p84:84829058"
     summary: "Reject pragma Import/Export/Convention and Annex B"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -407,7 +407,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.1.13.p91:4a433f78"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.1.13.p91:4a433f78"
     summary: "Reject Annex J obsolescent features"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -415,7 +415,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.2.p93:301d16b8"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.2.p93:301d16b8"
     summary: "Reject 12 SPARK verification-only aspects in Safe source"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -423,7 +423,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.7.p124:ef993f07"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.7.p124:ef993f07"
     summary: "Reject 12 contract-related aspects"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -431,7 +431,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa"
     summary: "Source object becomes null after move assignment"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -439,7 +439,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01"
     summary: "Reject dereference of moved-from object unless reassigned or null-checked"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -447,7 +447,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p97a:8d0214d5"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5"
     summary: "Move target must be provably null at point of move"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -455,7 +455,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p97a-diag:dc259149"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a-diag:dc259149"
     summary: "Reject move into non-null target with ownership conflict diagnostic"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -463,7 +463,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45"
     summary: "Lender is frozen during active borrow (no read, write, or move)"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -471,7 +471,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p100a:ba849e66"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66"
     summary: "Anonymous access variables only assigned at declaration"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -479,7 +479,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b"
     summary: "Borrower/observer scope contained within lender/observed scope"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -487,7 +487,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065"
     summary: "Reject borrow/observe where borrower could outlive lender"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -495,7 +495,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102b:2ed757bd"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b:2ed757bd"
     summary: "No access value shall designate a deallocated object"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -503,7 +503,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102b-diag:ddab22c8"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b-diag:ddab22c8"
     summary: "Reject programs with potentially dangling access values"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -511,7 +511,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p103a:520dc0d4"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.5.p103a:520dc0d4"
     summary: "Allocation failure causes program abort with diagnostic"
     target: "Memory-safety"
     mechanism: "runtime_wrapper_check"
@@ -520,7 +520,7 @@ po_entries:
     assumptions:
       - "Runtime abort handler is correctly implemented"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9"
     summary: "Automatic deallocation of non-null pool-specific access at scope exit"
     target: "Memory-safety"
     mechanism: "runtime_wrapper_check"
@@ -528,7 +528,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104a:b70c1d15"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104a:b70c1d15"
     summary: "Named access-to-constant types auto-deallocated at scope exit"
     target: "Memory-safety"
     mechanism: "runtime_wrapper_check"
@@ -536,7 +536,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p105:d4a9cdb4"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.5.p105:d4a9cdb4"
     summary: "Multiple access objects deallocated in reverse declaration order"
     target: "Memory-safety"
     mechanism: "runtime_wrapper_check"
@@ -544,7 +544,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p106:bae12394"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.5.p106:bae12394"
     summary: "General access-to-variable types cannot be deallocated"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -552,7 +552,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.7.p108:083e15a2"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.7.p108:083e15a2"
     summary: "Ownership checking is local to compilation unit"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -561,7 +561,7 @@ po_entries:
     assumptions:
       - "Dependency interface information accurately represents effects"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.8.p111:42819528"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.8.p111:42819528"
     summary: "Reject .Access on local aliased variable where result could escape scope"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -569,7 +569,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.8.p111a:a858bdfc"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.8.p111a:a858bdfc"
     summary: "Function shall not return .Access of local aliased variable"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -577,7 +577,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.8.p111b:2921e9d2"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.8.p111b:2921e9d2"
     summary: ".Access of local shall not be assigned to enclosing scope variable"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -585,7 +585,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.8.p111c:819cc398"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.8.p111c:819cc398"
     summary: ".Access of local aliased variable shall not be sent through channel"
     target: "Memory-safety"
     mechanism: "flow_contract_check"
@@ -593,7 +593,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.8.p113:75fcd707"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.8.p113:75fcd707"
     summary: "No runtime accessibility check code shall be emitted"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -601,7 +601,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.3.8.p109-end:5d18703e"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.3.8.p109-end:5d18703e"
     summary: "No runtime accessibility check is ever required"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -609,7 +609,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8"
     summary: "Integer arithmetic evaluated in mathematical integer type (wide intermediates)"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -618,7 +618,7 @@ po_entries:
     assumptions:
       - "Implementation provides at least 64-bit intermediate evaluation"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439"
     summary: "Range checks only at narrowing points (assignment, parameter, return, conversion, annotation)"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -626,7 +626,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p128:d2e83ca8"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.1.p128:d2e83ca8"
     summary: "Reject integer types exceeding 64-bit signed range"
     target: "Silver-AoRTE"
     mechanism: "flow_contract_check"
@@ -634,7 +634,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p129:9f3b1394"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129:9f3b1394"
     summary: "Reject expressions with intermediate subexpressions exceeding 64-bit range"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -642,7 +642,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p130:2289e5b2"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2"
     summary: "Narrowing checks discharged via sound static range analysis"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -651,7 +651,7 @@ po_entries:
     assumptions:
       - "Static range analysis is sound"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5"
     summary: "Index expression provably within array bounds at compile time"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -659,7 +659,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4"
     summary: "Reject unresolvable index bound relationships with diagnostic"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -667,7 +667,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951"
     summary: "Right operand of /, mod, rem provably nonzero at compile time"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -675,7 +675,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p134:90a17a3b"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b"
     summary: "Reject division where nonzero cannot be established"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -683,7 +683,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7"
     summary: "Dereference requires not-null access subtype"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -691,7 +691,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139:d50bc714"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139:d50bc714"
     summary: "All predefined floating-point types use IEEE 754 non-trapping arithmetic"
     target: "Silver-AoRTE"
     mechanism: "runtime_wrapper_check"
@@ -700,7 +700,7 @@ po_entries:
     assumptions:
       - "Target hardware supports IEEE 754 non-trapping mode"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139b:5e20032b"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b"
     summary: "Sound static range analysis for floating-point narrowing points"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -708,7 +708,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d"
     summary: "Reject floating-point narrowing points that cannot be proven safe"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -716,7 +716,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139d:56f1f36b"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b"
     summary: "NaN and infinity cannot survive narrowing points"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -724,7 +724,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.9.p140:7eeb1bb6"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.9.p140:7eeb1bb6"
     summary: "Declarations and statements may interleave freely after begin"
     target: "Conformance"
     mechanism: "manual_review"
@@ -732,7 +732,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/02-restrictions.md#2.10.p141:9e5dc3fe"
+  - clause_id: "SAFE@468cf72:spec/02-restrictions.md#2.10.p141:9e5dc3fe"
     summary: "Reject duplicate subprogram identifiers in declarative region (no overloading)"
     target: "Conformance"
     mechanism: "flow_contract_check"
@@ -740,7 +740,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.p0:dcd1bc13"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.p0:dcd1bc13"
     summary: "Public interface made available for dependent compilation units"
     target: "Conformance"
     mechanism: "manual_review"
@@ -748,7 +748,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.1.p8:cb47c342"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.1.p8:cb47c342"
     summary: "End identifier must match package identifier"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -756,7 +756,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.2.p9:d7d76101"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.2.p9:d7d76101"
     summary: "Declaration-before-use for all names"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -764,7 +764,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.3.p12:b76eb7bf"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.3.p12:b76eb7bf"
     summary: "Forward declaration body shall appear in same region and conform"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -772,7 +772,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.3.p13:8bf74e20"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.3.p13:8bf74e20"
     summary: "Reject forward declaration with no completing body"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -780,7 +780,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.3.p14:c205a40a"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.3.p14:c205a40a"
     summary: "Public keyword on forward declaration, not on completing body"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -788,7 +788,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.4.p15:e090edc2"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.4.p15:e090edc2"
     summary: "No executable statements at package level"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -796,7 +796,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.5.p19:05cb629b"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.5.p19:05cb629b"
     summary: "Reject public annotation on invalid declaration kinds"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -804,7 +804,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.5.p20:d2c1d841"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.5.p20:d2c1d841"
     summary: "Non-public declarations are private to declaring package"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -812,7 +812,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.6.p23:26dc2217"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.6.p23:26dc2217"
     summary: "Reject external field access on opaque types"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -820,7 +820,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.6.p24:12e57227"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.6.p24:12e57227"
     summary: "Implementation exports size/alignment for opaque types"
     target: "Conformance"
     mechanism: "manual_review"
@@ -828,7 +828,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.9.p31:c2a3dc04"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.9.p31:c2a3dc04"
     summary: "Reject circular with dependency cycles"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -836,7 +836,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.2.10.p32:be83c6b5"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.2.10.p32:be83c6b5"
     summary: "Library units must be packages; reject library-level subprograms"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -844,7 +844,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.3.1.p33:b08ead48"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.3.1.p33:b08ead48"
     summary: "Implementation provides 9 categories of dependency interface information"
     target: "Conformance"
     mechanism: "manual_review"
@@ -852,7 +852,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.3.1.p34:2a0b2728"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.3.1.p34:2a0b2728"
     summary: "Dependency interface mechanism is implementation-defined"
     target: "Conformance"
     mechanism: "manual_review"
@@ -860,7 +860,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.3.1.p35:0bbb4bb7"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.3.1.p35:0bbb4bb7"
     summary: "Reject program when dependency interface info unavailable"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -868,7 +868,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.3.4.p40:cdfbcb6b"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.3.4.p40:cdfbcb6b"
     summary: "Child packages have no additional visibility into parent non-public declarations"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -876,7 +876,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.4.1.p42:b88e8ad4"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.4.1.p42:b88e8ad4"
     summary: "Package-level variable initialisers evaluated at load time in declaration order"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -884,7 +884,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.4.2.p44:a655dde4"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.4.2.p44:a655dde4"
     summary: "Withed package initialisers complete before dependent package initialisers"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -892,7 +892,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.4.2.p45:80712e1a"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.4.2.p45:80712e1a"
     summary: "Initialisation order is topological sort of dependency graph; ties implementation-defined but deterministic"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -900,7 +900,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.4.3.p46:b5f92bd9"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.4.3.p46:b5f92bd9"
     summary: "All package initialisation completes before any task begins executing"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -909,7 +909,7 @@ po_entries:
     assumptions:
       - "Runtime system implements deferred task activation"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.5.1.p47:b7e93197"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.5.1.p47:b7e93197"
     summary: "Implementation provides dependency interface mechanism"
     target: "Conformance"
     mechanism: "manual_review"
@@ -917,7 +917,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.5.1.p48:616dd05d"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.5.1.p48:616dd05d"
     summary: "Interface mechanism supports legality checking, ownership checking, incremental recompilation"
     target: "Conformance"
     mechanism: "manual_review"
@@ -925,7 +925,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/03-single-file-packages.md#3.5.2.p49:02b25de0"
+  - clause_id: "SAFE@468cf72:spec/03-single-file-packages.md#3.5.2.p49:02b25de0"
     summary: "Separate compilation of packages using source and dependency interface info"
     target: "Conformance"
     mechanism: "manual_review"
@@ -933,7 +933,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p2:78f022f7"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p2:78f022f7"
     summary: "Task declarations only at package top level"
     target: "Race-freedom"
     mechanism: "translation_validation"
@@ -941,7 +941,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p3:542e0dee"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p3:542e0dee"
     summary: "Each task declaration creates exactly one task; no task types/arrays"
     target: "Race-freedom"
     mechanism: "translation_validation"
@@ -949,7 +949,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p4:016e5737"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p4:016e5737"
     summary: "Task end identifier must match task name"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -957,7 +957,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p5:4e4afebc"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p5:4e4afebc"
     summary: "Priority aspect must be in System.Any_Priority range"
     target: "Race-freedom"
     mechanism: "translation_validation"
@@ -965,7 +965,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p6:be85291b"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p6:be85291b"
     summary: "Task declarations shall not bear public keyword"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -973,7 +973,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p7:393c53c2"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p7:393c53c2"
     summary: "Task declarations shall not be nested"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -981,7 +981,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p9:b4640bda"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p9:b4640bda"
     summary: "Default priority is implementation-defined and documented"
     target: "Conformance"
     mechanism: "manual_review"
@@ -989,7 +989,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p10:92a67777"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p10:92a67777"
     summary: "Tasks begin execution after all package-level initialisation"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -997,7 +997,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p11:2460c5cb"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p11:2460c5cb"
     summary: "Preemptive priority-based scheduling; equal priority order is impl-defined"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -1005,7 +1005,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p13:4f888b03"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p13:4f888b03"
     summary: "Channel declarations only at package top level"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1013,7 +1013,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p14:a35bd0fa"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p14:a35bd0fa"
     summary: "Channel element type must be definite"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1021,7 +1021,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e"
     summary: "Channel capacity must be positive integer"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1029,7 +1029,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e"
     summary: "Channel is FIFO: elements dequeued in enqueue order"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -1037,7 +1037,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p21:c6a92460"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p21:c6a92460"
     summary: "Channel ceiling priority at least max of accessing task priorities"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1045,7 +1045,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p21a:16ec46cb"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p21a:16ec46cb"
     summary: "Cross-package channel ceiling priority computation via interface summaries"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1053,7 +1053,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p23:197d9a49"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p23:197d9a49"
     summary: "Send/try_send expression type matches channel element type"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1061,7 +1061,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p24:9e47ed4c"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p24:9e47ed4c"
     summary: "Receive/try_receive variable type matches channel element type"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1069,7 +1069,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p25:961abe5a"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p25:961abe5a"
     summary: "try_send/try_receive success variable must be Boolean"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1077,7 +1077,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p26:3a9449c1"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p26:3a9449c1"
     summary: "Channel operations shall not appear at package level"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1085,7 +1085,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd"
     summary: "send blocks if channel full; value evaluated before enqueue"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1093,7 +1093,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27a:8ed3c1d4"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27a:8ed3c1d4"
     summary: "Ownership transfer (move) on send for owning access types"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -1101,7 +1101,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c"
     summary: "receive blocks if channel empty; dequeues front element"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1109,7 +1109,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28a:4cb19779"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28a:4cb19779"
     summary: "Ownership transfer on receive; null-before-move rule applies"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -1117,7 +1117,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29:f792d704"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29:f792d704"
     summary: "try_send: atomic non-blocking enqueue attempt"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1125,7 +1125,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29a:8d3f2225"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29a:8d3f2225"
     summary: "Move occurs only on successful try_send for owning access types"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -1133,7 +1133,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29b:7121ccd7"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29b:7121ccd7"
     summary: "Implementation shall not null source until enqueue confirmed"
     target: "Memory-safety"
     mechanism: "runtime_wrapper_check"
@@ -1141,7 +1141,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p30:62619161"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p30:62619161"
     summary: "try_receive with ownership transfer and null-before-move rule"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -1149,7 +1149,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p31:a7297e97"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97"
     summary: "Channel operations atomic with respect to same-channel operations"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1158,7 +1158,7 @@ po_entries:
     assumptions:
       - "Channel implementation provides mutual exclusion"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p31a:a621d08c"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31a:a621d08c"
     summary: "Channel ownership invariant: each designated object owned by exactly one entity"
     target: "Memory-safety"
     mechanism: "ghost_model_invariant"
@@ -1167,7 +1167,7 @@ po_entries:
     assumptions:
       - "Channel implementation correctly serializes access"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51"
     summary: "Select must contain at least one channel arm"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1175,7 +1175,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p34:f0f83b83"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p34:f0f83b83"
     summary: "At most one delay arm in select statement"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1183,7 +1183,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p35:2ad6e64f"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p35:2ad6e64f"
     summary: "Select arms are receive-only (no send in select)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1191,7 +1191,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p36:0bffbd47"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p36:0bffbd47"
     summary: "Select channel arm subtype must match channel element type"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1199,7 +1199,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p37:6ced8129"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p37:6ced8129"
     summary: "Select channel arm introduces scoped variable"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1207,7 +1207,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9"
     summary: "Delay arm expression must be Duration-compatible"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1215,7 +1215,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p39:1012f4db"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39:1012f4db"
     summary: "Select tests arms in declaration order; first ready arm selected"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -1223,7 +1223,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p40:4cfdeffe"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p40:4cfdeffe"
     summary: "Delay arm selected if delay expires before any channel ready"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -1231,7 +1231,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p41:cdf6a558"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p41:cdf6a558"
     summary: "Simultaneous channels: first listed arm selected (deterministic)"
     target: "Determinism"
     mechanism: "runtime_wrapper_check"
@@ -1239,7 +1239,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p42:dce8ac38"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p42:dce8ac38"
     summary: "Select blocks if no arm ready and no delay arm present"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1247,7 +1247,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99"
     summary: "Each package-level variable accessed by at most one task"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1255,7 +1255,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p47:bc08fb3b"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p47:bc08fb3b"
     summary: "Cross-package ownership checking via effect summaries"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1264,7 +1264,7 @@ po_entries:
     assumptions:
       - "Dependency interface effect summaries are sound"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p49:d2001725"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p49:d2001725"
     summary: "Reject subprogram accessing package variable if callable from multiple tasks"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1272,7 +1272,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p50:2882310a"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p50:2882310a"
     summary: "Task-Variable Ownership clause"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1280,7 +1280,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.6.p53:897d5577"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53:897d5577"
     summary: "Task body outermost statement must be unconditional loop"
     target: "Race-freedom"
     mechanism: "translation_validation"
@@ -1288,7 +1288,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.6.p53b:19b7c4ae"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53b:19b7c4ae"
     summary: "Reject return statement within task body"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1296,7 +1296,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.6.p53c:77a5f52c"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53c:77a5f52c"
     summary: "Exit statement shall not target outermost loop of task"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1304,7 +1304,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p56:55e4230e"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p56:55e4230e"
     summary: "All package initialisation completes before any task executes"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1313,7 +1313,7 @@ po_entries:
     assumptions:
       - "Runtime system implements deferred task activation"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p58:d10f9cd1"
+  - clause_id: "SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p58:d10f9cd1"
     summary: "Task activation order is implementation-defined"
     target: "Determinism"
     mechanism: "manual_review"
@@ -1321,7 +1321,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.1.p2:14a5a600"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.1.p2:14a5a600"
     summary: "Every conforming program achieves Stone, Bronze, Silver without annotations"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1329,7 +1329,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.2.1.p3:ce5a8fe7"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.2.1.p3:ce5a8fe7"
     summary: "Complete and correct flow information derivable without user annotations"
     target: "Bronze-flow"
     mechanism: "flow_contract_check"
@@ -1337,7 +1337,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.2.2.p5:a07e15ef"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.2.2.p5:a07e15ef"
     summary: "Implementation determines Global (read/write sets) per subprogram"
     target: "Bronze-flow"
     mechanism: "flow_contract_check"
@@ -1345,7 +1345,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.2.3.p8:dfb93f2c"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.2.3.p8:dfb93f2c"
     summary: "Implementation determines Depends (output-to-input) per subprogram"
     target: "Bronze-flow"
     mechanism: "flow_contract_check"
@@ -1353,7 +1353,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.2.4.p11:b89bd341"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.2.4.p11:b89bd341"
     summary: "Implementation determines Initializes (elaboration-initialized variables) per package"
     target: "Bronze-flow"
     mechanism: "flow_contract_check"
@@ -1361,7 +1361,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12:99a94209"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.1.p12:99a94209"
     summary: "Every conforming program is free of runtime errors (Silver guarantee)"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1369,7 +1369,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12a:047a8410"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.1.p12a:047a8410"
     summary: "Silver scope excludes resource exhaustion (allocation failure, stack overflow)"
     target: "Silver-AoRTE"
     mechanism: "assumption_tracking"
@@ -1378,7 +1378,7 @@ po_entries:
     assumptions:
       - "Resource exhaustion behavior is defined (abort) but not statically preventable"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.2.p15:1ab3314c"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.2.p15:1ab3314c"
     summary: "Reject integer types exceeding 64-bit signed range"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1386,7 +1386,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.2.p16:2e323902"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.2.p16:2e323902"
     summary: "Reject integer expressions with unprovable 64-bit intermediate bounds"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1394,7 +1394,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7"
     summary: "Range checks discharged via sound static range analysis"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1402,7 +1402,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.6.p26:9ca2c786"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.6.p26:9ca2c786"
     summary: "Reject programs with undischargeable narrowing points"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1410,7 +1410,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.7.p27:e63b291b"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.7.p27:e63b291b"
     summary: "Discriminant checks: variant access consistent with discriminant value"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1418,7 +1418,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.7a.p28a:5936dbea"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.7a.p28a:5936dbea"
     summary: "All floating-point types use IEEE 754 non-trapping arithmetic"
     target: "Silver-AoRTE"
     mechanism: "runtime_wrapper_check"
@@ -1427,7 +1427,7 @@ po_entries:
     assumptions:
       - "Target hardware supports IEEE 754 non-trapping mode"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.9.p30:c7a2cbdb"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.9.p30:c7a2cbdb"
     summary: "Hard rejection: undischargeable runtime check means program is rejected"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1435,7 +1435,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.3.9.p31:f6ea7939"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.3.9.p31:f6ea7939"
     summary: "Silver failure is compilation error, not warning"
     target: "Silver-AoRTE"
     mechanism: "manual_review"
@@ -1443,7 +1443,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.4.1.p32:90d4f527"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.4.1.p32:90d4f527"
     summary: "Channel-based tasking model guarantees data race freedom"
     target: "Race-freedom"
     mechanism: "ghost_model_invariant"
@@ -1451,7 +1451,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.4.1.p33:0fc25399"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.4.1.p33:0fc25399"
     summary: "Data race freedom verified via task-variable ownership analysis"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1459,7 +1459,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.4.2.p34:198b1ddf"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.4.2.p34:198b1ddf"
     summary: "Ceiling priority rules prevent priority inversion"
     target: "Race-freedom"
     mechanism: "runtime_wrapper_check"
@@ -1467,7 +1467,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/05-assurance.md#5.4.4.p40:36087a2c"
+  - clause_id: "SAFE@468cf72:spec/05-assurance.md#5.4.4.p40:36087a2c"
     summary: "Task body effect summaries reference only owned variables and channel ops"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1475,7 +1475,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1a:ba2c1d31"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1a:ba2c1d31"
     summary: "Conforming implementation accepts every conforming program"
     target: "Conformance"
     mechanism: "test_assertion"
@@ -1483,7 +1483,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1b:3890c549"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1b:3890c549"
     summary: "Conforming implementation rejects non-conforming programs with diagnostic"
     target: "Conformance"
     mechanism: "test_assertion"
@@ -1491,7 +1491,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1c:1f8fe478"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1c:1f8fe478"
     summary: "Correct dynamic semantics of 8652:2023 as modified"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1499,7 +1499,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1d:19219997"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1d:19219997"
     summary: "Enforce D27 Rules 1-5 legality rules"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1507,7 +1507,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1e:d0e6c93b"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1e:d0e6c93b"
     summary: "Enforce task-variable ownership as legality rule"
     target: "Race-freedom"
     mechanism: "flow_contract_check"
@@ -1515,7 +1515,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1f:2410637e"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1f:2410637e"
     summary: "Derive flow analysis information without user annotations"
     target: "Bronze-flow"
     mechanism: "flow_contract_check"
@@ -1523,7 +1523,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p1g:80745a1e"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p1g:80745a1e"
     summary: "Provide separate compilation and linking mechanism"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1531,7 +1531,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.1.p2:983b5f84"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.1.p2:983b5f84"
     summary: "Implementation may provide additional capabilities without altering semantics"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1539,7 +1539,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.2.p4:3e238301"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.2.p4:3e238301"
     summary: "Programs with undischargeable runtime checks are non-conforming and rejected"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1547,7 +1547,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.4.p11:f35e2134"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.4.p11:f35e2134"
     summary: "D27 static analyses shall be sound (no under-approximation)"
     target: "Silver-AoRTE"
     mechanism: "manual_review"
@@ -1556,7 +1556,7 @@ po_entries:
     assumptions:
       - "Static analysis implementation is verified or validated"
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.4.p11b:6e973d1d"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.4.p11b:6e973d1d"
     summary: "Undischargeable runtime check means program is rejected"
     target: "Silver-AoRTE"
     mechanism: "gnatprove_proof_vc"
@@ -1564,7 +1564,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.5.1.p16:b89b7765"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.5.1.p16:b89b7765"
     summary: "Support separate compilation using source and dependency info"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1572,7 +1572,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.5.2.p17:70300f7a"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.5.2.p17:70300f7a"
     summary: "Dependency interface information mechanism between compiled units"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1580,7 +1580,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.5.2.p18:ae5640ac"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.5.2.p18:ae5640ac"
     summary: "Interface includes declarations, signatures, effects, sizes, channel summaries"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1588,7 +1588,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.5.3.p19:5d4dfb69"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.5.3.p19:5d4dfb69"
     summary: "Linking mechanism to combine compiled units into executable"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1596,7 +1596,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.6.p20a:d74e6ca7"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.6.p20a:d74e6ca7"
     summary: "Diagnostics identify source file, line, column of violation"
     target: "Conformance"
     mechanism: "test_assertion"
@@ -1604,7 +1604,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.6.p20b:74ad00a2"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.6.p20b:74ad00a2"
     summary: "Diagnostics identify which rule is violated"
     target: "Conformance"
     mechanism: "test_assertion"
@@ -1612,7 +1612,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.7.p22:03afd0a4"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.7.p22:03afd0a4"
     summary: "Implementation documents all implementation-defined behaviors"
     target: "Conformance"
     mechanism: "manual_review"
@@ -1620,7 +1620,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/06-conformance.md#6.8.p23:3419a843"
+  - clause_id: "SAFE@468cf72:spec/06-conformance.md#6.8.p23:3419a843"
     summary: "Runtime system supports tasks, channels, delay, deallocation, abort handler"
     target: "Conformance"
     mechanism: "runtime_wrapper_check"
@@ -1628,7 +1628,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/07-annex-a-retained-library.md#A.1.p3:70deff00"
+  - clause_id: "SAFE@468cf72:spec/07-annex-a-retained-library.md#A.1.p3:70deff00"
     summary: "Exception declarations in Standard excluded; names remain reserved"
     target: "Library-safety"
     mechanism: "translation_validation"
@@ -1636,7 +1636,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/07-annex-a-retained-library.md#A.4.1.p19:891ffa81"
+  - clause_id: "SAFE@468cf72:spec/07-annex-a-retained-library.md#A.4.1.p19:891ffa81"
     summary: "Ada.Strings modified: exception declarations excluded, enumerations retained"
     target: "Library-safety"
     mechanism: "translation_validation"
@@ -1644,7 +1644,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/08-syntax-summary.md#8.15.p1:75c5cfea"
+  - clause_id: "SAFE@468cf72:spec/08-syntax-summary.md#8.15.p1:75c5cfea"
     summary: "Reject reserved word used as identifier (authoritative list)"
     target: "Conformance"
     mechanism: "translation_validation"
@@ -1652,7 +1652,7 @@ po_entries:
     status: "stubbed"
     assumptions: []
     artifact_location: "N/A"
-  - clause_id: "SAFE@4aecf21:spec/08-syntax-summary.md#8.16.p2:ccb1533b"
+  - clause_id: "SAFE@468cf72:spec/08-syntax-summary.md#8.16.p2:ccb1533b"
     summary: "Constructs not in Safe grammar are excluded from Safe"
     target: "Conformance"
     mechanism: "translation_validation"

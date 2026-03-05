@@ -1,5 +1,5 @@
 # Safe Language Annotated SPARK Companion -- CI Workflow
-# Source commit: 4aecf219ffa5473bfc42b026a66c8bdea2ce5872
+# Source commit: 468cf72332724b04b7c193b4d2a3b02f1584125d
 #
 # This workflow builds the SPARK companion, runs GNATprove flow and proof
 # analysis, extracts assumptions, and diffs them against the tracked baseline.
@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  FROZEN_SHA: "4aecf219ffa5473bfc42b026a66c8bdea2ce5872"
+  FROZEN_SHA: "468cf72332724b04b7c193b4d2a3b02f1584125d"
 
 defaults:
   run:

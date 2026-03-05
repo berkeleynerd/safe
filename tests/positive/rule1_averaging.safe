@@ -3,9 +3,9 @@
 --   Uses wide intermediate arithmetic so that the sum of 10 readings
 --   (each in 0..1000) stays within mathematical integers. The final
 --   result is narrowed back to the Reading range on return.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
--- Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+-- Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 -- Expected: ACCEPT
 
 package Sensor_Average is

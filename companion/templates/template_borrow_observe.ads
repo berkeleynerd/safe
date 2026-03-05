@@ -1,7 +1,7 @@
 --  Verified Emission Template: Borrow and Observe Ownership Patterns
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
 --  Reference: compiler/translation_rules.md Section 7
 --
 --  Demonstrates the compiler emission patterns for borrow (exclusive

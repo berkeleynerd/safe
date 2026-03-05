@@ -2,8 +2,8 @@
 -- Description: Function return that cannot be proven within return type range.
 --   The function computes a value that may exceed the return type's range
 --   without any guard.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
--- Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+-- Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 -- Expected: REJECT narrowing_check_failure
 
 package Return_Fail is

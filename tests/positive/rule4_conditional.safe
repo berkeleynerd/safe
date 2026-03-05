@@ -2,7 +2,7 @@
 -- Description: Conditional dereference with null guard.
 --   Multiple access values are conditionally dereferenced after
 --   explicit null checks on each path.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: ACCEPT
 
 package Safe_Conditional is

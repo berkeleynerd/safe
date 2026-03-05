@@ -1,9 +1,9 @@
 --  Verified Emission Template: Floating-Point Safety
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139:d50bc714
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139b:5e20032b
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.7a.p28a:5936dbea
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139:d50bc714
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.7a.p28a:5936dbea
 --  Reference: compiler/translation_rules.md Section 8.4
 --
 --  Demonstrates the compiler emission patterns for floating-point

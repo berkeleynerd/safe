@@ -1,10 +1,10 @@
 --  Verified Emission Template: Package Structure Emission
 --
---  Clause: SAFE@4aecf21:spec/03-single-file-packages.md
+--  Clause: SAFE@468cf72:spec/03-single-file-packages.md
 --          #3.2.6.p23:26dc2217
---  Clause: SAFE@4aecf21:spec/03-single-file-packages.md
+--  Clause: SAFE@468cf72:spec/03-single-file-packages.md
 --          #3.2.6.p24:12e57227
---  Clause: SAFE@4aecf21:spec/02-restrictions.md
+--  Clause: SAFE@468cf72:spec/02-restrictions.md
 --          #2.9.p140:7eeb1bb6
 --  Reference: compiler/translation_rules.md Section 11
 --

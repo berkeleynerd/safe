@@ -1,8 +1,8 @@
 -- Test: rule4_linked_list
 -- Description: Linked list traversal with null guards.
 --   Each dereference is preceded by a null check on the current node.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
 package Safe_Linked_List is

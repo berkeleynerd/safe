@@ -1,9 +1,9 @@
 # Safe Language Annotated SPARK Companion -- Traceability Matrix
 
-**Frozen commit SHA:** `4aecf21`  
-**Generated:** 2026-03-02  
-**Total normative clauses:** 205  
-**Spec files parsed:** 10  
+**Frozen commit SHA:** `468cf72`
+**Generated:** 2026-03-05
+**Total normative clauses:** 205
+**Spec files parsed:** 10
 
 ---
 

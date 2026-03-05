@@ -2,8 +2,8 @@
 -- Description: Binary search with safe indexing.
 --   At each step, the midpoint is computed from Lo and Hi which
 --   are both valid array indices, so the access is in bounds.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
 package Binary_Search is

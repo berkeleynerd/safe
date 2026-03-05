@@ -1,11 +1,11 @@
 # Translation Rules: Safe to Ada/SPARK
 
 **Status: FINAL**
-**Frozen commit:** `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`
+**Frozen commit:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 
 This document defines the translation rules for lowering Safe AST nodes to Ada 2022 / SPARK 2022 source code. The emitted Ada is the canonical representation verified by GNATprove at Bronze and Silver levels.
 
-**Clause ID format:** `SAFE@4aecf21:spec/<file>#<section>.p<n>` references paragraph `<n>` of `<section>` in the given spec file at the frozen commit.
+**Clause ID format:** `SAFE@468cf72:spec/<file>#<section>.p<n>` references paragraph `<n>` of `<section>` in the given spec file at the frozen commit.
 
 **AST node references** use PascalCase names corresponding to the node types defined in `compiler/ast_schema.json`.
 
@@ -36,45 +36,45 @@ The following table maps each Safe construct to its Ada/SPARK emission pattern. 
 
 | Safe Construct | Ada/SPARK Emission | Clause Reference | Notes |
 |---|---|---|---|
-| `package P is ... end P;` | `.ads` + `.adb` pair with `pragma SPARK_Mode;` | SAFE@4aecf21:spec/03-single-file-packages.md#3.1.p1 | AST: `CompilationUnit`, `PackageUnit`. Public decls to `.ads`, bodies to `.adb` |
-| `public` keyword on declaration | Declaration appears in `.ads` (visible part) | SAFE@4aecf21:spec/03-single-file-packages.md#3.1.p6 | No `public` = declaration in `.adb` body |
-| `public type T is private record ... end record;` | Type in `.ads` visible part; full decl in `.ads` private part | SAFE@4aecf21:spec/03-single-file-packages.md#3.1.p7 | AST: `RecordTypeDefinition` with `is_private=true` |
-| `with P;` | `with P;` | SAFE@4aecf21:spec/03-single-file-packages.md#3.1.p1 | AST: `WithClause`. Direct pass-through |
-| `use type T;` | `use type T;` | SAFE@4aecf21:spec/02-restrictions.md#2.1.7.p52 | AST: `UseTypeClause`. Direct pass-through |
-| `X.First` (attribute) | `X'First` | SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p109 | AST: `SelectedComponent` with `resolved_kind=Attribute`. Dot-to-tick |
-| `X.Last` (attribute) | `X'Last` | SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick for all attributes |
-| `X.Range` (attribute) | `X'Range` | SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick for all attributes |
-| `X.Image(V)` | `X'Image(V)` | SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p112 | Parameterised attribute |
-| `X.Access` | `X'Access` | SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick |
-| `X.Valid` | `X'Valid` | SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick |
-| `(Expr as T)` (type annotation) | `T'(Expr)` (qualified expression) | SAFE@4aecf21:spec/02-restrictions.md#2.4.2.p113 | AST: `AnnotatedExpression`. Reverse annotation to qualified expr |
-| `new (Expr as T)` (allocator) | `new T'(Expr)` | SAFE@4aecf21:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=Annotated`. Combined with dot-to-tick |
-| `new T` (allocator, default init) | `new T` | SAFE@4aecf21:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=SubtypeOnly`. Direct pass-through |
-| `type T is range L .. H;` | `type T is range L .. H;` | SAFE@4aecf21:spec/08-syntax-summary.md#8.4 | AST: `SignedIntegerTypeDefinition`. Direct pass-through |
-| `type T is access T2;` | `type T is access T2;` | SAFE@4aecf21:spec/08-syntax-summary.md#8.4 | AST: `AccessToObjectDefinition`. Direct pass-through |
-| `subtype T_Ref is not null T_Ptr;` | `subtype T_Ref is not null T_Ptr;` | SAFE@4aecf21:spec/02-restrictions.md#2.3.1.p95 | AST: `SubtypeDeclaration`. Direct pass-through |
-| Integer arithmetic `A + B` | `Wide_Integer(A) + Wide_Integer(B)` | SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126 | AST: `Expression` with `wide_arithmetic=true`. Wide intermediate lifting |
-| Narrowing: `return Expr` | `return T(Wide_Expr)` | SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127 | AST: `SimpleReturnStatement`. Range check at narrowing point |
-| Narrowing: `X = Expr` | `X := T(Wide_Expr);` | SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127 | AST: `AssignmentStatement`. Range check at narrowing point |
-| `task T ... end T;` | Ada task type + single instance | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p1 | AST: `TaskDeclaration`. See Section 6 |
-| `channel C : T capacity N;` | Protected object with bounded buffer | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p12 | AST: `ChannelDeclaration`. See Section 4 |
-| `send C, Expr;` | `C.Send(Expr);` (entry call) | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27 | AST: `SendStatement`. Blocking entry call |
-| `receive C, Var;` | `C.Receive(Var);` (entry call) | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28 | AST: `ReceiveStatement`. Blocking entry call |
-| `try_send C, Expr, Ok;` | `C.Try_Send(Expr, Ok);` (procedure call) | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29 | AST: `TrySendStatement`. Non-blocking procedure |
-| `try_receive C, Var, Ok;` | `C.Try_Receive(Var, Ok);` (procedure call) | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p30 | AST: `TryReceiveStatement`. Non-blocking procedure |
-| `select ... end select;` | Polling loop with `Try_Receive` calls | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p39 | AST: `SelectStatement`. See Section 5 |
-| `delay Expr;` | `delay Duration(Expr);` | SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p60 | AST: `DelayStatement`. Direct pass-through if Duration typed |
-| `pragma Assert(Cond);` | `pragma Assert(Cond);` | SAFE@4aecf21:spec/02-restrictions.md#2.1.10.p68 | AST: `Pragma`. Direct pass-through |
-| Scope exit of owning access var | `Free(Var);` (generated Unchecked_Deallocation) | SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104 | See Section 9 |
-| Interleaved declaration in body | Declaration hoisted to `declare` block | SAFE@4aecf21:spec/02-restrictions.md#2.9.p140 | AST: `InterleavedItem`. See Section 11 |
-| Forward declaration | Subprogram spec in `.ads` | SAFE@4aecf21:spec/03-single-file-packages.md#3.2.3.p11 | AST: `SubprogramDeclaration`. Body in `.adb` |
-| `is separate` (subunit stub) | `is separate;` | SAFE@4aecf21:spec/08-syntax-summary.md#8.9 | AST: `SubunitStub`. Direct pass-through |
+| `package P is ... end P;` | `.ads` + `.adb` pair with `pragma SPARK_Mode;` | SAFE@468cf72:spec/03-single-file-packages.md#3.1.p1 | AST: `CompilationUnit`, `PackageUnit`. Public decls to `.ads`, bodies to `.adb` |
+| `public` keyword on declaration | Declaration appears in `.ads` (visible part) | SAFE@468cf72:spec/03-single-file-packages.md#3.1.p6 | No `public` = declaration in `.adb` body |
+| `public type T is private record ... end record;` | Type in `.ads` visible part; full decl in `.ads` private part | SAFE@468cf72:spec/03-single-file-packages.md#3.1.p7 | AST: `RecordTypeDefinition` with `is_private=true` |
+| `with P;` | `with P;` | SAFE@468cf72:spec/03-single-file-packages.md#3.1.p1 | AST: `WithClause`. Direct pass-through |
+| `use type T;` | `use type T;` | SAFE@468cf72:spec/02-restrictions.md#2.1.7.p52 | AST: `UseTypeClause`. Direct pass-through |
+| `X.First` (attribute) | `X'First` | SAFE@468cf72:spec/02-restrictions.md#2.4.1.p109 | AST: `SelectedComponent` with `resolved_kind=Attribute`. Dot-to-tick |
+| `X.Last` (attribute) | `X'Last` | SAFE@468cf72:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick for all attributes |
+| `X.Range` (attribute) | `X'Range` | SAFE@468cf72:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick for all attributes |
+| `X.Image(V)` | `X'Image(V)` | SAFE@468cf72:spec/02-restrictions.md#2.4.1.p112 | Parameterised attribute |
+| `X.Access` | `X'Access` | SAFE@468cf72:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick |
+| `X.Valid` | `X'Valid` | SAFE@468cf72:spec/02-restrictions.md#2.4.1.p109 | Dot-to-tick |
+| `(Expr as T)` (type annotation) | `T'(Expr)` (qualified expression) | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p113 | AST: `AnnotatedExpression`. Reverse annotation to qualified expr |
+| `new (Expr as T)` (allocator) | `new T'(Expr)` | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=Annotated`. Combined with dot-to-tick |
+| `new T` (allocator, default init) | `new T` | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=SubtypeOnly`. Direct pass-through |
+| `type T is range L .. H;` | `type T is range L .. H;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `SignedIntegerTypeDefinition`. Direct pass-through |
+| `type T is access T2;` | `type T is access T2;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `AccessToObjectDefinition`. Direct pass-through |
+| `subtype T_Ref is not null T_Ptr;` | `subtype T_Ref is not null T_Ptr;` | SAFE@468cf72:spec/02-restrictions.md#2.3.1.p95 | AST: `SubtypeDeclaration`. Direct pass-through |
+| Integer arithmetic `A + B` | `Wide_Integer(A) + Wide_Integer(B)` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 | AST: `Expression` with `wide_arithmetic=true`. Wide intermediate lifting |
+| Narrowing: `return Expr` | `return T(Wide_Expr)` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `SimpleReturnStatement`. Range check at narrowing point |
+| Narrowing: `X = Expr` | `X := T(Wide_Expr);` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `AssignmentStatement`. Range check at narrowing point |
+| `task T ... end T;` | Ada task type + single instance | SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p1 | AST: `TaskDeclaration`. See Section 6 |
+| `channel C : T capacity N;` | Protected object with bounded buffer | SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p12 | AST: `ChannelDeclaration`. See Section 4 |
+| `send C, Expr;` | `C.Send(Expr);` (entry call) | SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27 | AST: `SendStatement`. Blocking entry call |
+| `receive C, Var;` | `C.Receive(Var);` (entry call) | SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28 | AST: `ReceiveStatement`. Blocking entry call |
+| `try_send C, Expr, Ok;` | `C.Try_Send(Expr, Ok);` (procedure call) | SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29 | AST: `TrySendStatement`. Non-blocking procedure |
+| `try_receive C, Var, Ok;` | `C.Try_Receive(Var, Ok);` (procedure call) | SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p30 | AST: `TryReceiveStatement`. Non-blocking procedure |
+| `select ... end select;` | Polling loop with `Try_Receive` calls | SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39 | AST: `SelectStatement`. See Section 5 |
+| `delay Expr;` | `delay Duration(Expr);` | SAFE@468cf72:spec/02-restrictions.md#2.1.8.p60 | AST: `DelayStatement`. Direct pass-through if Duration typed |
+| `pragma Assert(Cond);` | `pragma Assert(Cond);` | SAFE@468cf72:spec/02-restrictions.md#2.1.10.p68 | AST: `Pragma`. Direct pass-through |
+| Scope exit of owning access var | `Free(Var);` (generated Unchecked_Deallocation) | SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104 | See Section 9 |
+| Interleaved declaration in body | Declaration hoisted to `declare` block | SAFE@468cf72:spec/02-restrictions.md#2.9.p140 | AST: `InterleavedItem`. See Section 11 |
+| Forward declaration | Subprogram spec in `.ads` | SAFE@468cf72:spec/03-single-file-packages.md#3.2.3.p11 | AST: `SubprogramDeclaration`. Body in `.adb` |
+| `is separate` (subunit stub) | `is separate;` | SAFE@468cf72:spec/08-syntax-summary.md#8.9 | AST: `SubunitStub`. Direct pass-through |
 
 ---
 
 ## 2. Dot-to-Tick Notation
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p109-112
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.4.1.p109-112
 
 **AST node:** `SelectedComponent` (with `resolved_kind` field)
 
@@ -82,7 +82,7 @@ Safe uses dot notation (`X.Attr`) for all attribute references. Ada uses tick no
 
 ### 2.1 Resolution Rule
 
-During semantic analysis, each `SelectedComponent` node is classified per the resolution rule (SAFE@4aecf21:spec/02-restrictions.md#2.4.1.p110):
+During semantic analysis, each `SelectedComponent` node is classified per the resolution rule (SAFE@468cf72:spec/02-restrictions.md#2.4.1.p110):
 
 | SelectedComponent resolved_kind | Emission |
 |---|---|
@@ -115,7 +115,7 @@ S : String := V'Image;
 
 ### 2.5 Complete Attribute Inventory
 
-All attributes listed in SAFE@4aecf21:spec/02-restrictions.md#2.5.1.p118 are emitted with tick notation. The emitter maintains a compile-time lookup table of all 70 retained attribute names (enumerated in spec/02-restrictions.md section 2.5.1) to distinguish attribute references from record field accesses during emission. This table is generated from the spec inventory at compiler build time:
+All attributes listed in SAFE@468cf72:spec/02-restrictions.md#2.5.1.p118 are emitted with tick notation. The emitter maintains a compile-time lookup table of all 70 retained attribute names (enumerated in spec/02-restrictions.md section 2.5.1) to distinguish attribute references from record field accesses during emission. This table is generated from the spec inventory at compiler build time:
 
 ```
 RETAINED_ATTRIBUTES : constant array of String :=
@@ -143,7 +143,7 @@ RETAINED_ATTRIBUTES : constant array of String :=
 
 ## 3. Type Annotations and Qualified Expressions
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.4.2.p113-116
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.4.2.p113-116
 
 **AST node:** `AnnotatedExpression`
 
@@ -187,7 +187,7 @@ Y := Reading(Safe_Runtime.Wide_Integer(A) + Safe_Runtime.Wide_Integer(B));
 
 ## 4. Channel Lowering to Protected Objects
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p12, SAFE@4aecf21:spec/07-annex-b-impl-advice.md#B.6.p16
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p12, SAFE@468cf72:spec/07-annex-b-impl-advice.md#B.6.p16
 
 **AST node:** `ChannelDeclaration`
 
@@ -269,7 +269,7 @@ end Data_Ch;
 
 ### 4.3 Ceiling Priority Computation
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p21-21a
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p21-21a
 
 The emitter computes the ceiling priority for each channel as:
 
@@ -277,9 +277,9 @@ The emitter computes the ceiling priority for each channel as:
 ceiling(Ch) = max { priority(T) | T accesses Ch directly or transitively }
 ```
 
-Cross-package channel access is determined from channel-access summaries in the dependency interface (SAFE@4aecf21:spec/03-single-file-packages.md#3.3.1.p33(i)).
+Cross-package channel access is determined from channel-access summaries in the dependency interface (SAFE@468cf72:spec/03-single-file-packages.md#3.3.1.p33(i)).
 
-Conservative over-approximation is permitted (SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p21a(d)). When no task accesses a channel (e.g., a public channel accessed only from client code not yet compiled), the ceiling defaults to `System.Any_Priority'Last` (see Section 12, conservative defaults).
+Conservative over-approximation is permitted (SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p21a(d)). When no task accesses a channel (e.g., a public channel accessed only from client code not yet compiled), the ceiling defaults to `System.Any_Priority'Last` (see Section 12, conservative defaults).
 
 ### 4.4 Buffer Index Types
 
@@ -294,7 +294,7 @@ This ensures that `Head`, `Tail`, and `Count` are provably in-range. The modular
 
 ### 4.5 Ownership Transfer through Channels
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27a-29b
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27a-29b
 
 When the channel element type is an owning access type, the `Send` entry performs a move. The emitter must:
 
@@ -320,13 +320,13 @@ begin
 end;
 ```
 
-**Atomicity guarantee:** The `try_send` emission uses a temporary variable `Tmp` to capture the value before the fullness check. The protected object's mutual exclusion provides the atomicity required by SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p29b: the evaluation of the fullness condition and the enqueue decision occur within the protected procedure call, which is atomic with respect to other channel operations. The source variable is nulled only after the protected call confirms success.
+**Atomicity guarantee:** The `try_send` emission uses a temporary variable `Tmp` to capture the value before the fullness check. The protected object's mutual exclusion provides the atomicity required by SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29b: the evaluation of the fullness condition and the enqueue decision occur within the protected procedure call, which is atomic with respect to other channel operations. The source variable is nulled only after the protected call confirms success.
 
 ---
 
 ## 5. Select Lowering
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p32-44
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p32-44
 
 **AST nodes:** `SelectStatement`, `SelectArm`, `ChannelArm`, `DelayArm`
 
@@ -400,15 +400,15 @@ end;
 
 ### 5.2 Select without Delay Arm
 
-If no delay arm is present, the polling loop has no deadline and polls indefinitely until a channel arm fires (SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p42). The `delay 0.001` sleep between poll rounds is retained to avoid busy-waiting.
+If no delay arm is present, the polling loop has no deadline and polls indefinitely until a channel arm fires (SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p42). The `delay 0.001` sleep between poll rounds is retained to avoid busy-waiting.
 
 ### 5.3 Arm Priority
 
-Arms are tested in declaration order (top to bottom). The first ready arm is selected (SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p41). The emission preserves this ordering with sequential `if not Select_Done then` checks.
+Arms are tested in declaration order (top to bottom). The first ready arm is selected (SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p41). The emission preserves this ordering with sequential `if not Select_Done then` checks.
 
 ### 5.4 Latency Note
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p39
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39
 
 The polling-with-sleep pattern introduces latency equal to the sleep interval (1 millisecond by default). Implementations may use more efficient patterns (e.g., a dispatcher task with entry calls, or a combined protected object that aggregates all channel states) provided the observable semantics are preserved. The conservative default is the polling pattern because it:
 
@@ -425,7 +425,7 @@ When the channel element type is an owning access type, the `Try_Receive` in the
 
 ## 6. Task Emission
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.1
 
 **AST node:** `TaskDeclaration`
 
@@ -468,15 +468,15 @@ end Producer_Task_Type;
 
 The generated task type name is `<SafeName>_Task_Type`. The single instance retains the Safe task name.
 
-**Collision avoidance:** Since Safe prohibits overloading (SAFE@4aecf21:spec/02-restrictions.md#2.10.p141), there can be at most one user-declared entity with any given name in a declarative region. The suffix `_Task_Type` cannot collide with the instance name (which is the unadorned Safe task name), and if the user declares an entity named `Producer_Task_Type`, it would conflict with the task name `Producer` only if both are in the same package -- but Safe tasks are package-level items and cannot share a name with another package-level item. If an implementation detects a rare collision, it appends a numeric suffix (e.g., `Producer_Task_Type_1`).
+**Collision avoidance:** Since Safe prohibits overloading (SAFE@468cf72:spec/02-restrictions.md#2.10.p141), there can be at most one user-declared entity with any given name in a declarative region. The suffix `_Task_Type` cannot collide with the instance name (which is the unadorned Safe task name), and if the user declares an entity named `Producer_Task_Type`, it would conflict with the task name `Producer` only if both are in the same package -- but Safe tasks are package-level items and cannot share a name with another package-level item. If an implementation detects a rare collision, it appends a numeric suffix (e.g., `Producer_Task_Type_1`).
 
 ### 6.3 Priority Aspect
 
-The `Priority` aspect is emitted directly on the task type declaration. If no priority is specified in Safe source, the implementation's default priority is used (SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p9), which is `System.Default_Priority` in Ada.
+The `Priority` aspect is emitted directly on the task type declaration. If no priority is specified in Safe source, the implementation's default priority is used (SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p9), which is `System.Default_Priority` in Ada.
 
 ### 6.4 Non-Termination
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.6.p53
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53
 
 The non-termination legality rule is enforced at compile time. The emitted task body preserves the unconditional outer loop from the Safe source. No additional runtime enforcement is needed.
 
@@ -493,7 +493,7 @@ is
 
 ### 6.6 Elaboration Policy
 
-**Clause:** SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p56, SAFE@4aecf21:spec/07-annex-b-impl-advice.md#B.6.p15
+**Clause:** SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p56, SAFE@468cf72:spec/07-annex-b-impl-advice.md#B.6.p15
 
 The emitter produces a GNAT configuration file containing:
 
@@ -502,13 +502,13 @@ pragma Partition_Elaboration_Policy(Sequential);
 pragma Profile(Jorvik);
 ```
 
-This ensures all package elaboration completes before any task activates (SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p56).
+This ensures all package elaboration completes before any task activates (SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p56).
 
 ---
 
 ## 7. Ownership Emission
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3
 
 **AST nodes:** `AssignmentStatement` (with `ownership_action` field), `ObjectDeclaration`
 
@@ -516,12 +516,12 @@ This ensures all package elaboration completes before any task activates (SAFE@4
 
 | Safe Ownership Operation | Emitted Ada Pattern | Clause |
 |---|---|---|
-| Move: `Y = X;` (access assignment) | `Y := X; X := null;` | SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96 |
-| Borrow: `Y : access T = X;` | `declare Y : access T := X; begin ... end;` | SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p98 |
-| Observe: `Y : access constant T = X.Access;` | `declare Y : access constant T := X'Access; begin ... end;` | SAFE@4aecf21:spec/02-restrictions.md#2.3.4.p101 |
-| Parameter borrow: `P(X)` where param is `in out` access | Direct pass-through; SPARK ownership checks apply | SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p98(b) |
-| Parameter observe: `P(X)` where param is `in` access | Direct pass-through; SPARK ownership checks apply | SAFE@4aecf21:spec/02-restrictions.md#2.3.4.p101(b) |
-| Scope-exit deallocation | `Free(Var);` before scope end | SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104 |
+| Move: `Y = X;` (access assignment) | `Y := X; X := null;` | SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96 |
+| Borrow: `Y : access T = X;` | `declare Y : access T := X; begin ... end;` | SAFE@468cf72:spec/02-restrictions.md#2.3.3.p98 |
+| Observe: `Y : access constant T = X.Access;` | `declare Y : access constant T := X'Access; begin ... end;` | SAFE@468cf72:spec/02-restrictions.md#2.3.4.p101 |
+| Parameter borrow: `P(X)` where param is `in out` access | Direct pass-through; SPARK ownership checks apply | SAFE@468cf72:spec/02-restrictions.md#2.3.3.p98(b) |
+| Parameter observe: `P(X)` where param is `in` access | Direct pass-through; SPARK ownership checks apply | SAFE@468cf72:spec/02-restrictions.md#2.3.4.p101(b) |
+| Scope-exit deallocation | `Free(Var);` before scope end | SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104 |
 
 ### 7.2 Move Emission
 
@@ -540,7 +540,7 @@ For function returns, the move is implicit (the local goes out of scope).
 
 ### 7.3 Null-Before-Move Verification
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p97a
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a
 
 The compiler verifies at compile time that the target of a move is provably null. This is a legality rule enforced before emission; no runtime code is needed.
 
@@ -548,7 +548,7 @@ The compiler verifies at compile time that the target of a move is provably null
 
 The emitted Ada relies on SPARK 2022's built-in ownership model (SPARK RM 3.10). The emitter does not generate additional ownership annotations beyond what SPARK infers from the access type declarations. GNATprove's ownership checking on the emitted Ada is sufficient because:
 
-- Safe's ownership model (SAFE@4aecf21:spec/02-restrictions.md#2.3) is a subset of SPARK 2022's ownership model (SPARK RM 3.10).
+- Safe's ownership model (SAFE@468cf72:spec/02-restrictions.md#2.3) is a subset of SPARK 2022's ownership model (SPARK RM 3.10).
 - The emitted null-assignment after moves is exactly what SPARK expects.
 - The `not null` subtype declarations provide the non-null guarantees SPARK uses for dereference safety.
 
@@ -558,7 +558,7 @@ No additional `pragma Annotate` directives are required.
 
 ## 8. Wide Intermediate Arithmetic
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126-130
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126-130
 
 **AST node:** `Expression` (with `wide_arithmetic` field)
 
@@ -590,7 +590,7 @@ return Reading(
 
 ### 8.3 Narrowing Points
 
-Narrowing (conversion back to the target type) occurs at exactly five points (SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127):
+Narrowing (conversion back to the target type) occurs at exactly five points (SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127):
 
 | Narrowing Point | Emission Pattern | AST Node |
 |---|---|---|
@@ -604,7 +604,7 @@ Narrowing (conversion back to the target type) occurs at exactly five points (SA
 
 Wide intermediate arithmetic applies only to integer types. Floating-point and Boolean expressions pass through without lifting.
 
-**Modular types:** Modular types use modular arithmetic with well-defined wrapping semantics (SAFE@4aecf21:spec/08-syntax-summary.md#8.4). Modular operations are NOT lifted to wide intermediate. Modular arithmetic wraps at the modulus boundary by definition, and lifting would change the semantics. For example, `Mod_Type'Last + 1` wraps to 0 in modular arithmetic but would be `Mod_Type'Last + 1` in wide arithmetic. The emitter passes modular expressions through unchanged.
+**Modular types:** Modular types use modular arithmetic with well-defined wrapping semantics (SAFE@468cf72:spec/08-syntax-summary.md#8.4). Modular operations are NOT lifted to wide intermediate. Modular arithmetic wraps at the modulus boundary by definition, and lifting would change the semantics. For example, `Mod_Type'Last + 1` wraps to 0 in modular arithmetic but would be `Mod_Type'Last + 1` in wide arithmetic. The emitter passes modular expressions through unchanged.
 
 ### 8.5 Static Expressions
 
@@ -612,7 +612,7 @@ Static expressions (compile-time evaluable) may be evaluated by the compiler rat
 
 ### 8.6 Intermediate Overflow Rejection
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p129
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129
 
 If the compiler's interval analysis determines that an intermediate subexpression could exceed 64-bit signed range, the program is rejected at compile time. No runtime wide-integer overflow is possible in emitted code.
 
@@ -642,7 +642,7 @@ end Average;
 
 ## 9. Automatic Deallocation
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p103-106
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3.5.p103-106
 
 ### 9.1 Unchecked_Deallocation Instantiation
 
@@ -653,11 +653,11 @@ For each pool-specific access type (both owning and named access-to-constant), t
 procedure Free_Node_Ptr is new Ada.Unchecked_Deallocation(Node, Node_Ptr);
 ```
 
-**Note:** The exclusion of generics (SAFE@4aecf21:spec/02-restrictions.md#2.1.11.p69) applies to Safe source, not emitted Ada. The emitter freely uses `Ada.Unchecked_Deallocation`.
+**Note:** The exclusion of generics (SAFE@468cf72:spec/02-restrictions.md#2.1.11.p69) applies to Safe source, not emitted Ada. The emitter freely uses `Ada.Unchecked_Deallocation`.
 
 ### 9.2 Scope Exit Points
 
-Deallocation calls are emitted at every scope exit point (SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104):
+Deallocation calls are emitted at every scope exit point (SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104):
 
 | Exit Point | Emission |
 |---|---|
@@ -668,7 +668,7 @@ Deallocation calls are emitted at every scope exit point (SAFE@4aecf21:spec/02-r
 
 ### 9.3 Reverse Declaration Order
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p105
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3.5.p105
 
 When multiple owning access objects exit scope simultaneously, they are deallocated in reverse declaration order:
 
@@ -685,7 +685,7 @@ if A /= null then Free_Node_Ptr(A); end if;
 
 ### 9.4 General Access Types
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p106
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3.5.p106
 
 General access types (`access all T`) are NOT deallocated, as they may designate stack-allocated objects.
 
@@ -695,7 +695,7 @@ The null check (`if Var /= null then`) is required because ownership moves may h
 
 ### 9.6 Named Access-to-Constant
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104a
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104a
 
 Named access-to-constant types (`type C_Ptr is access constant T;`) are pool-specific and must be deallocated at scope exit, just like owning access-to-variable types.
 
@@ -738,7 +738,7 @@ end Process;
 
 ## 10. Effect Summary Generation
 
-**Clause:** SAFE@4aecf21:spec/05-assurance.md#5.2
+**Clause:** SAFE@468cf72:spec/05-assurance.md#5.2
 
 ### 10.1 Global Aspects
 
@@ -752,7 +752,7 @@ procedure Initialize
    with Global => (In_Out => (Cal_Table, Initialized));
 ```
 
-**Algorithm (informative):** SAFE@4aecf21:spec/05-assurance.md#5.2.2.p6
+**Algorithm (informative):** SAFE@468cf72:spec/05-assurance.md#5.2.2.p6
 
 1. During the single-pass compilation, accumulate a read-set and write-set per subprogram.
 2. For each package-level variable reference, add to the appropriate set.
@@ -772,7 +772,7 @@ procedure Update (D : Units.Metres; T : Units.Seconds; H : Heading)
                     Current_Heading => H);
 ```
 
-**Over-approximation is acceptable:** SAFE@4aecf21:spec/05-assurance.md#5.2.3.p10
+**Over-approximation is acceptable:** SAFE@468cf72:spec/05-assurance.md#5.2.3.p10
 
 ### 10.3 Initializes Aspects
 
@@ -785,7 +785,7 @@ is
    ...
 ```
 
-**Clause:** SAFE@4aecf21:spec/05-assurance.md#5.2.4.p11
+**Clause:** SAFE@468cf72:spec/05-assurance.md#5.2.4.p11
 
 ### 10.4 SPARK_Mode
 
@@ -797,7 +797,7 @@ pragma SPARK_Mode;
 
 ### 10.5 Channel-Access Summaries
 
-For cross-package ceiling priority computation, the dependency interface must include channel-access summaries (SAFE@4aecf21:spec/03-single-file-packages.md#3.3.1.p33(i)). These are computed during the same single-pass analysis as Global/Depends.
+For cross-package ceiling priority computation, the dependency interface must include channel-access summaries (SAFE@468cf72:spec/03-single-file-packages.md#3.3.1.p33(i)). These are computed during the same single-pass analysis as Global/Depends.
 
 ### 10.6 Constant_After_Elaboration
 
@@ -820,7 +820,7 @@ Variables that ARE written by a task body do not receive this aspect.
 
 ## 11. Package Structure Emission
 
-**Clause:** SAFE@4aecf21:spec/03-single-file-packages.md#3.1
+**Clause:** SAFE@468cf72:spec/03-single-file-packages.md#3.1
 
 **AST nodes:** `CompilationUnit`, `PackageUnit`, `PackageItem`
 
@@ -853,7 +853,7 @@ The emitter produces two files from each Safe compilation unit:
 
 ### 11.2 Interleaved Declaration Handling
 
-**Clause:** SAFE@4aecf21:spec/02-restrictions.md#2.9.p140
+**Clause:** SAFE@468cf72:spec/02-restrictions.md#2.9.p140
 
 **AST node:** `InterleavedItem`
 
@@ -894,7 +894,7 @@ end Example;
 
 ### 11.3 Opaque Type Emission
 
-**Clause:** SAFE@4aecf21:spec/03-single-file-packages.md#3.2.6.p21-24
+**Clause:** SAFE@468cf72:spec/03-single-file-packages.md#3.2.6.p21-24
 
 **AST node:** `RecordTypeDefinition` with `is_private=true`
 
@@ -923,32 +923,32 @@ The following table lists semantics that are underspecified or implementation-de
 
 | Area | Underspecified Aspect | Conservative Default | Rationale | Clause Reference |
 |---|---|---|---|---|
-| Task default priority | Priority when no `Priority` aspect specified | `System.Default_Priority` (Ada default) | Matches Ada semantics; no surprising behavior | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p9 |
-| Task activation order | Order among tasks starting execution | Undefined; rely on Ada runtime scheduling | No way to control this portably; spec allows implementation-defined | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p58 |
-| Channel allocation strategy | Static vs. heap-allocated buffer | Static array in protected object (deterministic, no allocation failure) | Avoids heap allocation; bounded memory; provable | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p18 |
-| Channel ceiling priority (no task accesses) | Ceiling when no task references channel | `System.Any_Priority'Last` (safe upper bound) | Prevents priority inversion for any future accessor | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p21 |
-| Select polling interval | Sleep duration in select polling loop | 1 millisecond (`delay 0.001;`) | Balance between latency and CPU usage; configurable via Safe_Runtime constant | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p39 |
-| Select timing mechanism | How to measure delay arm expiry | `Safe_Runtime.Elapsed_Since` using monotonic Duration tracking | Ada.Real_Time is excluded from Safe source but the emitter can use it internally; Duration-based fallback available | SAFE@4aecf21:spec/02-restrictions.md#2.1.8.p60 |
-| Depends over-approximation | Granularity of data-flow tracking | Include all potentially-contributing inputs (superset); refine later | Sound for Bronze verification; spec permits over-approximation | SAFE@4aecf21:spec/05-assurance.md#5.2.3.p10 |
-| Global over-approximation | Granularity of variable tracking | Include all package-level vars referenced in any code path (superset) | Sound for Bronze verification; spec permits over-approximation | SAFE@4aecf21:spec/05-assurance.md#5.2.2.p6 |
-| Equal-priority task scheduling | Scheduling among same-priority tasks | Implementation-defined by Ada runtime; emit no additional control | Spec explicitly allows this | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p11 |
-| Package init order (no dependency) | Order among unrelated packages | Alphabetical by package name (deterministic tie-breaking) | Ensures byte-identical emission across runs | SAFE@4aecf21:spec/03-single-file-packages.md#3.4.2.p45 |
-| Floating-point rounding mode | IEEE 754 rounding mode | Default rounding (round-to-nearest-even); emit no explicit mode change | Standard IEEE 754 default | SAFE@4aecf21:spec/06-conformance.md#6.7.p22(i) |
-| Runtime abort handler | Behaviour on Assert failure or allocation failure | Call `GNAT.OS_Lib.OS_Exit(1)` with source-location diagnostic to stderr | Deterministic, observable failure behavior | SAFE@4aecf21:spec/06-conformance.md#6.7.p22(g) |
-| Deallocation order at scope exit | When multiple owners exit simultaneously | Reverse declaration order | Spec mandates this | SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p105 |
-| Anonymous access reassignment | Whether anonymous access vars can be reassigned after init | Rejected at compile time (initialisation-only restriction) | Spec mandates this | SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p100a |
-| Wide_Integer type name | Name of the 64-bit intermediate type in emitted Ada | `Safe_Runtime.Wide_Integer` in a dedicated support package | Avoids name collision with user types | SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126 |
-| Constant_After_Elaboration | Whether to emit this GNATprove aspect | Emit for all package-level variables not written by any task body | Conservative: helps GNATprove verify task-safe reads | SAFE@4aecf21:spec/05-assurance.md#5.2.4.p11 |
-| Tasking profile | Which Ada tasking profile to use | `pragma Profile(Jorvik);` | Provides static task/protected object model compatible with Safe's restrictions | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p59 |
-| Elaboration policy | Partition elaboration policy | `pragma Partition_Elaboration_Policy(Sequential);` | Ensures elaboration before task activation | SAFE@4aecf21:spec/04-tasks-and-channels.md#4.7.p59 |
-| Identifier collision avoidance | When generated names might conflict with user identifiers | Prefix generated internal names with `Safe_` (e.g., `Safe_Select_Done`) | Avoid collision with user identifiers while maintaining readability | SAFE@4aecf21:spec/08-syntax-summary.md#8.15 |
-| Modular wide arithmetic | Whether modular types are lifted to Wide_Integer | Not lifted; modular arithmetic passes through unchanged | Modular wrapping semantics would be changed by lifting | SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126 |
+| Task default priority | Priority when no `Priority` aspect specified | `System.Default_Priority` (Ada default) | Matches Ada semantics; no surprising behavior | SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p9 |
+| Task activation order | Order among tasks starting execution | Undefined; rely on Ada runtime scheduling | No way to control this portably; spec allows implementation-defined | SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p58 |
+| Channel allocation strategy | Static vs. heap-allocated buffer | Static array in protected object (deterministic, no allocation failure) | Avoids heap allocation; bounded memory; provable | SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p18 |
+| Channel ceiling priority (no task accesses) | Ceiling when no task references channel | `System.Any_Priority'Last` (safe upper bound) | Prevents priority inversion for any future accessor | SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p21 |
+| Select polling interval | Sleep duration in select polling loop | 1 millisecond (`delay 0.001;`) | Balance between latency and CPU usage; configurable via Safe_Runtime constant | SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39 |
+| Select timing mechanism | How to measure delay arm expiry | `Safe_Runtime.Elapsed_Since` using monotonic Duration tracking | Ada.Real_Time is excluded from Safe source but the emitter can use it internally; Duration-based fallback available | SAFE@468cf72:spec/02-restrictions.md#2.1.8.p60 |
+| Depends over-approximation | Granularity of data-flow tracking | Include all potentially-contributing inputs (superset); refine later | Sound for Bronze verification; spec permits over-approximation | SAFE@468cf72:spec/05-assurance.md#5.2.3.p10 |
+| Global over-approximation | Granularity of variable tracking | Include all package-level vars referenced in any code path (superset) | Sound for Bronze verification; spec permits over-approximation | SAFE@468cf72:spec/05-assurance.md#5.2.2.p6 |
+| Equal-priority task scheduling | Scheduling among same-priority tasks | Implementation-defined by Ada runtime; emit no additional control | Spec explicitly allows this | SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p11 |
+| Package init order (no dependency) | Order among unrelated packages | Alphabetical by package name (deterministic tie-breaking) | Ensures byte-identical emission across runs | SAFE@468cf72:spec/03-single-file-packages.md#3.4.2.p45 |
+| Floating-point rounding mode | IEEE 754 rounding mode | Default rounding (round-to-nearest-even); emit no explicit mode change | Standard IEEE 754 default | SAFE@468cf72:spec/06-conformance.md#6.7.p22(i) |
+| Runtime abort handler | Behaviour on Assert failure or allocation failure | Call `GNAT.OS_Lib.OS_Exit(1)` with source-location diagnostic to stderr | Deterministic, observable failure behavior | SAFE@468cf72:spec/06-conformance.md#6.7.p22(g) |
+| Deallocation order at scope exit | When multiple owners exit simultaneously | Reverse declaration order | Spec mandates this | SAFE@468cf72:spec/02-restrictions.md#2.3.5.p105 |
+| Anonymous access reassignment | Whether anonymous access vars can be reassigned after init | Rejected at compile time (initialisation-only restriction) | Spec mandates this | SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a |
+| Wide_Integer type name | Name of the 64-bit intermediate type in emitted Ada | `Safe_Runtime.Wide_Integer` in a dedicated support package | Avoids name collision with user types | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 |
+| Constant_After_Elaboration | Whether to emit this GNATprove aspect | Emit for all package-level variables not written by any task body | Conservative: helps GNATprove verify task-safe reads | SAFE@468cf72:spec/05-assurance.md#5.2.4.p11 |
+| Tasking profile | Which Ada tasking profile to use | `pragma Profile(Jorvik);` | Provides static task/protected object model compatible with Safe's restrictions | SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p59 |
+| Elaboration policy | Partition elaboration policy | `pragma Partition_Elaboration_Policy(Sequential);` | Ensures elaboration before task activation | SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p59 |
+| Identifier collision avoidance | When generated names might conflict with user identifiers | Prefix generated internal names with `Safe_` (e.g., `Safe_Select_Done`) | Avoid collision with user identifiers while maintaining readability | SAFE@468cf72:spec/08-syntax-summary.md#8.15 |
+| Modular wide arithmetic | Whether modular types are lifted to Wide_Integer | Not lifted; modular arithmetic passes through unchanged | Modular wrapping semantics would be changed by lifting | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 |
 
 ---
 
 ## 13. Reserved Word and Identifier Mapping
 
-**Clause:** SAFE@4aecf21:spec/08-syntax-summary.md#8.15
+**Clause:** SAFE@468cf72:spec/08-syntax-summary.md#8.15
 
 ### 13.1 Safe-Only Reserved Words
 
@@ -973,7 +973,7 @@ Safe introduces reserved words not reserved in Ada: `public`, `channel`, `send`,
 
 ### 13.3 Deterministic Emission
 
-**Clause:** SAFE@4aecf21:spec/07-annex-b-impl-advice.md#B.5.p12
+**Clause:** SAFE@468cf72:spec/07-annex-b-impl-advice.md#B.5.p12
 
 The emitter must produce byte-identical output for the same Safe source compiled with the same compiler version. All ordering decisions (declaration order, aspect order, import order) must be deterministic.
 

@@ -2,8 +2,8 @@
 -- Description: Array indexing where the index is from a wider type.
 --   The index value is derived from an unconstrained computation,
 --   so the narrowing to the index type cannot be proven safe.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
 -- Expected: REJECT narrowing_check_failure
 
 package Index_Narrow_Fail is

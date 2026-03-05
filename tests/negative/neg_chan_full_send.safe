@@ -5,8 +5,8 @@
 --   the single-task sender is also the only entity that could
 --   drain the channel. A conforming implementation shall reject
 --   this as a provable deadlock.
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
 -- Expected: REJECT channel_deadlock
 
 package Full_Send_Test is

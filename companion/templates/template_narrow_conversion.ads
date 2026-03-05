@@ -1,8 +1,8 @@
 --  Verified Emission Template: Narrow Conversion (Type Conversion)
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p130:2289e5b2
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.6.p25:e8253bd7
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 --  Reference: compiler/translation_rules.md Section 8.3 (row 4)
 --
 --  Demonstrates narrowing at the type-conversion point — the fifth

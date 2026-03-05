@@ -1,5 +1,5 @@
 --  Safe Language Annotated SPARK Companion
---  Source commit: 4aecf219ffa5473bfc42b026a66c8bdea2ce5872
+--  Source commit: 468cf72332724b04b7c193b4d2a3b02f1584125d
 --  Generated: 2026-03-02
 --  Generator: spec2spark v0.1.0
 --  Clauses: 2.8.1 (p126-p130), 2.8.2 (p131-p132), 2.8.3 (p133-p134),
@@ -21,10 +21,10 @@ is
    ---------------------------------------------------------------------------
    --  Part 1: Range64 Model (D27 Rule 1 -- Wide Arithmetic)
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p128:d2e83ca8
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.2.p15:1ab3314c
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p128:d2e83ca8
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.2.p15:1ab3314c
    ---------------------------------------------------------------------------
 
    type Range64 is record
@@ -73,10 +73,10 @@ is
    with Ghost,
         Pre => Is_Valid_Range (R);
    --  Returns True iff zero is not contained in R.
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
 
    --  Common range constants
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p128:d2e83ca8
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p128:d2e83ca8
 
    Range_Int8  : constant Range64 := (Lo => -128, Hi => 127);
    Range_Uint8 : constant Range64 := (Lo => 0, Hi => 255);
@@ -101,11 +101,11 @@ is
    ---------------------------------------------------------------------------
    --  Part 2: Channel FIFO Ghost Model (Sections 4.2 - 4.3)
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
    ---------------------------------------------------------------------------
 
    --  We model a bounded FIFO queue abstractly using a length and capacity.
@@ -174,11 +174,11 @@ is
    ---------------------------------------------------------------------------
    --  Part 3: Ownership State Model (Section 2.3)
    --
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102b:2ed757bd
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b:2ed757bd
    ---------------------------------------------------------------------------
 
    type Ownership_State is
@@ -195,7 +195,7 @@ is
    with Ghost;
    --  An access value may be read when owned, borrowed, or observed.
    --  Moved and Null_State are not accessible for dereference.
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 
    function Is_Dereferenceable (S : Ownership_State) return Boolean is
      (S = Owned or else S = Borrowed or else S = Observed)
@@ -206,19 +206,19 @@ is
      (S = Owned)
    with Ghost;
    --  Only an owned value may be moved.
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 
    function Is_Borrowable (S : Ownership_State) return Boolean is
      (S = Owned)
    with Ghost;
    --  Only an owned value may be borrowed.
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
 
    function Is_Observable (S : Ownership_State) return Boolean is
      (S = Owned or else S = Observed)
    with Ghost;
    --  An owned or already-observed value may be observed (multiple observers).
-   --  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+   --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
 
    function Is_Valid_Transition
      (From : Ownership_State;
@@ -248,9 +248,9 @@ is
    ---------------------------------------------------------------------------
    --  Part 4: Task-Variable Ownership Model (Section 4.5)
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.4.1.p32:90d4f527
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.4.1.p33:0fc25399
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.4.1.p32:90d4f527
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.4.1.p33:0fc25399
    ---------------------------------------------------------------------------
 
    --  Model a mapping from variable IDs to task IDs.

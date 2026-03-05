@@ -1,9 +1,9 @@
 --  Verified Emission Template: Ownership Move Semantics
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9
 --  Reference: compiler/translation_rules.md Section 7
 --  Reference: tests/golden/golden_ownership.ada
 --

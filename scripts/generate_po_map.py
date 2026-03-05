@@ -1079,8 +1079,8 @@ def main():
 
     output = {
         'meta': {
-            'source_commit': '4aecf219ffa5473bfc42b026a66c8bdea2ce5872',
-            'generation_date': '2026-03-02',
+            'source_commit': '468cf72332724b04b7c193b4d2a3b02f1584125d',
+            'generation_date': '2026-03-05',
             'source_clauses': 'clauses/clauses.yaml',
             'total_clauses': 205,
         },

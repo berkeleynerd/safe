@@ -3,9 +3,9 @@
 --   An owning access value is moved from one variable to another.
 --   The source becomes null after the move, and only the target
 --   is dereferenced subsequently.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
 -- Expected: ACCEPT
 
 package Ownership_Move is

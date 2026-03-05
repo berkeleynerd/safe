@@ -1,10 +1,10 @@
 --  Verified Emission Template: Bounded Channel FIFO
 --
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
 --  Reference: compiler/translation_rules.md Section 4
 --  Reference: tests/golden/golden_pipeline.ada
 --

@@ -2,8 +2,8 @@
 -- Description: Factory pattern returning non-null access values.
 --   The allocator always returns a non-null access value, so the
 --   caller can safely dereference without additional checks.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p103a:520dc0d4
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.5.p103a:520dc0d4
 -- Expected: ACCEPT
 
 package Safe_Factory is

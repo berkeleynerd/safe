@@ -2,7 +2,7 @@
 -- Description: Array iteration with index provably in bounds.
 --   The for loop variable ranges over the array's index subtype,
 --   guaranteeing every access is safe.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
 -- Expected: ACCEPT
 
 package Safe_Iteration is

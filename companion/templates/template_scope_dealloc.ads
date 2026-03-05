@@ -1,7 +1,7 @@
 --  Verified Emission Template: Scope-Exit Deallocation
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.2.p96c:0b45de01
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.5.p104:d9f9b8d9
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 --  Reference: compiler/translation_rules.md Section 9
 --  Reference: tests/golden/golden_ownership.ada
 --

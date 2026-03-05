@@ -2,7 +2,7 @@
 -- Description: Dereference of an access variable that has no initial value.
 --   The access variable's default value is null, and it is dereferenced
 --   without being assigned a non-null value.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT null_dereference
 
 package Uninitialized_Test is

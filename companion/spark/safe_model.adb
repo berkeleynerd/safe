@@ -1,5 +1,5 @@
 --  Safe Language Annotated SPARK Companion
---  Source commit: 4aecf219ffa5473bfc42b026a66c8bdea2ce5872
+--  Source commit: 468cf72332724b04b7c193b4d2a3b02f1584125d
 --  Generated: 2026-03-02
 --  Generator: spec2spark v0.1.0
 --  Clauses: 2.8.1 (p126-p130), 2.3 (p94-p108), 4.2-4.3 (p12-p31a),
@@ -16,7 +16,7 @@ package body Safe_Model is
    ---------------------------------------------------------------------------
    --  Assign_Owner body
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
    ---------------------------------------------------------------------------
 
    function Assign_Owner
@@ -38,8 +38,8 @@ package body Safe_Model is
    --  function always returns True for a well-formed map (which all maps
    --  are, since the type enforces single-valued entries).
    --
-   --  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
-   --  Clause: SAFE@4aecf21:spec/05-assurance.md#5.4.1.p32:90d4f527
+   --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.5.p45:8bdd0c99
+   --  Clause: SAFE@468cf72:spec/05-assurance.md#5.4.1.p32:90d4f527
    ---------------------------------------------------------------------------
 
    function No_Shared_Variables (Map : Task_Var_Map) return Boolean is

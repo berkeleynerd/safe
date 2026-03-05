@@ -1,9 +1,9 @@
 --  Verified Emission Template: Select-to-Polling-Loop Lowering
 --
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p39:1012f4db
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p41:cdf6a558
---  Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.4.p42:dce8ac38
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39:1012f4db
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p41:cdf6a558
+--  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p42:dce8ac38
 --  Reference: compiler/translation_rules.md Section 5
 --
 --  Demonstrates the compiler emission pattern for select statement lowering:

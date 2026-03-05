@@ -2,8 +2,8 @@
 -- Description: Integer arithmetic that may overflow 64-bit intermediate range.
 --   Multiplying two values near Long_Long_Integer.Last produces a result
 --   that cannot be proven within 64-bit signed range.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p129:9f3b1394
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129:9f3b1394
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: REJECT intermediate_overflow
 
 package Overflow_Test is

@@ -2,11 +2,11 @@
 -- Description: Two-task ping-pong via channels.
 --   Two tasks exchange messages over two bounded channels. Each task
 --   sends on one channel and receives on the other, forming a ping-pong.
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.1.p2:78f022f7
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p2:78f022f7
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
 -- Expected: ACCEPT
 
 package Ping_Pong is

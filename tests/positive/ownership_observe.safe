@@ -2,8 +2,8 @@
 -- Description: Shared observation of an owned access value.
 --   Multiple observers can read the designated object simultaneously.
 --   No mutation is permitted through an observer.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
 -- Expected: ACCEPT
 
 package Ownership_Observe is

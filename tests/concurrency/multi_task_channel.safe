@@ -2,9 +2,9 @@
 -- Description: Multiple tasks communicating over a single channel.
 --   Two producers send to the same channel, and one consumer receives.
 --   Channel atomicity ensures no corruption.
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
--- Clause: SAFE@4aecf21:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
 -- Expected: ACCEPT
 
 package Multi_Task_Channel is

@@ -2,7 +2,7 @@
 -- Description: Dereference after a conditional that does not cover all paths.
 --   On one branch the pointer is assigned, on the other it remains null.
 --   The dereference after the conditional is not provably safe.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT null_dereference
 
 package Maybe_Null_Test is

@@ -1,6 +1,6 @@
 --  Safe Language Runtime Type Definitions
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p126:812b54a8
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 --  Reference: compiler/translation_rules.md Section 8.1
 --
 --  Every integer arithmetic expression in the Safe language is evaluated

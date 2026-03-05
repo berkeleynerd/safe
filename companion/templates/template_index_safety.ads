@@ -1,8 +1,8 @@
 --  Verified Emission Template: Safe Array Indexing
 --
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p131:30aba5f5
---  Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.2.p132:8613ecf4
---  Clause: SAFE@4aecf21:spec/05-assurance.md#5.3.1.p12:99a94209
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
+--  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
+--  Clause: SAFE@468cf72:spec/05-assurance.md#5.3.1.p12:99a94209
 --  Reference: compiler/translation_rules.md Section 8
 --  Reference: tests/golden/golden_sensors.ada
 --

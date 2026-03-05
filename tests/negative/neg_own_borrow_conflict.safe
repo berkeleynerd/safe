@@ -2,7 +2,7 @@
 -- Description: Accessing the lender while a mutable borrow is active.
 --   The lender is frozen during the borrow scope. Any read, write,
 --   or move of the lender during an active borrow is rejected.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.3.p99b:47108b45
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
 -- Expected: REJECT borrow_conflict
 
 package Borrow_Conflict_Test is

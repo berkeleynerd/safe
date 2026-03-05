@@ -2,7 +2,7 @@
 -- Description: Mutating the designated object through an observer.
 --   An observer (access constant) should provide read-only access.
 --   Writing through it violates the observation contract.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
 -- Expected: REJECT observe_mutation
 
 package Observe_Mutate_Test is

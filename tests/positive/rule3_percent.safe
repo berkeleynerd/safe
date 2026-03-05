@@ -1,8 +1,8 @@
 -- Test: rule3_percent
 -- Description: Percentage computation with safe division.
 --   The total is verified nonzero before computing the percentage.
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.3.p133:0610d951
--- Clause: SAFE@4aecf21:spec/02-restrictions.md#2.8.1.p127:d5d93439
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
 -- Expected: ACCEPT
 
 package Safe_Percent is

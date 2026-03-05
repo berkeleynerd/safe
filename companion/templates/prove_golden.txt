@@ -8,11 +8,11 @@ Data Dependencies                 6            6                             .  
 Flow Dependencies                 7            7                             .           .          .
 Initialization                   36           36                             .           .          .
 Non-Aliasing                      .            .                             .           .          .
-Run-time Checks                  58            .                     57 (CVC5)           1          .
+Run-time Checks                  66            .     65 (CVC5 99%, Trivial 1%)           1          .
 Assertions                       45            .     45 (CVC5 97%, Trivial 3%)           .          .
-Functional Contracts            115            .    115 (CVC5 99%, Trivial 1%)           .          .
+Functional Contracts            122            .    122 (CVC5 99%, Trivial 1%)           .          .
 LSP Verification                  .            .                             .           .          .
-Termination                      58           58                             .           .          .
+Termination                      61           61                             .           .          .
 Concurrency                       .            .                             .           .          .
 -----------------------------------------------------------------------------------------------------
-Total                           325    107 (33%)                     217 (67%)      1 (0%)          .
+Total                           343    110 (32%)                     232 (68%)      1 (0%)          .
