@@ -1131,7 +1131,7 @@ end Unsafe_Scale;
 146. **Discriminated result convention.** The canonical Safe pattern for representing a recoverable failure is a discriminated record with a Boolean discriminant that selects between a success variant and an error variant:
 
 ```ada
-type Result (OK : Boolean := False) is record
+type Result (OK : Boolean = False) is record
    case OK is
       when True  then Value : Success_Type;
       when False then Error : Error_Type;
