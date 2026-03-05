@@ -1089,7 +1089,7 @@ package Pipeline is
       loop
          M : Measurement;
          receive Raw_Data, M;
-         Result : Measurement = ((M + 1) / 2 : Measurement);
+         Result : Measurement = ((M + 1) / 2 as Measurement);
          send Processed, Result;
       end loop;
    end Consumer;

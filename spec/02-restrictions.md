@@ -989,7 +989,7 @@ end Rate;
 public function Average (A, B : Reading) return Reading is
 begin
     return (A + B) / 2;  -- legal: 2 is a static nonzero expression
-                          -- D27 proof: divisor == 2 != 0
+                          -- D27 proof: divisor is the static literal 2 (2 != 0)
 end Average;
 ```
 
