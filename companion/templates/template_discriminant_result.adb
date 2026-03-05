@@ -73,6 +73,11 @@ is
       if R.OK then
          Check_Discriminant (R.OK, True);
 
+         --  Use R.Value (which holds First) before mutation.
+         if R.Value > 1000 then
+            return R.Value;  --  Early return: First is used here.
+         end if;
+
          --  Reassign R — discriminant fact is now invalidated.
          R := (OK => False, Error_Code => Second);
 
