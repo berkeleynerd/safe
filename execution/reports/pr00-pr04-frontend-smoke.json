@@ -28,8 +28,8 @@
     ],
     "cwd": "$REPO_ROOT/compiler_impl",
     "returncode": 0,
-    "stderr": "clang: warning: overriding deployment version from '16.0' to '26.0' [-Woverriding-deployment-version]\nclang: warning: overriding deployment version from '16.0' to '26.0' [-Woverriding-deployment-version]\n",
-    "stdout": "Note: Building safec=0.1.0-dev/safec.gpr...\nCompile\n   [Ada]          safe_frontend-lexer.adb\nBind\n   [gprbind]      safec.bexch\n   [Ada]          safec.ali\nLink\n   [link]         safec.adb\nSuccess: Build finished successfully in 4.91 seconds.\n"
+    "stderr": "",
+    "stdout": "Note: Synchronizing workspace...\nNothing to update.\n\nNote: Building safec=0.1.0-dev/safec.gpr...\ngprbuild: \"safec\" up to date\nSuccess: Build finished successfully in 0.76 seconds.\n"
   },
   "check_runs": [
     {
