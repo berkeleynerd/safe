@@ -4,8 +4,7 @@ version = "0.1.0-dev"
 
 authors = ["agentc1 contributors"]
 maintainers = ["agentc1 <agentc1@users.noreply.github.com>"]
-licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
-website = "https://github.com/agentc1/safe"
+website = "https://github.com/berkeleynerd/safe"
 tags = ["ada", "spark", "compiler", "safe-language"]
 
 executables = ["safec"]

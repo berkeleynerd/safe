@@ -111,6 +111,7 @@ safe/
 |----------------|-------|
 | Language specification | [`spec/00-front-matter.md`](spec/00-front-matter.md) |
 | Safe-to-Ada translation rules | [`compiler/translation_rules.md`](compiler/translation_rules.md) |
+| Early frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
 | SPARK companion overview | [`release/COMPANION_README.md`](release/COMPANION_README.md) |
 | Full traceability | [`docs/traceability_matrix.md`](docs/traceability_matrix.md) |
 | PO procedure index | [`docs/po_index.md`](docs/po_index.md) |
