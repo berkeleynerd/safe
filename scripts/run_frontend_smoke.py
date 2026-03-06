@@ -144,11 +144,13 @@ def main() -> int:
             env=env,
             temp_root=temp_root,
         )
-        # Regression test: == must be lexed as a single token (not two =).
-        # The file contains "S == 0" and "S != 0" in function bodies.
-        # If == is not recognized, the lexer produces two = tokens, and
-        # the check command may silently accept or produce a misleading error.
-        # We verify that safec check exits 0 (no lex/parse/semantic errors).
+        # Corpus inclusion: result_equality_check.safe contains == and !=
+        # in function bodies. The current parser skips bodies wholesale
+        # (Consume_Named_Executable_Item), so this check verifies only that
+        # the file is accepted at the declaration level — it does NOT yet
+        # prove that == is lexed as a single token rather than two =.
+        # A true regression test requires body-level parsing (PR05+).
+        # TODO(PR05): replace with a lexer-level or body-parsing assertion.
         eq_check_run = run(
             [str(safec), "check", str(EQUALITY_CHECK)],
             cwd=REPO_ROOT,
