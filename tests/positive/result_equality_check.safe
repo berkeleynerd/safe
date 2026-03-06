@@ -1,0 +1,22 @@
+-- Test: result_equality_check
+-- Description: Equality comparison using == operator.
+--   Verifies the lexer correctly recognizes == as a single token.
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.6.p139f
+-- Clause: SAFE@468cf72:spec/02-restrictions.md#2.12.p148
+-- Expected: ACCEPT
+
+package Result_Equality_Check is
+
+   type Status is range 0 .. 255;
+
+   function Is_OK (S : Status) return Boolean is
+   begin
+      return S == 0;
+   end Is_OK;
+
+   function Is_Error (S : Status) return Boolean is
+   begin
+      return S != 0;
+   end Is_Error;
+
+end Result_Equality_Check;

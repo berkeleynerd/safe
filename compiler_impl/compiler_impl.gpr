@@ -1,0 +1,2 @@
+project Compiler_Impl extends "safec.gpr" is
+end Compiler_Impl;

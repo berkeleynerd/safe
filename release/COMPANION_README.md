@@ -1,6 +1,6 @@
 # Safe Language Annotated SPARK Companion
 
-**Frozen spec commit:** `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`
+**Frozen spec commit:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 **Generated:** 2026-03-02
 **Generator:** spec2spark v0.1.0
 
@@ -14,7 +14,7 @@ The Safe Language Annotated SPARK Companion is a formal verification artifact th
 2. **SPARK Proof Obligations** -- Encodes the extracted clauses as SPARK ghost models (`Safe_Model`) and proof obligation procedures (`Safe_PO`) with Pre/Post contracts.
 3. **Traceability** -- Maps every clause to its generated artifact, test file(s), and assumption dependencies in a machine-readable CSV and human-readable Markdown matrix.
 
-The companion targets the Safe specification at commit `4aecf21`. Any subsequent spec changes may invalidate clause references; the companion must be regenerated when the spec is updated (see assumption D-02).
+The companion targets the Safe specification at commit `468cf72`. Any subsequent spec changes may invalidate clause references; the companion must be regenerated when the spec is updated (see assumption D-02).
 
 ---
 
@@ -91,14 +91,19 @@ safe/
 │   ├── extract_assumptions.sh # GNATprove output parser (128 lines)
 │   ├── generate_po_index.py   # PO index generator
 │   ├── generate_po_map.py     # PO map generator
+│   ├── lint_safe_syntax.sh    # Safe surface-syntax linter
 │   ├── run_all.sh             # Full CI pipeline (167 lines)
+│   ├── run_frontend_smoke.py  # Early frontend build + determinism smoke runner
 │   ├── run_gnatprove_flow.sh  # Bronze gate runner (58 lines)
 │   ├── run_gnatprove_prove.sh # Silver gate runner (81 lines)
-│   └── spec2spark.sh          # Spec-to-SPARK generator (44 lines)
-├── spec/                      # Safe specification source (frozen at 4aecf21)
+│   ├── spec2spark.sh          # Spec-to-SPARK generator (44 lines)
+│   ├── validate_ast_output.py # AST contract validator
+│   ├── render_execution_status.py  # Execution dashboard generator
+│   └── validate_execution_state.py # Execution ledger validator
+├── spec/                      # Safe specification source (frozen at 468cf72)
 └── tests/
-    ├── positive/              # 30 valid Safe programs
-    ├── negative/              # 33 rejection tests
+    ├── positive/              # 31 valid Safe programs
+    ├── negative/              # 35 rejection tests
     ├── golden/                # 3 golden Ada emission tests
     ├── concurrency/           # 5 concurrency scenario tests
     └── diagnostics_golden/    # 5 expected diagnostic outputs
@@ -121,9 +126,9 @@ safe/
 | -- Justified | 1 (2%) -- FP_Safe_Div, assumption A-05 |
 | -- Unproved | 0 |
 | Tracked assumptions | 14 (4 critical, 4 major, 6 minor) |
-| Test files | 76 |
+| Test files | 79 |
 | Documentation files | 4 |
-| CI scripts | 8 |
+| CI scripts | 13 |
 
 ---
 
@@ -228,9 +233,9 @@ Full clause-to-artifact traceability is maintained in two formats:
 - **`docs/traceability_matrix.md`** -- Human-readable Markdown with per-spec-file tables, PO category summary, D27 rule coverage, assumption cross-reference, test coverage summary, and pipeline diagrams.
 - **`docs/traceability_matrix.csv`** -- Machine-readable CSV (206 lines: 1 header + 205 data rows) with columns: `clause_id`, `spec_file`, `section`, `paragraph`, `category`, `target`, `artifact_file`, `artifact_element`, `test_files`, `status`, `assumptions`.
 
-**Clause ID format:** `SAFE@4aecf21:spec/<file>#<section>.p<paragraph>:<content-hash>`
+**Clause ID format:** `SAFE@468cf72:spec/<file>#<section>.p<paragraph>:<content-hash>`
 
-The short SHA prefix (`4aecf21`) anchors every clause to the frozen spec commit.
+The short SHA prefix (`468cf72`) anchors every clause to the frozen spec commit.
 
 ---
 
@@ -260,7 +265,7 @@ The short SHA prefix (`4aecf21`) anchors every clause to the frozen spec commit.
 
 ## 12. Normative References
 
-- **Safe specification:** Frozen at commit `4aecf219ffa5473bfc42b026a66c8bdea2ce5872`
+- **Safe specification:** Frozen at commit `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Spec files parsed:** `spec/00-front-matter.md` through `spec/08-syntax-summary.md` (10 files)
 - **Ada 2022:** ISO/IEC 8652:2023
 - **SPARK 2022:** SPARK Reference Manual (AdaCore)

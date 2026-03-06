@@ -1,0 +1,10 @@
+/obj/
+/bin/
+/alire/
+/config/
+/b__*
+/*.ali
+/*.o
+/*.stderr
+/*.stdout
+/safec

@@ -1,0 +1,129 @@
+{
+  "ast": {
+    "command": [
+      "compiler_impl/bin/safec",
+      "ast",
+      "tests/positive/rule1_accumulate.safe"
+    ],
+    "cwd": "$REPO_ROOT",
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "{\"node_type\":\"CompilationUnit\",\"context_clause\":{\"node_type\":\"ContextClause\",\"with_clauses\":[]},\"package_unit\":{\"node_type\":\"PackageUnit\",\"name\":\"Accumulator\",\"items\":[{\"node_type\":\"PackageItem\",\"kind\":\"BasicDeclaration\",\"item\":{\"node_type\":\"TypeDeclaration\",\"is_public\":false,\"name\":\"Small_Int\",\"discriminant_part\":null,\"type_definition\":{\"text\":\"type Small_Int is range 0 .. 100 ;\"},\"span\":{\"start_line\":12,\"start_col\":4,\"end_line\":12,\"end_col\":36}},\"span\":{\"start_line\":12,\"start_col\":4,\"end_line\":12,\"end_col\":36}},{\"node_type\":\"PackageItem\",\"kind\":\"BasicDeclaration\",\"item\":{\"node_type\":\"TypeDeclaration\",\"is_public\":false,\"name\":\"Index\",\"discriminant_part\":null,\"type_definition\":{\"text\":\"type Index is range 1 .. 20 ;\"},\"span\":{\"start_line\":13,\"start_col\":4,\"end_line\":13,\"end_col\":31}},\"span\":{\"start_line\":13,\"start_col\":4,\"end_line\":13,\"end_col\":31}},{\"node_type\":\"PackageItem\",\"kind\":\"BasicDeclaration\",\"item\":{\"node_type\":\"TypeDeclaration\",\"is_public\":false,\"name\":\"Values\",\"discriminant_part\":null,\"type_definition\":{\"text\":\"type Values is array ( Index ) of Small_Int ;\"},\"span\":{\"start_line\":14,\"start_col\":4,\"end_line\":14,\"end_col\":45}},\"span\":{\"start_line\":14,\"start_col\":4,\"end_line\":14,\"end_col\":45}},{\"node_type\":\"PackageItem\",\"kind\":\"BasicDeclaration\",\"item\":{\"node_type\":\"TypeDeclaration\",\"is_public\":false,\"name\":\"Total_Range\",\"discriminant_part\":null,\"type_definition\":{\"text\":\"type Total_Range is range 0 .. 2000 ;\"},\"span\":{\"start_line\":18,\"start_col\":4,\"end_line\":18,\"end_col\":39}},\"span\":{\"start_line\":18,\"start_col\":4,\"end_line\":18,\"end_col\":39}},{\"node_type\":\"PackageItem\",\"kind\":\"BasicDeclaration\",\"item\":{\"node_type\":\"SubprogramBody\",\"is_public\":false,\"spec\":{\"name\":\"Accumulate\",\"signature\":\"function Accumulate ( Data : Values ) return Total_Range is Sum : Total_Range = 0 ;\",\"return_type\":\"Total_Range\"},\"declarative_part\":[],\"body\":{\"statement_count\":0},\"end_designator\":\"Accumulate\",\"span\":{\"start_line\":22,\"start_col\":4,\"end_line\":33,\"end_col\":18}},\"span\":{\"start_line\":22,\"start_col\":4,\"end_line\":33,\"end_col\":18}}],\"end_name\":\"Accumulator\",\"span\":{\"start_line\":10,\"start_col\":1,\"end_line\":35,\"end_col\":16}},\"span\":{\"start_line\":10,\"start_col\":1,\"end_line\":35,\"end_col\":16}}\n"
+  },
+  "ast_validation": {
+    "command": [
+      "python3",
+      "scripts/validate_ast_output.py",
+      "$TMPDIR/rule1_accumulate.ast.json"
+    ],
+    "cwd": "$REPO_ROOT",
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "$TMPDIR/rule1_accumulate.ast.json: OK\n"
+  },
+  "build": {
+    "command": [
+      "alr",
+      "build"
+    ],
+    "cwd": "$REPO_ROOT/compiler_impl",
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "Note: Building safec=0.1.0-dev/safec.gpr...\ngprbuild: \"safec\" up to date\nSuccess: Build finished successfully in 1.20 seconds.\n"
+  },
+  "check_runs": [
+    {
+      "command": [
+        "compiler_impl/bin/safec",
+        "check",
+        "tests/positive/rule1_accumulate.safe"
+      ],
+      "cwd": "$REPO_ROOT",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "command": [
+        "compiler_impl/bin/safec",
+        "check",
+        "tests/positive/channel_pipeline.safe"
+      ],
+      "cwd": "$REPO_ROOT",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    }
+  ],
+  "deterministic_outputs": {
+    "iface/channel_pipeline.safei.json": "2df6e6138d83fa9fce735808a0628922d4b9eb17bc06dcc0992941ce3661aa7c",
+    "out/channel_pipeline.ast.json": "bcb5fa451011aa6f07ebfd0831a75ed45956c7512a5c3653aeaf82e609837984",
+    "out/channel_pipeline.mir.json": "2ddbae8f0274621054199dd7c97b47595a060de836f3d559f8a158511e2a0efb",
+    "out/channel_pipeline.typed.json": "da318e04fc9224a7bcd4cf94f123f8b8c8e454a660f7f324ed2b74436d5d168b"
+  },
+  "legacy_token_regression": {
+    "assertions": {
+      "legacy_tokens": [
+        ":=",
+        "=>",
+        "/="
+      ],
+      "sc1001_count": 3,
+      "suggestions": {
+        "/=": "Use current Safe syntax (`!=` for inequality).",
+        ":=": "Use current Safe syntax (`=` for assignment).",
+        "=>": "Use current Safe syntax (`=` for named associations/aggregates and `then` for select arms)."
+      }
+    },
+    "command": [
+      "compiler_impl/bin/safec",
+      "lex",
+      "compiler_impl/tests/legacy_two_char_tokens.safe"
+    ],
+    "cwd": "$REPO_ROOT",
+    "returncode": 1,
+    "stderr": "$REPO_ROOT/compiler_impl/tests/legacy_two_char_tokens.safe:2:19: error[SC1001]: legacy token \":=\" is not allowed\n  help: Use current Safe syntax (`=` for assignment).\n$REPO_ROOT/compiler_impl/tests/legacy_two_char_tokens.safe:3:20: error[SC1001]: legacy token \"=>\" is not allowed\n  help: Use current Safe syntax (`=` for named associations/aggregates and `then` for select arms).\n$REPO_ROOT/compiler_impl/tests/legacy_two_char_tokens.safe:4:19: error[SC1001]: legacy token \"/=\" is not allowed\n  help: Use current Safe syntax (`!=` for inequality).\n",
+    "stdout": ""
+  },
+  "lex_equality": {
+    "assertions": {
+      "adjacent_equals_pairs": 0,
+      "format": "tokens-v0",
+      "operator_counts": {
+        "!=": 1,
+        "==": 1
+      },
+      "required_subsequences": [
+        [
+          "return",
+          "S",
+          "==",
+          "0",
+          ";"
+        ],
+        [
+          "return",
+          "S",
+          "!=",
+          "0",
+          ";"
+        ]
+      ]
+    },
+    "command": [
+      "compiler_impl/bin/safec",
+      "lex",
+      "tests/positive/result_equality_check.safe"
+    ],
+    "cwd": "$REPO_ROOT",
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "{\"format\":\"tokens-v0\",\"tokens\":[{\"kind\":\"keyword\",\"lexeme\":\"package\",\"span\":{\"start_line\":8,\"start_col\":1,\"end_line\":8,\"end_col\":7}},{\"kind\":\"identifier\",\"lexeme\":\"Result_Equality_Check\",\"span\":{\"start_line\":8,\"start_col\":9,\"end_line\":8,\"end_col\":29}},{\"kind\":\"keyword\",\"lexeme\":\"is\",\"span\":{\"start_line\":8,\"start_col\":31,\"end_line\":8,\"end_col\":32}},{\"kind\":\"keyword\",\"lexeme\":\"type\",\"span\":{\"start_line\":10,\"start_col\":4,\"end_line\":10,\"end_col\":7}},{\"kind\":\"identifier\",\"lexeme\":\"Status\",\"span\":{\"start_line\":10,\"start_col\":9,\"end_line\":10,\"end_col\":14}},{\"kind\":\"keyword\",\"lexeme\":\"is\",\"span\":{\"start_line\":10,\"start_col\":16,\"end_line\":10,\"end_col\":17}},{\"kind\":\"keyword\",\"lexeme\":\"range\",\"span\":{\"start_line\":10,\"start_col\":19,\"end_line\":10,\"end_col\":23}},{\"kind\":\"integer_literal\",\"lexeme\":\"0\",\"span\":{\"start_line\":10,\"start_col\":25,\"end_line\":10,\"end_col\":25}},{\"kind\":\"symbol\",\"lexeme\":\"..\",\"span\":{\"start_line\":10,\"start_col\":27,\"end_line\":10,\"end_col\":28}},{\"kind\":\"integer_literal\",\"lexeme\":\"255\",\"span\":{\"start_line\":10,\"start_col\":30,\"end_line\":10,\"end_col\":32}},{\"kind\":\"symbol\",\"lexeme\":\";\",\"span\":{\"start_line\":10,\"start_col\":33,\"end_line\":10,\"end_col\":33}},{\"kind\":\"keyword\",\"lexeme\":\"function\",\"span\":{\"start_line\":12,\"start_col\":4,\"end_line\":12,\"end_col\":11}},{\"kind\":\"identifier\",\"lexeme\":\"Is_OK\",\"span\":{\"start_line\":12,\"start_col\":13,\"end_line\":12,\"end_col\":17}},{\"kind\":\"symbol\",\"lexeme\":\"(\",\"span\":{\"start_line\":12,\"start_col\":19,\"end_line\":12,\"end_col\":19}},{\"kind\":\"identifier\",\"lexeme\":\"S\",\"span\":{\"start_line\":12,\"start_col\":20,\"end_line\":12,\"end_col\":20}},{\"kind\":\"symbol\",\"lexeme\":\":\",\"span\":{\"start_line\":12,\"start_col\":22,\"end_line\":12,\"end_col\":22}},{\"kind\":\"identifier\",\"lexeme\":\"Status\",\"span\":{\"start_line\":12,\"start_col\":24,\"end_line\":12,\"end_col\":29}},{\"kind\":\"symbol\",\"lexeme\":\")\",\"span\":{\"start_line\":12,\"start_col\":30,\"end_line\":12,\"end_col\":30}},{\"kind\":\"keyword\",\"lexeme\":\"return\",\"span\":{\"start_line\":12,\"start_col\":32,\"end_line\":12,\"end_col\":37}},{\"kind\":\"identifier\",\"lexeme\":\"Boolean\",\"span\":{\"start_line\":12,\"start_col\":39,\"end_line\":12,\"end_col\":45}},{\"kind\":\"keyword\",\"lexeme\":\"is\",\"span\":{\"start_line\":12,\"start_col\":47,\"end_line\":12,\"end_col\":48}},{\"kind\":\"keyword\",\"lexeme\":\"begin\",\"span\":{\"start_line\":13,\"start_col\":4,\"end_line\":13,\"end_col\":8}},{\"kind\":\"keyword\",\"lexeme\":\"return\",\"span\":{\"start_line\":14,\"start_col\":7,\"end_line\":14,\"end_col\":12}},{\"kind\":\"identifier\",\"lexeme\":\"S\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14}},{\"kind\":\"symbol\",\"lexeme\":\"==\",\"span\":{\"start_line\":14,\"start_col\":16,\"end_line\":14,\"end_col\":17}},{\"kind\":\"integer_literal\",\"lexeme\":\"0\",\"span\":{\"start_line\":14,\"start_col\":19,\"end_line\":14,\"end_col\":19}},{\"kind\":\"symbol\",\"lexeme\":\";\",\"span\":{\"start_line\":14,\"start_col\":20,\"end_line\":14,\"end_col\":20}},{\"kind\":\"keyword\",\"lexeme\":\"end\",\"span\":{\"start_line\":15,\"start_col\":4,\"end_line\":15,\"end_col\":6}},{\"kind\":\"identifier\",\"lexeme\":\"Is_OK\",\"span\":{\"start_line\":15,\"start_col\":8,\"end_line\":15,\"end_col\":12}},{\"kind\":\"symbol\",\"lexeme\":\";\",\"span\":{\"start_line\":15,\"start_col\":13,\"end_line\":15,\"end_col\":13}},{\"kind\":\"keyword\",\"lexeme\":\"function\",\"span\":{\"start_line\":17,\"start_col\":4,\"end_line\":17,\"end_col\":11}},{\"kind\":\"identifier\",\"lexeme\":\"Is_Error\",\"span\":{\"start_line\":17,\"start_col\":13,\"end_line\":17,\"end_col\":20}},{\"kind\":\"symbol\",\"lexeme\":\"(\",\"span\":{\"start_line\":17,\"start_col\":22,\"end_line\":17,\"end_col\":22}},{\"kind\":\"identifier\",\"lexeme\":\"S\",\"span\":{\"start_line\":17,\"start_col\":23,\"end_line\":17,\"end_col\":23}},{\"kind\":\"symbol\",\"lexeme\":\":\",\"span\":{\"start_line\":17,\"start_col\":25,\"end_line\":17,\"end_col\":25}},{\"kind\":\"identifier\",\"lexeme\":\"Status\",\"span\":{\"start_line\":17,\"start_col\":27,\"end_line\":17,\"end_col\":32}},{\"kind\":\"symbol\",\"lexeme\":\")\",\"span\":{\"start_line\":17,\"start_col\":33,\"end_line\":17,\"end_col\":33}},{\"kind\":\"keyword\",\"lexeme\":\"return\",\"span\":{\"start_line\":17,\"start_col\":35,\"end_line\":17,\"end_col\":40}},{\"kind\":\"identifier\",\"lexeme\":\"Boolean\",\"span\":{\"start_line\":17,\"start_col\":42,\"end_line\":17,\"end_col\":48}},{\"kind\":\"keyword\",\"lexeme\":\"is\",\"span\":{\"start_line\":17,\"start_col\":50,\"end_line\":17,\"end_col\":51}},{\"kind\":\"keyword\",\"lexeme\":\"begin\",\"span\":{\"start_line\":18,\"start_col\":4,\"end_line\":18,\"end_col\":8}},{\"kind\":\"keyword\",\"lexeme\":\"return\",\"span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":12}},{\"kind\":\"identifier\",\"lexeme\":\"S\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":14}},{\"kind\":\"symbol\",\"lexeme\":\"!=\",\"span\":{\"start_line\":19,\"start_col\":16,\"end_line\":19,\"end_col\":17}},{\"kind\":\"integer_literal\",\"lexeme\":\"0\",\"span\":{\"start_line\":19,\"start_col\":19,\"end_line\":19,\"end_col\":19}},{\"kind\":\"symbol\",\"lexeme\":\";\",\"span\":{\"start_line\":19,\"start_col\":20,\"end_line\":19,\"end_col\":20}},{\"kind\":\"keyword\",\"lexeme\":\"end\",\"span\":{\"start_line\":20,\"start_col\":4,\"end_line\":20,\"end_col\":6}},{\"kind\":\"identifier\",\"lexeme\":\"Is_Error\",\"span\":{\"start_line\":20,\"start_col\":8,\"end_line\":20,\"end_col\":15}},{\"kind\":\"symbol\",\"lexeme\":\";\",\"span\":{\"start_line\":20,\"start_col\":16,\"end_line\":20,\"end_col\":16}},{\"kind\":\"keyword\",\"lexeme\":\"end\",\"span\":{\"start_line\":22,\"start_col\":1,\"end_line\":22,\"end_col\":3}},{\"kind\":\"identifier\",\"lexeme\":\"Result_Equality_Check\",\"span\":{\"start_line\":22,\"start_col\":5,\"end_line\":22,\"end_col\":25}},{\"kind\":\"symbol\",\"lexeme\":\";\",\"span\":{\"start_line\":22,\"start_col\":26,\"end_line\":22,\"end_col\":26}}]}"
+  },
+  "samples": {
+    "ast": "tests/positive/rule1_accumulate.safe",
+    "emit": "tests/positive/channel_pipeline.safe",
+    "equality_lex": "tests/positive/result_equality_check.safe",
+    "legacy_lex": "compiler_impl/tests/legacy_two_char_tokens.safe"
+  }
+}

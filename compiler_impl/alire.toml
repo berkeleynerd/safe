@@ -1,0 +1,10 @@
+name = "safec"
+description = "Reference Safe compiler workspace (early frontend)"
+version = "0.1.0-dev"
+
+authors = ["agentc1 contributors"]
+maintainers = ["agentc1 <agentc1@users.noreply.github.com>"]
+website = "https://github.com/berkeleynerd/safe"
+tags = ["ada", "spark", "compiler", "safe-language"]
+
+executables = ["safec"]

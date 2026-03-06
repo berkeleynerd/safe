@@ -1,7 +1,7 @@
 # Safe Language Annotated SPARK Companion -- Status Report
 
 **Release date:** 2026-03-02
-**Frozen spec commit:** `4aecf219ffa5473bfc42b026a66c8bdea2ce5872` (short: `4aecf21`)
+**Frozen spec commit:** `468cf72332724b04b7c193b4d2a3b02f1584125d` (short: `468cf72`)
 **Generator:** spec2spark v0.1.0
 **Overall status:** T0-T12 COMPLETE
 
@@ -17,7 +17,7 @@ The Safe Language Annotated SPARK Companion has completed all 13 tasks (T0-T12) 
 
 | Task | Action | Output Files | Status | Notes |
 |------|--------|-------------|--------|-------|
-| T0 | Repository setup & frozen commit | `meta/commit.txt`, `.gitignore`, directory structure | COMPLETE | SHA: `4aecf21` |
+| T0 | Repository setup & frozen commit | `meta/commit.txt`, `.gitignore`, directory structure | COMPLETE | SHA: `468cf72` |
 | T1 | Clause extraction | `clauses/clauses.yaml` | COMPLETE | 205 clauses from 10 spec files |
 | T2 | PO mapping | `clauses/po_map.yaml` | COMPLETE | 205 PO entries, 7 target categories |
 | T3 | Ghost model (Safe_Model) | `companion/spark/safe_model.ads`, `safe_model.adb` | COMPLETE | 25 ghost functions, 374 lines |
@@ -26,9 +26,9 @@ The Safe Language Annotated SPARK Companion has completed all 13 tasks (T0-T12) 
 | T6 | Bronze gate (flow analysis) | Flow analysis results | COMPLETE | 29/29 flow checks, 0 errors |
 | T7 | Silver gate (proof) | `companion/gen/prove_golden.txt` | COMPLETE | 64 checks, 34 proved, 1 justified, 0 unproved |
 | T8 | Assumption registry | `companion/assumptions.yaml` | COMPLETE | 14 assumptions (4 critical, 4 major, 6 minor) |
-| T9 | Test suite | `tests/` (76 files across 5 dirs) | COMPLETE | 30 positive, 33 negative, 3 golden, 5 concurrency, 5 diagnostics |
+| T9 | Test suite | `tests/` (79 files across 5 dirs) | COMPLETE | 31 positive, 35 negative, 3 golden, 5 concurrency, 5 diagnostics |
 | T10 | Documentation | `docs/` (4 files) | COMPLETE | Traceability, GNATprove profile |
-| T11 | CI pipeline | `scripts/` (8 files) | COMPLETE | 5-step pipeline: compile → flow → prove → extract → diff |
+| T11 | CI pipeline | `scripts/` (13 files) | COMPLETE | Execution guard, frontend smoke, and 5-step SPARK pipeline |
 | T12 | Release bundle | `release/COMPANION_README.md`, `release/status_report.md` | COMPLETE | This document |
 
 ---
@@ -121,18 +121,23 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 | `scripts/spec2spark.sh` | 44 | Spec-to-SPARK generator |
 | `scripts/generate_po_map.py` | -- | PO map generator |
 | `scripts/generate_po_index.py` | -- | PO index generator |
-| **Scripts total** | **8 files** | |
+| `scripts/lint_safe_syntax.sh` | -- | Safe surface-syntax linter |
+| `scripts/render_execution_status.py` | -- | Execution dashboard generator |
+| `scripts/run_frontend_smoke.py` | -- | Early frontend build and determinism smoke runner |
+| `scripts/validate_ast_output.py` | -- | AST contract validator against `compiler/ast_schema.json` |
+| `scripts/validate_execution_state.py` | -- | Execution ledger and repo-fact validator |
+| **Scripts total** | **13 files** | |
 
 ### 4.6 Test Suite
 
 | Directory | Files | Description |
 |-----------|-------|-------------|
-| `tests/positive/` | 30 | Valid Safe programs exercising D27 rules and language features |
-| `tests/negative/` | 33 | Programs that must be rejected by a conforming compiler |
+| `tests/positive/` | 31 | Valid Safe programs exercising D27 rules and language features |
+| `tests/negative/` | 35 | Programs that must be rejected by a conforming compiler |
 | `tests/golden/` | 3 | Expected Ada emission outputs |
 | `tests/concurrency/` | 5 | Task, channel, and select scenario tests |
 | `tests/diagnostics_golden/` | 5 | Expected compiler diagnostic outputs |
-| **Test total** | **76** | |
+| **Test total** | **79** | |
 
 ### 4.7 Release
 
@@ -145,7 +150,7 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 
 | File | Description |
 |------|-------------|
-| `meta/commit.txt` | Frozen spec SHA (`4aecf219ffa5473bfc42b026a66c8bdea2ce5872`) |
+| `meta/commit.txt` | Frozen spec SHA (`468cf72332724b04b7c193b4d2a3b02f1584125d`) |
 
 ---
 
@@ -185,12 +190,12 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 
 | Directory | Files | Clause IDs Covered | D27 Rules Exercised |
 |-----------|-------|-------------------|-------------------|
-| `positive/` | 30 | 27 | Rules 1-5 |
-| `negative/` | 33 | 25 | Rules 1-5 |
+| `positive/` | 31 | 27 | Rules 1-5 |
+| `negative/` | 35 | 25 | Rules 1-5 |
 | `golden/` | 3 | 13 | Rule 1 |
 | `concurrency/` | 5 | 13 | -- |
 | `diagnostics_golden/` | 5 | 9 | Rules 1-4 |
-| **Total** | **76** | | |
+| **Total** | **79** | | |
 
 ### 6.2 D27 Rule Test Coverage
 
@@ -260,12 +265,12 @@ These process-level recommendations have been addressed in the CI workflow.
 | 1 | All 13 tasks (T0-T12) have deliverables in the repository | PASS |
 | 2 | `release/COMPANION_README.md` accurately describes the bundle | PASS |
 | 3 | `release/status_report.md` statistics match actual artifacts | PASS |
-| 4 | All SHA references across all files are consistent (`4aecf21...`) | PASS |
+| 4 | All tracked SHA references across README, release docs, and CI are consistent (`468cf72...`) | PASS |
 | 5 | No phantom file references in CSV or po_map.yaml | PASS |
 | 6 | Traceability matrix is complete: 205 clauses, no orphans | PASS |
 | 7 | Assumption budget: 14 total ≤ 15, 4 critical ≤ 4 | PASS |
 | 8 | Proof golden: 64 checks, 0 unproved | PASS |
-| 9 | All 76 test files exist on disk | PASS |
+| 9 | All 79 test files exist on disk | PASS |
 | 10 | All 23 PO procedures referenced in po_index.md | PASS |
 | 11 | All 14 assumptions cross-referenced in traceability matrix | PASS |
 

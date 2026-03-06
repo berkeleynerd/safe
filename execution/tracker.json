@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-03-06T13:50:00Z",
+  "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
+  "active_task_id": null,
+  "next_task_id": "PR05",
+  "repo_facts": {
+    "tests": {
+      "positive": 32,
+      "negative": 35,
+      "golden": 3,
+      "concurrency": 5,
+      "diagnostics_golden": 5,
+      "total": 80
+    }
+  },
+  "tasks": [
+    {
+      "id": "PR00",
+      "title": "Execution ledger, drift reconciliation, and CI guard",
+      "status": "done",
+      "depends_on": [],
+      "acceptance": [
+        "Frozen-SHA references in README.md, release/status_report.md, and release/COMPANION_README.md match meta/commit.txt.",
+        "execution/tracker.json validates and execution/dashboard.md is freshly rendered.",
+        "scripts/validate_execution_state.py passes schema, dependency, evidence, frozen-SHA, and test-distribution checks.",
+        "CI contains a uniquely named execution-guard job."
+      ],
+      "evidence": [
+        "execution/reports/pr00-pr04-verification.md",
+        "execution/sessions/20260306-1148-pr00-pr04.md"
+      ],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR01",
+      "title": "compiler_impl workspace, safec CLI, and harness entrypoint",
+      "status": "done",
+      "depends_on": ["PR00"],
+      "acceptance": [
+        "compiler_impl contains alire.toml, a GPR project, and a buildable SafeC source tree.",
+        "safec ast/check/emit exist with stable exit codes and deterministic diagnostics.",
+        "A repository harness can invoke the compiler on representative corpus inputs."
+      ],
+      "evidence": [
+        "compiler_impl/alire.toml",
+        "compiler_impl/compiler_impl.gpr",
+        "scripts/run_frontend_smoke.py",
+        "execution/reports/pr00-pr04-frontend-smoke.json"
+      ],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR02",
+      "title": "Lexer with exact spans and deterministic lex diagnostics",
+      "status": "done",
+      "depends_on": ["PR01"],
+      "acceptance": [
+        "Lexer tokenizes current Safe syntax with exact source spans.",
+        "Lex diagnostics are deterministic for repeated runs on the same input.",
+        "Representative tests cover current syntax and banned legacy tokens."
+      ],
+      "evidence": [
+        "compiler_impl/src/safe_frontend-lexer.ads",
+        "compiler_impl/src/safe_frontend-lexer.adb",
+        "execution/reports/pr00-pr04-frontend-smoke.json"
+      ],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR03",
+      "title": "Parser, AST JSON export, and schema validation",
+      "status": "done",
+      "depends_on": ["PR02"],
+      "acceptance": [
+        "Recursive-descent parser recovers at semicolon and end boundaries.",
+        "safec ast emits deterministic JSON for representative corpus inputs.",
+        "AST JSON validates against compiler/ast_schema.json using the repo validation script."
+      ],
+      "evidence": [
+        "compiler_impl/src/safe_frontend-parser.ads",
+        "compiler_impl/src/safe_frontend-parser.adb",
+        "scripts/validate_ast_output.py",
+        "execution/reports/pr00-pr04-frontend-smoke.json"
+      ],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR04",
+      "title": "Typed AST, .safei.json v0, and MIR/CFG lowering",
+      "status": "done",
+      "depends_on": ["PR03"],
+      "acceptance": [
+        "Name resolution and retained-library/removed-feature checks run deterministically.",
+        "safec emit writes deterministic .safei.json output.",
+        "typed AST lowers to MIR/CFG and MIR serialization is stable across repeated runs.",
+        "Later analysis entrypoints consume MIR instead of parser AST."
+      ],
+      "evidence": [
+        "compiler_impl/src/safe_frontend-semantics.ads",
+        "compiler_impl/src/safe_frontend-semantics.adb",
+        "compiler_impl/src/safe_frontend-mir.ads",
+        "compiler_impl/src/safe_frontend-mir.adb",
+        "execution/reports/pr00-pr04-frontend-smoke.json"
+      ],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR05",
+      "title": "D27 Rules 1-4 diagnostics on MIR",
+      "status": "ready",
+      "depends_on": ["PR04"],
+      "acceptance": [
+        "Rules 1-4 diagnostics match existing diagnostics goldens byte-for-byte."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR06",
+      "title": "Ownership, lifetime, and deallocation planning on MIR",
+      "status": "planned",
+      "depends_on": ["PR05"],
+      "acceptance": [
+        "Ownership diagnostics are deterministic and double-move golden matches byte-for-byte."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR07",
+      "title": "Rule 5 and discriminant/result safety",
+      "status": "planned",
+      "depends_on": ["PR06"],
+      "acceptance": [
+        "A canonical Rule 5 diagnostic golden exists and matches byte-for-byte."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR08",
+      "title": "Concurrency legality and Bronze summaries",
+      "status": "planned",
+      "depends_on": ["PR07"],
+      "acceptance": [
+        "Task/channel/select legality checks and deterministic Bronze summaries exist."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR09",
+      "title": "Ada/SPARK emission and snapshot refresh",
+      "status": "planned",
+      "depends_on": ["PR08"],
+      "acceptance": [
+        "PR09a emitter MVP is deterministic on a narrow subset.",
+        "PR09b replaces historical golden Ada snapshots once emitter output is stable.",
+        "Concurrency-enabled output includes gnat.adc with sequential elaboration and Jorvik profile pragmas."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR10",
+      "title": "GNATprove flow/prove gate on emitted output",
+      "status": "planned",
+      "depends_on": ["PR09"],
+      "acceptance": [
+        "Selected emitted outputs build and pass GNATprove flow/prove with zero unproved checks."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    }
+  ]
+}

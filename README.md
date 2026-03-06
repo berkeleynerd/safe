@@ -47,7 +47,7 @@ The `companion/templates/` directory contains 14 templates (M1–M7 complete) de
 | Companion VCs (flow / proved / justified / unproved) | 29 / 34 / 1 / 0 (64 total) |
 | Template VCs (flow / proved / justified / unproved) | 107 / 217 / 1 / 0 (325 total, 17 units) |
 | Tracked assumptions | 14 (4 critical, 4 major, 5 minor, 1 template) |
-| Test files | 76 |
+| Test files | 79 |
 
 ---
 
@@ -90,10 +90,12 @@ safe/
 │   ├── gen/                     # Build config, proof golden
 │   ├── templates/               # 14 verified emission templates (M1–M7 complete)
 │   └── assumptions.yaml         # 14 tracked assumptions
+├── compiler_impl/               # Reference compiler workspace (early frontend)
 ├── clauses/                     # 205 clauses + PO mappings
-├── tests/                       # 76 test files (5 categories)
+├── execution/                   # Execution ledger, dashboard, and session notes
+├── tests/                       # 79 test files (5 categories)
 ├── docs/                        # Technical documentation
-├── scripts/                     # CI and automation (8 scripts)
+├── scripts/                     # CI and automation (13 scripts)
 ├── meta/                        # Frozen commit SHA, generator version
 ├── release/                     # Companion README, status report
 ├── references/                  # SPARK RM extracts, Ada standards
@@ -109,6 +111,7 @@ safe/
 |----------------|-------|
 | Language specification | [`spec/00-front-matter.md`](spec/00-front-matter.md) |
 | Safe-to-Ada translation rules | [`compiler/translation_rules.md`](compiler/translation_rules.md) |
+| Early frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
 | SPARK companion overview | [`release/COMPANION_README.md`](release/COMPANION_README.md) |
 | Full traceability | [`docs/traceability_matrix.md`](docs/traceability_matrix.md) |
 | PO procedure index | [`docs/po_index.md`](docs/po_index.md) |
@@ -124,12 +127,15 @@ safe/
 
 ## Continuous Integration
 
-Two parallel CI jobs run on every push and pull request to `main`:
+Five CI jobs run on every push and pull request to `main`:
 
+- **`execution-guard`** -- Ledger, dashboard, frozen-SHA, and test-distribution checks
+- **`lint-safe-syntax`** -- Surface-syntax guard across the `.safe` corpus
+- **`frontend-smoke`** -- Early frontend build, lexer regression checks, AST validation, and deterministic emit smoke checks
 - **`spark-verify`** -- Companion: 64 VCs, 0 unproved
 - **`templates-verify`** -- Templates pipeline: 320 VCs, 0 unproved
 
-Both execute the 5-step pipeline (compile, flow, prove, extract, diff) and fail on any unproved check or assumption budget violation.
+The SPARK companion and template jobs execute the 5-step verification pipeline (compile, flow, prove, extract, diff) and fail on any unproved check or assumption budget violation.
 
 See [`release/COMPANION_README.md`](release/COMPANION_README.md) Section 8 for the pipeline diagram and [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the workflow definition.
 
@@ -140,12 +146,13 @@ See [`release/COMPANION_README.md`](release/COMPANION_README.md) Section 8 for t
 | Property | Value |
 |----------|-------|
 | Spec version | Working Draft v0.1 |
-| Frozen spec commit | `4aecf21` |
+| Frozen spec commit | `468cf72332724b04b7c193b4d2a3b02f1584125d` |
 | Generator | spec2spark v0.1.0 |
-| Companion status | All 13 tasks complete |
+| Companion status | All 13 companion tasks complete |
 | Emission templates | 14/14 proved (320 VCs, 0 unproved; M1–M7 complete) |
+| Compiler frontend | `compiler_impl/` PR00–PR04 early frontend landed |
 
-There is no compiler implementation yet. The translation rules and AST schema in `compiler/` define the interface a future compiler must satisfy.
+The repository now includes an early compiler frontend under `compiler_impl/`. It can lex representative `.safe` inputs via `safec lex`, parse representative inputs, emit AST/typed/MIR/interface JSON scaffolding, and run deterministic smoke checks. The translation rules and AST schema in `compiler/` remain the contract the later compiler phases must satisfy.
 
 
 ---

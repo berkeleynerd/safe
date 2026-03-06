@@ -23,6 +23,24 @@ defaults:
     working-directory: companion/gen
 
 jobs:
+  execution-guard:
+    name: Execution Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Validate execution tracker and repo facts
+        working-directory: .
+        run: python3 scripts/validate_execution_state.py
+
   lint-safe-syntax:
     name: Lint Safe Surface Syntax
     runs-on: ubuntu-latest
@@ -37,6 +55,29 @@ jobs:
         run: |
           chmod +x scripts/lint_safe_syntax.sh
           scripts/lint_safe_syntax.sh
+
+  frontend-smoke:
+    name: Frontend Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          toolchain: gnat_native gprbuild
+
+      - name: Run frontend smoke checks
+        working-directory: .
+        run: python3 scripts/run_frontend_smoke.py
 
   spark-verify:
     name: Build & Verify SPARK Companion
