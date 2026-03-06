@@ -1,9 +1,11 @@
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
+with Ada.Command_Line;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
+with GNAT.OS_Lib;
 with Safe_Frontend.Ast;
 with Safe_Frontend.Diagnostics;
 with Safe_Frontend.Lexer;
@@ -36,6 +38,80 @@ package body Safe_Frontend.Driver is
       Internal_Failure : Boolean := False;
       Success     : Boolean := False;
    end record;
+
+   function Full_Command_Name return String is
+      use type GNAT.OS_Lib.String_Access;
+      Raw : constant String := Ada.Command_Line.Command_Name;
+   begin
+      if Ada.Directories.Exists (Raw) then
+         return Ada.Directories.Full_Name (Raw);
+      end if;
+      declare
+         Located : constant GNAT.OS_Lib.String_Access :=
+           GNAT.OS_Lib.Locate_Exec_On_Path (Raw);
+      begin
+         if Located /= null then
+            return Located.all;
+         end if;
+      end;
+      return Raw;
+   end Full_Command_Name;
+
+   function Backend_Script return String is
+      Command_Path  : constant String := Full_Command_Name;
+      Bin_Dir       : constant String := Ada.Directories.Containing_Directory (Command_Path);
+      Compiler_Root : constant String := Ada.Directories.Containing_Directory (Bin_Dir);
+      Candidate     : constant String := Compiler_Root & "/backend/pr05_backend.py";
+   begin
+      if Ada.Directories.Exists (Candidate) then
+         return Candidate;
+      end if;
+      return "compiler_impl/backend/pr05_backend.py";
+   end Backend_Script;
+
+   function Python3 return String is
+      use type GNAT.OS_Lib.String_Access;
+      Located : constant GNAT.OS_Lib.String_Access :=
+        GNAT.OS_Lib.Locate_Exec_On_Path ("python3");
+   begin
+      if Located /= null then
+         return Located.all;
+      end if;
+      return "python3";
+   end Python3;
+
+   function Run_Backend
+     (Command       : String;
+      Path          : String;
+      Out_Dir       : String := "";
+      Interface_Dir : String := "") return Integer
+   is
+      use type GNAT.OS_Lib.String_Access;
+
+      Arg_Count : constant Positive :=
+        (if Command = "emit" then 9 else 5);
+      Args      : GNAT.OS_Lib.Argument_List (1 .. Arg_Count);
+      Last      : Natural := 0;
+
+      procedure Push (Value : String) is
+      begin
+         Last := Last + 1;
+         Args (Last) := new String'(Value);
+      end Push;
+   begin
+      Push (Backend_Script);
+      Push (Command);
+      Push (Path);
+      Push ("--safec-binary");
+      Push (Full_Command_Name);
+      if Command = "emit" then
+         Push ("--out-dir");
+         Push (Out_Dir);
+         Push ("--interface-dir");
+         Push (Interface_Dir);
+      end if;
+      return GNAT.OS_Lib.Spawn (Python3, Args);
+   end Run_Backend;
 
    function Source_Stem (Path : String) return String is
       Simple : constant String := Ada.Directories.Simple_Name (Path);
@@ -152,25 +228,13 @@ package body Safe_Frontend.Driver is
    end Run_Lex;
 
    function Run_Ast (Path : String) return Integer is
-      Result : constant Pipeline_Result := Run_Pipeline (Path, Include_Semantics => False);
    begin
-      if not Result.Success then
-         FD.Print (Result.Diagnostics);
-         return Failure_Exit_Code (Result);
-      end if;
-      Ada.Text_IO.Put
-        (Safe_Frontend.Ast.To_Json (Result.Ast));
-      return Safe_Frontend.Exit_Success;
+      return Run_Backend ("ast", Path);
    end Run_Ast;
 
    function Run_Check (Path : String) return Integer is
-      Result : constant Pipeline_Result := Run_Pipeline (Path);
    begin
-      if not Result.Success then
-         FD.Print (Result.Diagnostics);
-         return Failure_Exit_Code (Result);
-      end if;
-      return Safe_Frontend.Exit_Success;
+      return Run_Backend ("check", Path);
    end Run_Check;
 
    function Run_Emit
@@ -178,27 +242,11 @@ package body Safe_Frontend.Driver is
       Out_Dir       : String;
       Interface_Dir : String) return Integer
    is
-      Result : constant Pipeline_Result := Run_Pipeline (Path);
-      Stem   : constant String := Source_Stem (Path);
    begin
-      if not Result.Success then
-         FD.Print (Result.Diagnostics);
-         return Failure_Exit_Code (Result);
-      end if;
-
-      Ada.Directories.Create_Path (Out_Dir);
-      Ada.Directories.Create_Path (Interface_Dir);
-
-      Write_File
-        (Out_Dir & "/" & Stem & ".ast.json",
-         Safe_Frontend.Ast.To_Json (Result.Ast));
-      Write_File
-        (Out_Dir & "/" & Stem & ".typed.json",
-         Safe_Frontend.Semantics.To_Json (Result.Typed));
-      Write_File (Out_Dir & "/" & Stem & ".mir.json", FM.To_Json (Result.Mir_Unit));
-      Write_File
-        (Interface_Dir & "/" & Stem & ".safei.json",
-         Safe_Frontend.Semantics.Interface_Json (Result.Typed));
-      return Safe_Frontend.Exit_Success;
+      return Run_Backend
+        (Command       => "emit",
+         Path          => Path,
+         Out_Dir       => Out_Dir,
+         Interface_Dir => Interface_Dir);
    end Run_Emit;
 end Safe_Frontend.Driver;

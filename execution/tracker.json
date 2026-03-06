@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-06T13:50:00Z",
+  "updated_at": "2026-03-06T21:52:02Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR05",
+  "next_task_id": "PR06",
   "repo_facts": {
     "tests": {
       "positive": 32,
@@ -112,23 +112,35 @@
     },
     {
       "id": "PR05",
-      "title": "D27 Rules 1-4 diagnostics on MIR",
-      "status": "ready",
+      "title": "Real sequential AST/MIR and D27 Rules 1-4 with moved/freed overlap",
+      "status": "done",
       "depends_on": ["PR04"],
       "acceptance": [
-        "Rules 1-4 diagnostics match existing diagnostics goldens byte-for-byte."
+        "safec ast emits schema-true executable bodies and expressions for the sequential Rule 1–4 subset (no stub bodies).",
+        "scripts/validate_ast_output.py enforces recursive NodeRef validation for implemented sequential nodes.",
+        "safec emit produces deterministic typed-v1 and mir-v1 outputs on representative sequential Rule 1–4 inputs.",
+        "All D27 Rule 1–4 analysis runs on the PR05 sequential platform and is exposed through the versioned emit artifacts.",
+        "Byte-for-byte stderr match for tests/diagnostics_golden: diag_overflow.txt, diag_index_oob.txt, diag_zero_div.txt, diag_null_deref.txt.",
+        "Whole current Rule 1–4 corpus gating: all tests/positive/rule1*..rule4* accept; all tests/negative/neg_rule1*..neg_rule4* reject with expected primary reason mapping.",
+        "Minimal ownership overlap implemented for Rule 4: neg_rule4_moved.safe and neg_rule4_freed.safe behave as expected, while other ownership legality remains PR06 scope.",
+        "A committed PR05 harness evidence report exists under execution/reports/ and is referenced in tracker.json."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr05-d27-report.json",
+        "execution/sessions/20260306-1948-pr05.md"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },
     {
       "id": "PR06",
-      "title": "Ownership, lifetime, and deallocation planning on MIR",
-      "status": "planned",
+      "title": "Ownership legality and full diagnostics corpus on MIR",
+      "status": "ready",
       "depends_on": ["PR05"],
       "acceptance": [
-        "Ownership diagnostics are deterministic and double-move golden matches byte-for-byte."
+        "Full ownership legality (including borrow conflicts, observe restrictions, and lifetime rules beyond moved/freed) is implemented on MIR.",
+        "Ownership diagnostics are deterministic and diag_double_move.txt matches byte-for-byte.",
+        "Ownership positive/negative corpus behaves as expected."
       ],
       "evidence": [],
       "blockers": [],

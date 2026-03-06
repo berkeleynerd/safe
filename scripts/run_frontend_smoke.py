@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the early frontend and run deterministic smoke checks."""
+"""Build the frontend and run deterministic sequential smoke checks."""
 
 from __future__ import annotations
 
@@ -19,7 +19,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr00-pr04-frontend-smoke.json"
 POSITIVE_AST = REPO_ROOT / "tests" / "positive" / "rule1_accumulate.safe"
-POSITIVE_PIPELINE = REPO_ROOT / "tests" / "positive" / "channel_pipeline.safe"
+CHECK_SAMPLE = REPO_ROOT / "tests" / "positive" / "rule2_binary_search.safe"
+EMIT_SAMPLES = [
+    REPO_ROOT / "tests" / "positive" / "rule2_binary_search.safe",
+    REPO_ROOT / "tests" / "positive" / "rule4_conditional.safe",
+]
 EQUALITY_CHECK = REPO_ROOT / "tests" / "positive" / "result_equality_check.safe"
 LEGACY_TOKEN_FIXTURE = REPO_ROOT / "compiler_impl" / "tests" / "legacy_two_char_tokens.safe"
 DIAGNOSTICS_EXIT = 1
@@ -194,6 +198,16 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def emitted_paths(root: Path, sample: Path) -> dict[str, Path]:
+    stem = sample.stem.lower()
+    return {
+        f"out/{stem}.ast.json": root / "out" / f"{stem}.ast.json",
+        f"out/{stem}.typed.json": root / "out" / f"{stem}.typed.json",
+        f"out/{stem}.mir.json": root / "out" / f"{stem}.mir.json",
+        f"iface/{stem}.safei.json": root / "iface" / f"{stem}.safei.json",
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
@@ -252,56 +266,54 @@ def main() -> int:
             env=env,
             temp_root=temp_root,
         )
-        check_pipeline = run(
-            [str(safec), "check", str(POSITIVE_PIPELINE)],
+        check_sequential = run(
+            [str(safec), "check", str(CHECK_SAMPLE)],
             cwd=REPO_ROOT,
             env=env,
             temp_root=temp_root,
         )
 
-        emit_a_root = temp_root / "emit-a"
-        emit_b_root = temp_root / "emit-b"
-        for root in (emit_a_root, emit_b_root):
-            run(
-                [
-                    str(safec),
-                    "emit",
-                    str(POSITIVE_PIPELINE),
-                    "--out-dir",
-                    str(root / "out"),
-                    "--interface-dir",
-                    str(root / "iface"),
-                ],
-                cwd=REPO_ROOT,
-                env=env,
-                temp_root=temp_root,
-            )
+        deterministic_outputs: dict[str, dict[str, str]] = {}
+        for sample in EMIT_SAMPLES:
+            emit_a_root = temp_root / f"{sample.stem}-emit-a"
+            emit_b_root = temp_root / f"{sample.stem}-emit-b"
+            for root in (emit_a_root, emit_b_root):
+                run(
+                    [
+                        str(safec),
+                        "emit",
+                        str(sample),
+                        "--out-dir",
+                        str(root / "out"),
+                        "--interface-dir",
+                        str(root / "iface"),
+                    ],
+                    cwd=REPO_ROOT,
+                    env=env,
+                    temp_root=temp_root,
+                )
 
-        expected_files = {
-            "out/channel_pipeline.ast.json",
-            "out/channel_pipeline.typed.json",
-            "out/channel_pipeline.mir.json",
-            "iface/channel_pipeline.safei.json",
-        }
-        observed_files = {
-            str(path.relative_to(emit_a_root))
-            for path in emit_a_root.rglob("*")
-            if path.is_file()
-        }
-        if observed_files != expected_files:
-            raise RuntimeError(
-                f"unexpected emitted files: expected {sorted(expected_files)}, got {sorted(observed_files)}"
-            )
+            expected_files = emitted_paths(emit_a_root, sample)
+            observed_files = {
+                str(path.relative_to(emit_a_root))
+                for path in emit_a_root.rglob("*")
+                if path.is_file()
+            }
+            if observed_files != set(expected_files):
+                raise RuntimeError(
+                    f"unexpected emitted files for {sample.name}: "
+                    f"expected {sorted(expected_files)}, got {sorted(observed_files)}"
+                )
 
-        file_hashes: dict[str, str] = {}
-        for relative in sorted(expected_files):
-            left = emit_a_root / relative
-            right = emit_b_root / relative
-            left_bytes = left.read_bytes()
-            right_bytes = right.read_bytes()
-            if left_bytes != right_bytes:
-                raise RuntimeError(f"non-deterministic output for {relative}")
-            file_hashes[relative] = sha256(left)
+            file_hashes: dict[str, str] = {}
+            for relative, left in sorted(expected_files.items()):
+                right = emit_b_root / relative
+                left_bytes = left.read_bytes()
+                right_bytes = right.read_bytes()
+                if left_bytes != right_bytes:
+                    raise RuntimeError(f"non-deterministic output for {sample.name}::{relative}")
+                file_hashes[relative] = sha256(left)
+            deterministic_outputs[str(sample.relative_to(REPO_ROOT))] = file_hashes
 
         report = {
             "build": build,
@@ -315,11 +327,12 @@ def main() -> int:
             },
             "ast": ast_run,
             "ast_validation": ast_validate,
-            "check_runs": [check_accumulate, check_pipeline],
-            "deterministic_outputs": file_hashes,
+            "check_runs": [check_accumulate, check_sequential],
+            "deterministic_outputs": deterministic_outputs,
             "samples": {
                 "ast": str(POSITIVE_AST.relative_to(REPO_ROOT)),
-                "emit": str(POSITIVE_PIPELINE.relative_to(REPO_ROOT)),
+                "check": str(CHECK_SAMPLE.relative_to(REPO_ROOT)),
+                "emit": [str(sample.relative_to(REPO_ROOT)) for sample in EMIT_SAMPLES],
                 "equality_lex": str(EQUALITY_CHECK.relative_to(REPO_ROOT)),
                 "legacy_lex": str(LEGACY_TOKEN_FIXTURE.relative_to(REPO_ROOT)),
             },

@@ -127,11 +127,12 @@ safe/
 
 ## Continuous Integration
 
-Five CI jobs run on every push and pull request to `main`:
+Six CI jobs run on every push and pull request to `main`:
 
 - **`execution-guard`** -- Ledger, dashboard, frozen-SHA, and test-distribution checks
 - **`lint-safe-syntax`** -- Surface-syntax guard across the `.safe` corpus
 - **`frontend-smoke`** -- Early frontend build, lexer regression checks, AST validation, and deterministic emit smoke checks
+- **`pr05-d27-harness`** -- Sequential Rule 1-4 golden diffs, corpus gating, and deterministic emit checks
 - **`spark-verify`** -- Companion: 64 VCs, 0 unproved
 - **`templates-verify`** -- Templates pipeline: 320 VCs, 0 unproved
 
@@ -150,9 +151,9 @@ See [`release/COMPANION_README.md`](release/COMPANION_README.md) Section 8 for t
 | Generator | spec2spark v0.1.0 |
 | Companion status | All 13 companion tasks complete |
 | Emission templates | 14/14 proved (320 VCs, 0 unproved; M1–M7 complete) |
-| Compiler frontend | `compiler_impl/` PR00–PR04 early frontend landed |
+| Compiler frontend | `compiler_impl/` PR00–PR05 sequential Rule 1–4 frontend landed |
 
-The repository now includes an early compiler frontend under `compiler_impl/`. It can lex representative `.safe` inputs via `safec lex`, parse representative inputs, emit AST/typed/MIR/interface JSON scaffolding, and run deterministic smoke checks. The translation rules and AST schema in `compiler/` remain the contract the later compiler phases must satisfy.
+The repository now includes a sequential compiler frontend under `compiler_impl/`. It can lex `.safe` inputs via `safec lex`, emit schema-true AST for the implemented Rule 1–4 subset, emit `typed-v1` and `mir-v1`, run D27 Rule 1–4 checking over the current sequential corpus, and reproduce the four committed D27 diagnostics goldens. The translation rules and AST schema in `compiler/` remain the contract the later compiler phases must satisfy.
 
 
 ---

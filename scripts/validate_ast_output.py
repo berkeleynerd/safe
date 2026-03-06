@@ -14,15 +14,11 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SCHEMA = REPO_ROOT / "compiler" / "ast_schema.json"
 STRICT_NODE_FIELDS = {
-    "CompilationUnit": {"context_clause", "package_unit"},
-    "ContextClause": {"with_clauses"},
-    "WithClause": {"package_names"},
-    "PackageUnit": {"items"},
-    "PackageItem": {"item"},
 }
 PACKAGE_ITEM_TARGETS = {
     "BasicDeclaration": {
         "TypeDeclaration",
+        "IncompleteTypeDeclaration",
         "SubtypeDeclaration",
         "ObjectDeclaration",
         "NumberDeclaration",
@@ -38,6 +34,54 @@ PACKAGE_ITEM_TARGETS = {
     "UseTypeClause": {"UseTypeClause"},
     "RepresentationItem": {"RepresentationItem"},
     "Pragma": {"Pragma"},
+}
+ABSTRACT_TARGETS = {
+    "BasicDeclaration": {
+        "TypeDeclaration",
+        "IncompleteTypeDeclaration",
+        "SubtypeDeclaration",
+        "ObjectDeclaration",
+        "NumberDeclaration",
+        "SubprogramDeclaration",
+        "SubprogramBody",
+    },
+    "TypeDefinition": {
+        "SignedIntegerTypeDefinition",
+        "UnconstrainedArrayDefinition",
+        "ConstrainedArrayDefinition",
+        "RecordTypeDefinition",
+        "AccessToObjectDefinition",
+    },
+    "Name": {
+        "DirectName",
+        "SelectedComponent",
+        "IndexedComponent",
+        "FunctionCall",
+        "TypeConversion",
+    },
+    "Literal": {
+        "NumericLiteral",
+        "EnumerationLiteral",
+        "StringLiteral",
+        "CharacterLiteral",
+    },
+    "Aggregate": {
+        "RecordAggregate",
+    },
+    "SubprogramSpecification": {
+        "ProcedureSpecification",
+        "FunctionSpecification",
+    },
+    "SimpleStatement": {
+        "NullStatement",
+        "AssignmentStatement",
+        "SimpleReturnStatement",
+    },
+    "CompoundStatement": {
+        "IfStatement",
+        "LoopStatement",
+        "BlockStatement",
+    },
 }
 
 
@@ -68,6 +112,15 @@ def split_targets(type_spec: str) -> list[str]:
     if not match:
         return []
     return [part.strip() for part in match.group(1).split("|")]
+
+
+def expand_targets(type_spec: str, contracts: dict[str, dict[str, Any]]) -> set[str]:
+    expanded: set[str] = set()
+    for target in split_targets(type_spec):
+        if target in contracts:
+            expanded.add(target)
+        expanded.update(ABSTRACT_TARGETS.get(target, set()))
+    return expanded
 
 
 def validate_span(value: Any, path: str) -> None:
@@ -118,7 +171,7 @@ def validate_node(
             if value is None:
                 fail(f"{path}.{name} must not be null")
 
-        target_types = [target for target in split_targets(type_spec) if target in contracts]
+        target_types = expand_targets(type_spec, contracts)
         if node_type == "PackageItem" and name == "item":
             kind = node.get("kind")
             allowed_targets = PACKAGE_ITEM_TARGETS.get(kind)
@@ -133,7 +186,7 @@ def validate_node(
                     f"does not match package-item kind {kind!r}"
                 )
             continue
-        if name not in STRICT_NODE_FIELDS.get(node_type, set()) or not target_types:
+        if not target_types:
             continue
 
         if isinstance(value, dict):
@@ -141,7 +194,7 @@ def validate_node(
             if value["node_type"] not in target_types:
                 fail(
                     f"{path}.{name}.node_type {value['node_type']!r} "
-                    f"does not match expected {target_types}"
+                    f"does not match expected {sorted(target_types)}"
                 )
         elif isinstance(value, list):
             for index, element in enumerate(value):
@@ -151,7 +204,7 @@ def validate_node(
                 if element["node_type"] not in target_types:
                     fail(
                         f"{path}.{name}[{index}].node_type {element['node_type']!r} "
-                        f"does not match expected {target_types}"
+                        f"does not match expected {sorted(target_types)}"
                     )
 
     if node_type == "PackageItem":
