@@ -29,7 +29,7 @@
     "cwd": "$REPO_ROOT/compiler_impl",
     "returncode": 0,
     "stderr": "",
-    "stdout": "Note: Building safec=0.1.0-dev/safec.gpr...\ngprbuild: \"safec\" up to date\nSuccess: Build finished successfully in 32.61 seconds.\n"
+    "stdout": "Note: Building safec=0.1.0-dev/safec.gpr...\ngprbuild: \"safec\" up to date\nSuccess: Build finished successfully in 4.91 seconds.\n"
   },
   "check_runs": [
     {

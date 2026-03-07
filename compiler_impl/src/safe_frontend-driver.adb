@@ -47,11 +47,16 @@ package body Safe_Frontend.Driver is
          return Ada.Directories.Full_Name (Raw);
       end if;
       declare
-         Located : constant GNAT.OS_Lib.String_Access :=
+         Located : GNAT.OS_Lib.String_Access :=
            GNAT.OS_Lib.Locate_Exec_On_Path (Raw);
       begin
          if Located /= null then
-            return Located.all;
+            declare
+               Result : constant String := Located.all;
+            begin
+               GNAT.OS_Lib.Free (Located);
+               return Result;
+            end;
          end if;
       end;
       return Raw;
@@ -71,11 +76,16 @@ package body Safe_Frontend.Driver is
 
    function Python3 return String is
       use type GNAT.OS_Lib.String_Access;
-      Located : constant GNAT.OS_Lib.String_Access :=
+      Located : GNAT.OS_Lib.String_Access :=
         GNAT.OS_Lib.Locate_Exec_On_Path ("python3");
    begin
       if Located /= null then
-         return Located.all;
+         declare
+            Result : constant String := Located.all;
+         begin
+            GNAT.OS_Lib.Free (Located);
+            return Result;
+         end;
       end if;
       return "python3";
    end Python3;
@@ -101,6 +111,15 @@ package body Safe_Frontend.Driver is
          Last := Last + 1;
          Args (Last) := new String'(Value);
       end Push;
+
+      procedure Free_Args is
+      begin
+         for Index in Args'Range loop
+            if Args (Index) /= null then
+               GNAT.OS_Lib.Free (Args (Index));
+            end if;
+         end loop;
+      end Free_Args;
    begin
       Push (Backend_Script);
       Push (Command);
@@ -116,7 +135,16 @@ package body Safe_Frontend.Driver is
          Push ("--interface-dir");
          Push (Interface_Dir);
       end if;
-      return GNAT.OS_Lib.Spawn (Python3, Args);
+      declare
+         Result : constant Integer := GNAT.OS_Lib.Spawn (Python3, Args);
+      begin
+         Free_Args;
+         return Result;
+      end;
+   exception
+      when others =>
+         Free_Args;
+         raise;
    end Run_Backend;
 
    function Source_Stem (Path : String) return String is

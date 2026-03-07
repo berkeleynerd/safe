@@ -115,23 +115,23 @@
       "title": "Real sequential AST/MIR and D27 Rules 1-4 with moved/freed overlap",
       "status": "done",
       "depends_on": ["PR04"],
-    "acceptance": [
-      "safec ast emits schema-true executable bodies and expressions for the sequential Rule 1–4 subset (no stub bodies).",
-      "scripts/validate_ast_output.py enforces recursive NodeRef validation for implemented sequential nodes.",
-      "safec emit produces deterministic typed-v1 and mir-v1 outputs on representative sequential Rule 1–4 inputs.",
-      "All D27 Rule 1–4 analysis runs on mir-v1 only; the statement-walk semantic path is no longer used for Rule 1–4 checking.",
-      "scripts/validate_mir_output.py validates representative mir-v1 outputs and the PR05 harness fails on MIR contract violations.",
-      "Byte-for-byte stderr match for tests/diagnostics_golden: diag_overflow.txt, diag_index_oob.txt, diag_zero_div.txt, diag_null_deref.txt.",
-      "All Rule 1–4 semantic failures use the D27 renderer for human stderr, while `safec check --diag-json` provides machine-readable diagnostics for harness and CI.",
-      "Whole current Rule 1–4 corpus gating: all tests/positive/rule1*..rule4* accept; all tests/negative/neg_rule1*..neg_rule4* reject with expected primary reason mapping.",
-      "Minimal ownership overlap implemented for Rule 4: neg_rule4_moved.safe and neg_rule4_freed.safe behave as expected, while other ownership legality remains PR06 scope.",
-      "A committed PR05 harness evidence report exists under execution/reports/ and is referenced in tracker.json."
-    ],
-    "evidence": [
-      "execution/reports/pr05-d27-report.json",
-      "execution/sessions/20260306-1948-pr05.md",
-      "execution/sessions/20260306-2358-pr05-completion.md"
-    ],
+      "acceptance": [
+        "safec ast emits schema-true executable bodies and expressions for the sequential Rule 1–4 subset (no stub bodies).",
+        "scripts/validate_ast_output.py enforces recursive NodeRef validation for implemented sequential nodes.",
+        "safec emit produces deterministic typed-v1 and mir-v1 outputs on representative sequential Rule 1–4 inputs.",
+        "All D27 Rule 1–4 analysis runs on mir-v1 only; the statement-walk semantic path is no longer used for Rule 1–4 checking.",
+        "scripts/validate_mir_output.py validates representative mir-v1 outputs and the PR05 harness fails on MIR contract violations.",
+        "Byte-for-byte stderr match for tests/diagnostics_golden: diag_overflow.txt, diag_index_oob.txt, diag_zero_div.txt, diag_null_deref.txt.",
+        "All Rule 1–4 semantic failures use the D27 renderer for human stderr, while `safec check --diag-json` provides machine-readable diagnostics for harness and CI.",
+        "Whole current Rule 1–4 corpus gating: all tests/positive/rule1*..rule4* accept; all tests/negative/neg_rule1*..neg_rule4* reject with expected primary reason mapping.",
+        "Minimal ownership overlap implemented for Rule 4: neg_rule4_moved.safe and neg_rule4_freed.safe behave as expected, while other ownership legality remains PR06 scope.",
+        "A committed PR05 harness evidence report exists under execution/reports/ and is referenced in tracker.json."
+      ],
+      "evidence": [
+        "execution/reports/pr05-d27-report.json",
+        "execution/sessions/20260306-1948-pr05.md",
+        "execution/sessions/20260306-2358-pr05-completion.md"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },
