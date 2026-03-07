@@ -30,6 +30,7 @@ GOLDEN_CASES = [
     ("tests/negative/neg_own_target_not_null.safe", "tests/diagnostics_golden/diag_move_target_not_null.txt"),
     ("tests/negative/neg_own_source_maybe_null.safe", "tests/diagnostics_golden/diag_move_source_not_nonnull.txt"),
     ("tests/negative/neg_own_anon_reassign.safe", "tests/diagnostics_golden/diag_anonymous_access_reassign.txt"),
+    ("tests/negative/neg_own_anon_reassign_join.safe", "tests/diagnostics_golden/diag_anonymous_access_reassign_join.txt"),
     ("tests/negative/neg_own_observe_requires_access.safe", "tests/diagnostics_golden/diag_observe_requires_access.txt"),
 ]
 
@@ -51,6 +52,7 @@ NEGATIVE_CASES = [
     "tests/negative/neg_own_target_not_null.safe",
     "tests/negative/neg_own_source_maybe_null.safe",
     "tests/negative/neg_own_anon_reassign.safe",
+    "tests/negative/neg_own_anon_reassign_join.safe",
     "tests/negative/neg_own_observe_requires_access.safe",
     "tests/negative/neg_own_observe_move.safe",
     "tests/negative/neg_own_return_move.safe",

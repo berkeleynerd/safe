@@ -354,6 +354,50 @@
         "source": "tests/negative/neg_own_anon_reassign.safe"
       },
       {
+        "actual_reason": "anonymous_access_reassign",
+        "diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 25,
+                "start_col": 7,
+                "start_line": 25
+              },
+              "message": "anonymous access 'Ref' may only be assigned at its declaration",
+              "notes": [
+                "borrow and observe locals are initialization-only.",
+                "rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)"
+              ],
+              "path": "$REPO_ROOT/tests/negative/neg_own_anon_reassign_join.safe",
+              "reason": "anonymous_access_reassign",
+              "span": {
+                "end_col": 18,
+                "end_line": 25,
+                "start_col": 7,
+                "start_line": 25
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "expected_reason": "anonymous_access_reassign",
+        "result": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_anon_reassign_join.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_anon_reassign_join.safe:25:7: error: anonymous access 'Ref' may only be assigned at its declaration\n  |\n  | 25 |       Ref = Other;  -- ERROR: merge must not reset init-only tracking\n  |    |       ^~~~~~~~~~~~\n  |\n  note: borrow and observe locals are initialization-only.\n  note: rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)\n",
+          "stdout": "{\n  \"diagnostics\": [\n    {\n      \"highlight_span\": {\n        \"end_col\": 18,\n        \"end_line\": 25,\n        \"start_col\": 7,\n        \"start_line\": 25\n      },\n      \"message\": \"anonymous access 'Ref' may only be assigned at its declaration\",\n      \"notes\": [\n        \"borrow and observe locals are initialization-only.\",\n        \"rule: Safe \\u00a72.3.3 / \\u00a72.3.4a (anonymous access is initialization-only)\"\n      ],\n      \"path\": \"$REPO_ROOT/tests/negative/neg_own_anon_reassign_join.safe\",\n      \"reason\": \"anonymous_access_reassign\",\n      \"span\": {\n        \"end_col\": 18,\n        \"end_line\": 25,\n        \"start_col\": 7,\n        \"start_line\": 25\n      },\n      \"suggestions\": []\n    }\n  ],\n  \"format\": \"diagnostics-v0\"\n}\n"
+        },
+        "source": "tests/negative/neg_own_anon_reassign_join.safe"
+      },
+      {
         "actual_reason": "observe_requires_access",
         "diagnostics": {
           "diagnostics": [
@@ -793,6 +837,21 @@
         "stdout": ""
       },
       "source": "tests/negative/neg_own_anon_reassign.safe"
+    },
+    {
+      "golden": "tests/diagnostics_golden/diag_anonymous_access_reassign_join.txt",
+      "result": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_own_anon_reassign_join.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_own_anon_reassign_join.safe:25:7: error: anonymous access 'Ref' may only be assigned at its declaration\n  |\n  | 25 |       Ref = Other;  -- ERROR: merge must not reset init-only tracking\n  |    |       ^~~~~~~~~~~~\n  |\n  note: borrow and observe locals are initialization-only.\n  note: rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)\n",
+        "stdout": ""
+      },
+      "source": "tests/negative/neg_own_anon_reassign_join.safe"
     },
     {
       "golden": "tests/diagnostics_golden/diag_observe_requires_access.txt",

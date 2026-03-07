@@ -1,0 +1,14 @@
+Diagnostics Golden: Anonymous Access Reassign After Join
+Source: tests/negative/neg_own_anon_reassign_join.safe
+Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_own_anon_reassign_join.safe:25:7: error: anonymous access 'Ref' may only be assigned at its declaration
+  |
+  | 25 |       Ref = Other;  -- ERROR: merge must not reset init-only tracking
+  |    |       ^~~~~~~~~~~~
+  |
+  note: borrow and observe locals are initialization-only.
+  note: rule: Safe §2.3.3 / §2.3.4a (anonymous access is initialization-only)
+------------------------------------------------------------------------

@@ -117,9 +117,10 @@ class AccessFact:
     state: str
     lender: str | None = None
     alias_kind: str | None = None
+    initialized: bool = False
 
     def copy(self) -> "AccessFact":
-        return AccessFact(self.state, self.lender, self.alias_kind)
+        return AccessFact(self.state, self.lender, self.alias_kind, self.initialized)
 
 
 @dataclass
@@ -2563,7 +2564,12 @@ def apply_assignment(
             return diag
         if target_type.anonymous and expr["tag"] == "ident":
             source_name = expr["name"]
-            state.access[target_name] = AccessFact(fact.state, lender=source_name, alias_kind=type_access_role(target_type))
+            state.access[target_name] = AccessFact(
+                fact.state,
+                lender=source_name,
+                alias_kind=type_access_role(target_type),
+                initialized=True,
+            )
         else:
             if expr["tag"] == "ident" and source_name_is_owner(expr["name"], var_types):
                 state.access[target_name] = AccessFact("NonNull" if fact.state == "NonNull" else fact.state)
@@ -3723,12 +3729,15 @@ def join_states(states: list[State]) -> State:
                 base.ranges[name] = interval.copy()
         for name, fact in state.access.items():
             if name in base.access:
+                initialized = base.access[name].initialized or fact.initialized
                 if (
                     base.access[name].state != fact.state
                     or base.access[name].lender != fact.lender
                     or base.access[name].alias_kind != fact.alias_kind
                 ):
-                    base.access[name] = AccessFact("MaybeNull")
+                    base.access[name] = AccessFact("MaybeNull", initialized=initialized)
+                else:
+                    base.access[name].initialized = initialized
             else:
                 base.access[name] = fact.copy()
         base.relations &= state.relations
@@ -3769,7 +3778,12 @@ def invalidate_scope_exit(state: State, local_names: list[str], owner_vars: set[
     exiting_owners = [name for name in local_names if name in owner_vars]
     for name, fact in list(state.access.items()):
         if fact.lender in exiting_owners:
-            state.access[name] = AccessFact("Dangling")
+            state.access[name] = AccessFact(
+                "Dangling",
+                lender=fact.lender,
+                alias_kind=fact.alias_kind,
+                initialized=fact.initialized,
+            )
 
 
 def resolve_apply(expr: dict[str, Any], var_types: dict[str, TypeInfo], functions: dict[str, FunctionInfo]) -> dict[str, Any]:
@@ -4797,7 +4811,7 @@ def lower_subprogram_to_mir_v2(
 def graph_var_types(graph: dict[str, Any], type_env: dict[str, TypeInfo]) -> dict[str, TypeInfo]:
     var_types = dict(type_env)
     for local in graph["locals"]:
-        info = type_from_json(local["type"], type_env)
+        info = copy.deepcopy(type_from_json(local["type"], type_env))
         if local.get("ownership_role") is not None and info.kind == "access":
             info.access_role = local["ownership_role"]
         var_types[local["name"]] = info
@@ -4864,13 +4878,7 @@ def assign_access_alias(
             )
     if target_role in {"Borrow", "Observe"}:
         existing_fact = state.access.get(target_name)
-        already_initialized = (
-            existing_fact is not None
-            and (
-                existing_fact.lender is not None
-                or existing_fact.alias_kind is not None
-            )
-        )
+        already_initialized = existing_fact is not None and existing_fact.initialized
         if not op.get("declaration_init", False) and already_initialized:
             return ownership_diag(
                 "anonymous_access_reassign",
@@ -4893,7 +4901,12 @@ def assign_access_alias(
                 f"{target_role.lower()} source '{lender}' is not provably non-null",
                 f"static analysis determined state {value_fact.state!r} at the alias initialization site.",
             )
-        return_fact = AccessFact(value_fact.state, lender=lender, alias_kind=target_role)
+        return_fact = AccessFact(
+            value_fact.state,
+            lender=lender,
+            alias_kind=target_role,
+            initialized=True,
+        )
         state.access[target_name] = return_fact
         increment_freeze(state, lender, target_role)
         return None
