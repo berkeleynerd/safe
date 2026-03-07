@@ -274,12 +274,14 @@ package body Safe_Frontend.Mir_Validate is
       Where        : String) return GNATCOLL.JSON.JSON_Array
    is
       use GNATCOLL.JSON;
+      Prefix : constant String :=
+        (if Where = "" then "" else Where & ": ");
    begin
       Require
         (Object_Value.Kind = JSON_Object_Type
          and then Has_Field (Object_Value, Field)
          and then Field_Value (Object_Value, Field).Kind = JSON_Array_Type,
-         Where & ": " & Field & " must be a non-empty list");
+         Prefix & Field & " must be a list");
       return Get (Field_Value (Object_Value, Field));
    end Json_Array_Field;
 
@@ -723,10 +725,11 @@ package body Safe_Frontend.Mir_Validate is
    is
       use GNATCOLL.JSON;
       Graphs : JSON_Array;
+      Root_Where : constant String := "root";
    begin
       Require (Document.Root.Kind = JSON_Object_Type, "top-level payload must be an object");
-      Graphs := Json_Array_Field (Document.Root, "graphs", "");
-      Require (Length (Graphs) > 0, "graphs must be a non-empty list");
+      Graphs := Json_Array_Field (Document.Root, "graphs", Root_Where);
+      Require (Length (Graphs) > 0, Root_Where & ": graphs must be a non-empty list");
 
       for Index in 1 .. Length (Graphs) loop
          Validate_Graph (Value_At (Graphs, Index), Index, Document.Format);
