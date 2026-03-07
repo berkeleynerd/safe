@@ -1,0 +1,29 @@
+-- demo.safe
+-- Exploring syntax: return type vs. local variable type
+-- are distinct declarations with different roles.
+
+package Demo is
+
+   public type Index is range 0 .. 15;
+   public type Element is range 0 .. 999;
+   public type Buf is array (Index) of Element;
+
+   --  The return type is part of the public contract.
+   --  The local variable type is an implementation choice.
+   --  Here they deliberately differ: Sum_Range is wider than
+   --  Element because it must hold the accumulated total
+   --  of up to 16 values each as large as 999.
+   public type Sum_Range is range 0 .. 15_984;
+
+   Hidden : Integer = 0;  -- not public, not visible to clients
+
+   public function Sum (B : Buf) return Sum_Range is
+      Total : Sum_Range = 0;
+   begin
+      for I in Index.First .. Index.Last loop
+         Total = Total + Sum_Range (B(I));
+      end loop;
+      return Total;
+   end Sum;
+
+end Demo;
