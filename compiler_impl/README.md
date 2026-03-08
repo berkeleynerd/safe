@@ -1,6 +1,6 @@
 # SafeC Frontend
 
-This workspace hosts the current Safe compiler frontend through PR06.
+This workspace hosts the current Safe compiler frontend through PR06.7.
 
 ## Scope
 
@@ -9,13 +9,13 @@ This workspace hosts the current Safe compiler frontend through PR06.
 - `safec analyze-mir <file.mir.json>` validates analyzable `mir-v2` input and exits nonzero if MIR-level diagnostics are emitted.
 - `safec analyze-mir --diag-json <file.mir.json>` writes `diagnostics-v0` JSON for a `mir-v2` input.
 - `safec ast <file.safe>` lexes and parses a Safe source file and writes AST JSON to stdout.
-- `safec check <file.safe>` runs the early semantic pipeline and exits nonzero if diagnostics are emitted.
-- `safec check --diag-json <file.safe>` keeps human stderr unchanged and also writes machine-readable semantic diagnostics to stdout for CI and harness use.
+- `safec check <file.safe>` runs the Ada-native PR05/PR06 check pipeline and exits nonzero if diagnostics are emitted.
+- `safec check --diag-json <file.safe>` writes `diagnostics-v0` JSON for the Ada-native PR05/PR06 check pipeline.
 - `safec emit <file.safe> --out-dir <dir> --interface-dir <dir>` writes the current frontend artifacts for downstream inspection and regression checks.
 
 The current frontend implements the sequential Rule 1-4 subset plus the sequential ownership model used by the current PR06 corpus. It parses executable bodies, emits schema-true AST for the implemented subset, emits `typed-v2` and self-sufficient `mir-v2`, checks the current Rule 1-4 corpus, and checks the sequential ownership corpus through `safec check`. It is still not the concurrency frontend or the Ada/SPARK emitter.
 
-Python remains the runtime for `safec ast`, `safec check`, and `safec emit`. MIR validation and the `analyze-mir` command are now exposed through `safec`, and `check` / `emit` delegate MIR analysis through `safec analyze-mir`.
+Python remains the runtime for `safec ast` and `safec emit`. MIR validation, MIR analysis, and `safec check` are now Ada-native for the current PR05/PR06 subset.
 
 ## Dependency Policy
 
@@ -109,3 +109,12 @@ python3 scripts/run_pr066_ada_mir_analyzer.py
 ```
 
 That gate runs committed `analyze-mir` fixtures for no-diagnostic, PR05, and PR06 cases, checks invalid-input rejection, confirms emitted PR05 / PR06 MIR stays clean under `safec analyze-mir --diag-json`, reruns the existing PR05 / PR06 harnesses unchanged, and records results in `execution/reports/pr066-ada-mir-analyzer-report.json`.
+
+The PR06.7 Ada check cutover gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr067_ada_check_cutover.py
+```
+
+That gate masks `python3` specifically for accidental `safec check` backend spawns, proves representative direct PR05 / PR06 checks still pass, reruns the existing PR05 / PR06 harnesses with that masked check path, verifies deterministic `unsupported_source_construct` rejection for out-of-subset sources, and records results in `execution/reports/pr067-ada-check-cutover-report.json`.

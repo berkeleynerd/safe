@@ -2,9 +2,9 @@
 
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
-- **Active task:** `PR06.7`
-- **Next task:** `PR06.7`
-- **Updated at:** `2026-03-07T23:55:13Z`
+- **Active task:** `none`
+- **Next task:** `PR07`
+- **Updated at:** `2026-03-08T14:55:18Z`
 
 ## Repo Facts
 
@@ -28,7 +28,7 @@
 | PR06 | done | PR05 | 2 |
 | PR06.5 | done | PR06 | 3 |
 | PR06.6 | done | PR06.5 | 1 |
-| PR06.7 | in_progress | PR06.6 | 0 |
+| PR06.7 | done | PR06.6 | 1 |
 | PR07 | planned | PR06.7 | 0 |
 | PR08 | planned | PR07 | 0 |
 | PR09 | planned | PR08 | 0 |
@@ -182,7 +182,7 @@
 
 ### PR06.7 — Ada-native safec check cutover for the PR05/PR06 subset
 
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Depends on:** PR06.6
 - **Blockers:** none
 - **Acceptance:**
@@ -191,6 +191,8 @@
   - Source constructs outside the current PR05 and PR06 subset are rejected deterministically by the Ada check path.
   - A dedicated pr067-ada-check-no-python CI job passes with python3 intentionally unavailable to the check command.
   - A committed execution/reports/pr067-ada-check-cutover-report.json artifact is listed in PR06.7 evidence.
+- **Evidence:**
+  - `execution/reports/pr067-ada-check-cutover-report.json`
 
 ### PR07 — Rule 5 and discriminant/result safety
 

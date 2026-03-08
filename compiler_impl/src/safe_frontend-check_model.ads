@@ -1,0 +1,383 @@
+with Ada.Containers.Indefinite_Vectors;
+with Safe_Frontend.Mir_Diagnostics;
+with Safe_Frontend.Mir_Model;
+with Safe_Frontend.Types;
+
+package Safe_Frontend.Check_Model is
+   package FT renames Safe_Frontend.Types;
+   package MD renames Safe_Frontend.Mir_Diagnostics;
+   package GM renames Safe_Frontend.Mir_Model;
+
+   subtype Wide_Integer is Long_Long_Long_Integer;
+
+   type Expr_Kind is
+     (Expr_Unknown,
+      Expr_Int,
+      Expr_Bool,
+      Expr_Null,
+      Expr_Ident,
+      Expr_Select,
+      Expr_Apply,
+      Expr_Resolved_Index,
+      Expr_Conversion,
+      Expr_Call,
+      Expr_Allocator,
+      Expr_Aggregate,
+      Expr_Annotated,
+      Expr_Unary,
+      Expr_Binary,
+      Expr_Subtype_Indication);
+
+   type Expr_Node;
+   type Expr_Access is access all Expr_Node;
+
+   package Expr_Access_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Expr_Access);
+
+   type Aggregate_Field is record
+      Field_Name : FT.UString := FT.To_UString ("");
+      Expr       : Expr_Access := null;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Aggregate_Field_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Aggregate_Field);
+
+   type Expr_Node is record
+      Kind             : Expr_Kind := Expr_Unknown;
+      Span             : FT.Source_Span := FT.Null_Span;
+      Type_Name        : FT.UString := FT.To_UString ("");
+      Text             : FT.UString := FT.To_UString ("");
+      Int_Value        : Wide_Integer := 0;
+      Bool_Value       : Boolean := False;
+      Name             : FT.UString := FT.To_UString ("");
+      Selector         : FT.UString := FT.To_UString ("");
+      Operator         : FT.UString := FT.To_UString ("");
+      Not_Null         : Boolean := False;
+      Is_All           : Boolean := False;
+      Is_Constant      : Boolean := False;
+      Anonymous        : Boolean := False;
+      Prefix           : Expr_Access := null;
+      Callee           : Expr_Access := null;
+      Inner            : Expr_Access := null;
+      Left             : Expr_Access := null;
+      Right            : Expr_Access := null;
+      Value            : Expr_Access := null;
+      Target           : Expr_Access := null;
+      Args             : Expr_Access_Vectors.Vector;
+      Fields           : Aggregate_Field_Vectors.Vector;
+      Has_Call_Span    : Boolean := False;
+      Call_Span        : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Type_Spec_Kind is
+     (Type_Spec_Unknown,
+      Type_Spec_Name,
+      Type_Spec_Subtype_Indication,
+      Type_Spec_Access_Def);
+
+   type Type_Spec is record
+      Kind        : Type_Spec_Kind := Type_Spec_Unknown;
+      Span        : FT.Source_Span := FT.Null_Span;
+      Name        : FT.UString := FT.To_UString ("");
+      Not_Null    : Boolean := False;
+      Is_All      : Boolean := False;
+      Is_Constant : Boolean := False;
+      Anonymous   : Boolean := False;
+      Target_Name : Expr_Access := null;
+   end record;
+
+   type Discrete_Range_Kind is (Range_Unknown, Range_Subtype, Range_Explicit);
+
+   type Discrete_Range is record
+      Kind      : Discrete_Range_Kind := Range_Unknown;
+      Span      : FT.Source_Span := FT.Null_Span;
+      Name_Expr : Expr_Access := null;
+      Low_Expr  : Expr_Access := null;
+      High_Expr : Expr_Access := null;
+   end record;
+
+   type Parameter_Spec is record
+      Names      : FT.UString_Vectors.Vector;
+      Mode       : FT.UString := FT.To_UString ("in");
+      Param_Type : Type_Spec;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Parameter_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Parameter_Spec);
+
+   type Object_Decl is record
+      Names           : FT.UString_Vectors.Vector;
+      Decl_Type       : Type_Spec;
+      Type_Info       : GM.Type_Descriptor;
+      Has_Initializer : Boolean := False;
+      Initializer     : Expr_Access := null;
+      Span            : FT.Source_Span := FT.Null_Span;
+      Is_Public       : Boolean := False;
+   end record;
+
+   package Object_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Object_Decl);
+
+   type Component_Decl is record
+      Names      : FT.UString_Vectors.Vector;
+      Field_Type : Type_Spec;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Component_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Component_Decl);
+
+   type Array_Index_Kind is (Array_Index_Unknown, Array_Index_Subtype, Array_Index_Range);
+
+   type Array_Index is record
+      Kind      : Array_Index_Kind := Array_Index_Unknown;
+      Span      : FT.Source_Span := FT.Null_Span;
+      Name_Expr : Expr_Access := null;
+      Low_Expr  : Expr_Access := null;
+      High_Expr : Expr_Access := null;
+   end record;
+
+   package Array_Index_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Array_Index);
+
+   type Type_Decl_Kind is
+     (Type_Decl_Unknown,
+      Type_Decl_Incomplete,
+      Type_Decl_Integer,
+      Type_Decl_Constrained_Array,
+      Type_Decl_Unconstrained_Array,
+      Type_Decl_Record,
+      Type_Decl_Access);
+
+   type Type_Decl is record
+      Is_Public      : Boolean := False;
+      Name           : FT.UString := FT.To_UString ("");
+      Kind           : Type_Decl_Kind := Type_Decl_Unknown;
+      Span           : FT.Source_Span := FT.Null_Span;
+      Low_Expr       : Expr_Access := null;
+      High_Expr      : Expr_Access := null;
+      Indexes        : Array_Index_Vectors.Vector;
+      Component_Type : Type_Spec;
+      Components     : Component_Decl_Vectors.Vector;
+      Access_Type    : Type_Spec;
+   end record;
+
+   type Subtype_Decl is record
+      Is_Public     : Boolean := False;
+      Name          : FT.UString := FT.To_UString ("");
+      Subtype_Mark  : Type_Spec;
+      Span          : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Statement;
+   type Statement_Access is access all Statement;
+
+   package Statement_Access_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Statement_Access);
+
+   type Elsif_Part is record
+      Condition  : Expr_Access := null;
+      Statements : Statement_Access_Vectors.Vector;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Elsif_Part_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Elsif_Part);
+
+   type Statement_Kind is
+     (Stmt_Unknown,
+      Stmt_Null,
+      Stmt_Assign,
+      Stmt_Call,
+      Stmt_Return,
+      Stmt_If,
+      Stmt_While,
+      Stmt_For,
+      Stmt_Block);
+
+   type Statement is record
+      Kind          : Statement_Kind := Stmt_Unknown;
+      Span          : FT.Source_Span := FT.Null_Span;
+      Target        : Expr_Access := null;
+      Value         : Expr_Access := null;
+      Call          : Expr_Access := null;
+      Condition     : Expr_Access := null;
+      Then_Stmts    : Statement_Access_Vectors.Vector;
+      Elsifs        : Elsif_Part_Vectors.Vector;
+      Has_Else      : Boolean := False;
+      Else_Stmts    : Statement_Access_Vectors.Vector;
+      Loop_Var      : FT.UString := FT.To_UString ("");
+      Loop_Range    : Discrete_Range;
+      Body_Stmts    : Statement_Access_Vectors.Vector;
+      Declarations  : Object_Decl_Vectors.Vector;
+      Scope_Id      : FT.UString := FT.To_UString ("");
+   end record;
+
+   type Subprogram_Spec is record
+      Kind                  : FT.UString := FT.To_UString ("");
+      Name                  : FT.UString := FT.To_UString ("");
+      Params                : Parameter_Vectors.Vector;
+      Has_Return_Type       : Boolean := False;
+      Return_Type           : Type_Spec;
+      Return_Is_Access_Def  : Boolean := False;
+      Span                  : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Subprogram_Body is record
+      Is_Public    : Boolean := False;
+      Spec         : Subprogram_Spec;
+      Declarations : Object_Decl_Vectors.Vector;
+      Statements   : Statement_Access_Vectors.Vector;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Package_Item_Kind is
+     (Item_Unknown,
+      Item_Type_Decl,
+      Item_Subtype_Decl,
+      Item_Object_Decl,
+      Item_Subprogram);
+
+   type Package_Item is record
+      Kind       : Package_Item_Kind := Item_Unknown;
+      Type_Data  : Type_Decl;
+      Sub_Data   : Subtype_Decl;
+      Obj_Data   : Object_Decl;
+      Subp_Data  : Subprogram_Body;
+   end record;
+
+   package Package_Item_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Package_Item);
+
+   type With_Clause is record
+      Names : FT.UString_Vectors.Vector;
+      Span  : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package With_Clause_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => With_Clause);
+
+   type Parsed_Unit is record
+      Path         : FT.UString := FT.To_UString ("");
+      Package_Name : FT.UString := FT.To_UString ("");
+      End_Name     : FT.UString := FT.To_UString ("");
+      Withs        : With_Clause_Vectors.Vector;
+      Items        : Package_Item_Vectors.Vector;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Symbol is record
+      Name      : FT.UString := FT.To_UString ("");
+      Kind      : FT.UString := FT.To_UString ("");
+      Mode      : FT.UString := FT.To_UString ("");
+      Span      : FT.Source_Span := FT.Null_Span;
+      Type_Info : GM.Type_Descriptor;
+   end record;
+
+   package Symbol_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Symbol);
+
+   type Resolved_Object_Decl is record
+      Names           : FT.UString_Vectors.Vector;
+      Type_Info       : GM.Type_Descriptor;
+      Has_Initializer : Boolean := False;
+      Initializer     : Expr_Access := null;
+      Span            : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Resolved_Object_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Resolved_Object_Decl);
+
+   type Resolved_Subprogram is record
+      Name                 : FT.UString := FT.To_UString ("");
+      Kind                 : FT.UString := FT.To_UString ("");
+      Params               : Symbol_Vectors.Vector;
+      Has_Return_Type      : Boolean := False;
+      Return_Type          : GM.Type_Descriptor;
+      Return_Is_Access_Def : Boolean := False;
+      Span                 : FT.Source_Span := FT.Null_Span;
+      Declarations         : Resolved_Object_Decl_Vectors.Vector;
+      Statements           : Statement_Access_Vectors.Vector;
+   end record;
+
+   package Resolved_Subprogram_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Resolved_Subprogram);
+
+   type Resolved_Unit is record
+      Path         : FT.UString := FT.To_UString ("");
+      Package_Name : FT.UString := FT.To_UString ("");
+      Types        : GM.Type_Descriptor_Vectors.Vector;
+      Subprograms  : Resolved_Subprogram_Vectors.Vector;
+   end record;
+
+   type Parse_Result (Success : Boolean := False) is record
+      case Success is
+         when True =>
+            Unit : Parsed_Unit;
+         when False =>
+            Diagnostic : MD.Diagnostic;
+      end case;
+   end record;
+
+   type Resolve_Result (Success : Boolean := False) is record
+      case Success is
+         when True =>
+            Unit : Resolved_Unit;
+         when False =>
+            Diagnostic : MD.Diagnostic;
+      end case;
+   end record;
+
+   function Join
+     (Left  : FT.Source_Span;
+      Right : FT.Source_Span) return FT.Source_Span;
+
+   function Flatten_Name (Expr : Expr_Access) return String;
+
+   function Make_Diagnostic
+     (Reason             : String;
+      Path               : String;
+      Span               : FT.Source_Span;
+      Message            : String;
+      Note               : String := "";
+      Suggestion         : String := "";
+      Has_Highlight_Span : Boolean := False;
+      Highlight_Span     : FT.Source_Span := FT.Null_Span)
+      return MD.Diagnostic;
+
+   procedure Append_Note
+     (Item : in out MD.Diagnostic;
+      Note : String);
+
+   procedure Append_Suggestion
+     (Item       : in out MD.Diagnostic;
+      Suggestion : String);
+
+   function Unsupported_Source_Construct
+     (Path    : String;
+      Span    : FT.Source_Span;
+      Message : String;
+      Note    : String := "") return MD.Diagnostic;
+
+   function Source_Frontend_Error
+     (Path    : String;
+      Span    : FT.Source_Span;
+      Message : String;
+      Note    : String := "";
+      Suggestion : String := "") return MD.Diagnostic;
+end Safe_Frontend.Check_Model;

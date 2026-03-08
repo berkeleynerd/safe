@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-07T23:55:13Z",
+  "updated_at": "2026-03-08T14:55:18Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
-  "active_task_id": "PR06.7",
-  "next_task_id": "PR06.7",
+  "active_task_id": null,
+  "next_task_id": "PR07",
   "repo_facts": {
     "tests": {
       "positive": 35,
@@ -198,7 +198,7 @@
     {
       "id": "PR06.7",
       "title": "Ada-native safec check cutover for the PR05/PR06 subset",
-      "status": "in_progress",
+      "status": "done",
       "depends_on": ["PR06.6"],
       "acceptance": [
         "safec check and safec check --diag-json are Ada-native for the currently supported PR05 and PR06 subset, while ast and emit remain Python-backed.",
@@ -207,7 +207,9 @@
         "A dedicated pr067-ada-check-no-python CI job passes with python3 intentionally unavailable to the check command.",
         "A committed execution/reports/pr067-ada-check-cutover-report.json artifact is listed in PR06.7 evidence."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr067-ada-check-cutover-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },
