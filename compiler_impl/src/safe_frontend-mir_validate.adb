@@ -1,8 +1,7 @@
-with Ada.Containers.Indefinite_Vectors;
+with Ada.Containers;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with GNATCOLL.JSON;
 with Safe_Frontend.Mir_Json;
 with Safe_Frontend.Types;
 
@@ -11,12 +10,13 @@ package body Safe_Frontend.Mir_Validate is
    package GM renames Safe_Frontend.Mir_Model;
    package US renames Ada.Strings.Unbounded;
 
-   package String_Vectors is new Ada.Containers.Indefinite_Vectors
-     (Index_Type   => Positive,
-      Element_Type => String);
-
-   use type String_Vectors.Vector;
+   use type Ada.Containers.Count_Type;
+   use type GM.Expr_Access;
+   use type GM.Expr_Kind;
    use type GM.Mir_Format_Kind;
+   use type GM.Op_Kind;
+   use type GM.Ownership_Effect_Kind;
+   use type GM.Terminator_Kind;
 
    Validation_Error : exception;
 
@@ -32,39 +32,30 @@ package body Safe_Frontend.Mir_Validate is
       return Ada.Strings.Fixed.Trim (Natural'Image (Item), Ada.Strings.Both);
    end Image;
 
-   function Is_Terminator_Kind (Kind : String) return Boolean is
+   function Text (Item : FT.UString) return String is
    begin
-      return Kind = "jump" or else Kind = "branch" or else Kind = "return";
-   end Is_Terminator_Kind;
+      return FT.To_String (Item);
+   end Text;
 
-   function Is_Forbidden_Op (Kind : String) return Boolean is
+   function Has_Text (Item : FT.UString) return Boolean is
    begin
-      return Kind = "if" or else Kind = "while" or else Kind = "for";
-   end Is_Forbidden_Op;
-
-   function Is_Ownership_Effect (Kind : String) return Boolean is
-   begin
-      return
-        Kind = "Move"
-        or else Kind = "Borrow"
-        or else Kind = "Observe"
-        or else Kind = "None";
-   end Is_Ownership_Effect;
+      return Text (Item) /= "";
+   end Has_Text;
 
    function Contains
-     (Items : String_Vectors.Vector;
+     (Items : FT.UString_Vectors.Vector;
       Value : String) return Boolean
    is
    begin
       for Item of Items loop
-         if Item = Value then
+         if Text (Item) = Value then
             return True;
          end if;
       end loop;
       return False;
    end Contains;
 
-   function Render (Items : String_Vectors.Vector) return String is
+   function Render (Items : FT.UString_Vectors.Vector) return String is
       Result : US.Unbounded_String := US.To_Unbounded_String ("[");
    begin
       if not Items.Is_Empty then
@@ -72,667 +63,460 @@ package body Safe_Frontend.Mir_Validate is
             if Index > Items.First_Index then
                US.Append (Result, ", ");
             end if;
-            US.Append (Result, Items (Index));
+            US.Append (Result, Text (Items (Index)));
          end loop;
       end if;
       US.Append (Result, "]");
       return US.To_String (Result);
    end Render;
 
-   function Value_At
-     (Array_Value : GNATCOLL.JSON.JSON_Array;
-      Index       : Positive) return GNATCOLL.JSON.JSON_Value
+   function Equal_Vectors
+     (Left  : FT.UString_Vectors.Vector;
+      Right : FT.UString_Vectors.Vector) return Boolean
    is
-      use GNATCOLL.JSON;
    begin
-      return Get (Array_Value, Index);
-   end Value_At;
-
-   function Field_Value
-     (Object_Value : GNATCOLL.JSON.JSON_Value;
-      Field        : String) return GNATCOLL.JSON.JSON_Value
-   is
-      use GNATCOLL.JSON;
-   begin
-      return Get (Object_Value, Field);
-   end Field_Value;
-
-   function Field_Or_Null
-     (Object_Value : GNATCOLL.JSON.JSON_Value;
-      Field        : String) return GNATCOLL.JSON.JSON_Value
-   is
-      use GNATCOLL.JSON;
-   begin
-      if Object_Value.Kind = JSON_Object_Type and then Has_Field (Object_Value, Field) then
-         return Get (Object_Value, Field);
+      if Left.Length /= Right.Length then
+         return False;
       end if;
-      return Create;
-   end Field_Or_Null;
+      if Left.Is_Empty then
+         return True;
+      end if;
+      for Index in Left.First_Index .. Left.Last_Index loop
+         if Text (Left (Index)) /= Text (Right (Index)) then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Equal_Vectors;
 
-   function Is_Operand_Dict (Value : GNATCOLL.JSON.JSON_Value) return Boolean is
-      use GNATCOLL.JSON;
-   begin
-      return
-        Value.Kind = JSON_Object_Type
-        and then Has_Field (Value, "kind")
-        and then Has_Field (Value, "span");
-   end Is_Operand_Dict;
-
-   procedure Validate_Span
-     (Value : GNATCOLL.JSON.JSON_Value;
+   procedure Validate_Type_Descriptor
+     (Value : GM.Type_Descriptor;
       Where : String);
 
-   procedure Validate_Operand
-     (Value : GNATCOLL.JSON.JSON_Value;
+   procedure Validate_Expr
+     (Value : GM.Expr_Access;
       Where : String);
 
-   function Json_Array_Field
-     (Object_Value : GNATCOLL.JSON.JSON_Value;
-      Field        : String;
-      Where        : String) return GNATCOLL.JSON.JSON_Array;
-
-   procedure Validate_Block
-     (Block     : GNATCOLL.JSON.JSON_Value;
-      Valid_Ids : String_Vectors.Vector;
-      Where     : String);
+   procedure Validate_Local
+     (Value  : GM.Local_Entry;
+      Format : GM.Mir_Format_Kind;
+      Where  : String);
 
    procedure Validate_Scope
-     (Scope           : GNATCOLL.JSON.JSON_Value;
-      Valid_Scope_Ids : String_Vectors.Vector;
-      Valid_Local_Ids : String_Vectors.Vector;
-      Valid_Block_Ids : String_Vectors.Vector;
+     (Value           : GM.Scope_Entry;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
       Where           : String);
 
-   procedure Validate_Graph_V2
-     (Graph       : GNATCOLL.JSON.JSON_Value;
-      Graph_Index : Positive);
+   procedure Validate_Block
+     (Value           : GM.Block_Entry;
+      Format          : GM.Mir_Format_Kind;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Where           : String);
 
    procedure Validate_Graph
-     (Graph       : GNATCOLL.JSON.JSON_Value;
+     (Value       : GM.Graph_Entry;
       Graph_Index : Positive;
       Format      : GM.Mir_Format_Kind);
 
-   procedure Validate_Span
-     (Value : GNATCOLL.JSON.JSON_Value;
+   procedure Validate_Type_Descriptor
+     (Value : GM.Type_Descriptor;
       Where : String)
    is
-      use GNATCOLL.JSON;
    begin
-      Require (Value.Kind = JSON_Object_Type, Where & ": span must be an object");
-      Require
-        (Has_Field (Value, "start_line")
-         and then Field_Value (Value, "start_line").Kind = JSON_Int_Type,
-         Where & ": missing start_line");
-      Require
-        (Has_Field (Value, "start_col")
-         and then Field_Value (Value, "start_col").Kind = JSON_Int_Type,
-         Where & ": missing start_col");
-      Require
-        (Has_Field (Value, "end_line")
-         and then Field_Value (Value, "end_line").Kind = JSON_Int_Type,
-         Where & ": missing end_line");
-      Require
-        (Has_Field (Value, "end_col")
-         and then Field_Value (Value, "end_col").Kind = JSON_Int_Type,
-         Where & ": missing end_col");
-   end Validate_Span;
+      Require (Has_Text (Value.Name), Where & ": missing type name");
+      Require (Has_Text (Value.Kind), Where & ": missing type kind");
 
-   procedure Validate_Operand
-     (Value : GNATCOLL.JSON.JSON_Value;
-      Where : String)
-   is
-      use GNATCOLL.JSON;
-      Child : JSON_Value;
-   begin
-      Require (Value.Kind = JSON_Object_Type, Where & ": operand must be an object");
-      Validate_Span (Field_Or_Null (Value, "span"), Where & ".span");
-
-      Require
-        (Has_Field (Value, "kind")
-         and then Field_Value (Value, "kind").Kind = JSON_String_Type,
-         Where & ": missing operand kind");
-
-      declare
-         Kind : constant String := Get (Field_Value (Value, "kind"));
-      begin
-         if Kind /= "scope_enter" and then Kind /= "scope_exit" then
+      if not Value.Index_Types.Is_Empty then
+         for Index in Value.Index_Types.First_Index .. Value.Index_Types.Last_Index loop
             Require
-              (Has_Field (Value, "type")
-               and then Field_Value (Value, "type").Kind = JSON_String_Type,
-               Where & ": missing operand type");
-         end if;
-
-         if Is_Forbidden_Op (Kind) then
-            raise Validation_Error with Where & ": forbidden high-level MIR op " & Kind;
-         end if;
-      end;
-
-      if Has_Field (Value, "op")
-        and then Field_Value (Value, "op").Kind = JSON_String_Type
-        and then Get (Field_Value (Value, "op")) = "and then"
-      then
-         raise Validation_Error
-           with Where & ": `and then` must lower into CFG, not remain in MIR operands";
+              (Has_Text (Value.Index_Types (Index)),
+               Where & ".index_types[" & Image (Index - 1) & "]: invalid type name");
+         end loop;
       end if;
 
-      declare
-         procedure Validate_Child (Key : String) is
-         begin
-            if Has_Field (Value, Key) then
-               Child := Field_Value (Value, Key);
-               if Is_Operand_Dict (Child) then
-                  Validate_Operand (Child, Where & "." & Key);
-               end if;
-            end if;
-         end Validate_Child;
-
-         procedure Validate_List (Key : String) is
-         begin
-            if Has_Field (Value, Key)
-              and then Field_Value (Value, Key).Kind = JSON_Array_Type
-            then
-               declare
-                  Items : constant JSON_Array := Get (Field_Value (Value, Key));
-               begin
-                  for Index in 1 .. Length (Items) loop
-                     Child := Value_At (Items, Index);
-                     if Child.Kind = JSON_Object_Type and then Has_Field (Child, "expr") then
-                        Validate_Span
-                          (Field_Or_Null (Child, "span"),
-                           Where & "." & Key & "[" & Image (Index - 1) & "].span");
-                        Validate_Operand
-                          (Field_Value (Child, "expr"),
-                           Where & "." & Key & "[" & Image (Index - 1) & "].expr");
-                     elsif Is_Operand_Dict (Child) then
-                        Validate_Operand
-                          (Child,
-                           Where & "." & Key & "[" & Image (Index - 1) & "]");
-                     end if;
-                  end loop;
-               end;
-            end if;
-         end Validate_List;
-      begin
-         Validate_Child ("left");
-         Validate_Child ("right");
-         Validate_Child ("expr");
-         Validate_Child ("prefix");
-         Validate_Child ("callee");
-         Validate_Child ("target");
-         Validate_Child ("value");
-         Validate_Child ("condition");
-
-         Validate_List ("indices");
-         Validate_List ("args");
-         Validate_List ("fields");
-      end;
-   end Validate_Operand;
-
-   function Json_Array_Field
-     (Object_Value : GNATCOLL.JSON.JSON_Value;
-      Field        : String;
-      Where        : String) return GNATCOLL.JSON.JSON_Array
-   is
-      use GNATCOLL.JSON;
-      Prefix : constant String :=
-        (if Where = "" then "" else Where & ": ");
-   begin
-      Require
-        (Object_Value.Kind = JSON_Object_Type
-         and then Has_Field (Object_Value, Field)
-         and then Field_Value (Object_Value, Field).Kind = JSON_Array_Type,
-         Prefix & Field & " must be a list");
-      return Get (Field_Value (Object_Value, Field));
-   end Json_Array_Field;
-
-   procedure Validate_Block
-     (Block     : GNATCOLL.JSON.JSON_Value;
-      Valid_Ids : String_Vectors.Vector;
-      Where     : String)
-   is
-      use GNATCOLL.JSON;
-      Ops        : JSON_Array;
-      Terminator : JSON_Value;
-   begin
-      Require (Block.Kind = JSON_Object_Type, Where & ": block must be an object");
-      Require
-        (Has_Field (Block, "id")
-         and then Field_Value (Block, "id").Kind = JSON_String_Type,
-         Where & ": missing block id");
-      Validate_Span (Field_Or_Null (Block, "span"), Where & ".span");
-
-      Ops := Json_Array_Field (Block, "ops", Where);
-      for Index in 1 .. Length (Ops) loop
-         declare
-            Op       : constant JSON_Value := Value_At (Ops, Index);
-            Op_Where : constant String := Where & ".ops[" & Image (Index - 1) & "]";
-         begin
-            Require (Op.Kind = JSON_Object_Type, Op_Where & ": op must be an object");
-            Require
-              (Has_Field (Op, "kind")
-               and then Field_Value (Op, "kind").Kind = JSON_String_Type,
-               Op_Where & ": missing kind");
-
+      if not Value.Fields.Is_Empty then
+         for Index in Value.Fields.First_Index .. Value.Fields.Last_Index loop
             declare
-               Kind : constant String := Get (Field_Value (Op, "kind"));
-               procedure Validate_Op_Operand (Key : String) is
-               begin
-                  if Has_Field (Op, Key) then
-                     declare
-                        Child : constant JSON_Value := Field_Value (Op, Key);
-                     begin
-                        if Is_Operand_Dict (Child) then
-                           Validate_Operand (Child, Op_Where & "." & Key);
-                        end if;
-                     end;
-                  end if;
-               end Validate_Op_Operand;
+               Field : constant GM.Type_Field := Value.Fields (Index);
             begin
-               if Is_Forbidden_Op (Kind) then
-                  raise Validation_Error
-                    with Op_Where & ": high-level control op `" & Kind & "` leaked into MIR";
-               end if;
-
-               Validate_Span (Field_Or_Null (Op, "span"), Op_Where & ".span");
-               Validate_Op_Operand ("target");
-               Validate_Op_Operand ("value");
+               Require
+                 (Has_Text (Field.Name),
+                  Where & ".fields[" & Image (Index - 1) & "]: missing field name");
+               Require
+                 (Has_Text (Field.Type_Name),
+                  Where & ".fields[" & Image (Index - 1) & "]: missing field type");
             end;
-         end;
-      end loop;
+         end loop;
+      end if;
 
-      Require
-        (Has_Field (Block, "terminator")
-         and then Field_Value (Block, "terminator").Kind = JSON_Object_Type,
-         Where & ": every block must have a terminator");
-      Terminator := Field_Value (Block, "terminator");
-      Require
-        (Has_Field (Terminator, "kind")
-         and then Field_Value (Terminator, "kind").Kind = JSON_String_Type,
-         Where & ": invalid terminator kind <missing>");
+      if Value.Has_Component_Type then
+         Require (Has_Text (Value.Component_Type), Where & ": missing component_type");
+      end if;
+      if Value.Has_Target then
+         Require (Has_Text (Value.Target), Where & ": missing target");
+      end if;
+      if Value.Has_Base then
+         Require (Has_Text (Value.Base), Where & ": missing base");
+      end if;
+      if Value.Has_Access_Role then
+         Require (Has_Text (Value.Access_Role), Where & ": invalid access_role");
+      end if;
+   end Validate_Type_Descriptor;
 
-      declare
-         Kind : constant String := Get (Field_Value (Terminator, "kind"));
-      begin
-         Require
-           (Is_Terminator_Kind (Kind),
-            Where & ": invalid terminator kind " & Kind);
-         Validate_Span (Field_Or_Null (Terminator, "span"), Where & ".terminator.span");
+   procedure Validate_Expr
+     (Value : GM.Expr_Access;
+      Where : String)
+   is
+   begin
+      Require (Value /= null, Where & ": expression is missing");
+      Require (Value.Kind /= GM.Expr_Unknown, Where & ": unsupported expression");
 
-         if Kind = "jump" then
-            Require
-              (Has_Field (Terminator, "target")
-               and then Field_Value (Terminator, "target").Kind = JSON_String_Type
-               and then Contains (Valid_Ids, Get (Field_Value (Terminator, "target"))),
-               Where & ": jump target missing or invalid");
-         elsif Kind = "branch" then
-            Require
-              (Has_Field (Terminator, "true_target")
-               and then Field_Value (Terminator, "true_target").Kind = JSON_String_Type
-               and then Contains
-                 (Valid_Ids, Get (Field_Value (Terminator, "true_target"))),
-               Where & ": branch true_target missing or invalid");
-            Require
-              (Has_Field (Terminator, "false_target")
-               and then Field_Value (Terminator, "false_target").Kind = JSON_String_Type
-               and then Contains
-                 (Valid_Ids, Get (Field_Value (Terminator, "false_target"))),
-               Where & ": branch false_target missing or invalid");
-            Validate_Operand
-              (Field_Or_Null (Terminator, "condition"),
-               Where & ".terminator.condition");
-         elsif Has_Field (Terminator, "value")
-           and then Field_Value (Terminator, "value").Kind /= JSON_Null_Type
-         then
-            Validate_Operand
-              (Field_Value (Terminator, "value"),
-               Where & ".terminator.value");
-         end if;
-      end;
-   end Validate_Block;
+      case Value.Kind is
+         when GM.Expr_Int | GM.Expr_Bool | GM.Expr_Null =>
+            null;
+         when GM.Expr_Ident =>
+            Require (Has_Text (Value.Name), Where & ": missing identifier name");
+         when GM.Expr_Select =>
+            Validate_Expr (Value.Prefix, Where & ".prefix");
+            Require (Has_Text (Value.Selector), Where & ": missing selector");
+         when GM.Expr_Resolved_Index =>
+            Validate_Expr (Value.Prefix, Where & ".prefix");
+            Require (not Value.Indices.Is_Empty, Where & ": indices must be non-empty");
+            for Index in Value.Indices.First_Index .. Value.Indices.Last_Index loop
+               Validate_Expr
+                 (Value.Indices (Index),
+                  Where & ".indices[" & Image (Index - 1) & "]");
+            end loop;
+         when GM.Expr_Conversion =>
+            Require (Has_Text (Value.Name), Where & ": missing conversion target");
+            Validate_Expr (Value.Inner, Where & ".expr");
+         when GM.Expr_Call =>
+            Validate_Expr (Value.Callee, Where & ".callee");
+            if not Value.Args.Is_Empty then
+               for Index in Value.Args.First_Index .. Value.Args.Last_Index loop
+                  Validate_Expr
+                    (Value.Args (Index),
+                     Where & ".args[" & Image (Index - 1) & "]");
+               end loop;
+            end if;
+         when GM.Expr_Allocator =>
+            Validate_Expr (Value.Value, Where & ".value");
+         when GM.Expr_Aggregate =>
+            if not Value.Fields.Is_Empty then
+               for Index in Value.Fields.First_Index .. Value.Fields.Last_Index loop
+                  declare
+                     Field : constant GM.Aggregate_Field := Value.Fields (Index);
+                  begin
+                     if Has_Text (Field.Field) then
+                        null;
+                     end if;
+                     Validate_Expr
+                       (Field.Expr,
+                        Where & ".fields[" & Image (Index - 1) & "].expr");
+                  end;
+               end loop;
+            end if;
+         when GM.Expr_Annotated =>
+            Validate_Expr (Value.Inner, Where & ".value");
+         when GM.Expr_Unary =>
+            Require (Has_Text (Value.Operator), Where & ": missing unary operator");
+            Validate_Expr (Value.Inner, Where & ".expr");
+         when GM.Expr_Binary =>
+            Require (Has_Text (Value.Operator), Where & ": missing binary operator");
+            Validate_Expr (Value.Left, Where & ".left");
+            Validate_Expr (Value.Right, Where & ".right");
+         when GM.Expr_Unknown =>
+            null;
+      end case;
+   end Validate_Expr;
+
+   procedure Validate_Local
+     (Value  : GM.Local_Entry;
+      Format : GM.Mir_Format_Kind;
+      Where  : String)
+   is
+   begin
+      Require (Has_Text (Value.Id), Where & ": missing local id");
+      Require (Has_Text (Value.Name), Where & ": missing local name");
+      Validate_Type_Descriptor (Value.Type_Info, Where & ".type");
+      if Format = GM.Mir_V2 then
+         Require (Has_Text (Value.Scope_Id), Where & ": mir-v2 locals must have scope_id");
+      end if;
+   end Validate_Local;
 
    procedure Validate_Scope
-     (Scope           : GNATCOLL.JSON.JSON_Value;
-      Valid_Scope_Ids : String_Vectors.Vector;
-      Valid_Local_Ids : String_Vectors.Vector;
-      Valid_Block_Ids : String_Vectors.Vector;
+     (Value           : GM.Scope_Entry;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
       Where           : String)
    is
-      use GNATCOLL.JSON;
-      Parent        : JSON_Value;
-      Local_Ids     : JSON_Array;
-      Exit_Blocks   : JSON_Array;
-      Entry_Block   : JSON_Value;
-      Parent_Valid  : Boolean;
-      Entry_Valid   : Boolean;
    begin
-      Require (Scope.Kind = JSON_Object_Type, Where & ": scope must be an object");
-      Require
-        (Has_Field (Scope, "id")
-         and then Field_Value (Scope, "id").Kind = JSON_String_Type,
-         Where & ": missing scope id");
+      Require (Has_Text (Value.Id), Where & ": missing scope id");
+      Require (Has_Text (Value.Kind), Where & ": missing scope kind");
 
-      Parent := Field_Or_Null (Scope, "parent_scope_id");
-      Parent_Valid :=
-        Parent.Kind = JSON_Null_Type
-        or else
-          (Parent.Kind = JSON_String_Type
-           and then Contains (Valid_Scope_Ids, Get (Parent)));
-      Require
-        (Parent_Valid,
-        Where & ": invalid parent_scope_id");
+      if Value.Has_Parent_Scope then
+         Require
+           (Contains (Valid_Scope_Ids, Text (Value.Parent_Scope_Id)),
+            Where & ": invalid parent_scope_id");
+      end if;
 
-      Require
-        (Has_Field (Scope, "kind")
-         and then Field_Value (Scope, "kind").Kind = JSON_String_Type,
-         Where & ": missing scope kind");
+      if Has_Text (Value.Entry_Block) then
+         Require
+           (Contains (Valid_Block_Ids, Text (Value.Entry_Block)),
+            Where & ": invalid entry_block");
+      end if;
 
-      Local_Ids := Json_Array_Field (Scope, "local_ids", Where);
-      for Index in 1 .. Length (Local_Ids) loop
-         declare
-            Local_Id : constant JSON_Value := Value_At (Local_Ids, Index);
-         begin
+      if not Value.Local_Ids.Is_Empty then
+         for Index in Value.Local_Ids.First_Index .. Value.Local_Ids.Last_Index loop
             Require
-              (Local_Id.Kind = JSON_String_Type
-               and then Contains (Valid_Local_Ids, Get (Local_Id)),
+              (Contains (Valid_Local_Ids, Text (Value.Local_Ids (Index))),
                Where & ".local_ids[" & Image (Index - 1) & "]: invalid local id");
-         end;
-      end loop;
+         end loop;
+      end if;
 
-      Entry_Block := Field_Or_Null (Scope, "entry_block");
-      Entry_Valid :=
-        Entry_Block.Kind = JSON_String_Type
-        and then
-          (Get (Entry_Block) = ""
-           or else Contains (Valid_Block_Ids, Get (Entry_Block)));
-      Require
-        (Entry_Valid,
-        Where & ": invalid entry_block");
-
-      Exit_Blocks := Json_Array_Field (Scope, "exit_blocks", Where);
-      for Index in 1 .. Length (Exit_Blocks) loop
-         declare
-            Block_Id : constant JSON_Value := Value_At (Exit_Blocks, Index);
-         begin
+      if not Value.Exit_Blocks.Is_Empty then
+         for Index in Value.Exit_Blocks.First_Index .. Value.Exit_Blocks.Last_Index loop
             Require
-              (Block_Id.Kind = JSON_String_Type
-               and then Contains (Valid_Block_Ids, Get (Block_Id)),
+              (Contains (Valid_Block_Ids, Text (Value.Exit_Blocks (Index))),
                Where & ".exit_blocks[" & Image (Index - 1) & "]: invalid block id");
-         end;
-      end loop;
+         end loop;
+      end if;
    end Validate_Scope;
 
-   procedure Validate_Graph_V2
-     (Graph       : GNATCOLL.JSON.JSON_Value;
-      Graph_Index : Positive)
+   procedure Validate_Block
+     (Value           : GM.Block_Entry;
+      Format          : GM.Mir_Format_Kind;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Where           : String)
    is
-      use GNATCOLL.JSON;
-      Where           : constant String := "graphs[" & Image (Graph_Index - 1) & "]";
-      Scopes          : JSON_Array;
-      Locals          : JSON_Array;
-      Blocks          : JSON_Array;
-      Valid_Scope_Ids : String_Vectors.Vector;
-      Valid_Local_Ids : String_Vectors.Vector;
-      Valid_Block_Ids : String_Vectors.Vector;
    begin
-      Scopes := Json_Array_Field (Graph, "scopes", Where);
-      Locals := Json_Array_Field (Graph, "locals", Where);
-      Blocks := Json_Array_Field (Graph, "blocks", Where);
+      Require (Has_Text (Value.Id), Where & ": missing block id");
+
+      if Format = GM.Mir_V2 then
+         Require
+           (Has_Text (Value.Active_Scope_Id),
+            Where & ": mir-v2 blocks must have active_scope_id");
+         Require
+           (Contains (Valid_Scope_Ids, Text (Value.Active_Scope_Id)),
+            Where & ": invalid active_scope_id");
+      end if;
+
+      if not Value.Ops.Is_Empty then
+         for Index in Value.Ops.First_Index .. Value.Ops.Last_Index loop
+            declare
+               Op       : constant GM.Op_Entry := Value.Ops (Index);
+               Op_Where : constant String := Where & ".ops[" & Image (Index - 1) & "]";
+            begin
+               Require (Op.Kind /= GM.Op_Unknown, Op_Where & ": unsupported op kind");
+
+               case Op.Kind is
+                  when GM.Op_Scope_Enter | GM.Op_Scope_Exit =>
+                     Require
+                       (Has_Text (Op.Scope_Id),
+                        Op_Where & ": " & GM.Image (Op.Kind) & " missing scope_id");
+                     if Format = GM.Mir_V2 then
+                        Require
+                          (Contains (Valid_Scope_Ids, Text (Op.Scope_Id)),
+                           Op_Where & ": invalid scope_id");
+                     end if;
+                  when GM.Op_Assign =>
+                     if Format = GM.Mir_V2 then
+                        Require
+                          (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                           Op_Where & ": invalid ownership_effect");
+                        Require
+                          (Has_Text (Op.Type_Name),
+                           Op_Where & ": missing op type");
+                        Require
+                          (Op.Has_Declaration_Init,
+                           Op_Where & ": mir-v2 assign ops must include declaration_init");
+                        Require
+                          (Op.Declaration_Init_Valid,
+                           Op_Where & ": invalid declaration_init");
+                     end if;
+                     Validate_Expr (Op.Target, Op_Where & ".target");
+                     Validate_Expr (Op.Value, Op_Where & ".value");
+                  when GM.Op_Call =>
+                     if Format = GM.Mir_V2 then
+                        Require
+                          (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                           Op_Where & ": invalid ownership_effect");
+                        Require
+                          (Has_Text (Op.Type_Name),
+                           Op_Where & ": missing op type");
+                     end if;
+                     Validate_Expr (Op.Value, Op_Where & ".value");
+                  when GM.Op_Unknown =>
+                     null;
+               end case;
+            end;
+         end loop;
+      end if;
+
       Require
-        (Length (Scopes) > 0,
-         Where & ": mir-v2 graphs must have a non-empty scopes list");
+        (Value.Terminator.Kind /= GM.Terminator_Unknown,
+         Where & ": missing or invalid terminator");
 
-      for Index in 1 .. Length (Scopes) loop
-         declare
-            Scope : constant JSON_Value := Value_At (Scopes, Index);
-         begin
-            if Scope.Kind = JSON_Object_Type
-              and then Has_Field (Scope, "id")
-              and then Field_Value (Scope, "id").Kind = JSON_String_Type
-            then
-               Valid_Scope_Ids.Append
-                 (New_Item => Get (Field_Value (Scope, "id")),
-                  Count    => 1);
-            end if;
-         end;
-      end loop;
-
-      for Index in 1 .. Length (Locals) loop
-         declare
-            Local : constant JSON_Value := Value_At (Locals, Index);
-         begin
-            if Local.Kind = JSON_Object_Type
-              and then Has_Field (Local, "id")
-              and then Field_Value (Local, "id").Kind = JSON_String_Type
-            then
-               Valid_Local_Ids.Append
-                 (New_Item => Get (Field_Value (Local, "id")),
-                  Count    => 1);
-            end if;
-         end;
-      end loop;
-
-      for Index in 1 .. Length (Blocks) loop
-         declare
-            Block : constant JSON_Value := Value_At (Blocks, Index);
-         begin
-            if Block.Kind = JSON_Object_Type
-              and then Has_Field (Block, "id")
-              and then Field_Value (Block, "id").Kind = JSON_String_Type
-            then
-               Valid_Block_Ids.Append
-                 (New_Item => Get (Field_Value (Block, "id")),
-                  Count    => 1);
-            end if;
-         end;
-      end loop;
-
-      for Index in 1 .. Length (Locals) loop
-         declare
-            Local       : constant JSON_Value := Value_At (Locals, Index);
-            Local_Where : constant String := Where & ".locals[" & Image (Index - 1) & "]";
-         begin
+      case Value.Terminator.Kind is
+         when GM.Terminator_Jump =>
             Require
-              (Has_Field (Local, "scope_id")
-               and then Field_Value (Local, "scope_id").Kind = JSON_String_Type,
-               Local_Where & ": mir-v2 locals must have scope_id");
+              (Contains (Valid_Block_Ids, Text (Value.Terminator.Target)),
+               Where & ".terminator: invalid jump target");
+         when GM.Terminator_Branch =>
             Require
-              (Contains (Valid_Scope_Ids, Get (Field_Value (Local, "scope_id"))),
-               Local_Where & ": unknown scope_id");
-         end;
-      end loop;
-
-      for Index in 1 .. Length (Scopes) loop
-         Validate_Scope
-           (Value_At (Scopes, Index),
-            Valid_Scope_Ids,
-            Valid_Local_Ids,
-            Valid_Block_Ids,
-            Where & ".scopes[" & Image (Index - 1) & "]");
-      end loop;
-
-      for Block_Index in 1 .. Length (Blocks) loop
-         declare
-            Block       : constant JSON_Value := Value_At (Blocks, Block_Index);
-            Block_Where : constant String := Where & ".blocks[" & Image (Block_Index - 1) & "]";
-            Ops         : constant JSON_Array := Json_Array_Field (Block, "ops", Block_Where);
-            Terminator  : constant JSON_Value := Field_Or_Null (Block, "terminator");
-         begin
+              (Contains (Valid_Block_Ids, Text (Value.Terminator.True_Target)),
+               Where & ".terminator: invalid true_target");
             Require
-              (Has_Field (Block, "active_scope_id")
-               and then Field_Value (Block, "active_scope_id").Kind = JSON_String_Type,
-               Block_Where & ": mir-v2 blocks must have active_scope_id");
-            Require
-              (Contains (Valid_Scope_Ids, Get (Field_Value (Block, "active_scope_id"))),
-               Block_Where & ": invalid active_scope_id");
-
-            for Op_Index in 1 .. Length (Ops) loop
-               declare
-                  Op       : constant JSON_Value := Value_At (Ops, Op_Index);
-                  Op_Where : constant String := Block_Where & ".ops[" & Image (Op_Index - 1) & "]";
-               begin
-                  if Op.Kind = JSON_Object_Type
-                    and then Has_Field (Op, "kind")
-                    and then Field_Value (Op, "kind").Kind = JSON_String_Type
-                  then
-                     declare
-                        Kind : constant String := Get (Field_Value (Op, "kind"));
-                     begin
-                        if Kind = "assign" or else Kind = "call" then
-                           Require
-                             (Has_Field (Op, "ownership_effect")
-                              and then Field_Value (Op, "ownership_effect").Kind = JSON_String_Type
-                              and then Is_Ownership_Effect (Get (Field_Value (Op, "ownership_effect"))),
-                              Op_Where & ": invalid ownership_effect");
-                           Require
-                             (Has_Field (Op, "type")
-                              and then Field_Value (Op, "type").Kind = JSON_String_Type,
-                              Op_Where & ": missing op type");
-                        end if;
-                        if Kind = "assign" then
-                           Require
-                             (Has_Field (Op, "declaration_init")
-                              and then Field_Value (Op, "declaration_init").Kind = JSON_Boolean_Type,
-                              Op_Where & ": assign missing declaration_init");
-                        end if;
-                        if Kind = "scope_enter" or else Kind = "scope_exit" then
-                           Require
-                             (Has_Field (Op, "scope_id")
-                              and then Field_Value (Op, "scope_id").Kind = JSON_String_Type,
-                              Op_Where & ": " & Kind & " missing scope_id");
-                           Require
-                             (Contains (Valid_Scope_Ids, Get (Field_Value (Op, "scope_id"))),
-                              Op_Where & ": invalid scope_id");
-                        end if;
-                     end;
-                  end if;
-               end;
-            end loop;
-
-            Require
-              (Has_Field (Terminator, "span")
-               and then Field_Value (Terminator, "span").Kind = JSON_Object_Type,
-               Block_Where & ".terminator: missing span");
-            if Has_Field (Terminator, "kind")
-              and then Field_Value (Terminator, "kind").Kind = JSON_String_Type
-              and then Get (Field_Value (Terminator, "kind")) = "return"
-            then
+              (Contains (Valid_Block_Ids, Text (Value.Terminator.False_Target)),
+               Where & ".terminator: invalid false_target");
+            Validate_Expr (Value.Terminator.Condition, Where & ".terminator.condition");
+         when GM.Terminator_Return =>
+            if Format = GM.Mir_V2 then
                Require
-                 (Has_Field (Terminator, "ownership_effect")
-                  and then Field_Value (Terminator, "ownership_effect").Kind = JSON_String_Type
-                  and then Is_Ownership_Effect (Get (Field_Value (Terminator, "ownership_effect"))),
-                  Block_Where & ".terminator: invalid ownership_effect");
+                 (Value.Terminator.Ownership_Effect /= GM.Ownership_Invalid,
+                  Where & ".terminator: invalid ownership_effect");
             end if;
-         end;
-      end loop;
-   end Validate_Graph_V2;
+            if Value.Terminator.Has_Value then
+               Validate_Expr (Value.Terminator.Value, Where & ".terminator.value");
+            end if;
+         when GM.Terminator_Unknown =>
+            null;
+      end case;
+   end Validate_Block;
 
    procedure Validate_Graph
-     (Graph       : GNATCOLL.JSON.JSON_Value;
+     (Value       : GM.Graph_Entry;
       Graph_Index : Positive;
       Format      : GM.Mir_Format_Kind)
    is
-      use GNATCOLL.JSON;
-      Where        : constant String := "graphs[" & Image (Graph_Index - 1) & "]";
-      Locals       : JSON_Array;
-      Blocks       : JSON_Array;
-      Actual_Ids   : String_Vectors.Vector;
-      Expected_Ids : String_Vectors.Vector;
+      Where           : constant String := "graphs[" & Image (Graph_Index - 1) & "]";
+      Actual_Ids      : FT.UString_Vectors.Vector;
+      Expected_Ids    : FT.UString_Vectors.Vector;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
    begin
-      Require (Graph.Kind = JSON_Object_Type, Where & ": graph must be an object");
-      Require
-        (Has_Field (Graph, "name")
-         and then Field_Value (Graph, "name").Kind = JSON_String_Type,
-         Where & ": missing graph name");
+      Require (Has_Text (Value.Name), Where & ": missing graph name");
+      Require (not Value.Blocks.Is_Empty, Where & ": blocks must be a non-empty list");
 
-      Locals := Json_Array_Field (Graph, "locals", Where);
-      Blocks := Json_Array_Field (Graph, "blocks", Where);
-      Require (Length (Blocks) > 0, Where & ": blocks must be a non-empty list");
-
-      for Index in 1 .. Length (Blocks) loop
+      for Index in Value.Blocks.First_Index .. Value.Blocks.Last_Index loop
          declare
-            Block : constant JSON_Value := Value_At (Blocks, Index);
+            Block : constant GM.Block_Entry := Value.Blocks (Index);
          begin
-            if Block.Kind = JSON_Object_Type
-              and then Has_Field (Block, "id")
-              and then Field_Value (Block, "id").Kind = JSON_String_Type
-            then
-               Actual_Ids.Append
-                 (New_Item => Get (Field_Value (Block, "id")),
-                  Count    => 1);
+            if Has_Text (Block.Id) then
+               Actual_Ids.Append (Block.Id);
+               Valid_Block_Ids.Append (Block.Id);
             else
-               Actual_Ids.Append (New_Item => "<missing>", Count => 1);
+               Actual_Ids.Append (FT.To_UString ("<missing>"));
             end if;
-            Expected_Ids.Append
-              (New_Item => "bb" & Image (Index - 1),
-               Count    => 1);
+            Expected_Ids.Append (FT.To_UString ("bb" & Image (Index - 1)));
          end;
       end loop;
 
       Require
-        (Actual_Ids = Expected_Ids,
+        (Equal_Vectors (Actual_Ids, Expected_Ids),
          Where & ": block ids must be deterministic "
          & Render (Expected_Ids)
          & ", got "
          & Render (Actual_Ids));
 
       Require
-        (Has_Field (Graph, "entry_bb")
-         and then Field_Value (Graph, "entry_bb").Kind = JSON_String_Type
-         and then Contains (Actual_Ids, Get (Field_Value (Graph, "entry_bb"))),
+        (Contains (Actual_Ids, Text (Value.Entry_BB)),
          Where & ": entry block id missing or invalid");
 
-      for Index in 1 .. Length (Locals) loop
-         declare
-            Local       : constant JSON_Value := Value_At (Locals, Index);
-            Local_Where : constant String := Where & ".locals[" & Image (Index - 1) & "]";
-         begin
-            Require (Local.Kind = JSON_Object_Type, Local_Where & ": local must be an object");
-            Require
-              (Has_Field (Local, "id")
-               and then Field_Value (Local, "id").Kind = JSON_String_Type,
-               Local_Where & ": missing local id");
-            Require
-              (Has_Field (Local, "name")
-               and then Field_Value (Local, "name").Kind = JSON_String_Type,
-               Local_Where & ": missing local name");
-            Validate_Span (Field_Or_Null (Local, "span"), Local_Where & ".span");
-            Require
-              (Has_Field (Local, "type")
-               and then Field_Value (Local, "type").Kind = JSON_Object_Type,
-               Local_Where & ": missing local type");
-            if Format = GM.Mir_V1 and then Has_Field (Local, "scope_id") then
-               Require
-                 (Field_Value (Local, "scope_id").Kind = JSON_String_Type,
-                  Local_Where & ": invalid scope_id");
-            end if;
-         end;
-      end loop;
+      if not Value.Locals.Is_Empty then
+         for Index in Value.Locals.First_Index .. Value.Locals.Last_Index loop
+            declare
+               Local : constant GM.Local_Entry := Value.Locals (Index);
+            begin
+               Validate_Local
+                 (Local,
+                  Format,
+                  Where & ".locals[" & Image (Index - 1) & "]");
+               if Has_Text (Local.Id) then
+                  Valid_Local_Ids.Append (Local.Id);
+               end if;
+            end;
+         end loop;
+      end if;
 
-      for Index in 1 .. Length (Blocks) loop
-         Validate_Block
-           (Value_At (Blocks, Index),
-            Actual_Ids,
-            Where & ".blocks[" & Image (Index - 1) & "]");
-      end loop;
+      if Format = GM.Mir_V2 and then Value.Has_Return_Type then
+         Validate_Type_Descriptor (Value.Return_Type, Where & ".return_type");
+      end if;
 
       if Format = GM.Mir_V2 then
-         Validate_Graph_V2 (Graph, Graph_Index);
+         Require
+           (not Value.Scopes.Is_Empty,
+            Where & ": mir-v2 graphs must have a non-empty scopes list");
+
+         for Index in Value.Scopes.First_Index .. Value.Scopes.Last_Index loop
+            if Has_Text (Value.Scopes (Index).Id) then
+               Valid_Scope_Ids.Append (Value.Scopes (Index).Id);
+            end if;
+         end loop;
+
+         if not Value.Locals.Is_Empty then
+            for Index in Value.Locals.First_Index .. Value.Locals.Last_Index loop
+               declare
+                  Local       : constant GM.Local_Entry := Value.Locals (Index);
+                  Local_Where : constant String := Where & ".locals[" & Image (Index - 1) & "]";
+               begin
+                  Require
+                    (Contains (Valid_Scope_Ids, Text (Local.Scope_Id)),
+                     Local_Where & ": unknown scope_id");
+               end;
+            end loop;
+         end if;
+
+         for Index in Value.Scopes.First_Index .. Value.Scopes.Last_Index loop
+            Validate_Scope
+              (Value.Scopes (Index),
+               Valid_Scope_Ids,
+               Valid_Local_Ids,
+               Valid_Block_Ids,
+               Where & ".scopes[" & Image (Index - 1) & "]");
+         end loop;
       end if;
+
+      for Index in Value.Blocks.First_Index .. Value.Blocks.Last_Index loop
+         Validate_Block
+           (Value.Blocks (Index),
+            Format,
+            Valid_Block_Ids,
+            Valid_Scope_Ids,
+            Where & ".blocks[" & Image (Index - 1) & "]");
+      end loop;
    end Validate_Graph;
 
    function Validate
      (Document : GM.Mir_Document) return GM.Validation_Result
    is
-      use GNATCOLL.JSON;
-      Graphs : JSON_Array;
-      Root_Where : constant String := "root";
    begin
-      Require (Document.Root.Kind = JSON_Object_Type, "top-level payload must be an object");
-      Graphs := Json_Array_Field (Document.Root, "graphs", Root_Where);
-      Require (Length (Graphs) > 0, Root_Where & ": graphs must be a non-empty list");
+      Require
+        (not Document.Graphs.Is_Empty,
+         "root: graphs must be a non-empty list");
 
-      for Index in 1 .. Length (Graphs) loop
-         Validate_Graph (Value_At (Graphs, Index), Index, Document.Format);
+      if Document.Format = GM.Mir_V2 then
+         Require
+           (Document.Has_Source_Path and then Has_Text (Document.Source_Path),
+            "root: mir-v2 payloads must include source_path");
+      end if;
+
+      if not Document.Types.Is_Empty then
+         for Index in Document.Types.First_Index .. Document.Types.Last_Index loop
+            Validate_Type_Descriptor
+              (Document.Types (Index),
+               "root.types[" & Image (Index - 1) & "]");
+         end loop;
+      end if;
+
+      for Index in Document.Graphs.First_Index .. Document.Graphs.Last_Index loop
+         Validate_Graph (Document.Graphs (Index), Index, Document.Format);
       end loop;
 
       return GM.Ok;
@@ -750,7 +534,6 @@ package body Safe_Frontend.Mir_Validate is
       if not Loaded.Success then
          return GM.Error (FT.To_String (Loaded.Message));
       end if;
-
       declare
          Result : constant GM.Validation_Result := Validate (Loaded.Document);
       begin

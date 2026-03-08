@@ -10,6 +10,8 @@ procedure Safec is
       Ada.Text_IO.Put_Line ("usage:");
       Ada.Text_IO.Put_Line ("  safec lex <file.safe>");
       Ada.Text_IO.Put_Line ("  safec validate-mir <file.mir.json>");
+      Ada.Text_IO.Put_Line ("  safec analyze-mir <file.mir.json>");
+      Ada.Text_IO.Put_Line ("  safec analyze-mir --diag-json <file.mir.json>");
       Ada.Text_IO.Put_Line ("  safec ast <file.safe>");
       Ada.Text_IO.Put_Line ("  safec check <file.safe>");
       Ada.Text_IO.Put_Line ("  safec check --diag-json <file.safe>");
@@ -49,6 +51,19 @@ begin
         and then Ada.Command_Line.Argument_Count = 2
       then
          Exit_Code := Safe_Frontend.Driver.Run_Validate_Mir (Argument (2));
+      elsif Command = "analyze-mir" then
+         if Ada.Command_Line.Argument_Count = 2 then
+            Exit_Code := Safe_Frontend.Driver.Run_Analyze_Mir (Argument (2));
+         elsif Ada.Command_Line.Argument_Count = 3
+           and then Argument (2) = "--diag-json"
+         then
+            Exit_Code :=
+              Safe_Frontend.Driver.Run_Analyze_Mir
+                (Path      => Argument (3),
+                 Diag_Json => True);
+         else
+            Exit_Code := Usage;
+         end if;
       elsif Command = "ast" and then Ada.Command_Line.Argument_Count = 2 then
          Exit_Code := Safe_Frontend.Driver.Run_Ast (Argument (2));
       elsif Command = "check" then

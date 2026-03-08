@@ -14,6 +14,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -1830,13 +1831,11 @@ class Resolver:
         typed = self.typed_json()
         interface = self.interface_json()
         mir = self.mir_json()
-        diagnostics = self.run_analysis(mir)
         return {
             "ast": self.ast,
             "typed": typed,
             "interface": interface,
             "mir": mir,
-            "diagnostics": diagnostics,
         }
 
     def finalize_type_targets(self) -> None:
@@ -2077,30 +2076,15 @@ class Resolver:
             graphs.append(lower_subprogram_to_mir_v2(info, self.type_env, self.functions))
         return {
             "format": "mir-v2",
+            "source_path": str(self.path),
             "package_name": self.parsed["package_name"],
+            "types": [
+                type_to_json(item)
+                for name, item in sorted(self.type_env.items(), key=lambda pair: pair[0])
+                if name not in {"Integer", "Natural", "Boolean"}
+            ],
             "graphs": graphs,
         }
-
-    def run_analysis(self, mir: dict[str, Any]) -> list[Diagnostic]:
-        diagnostics: list[Diagnostic] = []
-        basename = self.path.name
-        graph_by_name = {graph["name"]: graph for graph in mir["graphs"]}
-        for info in self.executables:
-            diag = analyze_mir_graph(
-                self.path,
-                self.source_text,
-                graph_by_name[info.name],
-                info,
-                self.type_env,
-                self.functions,
-                basename,
-            )
-            if diag is not None:
-                diagnostics.append(diag)
-        diagnostics.sort(key=lambda item: (item.span.start_line, item.span.start_col))
-        if diagnostics and basename in EXPECTED_REASON_OVERRIDE:
-            diagnostics[0].reason = EXPECTED_REASON_OVERRIDE[basename]
-        return diagnostics[:1]
 
 
 def type_to_json(info: TypeInfo) -> dict[str, Any]:
@@ -2109,10 +2093,14 @@ def type_to_json(info: TypeInfo) -> dict[str, Any]:
         result["low"] = info.low
     if info.high is not None:
         result["high"] = info.high
+    if info.base is not None:
+        result["base"] = info.base.name
     if info.index_types:
         result["index_types"] = [item.name for item in info.index_types]
     if info.component_type:
         result["component_type"] = info.component_type.name
+    if info.unconstrained:
+        result["unconstrained"] = info.unconstrained
     if info.fields:
         result["fields"] = {name: field.name for name, field in sorted(info.fields.items())}
     if info.target:
@@ -4820,6 +4808,7 @@ def lower_subprogram_to_mir_v2(
     return {
         "name": info.name,
         "kind": info.kind,
+        "return_type": type_to_json(info.return_type) if info.return_type is not None else None,
         "entry_bb": mapping[entry_id],
         "locals": locals_table,
         "scopes": scopes,
@@ -5215,6 +5204,87 @@ def render_json(payload: dict[str, Any]) -> str:
     return json.dumps(sanitize(payload), indent=2, sort_keys=True) + "\n"
 
 
+def diagnostics_payload(diagnostics: list[Diagnostic]) -> dict[str, Any]:
+    return {
+        "format": "diagnostics-v0",
+        "diagnostics": [diagnostic_to_json(item) for item in diagnostics],
+    }
+
+
+def decode_mir_value(value: Any) -> Any:
+    if isinstance(value, list):
+        return [decode_mir_value(item) for item in value]
+    if isinstance(value, dict):
+        if set(value.keys()) == {"start_line", "start_col", "end_line", "end_col"}:
+            return Span(
+                start_line=value["start_line"],
+                start_col=value["start_col"],
+                end_line=value["end_line"],
+                end_col=value["end_col"],
+            )
+        return {key: decode_mir_value(item) for key, item in value.items()}
+    return value
+
+
+def span_from_json(payload: Span | dict[str, Any] | None) -> Span:
+    if isinstance(payload, Span):
+        return payload
+    if not payload:
+        return Span(1, 1, 1, 1)
+    return Span(
+        start_line=payload.get("start_line", 1),
+        start_col=payload.get("start_col", 1),
+        end_line=payload.get("end_line", payload.get("start_line", 1)),
+        end_col=payload.get("end_col", payload.get("start_col", 1)),
+    )
+
+
+def diagnostic_from_json(payload: dict[str, Any]) -> Diagnostic:
+    highlight_span = payload.get("highlight_span")
+    return Diagnostic(
+        reason=payload["reason"],
+        path=payload["path"],
+        span=span_from_json(payload["span"]),
+        message=payload["message"],
+        highlight_span=span_from_json(highlight_span) if highlight_span is not None else None,
+        notes=list(payload.get("notes", [])),
+        suggestion=list(payload.get("suggestions", [])),
+    )
+
+
+def run_delegated_analysis(mir: dict[str, Any], safec_binary: str) -> list[Diagnostic]:
+    with tempfile.TemporaryDirectory(prefix="safe-pr066-mir-") as temp_root:
+        mir_path = Path(temp_root) / "analysis.mir.json"
+        mir_path.write_text(render_json(mir), encoding="utf-8")
+        completed = subprocess.run(
+            [safec_binary, "analyze-mir", "--diag-json", str(mir_path)],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if completed.returncode not in {EXIT_SUCCESS, EXIT_DIAGNOSTICS}:
+            if completed.stderr:
+                sys.stderr.write(completed.stderr)
+            raise SystemExit(completed.returncode)
+        stdout = completed.stdout.strip()
+        stderr = completed.stderr.strip()
+        if completed.returncode == EXIT_DIAGNOSTICS and not stdout:
+            message = stderr or f"safec analyze-mir failed for {mir_path}"
+            raise BackendError(message + ("\n" if not message.endswith("\n") else ""))
+        try:
+            payload = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            detail = stderr or stdout or str(exc)
+            raise BackendError(
+                "backend: ERROR: invalid diagnostics output from safec analyze-mir: "
+                f"{detail}\n"
+            ) from exc
+        if payload.get("format") != "diagnostics-v0":
+            raise BackendError(f"unexpected diagnostics format: {payload!r}")
+        return [diagnostic_from_json(item) for item in payload.get("diagnostics", [])]
+
+
 def run_backend(
     command: str,
     source_path: Path,
@@ -5235,17 +5305,10 @@ def run_backend(
         sys.stdout.write(render_json(resolved["ast"]))
         return EXIT_SUCCESS
 
-    diagnostics = resolved["diagnostics"]
+    diagnostics = run_delegated_analysis(resolved["mir"], safec_binary)
     if command == "check":
         if diag_json:
-            sys.stdout.write(
-                render_json(
-                    {
-                        "format": "diagnostics-v0",
-                        "diagnostics": [diagnostic_to_json(item) for item in diagnostics],
-                    }
-                )
-            )
+            sys.stdout.write(render_json(diagnostics_payload(diagnostics)))
         if diagnostics:
             sys.stderr.write(render_diagnostics(diagnostics, source_text, source_path))
             return EXIT_DIAGNOSTICS

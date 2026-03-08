@@ -1,39 +1,23 @@
 {
   "format": "mir-v2",
-  "source_path": "tests/fixtures/valid_mir_v2.safe",
+  "source_path": "tests/fixtures/pr05_division_by_zero.safe",
   "package_name": "Fixture",
-  "types": [
-    {
-      "fields": {
-        "Count": "Integer"
-      },
-      "kind": "record",
-      "name": "Node"
-    },
-    {
-      "access_role": "Owner",
-      "anonymous": false,
-      "is_all": false,
-      "is_constant": false,
-      "kind": "access",
-      "name": "Node_Access",
-      "not_null": false,
-      "target": "Node"
-    }
-  ],
+  "types": [],
   "graphs": [
     {
       "name": "Fixture.Main",
-      "kind": "procedure",
-      "return_type": null,
+      "kind": "function",
+      "return_type": {
+        "kind": "integer",
+        "name": "Integer"
+      },
       "entry_bb": "bb0",
       "locals": [
         {
           "id": "v0",
           "kind": "local",
           "mode": "in",
-          "name": "X",
-          "ownership_role": "Owner",
+          "name": "Y",
           "scope_id": "scope0",
           "span": {
             "start_line": 1,
@@ -42,14 +26,8 @@
             "end_col": 1
           },
           "type": {
-            "access_role": "Owner",
-            "anonymous": false,
-            "is_all": false,
-            "is_constant": false,
-            "kind": "access",
-            "name": "Node_Access",
-            "not_null": false,
-            "target": "Node"
+            "kind": "integer",
+            "name": "Integer"
           }
         }
       ],
@@ -80,7 +58,7 @@
               "kind": "scope_enter",
               "scope_id": "scope0",
               "locals": [
-                "X"
+                "Y"
               ],
               "span": {
                 "start_line": 1,
@@ -93,7 +71,7 @@
               "kind": "assign",
               "ownership_effect": "None",
               "declaration_init": true,
-              "type": "Node_Access",
+              "type": "Integer",
               "span": {
                 "start_line": 1,
                 "start_col": 1,
@@ -102,9 +80,9 @@
               },
               "target": {
                 "kind": "local",
-                "name": "X",
+                "name": "Y",
                 "tag": "ident",
-                "type": "Node_Access",
+                "type": "Integer",
                 "span": {
                   "start_line": 1,
                   "start_col": 1,
@@ -113,9 +91,11 @@
                 }
               },
               "value": {
-                "kind": "null_literal",
-                "tag": "null",
-                "type": "Node_Access",
+                "kind": "literal",
+                "tag": "int",
+                "text": "0",
+                "type": "Integer",
+                "value": 0,
                 "span": {
                   "start_line": 1,
                   "start_col": 1,
@@ -134,7 +114,43 @@
               "end_line": 1,
               "end_col": 1
             },
-            "value": null
+            "value": {
+              "kind": "binary",
+              "tag": "binary",
+              "op": "/",
+              "type": "Integer",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "left": {
+                "kind": "literal",
+                "tag": "int",
+                "text": "10",
+                "type": "Integer",
+                "value": 10,
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "right": {
+                "kind": "use",
+                "name": "Y",
+                "tag": "ident",
+                "type": "Integer",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            }
           }
         }
       ]

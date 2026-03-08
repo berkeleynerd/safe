@@ -26,6 +26,7 @@ VALID_FIXTURES = [
 INVALID_FIXTURES = [
     COMPILER_ROOT / "tests" / "mir_validation" / "invalid_missing_terminator.json",
     COMPILER_ROOT / "tests" / "mir_validation" / "invalid_scope_id.json",
+    COMPILER_ROOT / "tests" / "mir_validation" / "invalid_missing_declaration_init.json",
     COMPILER_ROOT / "tests" / "mir_validation" / "invalid_high_level_op.json",
     COMPILER_ROOT / "tests" / "mir_validation" / "invalid_block_numbering.json",
 ]

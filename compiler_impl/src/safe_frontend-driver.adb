@@ -10,6 +10,8 @@ with Safe_Frontend.Ast;
 with Safe_Frontend.Diagnostics;
 with Safe_Frontend.Lexer;
 with Safe_Frontend.Mir;
+with Safe_Frontend.Mir_Analyze;
+with Safe_Frontend.Mir_Diagnostics;
 with Safe_Frontend.Mir_Model;
 with Safe_Frontend.Mir_Validate;
 with Safe_Frontend.Parser;
@@ -287,6 +289,55 @@ package body Safe_Frontend.Driver is
             & Ada.Exceptions.Exception_Message (Error));
          return Safe_Frontend.Exit_Internal;
    end Run_Validate_Mir;
+
+   function Run_Analyze_Mir
+     (Path      : String;
+      Diag_Json : Boolean := False) return Integer
+   is
+      package MD renames Safe_Frontend.Mir_Diagnostics;
+
+      Result : constant Safe_Frontend.Mir_Analyze.Analyze_Result :=
+        Safe_Frontend.Mir_Analyze.Analyze_File (Path);
+   begin
+      if not Result.Success then
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Current_Error,
+            "analyze-mir: ERROR: " & Safe_Frontend.Types.To_String (Result.Message));
+         return Safe_Frontend.Exit_Diagnostics;
+      elsif Diag_Json then
+         Ada.Text_IO.Put (MD.To_Json (Result.Diagnostics));
+      elsif Result.Diagnostics.Is_Empty then
+         Ada.Text_IO.Put_Line ("analyze-mir: OK (" & Path & ")");
+      else
+         declare
+            Diag : constant MD.Diagnostic := Result.Diagnostics (Result.Diagnostics.First_Index);
+         begin
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "analyze-mir: ERROR: "
+               & Safe_Frontend.Types.To_String (Diag.Path)
+               & ":"
+               & FT.Image (Diag.Span.Start_Pos.Line)
+               & ":"
+               & FT.Image (Diag.Span.Start_Pos.Column)
+               & ": "
+               & Safe_Frontend.Types.To_String (Diag.Message));
+         end;
+      end if;
+      if Result.Diagnostics.Is_Empty then
+         return Safe_Frontend.Exit_Success;
+      end if;
+      return Safe_Frontend.Exit_Diagnostics;
+   exception
+      when Error : others =>
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Current_Error,
+            "analyze-mir: ERROR: internal failure: "
+            & Ada.Exceptions.Exception_Name (Error)
+            & ": "
+            & Ada.Exceptions.Exception_Message (Error));
+         return Safe_Frontend.Exit_Internal;
+   end Run_Analyze_Mir;
 
    function Run_Ast (Path : String) return Integer is
    begin

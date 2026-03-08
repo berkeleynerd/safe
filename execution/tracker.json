@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-07T21:17:00Z",
+  "updated_at": "2026-03-07T23:55:13Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
-  "active_task_id": null,
-  "next_task_id": "PR07",
+  "active_task_id": "PR06.7",
+  "next_task_id": "PR06.7",
   "repo_facts": {
     "tests": {
       "positive": 35,
@@ -178,10 +178,44 @@
       "unblock_condition": ""
     },
     {
+      "id": "PR06.6",
+      "title": "Ada MIR analyzer parity and Python analysis delegation removal",
+      "status": "done",
+      "depends_on": ["PR06.5"],
+      "acceptance": [
+        "A typed Ada MIR model exists for mir-v1 and mir-v2 and is used by both safec validate-mir and safec analyze-mir.",
+        "safec analyze-mir and safec analyze-mir --diag-json consume MIR only and emit diagnostics-v0 compatible with the existing PR05 and PR06 corpus expectations.",
+        "The Python backend no longer calls its in-process MIR analyzer and instead delegates MIR analysis to safec analyze-mir.",
+        "Existing PR05 and PR06 harnesses stay green without diagnostic golden changes after the analysis delegation cutover.",
+        "A dedicated pr066-ada-mir-analyzer CI job passes and a committed execution/reports/pr066-ada-mir-analyzer-report.json artifact is listed in PR06.6 evidence."
+      ],
+      "evidence": [
+        "execution/reports/pr066-ada-mir-analyzer-report.json"
+      ],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR06.7",
+      "title": "Ada-native safec check cutover for the PR05/PR06 subset",
+      "status": "in_progress",
+      "depends_on": ["PR06.6"],
+      "acceptance": [
+        "safec check and safec check --diag-json are Ada-native for the currently supported PR05 and PR06 subset, while ast and emit remain Python-backed.",
+        "Human stderr rendering and diagnostics-v0 output stay compatible with the existing PR05 and PR06 goldens and corpus harnesses.",
+        "Source constructs outside the current PR05 and PR06 subset are rejected deterministically by the Ada check path.",
+        "A dedicated pr067-ada-check-no-python CI job passes with python3 intentionally unavailable to the check command.",
+        "A committed execution/reports/pr067-ada-check-cutover-report.json artifact is listed in PR06.7 evidence."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
       "id": "PR07",
       "title": "Rule 5 and discriminant/result safety",
       "status": "planned",
-      "depends_on": ["PR06.5"],
+      "depends_on": ["PR06.7"],
       "acceptance": [
         "A canonical Rule 5 diagnostic golden exists and matches byte-for-byte."
       ],
