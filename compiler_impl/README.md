@@ -6,14 +6,16 @@ This workspace hosts the current Safe compiler frontend through PR06.
 
 - `safec lex <file.safe>` lexes a Safe source file and writes versioned token JSON to stdout.
 - `safec validate-mir <file.mir.json>` validates emitted `mir-v1` / `mir-v2` structure in Ada and exits nonzero on structural contract failures.
+- `safec analyze-mir <file.mir.json>` validates analyzable `mir-v2` input and exits nonzero if MIR-level diagnostics are emitted.
+- `safec analyze-mir --diag-json <file.mir.json>` writes `diagnostics-v0` JSON for a `mir-v2` input.
 - `safec ast <file.safe>` lexes and parses a Safe source file and writes AST JSON to stdout.
 - `safec check <file.safe>` runs the early semantic pipeline and exits nonzero if diagnostics are emitted.
 - `safec check --diag-json <file.safe>` keeps human stderr unchanged and also writes machine-readable semantic diagnostics to stdout for CI and harness use.
 - `safec emit <file.safe> --out-dir <dir> --interface-dir <dir>` writes the current frontend artifacts for downstream inspection and regression checks.
 
-The current frontend implements the sequential Rule 1-4 subset plus the sequential ownership model used by the current PR06 corpus. It parses executable bodies, emits schema-true AST for the implemented subset, emits `typed-v2` and `mir-v2`, checks the current Rule 1-4 corpus, and checks the sequential ownership corpus through `safec check`. It is still not the concurrency frontend or the Ada/SPARK emitter.
+The current frontend implements the sequential Rule 1-4 subset plus the sequential ownership model used by the current PR06 corpus. It parses executable bodies, emits schema-true AST for the implemented subset, emits `typed-v2` and self-sufficient `mir-v2`, checks the current Rule 1-4 corpus, and checks the sequential ownership corpus through `safec check`. It is still not the concurrency frontend or the Ada/SPARK emitter.
 
-Python remains the runtime for `safec ast`, `safec check`, and `safec emit`. MIR validation is Ada-native after PR06.5.
+Python remains the runtime for `safec ast`, `safec check`, and `safec emit`. MIR validation and the `analyze-mir` command are now exposed through `safec`, and `check` / `emit` delegate MIR analysis through `safec analyze-mir`.
 
 ## Dependency Policy
 
@@ -45,7 +47,7 @@ dependency explicitly rather than allowing it to spread by default.
 
 - `<stem>.mir.json`
   Format tag: `mir-v2`.
-  Contents: package-level graph data, deterministic locals tables, `scopes[]`, blocks with `active_scope_id`, typed ops, explicit terminators, and ownership-effect metadata for the implemented sequential subset.
+  Contents: `source_path`, resolved `types[]`, package-level graph data, deterministic locals tables, `scopes[]`, blocks with `active_scope_id`, typed ops, explicit terminators, graph `return_type`, and ownership-effect metadata for the implemented sequential subset.
   Validation path: `safec validate-mir <stem>.mir.json`.
   Status: debug and regression artifact for the current sequential platform. Incompatible structural changes require a format-tag bump.
 
@@ -98,3 +100,12 @@ python3 scripts/run_pr065_ada_mir_validator.py
 ```
 
 That gate validates committed `mir-v1` / `mir-v2` fixtures plus representative emitted MIR from the PR05 and PR06 corpora, and records results in `execution/reports/pr065-ada-mir-validator-report.json`.
+
+The PR06.6 MIR analyzer gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr066_ada_mir_analyzer.py
+```
+
+That gate runs committed `analyze-mir` fixtures for no-diagnostic, PR05, and PR06 cases, checks invalid-input rejection, confirms emitted PR05 / PR06 MIR stays clean under `safec analyze-mir --diag-json`, reruns the existing PR05 / PR06 harnesses unchanged, and records results in `execution/reports/pr066-ada-mir-analyzer-report.json`.

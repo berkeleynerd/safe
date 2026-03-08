@@ -1,0 +1,297 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/fixtures/pr06_double_move.safe",
+  "package_name": "Fixture",
+  "types": [
+    {
+      "kind": "record",
+      "name": "Data"
+    },
+    {
+      "access_role": "Owner",
+      "anonymous": false,
+      "is_all": false,
+      "is_constant": false,
+      "kind": "access",
+      "name": "Data_Ptr",
+      "not_null": false,
+      "target": "Data"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Fixture.Main",
+      "kind": "procedure",
+      "return_type": null,
+      "entry_bb": "bb0",
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Source",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "type": {
+            "access_role": "Owner",
+            "anonymous": false,
+            "is_all": false,
+            "is_constant": false,
+            "kind": "access",
+            "name": "Data_Ptr",
+            "not_null": false,
+            "target": "Data"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Target1",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "type": {
+            "access_role": "Owner",
+            "anonymous": false,
+            "is_all": false,
+            "is_constant": false,
+            "kind": "access",
+            "name": "Data_Ptr",
+            "not_null": false,
+            "target": "Data"
+          }
+        },
+        {
+          "id": "v2",
+          "kind": "local",
+          "mode": "in",
+          "name": "Target2",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "type": {
+            "access_role": "Owner",
+            "anonymous": false,
+            "is_all": false,
+            "is_constant": false,
+            "kind": "access",
+            "name": "Data_Ptr",
+            "not_null": false,
+            "target": "Data"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1",
+            "v2"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": []
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "scope_id": "scope0",
+              "locals": [
+                "Source",
+                "Target1",
+                "Target2"
+              ],
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              }
+            },
+            {
+              "kind": "assign",
+              "ownership_effect": "None",
+              "declaration_init": true,
+              "type": "Data_Ptr",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "target": {
+                "kind": "local",
+                "name": "Source",
+                "tag": "ident",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "value": {
+                "kind": "allocator",
+                "tag": "allocator",
+                "type": "access Data",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                },
+                "value": {
+                  "kind": "annotated",
+                  "tag": "annotated",
+                  "type": "access Data",
+                  "span": {
+                    "start_line": 1,
+                    "start_col": 1,
+                    "end_line": 1,
+                    "end_col": 1
+                  },
+                  "subtype": {
+                    "name": "Data",
+                    "tag": "ident",
+                    "span": {
+                      "start_line": 1,
+                      "start_col": 1,
+                      "end_line": 1,
+                      "end_col": 1
+                    }
+                  },
+                  "value": {
+                    "kind": "aggregate",
+                    "tag": "aggregate",
+                    "type": "Data",
+                    "span": {
+                      "start_line": 1,
+                      "start_col": 1,
+                      "end_line": 1,
+                      "end_col": 1
+                    },
+                    "fields": []
+                  }
+                }
+              }
+            },
+            {
+              "kind": "assign",
+              "ownership_effect": "Move",
+              "declaration_init": true,
+              "type": "Data_Ptr",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "target": {
+                "kind": "local",
+                "name": "Target1",
+                "tag": "ident",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "value": {
+                "kind": "use",
+                "name": "Source",
+                "tag": "ident",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            },
+            {
+              "kind": "assign",
+              "ownership_effect": "Move",
+              "declaration_init": true,
+              "type": "Data_Ptr",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "target": {
+                "kind": "local",
+                "name": "Target2",
+                "tag": "ident",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "value": {
+                "kind": "use",
+                "name": "Source",
+                "tag": "ident",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "ownership_effect": "None",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

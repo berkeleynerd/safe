@@ -2,9 +2,9 @@
 
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
-- **Active task:** `none`
-- **Next task:** `PR07`
-- **Updated at:** `2026-03-07T21:17:00Z`
+- **Active task:** `PR06.7`
+- **Next task:** `PR06.7`
+- **Updated at:** `2026-03-07T23:55:13Z`
 
 ## Repo Facts
 
@@ -27,7 +27,9 @@
 | PR05 | done | PR04 | 3 |
 | PR06 | done | PR05 | 2 |
 | PR06.5 | done | PR06 | 3 |
-| PR07 | planned | PR06.5 | 0 |
+| PR06.6 | done | PR06.5 | 1 |
+| PR06.7 | in_progress | PR06.6 | 0 |
+| PR07 | planned | PR06.7 | 0 |
 | PR08 | planned | PR07 | 0 |
 | PR09 | planned | PR08 | 0 |
 | PR10 | planned | PR09 | 0 |
@@ -164,10 +166,36 @@
   - `execution/reports/pr065-ada-mir-validator-report.json`
   - `execution/sessions/20260307-1617-pr065.md`
 
+### PR06.6 — Ada MIR analyzer parity and Python analysis delegation removal
+
+- **Status:** `done`
+- **Depends on:** PR06.5
+- **Blockers:** none
+- **Acceptance:**
+  - A typed Ada MIR model exists for mir-v1 and mir-v2 and is used by both safec validate-mir and safec analyze-mir.
+  - safec analyze-mir and safec analyze-mir --diag-json consume MIR only and emit diagnostics-v0 compatible with the existing PR05 and PR06 corpus expectations.
+  - The Python backend no longer calls its in-process MIR analyzer and instead delegates MIR analysis to safec analyze-mir.
+  - Existing PR05 and PR06 harnesses stay green without diagnostic golden changes after the analysis delegation cutover.
+  - A dedicated pr066-ada-mir-analyzer CI job passes and a committed execution/reports/pr066-ada-mir-analyzer-report.json artifact is listed in PR06.6 evidence.
+- **Evidence:**
+  - `execution/reports/pr066-ada-mir-analyzer-report.json`
+
+### PR06.7 — Ada-native safec check cutover for the PR05/PR06 subset
+
+- **Status:** `in_progress`
+- **Depends on:** PR06.6
+- **Blockers:** none
+- **Acceptance:**
+  - safec check and safec check --diag-json are Ada-native for the currently supported PR05 and PR06 subset, while ast and emit remain Python-backed.
+  - Human stderr rendering and diagnostics-v0 output stay compatible with the existing PR05 and PR06 goldens and corpus harnesses.
+  - Source constructs outside the current PR05 and PR06 subset are rejected deterministically by the Ada check path.
+  - A dedicated pr067-ada-check-no-python CI job passes with python3 intentionally unavailable to the check command.
+  - A committed execution/reports/pr067-ada-check-cutover-report.json artifact is listed in PR06.7 evidence.
+
 ### PR07 — Rule 5 and discriminant/result safety
 
 - **Status:** `planned`
-- **Depends on:** PR06.5
+- **Depends on:** PR06.7
 - **Blockers:** none
 - **Acceptance:**
   - A canonical Rule 5 diagnostic golden exists and matches byte-for-byte.

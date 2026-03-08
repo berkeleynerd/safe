@@ -3,13 +3,742 @@ with GNATCOLL.JSON;
 package body Safe_Frontend.Mir_Json is
    package GM renames Safe_Frontend.Mir_Model;
 
+   function Field_Or_Null
+     (Object_Value : GNATCOLL.JSON.JSON_Value;
+      Field        : String) return GNATCOLL.JSON.JSON_Value;
+
+   function Json_Array_Or_Empty
+     (Object_Value : GNATCOLL.JSON.JSON_Value;
+      Field        : String) return GNATCOLL.JSON.JSON_Array;
+
+   function Parse_Span
+     (Value : GNATCOLL.JSON.JSON_Value) return FT.Source_Span;
+
+   function Parse_Type
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Type_Descriptor;
+
+   function Parse_Expr
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Expr_Access;
+
+   function Parse_Local
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Local_Entry;
+
+   function Parse_Scope
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Scope_Entry;
+
+   function Parse_Op
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Op_Entry;
+
+   function Parse_Terminator
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Terminator_Entry;
+
+   function Parse_Block
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Block_Entry;
+
+   function Parse_Graph
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Graph_Entry;
+
+   function Parse_Ownership_Effect
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Ownership_Effect_Kind;
+
+   function Flatten_Name
+     (Value : GNATCOLL.JSON.JSON_Value) return String;
+
+   function Field_Or_Null
+     (Object_Value : GNATCOLL.JSON.JSON_Value;
+      Field        : String) return GNATCOLL.JSON.JSON_Value
+   is
+      use GNATCOLL.JSON;
+   begin
+      if Object_Value.Kind = JSON_Object_Type and then Has_Field (Object_Value, Field) then
+         return Get (Object_Value, Field);
+      end if;
+      return Create;
+   end Field_Or_Null;
+
+   function Json_Array_Or_Empty
+     (Object_Value : GNATCOLL.JSON.JSON_Value;
+      Field        : String) return GNATCOLL.JSON.JSON_Array
+   is
+      use GNATCOLL.JSON;
+   begin
+      if Object_Value.Kind = JSON_Object_Type
+        and then Has_Field (Object_Value, Field)
+        and then Get (Object_Value, Field).Kind = JSON_Array_Type
+      then
+         return Get (Object_Value, Field);
+      end if;
+      return Empty_Array;
+   end Json_Array_Or_Empty;
+
+   function Parse_Span
+     (Value : GNATCOLL.JSON.JSON_Value) return FT.Source_Span
+   is
+      use GNATCOLL.JSON;
+      Result : FT.Source_Span := FT.Null_Span;
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "start_line")
+        and then Get (Value, "start_line").Kind = JSON_Int_Type
+      then
+         Result.Start_Pos.Line :=
+           Positive (Long_Long_Integer'Max (1, Get (Get (Value, "start_line"))));
+      end if;
+      if Has_Field (Value, "start_col")
+        and then Get (Value, "start_col").Kind = JSON_Int_Type
+      then
+         Result.Start_Pos.Column :=
+           Positive (Long_Long_Integer'Max (1, Get (Get (Value, "start_col"))));
+      end if;
+      if Has_Field (Value, "end_line")
+        and then Get (Value, "end_line").Kind = JSON_Int_Type
+      then
+         Result.End_Pos.Line :=
+           Positive (Long_Long_Integer'Max (1, Get (Get (Value, "end_line"))));
+      else
+         Result.End_Pos.Line := Result.Start_Pos.Line;
+      end if;
+      if Has_Field (Value, "end_col")
+        and then Get (Value, "end_col").Kind = JSON_Int_Type
+      then
+         Result.End_Pos.Column :=
+           Positive (Long_Long_Integer'Max (1, Get (Get (Value, "end_col"))));
+      else
+         Result.End_Pos.Column := Result.Start_Pos.Column;
+      end if;
+      return Result;
+   end Parse_Span;
+
+   function Parse_Type
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Type_Descriptor
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Type_Descriptor;
+
+      procedure Append_Field (Name : UTF8_String; Field_Value : JSON_Value) is
+         Field_Entry : GM.Type_Field;
+      begin
+         Field_Entry.Name := FT.To_UString (Name);
+         if Field_Value.Kind = JSON_String_Type then
+            Field_Entry.Type_Name := FT.To_UString (Get (Field_Value));
+         end if;
+         Result.Fields.Append (Field_Entry);
+      end Append_Field;
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
+         Result.Name := FT.To_UString (Get (Value, "name"));
+      end if;
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Result.Kind := FT.To_UString (Get (Value, "kind"));
+      end if;
+      if Has_Field (Value, "low") and then Get (Value, "low").Kind = JSON_Int_Type then
+         Result.Has_Low := True;
+         Result.Low := Get (Get (Value, "low"));
+      end if;
+      if Has_Field (Value, "high") and then Get (Value, "high").Kind = JSON_Int_Type then
+         Result.Has_High := True;
+         Result.High := Get (Get (Value, "high"));
+      end if;
+      if Has_Field (Value, "base") and then Get (Value, "base").Kind = JSON_String_Type then
+         Result.Has_Base := True;
+         Result.Base := FT.To_UString (Get (Value, "base"));
+      end if;
+      if Has_Field (Value, "component_type")
+        and then Get (Value, "component_type").Kind = JSON_String_Type
+      then
+         Result.Has_Component_Type := True;
+         Result.Component_Type := FT.To_UString (Get (Value, "component_type"));
+      end if;
+      if Has_Field (Value, "target")
+        and then Get (Value, "target").Kind = JSON_String_Type
+      then
+         Result.Has_Target := True;
+         Result.Target := FT.To_UString (Get (Value, "target"));
+      end if;
+      if Has_Field (Value, "access_role")
+        and then Get (Value, "access_role").Kind = JSON_String_Type
+      then
+         Result.Has_Access_Role := True;
+         Result.Access_Role := FT.To_UString (Get (Value, "access_role"));
+      end if;
+      if Has_Field (Value, "unconstrained")
+        and then Get (Value, "unconstrained").Kind = JSON_Boolean_Type
+      then
+         Result.Unconstrained := Get (Get (Value, "unconstrained"));
+      end if;
+      if Has_Field (Value, "not_null")
+        and then Get (Value, "not_null").Kind = JSON_Boolean_Type
+      then
+         Result.Not_Null := Get (Get (Value, "not_null"));
+      end if;
+      if Has_Field (Value, "anonymous")
+        and then Get (Value, "anonymous").Kind = JSON_Boolean_Type
+      then
+         Result.Anonymous := Get (Get (Value, "anonymous"));
+      end if;
+      if Has_Field (Value, "is_constant")
+        and then Get (Value, "is_constant").Kind = JSON_Boolean_Type
+      then
+         Result.Is_Constant := Get (Get (Value, "is_constant"));
+      end if;
+      if Has_Field (Value, "is_all")
+        and then Get (Value, "is_all").Kind = JSON_Boolean_Type
+      then
+         Result.Is_All := Get (Get (Value, "is_all"));
+      end if;
+
+      declare
+         Index_Types : constant JSON_Array := Json_Array_Or_Empty (Value, "index_types");
+      begin
+         for Index in 1 .. Length (Index_Types) loop
+            declare
+               Item : constant JSON_Value := Get (Index_Types, Index);
+            begin
+               if Item.Kind = JSON_String_Type then
+                  Result.Index_Types.Append (FT.To_UString (Get (Item)));
+               end if;
+            end;
+         end loop;
+      end;
+
+      if Has_Field (Value, "fields")
+        and then Get (Value, "fields").Kind = JSON_Object_Type
+      then
+         Map_JSON_Object (Get (Value, "fields"), Append_Field'Access);
+      end if;
+
+      return Result;
+   end Parse_Type;
+
+   function Parse_Ownership_Effect
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Ownership_Effect_Kind
+   is
+      use GNATCOLL.JSON;
+   begin
+      if Value.Kind /= JSON_String_Type then
+         return GM.Ownership_Invalid;
+      end if;
+
+      declare
+         Name : constant String := Get (Value);
+      begin
+         if Name = "None" then
+            return GM.Ownership_None;
+         elsif Name = "Move" then
+            return GM.Ownership_Move;
+         elsif Name = "Borrow" then
+            return GM.Ownership_Borrow;
+         elsif Name = "Observe" then
+            return GM.Ownership_Observe;
+         end if;
+      end;
+      return GM.Ownership_Invalid;
+   end Parse_Ownership_Effect;
+
+   function Flatten_Name
+     (Value : GNATCOLL.JSON.JSON_Value) return String
+   is
+      use GNATCOLL.JSON;
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return "";
+      end if;
+
+      if Has_Field (Value, "tag")
+        and then Get (Value, "tag").Kind = JSON_String_Type
+      then
+         declare
+            Tag : constant String := Get (Value, "tag");
+         begin
+            if Tag = "ident"
+              and then Has_Field (Value, "name")
+              and then Get (Value, "name").Kind = JSON_String_Type
+            then
+               return Get (Value, "name");
+            elsif Tag = "select"
+              and then Has_Field (Value, "selector")
+              and then Get (Value, "selector").Kind = JSON_String_Type
+            then
+               return Flatten_Name (Field_Or_Null (Value, "prefix")) & "." & Get (Value, "selector");
+            end if;
+         end;
+      end if;
+      return "";
+   end Flatten_Name;
+
+   function Parse_Expr
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Expr_Access
+   is
+      use GNATCOLL.JSON;
+      Result : constant GM.Expr_Access := new GM.Expr_Node;
+      Tag       : FT.UString := FT.To_UString ("");
+      Kind_Name : FT.UString := FT.To_UString ("");
+
+      procedure Parse_Expr_List
+        (Items  : JSON_Array;
+         Target : in out GM.Expr_Access_Vectors.Vector) is
+      begin
+         for Index in 1 .. Length (Items) loop
+            Target.Append (Parse_Expr (Get (Items, Index)));
+         end loop;
+      end Parse_Expr_List;
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      if Has_Field (Value, "type") and then Get (Value, "type").Kind = JSON_String_Type then
+         Result.Type_Name := FT.To_UString (Get (Value, "type"));
+      end if;
+      if Has_Field (Value, "tag") and then Get (Value, "tag").Kind = JSON_String_Type then
+         Tag := FT.To_UString (Get (Value, "tag"));
+      end if;
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Kind_Name := FT.To_UString (Get (Value, "kind"));
+      end if;
+
+      if FT.To_String (Tag) = "int"
+        or else
+          (FT.To_String (Tag) = "literal"
+           and then FT.To_String (Kind_Name) = "int_literal")
+      then
+         Result.Kind := GM.Expr_Int;
+         if Has_Field (Value, "text") and then Get (Value, "text").Kind = JSON_String_Type then
+            Result.Text := FT.To_UString (Get (Value, "text"));
+         end if;
+         if Has_Field (Value, "value") and then Get (Value, "value").Kind = JSON_Int_Type then
+            Result.Int_Value := Get (Get (Value, "value"));
+         end if;
+      elsif FT.To_String (Tag) = "bool"
+        or else
+          (FT.To_String (Tag) = "literal"
+           and then FT.To_String (Kind_Name) = "bool_literal")
+      then
+         Result.Kind := GM.Expr_Bool;
+         if Has_Field (Value, "value") and then Get (Value, "value").Kind = JSON_Boolean_Type then
+            Result.Bool_Value := Get (Get (Value, "value"));
+         end if;
+      elsif FT.To_String (Tag) = "null"
+        or else FT.To_String (Kind_Name) = "null_literal"
+      then
+         Result.Kind := GM.Expr_Null;
+      elsif FT.To_String (Tag) = "ident" then
+         Result.Kind := GM.Expr_Ident;
+         if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
+            Result.Name := FT.To_UString (Get (Value, "name"));
+         end if;
+      elsif FT.To_String (Tag) = "select" then
+         Result.Kind := GM.Expr_Select;
+         Result.Prefix := Parse_Expr (Field_Or_Null (Value, "prefix"));
+         if Has_Field (Value, "selector")
+           and then Get (Value, "selector").Kind = JSON_String_Type
+         then
+            Result.Selector := FT.To_UString (Get (Value, "selector"));
+         end if;
+      elsif FT.To_String (Tag) = "resolved_index" then
+         Result.Kind := GM.Expr_Resolved_Index;
+         Result.Prefix := Parse_Expr (Field_Or_Null (Value, "prefix"));
+         Parse_Expr_List (Json_Array_Or_Empty (Value, "indices"), Result.Indices);
+      elsif FT.To_String (Tag) = "conversion" then
+         Result.Kind := GM.Expr_Conversion;
+         if Has_Field (Value, "target") then
+            Result.Name := FT.To_UString (Flatten_Name (Get (Value, "target")));
+         end if;
+         Result.Inner := Parse_Expr (Field_Or_Null (Value, "expr"));
+      elsif FT.To_String (Tag) = "call" then
+         Result.Kind := GM.Expr_Call;
+         Result.Callee := Parse_Expr (Field_Or_Null (Value, "callee"));
+         Parse_Expr_List (Json_Array_Or_Empty (Value, "args"), Result.Args);
+         if Has_Field (Value, "call_span")
+           and then Get (Value, "call_span").Kind = JSON_Object_Type
+         then
+            Result.Has_Call_Span := True;
+            Result.Call_Span := Parse_Span (Get (Value, "call_span"));
+         end if;
+      elsif FT.To_String (Tag) = "allocator" then
+         Result.Kind := GM.Expr_Allocator;
+         Result.Value := Parse_Expr (Field_Or_Null (Value, "value"));
+      elsif FT.To_String (Tag) = "aggregate" then
+         Result.Kind := GM.Expr_Aggregate;
+         declare
+            Items : constant JSON_Array := Json_Array_Or_Empty (Value, "fields");
+         begin
+            for Index in 1 .. Length (Items) loop
+               declare
+                  Item  : constant JSON_Value := Get (Items, Index);
+                  Field : GM.Aggregate_Field;
+               begin
+                  if Item.Kind = JSON_Object_Type then
+                     if Has_Field (Item, "field")
+                       and then Get (Item, "field").Kind = JSON_String_Type
+                     then
+                        Field.Field := FT.To_UString (Get (Item, "field"));
+                     end if;
+                     Field.Expr :=
+                       Parse_Expr
+                         (Field_Or_Null (Item, "expr"));
+                     Field.Span := Parse_Span (Field_Or_Null (Item, "span"));
+                     Result.Fields.Append (Field);
+                  end if;
+               end;
+            end loop;
+         end;
+      elsif FT.To_String (Tag) = "annotated" then
+         Result.Kind := GM.Expr_Annotated;
+         if Has_Field (Value, "subtype") then
+            declare
+               Subtype_Value : constant JSON_Value := Get (Value, "subtype");
+            begin
+               if Subtype_Value.Kind = JSON_Object_Type then
+                  Result.Subtype_Name := FT.To_UString (Flatten_Name (Subtype_Value));
+               elsif Subtype_Value.Kind = JSON_String_Type then
+                  Result.Subtype_Name := FT.To_UString (Get (Subtype_Value));
+               end if;
+            end;
+         end if;
+         if Has_Field (Value, "expr") then
+            Result.Inner := Parse_Expr (Get (Value, "expr"));
+         else
+            Result.Inner := Parse_Expr (Field_Or_Null (Value, "value"));
+         end if;
+      elsif FT.To_String (Tag) = "unary" then
+         Result.Kind := GM.Expr_Unary;
+         if Has_Field (Value, "op") and then Get (Value, "op").Kind = JSON_String_Type then
+            Result.Operator := FT.To_UString (Get (Value, "op"));
+         end if;
+         Result.Inner := Parse_Expr (Field_Or_Null (Value, "expr"));
+      elsif FT.To_String (Tag) = "binary" then
+         Result.Kind := GM.Expr_Binary;
+         if Has_Field (Value, "op") and then Get (Value, "op").Kind = JSON_String_Type then
+            Result.Operator := FT.To_UString (Get (Value, "op"));
+         end if;
+         Result.Left := Parse_Expr (Field_Or_Null (Value, "left"));
+         Result.Right := Parse_Expr (Field_Or_Null (Value, "right"));
+      end if;
+
+      return Result;
+   end Parse_Expr;
+
+   function Parse_Local
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Local_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Local_Entry;
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "id") and then Get (Value, "id").Kind = JSON_String_Type then
+         Result.Id := FT.To_UString (Get (Value, "id"));
+      end if;
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Result.Kind := FT.To_UString (Get (Value, "kind"));
+      end if;
+      if Has_Field (Value, "mode") and then Get (Value, "mode").Kind = JSON_String_Type then
+         Result.Mode := FT.To_UString (Get (Value, "mode"));
+      end if;
+      if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
+         Result.Name := FT.To_UString (Get (Value, "name"));
+      end if;
+      if Has_Field (Value, "ownership_role")
+        and then Get (Value, "ownership_role").Kind = JSON_String_Type
+      then
+         Result.Ownership_Role := FT.To_UString (Get (Value, "ownership_role"));
+      end if;
+      if Has_Field (Value, "scope_id")
+        and then Get (Value, "scope_id").Kind = JSON_String_Type
+      then
+         Result.Scope_Id := FT.To_UString (Get (Value, "scope_id"));
+      end if;
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      Result.Type_Info := Parse_Type (Field_Or_Null (Value, "type"));
+      return Result;
+   end Parse_Local;
+
+   function Parse_Scope
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Scope_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Scope_Entry;
+      Local_Ids    : constant JSON_Array := Json_Array_Or_Empty (Value, "local_ids");
+      Exit_Blocks  : constant JSON_Array := Json_Array_Or_Empty (Value, "exit_blocks");
+      Parent_Value : constant JSON_Value := Field_Or_Null (Value, "parent_scope_id");
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "id") and then Get (Value, "id").Kind = JSON_String_Type then
+         Result.Id := FT.To_UString (Get (Value, "id"));
+      end if;
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Result.Kind := FT.To_UString (Get (Value, "kind"));
+      end if;
+      if Has_Field (Value, "entry_block")
+        and then Get (Value, "entry_block").Kind = JSON_String_Type
+      then
+         Result.Entry_Block := FT.To_UString (Get (Value, "entry_block"));
+      end if;
+      if Parent_Value.Kind = JSON_String_Type then
+         Result.Has_Parent_Scope := True;
+         Result.Parent_Scope_Id := FT.To_UString (Get (Parent_Value));
+      end if;
+
+      for Index in 1 .. Length (Local_Ids) loop
+         declare
+            Item : constant JSON_Value := Get (Local_Ids, Index);
+         begin
+            if Item.Kind = JSON_String_Type then
+               Result.Local_Ids.Append (FT.To_UString (Get (Item)));
+            end if;
+         end;
+      end loop;
+      for Index in 1 .. Length (Exit_Blocks) loop
+         declare
+            Item : constant JSON_Value := Get (Exit_Blocks, Index);
+         begin
+            if Item.Kind = JSON_String_Type then
+               Result.Exit_Blocks.Append (FT.To_UString (Get (Item)));
+            end if;
+         end;
+      end loop;
+      return Result;
+   end Parse_Scope;
+
+   function Parse_Op
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Op_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Op_Entry;
+      Locals : constant JSON_Array := Json_Array_Or_Empty (Value, "locals");
+      Name   : FT.UString := FT.To_UString ("");
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Name := FT.To_UString (Get (Value, "kind"));
+      end if;
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      Result.Ownership_Effect := Parse_Ownership_Effect (Field_Or_Null (Value, "ownership_effect"));
+
+      if FT.To_String (Name) = "scope_enter" then
+         Result.Kind := GM.Op_Scope_Enter;
+      elsif FT.To_String (Name) = "scope_exit" then
+         Result.Kind := GM.Op_Scope_Exit;
+      elsif FT.To_String (Name) = "assign" then
+         Result.Kind := GM.Op_Assign;
+      elsif FT.To_String (Name) = "call" then
+         Result.Kind := GM.Op_Call;
+      else
+         Result.Kind := GM.Op_Unknown;
+      end if;
+
+      if Has_Field (Value, "type") and then Get (Value, "type").Kind = JSON_String_Type then
+         Result.Type_Name := FT.To_UString (Get (Value, "type"));
+      end if;
+      if Has_Field (Value, "scope_id")
+        and then Get (Value, "scope_id").Kind = JSON_String_Type
+      then
+         Result.Scope_Id := FT.To_UString (Get (Value, "scope_id"));
+      end if;
+      if Has_Field (Value, "declaration_init")
+        and then Get (Value, "declaration_init").Kind = JSON_Boolean_Type
+      then
+         Result.Has_Declaration_Init := True;
+         Result.Declaration_Init_Valid := True;
+         Result.Declaration_Init := Get (Get (Value, "declaration_init"));
+      elsif Has_Field (Value, "declaration_init") then
+         Result.Has_Declaration_Init := True;
+      end if;
+
+      for Index in 1 .. Length (Locals) loop
+         declare
+            Item : constant JSON_Value := Get (Locals, Index);
+         begin
+            if Item.Kind = JSON_String_Type then
+               Result.Locals.Append (FT.To_UString (Get (Item)));
+            end if;
+         end;
+      end loop;
+
+      Result.Target := Parse_Expr (Field_Or_Null (Value, "target"));
+      Result.Value := Parse_Expr (Field_Or_Null (Value, "value"));
+      return Result;
+   end Parse_Op;
+
+   function Parse_Terminator
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Terminator_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Terminator_Entry;
+      Name   : FT.UString := FT.To_UString ("");
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Name := FT.To_UString (Get (Value, "kind"));
+      end if;
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      Result.Ownership_Effect := Parse_Ownership_Effect (Field_Or_Null (Value, "ownership_effect"));
+
+      if FT.To_String (Name) = "jump" then
+         Result.Kind := GM.Terminator_Jump;
+      elsif FT.To_String (Name) = "branch" then
+         Result.Kind := GM.Terminator_Branch;
+      elsif FT.To_String (Name) = "return" then
+         Result.Kind := GM.Terminator_Return;
+      else
+         Result.Kind := GM.Terminator_Unknown;
+      end if;
+
+      if Has_Field (Value, "target") and then Get (Value, "target").Kind = JSON_String_Type then
+         Result.Target := FT.To_UString (Get (Value, "target"));
+      end if;
+      if Has_Field (Value, "true_target")
+        and then Get (Value, "true_target").Kind = JSON_String_Type
+      then
+         Result.True_Target := FT.To_UString (Get (Value, "true_target"));
+      end if;
+      if Has_Field (Value, "false_target")
+        and then Get (Value, "false_target").Kind = JSON_String_Type
+      then
+         Result.False_Target := FT.To_UString (Get (Value, "false_target"));
+      end if;
+
+      Result.Condition := Parse_Expr (Field_Or_Null (Value, "condition"));
+      if Has_Field (Value, "value")
+        and then Get (Value, "value").Kind /= JSON_Null_Type
+      then
+         Result.Has_Value := True;
+         Result.Value := Parse_Expr (Get (Value, "value"));
+      end if;
+      return Result;
+   end Parse_Terminator;
+
+   function Parse_Block
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Block_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Block_Entry;
+      Ops    : constant JSON_Array := Json_Array_Or_Empty (Value, "ops");
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "id") and then Get (Value, "id").Kind = JSON_String_Type then
+         Result.Id := FT.To_UString (Get (Value, "id"));
+      end if;
+      if Has_Field (Value, "active_scope_id")
+        and then Get (Value, "active_scope_id").Kind = JSON_String_Type
+      then
+         Result.Active_Scope_Id := FT.To_UString (Get (Value, "active_scope_id"));
+      end if;
+      if Has_Field (Value, "role") and then Get (Value, "role").Kind = JSON_String_Type then
+         Result.Role := FT.To_UString (Get (Value, "role"));
+      end if;
+      if Has_Field (Value, "loop")
+        and then Get (Value, "loop").Kind = JSON_Object_Type
+      then
+         declare
+            Loop_Value : constant JSON_Value := Get (Value, "loop");
+         begin
+            Result.Has_Loop_Info := True;
+            if Has_Field (Loop_Value, "kind")
+              and then Get (Loop_Value, "kind").Kind = JSON_String_Type
+            then
+               Result.Loop_Kind := FT.To_UString (Get (Loop_Value, "kind"));
+            end if;
+            if Has_Field (Loop_Value, "loop_var")
+              and then Get (Loop_Value, "loop_var").Kind = JSON_String_Type
+            then
+               Result.Loop_Var := FT.To_UString (Get (Loop_Value, "loop_var"));
+            end if;
+            if Has_Field (Loop_Value, "exit_target")
+              and then Get (Loop_Value, "exit_target").Kind = JSON_String_Type
+            then
+               Result.Loop_Exit_Target := FT.To_UString (Get (Loop_Value, "exit_target"));
+            end if;
+         end;
+      end if;
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      for Index in 1 .. Length (Ops) loop
+         Result.Ops.Append (Parse_Op (Get (Ops, Index)));
+      end loop;
+      Result.Terminator := Parse_Terminator (Field_Or_Null (Value, "terminator"));
+      return Result;
+   end Parse_Block;
+
+   function Parse_Graph
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Graph_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Graph_Entry;
+      Locals : constant JSON_Array := Json_Array_Or_Empty (Value, "locals");
+      Scopes : constant JSON_Array := Json_Array_Or_Empty (Value, "scopes");
+      Blocks : constant JSON_Array := Json_Array_Or_Empty (Value, "blocks");
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
+         Result.Name := FT.To_UString (Get (Value, "name"));
+      end if;
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Result.Kind := FT.To_UString (Get (Value, "kind"));
+      end if;
+      if Has_Field (Value, "entry_bb")
+        and then Get (Value, "entry_bb").Kind = JSON_String_Type
+      then
+         Result.Entry_BB := FT.To_UString (Get (Value, "entry_bb"));
+      end if;
+      if Has_Field (Value, "span") and then Get (Value, "span").Kind = JSON_Object_Type then
+         Result.Has_Span := True;
+         Result.Span := Parse_Span (Get (Value, "span"));
+      end if;
+      if Has_Field (Value, "return_type") then
+         Result.Has_Return_Type := Get (Value, "return_type").Kind /= JSON_Null_Type;
+         if Result.Has_Return_Type then
+            Result.Return_Type := Parse_Type (Get (Value, "return_type"));
+         end if;
+      end if;
+
+      for Index in 1 .. Length (Locals) loop
+         Result.Locals.Append (Parse_Local (Get (Locals, Index)));
+      end loop;
+      for Index in 1 .. Length (Scopes) loop
+         Result.Scopes.Append (Parse_Scope (Get (Scopes, Index)));
+      end loop;
+      for Index in 1 .. Length (Blocks) loop
+         Result.Blocks.Append (Parse_Block (Get (Blocks, Index)));
+      end loop;
+      return Result;
+   end Parse_Graph;
+
    function Load_File (Path : String) return Load_Result is
       use GNATCOLL.JSON;
 
-      Parsed  : constant Read_Result := Read_File (Path);
-      Root    : JSON_Value;
-      Format  : JSON_Value;
-      Kind    : GM.Mir_Format_Kind;
+      Parsed : constant Read_Result := Read_File (Path);
+      Root   : JSON_Value;
+      Format : JSON_Value;
+      Kind   : GM.Mir_Format_Kind;
+      Result : GM.Mir_Document;
+      Types  : JSON_Array;
+      Graphs : JSON_Array;
    begin
       if not Parsed.Success then
          return
@@ -59,8 +788,31 @@ package body Safe_Frontend.Mir_Json is
          end if;
       end;
 
-      return
-        (Success  => True,
-         Document => (Format => Kind, Root => Root));
+      Result.Path := FT.To_UString (Path);
+      Result.Format := Kind;
+      Result.Root := Root;
+      if Has_Field (Root, "package_name")
+        and then Get (Root, "package_name").Kind = JSON_String_Type
+      then
+         Result.Package_Name := FT.To_UString (Get (Root, "package_name"));
+      end if;
+      if Has_Field (Root, "source_path")
+        and then Get (Root, "source_path").Kind = JSON_String_Type
+      then
+         Result.Has_Source_Path := True;
+         Result.Source_Path := FT.To_UString (Get (Root, "source_path"));
+      end if;
+
+      Types := Json_Array_Or_Empty (Root, "types");
+      for Index in 1 .. Length (Types) loop
+         Result.Types.Append (Parse_Type (Get (Types, Index)));
+      end loop;
+
+      Graphs := Json_Array_Or_Empty (Root, "graphs");
+      for Index in 1 .. Length (Graphs) loop
+         Result.Graphs.Append (Parse_Graph (Get (Graphs, Index)));
+      end loop;
+
+      return (Success => True, Document => Result);
    end Load_File;
 end Safe_Frontend.Mir_Json;

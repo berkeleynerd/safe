@@ -9,6 +9,86 @@ package body Safe_Frontend.Mir_Model is
       end case;
    end Image;
 
+   function Image (Item : Ownership_Effect_Kind) return String is
+   begin
+      case Item is
+         when Ownership_Invalid =>
+            return "<invalid>";
+         when Ownership_None =>
+            return "None";
+         when Ownership_Move =>
+            return "Move";
+         when Ownership_Borrow =>
+            return "Borrow";
+         when Ownership_Observe =>
+            return "Observe";
+      end case;
+   end Image;
+
+   function Image (Item : Expr_Kind) return String is
+   begin
+      case Item is
+         when Expr_Unknown =>
+            return "<unknown>";
+         when Expr_Int =>
+            return "int";
+         when Expr_Bool =>
+            return "bool";
+         when Expr_Null =>
+            return "null";
+         when Expr_Ident =>
+            return "ident";
+         when Expr_Select =>
+            return "select";
+         when Expr_Resolved_Index =>
+            return "resolved_index";
+         when Expr_Conversion =>
+            return "conversion";
+         when Expr_Call =>
+            return "call";
+         when Expr_Allocator =>
+            return "allocator";
+         when Expr_Aggregate =>
+            return "aggregate";
+         when Expr_Annotated =>
+            return "annotated";
+         when Expr_Unary =>
+            return "unary";
+         when Expr_Binary =>
+            return "binary";
+      end case;
+   end Image;
+
+   function Image (Item : Op_Kind) return String is
+   begin
+      case Item is
+         when Op_Unknown =>
+            return "<unknown>";
+         when Op_Scope_Enter =>
+            return "scope_enter";
+         when Op_Scope_Exit =>
+            return "scope_exit";
+         when Op_Assign =>
+            return "assign";
+         when Op_Call =>
+            return "call";
+      end case;
+   end Image;
+
+   function Image (Item : Terminator_Kind) return String is
+   begin
+      case Item is
+         when Terminator_Unknown =>
+            return "<unknown>";
+         when Terminator_Jump =>
+            return "jump";
+         when Terminator_Branch =>
+            return "branch";
+         when Terminator_Return =>
+            return "return";
+      end case;
+   end Image;
+
    function Ok return Validation_Result is
    begin
       return (Success => True);
