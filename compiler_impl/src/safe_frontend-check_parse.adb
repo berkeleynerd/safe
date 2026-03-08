@@ -820,9 +820,21 @@ package body Safe_Frontend.Check_Parse is
          Advance (State);
          Result.Kind := CM.Expr_Int;
          Result.Text := Token.Lexeme;
-         Result.Int_Value :=
-           CM.Wide_Integer'Value
-             (FT.To_String (Token.Lexeme));
+         begin
+            Result.Int_Value :=
+              CM.Wide_Integer'Value
+                (FT.To_String (Token.Lexeme));
+         exception
+            when Constraint_Error =>
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Token.Span,
+                     Message => "integer literal is out of range",
+                     Note    =>
+                       "literal `" & FT.To_String (Token.Lexeme)
+                       & "` cannot be represented"));
+         end;
          Result.Span := Token.Span;
          return Result;
       elsif Token.Kind = FL.Real_Literal then

@@ -267,6 +267,53 @@
         "stdout": ""
       },
       "source": "$TMPDIR/package_end_mismatch.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "$TMPDIR/oversized_integer_literal.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"integer literal is out of range\",\"path\":\"$TMPDIR/oversized_integer_literal.safe\",\"span\":{\"start_line\":2,\"start_col\":22,\"end_line\":2,\"end_col\":60},\"highlight_span\":null,\"notes\":[\"literal `999999999999999999999999999999999999999` cannot be represented\"],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": null,
+            "message": "integer literal is out of range",
+            "notes": [
+              "literal `999999999999999999999999999999999999999` cannot be represented"
+            ],
+            "path": "$TMPDIR/oversized_integer_literal.safe",
+            "reason": "source_frontend_error",
+            "span": {
+              "end_col": 60,
+              "end_line": 2,
+              "start_col": 22,
+              "start_line": 2
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "$TMPDIR/oversized_integer_literal.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "oversized_integer_literal.safe:2:22: error: integer literal is out of range\n  |\n  | 2 |    Value : Integer = 999999999999999999999999999999999999999;\n  |   |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n  note: literal `999999999999999999999999999999999999999` cannot be represented\n",
+        "stdout": ""
+      },
+      "source": "$TMPDIR/oversized_integer_literal.safe"
     }
   ],
   "tool_versions": {

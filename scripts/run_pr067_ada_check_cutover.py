@@ -201,52 +201,69 @@ def make_masked_env(real_python: str, temp_root: Path, *, mode: str) -> tuple[di
 
 
 def run_source_frontend_checks(safec: Path, env: dict[str, str], temp_root: Path) -> list[dict[str, Any]]:
-    source = temp_root / "package_end_mismatch.safe"
-    source.write_text(
-        "package Package_End_Mismatch is\n"
-        "end Different_Name;\n",
-        encoding="utf-8",
-    )
-
-    diag_json = run(
-        [str(safec), "check", "--diag-json", str(source)],
-        cwd=REPO_ROOT,
-        env=env,
-        temp_root=temp_root,
-        expected_returncode=1,
-    )
-    payload = read_diag_json(diag_json["stdout"], str(source))
-    require(payload["diagnostics"], f"{source}: expected at least one diagnostic")
-    require(
-        payload["diagnostics"][0]["reason"] == "source_frontend_error",
-        f"{source}: expected source_frontend_error",
-    )
-    require(
-        payload["diagnostics"][0]["path"] == normalize_text(str(source), temp_root=temp_root),
-        f"{source}: expected diagnostics path to preserve CLI path",
-    )
-
-    human = run(
-        [str(safec), "check", str(source)],
-        cwd=REPO_ROOT,
-        env=env,
-        temp_root=temp_root,
-        expected_returncode=1,
-    )
-    require(source.name in human["stderr"], f"{source}: expected basename in stderr")
-    require(
-        "package end name must match declared package name" in human["stderr"],
-        f"{source}: expected package end-name mismatch message",
-    )
-
-    return [
+    cases = [
         {
-            "source": "$TMPDIR/package_end_mismatch.safe",
-            "diag_json": diag_json,
-            "diagnostics": payload,
-            "human": human,
-        }
+            "name": "package_end_mismatch.safe",
+            "text": "package Package_End_Mismatch is\nend Different_Name;\n",
+            "message": "package end name must match declared package name",
+        },
+        {
+            "name": "oversized_integer_literal.safe",
+            "text": (
+                "package Oversized_Integer_Literal is\n"
+                "   Value : Integer = 999999999999999999999999999999999999999;\n"
+                "end Oversized_Integer_Literal;\n"
+            ),
+            "message": "integer literal is out of range",
+        },
     ]
+    results: list[dict[str, Any]] = []
+
+    for case in cases:
+        source = temp_root / case["name"]
+        source.write_text(case["text"], encoding="utf-8")
+
+        diag_json = run(
+            [str(safec), "check", "--diag-json", str(source)],
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+            expected_returncode=1,
+        )
+        payload = read_diag_json(diag_json["stdout"], str(source))
+        require(payload["diagnostics"], f"{source}: expected at least one diagnostic")
+        require(
+            payload["diagnostics"][0]["reason"] == "source_frontend_error",
+            f"{source}: expected source_frontend_error",
+        )
+        require(
+            payload["diagnostics"][0]["path"] == normalize_text(str(source), temp_root=temp_root),
+            f"{source}: expected diagnostics path to preserve CLI path",
+        )
+
+        human = run(
+            [str(safec), "check", str(source)],
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+            expected_returncode=1,
+        )
+        require(source.name in human["stderr"], f"{source}: expected basename in stderr")
+        require(
+            case["message"] in human["stderr"],
+            f"{source}: expected {case['message']!r} in stderr",
+        )
+
+        results.append(
+            {
+                "source": f"$TMPDIR/{case['name']}",
+                "diag_json": diag_json,
+                "diagnostics": payload,
+                "human": human,
+            }
+        )
+
+    return results
 
 
 def run_direct_checks(safec: Path, env: dict[str, str], temp_root: Path) -> list[dict[str, Any]]:
