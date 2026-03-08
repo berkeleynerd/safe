@@ -46,17 +46,18 @@ package Try_Send_Ownership is
    end Sender;
 
    --  Receiver: receives payloads, takes ownership.
+   --  Item is declared inside the loop body so that each iteration starts
+   --  with a fresh null variable (§2.3.2 paragraph 97c conforming pattern).
+   --  Scope-exit deallocation fires at the end of each iteration.
    task Receiver is
-      Item : Payload_Ptr = null;
    begin
       loop
+         Item : Payload_Ptr;
          receive Data_Ch, Item;
          --  Item is now owned by this task.
          if Item != null then
             Item.all.Value = 0;  -- process
          end if;
-         --  Item goes out of scope at end of loop iteration;
-         --  auto-deallocation reclaims storage.
       end loop;
    end Receiver;
 
