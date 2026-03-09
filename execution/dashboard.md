@@ -3,8 +3,8 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR06.9.2`
-- **Updated at:** `2026-03-09T03:20:00Z`
+- **Next task:** `PR06.9.3`
+- **Updated at:** `2026-03-09T12:50:45Z`
 
 ## Repo Facts
 
@@ -31,7 +31,7 @@
 | PR06.7 | done | PR06.6 | 1 |
 | PR06.8 | done | PR06.7 | 2 |
 | PR06.9.1 | done | PR06.8 | 1 |
-| PR06.9.2 | planned | PR06.9.1 | 0 |
+| PR06.9.2 | done | PR06.9.1 | 1 |
 | PR06.9.3 | planned | PR06.9.2 | 0 |
 | PR06.9.4 | planned | PR06.9.3 | 0 |
 | PR06.9.5 | planned | PR06.9.4 | 0 |
@@ -237,13 +237,15 @@
 
 ### PR06.9.2 — Lowering and CFG integrity hardening
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR06.9.1
 - **Blockers:** none
 - **Acceptance:**
   - Lowering preserves declared types, declaration-init semantics, scope structure, and package-global visibility into MIR.
   - Reachable blocks are always terminated, and any unreachable structural patching is explicit and regression-covered.
   - Direct emit, check, and analyze-mir gates enforce CFG and lowering invariants beyond schema validity.
+- **Evidence:**
+  - `execution/reports/pr0692-lowering-cfg-integrity-report.json`
 
 ### PR06.9.3 — Runtime-boundary enforcement hardening
 

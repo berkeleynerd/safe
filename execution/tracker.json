@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-09T03:20:00Z",
+  "updated_at": "2026-03-09T12:50:45Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR06.9.2",
+  "next_task_id": "PR06.9.3",
   "repo_facts": {
     "tests": {
       "positive": 35,
@@ -251,14 +251,16 @@
     {
       "id": "PR06.9.2",
       "title": "Lowering and CFG integrity hardening",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR06.9.1"],
       "acceptance": [
         "Lowering preserves declared types, declaration-init semantics, scope structure, and package-global visibility into MIR.",
         "Reachable blocks are always terminated, and any unreachable structural patching is explicit and regression-covered.",
         "Direct emit, check, and analyze-mir gates enforce CFG and lowering invariants beyond schema validity."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr0692-lowering-cfg-integrity-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

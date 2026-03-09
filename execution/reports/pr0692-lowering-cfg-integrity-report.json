@@ -1,0 +1,1096 @@
+{
+  "inputs": {
+    "corpus_cases": [
+      "tests/positive/rule2_binary_search.safe",
+      "tests/positive/rule4_conditional.safe",
+      "tests/positive/ownership_inout.safe"
+    ],
+    "inline_cases": [
+      "$TMPDIR/package_global_owner.safe",
+      "$TMPDIR/package_global_observe.safe",
+      "$TMPDIR/package_global_record.safe",
+      "$TMPDIR/package_global_array.safe",
+      "$TMPDIR/nested_declare_scope.safe",
+      "$TMPDIR/for_loop_scope.safe",
+      "$TMPDIR/if_return_cfg.safe",
+      "$TMPDIR/while_and_then_cfg.safe"
+    ]
+  },
+  "results": {
+    "corpus_cases": {
+      "tests/positive/ownership_inout.safe": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/ownership_inout-emit/out/ownership_inout.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/positive/ownership_inout.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/positive/ownership_inout.safe",
+            "--out-dir",
+            "$TMPDIR/ownership_inout-emit/out",
+            "--interface-dir",
+            "$TMPDIR/ownership_inout-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Consume",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          },
+          {
+            "graph": "Use_Inout",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$REPO_ROOT/tests/positive/ownership_inout.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/ownership_inout-emit/out/ownership_inout.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/ownership_inout-emit/out/ownership_inout.mir.json)\n"
+        }
+      },
+      "tests/positive/rule2_binary_search.safe": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/rule2_binary_search-emit/out/rule2_binary_search.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/positive/rule2_binary_search.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/positive/rule2_binary_search.safe",
+            "--out-dir",
+            "$TMPDIR/rule2_binary_search-emit/out",
+            "--interface-dir",
+            "$TMPDIR/rule2_binary_search-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Search",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb10",
+              "bb11",
+              "bb12",
+              "bb13",
+              "bb14",
+              "bb15",
+              "bb2",
+              "bb3",
+              "bb4",
+              "bb5",
+              "bb6",
+              "bb7",
+              "bb8",
+              "bb9"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb4",
+                  "bb10",
+                  "bb13",
+                  "bb3"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0",
+                  "v1",
+                  "v2",
+                  "v3",
+                  "v4",
+                  "v5"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$REPO_ROOT/tests/positive/rule2_binary_search.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/rule2_binary_search-emit/out/rule2_binary_search.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/rule2_binary_search-emit/out/rule2_binary_search.mir.json)\n"
+        }
+      },
+      "tests/positive/rule4_conditional.safe": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/rule4_conditional-emit/out/rule4_conditional.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/positive/rule4_conditional.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/positive/rule4_conditional.safe",
+            "--out-dir",
+            "$TMPDIR/rule4_conditional-emit/out",
+            "--interface-dir",
+            "$TMPDIR/rule4_conditional-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Max_Of_Two",
+            "patched_dead_blocks": [
+              "bb3",
+              "bb7",
+              "bb10",
+              "bb13"
+            ],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb11",
+              "bb12",
+              "bb2",
+              "bb4",
+              "bb5",
+              "bb6",
+              "bb8",
+              "bb9"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb5",
+                  "bb6",
+                  "bb8",
+                  "bb11",
+                  "bb12"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0",
+                  "v1"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$REPO_ROOT/tests/positive/rule4_conditional.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/rule4_conditional-emit/out/rule4_conditional.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/rule4_conditional-emit/out/rule4_conditional.mir.json)\n"
+        }
+      }
+    },
+    "inline_cases": {
+      "for_loop_scope": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/for_loop_scope-emit/out/for_loop_scope.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "loop_assign_count": 2,
+          "loop_scope_exit_block": "bb5"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/for_loop_scope.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/for_loop_scope.safe",
+            "--out-dir",
+            "$TMPDIR/for_loop_scope-emit/out",
+            "--interface-dir",
+            "$TMPDIR/for_loop_scope-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb2",
+              "bb3",
+              "bb4",
+              "bb5"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb5"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              },
+              "scope1": {
+                "entry_block": "bb1",
+                "exit_blocks": [
+                  "bb5"
+                ],
+                "kind": "loop",
+                "local_ids": [
+                  "v1"
+                ],
+                "parent_scope_id": "scope0"
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/for_loop_scope.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/for_loop_scope-emit/out/for_loop_scope.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/for_loop_scope-emit/out/for_loop_scope.mir.json)\n"
+        }
+      },
+      "if_return_cfg": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/if_return_cfg-emit/out/if_return_cfg.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "return_blocks": [
+            "bb1",
+            "bb3"
+          ]
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/if_return_cfg.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/if_return_cfg.safe",
+            "--out-dir",
+            "$TMPDIR/if_return_cfg-emit/out",
+            "--interface-dir",
+            "$TMPDIR/if_return_cfg-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Pick",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb2",
+              "bb3"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb1",
+                  "bb3"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0",
+                  "v1"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/if_return_cfg.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/if_return_cfg-emit/out/if_return_cfg.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/if_return_cfg-emit/out/if_return_cfg.mir.json)\n"
+        }
+      },
+      "nested_declare_scope": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/nested_declare_scope-emit/out/nested_declare_scope.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "inner_scope_exit_block": "bb1"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/nested_declare_scope.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/nested_declare_scope.safe",
+            "--out-dir",
+            "$TMPDIR/nested_declare_scope-emit/out",
+            "--interface-dir",
+            "$TMPDIR/nested_declare_scope-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb1"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              },
+              "scope1": {
+                "entry_block": "bb1",
+                "exit_blocks": [
+                  "bb1"
+                ],
+                "kind": "block",
+                "local_ids": [
+                  "v1",
+                  "v2"
+                ],
+                "parent_scope_id": "scope0"
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/nested_declare_scope.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/nested_declare_scope-emit/out/nested_declare_scope.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/nested_declare_scope-emit/out/nested_declare_scope.mir.json)\n"
+        }
+      },
+      "package_global_array": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_array-emit/out/package_global_array.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "data_local_id": "v0"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/package_global_array.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_array.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_array-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_array-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/package_global_array.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_array-emit/out/package_global_array.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_array-emit/out/package_global_array.mir.json)\n"
+        }
+      },
+      "package_global_observe": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_observe-emit/out/package_global_observe.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "observe_param_id": "v1"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/package_global_observe.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_observe.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_observe-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_observe-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read_Config",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0",
+                  "v1"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          },
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/package_global_observe.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_observe-emit/out/package_global_observe.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_observe-emit/out/package_global_observe.mir.json)\n"
+        }
+      },
+      "package_global_owner": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_owner-emit/out/package_global_owner.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "owner_local_id": "v0"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/package_global_owner.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_owner.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_owner-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_owner-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/package_global_owner.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_owner-emit/out/package_global_owner.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_owner-emit/out/package_global_owner.mir.json)\n"
+        }
+      },
+      "package_global_record": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_record-emit/out/package_global_record.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "current_local_id": "v0"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/package_global_record.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_record.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_record-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_record-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb0"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/package_global_record.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_record-emit/out/package_global_record.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_record-emit/out/package_global_record.mir.json)\n"
+        }
+      },
+      "while_and_then_cfg": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/while_and_then_cfg-emit/out/while_and_then_cfg.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "and_then_rhs": "bb4",
+          "while_header": "bb1"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/while_and_then_cfg.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/while_and_then_cfg.safe",
+            "--out-dir",
+            "$TMPDIR/while_and_then_cfg-emit/out",
+            "--interface-dir",
+            "$TMPDIR/while_and_then_cfg-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb2",
+              "bb3",
+              "bb4"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb3"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0",
+                  "v1"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/while_and_then_cfg.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/while_and_then_cfg-emit/out/while_and_then_cfg.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/while_and_then_cfg-emit/out/while_and_then_cfg.mir.json)\n"
+        }
+      }
+    }
+  },
+  "status": "ok",
+  "task": "PR06.9.2",
+  "tool_versions": {
+    "alr": "alr 2.1.0",
+    "gprbuild": "GPRBUILD 25.0.0",
+    "python3": "Python 3.9.6"
+  }
+}
