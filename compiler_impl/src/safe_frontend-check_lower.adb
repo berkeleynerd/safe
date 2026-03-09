@@ -535,6 +535,27 @@ package body Safe_Frontend.Check_Lower is
       Work.Scopes (Index).Exit_Blocks.Append (FT.To_UString (Block_Id));
    end Register_Scope_Exit;
 
+   procedure Register_Scope_Chain_Exits
+     (Work           : in out Builder;
+      Active_Scope_Id : String;
+      Block_Id       : String) is
+      Current_Id : FT.UString := FT.To_UString (Active_Scope_Id);
+   begin
+      while UString_Value (Current_Id)'Length > 0 loop
+         Register_Scope_Exit (Work, UString_Value (Current_Id), Block_Id);
+         declare
+            Scope_Index : constant Positive := Work.Scope_Map.Element (UString_Value (Current_Id));
+            Scope_Item  : constant GM.Scope_Entry := Work.Scopes (Scope_Index);
+         begin
+            if Scope_Item.Has_Parent_Scope then
+               Current_Id := Scope_Item.Parent_Scope_Id;
+            else
+               exit;
+            end if;
+         end;
+      end loop;
+   end Register_Scope_Chain_Exits;
+
    procedure Set_Loop_Info
      (Work          : in out Builder;
       Block_Id      : String;
@@ -945,6 +966,8 @@ package body Safe_Frontend.Check_Lower is
             Terminator.Ownership_Effect :=
               Ownership_Return_Effect (Stmt.Value, Visible_Types, Type_Env);
             Set_Terminator (Work, UString_Value (Current_Id), Terminator);
+            Register_Scope_Chain_Exits
+              (Work, Current_Scope_Id, UString_Value (Current_Id));
             return Empty_Block_Id;
 
          when CM.Stmt_Block =>
@@ -1366,7 +1389,7 @@ package body Safe_Frontend.Check_Lower is
          for Name of Decl.Names loop
             Visible.Include (UString_Value (Name), Decl.Type_Info);
             declare
-               Ignored_Local_Id : constant FT.UString :=
+               Global_Local_Id : constant FT.UString :=
                  Append_Local
                    (Result.Locals,
                     UString_Value (Name),
@@ -1376,7 +1399,8 @@ package body Safe_Frontend.Check_Lower is
                     Decl.Span,
                     "scope0");
             begin
-               pragma Unreferenced (Ignored_Local_Id);
+               Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+                 (Global_Local_Id);
             end;
          end loop;
       end loop;
@@ -1515,7 +1539,11 @@ package body Safe_Frontend.Check_Lower is
          Terminator.Span := Subprogram.Span;
          Terminator.Ownership_Effect := GM.Ownership_None;
          Set_Terminator (Work, UString_Value (End_Id), Terminator);
-         Register_Scope_Exit (Work, "scope0", UString_Value (End_Id));
+         Register_Scope_Chain_Exits
+           (Work,
+            UString_Value
+              (Work.Blocks (Block_Index (Work, UString_Value (End_Id))).Active_Scope_Id),
+            UString_Value (End_Id));
       end if;
 
       Finalize_Unknown_Terminators (Work, UString_Value (Result.Entry_BB));
