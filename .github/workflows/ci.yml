@@ -345,6 +345,34 @@ jobs:
         working-directory: .
         run: python3 scripts/run_pr0693_runtime_boundary.py
 
+  pr0694-output-contract-stability:
+    name: PR06.9.4 Output Contract Stability
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Build compiler frontend
+        working-directory: .
+        run: cd compiler_impl && alr build
+
+      - name: Run PR06.9.4 output contract stability gate
+        working-directory: .
+        run: python3 scripts/run_pr0694_output_contract_stability.py
+
   spark-verify:
     name: Build & Verify SPARK Companion
     runs-on: ubuntu-latest

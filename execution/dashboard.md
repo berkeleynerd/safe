@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR06.9.4`
+- **Next task:** `PR06.9.5`
 - **Updated at:** `2026-03-09T14:20:40Z`
 
 ## Repo Facts
@@ -33,7 +33,7 @@
 | PR06.9.1 | done | PR06.8 | 1 |
 | PR06.9.2 | done | PR06.9.1 | 1 |
 | PR06.9.3 | done | PR06.9.2 | 1 |
-| PR06.9.4 | planned | PR06.9.3 | 0 |
+| PR06.9.4 | done | PR06.9.3 | 1 |
 | PR06.9.5 | planned | PR06.9.4 | 0 |
 | PR06.9.6 | planned | PR06.9.5 | 0 |
 | PR06.9.7 | planned | PR06.9.6 | 0 |
@@ -261,13 +261,15 @@
 
 ### PR06.9.4 — Output contract stability hardening
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR06.9.3
 - **Blockers:** none
 - **Acceptance:**
   - ast, typed-v2, mir-v2, and safei-v0 remain deterministic and contract-valid on representative samples.
   - Contract drift is caught by dedicated validation and repeated-run comparisons.
   - Artifact ordering, path handling, and format-tag behavior stay stable for current consumers.
+- **Evidence:**
+  - `execution/reports/pr0694-output-contract-stability-report.json`
 
 ### PR06.9.5 — Diagnostic stability hardening
 

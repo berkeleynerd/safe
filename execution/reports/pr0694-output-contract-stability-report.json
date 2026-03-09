@@ -1,0 +1,443 @@
+{
+  "cases": {
+    "corpus": {
+      "ownership_inout": {
+        "emit_runs": [
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "tests/positive/ownership_inout.safe",
+              "--out-dir",
+              "$TMPDIR/ownership_inout-emit-a/out",
+              "--interface-dir",
+              "$TMPDIR/ownership_inout-emit-a/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "tests/positive/ownership_inout.safe",
+              "--out-dir",
+              "$TMPDIR/ownership_inout-emit-b/out",
+              "--interface-dir",
+              "$TMPDIR/ownership_inout-emit-b/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          }
+        ],
+        "file_hashes": {
+          "iface/ownership_inout.safei.json": "90c06376af9c266b89d1f0c0620ff9a9ff32537580b5281d10632f8d7a5cfd75",
+          "out/ownership_inout.ast.json": "b759a0330a959c97de92b65bb40038966c27a4ee712e600be1fe878d73557dd3",
+          "out/ownership_inout.mir.json": "df5eed913924ebec94a837d1937ca2aecf98bd43c72abfdf332a62177924ff3b",
+          "out/ownership_inout.typed.json": "65c60a1a188038d3f2eb97af6c76cf5e5b66f612f97256f2bb0a2951bef14fae"
+        },
+        "format_tags": {
+          "mir": "mir-v2",
+          "safei": "safei-v0",
+          "typed": "typed-v2"
+        },
+        "mir_source_path": "$REPO_ROOT/tests/positive/ownership_inout.safe",
+        "safei_executable_names": [
+          "Consume",
+          "Use_Inout"
+        ],
+        "safei_public_declaration_names": [],
+        "source": "$REPO_ROOT/tests/positive/ownership_inout.safe",
+        "typed_executable_names": [
+          "Consume",
+          "Use_Inout"
+        ],
+        "typed_public_declaration_names": [],
+        "validators": {
+          "ast": {
+            "command": [
+              "python3",
+              "scripts/validate_ast_output.py",
+              "$TMPDIR/ownership_inout-emit-a/out/ownership_inout.ast.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "$TMPDIR/ownership_inout-emit-a/out/ownership_inout.ast.json: OK\n"
+          },
+          "mir": {
+            "command": [
+              "compiler_impl/bin/safec",
+              "validate-mir",
+              "$TMPDIR/ownership_inout-emit-a/out/ownership_inout.mir.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "validate-mir: OK ($TMPDIR/ownership_inout-emit-a/out/ownership_inout.mir.json)\n"
+          },
+          "output_contracts": {
+            "command": [
+              "python3",
+              "scripts/validate_output_contracts.py",
+              "--ast",
+              "$TMPDIR/ownership_inout-emit-a/out/ownership_inout.ast.json",
+              "--typed",
+              "$TMPDIR/ownership_inout-emit-a/out/ownership_inout.typed.json",
+              "--mir",
+              "$TMPDIR/ownership_inout-emit-a/out/ownership_inout.mir.json",
+              "--safei",
+              "$TMPDIR/ownership_inout-emit-a/iface/ownership_inout.safei.json",
+              "--source-path",
+              "tests/positive/ownership_inout.safe"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "output contracts: OK (ownership_inout.ast.json, ownership_inout.typed.json, ownership_inout.mir.json, ownership_inout.safei.json)\n"
+          }
+        }
+      },
+      "rule2_binary_search": {
+        "emit_runs": [
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "tests/positive/rule2_binary_search.safe",
+              "--out-dir",
+              "$TMPDIR/rule2_binary_search-emit-a/out",
+              "--interface-dir",
+              "$TMPDIR/rule2_binary_search-emit-a/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "tests/positive/rule2_binary_search.safe",
+              "--out-dir",
+              "$TMPDIR/rule2_binary_search-emit-b/out",
+              "--interface-dir",
+              "$TMPDIR/rule2_binary_search-emit-b/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          }
+        ],
+        "file_hashes": {
+          "iface/rule2_binary_search.safei.json": "dcdbb73b47e906727c47aa2cc65545d240295d139780f76e37079f66603e2dd0",
+          "out/rule2_binary_search.ast.json": "2ad9a390149c6f97832bc851c9b629c25d0edc3fb8f41a2c351c25b18f8b3bcd",
+          "out/rule2_binary_search.mir.json": "63bb2be3e83374358d91f89a29096869f397741c28129044f411029f8d1e195a",
+          "out/rule2_binary_search.typed.json": "918e37b64ee7ffd5e34a1eb1208710ec485f5712c98e4d964c0edc486a35054a"
+        },
+        "format_tags": {
+          "mir": "mir-v2",
+          "safei": "safei-v0",
+          "typed": "typed-v2"
+        },
+        "mir_source_path": "$REPO_ROOT/tests/positive/rule2_binary_search.safe",
+        "safei_executable_names": [
+          "Search"
+        ],
+        "safei_public_declaration_names": [],
+        "source": "$REPO_ROOT/tests/positive/rule2_binary_search.safe",
+        "typed_executable_names": [
+          "Search"
+        ],
+        "typed_public_declaration_names": [],
+        "validators": {
+          "ast": {
+            "command": [
+              "python3",
+              "scripts/validate_ast_output.py",
+              "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.ast.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.ast.json: OK\n"
+          },
+          "mir": {
+            "command": [
+              "compiler_impl/bin/safec",
+              "validate-mir",
+              "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.mir.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "validate-mir: OK ($TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.mir.json)\n"
+          },
+          "output_contracts": {
+            "command": [
+              "python3",
+              "scripts/validate_output_contracts.py",
+              "--ast",
+              "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.ast.json",
+              "--typed",
+              "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.typed.json",
+              "--mir",
+              "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.mir.json",
+              "--safei",
+              "$TMPDIR/rule2_binary_search-emit-a/iface/rule2_binary_search.safei.json",
+              "--source-path",
+              "tests/positive/rule2_binary_search.safe"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "output contracts: OK (rule2_binary_search.ast.json, rule2_binary_search.typed.json, rule2_binary_search.mir.json, rule2_binary_search.safei.json)\n"
+          }
+        }
+      },
+      "rule4_conditional": {
+        "emit_runs": [
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "tests/positive/rule4_conditional.safe",
+              "--out-dir",
+              "$TMPDIR/rule4_conditional-emit-a/out",
+              "--interface-dir",
+              "$TMPDIR/rule4_conditional-emit-a/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "tests/positive/rule4_conditional.safe",
+              "--out-dir",
+              "$TMPDIR/rule4_conditional-emit-b/out",
+              "--interface-dir",
+              "$TMPDIR/rule4_conditional-emit-b/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          }
+        ],
+        "file_hashes": {
+          "iface/rule4_conditional.safei.json": "714df4ba3b1d7d9bc0573f6ff780ffc2642d3b284cc0e08468ef5d71ea29e7ee",
+          "out/rule4_conditional.ast.json": "03c0e4a5b7a2a576a4f9651ef9edb475a5ecbc17a8c403e5e461304fe8c3cd8c",
+          "out/rule4_conditional.mir.json": "d1b82a649496e5a0bb38a36099a3be451d8ee1b42846806208a5c4d1fd0d7041",
+          "out/rule4_conditional.typed.json": "ba99ea65794db085c505d7dd6d9aaa6ebceed47b2206cbc71e9e1cc2ab0f5704"
+        },
+        "format_tags": {
+          "mir": "mir-v2",
+          "safei": "safei-v0",
+          "typed": "typed-v2"
+        },
+        "mir_source_path": "$REPO_ROOT/tests/positive/rule4_conditional.safe",
+        "safei_executable_names": [
+          "Max_Of_Two"
+        ],
+        "safei_public_declaration_names": [],
+        "source": "$REPO_ROOT/tests/positive/rule4_conditional.safe",
+        "typed_executable_names": [
+          "Max_Of_Two"
+        ],
+        "typed_public_declaration_names": [],
+        "validators": {
+          "ast": {
+            "command": [
+              "python3",
+              "scripts/validate_ast_output.py",
+              "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.ast.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.ast.json: OK\n"
+          },
+          "mir": {
+            "command": [
+              "compiler_impl/bin/safec",
+              "validate-mir",
+              "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.mir.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "validate-mir: OK ($TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.mir.json)\n"
+          },
+          "output_contracts": {
+            "command": [
+              "python3",
+              "scripts/validate_output_contracts.py",
+              "--ast",
+              "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.ast.json",
+              "--typed",
+              "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.typed.json",
+              "--mir",
+              "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.mir.json",
+              "--safei",
+              "$TMPDIR/rule4_conditional-emit-a/iface/rule4_conditional.safei.json",
+              "--source-path",
+              "tests/positive/rule4_conditional.safe"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "output contracts: OK (rule4_conditional.ast.json, rule4_conditional.typed.json, rule4_conditional.mir.json, rule4_conditional.safei.json)\n"
+          }
+        }
+      }
+    },
+    "inline": {
+      "public_interface": {
+        "emit_runs": [
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "compiler_impl/obj/pr0694-output-contract-stability/public_interface.safe",
+              "--out-dir",
+              "$TMPDIR/public_interface-emit-a/out",
+              "--interface-dir",
+              "$TMPDIR/public_interface-emit-a/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          {
+            "command": [
+              "compiler_impl/bin/safec",
+              "emit",
+              "compiler_impl/obj/pr0694-output-contract-stability/public_interface.safe",
+              "--out-dir",
+              "$TMPDIR/public_interface-emit-b/out",
+              "--interface-dir",
+              "$TMPDIR/public_interface-emit-b/iface"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          }
+        ],
+        "file_hashes": {
+          "iface/public_interface.safei.json": "4d0f5056668129a757b8809cfe8b30476b3545d4702ab843e3943d8591ea2b6b",
+          "out/public_interface.ast.json": "cd4f8cad5bb12b61e7fc20058e15f364891473c41d668a6946de62bed25c85bb",
+          "out/public_interface.mir.json": "089a7203fb5936460a3e33f7e38476253aaa17442b21bd774fe8d594ed9a3793",
+          "out/public_interface.typed.json": "43792208c870c4e8e4b1aa334c130faccc2b0929ba8b0a662ed73a98fd097a09"
+        },
+        "format_tags": {
+          "mir": "mir-v2",
+          "safei": "safei-v0",
+          "typed": "typed-v2"
+        },
+        "mir_source_path": "$REPO_ROOT/compiler_impl/obj/pr0694-output-contract-stability/public_interface.safe",
+        "public_contract": {
+          "expected_kinds": [
+            "TypeDeclaration",
+            "ObjectDeclaration",
+            "SubprogramBody"
+          ],
+          "expected_names": [
+            "Counter",
+            "Seed",
+            "Identity"
+          ]
+        },
+        "safei_executable_names": [
+          "Identity"
+        ],
+        "safei_public_declaration_names": [
+          "Counter",
+          "Seed",
+          "Identity"
+        ],
+        "source": "$REPO_ROOT/compiler_impl/obj/pr0694-output-contract-stability/public_interface.safe",
+        "typed_executable_names": [
+          "Identity"
+        ],
+        "typed_public_declaration_names": [
+          "Counter",
+          "Seed",
+          "Identity"
+        ],
+        "validators": {
+          "ast": {
+            "command": [
+              "python3",
+              "scripts/validate_ast_output.py",
+              "$TMPDIR/public_interface-emit-a/out/public_interface.ast.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "$TMPDIR/public_interface-emit-a/out/public_interface.ast.json: OK\n"
+          },
+          "mir": {
+            "command": [
+              "compiler_impl/bin/safec",
+              "validate-mir",
+              "$TMPDIR/public_interface-emit-a/out/public_interface.mir.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "validate-mir: OK ($TMPDIR/public_interface-emit-a/out/public_interface.mir.json)\n"
+          },
+          "output_contracts": {
+            "command": [
+              "python3",
+              "scripts/validate_output_contracts.py",
+              "--ast",
+              "$TMPDIR/public_interface-emit-a/out/public_interface.ast.json",
+              "--typed",
+              "$TMPDIR/public_interface-emit-a/out/public_interface.typed.json",
+              "--mir",
+              "$TMPDIR/public_interface-emit-a/out/public_interface.mir.json",
+              "--safei",
+              "$TMPDIR/public_interface-emit-a/iface/public_interface.safei.json",
+              "--source-path",
+              "compiler_impl/obj/pr0694-output-contract-stability/public_interface.safe"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+            "stderr": "",
+            "stdout": "output contracts: OK (public_interface.ast.json, public_interface.typed.json, public_interface.mir.json, public_interface.safei.json)\n"
+          }
+        }
+      }
+    }
+  },
+  "inputs": {
+    "corpus_samples": [
+      "tests/positive/rule2_binary_search.safe",
+      "tests/positive/rule4_conditional.safe",
+      "tests/positive/ownership_inout.safe"
+    ],
+    "inline_samples": [
+      "public_interface"
+    ]
+  },
+  "status": "ok",
+  "task": "PR06.9.4",
+  "tool_versions": {
+    "alr": "alr 2.1.0",
+    "gprbuild": "GPRBUILD 25.0.0",
+    "python3": "Python 3.9.6"
+  }
+}
