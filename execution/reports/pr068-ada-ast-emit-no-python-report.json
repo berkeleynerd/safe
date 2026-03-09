@@ -65,6 +65,110 @@
         "stdout": ""
       }
     },
+    "package_global_emit": {
+      "ast_validation": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/package-global-emit/out/package_global_owner.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/package-global-emit/out/package_global_owner.ast.json: OK\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "$TMPDIR/package_global_owner.safe",
+          "--out-dir",
+          "$TMPDIR/package-global-emit/out",
+          "--interface-dir",
+          "$TMPDIR/package-global-emit/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "mir_analysis": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/package-global-emit/out/package_global_owner.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "diagnostics": {
+          "diagnostics": [],
+          "format": "diagnostics-v0"
+        },
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "mir_validation": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/package-global-emit/out/package_global_owner.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/package-global-emit/out/package_global_owner.mir.json)\n"
+      },
+      "owner_local": {
+        "id": "v0",
+        "kind": "global",
+        "mode": "in",
+        "name": "Owner",
+        "ownership_role": "GeneralAccess",
+        "scope_id": "scope0",
+        "span": {
+          "end_col": 40,
+          "end_line": 4,
+          "start_col": 4,
+          "start_line": 4
+        },
+        "type": {
+          "access_role": "GeneralAccess",
+          "anonymous": false,
+          "is_all": true,
+          "is_constant": false,
+          "kind": "access",
+          "name": "Value_Ptr",
+          "not_null": false,
+          "target": "Value"
+        }
+      },
+      "return_value": {
+        "prefix": {
+          "name": "Owner",
+          "span": {
+            "end_col": 18,
+            "end_line": 8,
+            "start_col": 14,
+            "start_line": 8
+          },
+          "tag": "ident",
+          "type": "Value_Ptr"
+        },
+        "selector": "all",
+        "span": {
+          "end_col": 22,
+          "end_line": 8,
+          "start_col": 14,
+          "start_line": 8
+        },
+        "tag": "select",
+        "type": "Value"
+      },
+      "safei_format": "safei-v0",
+      "source": "$TMPDIR/package_global_owner.safe",
+      "typed_format": "typed-v2"
+    },
     "samples": [
       {
         "ast_validation": {
@@ -248,7 +352,8 @@
       "tests/positive/rule2_binary_search.safe",
       "tests/positive/rule4_conditional.safe"
     ],
-    "negative_emit": "tests/negative/neg_rule1_overflow.safe"
+    "negative_emit": "tests/negative/neg_rule1_overflow.safe",
+    "package_global_emit": "$TMPDIR/package_global_owner.safe"
   },
   "tool_versions": {
     "alr": "alr 2.1.0",

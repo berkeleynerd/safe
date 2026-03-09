@@ -25,6 +25,17 @@ EMIT_SAMPLES = [
 ]
 NEGATIVE_EMIT_SAMPLE = REPO_ROOT / "tests" / "negative" / "neg_rule1_overflow.safe"
 AST_VALIDATOR = REPO_ROOT / "scripts" / "validate_ast_output.py"
+PACKAGE_GLOBAL_SOURCE = """package Package_Global_Owner is
+   type Value is range 0 .. 10;
+   type Value_Ptr is access all Value;
+   Owner : Value_Ptr = new (1 as Value);
+
+   function Read return Value is
+   begin
+      return Owner.all;
+   end Read;
+end Package_Global_Owner;
+"""
 BANNED_DRIVER_TOKENS = [
     "Run_Backend",
     "Backend_Script",
@@ -221,6 +232,97 @@ def assert_no_files(root: Path) -> dict[str, Any]:
     return {"exists": True, "files": files}
 
 
+def assert_package_global_emit(
+    safec: Path,
+    *,
+    env: dict[str, str],
+    validation_env: dict[str, str],
+    temp_root: Path,
+) -> dict[str, Any]:
+    source = temp_root / "package_global_owner.safe"
+    source.write_text(PACKAGE_GLOBAL_SOURCE, encoding="utf-8")
+    emit_root = temp_root / "package-global-emit"
+    emit_run = run(
+        [
+            str(safec),
+            "emit",
+            str(source),
+            "--out-dir",
+            str(emit_root / "out"),
+            "--interface-dir",
+            str(emit_root / "iface"),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        temp_root=temp_root,
+    )
+
+    stem = source.stem.lower()
+    ast_output = emit_root / "out" / f"{stem}.ast.json"
+    mir_output = emit_root / "out" / f"{stem}.mir.json"
+    typed_output = emit_root / "out" / f"{stem}.typed.json"
+    safei_output = emit_root / "iface" / f"{stem}.safei.json"
+
+    ast_validate = run(
+        [find_command("python3"), str(AST_VALIDATOR), str(ast_output)],
+        cwd=REPO_ROOT,
+        env=validation_env,
+        temp_root=temp_root,
+    )
+    mir_validate = run(
+        [str(safec), "validate-mir", str(mir_output)],
+        cwd=REPO_ROOT,
+        env=env,
+        temp_root=temp_root,
+    )
+    mir_analyze = run(
+        [str(safec), "analyze-mir", "--diag-json", str(mir_output)],
+        cwd=REPO_ROOT,
+        env=env,
+        temp_root=temp_root,
+    )
+    diagnostics = read_diag_json(mir_analyze["stdout"], str(mir_output))
+    require(diagnostics["diagnostics"] == [], f"{mir_output}: expected zero diagnostics")
+
+    typed_payload = load_json(typed_output)
+    mir_payload = load_json(mir_output)
+    safei_payload = load_json(safei_output)
+    require(typed_payload.get("format") == "typed-v2", f"{typed_output}: expected typed-v2")
+    require(mir_payload.get("format") == "mir-v2", f"{mir_output}: expected mir-v2")
+    require(safei_payload.get("format") == "safei-v0", f"{safei_output}: expected safei-v0")
+
+    graph = mir_payload["graphs"][0]
+    owner_locals = [item for item in graph["locals"] if item["name"] == "Owner"]
+    require(owner_locals, f"{mir_output}: expected global local for package object Owner")
+    owner_local = owner_locals[0]
+    require(owner_local["kind"] == "global", f"{mir_output}: expected Owner local kind=global")
+    require(owner_local["type"]["name"] == "Value_Ptr", f"{mir_output}: expected Owner type Value_Ptr")
+
+    return_blocks = [block for block in graph["blocks"] if block["terminator"]["kind"] == "return"]
+    require(return_blocks, f"{mir_output}: expected at least one return block")
+    return_value = return_blocks[0]["terminator"]["value"]
+    require(return_value["tag"] == "select", f"{mir_output}: expected return value select expression")
+    require(
+        return_value["prefix"]["type"] == "Value_Ptr",
+        f"{mir_output}: expected select prefix type Value_Ptr, saw {return_value['prefix'].get('type')!r}",
+    )
+
+    return {
+        "source": "$TMPDIR/package_global_owner.safe",
+        "emit": emit_run,
+        "ast_validation": ast_validate,
+        "mir_validation": mir_validate,
+        "mir_analysis": {
+            **mir_analyze,
+            "diagnostics": diagnostics,
+        },
+        "owner_local": owner_local,
+        "return_value": return_value,
+        "typed_format": typed_payload["format"],
+        "safei_format": safei_payload["format"],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
@@ -395,6 +497,7 @@ def main() -> int:
                 "ast": str(AST_SAMPLE.relative_to(REPO_ROOT)),
                 "emit": [str(sample.relative_to(REPO_ROOT)) for sample in EMIT_SAMPLES],
                 "negative_emit": str(NEGATIVE_EMIT_SAMPLE.relative_to(REPO_ROOT)),
+                "package_global_emit": "$TMPDIR/package_global_owner.safe",
             },
             "ast_no_python": {
                 "run": ast_run,
@@ -402,6 +505,12 @@ def main() -> int:
             },
             "emit_no_python": {
                 "samples": emit_samples,
+                "package_global_emit": assert_package_global_emit(
+                    safec,
+                    env=masked_env,
+                    validation_env=env,
+                    temp_root=temp_root,
+                ),
                 "negative_emit": {
                     "run": negative_emit,
                     "outputs": negative_files,

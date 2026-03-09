@@ -432,12 +432,58 @@ package body Safe_Frontend.Check_Lower is
       return Work.Blocks (Block_Index (Work, Id)).Terminator.Kind /= GM.Terminator_Unknown;
    end Block_Terminated;
 
-   procedure Finalize_Unknown_Terminators (Work : in out Builder) is
+   function Reachable_Block_Ids
+     (Work     : Builder;
+      Entry_Id : String) return Index_Maps.Map
+   is
+      Result  : Index_Maps.Map;
+      Pending : FT.UString_Vectors.Vector;
+      Next    : Positive := 1;
+
+      procedure Enqueue (Id : String) is
+      begin
+         if Id'Length = 0 or else not Work.Block_Map.Contains (Id) then
+            return;
+         elsif Result.Contains (Id) then
+            return;
+         end if;
+         Result.Include (Id, 1);
+         Pending.Append (FT.To_UString (Id));
+      end Enqueue;
+   begin
+      Enqueue (Entry_Id);
+      while not Pending.Is_Empty and then Next <= Pending.Last_Index loop
+         declare
+            Current_Id : constant String := UString_Value (Pending (Next));
+            Block      : constant GM.Block_Entry := Work.Blocks (Block_Index (Work, Current_Id));
+         begin
+            Next := Next + 1;
+            case Block.Terminator.Kind is
+               when GM.Terminator_Jump =>
+                  Enqueue (UString_Value (Block.Terminator.Target));
+               when GM.Terminator_Branch =>
+                  Enqueue (UString_Value (Block.Terminator.True_Target));
+                  Enqueue (UString_Value (Block.Terminator.False_Target));
+               when others =>
+                  null;
+            end case;
+         end;
+      end loop;
+      return Result;
+   end Reachable_Block_Ids;
+
+   procedure Finalize_Unknown_Terminators
+     (Work     : in out Builder;
+      Entry_Id : String) is
       Terminator : GM.Terminator_Entry;
+      Reachable  : constant Index_Maps.Map := Reachable_Block_Ids (Work, Entry_Id);
    begin
       if not Work.Blocks.Is_Empty then
          for Index in Work.Blocks.First_Index .. Work.Blocks.Last_Index loop
             if Work.Blocks (Index).Terminator.Kind = GM.Terminator_Unknown then
+               if Reachable.Contains (UString_Value (Work.Blocks (Index).Id)) then
+                  raise Program_Error with "Unterminated reachable basic block in MIR lowering";
+               end if;
                Terminator := (others => <>);
                Terminator.Kind := GM.Terminator_Jump;
                Terminator.Span := Work.Blocks (Index).Span;
@@ -1293,7 +1339,8 @@ package body Safe_Frontend.Check_Lower is
    function Lower_Subprogram
      (Subprogram    : CM.Resolved_Subprogram;
       All_Functions : CM.Resolved_Subprogram_Vectors.Vector;
-      Type_Env      : Type_Maps.Map) return GM.Graph_Entry
+      Type_Env      : Type_Maps.Map;
+      Package_Objects : CM.Resolved_Object_Decl_Vectors.Vector) return GM.Graph_Entry
    is
       Result       : GM.Graph_Entry;
       Visible      : Type_Maps.Map := Type_Env;
@@ -1314,6 +1361,25 @@ package body Safe_Frontend.Check_Lower is
       Result.Return_Type := Subprogram.Return_Type;
 
       Register_Scope (Work, Root_Scope);
+
+      for Decl of Package_Objects loop
+         for Name of Decl.Names loop
+            Visible.Include (UString_Value (Name), Decl.Type_Info);
+            declare
+               Ignored_Local_Id : constant FT.UString :=
+                 Append_Local
+                   (Result.Locals,
+                    UString_Value (Name),
+                    "global",
+                    "in",
+                    Decl.Type_Info,
+                    Decl.Span,
+                    "scope0");
+            begin
+               pragma Unreferenced (Ignored_Local_Id);
+            end;
+         end loop;
+      end loop;
 
       for Param of Subprogram.Params loop
          declare
@@ -1370,6 +1436,37 @@ package body Safe_Frontend.Check_Lower is
          Add_Op (Work, UString_Value (Entry_Id), Scope_Op);
       end if;
 
+      for Decl of Package_Objects loop
+         for Name of Decl.Names loop
+            if Decl.Has_Initializer and then Decl.Initializer /= null then
+               Assign_Op := (others => <>);
+               Assign_Op.Kind := GM.Op_Assign;
+               Assign_Op.Span := Decl.Span;
+               Assign_Op.Target :=
+                 Lower_Target
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Visible,
+                    Type_Env);
+               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+               Assign_Op.Type_Name := Decl.Type_Info.Name;
+               Assign_Op.Ownership_Effect :=
+                 Ownership_Assignment_Effect
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Decl.Initializer,
+                    Visible,
+                    Type_Env);
+               Assign_Op.Declaration_Init := True;
+               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+            end if;
+         end loop;
+      end loop;
+
       for Decl of Subprogram.Declarations loop
          for Name of Decl.Names loop
             if Decl.Has_Initializer and then Decl.Initializer /= null then
@@ -1421,7 +1518,7 @@ package body Safe_Frontend.Check_Lower is
          Register_Scope_Exit (Work, "scope0", UString_Value (End_Id));
       end if;
 
-      Finalize_Unknown_Terminators (Work);
+      Finalize_Unknown_Terminators (Work, UString_Value (Result.Entry_BB));
       Result.Scopes := Work.Scopes;
       Result.Blocks := Work.Blocks;
       return Result;
@@ -1444,7 +1541,12 @@ package body Safe_Frontend.Check_Lower is
       Result.Package_Name := Unit.Package_Name;
 
       for Subprogram of Unit.Subprograms loop
-         Result.Graphs.Append (Lower_Subprogram (Subprogram, Unit.Subprograms, Type_Env));
+         Result.Graphs.Append
+           (Lower_Subprogram
+              (Subprogram,
+               Unit.Subprograms,
+               Type_Env,
+               Unit.Objects));
       end loop;
 
       return Result;

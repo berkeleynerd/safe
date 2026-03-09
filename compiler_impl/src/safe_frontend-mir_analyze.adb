@@ -2508,7 +2508,9 @@ package body Safe_Frontend.Mir_Analyze is
          then
             Owner_Vars.Include (UString_Value (Local.Name));
          end if;
-         if UString_Value (Local.Kind) = "param" then
+         if UString_Value (Local.Kind) = "param"
+           or else UString_Value (Local.Kind) = "global"
+         then
             Initialize_Symbol (Entry_State, UString_Value (Local.Name), Var_Types.Element (UString_Value (Local.Name)));
          end if;
       end loop;
