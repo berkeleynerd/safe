@@ -15,6 +15,25 @@ from render_execution_status import DASHBOARD_PATH, TRACKER_PATH, load_tracker, 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 META_COMMIT_PATH = REPO_ROOT / "meta" / "commit.txt"
 ALLOWED_STATUSES = {"planned", "ready", "in_progress", "blocked", "done"}
+LEGACY_RUNTIME_BACKEND = REPO_ROOT / "compiler_impl" / "backend" / "pr05_backend.py"
+RUNTIME_BOUNDARY_PATTERNS = [
+    (
+        "compiler_impl/src/safe_frontend-driver.adb",
+        [r"\bRun_Backend\b", r"\bBackend_Script\b", r"\bGNAT\.OS_Lib\b", r"pr05_backend\.py", r"\bPython3\b"],
+    ),
+    (
+        "compiler_impl/src/safe_frontend-*.adb",
+        [r"\bRun_Backend\b", r"\bBackend_Script\b", r"\bGNAT\.OS_Lib\b", r"pr05_backend\.py", r"\b[Pp]ython3\b", r"\b[Pp]ython\b"],
+    ),
+    (
+        "compiler_impl/src/safe_frontend-*.ads",
+        [r"\bRun_Backend\b", r"\bBackend_Script\b", r"\bGNAT\.OS_Lib\b", r"pr05_backend\.py", r"\b[Pp]ython3\b", r"\b[Pp]ython\b"],
+    ),
+    (
+        "compiler_impl/src/safec.adb",
+        [r"\bRun_Backend\b", r"\bBackend_Script\b", r"pr05_backend\.py", r"\b[Pp]ython3\b", r"\b[Pp]ython\b"],
+    ),
+]
 
 SHA_CHECKS = [
     (REPO_ROOT / "README.md", r"\| Frozen spec commit \| `([0-9a-f]{7,40})` \|"),
@@ -153,6 +172,22 @@ def check_dashboard_freshness(tracker: Dict[str, Any]) -> None:
         fail("execution/dashboard.md is stale; run scripts/render_execution_status.py --write")
 
 
+def check_runtime_boundary() -> None:
+    if LEGACY_RUNTIME_BACKEND.exists():
+        fail(f"legacy runtime backend still present: {LEGACY_RUNTIME_BACKEND.relative_to(REPO_ROOT)}")
+
+    violations: List[str] = []
+    for pattern, denylist in RUNTIME_BOUNDARY_PATTERNS:
+        for path in sorted(REPO_ROOT.glob(pattern)):
+            text = path.read_text(encoding="utf-8")
+            for token in denylist:
+                if re.search(token, text):
+                    violations.append(f"{path.relative_to(REPO_ROOT)}:{token}")
+
+    if violations:
+        fail(f"runtime boundary violations: {violations}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tracker", type=Path, default=TRACKER_PATH)
@@ -167,6 +202,7 @@ def main() -> int:
     check_documented_sha(meta_sha)
     check_test_distribution(tracker)
     check_dashboard_freshness(tracker)
+    check_runtime_boundary()
     print("execution state: OK")
     return 0
 

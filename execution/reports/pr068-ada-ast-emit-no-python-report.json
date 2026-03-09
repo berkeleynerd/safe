@@ -66,108 +66,537 @@
       }
     },
     "package_global_emit": {
-      "ast_validation": {
-        "command": [
-          "python3",
-          "scripts/validate_ast_output.py",
-          "$TMPDIR/package-global-emit/out/package_global_owner.ast.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "$TMPDIR/package-global-emit/out/package_global_owner.ast.json: OK\n"
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "$TMPDIR/package_global_owner.safe",
-          "--out-dir",
-          "$TMPDIR/package-global-emit/out",
-          "--interface-dir",
-          "$TMPDIR/package-global-emit/iface"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": ""
-      },
-      "mir_analysis": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "analyze-mir",
-          "--diag-json",
-          "$TMPDIR/package-global-emit/out/package_global_owner.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "diagnostics": {
-          "diagnostics": [],
-          "format": "diagnostics-v0"
+      "package_global_array": {
+        "ast_validation": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/package_global_array-emit/out/package_global_array.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/package_global_array-emit/out/package_global_array.ast.json: OK\n"
         },
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
-      },
-      "mir_validation": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/package-global-emit/out/package_global_owner.mir.json"
+        "cfg_invariants": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ]
+          }
         ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "validate-mir: OK ($TMPDIR/package-global-emit/out/package_global_owner.mir.json)\n"
-      },
-      "owner_local": {
-        "id": "v0",
-        "kind": "global",
-        "mode": "in",
-        "name": "Owner",
-        "ownership_role": "GeneralAccess",
-        "scope_id": "scope0",
-        "span": {
-          "end_col": 40,
-          "end_line": 4,
-          "start_col": 4,
-          "start_line": 4
-        },
-        "type": {
-          "access_role": "GeneralAccess",
-          "anonymous": false,
-          "is_all": true,
-          "is_constant": false,
-          "kind": "access",
-          "name": "Value_Ptr",
-          "not_null": false,
-          "target": "Value"
-        }
-      },
-      "return_value": {
-        "prefix": {
-          "name": "Owner",
+        "data_local": {
+          "id": "v0",
+          "kind": "global",
+          "mode": "in",
+          "name": "Data",
+          "ownership_role": "",
+          "scope_id": "scope0",
           "span": {
-            "end_col": 18,
+            "end_col": 16,
+            "end_line": 5,
+            "start_col": 4,
+            "start_line": 5
+          },
+          "type": {
+            "component_type": "Element",
+            "index_types": [
+              "Index"
+            ],
+            "kind": "array",
+            "name": "Table"
+          }
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_array.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_array-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_array-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "mir_analysis": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_array-emit/out/package_global_array.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "mir_validation": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_array-emit/out/package_global_array.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_array-emit/out/package_global_array.mir.json)\n"
+        },
+        "return_value": {
+          "indices": [
+            {
+              "prefix": {
+                "name": "Index",
+                "span": {
+                  "end_col": 24,
+                  "end_line": 10,
+                  "start_col": 20,
+                  "start_line": 10
+                },
+                "tag": "ident",
+                "type": "Index"
+              },
+              "selector": "First",
+              "span": {
+                "end_col": 30,
+                "end_line": 10,
+                "start_col": 20,
+                "start_line": 10
+              },
+              "tag": "select",
+              "type": "Integer"
+            }
+          ],
+          "prefix": {
+            "name": "Data",
+            "span": {
+              "end_col": 17,
+              "end_line": 10,
+              "start_col": 14,
+              "start_line": 10
+            },
+            "tag": "ident",
+            "type": "Table"
+          },
+          "span": {
+            "end_col": 31,
+            "end_line": 10,
+            "start_col": 14,
+            "start_line": 10
+          },
+          "tag": "resolved_index",
+          "type": "Element"
+        },
+        "safei_format": "safei-v0",
+        "source": "$TMPDIR/package_global_array.safe",
+        "typed_format": "typed-v2"
+      },
+      "package_global_observe": {
+        "ast_validation": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/package_global_observe-emit/out/package_global_observe.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/package_global_observe-emit/out/package_global_observe.ast.json: OK\n"
+        },
+        "cfg_invariants": [
+          {
+            "graph": "Read_Config",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ]
+          },
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ]
+          }
+        ],
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_observe.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_observe-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_observe-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "mir_analysis": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_observe-emit/out/package_global_observe.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "mir_validation": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_observe-emit/out/package_global_observe.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_observe-emit/out/package_global_observe.mir.json)\n"
+        },
+        "owner_local": {
+          "id": "v0",
+          "kind": "global",
+          "mode": "in",
+          "name": "Owner",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "end_col": 53,
+            "end_line": 8,
+            "start_col": 4,
+            "start_line": 8
+          },
+          "type": {
+            "access_role": "Owner",
+            "anonymous": false,
+            "is_all": false,
+            "is_constant": false,
+            "kind": "access",
+            "name": "Config_Ptr",
+            "not_null": false,
+            "target": "Config"
+          }
+        },
+        "ref_local": {
+          "id": "v1",
+          "kind": "param",
+          "mode": "in",
+          "name": "Ref",
+          "ownership_role": "Observe",
+          "scope_id": "scope0",
+          "span": {
+            "end_col": 53,
+            "end_line": 10,
+            "start_col": 26,
+            "start_line": 10
+          },
+          "type": {
+            "access_role": "Observe",
+            "anonymous": true,
+            "is_all": false,
+            "is_constant": true,
+            "kind": "access",
+            "name": "access Config",
+            "not_null": false,
+            "target": "Config"
+          }
+        },
+        "return_value": {
+          "args": [
+            {
+              "prefix": {
+                "name": "Owner",
+                "span": {
+                  "end_col": 31,
+                  "end_line": 17,
+                  "start_col": 27,
+                  "start_line": 17
+                },
+                "tag": "ident",
+                "type": "Config_Ptr"
+              },
+              "selector": "Access",
+              "span": {
+                "end_col": 38,
+                "end_line": 17,
+                "start_col": 27,
+                "start_line": 17
+              },
+              "tag": "select",
+              "type": "Integer"
+            }
+          ],
+          "call_span": {
+            "end_col": 39,
+            "end_line": 17,
+            "start_col": 26,
+            "start_line": 17
+          },
+          "callee": {
+            "name": "Read_Config",
+            "span": {
+              "end_col": 24,
+              "end_line": 17,
+              "start_col": 14,
+              "start_line": 17
+            },
+            "tag": "ident",
+            "type": "Integer"
+          },
+          "span": {
+            "end_col": 39,
+            "end_line": 17,
+            "start_col": 14,
+            "start_line": 17
+          },
+          "tag": "call",
+          "type": "Integer"
+        },
+        "safei_format": "safei-v0",
+        "source": "$TMPDIR/package_global_observe.safe",
+        "typed_format": "typed-v2"
+      },
+      "package_global_owner": {
+        "ast_validation": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/package_global_owner-emit/out/package_global_owner.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/package_global_owner-emit/out/package_global_owner.ast.json: OK\n"
+        },
+        "cfg_invariants": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ]
+          }
+        ],
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_owner.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_owner-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_owner-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "mir_analysis": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_owner-emit/out/package_global_owner.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "mir_validation": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_owner-emit/out/package_global_owner.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_owner-emit/out/package_global_owner.mir.json)\n"
+        },
+        "owner_local": {
+          "id": "v0",
+          "kind": "global",
+          "mode": "in",
+          "name": "Owner",
+          "ownership_role": "GeneralAccess",
+          "scope_id": "scope0",
+          "span": {
+            "end_col": 40,
+            "end_line": 4,
+            "start_col": 4,
+            "start_line": 4
+          },
+          "type": {
+            "access_role": "GeneralAccess",
+            "anonymous": false,
+            "is_all": true,
+            "is_constant": false,
+            "kind": "access",
+            "name": "Value_Ptr",
+            "not_null": false,
+            "target": "Value"
+          }
+        },
+        "return_value": {
+          "prefix": {
+            "name": "Owner",
+            "span": {
+              "end_col": 18,
+              "end_line": 8,
+              "start_col": 14,
+              "start_line": 8
+            },
+            "tag": "ident",
+            "type": "Value_Ptr"
+          },
+          "selector": "all",
+          "span": {
+            "end_col": 22,
             "end_line": 8,
             "start_col": 14,
             "start_line": 8
           },
-          "tag": "ident",
-          "type": "Value_Ptr"
+          "tag": "select",
+          "type": "Value"
         },
-        "selector": "all",
-        "span": {
-          "end_col": 22,
-          "end_line": 8,
-          "start_col": 14,
-          "start_line": 8
-        },
-        "tag": "select",
-        "type": "Value"
+        "safei_format": "safei-v0",
+        "source": "$TMPDIR/package_global_owner.safe",
+        "typed_format": "typed-v2"
       },
-      "safei_format": "safei-v0",
-      "source": "$TMPDIR/package_global_owner.safe",
-      "typed_format": "typed-v2"
+      "package_global_record": {
+        "ast_validation": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/package_global_record-emit/out/package_global_record.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/package_global_record-emit/out/package_global_record.ast.json: OK\n"
+        },
+        "cfg_invariants": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0"
+            ]
+          }
+        ],
+        "current_local": {
+          "id": "v0",
+          "kind": "global",
+          "mode": "in",
+          "name": "Current",
+          "ownership_role": "",
+          "scope_id": "scope0",
+          "span": {
+            "end_col": 44,
+            "end_line": 7,
+            "start_col": 4,
+            "start_line": 7
+          },
+          "type": {
+            "fields": {
+              "Limit": "Natural",
+              "Rate": "Natural"
+            },
+            "kind": "record",
+            "name": "Config"
+          }
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/package_global_record.safe",
+            "--out-dir",
+            "$TMPDIR/package_global_record-emit/out",
+            "--interface-dir",
+            "$TMPDIR/package_global_record-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "mir_analysis": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/package_global_record-emit/out/package_global_record.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "mir_validation": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/package_global_record-emit/out/package_global_record.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/package_global_record-emit/out/package_global_record.mir.json)\n"
+        },
+        "return_value": {
+          "prefix": {
+            "name": "Current",
+            "span": {
+              "end_col": 20,
+              "end_line": 11,
+              "start_col": 14,
+              "start_line": 11
+            },
+            "tag": "ident",
+            "type": "Config"
+          },
+          "selector": "Rate",
+          "span": {
+            "end_col": 25,
+            "end_line": 11,
+            "start_col": 14,
+            "start_line": 11
+          },
+          "tag": "select",
+          "type": "Natural"
+        },
+        "safei_format": "safei-v0",
+        "source": "$TMPDIR/package_global_record.safe",
+        "typed_format": "typed-v2"
+      }
     },
     "samples": [
       {
@@ -182,6 +611,30 @@
           "stderr": "",
           "stdout": "$TMPDIR/rule2_binary_search-emit-a/out/rule2_binary_search.ast.json: OK\n"
         },
+        "cfg_invariants": [
+          {
+            "graph": "Search",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb10",
+              "bb11",
+              "bb12",
+              "bb13",
+              "bb14",
+              "bb15",
+              "bb2",
+              "bb3",
+              "bb4",
+              "bb5",
+              "bb6",
+              "bb7",
+              "bb8",
+              "bb9"
+            ]
+          }
+        ],
         "first_emit": {
           "command": [
             "compiler_impl/bin/safec",
@@ -261,6 +714,29 @@
           "stderr": "",
           "stdout": "$TMPDIR/rule4_conditional-emit-a/out/rule4_conditional.ast.json: OK\n"
         },
+        "cfg_invariants": [
+          {
+            "graph": "Max_Of_Two",
+            "patched_dead_blocks": [
+              "bb3",
+              "bb7",
+              "bb10",
+              "bb13"
+            ],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb11",
+              "bb12",
+              "bb2",
+              "bb4",
+              "bb5",
+              "bb6",
+              "bb8",
+              "bb9"
+            ]
+          }
+        ],
         "first_emit": {
           "command": [
             "compiler_impl/bin/safec",
@@ -333,7 +809,10 @@
   "python_mask": {
     "blocked_log": "$TMPDIR/blocked-python.log",
     "blocked_spawns": [],
-    "stub_path": "$TMPDIR/python-mask/python3"
+    "stub_paths": {
+      "python": "$TMPDIR/python-mask/python",
+      "python3": "$TMPDIR/python-mask/python3"
+    }
   },
   "runtime_rule": {
     "banned_tokens_absent": [
@@ -344,7 +823,55 @@
       "Python3 :"
     ],
     "driver": "compiler_impl/src/safe_frontend-driver.adb",
-    "legacy_backend_removed": true
+    "legacy_backend_removed": true,
+    "scanned_files": [
+      "compiler_impl/src/safe_frontend-ast.adb",
+      "compiler_impl/src/safe_frontend-check_emit.adb",
+      "compiler_impl/src/safe_frontend-check_lower.adb",
+      "compiler_impl/src/safe_frontend-check_model.adb",
+      "compiler_impl/src/safe_frontend-check_parse.adb",
+      "compiler_impl/src/safe_frontend-check_render.adb",
+      "compiler_impl/src/safe_frontend-check_resolve.adb",
+      "compiler_impl/src/safe_frontend-diagnostics.adb",
+      "compiler_impl/src/safe_frontend-driver.adb",
+      "compiler_impl/src/safe_frontend-json.adb",
+      "compiler_impl/src/safe_frontend-lexer.adb",
+      "compiler_impl/src/safe_frontend-mir.adb",
+      "compiler_impl/src/safe_frontend-mir_analyze.adb",
+      "compiler_impl/src/safe_frontend-mir_diagnostics.adb",
+      "compiler_impl/src/safe_frontend-mir_json.adb",
+      "compiler_impl/src/safe_frontend-mir_model.adb",
+      "compiler_impl/src/safe_frontend-mir_validate.adb",
+      "compiler_impl/src/safe_frontend-mir_write.adb",
+      "compiler_impl/src/safe_frontend-parser.adb",
+      "compiler_impl/src/safe_frontend-semantics.adb",
+      "compiler_impl/src/safe_frontend-source.adb",
+      "compiler_impl/src/safe_frontend-types.adb",
+      "compiler_impl/src/safe_frontend-ast.ads",
+      "compiler_impl/src/safe_frontend-check_emit.ads",
+      "compiler_impl/src/safe_frontend-check_lower.ads",
+      "compiler_impl/src/safe_frontend-check_model.ads",
+      "compiler_impl/src/safe_frontend-check_parse.ads",
+      "compiler_impl/src/safe_frontend-check_render.ads",
+      "compiler_impl/src/safe_frontend-check_resolve.ads",
+      "compiler_impl/src/safe_frontend-diagnostics.ads",
+      "compiler_impl/src/safe_frontend-driver.ads",
+      "compiler_impl/src/safe_frontend-json.ads",
+      "compiler_impl/src/safe_frontend-lexer.ads",
+      "compiler_impl/src/safe_frontend-mir.ads",
+      "compiler_impl/src/safe_frontend-mir_analyze.ads",
+      "compiler_impl/src/safe_frontend-mir_diagnostics.ads",
+      "compiler_impl/src/safe_frontend-mir_json.ads",
+      "compiler_impl/src/safe_frontend-mir_model.ads",
+      "compiler_impl/src/safe_frontend-mir_validate.ads",
+      "compiler_impl/src/safe_frontend-mir_write.ads",
+      "compiler_impl/src/safe_frontend-parser.ads",
+      "compiler_impl/src/safe_frontend-semantics.ads",
+      "compiler_impl/src/safe_frontend-source.ads",
+      "compiler_impl/src/safe_frontend-types.ads",
+      "compiler_impl/src/safec.adb"
+    ],
+    "violations": []
   },
   "samples": {
     "ast": "tests/positive/rule1_accumulate.safe",
@@ -353,7 +880,12 @@
       "tests/positive/rule4_conditional.safe"
     ],
     "negative_emit": "tests/negative/neg_rule1_overflow.safe",
-    "package_global_emit": "$TMPDIR/package_global_owner.safe"
+    "package_global_emit": [
+      "$TMPDIR/package_global_owner.safe",
+      "$TMPDIR/package_global_array.safe",
+      "$TMPDIR/package_global_record.safe",
+      "$TMPDIR/package_global_observe.safe"
+    ]
   },
   "tool_versions": {
     "alr": "alr 2.1.0",

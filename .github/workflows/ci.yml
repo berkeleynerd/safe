@@ -251,8 +251,9 @@ jobs:
         working-directory: .
         run: cd compiler_impl && alr build
 
-      # The gate masks python3 for direct compiler invocations and fails if
-      # `safec ast` or `safec emit` attempt to spawn a Python backend.
+      # The gate masks `python` and `python3` on PATH for direct compiler
+      # invocations and fails if `safec ast` or `safec emit` attempt to spawn
+      # a Python backend.
       - name: Run PR06.8 Ada ast/emit cutover gate
         working-directory: .
         run: python3 scripts/run_pr068_ada_ast_emit_no_python.py

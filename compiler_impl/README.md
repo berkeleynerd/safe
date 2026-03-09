@@ -119,7 +119,7 @@ cd compiler_impl && $HOME/bin/alr build
 python3 scripts/run_pr067_ada_check_cutover.py
 ```
 
-That gate masks `python3` specifically for accidental `safec check` backend spawns, proves representative direct PR05 / PR06 checks still pass, reruns the existing PR05 / PR06 harnesses with that masked check path, verifies deterministic `unsupported_source_construct` rejection for out-of-subset sources, and records results in `execution/reports/pr067-ada-check-cutover-report.json`.
+That gate masks `python3` on `PATH` specifically for accidental `safec check` backend spawns, proves representative direct PR05 / PR06 checks still pass, reruns the existing PR05 / PR06 harnesses with that masked check path, verifies deterministic `unsupported_source_construct` rejection for out-of-subset sources, and records results in `execution/reports/pr067-ada-check-cutover-report.json`.
 
 PR06.7 no-Python guarantee: Python may still run the gate script and the unchanged harnesses around `safec check`, but `safec check` itself must stay Ada-native and must not spawn the Python backend.
 
@@ -130,6 +130,6 @@ cd compiler_impl && $HOME/bin/alr build
 python3 scripts/run_pr068_ada_ast_emit_no_python.py
 ```
 
-That gate masks `python3` for direct `safec ast` and `safec emit` invocations, validates the emitted AST through the existing validator script, checks deterministic repeated `emit` output on representative samples, verifies emitted MIR stays valid and analyzable, confirms `emit` writes no artifacts when diagnostics exist, and records results in `execution/reports/pr068-ada-ast-emit-no-python-report.json`.
+That gate masks `python` and `python3` on `PATH` for direct `safec ast` and `safec emit` invocations, validates the emitted AST through the existing validator script, checks deterministic repeated `emit` output on representative samples, verifies emitted MIR stays valid and analyzable, confirms `emit` writes no artifacts when diagnostics exist, adds direct package-global lowering regressions plus CFG termination checks, and records results in `execution/reports/pr068-ada-ast-emit-no-python-report.json`.
 
-PR06.8 no-Python guarantee: Python may still run the gate script and validation helpers around the compiler, but no `safec` command may spawn Python at runtime.
+PR06.8 no-Python guarantee: Python may still run the gate script and validation helpers around the compiler, but no `safec` command may spawn Python at runtime. CI enforces this through `PATH` masking for direct compiler invocations rather than by removing Python from the runner entirely.
