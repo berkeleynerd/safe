@@ -322,7 +322,12 @@ def run_source_frontend_cases(safec: Path, env: dict[str, str], temp_root: Path)
         temp_root=temp_root,
         expected_returncode=1,
     )
-    require(LEGACY_SOURCE.name in legacy_human["stderr"], "legacy token stderr must use basename header")
+    legacy_lines = legacy_human["stderr"].splitlines()
+    require(legacy_lines, "legacy token stderr must not be empty")
+    require(
+        legacy_lines[0] == 'legacy_two_char_tokens.safe:2:19: error: legacy token ":=" is not allowed',
+        "legacy token stderr must use the basename-only header for the first diagnostic",
+    )
     require(
         'legacy token ":=" is not allowed' in legacy_human["stderr"],
         "legacy token stderr must render the first diagnostic",
