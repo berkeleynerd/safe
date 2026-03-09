@@ -4,24 +4,25 @@
 
 Python is transitional only. The Safe reference compiler must remove the Python execution dependency and converge back to an Ada/SPARK frontend in staged replacement slices.
 
-PR06.5 is the first concrete replacement slice: MIR validation is now Ada-native through `safec validate-mir`, and the PR05 / PR06 harnesses and CI jobs no longer depend on the Python MIR validator.
+PR06.5 and PR06.6 removed the MIR validator and MIR analyzer from the Python runtime path, and PR06.7 cut `safec check` over to Ada for the current PR05/PR06 subset.
 
 ## Current Runtime Split
 
 - Ada-native:
   - `safec lex`
   - `safec validate-mir`
+  - `safec analyze-mir`
+  - `safec check` for the current PR05/PR06 subset
 - Python-backed reference frontend:
   - `safec ast`
-  - `safec check`
   - `safec emit`
 
 ## Locked Replacement Order
 
 1. MIR model and validator
-2. MIR analyzer
-3. D27 and ownership diagnostics renderer
-4. Parser, resolver, typed model, and emit pipeline
+2. MIR analyzer parity
+3. Ada-native `safec check` cutover for the current PR05/PR06 subset, including the D27 and ownership renderer
+4. Parser, resolver, typed model, and emit pipeline parity
 
 ## Rule for Later Milestones
 
@@ -29,4 +30,6 @@ Each later milestone must remove a concrete Python-owned slice. Parity scaffoldi
 
 ## Immediate Follow-On
 
-The next runtime-focused work after PR06.5 is to move MIR analysis and semantic checking off the Python backend so `safec check` no longer depends on Python.
+With PR06.7 complete, Python remains required only for `ast` and `emit`. Current `PR07` Rule 5 and discriminant/result safety work follows these runtime-reduction milestones.
+
+CI enforcement note: the PR06.7 job still uses Python to run the gate script and harnesses, but that gate masks Python for `safec check` itself and fails if the check path attempts to spawn the Python backend.

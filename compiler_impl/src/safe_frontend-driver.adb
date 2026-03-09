@@ -7,6 +7,10 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 with Safe_Frontend.Ast;
+with Safe_Frontend.Check_Lower;
+with Safe_Frontend.Check_Parse;
+with Safe_Frontend.Check_Render;
+with Safe_Frontend.Check_Resolve;
 with Safe_Frontend.Diagnostics;
 with Safe_Frontend.Lexer;
 with Safe_Frontend.Mir;
@@ -20,9 +24,14 @@ with Safe_Frontend.Source;
 with Safe_Frontend.Types;
 
 package body Safe_Frontend.Driver is
+   package CL renames Safe_Frontend.Check_Lower;
+   package CP renames Safe_Frontend.Check_Parse;
+   package CR renames Safe_Frontend.Check_Render;
+   package CS renames Safe_Frontend.Check_Resolve;
    package FD renames Safe_Frontend.Diagnostics;
    package FL renames Safe_Frontend.Lexer;
    package FM renames Safe_Frontend.Mir;
+   package MD renames Safe_Frontend.Mir_Diagnostics;
    package FP renames Safe_Frontend.Parser;
    package FS renames Safe_Frontend.Source;
    package FT renames Safe_Frontend.Types;
@@ -187,6 +196,93 @@ package body Safe_Frontend.Driver is
       return Safe_Frontend.Exit_Diagnostics;
    end Failure_Exit_Code;
 
+   function To_Source_Reason
+     (Code    : String;
+      Message : String) return String is
+   begin
+      if Code in "SC3002" | "SC3003"
+        or else Ada.Strings.Fixed.Index
+          (FT.Lowercase (Message), "unsupported") /= 0
+      then
+         return "unsupported_source_construct";
+      end if;
+      return "source_frontend_error";
+   end To_Source_Reason;
+
+   function To_Mir_Diagnostic
+     (Item         : FD.Diagnostic;
+      Default_Path : String) return MD.Diagnostic
+   is
+      Result : MD.Diagnostic;
+      Path   : constant String :=
+        (if FT.To_String (Item.Path)'Length > 0
+         then FT.To_String (Item.Path)
+         else Default_Path);
+   begin
+      Result.Reason :=
+        FT.To_UString
+          (To_Source_Reason
+             (FT.To_String (Item.Code),
+              FT.To_String (Item.Message)));
+      Result.Message := Item.Message;
+      Result.Path := FT.To_UString (Path);
+      Result.Span := Item.Span;
+      if FT.To_String (Item.Note)'Length > 0 then
+         Result.Notes.Append (Item.Note);
+      end if;
+      if FT.To_String (Item.Suggestion)'Length > 0 then
+         Result.Suggestions.Append (Item.Suggestion);
+      end if;
+      return Result;
+   end To_Mir_Diagnostic;
+
+   function To_Mir_Diagnostics
+     (Items        : FD.Diagnostic_Vectors.Vector;
+      Default_Path : String) return MD.Diagnostic_Vectors.Vector
+   is
+      Result : MD.Diagnostic_Vectors.Vector;
+   begin
+      if not Items.Is_Empty then
+         for Index in Items.First_Index .. Items.Last_Index loop
+            Result.Append (To_Mir_Diagnostic (Items (Index), Default_Path));
+         end loop;
+      end if;
+      return Result;
+   end To_Mir_Diagnostics;
+
+   function Singleton
+     (Item : MD.Diagnostic) return MD.Diagnostic_Vectors.Vector
+   is
+      Result : MD.Diagnostic_Vectors.Vector;
+   begin
+      Result.Append (Item);
+      return Result;
+   end Singleton;
+
+   function Render_Check_Diagnostics
+     (Diagnostics : MD.Diagnostic_Vectors.Vector;
+      Source_Text : String;
+      Path        : String) return String is
+   begin
+      return CR.Render (Diagnostics, Source_Text, Path);
+   end Render_Check_Diagnostics;
+
+   function Emit_Check_Diagnostics
+     (Diagnostics : MD.Diagnostic_Vectors.Vector;
+      Source_Text : String;
+      Path        : String;
+      Diag_Json   : Boolean) return Integer is
+   begin
+      if Diag_Json then
+         Ada.Text_IO.Put (MD.To_Json (Diagnostics));
+      else
+         Ada.Text_IO.Put
+           (Ada.Text_IO.Current_Error,
+            Render_Check_Diagnostics (Diagnostics, Source_Text, Path));
+      end if;
+      return Safe_Frontend.Exit_Diagnostics;
+   end Emit_Check_Diagnostics;
+
    function Run_Lexing (Path : String) return Lex_Result is
       Result : Lex_Result;
    begin
@@ -348,8 +444,88 @@ package body Safe_Frontend.Driver is
      (Path      : String;
       Diag_Json : Boolean := False) return Integer
    is
+      Lexed       : Lex_Result;
+      Diagnostics : MD.Diagnostic_Vectors.Vector;
    begin
-      return Run_Backend ("check", Path, Diag_Json => Diag_Json);
+      Lexed := Run_Lexing (Path);
+      if not Lexed.Success then
+         if Lexed.Internal_Failure then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "check: ERROR: internal failure while loading or lexing `" & Path & "`");
+            return Safe_Frontend.Exit_Internal;
+         end if;
+         Diagnostics := To_Mir_Diagnostics (Lexed.Diagnostics, Path);
+         return
+           Emit_Check_Diagnostics
+             (Diagnostics,
+              FT.To_String (Lexed.Input.Content),
+              Path,
+              Diag_Json);
+      end if;
+
+      declare
+         Parsed : constant CP.CM.Parse_Result :=
+           CP.Parse (Lexed.Input, Lexed.Tokens);
+      begin
+         if not Parsed.Success then
+            return
+              Emit_Check_Diagnostics
+                (Singleton (Parsed.Diagnostic),
+                 FT.To_String (Lexed.Input.Content),
+                 Path,
+                 Diag_Json);
+         end if;
+
+         declare
+            Resolved : constant CS.CM.Resolve_Result := CS.Resolve (Parsed.Unit);
+         begin
+            if not Resolved.Success then
+               return
+                 Emit_Check_Diagnostics
+                   (Singleton (Resolved.Diagnostic),
+                    FT.To_String (Lexed.Input.Content),
+                    Path,
+                    Diag_Json);
+            end if;
+
+            declare
+               Mir_Result : constant Safe_Frontend.Mir_Analyze.Analyze_Result :=
+                 Safe_Frontend.Mir_Analyze.Analyze (CL.Lower (Resolved.Unit));
+            begin
+               if not Mir_Result.Success then
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Current_Error,
+                     "check: ERROR: internal failure: "
+                     & FT.To_String (Mir_Result.Message));
+                  return Safe_Frontend.Exit_Internal;
+               elsif Diag_Json then
+                  Ada.Text_IO.Put (MD.To_Json (Mir_Result.Diagnostics));
+               elsif not Mir_Result.Diagnostics.Is_Empty then
+                  Ada.Text_IO.Put
+                    (Ada.Text_IO.Current_Error,
+                     Render_Check_Diagnostics
+                       (Mir_Result.Diagnostics,
+                        FT.To_String (Lexed.Input.Content),
+                        Path));
+               end if;
+
+               if Mir_Result.Diagnostics.Is_Empty then
+                  return Safe_Frontend.Exit_Success;
+               end if;
+               return Safe_Frontend.Exit_Diagnostics;
+            end;
+         end;
+      end;
+   exception
+      when Error : others =>
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Current_Error,
+            "check: ERROR: internal failure: "
+            & Ada.Exceptions.Exception_Name (Error)
+            & ": "
+            & Ada.Exceptions.Exception_Message (Error));
+         return Safe_Frontend.Exit_Internal;
    end Run_Check;
 
    function Run_Emit

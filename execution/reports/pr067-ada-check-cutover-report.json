@@ -1,0 +1,540 @@
+{
+  "direct_checks": [
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/rule1_accumulate.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [],
+        "format": "diagnostics-v0"
+      },
+      "expected_reason": null,
+      "golden": null,
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/rule1_accumulate.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/positive/rule1_accumulate.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/ownership_move.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [],
+        "format": "diagnostics-v0"
+      },
+      "expected_reason": null,
+      "golden": null,
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/ownership_move.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/positive/ownership_move.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_rule1_overflow.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"intermediate_overflow\",\"message\":\"intermediate overflow in integer expression\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule1_overflow.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":18},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":18},\"notes\":[\"static range analysis determines that the subexpression (A * B)\\nhas range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\\nwhich exceeds the 64-bit signed range\\n[-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].\",\"A has range [0 .. 9_999_999_999_999_999]\",\"B has range [0 .. 9_999_999_999_999_999]\",\"rule: D27 Rule 1 (Wide Intermediate Arithmetic)\",\"per spec/02-restrictions.md section 2.8.1 paragraph 129:\\n\\\"If a conforming implementation cannot establish, by sound static\\nrange analysis, that every intermediate subexpression of an integer\\narithmetic expression stays within the 64-bit signed range, the\\nexpression shall be rejected with a diagnostic.\\\"\"],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": {
+              "end_col": 18,
+              "end_line": 19,
+              "start_col": 14,
+              "start_line": 19
+            },
+            "message": "intermediate overflow in integer expression",
+            "notes": [
+              "static range analysis determines that the subexpression (A * B)\nhas range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\nwhich exceeds the 64-bit signed range\n[-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].",
+              "A has range [0 .. 9_999_999_999_999_999]",
+              "B has range [0 .. 9_999_999_999_999_999]",
+              "rule: D27 Rule 1 (Wide Intermediate Arithmetic)",
+              "per spec/02-restrictions.md section 2.8.1 paragraph 129:\n\"If a conforming implementation cannot establish, by sound static\nrange analysis, that every intermediate subexpression of an integer\narithmetic expression stays within the 64-bit signed range, the\nexpression shall be rejected with a diagnostic.\""
+            ],
+            "path": "$REPO_ROOT/tests/negative/neg_rule1_overflow.safe",
+            "reason": "intermediate_overflow",
+            "span": {
+              "end_col": 18,
+              "end_line": 19,
+              "start_col": 14,
+              "start_line": 19
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "expected_reason": "intermediate_overflow",
+      "golden": "tests/diagnostics_golden/diag_overflow.txt",
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_rule1_overflow.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_rule1_overflow.safe:19:14: error: intermediate overflow in integer expression\n  |\n  | 19 |       return A * B;  -- ERROR: intermediate may exceed 64-bit range\n  |    |              ^~~~~\n  |\n  note: static range analysis determines that the subexpression (A * B)\n        has range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\n        which exceeds the 64-bit signed range\n        [-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].\n  note: A has range [0 .. 9_999_999_999_999_999]\n  note: B has range [0 .. 9_999_999_999_999_999]\n  note: rule: D27 Rule 1 (Wide Intermediate Arithmetic)\n  note: per spec/02-restrictions.md section 2.8.1 paragraph 129:\n        \"If a conforming implementation cannot establish, by sound static\n        range analysis, that every intermediate subexpression of an integer\n        arithmetic expression stays within the 64-bit signed range, the\n        expression shall be rejected with a diagnostic.\"\n",
+        "stdout": ""
+      },
+      "source": "tests/negative/neg_rule1_overflow.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_own_double_move.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"double_move\",\"message\":\"use of moved value 'Source'\",\"path\":\"$REPO_ROOT/tests/negative/neg_own_double_move.safe\",\"span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":23},\"highlight_span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":23},\"notes\":[\"the source was already moved earlier on this path.\",\"rule: Safe \u00a72.3.2 (move semantics)\"],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": {
+              "end_col": 23,
+              "end_line": 22,
+              "start_col": 7,
+              "start_line": 22
+            },
+            "message": "use of moved value 'Source'",
+            "notes": [
+              "the source was already moved earlier on this path.",
+              "rule: Safe \u00a72.3.2 (move semantics)"
+            ],
+            "path": "$REPO_ROOT/tests/negative/neg_own_double_move.safe",
+            "reason": "double_move",
+            "span": {
+              "end_col": 23,
+              "end_line": 22,
+              "start_col": 7,
+              "start_line": 22
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "expected_reason": "double_move",
+      "golden": "tests/diagnostics_golden/diag_double_move.txt",
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_own_double_move.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_own_double_move.safe:22:7: error: use of moved value 'Source'\n  |\n  | 22 |       Target2 = Source;  -- ERROR: Source has already been moved\n  |    |       ^~~~~~~~~~~~~~~~~\n  |\n  note: the source was already moved earlier on this path.\n  note: rule: Safe \u00a72.3.2 (move semantics)\n",
+        "stdout": ""
+      },
+      "source": "tests/negative/neg_own_double_move.safe"
+    }
+  ],
+  "legacy_token_check": {
+    "diag_json": {
+      "command": [
+        "compiler_impl/bin/safec",
+        "check",
+        "--diag-json",
+        "compiler_impl/tests/legacy_two_char_tokens.safe"
+      ],
+      "cwd": "$REPO_ROOT",
+      "returncode": 1,
+      "stderr": "",
+      "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"legacy token \\\":=\\\" is not allowed\",\"path\":\"compiler_impl/tests/legacy_two_char_tokens.safe\",\"span\":{\"start_line\":2,\"start_col\":19,\"end_line\":2,\"end_col\":20},\"highlight_span\":null,\"notes\":[],\"suggestions\":[\"Use current Safe syntax (`=` for assignment).\"]},{\"reason\":\"source_frontend_error\",\"message\":\"legacy token \\\"=>\\\" is not allowed\",\"path\":\"compiler_impl/tests/legacy_two_char_tokens.safe\",\"span\":{\"start_line\":3,\"start_col\":20,\"end_line\":3,\"end_col\":21},\"highlight_span\":null,\"notes\":[],\"suggestions\":[\"Use current Safe syntax (`=` for named associations/aggregates and `then` for select arms).\"]},{\"reason\":\"source_frontend_error\",\"message\":\"legacy token \\\"/=\\\" is not allowed\",\"path\":\"compiler_impl/tests/legacy_two_char_tokens.safe\",\"span\":{\"start_line\":4,\"start_col\":19,\"end_line\":4,\"end_col\":20},\"highlight_span\":null,\"notes\":[],\"suggestions\":[\"Use current Safe syntax (`!=` for inequality).\"]}]}\n"
+    },
+    "diagnostics": {
+      "diagnostics": [
+        {
+          "highlight_span": null,
+          "message": "legacy token \":=\" is not allowed",
+          "notes": [],
+          "path": "compiler_impl/tests/legacy_two_char_tokens.safe",
+          "reason": "source_frontend_error",
+          "span": {
+            "end_col": 20,
+            "end_line": 2,
+            "start_col": 19,
+            "start_line": 2
+          },
+          "suggestions": [
+            "Use current Safe syntax (`=` for assignment)."
+          ]
+        },
+        {
+          "highlight_span": null,
+          "message": "legacy token \"=>\" is not allowed",
+          "notes": [],
+          "path": "compiler_impl/tests/legacy_two_char_tokens.safe",
+          "reason": "source_frontend_error",
+          "span": {
+            "end_col": 21,
+            "end_line": 3,
+            "start_col": 20,
+            "start_line": 3
+          },
+          "suggestions": [
+            "Use current Safe syntax (`=` for named associations/aggregates and `then` for select arms)."
+          ]
+        },
+        {
+          "highlight_span": null,
+          "message": "legacy token \"/=\" is not allowed",
+          "notes": [],
+          "path": "compiler_impl/tests/legacy_two_char_tokens.safe",
+          "reason": "source_frontend_error",
+          "span": {
+            "end_col": 20,
+            "end_line": 4,
+            "start_col": 19,
+            "start_line": 4
+          },
+          "suggestions": [
+            "Use current Safe syntax (`!=` for inequality)."
+          ]
+        }
+      ],
+      "format": "diagnostics-v0"
+    },
+    "human": {
+      "command": [
+        "compiler_impl/bin/safec",
+        "check",
+        "compiler_impl/tests/legacy_two_char_tokens.safe"
+      ],
+      "cwd": "$REPO_ROOT",
+      "returncode": 1,
+      "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | Legacy_Assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
+      "stdout": ""
+    },
+    "source": "compiler_impl/tests/legacy_two_char_tokens.safe"
+  },
+  "masked_harnesses": [
+    {
+      "harness": "scripts/run_pr05_d27_harness.py",
+      "report_path": "$TMPDIR/run_pr05_d27_harness.json",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/run_pr05_d27_harness.py",
+          "--report",
+          "$TMPDIR/run_pr05_d27_harness.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr05 harness: OK ($TMPDIR/run_pr05_d27_harness.json)\n"
+      }
+    },
+    {
+      "harness": "scripts/run_pr06_ownership_harness.py",
+      "report_path": "$TMPDIR/run_pr06_ownership_harness.json",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/run_pr06_ownership_harness.py",
+          "--report",
+          "$TMPDIR/run_pr06_ownership_harness.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr06 ownership harness: OK ($TMPDIR/run_pr06_ownership_harness.json)\n"
+      }
+    }
+  ],
+  "python_mask": {
+    "direct_blocked_attempts": [],
+    "direct_blocked_log_path": "$TMPDIR/blocked-strict-python.log",
+    "direct_stub_path": "$TMPDIR/python-mask-strict/python3",
+    "harness_blocked_attempts": [],
+    "harness_blocked_log_path": "$TMPDIR/blocked-harness-python.log",
+    "harness_stub_path": "$TMPDIR/python-mask-harness/python3"
+  },
+  "source_frontend_rejections": [
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "$TMPDIR/package_end_mismatch.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"package end name must match declared package name\",\"path\":\"$TMPDIR/package_end_mismatch.safe\",\"span\":{\"start_line\":2,\"start_col\":1,\"end_line\":2,\"end_col\":18},\"highlight_span\":null,\"notes\":[\"declared `Package_End_Mismatch`, found `Different_Name`\"],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": null,
+            "message": "package end name must match declared package name",
+            "notes": [
+              "declared `Package_End_Mismatch`, found `Different_Name`"
+            ],
+            "path": "$TMPDIR/package_end_mismatch.safe",
+            "reason": "source_frontend_error",
+            "span": {
+              "end_col": 18,
+              "end_line": 2,
+              "start_col": 1,
+              "start_line": 2
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "$TMPDIR/package_end_mismatch.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "package_end_mismatch.safe:2:1: error: package end name must match declared package name\n  |\n  | 2 | end Different_Name;\n  |   | ^~~~~~~~~~~~~~~~~~\n  |\n  note: declared `Package_End_Mismatch`, found `Different_Name`\n",
+        "stdout": ""
+      },
+      "source": "$TMPDIR/package_end_mismatch.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "$TMPDIR/oversized_integer_literal.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"integer literal is out of range\",\"path\":\"$TMPDIR/oversized_integer_literal.safe\",\"span\":{\"start_line\":2,\"start_col\":22,\"end_line\":2,\"end_col\":60},\"highlight_span\":null,\"notes\":[\"literal `999999999999999999999999999999999999999` cannot be represented\"],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": null,
+            "message": "integer literal is out of range",
+            "notes": [
+              "literal `999999999999999999999999999999999999999` cannot be represented"
+            ],
+            "path": "$TMPDIR/oversized_integer_literal.safe",
+            "reason": "source_frontend_error",
+            "span": {
+              "end_col": 60,
+              "end_line": 2,
+              "start_col": 22,
+              "start_line": 2
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "$TMPDIR/oversized_integer_literal.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "oversized_integer_literal.safe:2:22: error: integer literal is out of range\n  |\n  | 2 |    Value : Integer = 999999999999999999999999999999999999999;\n  |   |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n  note: literal `999999999999999999999999999999999999999` cannot be represented\n",
+        "stdout": ""
+      },
+      "source": "$TMPDIR/oversized_integer_literal.safe"
+    }
+  ],
+  "tool_versions": {
+    "alr": "alr 2.1.0",
+    "gprbuild": "GPRBUILD 25.0.0 (2025-05-16) (aarch64-apple-darwin23.6.0)",
+    "python3": "Python 3.9.6"
+  },
+  "unsupported_subset_rejections": [
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/rule5_normalize.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"unsupported type definition in current PR05/PR06 check subset\",\"path\":\"$REPO_ROOT/tests/positive/rule5_normalize.safe\",\"span\":{\"start_line\":12,\"start_col\":22,\"end_line\":12,\"end_col\":27},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": null,
+            "message": "unsupported type definition in current PR05/PR06 check subset",
+            "notes": [],
+            "path": "$REPO_ROOT/tests/positive/rule5_normalize.safe",
+            "reason": "unsupported_source_construct",
+            "span": {
+              "end_col": 27,
+              "end_line": 12,
+              "start_col": 22,
+              "start_line": 12
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/rule5_normalize.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "rule5_normalize.safe:12:22: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 12 |    type Component is digits 15 range -1.0E+10 .. 1.0E+10;\n  |    |                      ^~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "source": "tests/positive/rule5_normalize.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/result_guarded_access.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"type discriminants are outside the current PR05/PR06 check subset\",\"path\":\"$REPO_ROOT/tests/positive/result_guarded_access.safe\",\"span\":{\"start_line\":13,\"start_col\":22,\"end_line\":13,\"end_col\":22},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": null,
+            "message": "type discriminants are outside the current PR05/PR06 check subset",
+            "notes": [],
+            "path": "$REPO_ROOT/tests/positive/result_guarded_access.safe",
+            "reason": "unsupported_source_construct",
+            "span": {
+              "end_col": 22,
+              "end_line": 13,
+              "start_col": 22,
+              "start_line": 13
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/result_guarded_access.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "result_guarded_access.safe:13:22: error: type discriminants are outside the current PR05/PR06 check subset\n  |\n  | 13 |    type Parse_Result (OK : Boolean = False) is record\n  |    |                      ^\n  |\n",
+        "stdout": ""
+      },
+      "source": "tests/positive/result_guarded_access.safe"
+    },
+    {
+      "diag_json": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/channel_pingpong.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `channel` is outside the current PR05/PR06 check subset\",\"path\":\"$REPO_ROOT/tests/positive/channel_pingpong.safe\",\"span\":{\"start_line\":17,\"start_col\":4,\"end_line\":17,\"end_col\":10},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "diagnostics": {
+        "diagnostics": [
+          {
+            "highlight_span": null,
+            "message": "package item `channel` is outside the current PR05/PR06 check subset",
+            "notes": [],
+            "path": "$REPO_ROOT/tests/positive/channel_pingpong.safe",
+            "reason": "unsupported_source_construct",
+            "span": {
+              "end_col": 10,
+              "end_line": 17,
+              "start_col": 4,
+              "start_line": 17
+            },
+            "suggestions": []
+          }
+        ],
+        "format": "diagnostics-v0"
+      },
+      "human": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/channel_pingpong.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "channel_pingpong.safe:17:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 17 |    channel Ping_Ch : Message capacity 1;\n  |    |    ^~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "source": "tests/positive/channel_pingpong.safe"
+    }
+  ]
+}
