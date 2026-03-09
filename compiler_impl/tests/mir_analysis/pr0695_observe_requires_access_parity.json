@@ -1,0 +1,256 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_own_observe_requires_access.safe",
+  "package_name": "Observe_Requires_Access_Test",
+  "types": [
+    {
+      "name": "Config",
+      "kind": "record",
+      "fields": {
+        "Rate": "Natural"
+      }
+    },
+    {
+      "name": "Config_Ptr",
+      "kind": "access",
+      "target": "Config",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Bad_Observe",
+      "kind": "procedure",
+      "entry_bb": "bb0",
+      "return_type": null,
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Owner",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 7,
+            "end_line": 15,
+            "end_col": 59
+          },
+          "type": {
+            "name": "Config_Ptr",
+            "kind": "access",
+            "target": "Config",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Observer",
+          "ownership_role": "Observe",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 7,
+            "end_line": 16,
+            "end_col": 48
+          },
+          "type": {
+            "name": "access Config",
+            "kind": "access",
+            "target": "Config",
+            "not_null": false,
+            "anonymous": true,
+            "is_constant": true,
+            "is_all": false,
+            "access_role": "Observe"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 14,
+            "start_col": 4,
+            "end_line": 18,
+            "end_col": 19
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "span": {
+                "start_line": 14,
+                "start_col": 4,
+                "end_line": 18,
+                "end_col": 19
+              },
+              "scope_id": "scope0",
+              "locals": [
+                "Owner",
+                "Observer"
+              ]
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 15,
+                "start_col": 7,
+                "end_line": 15,
+                "end_col": 59
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Config_Ptr",
+                "span": {
+                  "start_line": 15,
+                  "start_col": 7,
+                  "end_line": 15,
+                  "end_col": 11
+                }
+              },
+              "type": "Config_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Config",
+                "span": {
+                  "start_line": 15,
+                  "start_col": 31,
+                  "end_line": 15,
+                  "end_col": 58
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Config",
+                  "span": {
+                    "start_line": 15,
+                    "start_col": 35,
+                    "end_line": 15,
+                    "end_col": 58
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Config",
+                    "span": {
+                      "start_line": 15,
+                      "start_col": 35,
+                      "end_line": 15,
+                      "end_col": 40
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Config",
+                    "span": {
+                      "start_line": 15,
+                      "start_col": 36,
+                      "end_line": 15,
+                      "end_col": 47
+                    },
+                    "fields": [
+                      {
+                        "field": "Rate",
+                        "span": {
+                          "start_line": 15,
+                          "start_col": 37,
+                          "end_line": 15,
+                          "end_col": 46
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "100",
+                          "value": 100,
+                          "type": "Natural",
+                          "span": {
+                            "start_line": 15,
+                            "start_col": 44,
+                            "end_line": 15,
+                            "end_col": 46
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 16,
+                "start_col": 7,
+                "end_line": 16,
+                "end_col": 48
+              },
+              "ownership_effect": "Observe",
+              "target": {
+                "tag": "ident",
+                "name": "Observer",
+                "type": "access Config",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 7,
+                  "end_line": 16,
+                  "end_col": 14
+                }
+              },
+              "type": "access Config",
+              "value": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Config_Ptr",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 45,
+                  "end_line": 16,
+                  "end_col": 49
+                }
+              },
+              "declaration_init": true
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 14,
+              "start_col": 4,
+              "end_line": 18,
+              "end_col": 19
+            },
+            "ownership_effect": "None",
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

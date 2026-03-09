@@ -1,0 +1,137 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_rule1_overflow.safe",
+  "package_name": "Overflow_Test",
+  "types": [
+    {
+      "name": "Big",
+      "kind": "integer",
+      "low": 0,
+      "high": 9999999999999999
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Multiply",
+      "kind": "function",
+      "entry_bb": "bb0",
+      "return_type": {
+        "name": "Big",
+        "kind": "integer",
+        "low": 0,
+        "high": 9999999999999999
+      },
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "param",
+          "mode": "in",
+          "name": "A",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 23,
+            "end_line": 15,
+            "end_col": 23
+          },
+          "type": {
+            "name": "Big",
+            "kind": "integer",
+            "low": 0,
+            "high": 9999999999999999
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "param",
+          "mode": "in",
+          "name": "B",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 26,
+            "end_line": 15,
+            "end_col": 26
+          },
+          "type": {
+            "name": "Big",
+            "kind": "integer",
+            "low": 0,
+            "high": 9999999999999999
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 4,
+            "end_line": 20,
+            "end_col": 16
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 19,
+              "start_col": 7,
+              "end_line": 19,
+              "end_col": 18
+            },
+            "ownership_effect": "None",
+            "value": {
+              "tag": "binary",
+              "span": {
+                "start_line": 19,
+                "start_col": 14,
+                "end_line": 19,
+                "end_col": 18
+              },
+              "type": "Big",
+              "op": "*",
+              "left": {
+                "tag": "ident",
+                "name": "A",
+                "type": "Big",
+                "span": {
+                  "start_line": 19,
+                  "start_col": 14,
+                  "end_line": 19,
+                  "end_col": 14
+                }
+              },
+              "right": {
+                "tag": "ident",
+                "name": "B",
+                "type": "Big",
+                "span": {
+                  "start_line": 19,
+                  "start_col": 18,
+                  "end_line": 19,
+                  "end_col": 18
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

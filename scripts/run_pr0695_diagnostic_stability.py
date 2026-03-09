@@ -22,28 +22,60 @@ LEGACY_SOURCE = REPO_ROOT / "compiler_impl" / "tests" / "legacy_two_char_tokens.
 
 GOLDEN_CASES = [
     (
-        REPO_ROOT / "tests" / "negative" / "neg_rule1_overflow.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_overflow.txt",
+        REPO_ROOT / "tests" / "negative" / "neg_own_anon_reassign.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_anonymous_access_reassign.txt",
     ),
     (
-        REPO_ROOT / "tests" / "negative" / "neg_rule3_zero_div.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_zero_div.txt",
-    ),
-    (
-        REPO_ROOT / "tests" / "negative" / "neg_rule4_null_deref.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_null_deref.txt",
-    ),
-    (
-        REPO_ROOT / "tests" / "negative" / "neg_own_double_move.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_double_move.txt",
+        REPO_ROOT / "tests" / "negative" / "neg_own_anon_reassign_join.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_anonymous_access_reassign_join.txt",
     ),
     (
         REPO_ROOT / "tests" / "negative" / "neg_own_borrow_conflict.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_borrow_conflict.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_own_double_move.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_double_move.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_rule2_oob.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_index_oob.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_own_lifetime.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_lifetime_violation.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_own_source_maybe_null.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_move_source_not_nonnull.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_own_target_not_null.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_move_target_not_null.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_rule4_null_deref.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_null_deref.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_own_observe_mutate.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_observe_mutation.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_own_observe_requires_access.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_observe_requires_access.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_rule1_overflow.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_overflow.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_own_use_after_move.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_use_after_move.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_rule3_zero_div.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_zero_div.txt",
     ),
 ]
 
@@ -130,6 +162,24 @@ ANALYZER_EXPECTED = {
 
 PARITY_CASES = [
     {
+        "name": "anonymous_access_reassign_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_anon_reassign.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_anonymous_access_reassign_parity.json",
+    },
+    {
+        "name": "borrow_conflict_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_borrow_conflict.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_borrow_conflict_parity.json",
+    },
+    {
         "name": "division_by_zero_parity",
         "source": REPO_ROOT / "tests" / "negative" / "neg_rule3_expression.safe",
         "fixture": REPO_ROOT / "compiler_impl" / "tests" / "mir_analysis" / "pr0695_division_by_zero_parity.json",
@@ -148,6 +198,87 @@ PARITY_CASES = [
             {"start_line": 8, "start_col": 29, "end_line": 8, "end_col": 29},
             {"start_line": 10, "start_col": 29, "end_line": 10, "end_col": 29},
         ],
+    },
+    {
+        "name": "intermediate_overflow_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_rule1_overflow.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_intermediate_overflow_parity.json",
+    },
+    {
+        "name": "lifetime_violation_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_lifetime.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_lifetime_violation_parity.json",
+    },
+    {
+        "name": "move_source_not_nonnull_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_source_maybe_null.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_move_source_not_nonnull_parity.json",
+    },
+    {
+        "name": "move_target_not_null_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_target_not_null.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_move_target_not_null_parity.json",
+    },
+    {
+        "name": "narrowing_check_failure_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_rule1_index_fail.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_narrowing_check_failure_parity.json",
+    },
+    {
+        "name": "null_dereference_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_rule4_null_deref.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_null_dereference_parity.json",
+    },
+    {
+        "name": "observe_mutation_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_observe_mutate.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_observe_mutation_parity.json",
+    },
+    {
+        "name": "observe_requires_access_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_observe_requires_access.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_observe_requires_access_parity.json",
+    },
+    {
+        "name": "use_after_move_parity",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_own_use_after_move.safe",
+        "fixture": REPO_ROOT
+        / "compiler_impl"
+        / "tests"
+        / "mir_analysis"
+        / "pr0695_use_after_move_parity.json",
     },
 ]
 
@@ -280,7 +411,17 @@ def extract_expected_block(path: Path) -> str:
     return match.group(1).rstrip() + "\n"
 
 
+def ensure_golden_case_coverage() -> None:
+    mapped = sorted(path.name for _, path in GOLDEN_CASES)
+    current = sorted(path.name for path in (REPO_ROOT / "tests" / "diagnostics_golden").glob("*.txt"))
+    require(
+        mapped == current,
+        f"GOLDEN_CASES drifted: mapped {mapped}, current repository set {current}",
+    )
+
+
 def run_golden_cases(safec: Path, env: dict[str, str], temp_root: Path) -> list[dict[str, Any]]:
+    ensure_golden_case_coverage()
     results: list[dict[str, Any]] = []
     for source_path, golden_path in GOLDEN_CASES:
         result = run(
@@ -393,7 +534,16 @@ def run_source_frontend_cases(safec: Path, env: dict[str, str], temp_root: Path)
             temp_root=temp_root,
             expected_returncode=1,
         )
-        require(source.name in human["stderr"], f"{case['name']}: stderr must use basename header")
+        human_lines = human["stderr"].splitlines()
+        require(human_lines, f"{case['name']}: stderr must not be empty")
+        require(
+            human_lines[0]
+            == (
+                f"{source.name}:{case['expected']['span']['start_line']}:"
+                f"{case['expected']['span']['start_col']}: error: {case['expected']['message']}"
+            ),
+            f"{case['name']}: stderr must use the basename-only header for the first diagnostic",
+        )
         require(case["expected"]["message"] in human["stderr"], f"{case['name']}: missing human error")
 
         inline_results.append(

@@ -1,0 +1,206 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_rule1_index_fail.safe",
+  "package_name": "Index_Narrow_Fail",
+  "types": [
+    {
+      "name": "Idx",
+      "kind": "integer",
+      "low": 1,
+      "high": 10
+    },
+    {
+      "name": "Values",
+      "kind": "array",
+      "index_types": [
+        "Idx"
+      ],
+      "component_type": "Integer",
+      "unconstrained": false
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Index_From_Computation",
+      "kind": "function",
+      "entry_bb": "bb0",
+      "return_type": {
+        "name": "Integer",
+        "kind": "integer"
+      },
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "param",
+          "mode": "in",
+          "name": "Arr",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 37,
+            "end_line": 16,
+            "end_col": 39
+          },
+          "type": {
+            "name": "Values",
+            "kind": "array",
+            "index_types": [
+              "Idx"
+            ],
+            "component_type": "Integer",
+            "unconstrained": false
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "param",
+          "mode": "in",
+          "name": "A",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 17,
+            "start_col": 37,
+            "end_line": 17,
+            "end_col": 37
+          },
+          "type": {
+            "name": "Integer",
+            "kind": "integer"
+          }
+        },
+        {
+          "id": "v2",
+          "kind": "param",
+          "mode": "in",
+          "name": "B",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 17,
+            "start_col": 40,
+            "end_line": 17,
+            "end_col": 40
+          },
+          "type": {
+            "name": "Integer",
+            "kind": "integer"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1",
+            "v2"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 4,
+            "end_line": 20,
+            "end_col": 31
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 19,
+              "start_col": 7,
+              "end_line": 19,
+              "end_col": 30
+            },
+            "ownership_effect": "None",
+            "value": {
+              "tag": "resolved_index",
+              "span": {
+                "start_line": 19,
+                "start_col": 14,
+                "end_line": 19,
+                "end_col": 30
+              },
+              "type": "Integer",
+              "prefix": {
+                "tag": "ident",
+                "name": "Arr",
+                "type": "Values",
+                "span": {
+                  "start_line": 19,
+                  "start_col": 14,
+                  "end_line": 19,
+                  "end_col": 16
+                }
+              },
+              "indices": [
+                {
+                  "tag": "conversion",
+                  "span": {
+                    "start_line": 19,
+                    "start_col": 18,
+                    "end_line": 19,
+                    "end_col": 29
+                  },
+                  "type": "Idx",
+                  "target": {
+                    "tag": "ident",
+                    "name": "Idx",
+                    "span": {
+                      "start_line": 19,
+                      "start_col": 18,
+                      "end_line": 19,
+                      "end_col": 20
+                    }
+                  },
+                  "expr": {
+                    "tag": "binary",
+                    "span": {
+                      "start_line": 19,
+                      "start_col": 22,
+                      "end_line": 19,
+                      "end_col": 26
+                    },
+                    "type": "Integer",
+                    "op": "+",
+                    "left": {
+                      "tag": "ident",
+                      "name": "A",
+                      "type": "Integer",
+                      "span": {
+                        "start_line": 19,
+                        "start_col": 22,
+                        "end_line": 19,
+                        "end_col": 22
+                      }
+                    },
+                    "right": {
+                      "tag": "ident",
+                      "name": "B",
+                      "type": "Integer",
+                      "span": {
+                        "start_line": 19,
+                        "start_col": 26,
+                        "end_line": 19,
+                        "end_col": 26
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,402 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_own_anon_reassign.safe",
+  "package_name": "Anonymous_Reassign_Test",
+  "types": [
+    {
+      "name": "Data",
+      "kind": "record",
+      "fields": {
+        "Value": "Integer"
+      }
+    },
+    {
+      "name": "Data_Ptr",
+      "kind": "access",
+      "target": "Data",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Reassign_Borrow",
+      "kind": "procedure",
+      "entry_bb": "bb0",
+      "return_type": null,
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Owner",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 7,
+            "end_line": 15,
+            "end_col": 40
+          },
+          "type": {
+            "name": "Data_Ptr",
+            "kind": "access",
+            "target": "Data",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Other",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 7,
+            "end_line": 16,
+            "end_col": 40
+          },
+          "type": {
+            "name": "Data_Ptr",
+            "kind": "access",
+            "target": "Data",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v2",
+          "kind": "local",
+          "mode": "in",
+          "name": "Ref",
+          "ownership_role": "Borrow",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 17,
+            "start_col": 7,
+            "end_line": 17,
+            "end_col": 29
+          },
+          "type": {
+            "name": "access Data",
+            "kind": "access",
+            "target": "Data",
+            "not_null": false,
+            "anonymous": true,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Borrow"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1",
+            "v2"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 14,
+            "start_col": 4,
+            "end_line": 20,
+            "end_col": 22
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "span": {
+                "start_line": 14,
+                "start_col": 4,
+                "end_line": 20,
+                "end_col": 22
+              },
+              "scope_id": "scope0",
+              "locals": [
+                "Owner",
+                "Other",
+                "Ref"
+              ]
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 15,
+                "start_col": 7,
+                "end_line": 15,
+                "end_col": 40
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 15,
+                  "start_col": 7,
+                  "end_line": 15,
+                  "end_col": 11
+                }
+              },
+              "type": "Data_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Data",
+                "span": {
+                  "start_line": 15,
+                  "start_col": 27,
+                  "end_line": 15,
+                  "end_col": 40
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Data",
+                  "span": {
+                    "start_line": 15,
+                    "start_col": 31,
+                    "end_line": 15,
+                    "end_col": 40
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Data",
+                    "span": {
+                      "start_line": 15,
+                      "start_col": 31,
+                      "end_line": 15,
+                      "end_col": 34
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Data",
+                    "span": {
+                      "start_line": 15,
+                      "start_col": 32,
+                      "end_line": 15,
+                      "end_col": 39
+                    },
+                    "fields": [
+                      {
+                        "field": "Value",
+                        "span": {
+                          "start_line": 15,
+                          "start_col": 33,
+                          "end_line": 15,
+                          "end_col": 39
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "1",
+                          "value": 1,
+                          "type": "Integer",
+                          "span": {
+                            "start_line": 15,
+                            "start_col": 39,
+                            "end_line": 15,
+                            "end_col": 39
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 16,
+                "start_col": 7,
+                "end_line": 16,
+                "end_col": 40
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Other",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 7,
+                  "end_line": 16,
+                  "end_col": 11
+                }
+              },
+              "type": "Data_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Data",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 27,
+                  "end_line": 16,
+                  "end_col": 40
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Data",
+                  "span": {
+                    "start_line": 16,
+                    "start_col": 31,
+                    "end_line": 16,
+                    "end_col": 40
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Data",
+                    "span": {
+                      "start_line": 16,
+                      "start_col": 31,
+                      "end_line": 16,
+                      "end_col": 34
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Data",
+                    "span": {
+                      "start_line": 16,
+                      "start_col": 32,
+                      "end_line": 16,
+                      "end_col": 39
+                    },
+                    "fields": [
+                      {
+                        "field": "Value",
+                        "span": {
+                          "start_line": 16,
+                          "start_col": 33,
+                          "end_line": 16,
+                          "end_col": 39
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "2",
+                          "value": 2,
+                          "type": "Integer",
+                          "span": {
+                            "start_line": 16,
+                            "start_col": 39,
+                            "end_line": 16,
+                            "end_col": 39
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 17,
+                "start_col": 7,
+                "end_line": 17,
+                "end_col": 23
+              },
+              "ownership_effect": "Borrow",
+              "target": {
+                "tag": "ident",
+                "name": "Ref",
+                "type": "access Data",
+                "span": {
+                  "start_line": 17,
+                  "start_col": 7,
+                  "end_line": 17,
+                  "end_col": 9
+                }
+              },
+              "type": "access Data",
+              "value": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 17,
+                  "start_col": 29,
+                  "end_line": 17,
+                  "end_col": 33
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 19,
+                "start_col": 7,
+                "end_line": 19,
+                "end_col": 18
+              },
+              "ownership_effect": "Borrow",
+              "target": {
+                "tag": "ident",
+                "name": "Ref",
+                "type": "access Data",
+                "span": {
+                  "start_line": 19,
+                  "start_col": 7,
+                  "end_line": 19,
+                  "end_col": 9
+                }
+              },
+              "type": "access Data",
+              "value": {
+                "tag": "ident",
+                "name": "Other",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 19,
+                  "start_col": 13,
+                  "end_line": 19,
+                  "end_col": 17
+                }
+              },
+              "declaration_init": false
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 14,
+              "start_col": 4,
+              "end_line": 20,
+              "end_col": 22
+            },
+            "ownership_effect": "None",
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

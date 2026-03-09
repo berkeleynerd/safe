@@ -1,0 +1,332 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_own_borrow_conflict.safe",
+  "package_name": "Borrow_Conflict_Test",
+  "types": [
+    {
+      "name": "Data",
+      "kind": "record",
+      "fields": {
+        "Value": "Integer"
+      }
+    },
+    {
+      "name": "Data_Ptr",
+      "kind": "access",
+      "target": "Data",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Modify_Both",
+      "kind": "procedure",
+      "entry_bb": "bb0",
+      "return_type": null,
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Owner",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 17,
+            "start_col": 7,
+            "end_line": 17,
+            "end_col": 45
+          },
+          "type": {
+            "name": "Data_Ptr",
+            "kind": "access",
+            "target": "Data",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Ref",
+          "ownership_role": "Borrow",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 18,
+            "start_col": 7,
+            "end_line": 18,
+            "end_col": 30
+          },
+          "type": {
+            "name": "access Data",
+            "kind": "access",
+            "target": "Data",
+            "not_null": false,
+            "anonymous": true,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Borrow"
+          }
+        },
+        {
+          "id": "v2",
+          "kind": "local",
+          "mode": "in",
+          "name": "V",
+          "ownership_role": "",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 19,
+            "start_col": 7,
+            "end_line": 19,
+            "end_col": 18
+          },
+          "type": {
+            "name": "Integer",
+            "kind": "integer"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1",
+            "v2"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 4,
+            "end_line": 26,
+            "end_col": 20
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "span": {
+                "start_line": 16,
+                "start_col": 4,
+                "end_line": 26,
+                "end_col": 20
+              },
+              "scope_id": "scope0",
+              "locals": [
+                "Owner",
+                "Ref",
+                "V"
+              ]
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 17,
+                "start_col": 7,
+                "end_line": 17,
+                "end_col": 45
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 17,
+                  "start_col": 7,
+                  "end_line": 17,
+                  "end_col": 11
+                }
+              },
+              "type": "Data_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Data",
+                "span": {
+                  "start_line": 17,
+                  "start_col": 26,
+                  "end_line": 17,
+                  "end_col": 45
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Data",
+                  "span": {
+                    "start_line": 17,
+                    "start_col": 30,
+                    "end_line": 17,
+                    "end_col": 45
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Data",
+                    "span": {
+                      "start_line": 17,
+                      "start_col": 30,
+                      "end_line": 17,
+                      "end_col": 33
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Data",
+                    "span": {
+                      "start_line": 17,
+                      "start_col": 31,
+                      "end_line": 17,
+                      "end_col": 44
+                    },
+                    "fields": [
+                      {
+                        "field": "Value",
+                        "span": {
+                          "start_line": 17,
+                          "start_col": 32,
+                          "end_line": 17,
+                          "end_col": 43
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "10",
+                          "value": 10,
+                          "type": "Integer",
+                          "span": {
+                            "start_line": 17,
+                            "start_col": 40,
+                            "end_line": 17,
+                            "end_col": 41
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 18,
+                "start_col": 7,
+                "end_line": 18,
+                "end_col": 30
+              },
+              "ownership_effect": "Borrow",
+              "target": {
+                "tag": "ident",
+                "name": "Ref",
+                "type": "access Data",
+                "span": {
+                  "start_line": 18,
+                  "start_col": 7,
+                  "end_line": 18,
+                  "end_col": 9
+                }
+              },
+              "type": "access Data",
+              "value": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Data_Ptr",
+                "span": {
+                  "start_line": 18,
+                  "start_col": 27,
+                  "end_line": 18,
+                  "end_col": 31
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 25,
+                "start_col": 7,
+                "end_line": 25,
+                "end_col": 24
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "V",
+                "type": "Integer",
+                "span": {
+                  "start_line": 25,
+                  "start_col": 7,
+                  "end_line": 25,
+                  "end_col": 7
+                }
+              },
+              "type": "Integer",
+              "value": {
+                "tag": "select",
+                "selector": "Value",
+                "type": "Integer",
+                "span": {
+                  "start_line": 25,
+                  "start_col": 11,
+                  "end_line": 25,
+                  "end_col": 24
+                },
+                "prefix": {
+                  "tag": "select",
+                  "selector": "all",
+                  "type": "Data",
+                  "span": {
+                    "start_line": 25,
+                    "start_col": 11,
+                    "end_line": 25,
+                    "end_col": 19
+                  },
+                  "prefix": {
+                    "tag": "ident",
+                    "name": "Owner",
+                    "type": "Data_Ptr",
+                    "span": {
+                      "start_line": 25,
+                      "start_col": 11,
+                      "end_line": 25,
+                      "end_col": 15
+                    }
+                  }
+                }
+              },
+              "declaration_init": false
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 16,
+              "start_col": 4,
+              "end_line": 26,
+              "end_col": 20
+            },
+            "ownership_effect": "None",
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

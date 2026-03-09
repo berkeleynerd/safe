@@ -1,0 +1,253 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_own_lifetime.safe",
+  "package_name": "Lifetime_Test",
+  "types": [
+    {
+      "name": "Value",
+      "kind": "integer",
+      "low": 0,
+      "high": 100
+    },
+    {
+      "name": "Value_Ptr",
+      "kind": "access",
+      "target": "Value",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Leak_Borrow",
+      "kind": "function",
+      "entry_bb": "bb0",
+      "return_type": {
+        "name": "access Value",
+        "kind": "access",
+        "target": "Value",
+        "not_null": false,
+        "anonymous": true,
+        "is_constant": false,
+        "is_all": false,
+        "access_role": "Borrow"
+      },
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Owner",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 7,
+            "end_line": 16,
+            "end_col": 37
+          },
+          "type": {
+            "name": "Value_Ptr",
+            "kind": "access",
+            "target": "Value",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Ref",
+          "ownership_role": "Borrow",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 17,
+            "start_col": 7,
+            "end_line": 17,
+            "end_col": 29
+          },
+          "type": {
+            "name": "access Value",
+            "kind": "access",
+            "target": "Value",
+            "not_null": false,
+            "anonymous": true,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Borrow"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 4,
+            "end_line": 20,
+            "end_col": 19
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "span": {
+                "start_line": 15,
+                "start_col": 4,
+                "end_line": 20,
+                "end_col": 19
+              },
+              "scope_id": "scope0",
+              "locals": [
+                "Owner",
+                "Ref"
+              ]
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 16,
+                "start_col": 7,
+                "end_line": 16,
+                "end_col": 37
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Value_Ptr",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 7,
+                  "end_line": 16,
+                  "end_col": 11
+                }
+              },
+              "type": "Value_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Value",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 27,
+                  "end_line": 16,
+                  "end_col": 37
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Value",
+                  "span": {
+                    "start_line": 16,
+                    "start_col": 31,
+                    "end_line": 16,
+                    "end_col": 37
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Value",
+                    "span": {
+                      "start_line": 16,
+                      "start_col": 31,
+                      "end_line": 16,
+                      "end_col": 35
+                    }
+                  },
+                  "expr": {
+                    "tag": "int",
+                    "text": "42",
+                    "value": 42,
+                    "type": "Value",
+                    "span": {
+                      "start_line": 16,
+                      "start_col": 36,
+                      "end_line": 16,
+                      "end_col": 37
+                    }
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 17,
+                "start_col": 7,
+                "end_line": 17,
+                "end_col": 24
+              },
+              "ownership_effect": "Borrow",
+              "target": {
+                "tag": "ident",
+                "name": "Ref",
+                "type": "access Value",
+                "span": {
+                  "start_line": 17,
+                  "start_col": 7,
+                  "end_line": 17,
+                  "end_col": 9
+                }
+              },
+              "type": "access Value",
+              "value": {
+                "tag": "ident",
+                "name": "Owner",
+                "type": "Value_Ptr",
+                "span": {
+                  "start_line": 17,
+                  "start_col": 29,
+                  "end_line": 17,
+                  "end_col": 33
+                }
+              },
+              "declaration_init": true
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 19,
+              "start_col": 7,
+              "end_line": 19,
+              "end_col": 16
+            },
+            "ownership_effect": "None",
+            "value": {
+              "tag": "ident",
+              "name": "Ref",
+              "type": "access Value",
+              "span": {
+                "start_line": 19,
+                "start_col": 14,
+                "end_line": 19,
+                "end_col": 16
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

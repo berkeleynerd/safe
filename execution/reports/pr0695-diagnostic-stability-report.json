@@ -141,60 +141,30 @@
           "command": [
             "compiler_impl/bin/safec",
             "check",
-            "tests/negative/neg_rule1_overflow.safe"
+            "tests/negative/neg_own_anon_reassign.safe"
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_rule1_overflow.safe:19:14: error: intermediate overflow in integer expression\n  |\n  | 19 |       return A * B;  -- ERROR: intermediate may exceed 64-bit range\n  |    |              ^~~~~\n  |\n  note: static range analysis determines that the subexpression (A * B)\n        has range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\n        which exceeds the 64-bit signed range\n        [-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].\n  note: A has range [0 .. 9_999_999_999_999_999]\n  note: B has range [0 .. 9_999_999_999_999_999]\n  note: rule: D27 Rule 1 (Wide Intermediate Arithmetic)\n  note: per spec/02-restrictions.md section 2.8.1 paragraph 129:\n        \"If a conforming implementation cannot establish, by sound static\n        range analysis, that every intermediate subexpression of an integer\n        arithmetic expression stays within the 64-bit signed range, the\n        expression shall be rejected with a diagnostic.\"\n",
+          "stderr": "neg_own_anon_reassign.safe:19:7: error: anonymous access 'Ref' may only be assigned at its declaration\n  |\n  | 19 |       Ref = Other;  -- ERROR: anonymous access reassignment after declaration\n  |    |       ^~~~~~~~~~~~\n  |\n  note: borrow and observe locals are initialization-only.\n  note: rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)\n",
           "stdout": ""
         },
-        "golden": "tests/diagnostics_golden/diag_overflow.txt",
-        "source": "tests/negative/neg_rule1_overflow.safe"
+        "golden": "tests/diagnostics_golden/diag_anonymous_access_reassign.txt",
+        "source": "tests/negative/neg_own_anon_reassign.safe"
       },
       {
         "check": {
           "command": [
             "compiler_impl/bin/safec",
             "check",
-            "tests/negative/neg_rule3_zero_div.safe"
+            "tests/negative/neg_own_anon_reassign_join.safe"
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_rule3_zero_div.safe:14:16: error: divisor not provably nonzero\n  |\n  | 14 |       return A / B;  -- ERROR: B may be zero\n  |    |                  ^\n  |\n  note: right operand 'B' has type Value (range -100 .. 100),\n        which includes zero.\n  note: no preceding conditional or subtype constraint establishes\n        B /= 0 on all paths reaching this division.\n  note: rule: D27 Rule 3 (Division by Provably Nonzero Divisor)\n  note: per spec/02-restrictions.md section 2.8.3 paragraph 133:\n        \"The right operand of the operators /, mod, and rem shall be\n        provably nonzero at compile time.\"\n  note: per spec/02-restrictions.md section 2.8.3 paragraph 134:\n        \"If none of the conditions in paragraph 133 holds, the program\n        is nonconforming and a conforming implementation shall reject\n        the expression with a diagnostic.\"\n  suggestion: add a guard before the division:\n        if B /= 0 then\n           return A / B;\n        else\n           return 0;  -- or handle the zero case\n        end if;\n  suggestion: or use a positive subtype that excludes zero:\n        type Positive_Value is range 1 .. 100;\n",
+          "stderr": "neg_own_anon_reassign_join.safe:25:7: error: anonymous access 'Ref' may only be assigned at its declaration\n  |\n  | 25 |       Ref = Other;  -- ERROR: merge must not reset init-only tracking\n  |    |       ^~~~~~~~~~~~\n  |\n  note: borrow and observe locals are initialization-only.\n  note: rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)\n",
           "stdout": ""
         },
-        "golden": "tests/diagnostics_golden/diag_zero_div.txt",
-        "source": "tests/negative/neg_rule3_zero_div.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_rule4_null_deref.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P.all;  -- ERROR: P may be null\n  |    |              ^~~~~\n  |\n  note: P is of type Value_Ptr (access Value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_null_deref.txt",
-        "source": "tests/negative/neg_rule4_null_deref.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_double_move.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_double_move.safe:22:7: error: use of moved value 'Source'\n  |\n  | 22 |       Target2 = Source;  -- ERROR: Source has already been moved\n  |    |       ^~~~~~~~~~~~~~~~~\n  |\n  note: the source was already moved earlier on this path.\n  note: rule: Safe \u00a72.3.2 (move semantics)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_double_move.txt",
-        "source": "tests/negative/neg_own_double_move.safe"
+        "golden": "tests/diagnostics_golden/diag_anonymous_access_reassign_join.txt",
+        "source": "tests/negative/neg_own_anon_reassign_join.safe"
       },
       {
         "check": {
@@ -216,6 +186,36 @@
           "command": [
             "compiler_impl/bin/safec",
             "check",
+            "tests/negative/neg_own_double_move.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_double_move.safe:22:7: error: use of moved value 'Source'\n  |\n  | 22 |       Target2 = Source;  -- ERROR: Source has already been moved\n  |    |       ^~~~~~~~~~~~~~~~~\n  |\n  note: the source was already moved earlier on this path.\n  note: rule: Safe \u00a72.3.2 (move semantics)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_double_move.txt",
+        "source": "tests/negative/neg_own_double_move.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule2_oob.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule2_oob.safe:15:14: error: index expression not provably within array bounds\n  |\n  | 15 |       return Arr (Slot (Idx));  -- ERROR: Idx may not be in 0..7\n  |    |              ^~~~~~~~~~~~~~~~\n  |\n  note: array 'Arr' has index range Slot (0 .. 7).\n  note: index expression 'Slot (Idx)' has type Integer, with range\n        [Integer'First .. Integer'Last].\n  note: static analysis cannot establish that the index is within\n        [0 .. 7] on all execution paths.\n  note: rule: D27 Rule 2 (Provable Index Safety)\n  note: per spec/02-restrictions.md section 2.8.2 paragraph 131:\n        \"The index expression in an indexed_component shall be provably\n        within the array object's index bounds at compile time.\"\n  note: per spec/02-restrictions.md section 2.8.2 paragraph 132:\n        \"If neither condition holds, the program is nonconforming and\n        the implementation shall reject it with a diagnostic identifying\n        the indexed_component and the unresolvable bound relationship.\"\n  suggestion: add a bounds check before indexing:\n        if Idx >= 0 and then Idx <= 7 then\n           return Arr (Slot (Idx));\n        end if;\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_index_oob.txt",
+        "source": "tests/negative/neg_rule2_oob.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
             "tests/negative/neg_own_lifetime.safe"
           ],
           "cwd": "$REPO_ROOT",
@@ -225,9 +225,293 @@
         },
         "golden": "tests/diagnostics_golden/diag_lifetime_violation.txt",
         "source": "tests/negative/neg_own_lifetime.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_source_maybe_null.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_source_maybe_null.safe:15:7: error: move source 'Source' is not provably non-null\n  |\n  | 15 |       Target = Source;  -- ERROR: source is not provably non-null\n  |    |       ^~~~~~~~~~~~~~~~\n  |\n  note: static analysis determined state 'Null' at this move site.\n  note: rule: Safe \u00a72.3.2 (source of move must be provably non-null)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_move_source_not_nonnull.txt",
+        "source": "tests/negative/neg_own_source_maybe_null.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_target_not_null.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_target_not_null.safe:18:7: error: move target 'Target' is not provably null\n  |\n  | 18 |       Target = Source;  -- ERROR: target is not provably null\n  |    |       ^~~~~~~~~~~~~~~~\n  |\n  note: static analysis determined state 'NonNull' for the move target.\n  note: rule: Safe \u00a72.3.2 (target of move must be provably null)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_move_target_not_null.txt",
+        "source": "tests/negative/neg_own_target_not_null.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule4_null_deref.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P.all;  -- ERROR: P may be null\n  |    |              ^~~~~\n  |\n  note: P is of type Value_Ptr (access Value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_null_deref.txt",
+        "source": "tests/negative/neg_rule4_null_deref.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_observe_mutate.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_observe_mutate.safe:22:7: error: observer 'Observer' provides read-only access\n  |\n  | 22 |       Observer.all.Rate = 200;  -- ERROR: mutation through observer\n  |    |       ^~~~~~~~\n  |\n  note: writes and moves through an active observer are not permitted.\n  note: rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_observe_mutation.txt",
+        "source": "tests/negative/neg_own_observe_mutate.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_observe_requires_access.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_observe_requires_access.safe:16:7: error: observer 'Observer' must be initialized from X.Access\n  |\n  | 16 |       Observer : access constant Config = Owner;  -- ERROR: must use Owner.Access\n  |    |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n  note: local observe uses anonymous access constant and requires an explicit .Access attribute.\n  note: rule: Safe \u00a72.3.4 (local observe must use .Access)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_observe_requires_access.txt",
+        "source": "tests/negative/neg_own_observe_requires_access.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule1_overflow.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule1_overflow.safe:19:14: error: intermediate overflow in integer expression\n  |\n  | 19 |       return A * B;  -- ERROR: intermediate may exceed 64-bit range\n  |    |              ^~~~~\n  |\n  note: static range analysis determines that the subexpression (A * B)\n        has range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\n        which exceeds the 64-bit signed range\n        [-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].\n  note: A has range [0 .. 9_999_999_999_999_999]\n  note: B has range [0 .. 9_999_999_999_999_999]\n  note: rule: D27 Rule 1 (Wide Intermediate Arithmetic)\n  note: per spec/02-restrictions.md section 2.8.1 paragraph 129:\n        \"If a conforming implementation cannot establish, by sound static\n        range analysis, that every intermediate subexpression of an integer\n        arithmetic expression stays within the 64-bit signed range, the\n        expression shall be rejected with a diagnostic.\"\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_overflow.txt",
+        "source": "tests/negative/neg_rule1_overflow.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_use_after_move.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_use_after_move.safe:25:11: error: dereference of moved access value\n  |\n  | 25 |       V = Source.all.Count;  -- ERROR: dereference of moved variable\n  |    |           ^~~~~~~~~~\n  |\n  note: the access value was moved before this dereference.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_use_after_move.txt",
+        "source": "tests/negative/neg_own_use_after_move.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule3_zero_div.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule3_zero_div.safe:14:16: error: divisor not provably nonzero\n  |\n  | 14 |       return A / B;  -- ERROR: B may be zero\n  |    |                  ^\n  |\n  note: right operand 'B' has type Value (range -100 .. 100),\n        which includes zero.\n  note: no preceding conditional or subtype constraint establishes\n        B /= 0 on all paths reaching this division.\n  note: rule: D27 Rule 3 (Division by Provably Nonzero Divisor)\n  note: per spec/02-restrictions.md section 2.8.3 paragraph 133:\n        \"The right operand of the operators /, mod, and rem shall be\n        provably nonzero at compile time.\"\n  note: per spec/02-restrictions.md section 2.8.3 paragraph 134:\n        \"If none of the conditions in paragraph 133 holds, the program\n        is nonconforming and a conforming implementation shall reject\n        the expression with a diagnostic.\"\n  suggestion: add a guard before the division:\n        if B /= 0 then\n           return A / B;\n        else\n           return 0;  -- or handle the zero case\n        end if;\n  suggestion: or use a positive subtype that excludes zero:\n        type Positive_Value is range 1 .. 100;\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_zero_div.txt",
+        "source": "tests/negative/neg_rule3_zero_div.safe"
       }
     ],
     "parity": {
+      "anonymous_access_reassign_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 7,
+                "start_line": 19
+              },
+              "message": "anonymous access 'Ref' may only be assigned at its declaration",
+              "notes": [
+                "borrow and observe locals are initialization-only.",
+                "rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)"
+              ],
+              "path": "tests/negative/neg_own_anon_reassign.safe",
+              "reason": "anonymous_access_reassign",
+              "span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 7,
+                "start_line": 19
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_anonymous_access_reassign_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"anonymous_access_reassign\",\"message\":\"anonymous access 'Ref' may only be assigned at its declaration\",\"path\":\"tests/negative/neg_own_anon_reassign.safe\",\"span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":18},\"highlight_span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":18},\"notes\":[\"borrow and observe locals are initialization-only.\",\"rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_anon_reassign.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"anonymous_access_reassign\",\"message\":\"anonymous access 'Ref' may only be assigned at its declaration\",\"path\":\"tests/negative/neg_own_anon_reassign.safe\",\"span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":18},\"highlight_span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":18},\"notes\":[\"borrow and observe locals are initialization-only.\",\"rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 7,
+                "start_line": 19
+              },
+              "message": "anonymous access 'Ref' may only be assigned at its declaration",
+              "notes": [
+                "borrow and observe locals are initialization-only.",
+                "rule: Safe \u00a72.3.3 / \u00a72.3.4a (anonymous access is initialization-only)"
+              ],
+              "path": "tests/negative/neg_own_anon_reassign.safe",
+              "reason": "anonymous_access_reassign",
+              "span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 7,
+                "start_line": 19
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_anonymous_access_reassign_parity.json",
+        "source": "tests/negative/neg_own_anon_reassign.safe"
+      },
+      "borrow_conflict_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 15,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "message": "lender 'Owner' is frozen by an active mutable borrow",
+              "notes": [
+                "reads, writes, and moves of the lender are forbidden while the borrow is active.",
+                "rule: Safe \u00a72.3.3 (mutable borrow freezes lender)"
+              ],
+              "path": "tests/negative/neg_own_borrow_conflict.safe",
+              "reason": "borrow_conflict",
+              "span": {
+                "end_col": 15,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_borrow_conflict_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"borrow_conflict\",\"message\":\"lender 'Owner' is frozen by an active mutable borrow\",\"path\":\"tests/negative/neg_own_borrow_conflict.safe\",\"span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":15},\"highlight_span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":15},\"notes\":[\"reads, writes, and moves of the lender are forbidden while the borrow is active.\",\"rule: Safe \u00a72.3.3 (mutable borrow freezes lender)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_borrow_conflict.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"borrow_conflict\",\"message\":\"lender 'Owner' is frozen by an active mutable borrow\",\"path\":\"tests/negative/neg_own_borrow_conflict.safe\",\"span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":15},\"highlight_span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":15},\"notes\":[\"reads, writes, and moves of the lender are forbidden while the borrow is active.\",\"rule: Safe \u00a72.3.3 (mutable borrow freezes lender)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 15,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "message": "lender 'Owner' is frozen by an active mutable borrow",
+              "notes": [
+                "reads, writes, and moves of the lender are forbidden while the borrow is active.",
+                "rule: Safe \u00a72.3.3 (mutable borrow freezes lender)"
+              ],
+              "path": "tests/negative/neg_own_borrow_conflict.safe",
+              "reason": "borrow_conflict",
+              "span": {
+                "end_col": 15,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_borrow_conflict_parity.json",
+        "source": "tests/negative/neg_own_borrow_conflict.safe"
+      },
       "division_by_zero_parity": {
         "analyze_diagnostics": {
           "diagnostics": [
@@ -511,6 +795,770 @@
         },
         "fixture": "compiler_impl/tests/mir_analysis/pr0695_first_diagnostic_order.json",
         "source": "compiler_impl/tests/mir_analysis/pr0695_first_diagnostic_order.safe"
+      },
+      "intermediate_overflow_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "message": "intermediate overflow in integer expression",
+              "notes": [
+                "static range analysis determines that the subexpression (A * B)\nhas range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\nwhich exceeds the 64-bit signed range\n[-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].",
+                "A has range [0 .. 9_999_999_999_999_999]",
+                "B has range [0 .. 9_999_999_999_999_999]",
+                "rule: D27 Rule 1 (Wide Intermediate Arithmetic)",
+                "per spec/02-restrictions.md section 2.8.1 paragraph 129:\n\"If a conforming implementation cannot establish, by sound static\nrange analysis, that every intermediate subexpression of an integer\narithmetic expression stays within the 64-bit signed range, the\nexpression shall be rejected with a diagnostic.\""
+              ],
+              "path": "tests/negative/neg_rule1_overflow.safe",
+              "reason": "intermediate_overflow",
+              "span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_intermediate_overflow_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"intermediate_overflow\",\"message\":\"intermediate overflow in integer expression\",\"path\":\"tests/negative/neg_rule1_overflow.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":18},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":18},\"notes\":[\"static range analysis determines that the subexpression (A * B)\\nhas range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\\nwhich exceeds the 64-bit signed range\\n[-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].\",\"A has range [0 .. 9_999_999_999_999_999]\",\"B has range [0 .. 9_999_999_999_999_999]\",\"rule: D27 Rule 1 (Wide Intermediate Arithmetic)\",\"per spec/02-restrictions.md section 2.8.1 paragraph 129:\\n\\\"If a conforming implementation cannot establish, by sound static\\nrange analysis, that every intermediate subexpression of an integer\\narithmetic expression stays within the 64-bit signed range, the\\nexpression shall be rejected with a diagnostic.\\\"\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_rule1_overflow.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"intermediate_overflow\",\"message\":\"intermediate overflow in integer expression\",\"path\":\"tests/negative/neg_rule1_overflow.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":18},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":18},\"notes\":[\"static range analysis determines that the subexpression (A * B)\\nhas range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\\nwhich exceeds the 64-bit signed range\\n[-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].\",\"A has range [0 .. 9_999_999_999_999_999]\",\"B has range [0 .. 9_999_999_999_999_999]\",\"rule: D27 Rule 1 (Wide Intermediate Arithmetic)\",\"per spec/02-restrictions.md section 2.8.1 paragraph 129:\\n\\\"If a conforming implementation cannot establish, by sound static\\nrange analysis, that every intermediate subexpression of an integer\\narithmetic expression stays within the 64-bit signed range, the\\nexpression shall be rejected with a diagnostic.\\\"\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "message": "intermediate overflow in integer expression",
+              "notes": [
+                "static range analysis determines that the subexpression (A * B)\nhas range [0 .. 99_999_999_999_999_980_000_000_000_000_001]\nwhich exceeds the 64-bit signed range\n[-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].",
+                "A has range [0 .. 9_999_999_999_999_999]",
+                "B has range [0 .. 9_999_999_999_999_999]",
+                "rule: D27 Rule 1 (Wide Intermediate Arithmetic)",
+                "per spec/02-restrictions.md section 2.8.1 paragraph 129:\n\"If a conforming implementation cannot establish, by sound static\nrange analysis, that every intermediate subexpression of an integer\narithmetic expression stays within the 64-bit signed range, the\nexpression shall be rejected with a diagnostic.\""
+              ],
+              "path": "tests/negative/neg_rule1_overflow.safe",
+              "reason": "intermediate_overflow",
+              "span": {
+                "end_col": 18,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_intermediate_overflow_parity.json",
+        "source": "tests/negative/neg_rule1_overflow.safe"
+      },
+      "lifetime_violation_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 16,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "message": "returned borrow value cannot outlive lender 'Owner'",
+              "notes": [
+                "borrowed and observed values must remain within the lender lifetime.",
+                "rule: Safe \u00a72.3.3 / \u00a72.3.4a (lifetime containment)"
+              ],
+              "path": "tests/negative/neg_own_lifetime.safe",
+              "reason": "lifetime_violation",
+              "span": {
+                "end_col": 16,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_lifetime_violation_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"lifetime_violation\",\"message\":\"returned borrow value cannot outlive lender 'Owner'\",\"path\":\"tests/negative/neg_own_lifetime.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":16},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":16},\"notes\":[\"borrowed and observed values must remain within the lender lifetime.\",\"rule: Safe \u00a72.3.3 / \u00a72.3.4a (lifetime containment)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_lifetime.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"lifetime_violation\",\"message\":\"returned borrow value cannot outlive lender 'Owner'\",\"path\":\"tests/negative/neg_own_lifetime.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":16},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":16},\"notes\":[\"borrowed and observed values must remain within the lender lifetime.\",\"rule: Safe \u00a72.3.3 / \u00a72.3.4a (lifetime containment)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 16,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "message": "returned borrow value cannot outlive lender 'Owner'",
+              "notes": [
+                "borrowed and observed values must remain within the lender lifetime.",
+                "rule: Safe \u00a72.3.3 / \u00a72.3.4a (lifetime containment)"
+              ],
+              "path": "tests/negative/neg_own_lifetime.safe",
+              "reason": "lifetime_violation",
+              "span": {
+                "end_col": 16,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_lifetime_violation_parity.json",
+        "source": "tests/negative/neg_own_lifetime.safe"
+      },
+      "move_source_not_nonnull_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 22,
+                "end_line": 15,
+                "start_col": 7,
+                "start_line": 15
+              },
+              "message": "move source 'Source' is not provably non-null",
+              "notes": [
+                "static analysis determined state 'Null' at this move site.",
+                "rule: Safe \u00a72.3.2 (source of move must be provably non-null)"
+              ],
+              "path": "tests/negative/neg_own_source_maybe_null.safe",
+              "reason": "move_source_not_nonnull",
+              "span": {
+                "end_col": 22,
+                "end_line": 15,
+                "start_col": 7,
+                "start_line": 15
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_move_source_not_nonnull_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_source_not_nonnull\",\"message\":\"move source 'Source' is not provably non-null\",\"path\":\"tests/negative/neg_own_source_maybe_null.safe\",\"span\":{\"start_line\":15,\"start_col\":7,\"end_line\":15,\"end_col\":22},\"highlight_span\":{\"start_line\":15,\"start_col\":7,\"end_line\":15,\"end_col\":22},\"notes\":[\"static analysis determined state 'Null' at this move site.\",\"rule: Safe \u00a72.3.2 (source of move must be provably non-null)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_source_maybe_null.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_source_not_nonnull\",\"message\":\"move source 'Source' is not provably non-null\",\"path\":\"tests/negative/neg_own_source_maybe_null.safe\",\"span\":{\"start_line\":15,\"start_col\":7,\"end_line\":15,\"end_col\":22},\"highlight_span\":{\"start_line\":15,\"start_col\":7,\"end_line\":15,\"end_col\":22},\"notes\":[\"static analysis determined state 'Null' at this move site.\",\"rule: Safe \u00a72.3.2 (source of move must be provably non-null)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 22,
+                "end_line": 15,
+                "start_col": 7,
+                "start_line": 15
+              },
+              "message": "move source 'Source' is not provably non-null",
+              "notes": [
+                "static analysis determined state 'Null' at this move site.",
+                "rule: Safe \u00a72.3.2 (source of move must be provably non-null)"
+              ],
+              "path": "tests/negative/neg_own_source_maybe_null.safe",
+              "reason": "move_source_not_nonnull",
+              "span": {
+                "end_col": 22,
+                "end_line": 15,
+                "start_col": 7,
+                "start_line": 15
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_move_source_not_nonnull_parity.json",
+        "source": "tests/negative/neg_own_source_maybe_null.safe"
+      },
+      "move_target_not_null_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 22,
+                "end_line": 18,
+                "start_col": 7,
+                "start_line": 18
+              },
+              "message": "move target 'Target' is not provably null",
+              "notes": [
+                "static analysis determined state 'NonNull' for the move target.",
+                "rule: Safe \u00a72.3.2 (target of move must be provably null)"
+              ],
+              "path": "tests/negative/neg_own_target_not_null.safe",
+              "reason": "move_target_not_null",
+              "span": {
+                "end_col": 22,
+                "end_line": 18,
+                "start_col": 7,
+                "start_line": 18
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_move_target_not_null_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_target_not_null\",\"message\":\"move target 'Target' is not provably null\",\"path\":\"tests/negative/neg_own_target_not_null.safe\",\"span\":{\"start_line\":18,\"start_col\":7,\"end_line\":18,\"end_col\":22},\"highlight_span\":{\"start_line\":18,\"start_col\":7,\"end_line\":18,\"end_col\":22},\"notes\":[\"static analysis determined state 'NonNull' for the move target.\",\"rule: Safe \u00a72.3.2 (target of move must be provably null)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_target_not_null.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_target_not_null\",\"message\":\"move target 'Target' is not provably null\",\"path\":\"tests/negative/neg_own_target_not_null.safe\",\"span\":{\"start_line\":18,\"start_col\":7,\"end_line\":18,\"end_col\":22},\"highlight_span\":{\"start_line\":18,\"start_col\":7,\"end_line\":18,\"end_col\":22},\"notes\":[\"static analysis determined state 'NonNull' for the move target.\",\"rule: Safe \u00a72.3.2 (target of move must be provably null)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 22,
+                "end_line": 18,
+                "start_col": 7,
+                "start_line": 18
+              },
+              "message": "move target 'Target' is not provably null",
+              "notes": [
+                "static analysis determined state 'NonNull' for the move target.",
+                "rule: Safe \u00a72.3.2 (target of move must be provably null)"
+              ],
+              "path": "tests/negative/neg_own_target_not_null.safe",
+              "reason": "move_target_not_null",
+              "span": {
+                "end_col": 22,
+                "end_line": 18,
+                "start_col": 7,
+                "start_line": 18
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_move_target_not_null_parity.json",
+        "source": "tests/negative/neg_own_target_not_null.safe"
+      },
+      "narrowing_check_failure_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 30,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "message": "index expression not provably within array bounds",
+              "notes": [
+                "array 'Arr' has index range Idx (1 .. 10).",
+                "index expression 'Idx (A + B)' has type Integer, with range\n[Integer'First .. Integer'Last].",
+                "static analysis cannot establish that the index is within\n[1 .. 10] on all execution paths.",
+                "rule: D27 Rule 2 (Provable Index Safety)",
+                "per spec/02-restrictions.md section 2.8.2 paragraph 131:\n\"The index expression in an indexed_component shall be provably\nwithin the array object's index bounds at compile time.\"",
+                "per spec/02-restrictions.md section 2.8.2 paragraph 132:\n\"If neither condition holds, the program is nonconforming and\nthe implementation shall reject it with a diagnostic identifying\nthe indexed_component and the unresolvable bound relationship.\""
+              ],
+              "path": "tests/negative/neg_rule1_index_fail.safe",
+              "reason": "narrowing_check_failure",
+              "span": {
+                "end_col": 30,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "suggestions": [
+                "add a bounds check before indexing:\nif A + B >= 1 and then A + B <= 10 then\n   return Arr (Idx (A + B));\nend if;"
+              ]
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_narrowing_check_failure_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"narrowing_check_failure\",\"message\":\"index expression not provably within array bounds\",\"path\":\"tests/negative/neg_rule1_index_fail.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":30},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":30},\"notes\":[\"array 'Arr' has index range Idx (1 .. 10).\",\"index expression 'Idx (A + B)' has type Integer, with range\\n[Integer'First .. Integer'Last].\",\"static analysis cannot establish that the index is within\\n[1 .. 10] on all execution paths.\",\"rule: D27 Rule 2 (Provable Index Safety)\",\"per spec/02-restrictions.md section 2.8.2 paragraph 131:\\n\\\"The index expression in an indexed_component shall be provably\\nwithin the array object's index bounds at compile time.\\\"\",\"per spec/02-restrictions.md section 2.8.2 paragraph 132:\\n\\\"If neither condition holds, the program is nonconforming and\\nthe implementation shall reject it with a diagnostic identifying\\nthe indexed_component and the unresolvable bound relationship.\\\"\"],\"suggestions\":[\"add a bounds check before indexing:\\nif A + B >= 1 and then A + B <= 10 then\\n   return Arr (Idx (A + B));\\nend if;\"]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_rule1_index_fail.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"narrowing_check_failure\",\"message\":\"index expression not provably within array bounds\",\"path\":\"tests/negative/neg_rule1_index_fail.safe\",\"span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":30},\"highlight_span\":{\"start_line\":19,\"start_col\":14,\"end_line\":19,\"end_col\":30},\"notes\":[\"array 'Arr' has index range Idx (1 .. 10).\",\"index expression 'Idx (A + B)' has type Integer, with range\\n[Integer'First .. Integer'Last].\",\"static analysis cannot establish that the index is within\\n[1 .. 10] on all execution paths.\",\"rule: D27 Rule 2 (Provable Index Safety)\",\"per spec/02-restrictions.md section 2.8.2 paragraph 131:\\n\\\"The index expression in an indexed_component shall be provably\\nwithin the array object's index bounds at compile time.\\\"\",\"per spec/02-restrictions.md section 2.8.2 paragraph 132:\\n\\\"If neither condition holds, the program is nonconforming and\\nthe implementation shall reject it with a diagnostic identifying\\nthe indexed_component and the unresolvable bound relationship.\\\"\"],\"suggestions\":[\"add a bounds check before indexing:\\nif A + B >= 1 and then A + B <= 10 then\\n   return Arr (Idx (A + B));\\nend if;\"]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 30,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "message": "index expression not provably within array bounds",
+              "notes": [
+                "array 'Arr' has index range Idx (1 .. 10).",
+                "index expression 'Idx (A + B)' has type Integer, with range\n[Integer'First .. Integer'Last].",
+                "static analysis cannot establish that the index is within\n[1 .. 10] on all execution paths.",
+                "rule: D27 Rule 2 (Provable Index Safety)",
+                "per spec/02-restrictions.md section 2.8.2 paragraph 131:\n\"The index expression in an indexed_component shall be provably\nwithin the array object's index bounds at compile time.\"",
+                "per spec/02-restrictions.md section 2.8.2 paragraph 132:\n\"If neither condition holds, the program is nonconforming and\nthe implementation shall reject it with a diagnostic identifying\nthe indexed_component and the unresolvable bound relationship.\""
+              ],
+              "path": "tests/negative/neg_rule1_index_fail.safe",
+              "reason": "narrowing_check_failure",
+              "span": {
+                "end_col": 30,
+                "end_line": 19,
+                "start_col": 14,
+                "start_line": 19
+              },
+              "suggestions": [
+                "add a bounds check before indexing:\nif A + B >= 1 and then A + B <= 10 then\n   return Arr (Idx (A + B));\nend if;"
+              ]
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_narrowing_check_failure_parity.json",
+        "source": "tests/negative/neg_rule1_index_fail.safe"
+      },
+      "null_dereference_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 14,
+                "start_col": 14,
+                "start_line": 14
+              },
+              "message": "dereference of possibly null access value",
+              "notes": [
+                "P is of type Value_Ptr (access Value), which does not exclude null.",
+                "no null check precedes this dereference on all paths reaching\nthis program point.",
+                "rule: D27 Rule 4 (Not-Null Dereference)",
+                "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
+              ],
+              "path": "tests/negative/neg_rule4_null_deref.safe",
+              "reason": "null_dereference",
+              "span": {
+                "end_col": 18,
+                "end_line": 14,
+                "start_col": 14,
+                "start_line": 14
+              },
+              "suggestions": [
+                "use a \"not null access\" subtype, or add an explicit null check:\nif P /= null then\n   return P.all;\nend if;"
+              ]
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_null_dereference_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":18},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":18},\"notes\":[\"P is of type Value_Ptr (access Value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_rule4_null_deref.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":18},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":18},\"notes\":[\"P is of type Value_Ptr (access Value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 18,
+                "end_line": 14,
+                "start_col": 14,
+                "start_line": 14
+              },
+              "message": "dereference of possibly null access value",
+              "notes": [
+                "P is of type Value_Ptr (access Value), which does not exclude null.",
+                "no null check precedes this dereference on all paths reaching\nthis program point.",
+                "rule: D27 Rule 4 (Not-Null Dereference)",
+                "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
+              ],
+              "path": "tests/negative/neg_rule4_null_deref.safe",
+              "reason": "null_dereference",
+              "span": {
+                "end_col": 18,
+                "end_line": 14,
+                "start_col": 14,
+                "start_line": 14
+              },
+              "suggestions": [
+                "use a \"not null access\" subtype, or add an explicit null check:\nif P /= null then\n   return P.all;\nend if;"
+              ]
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_null_dereference_parity.json",
+        "source": "tests/negative/neg_rule4_null_deref.safe"
+      },
+      "observe_mutation_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 14,
+                "end_line": 22,
+                "start_col": 7,
+                "start_line": 22
+              },
+              "message": "observer 'Observer' provides read-only access",
+              "notes": [
+                "writes and moves through an active observer are not permitted.",
+                "rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)"
+              ],
+              "path": "tests/negative/neg_own_observe_mutate.safe",
+              "reason": "observe_mutation",
+              "span": {
+                "end_col": 14,
+                "end_line": 22,
+                "start_col": 7,
+                "start_line": 22
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_observe_mutation_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"observe_mutation\",\"message\":\"observer 'Observer' provides read-only access\",\"path\":\"tests/negative/neg_own_observe_mutate.safe\",\"span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":14},\"highlight_span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":14},\"notes\":[\"writes and moves through an active observer are not permitted.\",\"rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_observe_mutate.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"observe_mutation\",\"message\":\"observer 'Observer' provides read-only access\",\"path\":\"tests/negative/neg_own_observe_mutate.safe\",\"span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":14},\"highlight_span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":14},\"notes\":[\"writes and moves through an active observer are not permitted.\",\"rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 14,
+                "end_line": 22,
+                "start_col": 7,
+                "start_line": 22
+              },
+              "message": "observer 'Observer' provides read-only access",
+              "notes": [
+                "writes and moves through an active observer are not permitted.",
+                "rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)"
+              ],
+              "path": "tests/negative/neg_own_observe_mutate.safe",
+              "reason": "observe_mutation",
+              "span": {
+                "end_col": 14,
+                "end_line": 22,
+                "start_col": 7,
+                "start_line": 22
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_observe_mutation_parity.json",
+        "source": "tests/negative/neg_own_observe_mutate.safe"
+      },
+      "observe_requires_access_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 48,
+                "end_line": 16,
+                "start_col": 7,
+                "start_line": 16
+              },
+              "message": "observer 'Observer' must be initialized from X.Access",
+              "notes": [
+                "local observe uses anonymous access constant and requires an explicit .Access attribute.",
+                "rule: Safe \u00a72.3.4 (local observe must use .Access)"
+              ],
+              "path": "tests/negative/neg_own_observe_requires_access.safe",
+              "reason": "observe_requires_access",
+              "span": {
+                "end_col": 48,
+                "end_line": 16,
+                "start_col": 7,
+                "start_line": 16
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_observe_requires_access_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"observe_requires_access\",\"message\":\"observer 'Observer' must be initialized from X.Access\",\"path\":\"tests/negative/neg_own_observe_requires_access.safe\",\"span\":{\"start_line\":16,\"start_col\":7,\"end_line\":16,\"end_col\":48},\"highlight_span\":{\"start_line\":16,\"start_col\":7,\"end_line\":16,\"end_col\":48},\"notes\":[\"local observe uses anonymous access constant and requires an explicit .Access attribute.\",\"rule: Safe \u00a72.3.4 (local observe must use .Access)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_observe_requires_access.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"observe_requires_access\",\"message\":\"observer 'Observer' must be initialized from X.Access\",\"path\":\"tests/negative/neg_own_observe_requires_access.safe\",\"span\":{\"start_line\":16,\"start_col\":7,\"end_line\":16,\"end_col\":48},\"highlight_span\":{\"start_line\":16,\"start_col\":7,\"end_line\":16,\"end_col\":48},\"notes\":[\"local observe uses anonymous access constant and requires an explicit .Access attribute.\",\"rule: Safe \u00a72.3.4 (local observe must use .Access)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 48,
+                "end_line": 16,
+                "start_col": 7,
+                "start_line": 16
+              },
+              "message": "observer 'Observer' must be initialized from X.Access",
+              "notes": [
+                "local observe uses anonymous access constant and requires an explicit .Access attribute.",
+                "rule: Safe \u00a72.3.4 (local observe must use .Access)"
+              ],
+              "path": "tests/negative/neg_own_observe_requires_access.safe",
+              "reason": "observe_requires_access",
+              "span": {
+                "end_col": 48,
+                "end_line": 16,
+                "start_col": 7,
+                "start_line": 16
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_observe_requires_access_parity.json",
+        "source": "tests/negative/neg_own_observe_requires_access.safe"
+      },
+      "use_after_move_parity": {
+        "analyze_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 20,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "message": "dereference of moved access value",
+              "notes": [
+                "the access value was moved before this dereference.",
+                "rule: D27 Rule 4 (Not-Null Dereference)"
+              ],
+              "path": "tests/negative/neg_own_use_after_move.safe",
+              "reason": "use_after_move",
+              "span": {
+                "end_col": 20,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "compiler_impl/tests/mir_analysis/pr0695_use_after_move_parity.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"use_after_move\",\"message\":\"dereference of moved access value\",\"path\":\"tests/negative/neg_own_use_after_move.safe\",\"span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":20},\"highlight_span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":20},\"notes\":[\"the access value was moved before this dereference.\",\"rule: D27 Rule 4 (Not-Null Dereference)\"],\"suggestions\":[]}]}\n"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_own_use_after_move.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"use_after_move\",\"message\":\"dereference of moved access value\",\"path\":\"tests/negative/neg_own_use_after_move.safe\",\"span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":20},\"highlight_span\":{\"start_line\":25,\"start_col\":11,\"end_line\":25,\"end_col\":20},\"notes\":[\"the access value was moved before this dereference.\",\"rule: D27 Rule 4 (Not-Null Dereference)\"],\"suggestions\":[]}]}\n"
+        },
+        "check_diagnostics": {
+          "diagnostics": [
+            {
+              "highlight_span": {
+                "end_col": 20,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "message": "dereference of moved access value",
+              "notes": [
+                "the access value was moved before this dereference.",
+                "rule: D27 Rule 4 (Not-Null Dereference)"
+              ],
+              "path": "tests/negative/neg_own_use_after_move.safe",
+              "reason": "use_after_move",
+              "span": {
+                "end_col": 20,
+                "end_line": 25,
+                "start_col": 11,
+                "start_line": 25
+              },
+              "suggestions": []
+            }
+          ],
+          "format": "diagnostics-v0"
+        },
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_use_after_move_parity.json",
+        "source": "tests/negative/neg_own_use_after_move.safe"
       }
     },
     "source_frontend": {
@@ -697,14 +1745,30 @@
       "tests/negative/neg_rule4_null_deref.safe"
     ],
     "golden_cases": [
-      "tests/negative/neg_rule1_overflow.safe",
-      "tests/negative/neg_rule3_zero_div.safe",
-      "tests/negative/neg_rule4_null_deref.safe",
-      "tests/negative/neg_own_double_move.safe",
+      "tests/negative/neg_own_anon_reassign.safe",
+      "tests/negative/neg_own_anon_reassign_join.safe",
       "tests/negative/neg_own_borrow_conflict.safe",
-      "tests/negative/neg_own_lifetime.safe"
+      "tests/negative/neg_own_double_move.safe",
+      "tests/negative/neg_rule2_oob.safe",
+      "tests/negative/neg_own_lifetime.safe",
+      "tests/negative/neg_own_source_maybe_null.safe",
+      "tests/negative/neg_own_target_not_null.safe",
+      "tests/negative/neg_rule4_null_deref.safe",
+      "tests/negative/neg_own_observe_mutate.safe",
+      "tests/negative/neg_own_observe_requires_access.safe",
+      "tests/negative/neg_rule1_overflow.safe",
+      "tests/negative/neg_own_use_after_move.safe",
+      "tests/negative/neg_rule3_zero_div.safe"
     ],
     "parity_cases": [
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_anonymous_access_reassign_parity.json",
+        "source": "tests/negative/neg_own_anon_reassign.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_borrow_conflict_parity.json",
+        "source": "tests/negative/neg_own_borrow_conflict.safe"
+      },
       {
         "fixture": "compiler_impl/tests/mir_analysis/pr0695_division_by_zero_parity.json",
         "source": "tests/negative/neg_rule3_expression.safe"
@@ -716,6 +1780,42 @@
       {
         "fixture": "compiler_impl/tests/mir_analysis/pr0695_first_diagnostic_order.json",
         "source": "compiler_impl/tests/mir_analysis/pr0695_first_diagnostic_order.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_intermediate_overflow_parity.json",
+        "source": "tests/negative/neg_rule1_overflow.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_lifetime_violation_parity.json",
+        "source": "tests/negative/neg_own_lifetime.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_move_source_not_nonnull_parity.json",
+        "source": "tests/negative/neg_own_source_maybe_null.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_move_target_not_null_parity.json",
+        "source": "tests/negative/neg_own_target_not_null.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_narrowing_check_failure_parity.json",
+        "source": "tests/negative/neg_rule1_index_fail.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_null_dereference_parity.json",
+        "source": "tests/negative/neg_rule4_null_deref.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_observe_mutation_parity.json",
+        "source": "tests/negative/neg_own_observe_mutate.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_observe_requires_access_parity.json",
+        "source": "tests/negative/neg_own_observe_requires_access.safe"
+      },
+      {
+        "fixture": "compiler_impl/tests/mir_analysis/pr0695_use_after_move_parity.json",
+        "source": "tests/negative/neg_own_use_after_move.safe"
       }
     ],
     "source_frontend_cases": [

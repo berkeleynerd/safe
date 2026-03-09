@@ -1,0 +1,389 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_own_use_after_move.safe",
+  "package_name": "Use_After_Move_Test",
+  "types": [
+    {
+      "name": "Item",
+      "kind": "record",
+      "fields": {
+        "Id": "Natural",
+        "Count": "Natural"
+      }
+    },
+    {
+      "name": "Item_Ptr",
+      "kind": "access",
+      "target": "Item",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Read_After_Move",
+      "kind": "procedure",
+      "entry_bb": "bb0",
+      "return_type": null,
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Source",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 20,
+            "start_col": 7,
+            "end_line": 20,
+            "end_col": 51
+          },
+          "type": {
+            "name": "Item_Ptr",
+            "kind": "access",
+            "target": "Item",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Target",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 21,
+            "start_col": 7,
+            "end_line": 21,
+            "end_col": 24
+          },
+          "type": {
+            "name": "Item_Ptr",
+            "kind": "access",
+            "target": "Item",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v2",
+          "kind": "local",
+          "mode": "in",
+          "name": "V",
+          "ownership_role": "",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 22,
+            "start_col": 7,
+            "end_line": 22,
+            "end_col": 18
+          },
+          "type": {
+            "name": "Natural",
+            "kind": "integer",
+            "low": 0,
+            "high": 9223372036854775807
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1",
+            "v2"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 19,
+            "start_col": 4,
+            "end_line": 26,
+            "end_col": 24
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "span": {
+                "start_line": 19,
+                "start_col": 4,
+                "end_line": 26,
+                "end_col": 24
+              },
+              "scope_id": "scope0",
+              "locals": [
+                "Source",
+                "Target",
+                "V"
+              ]
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 20,
+                "start_col": 7,
+                "end_line": 20,
+                "end_col": 51
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Source",
+                "type": "Item_Ptr",
+                "span": {
+                  "start_line": 20,
+                  "start_col": 7,
+                  "end_line": 20,
+                  "end_col": 12
+                }
+              },
+              "type": "Item_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Item",
+                "span": {
+                  "start_line": 20,
+                  "start_col": 26,
+                  "end_line": 20,
+                  "end_col": 51
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Item",
+                  "span": {
+                    "start_line": 20,
+                    "start_col": 30,
+                    "end_line": 20,
+                    "end_col": 51
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Item",
+                    "span": {
+                      "start_line": 20,
+                      "start_col": 30,
+                      "end_line": 20,
+                      "end_col": 33
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Item",
+                    "span": {
+                      "start_line": 20,
+                      "start_col": 31,
+                      "end_line": 20,
+                      "end_col": 50
+                    },
+                    "fields": [
+                      {
+                        "field": "Id",
+                        "span": {
+                          "start_line": 20,
+                          "start_col": 32,
+                          "end_line": 20,
+                          "end_col": 37
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "1",
+                          "value": 1,
+                          "type": "Natural",
+                          "span": {
+                            "start_line": 20,
+                            "start_col": 37,
+                            "end_line": 20,
+                            "end_col": 37
+                          }
+                        }
+                      },
+                      {
+                        "field": "Count",
+                        "span": {
+                          "start_line": 20,
+                          "start_col": 40,
+                          "end_line": 20,
+                          "end_col": 49
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "10",
+                          "value": 10,
+                          "type": "Natural",
+                          "span": {
+                            "start_line": 20,
+                            "start_col": 49,
+                            "end_line": 20,
+                            "end_col": 50
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 21,
+                "start_col": 7,
+                "end_line": 21,
+                "end_col": 24
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Target",
+                "type": "Item_Ptr",
+                "span": {
+                  "start_line": 21,
+                  "start_col": 7,
+                  "end_line": 21,
+                  "end_col": 12
+                }
+              },
+              "type": "Item_Ptr",
+              "value": {
+                "tag": "null",
+                "type": "Item_Ptr",
+                "span": {
+                  "start_line": 21,
+                  "start_col": 23,
+                  "end_line": 21,
+                  "end_col": 26
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 23,
+                "start_col": 7,
+                "end_line": 23,
+                "end_col": 21
+              },
+              "ownership_effect": "Move",
+              "target": {
+                "tag": "ident",
+                "name": "Target",
+                "type": "Item_Ptr",
+                "span": {
+                  "start_line": 23,
+                  "start_col": 7,
+                  "end_line": 23,
+                  "end_col": 12
+                }
+              },
+              "type": "Item_Ptr",
+              "value": {
+                "tag": "ident",
+                "name": "Source",
+                "type": "Item_Ptr",
+                "span": {
+                  "start_line": 23,
+                  "start_col": 16,
+                  "end_line": 23,
+                  "end_col": 21
+                }
+              },
+              "declaration_init": false
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 25,
+                "start_col": 7,
+                "end_line": 25,
+                "end_col": 28
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "V",
+                "type": "Natural",
+                "span": {
+                  "start_line": 25,
+                  "start_col": 7,
+                  "end_line": 25,
+                  "end_col": 7
+                }
+              },
+              "type": "Natural",
+              "value": {
+                "tag": "select",
+                "selector": "Count",
+                "type": "Natural",
+                "span": {
+                  "start_line": 25,
+                  "start_col": 11,
+                  "end_line": 25,
+                  "end_col": 26
+                },
+                "prefix": {
+                  "tag": "select",
+                  "selector": "all",
+                  "type": "Item",
+                  "span": {
+                    "start_line": 25,
+                    "start_col": 11,
+                    "end_line": 25,
+                    "end_col": 20
+                  },
+                  "prefix": {
+                    "tag": "ident",
+                    "name": "Source",
+                    "type": "Item_Ptr",
+                    "span": {
+                      "start_line": 25,
+                      "start_col": 11,
+                      "end_line": 25,
+                      "end_col": 16
+                    }
+                  }
+                }
+              },
+              "declaration_init": false
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 19,
+              "start_col": 4,
+              "end_line": 26,
+              "end_col": 24
+            },
+            "ownership_effect": "None",
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

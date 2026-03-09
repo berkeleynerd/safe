@@ -1,0 +1,342 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_own_target_not_null.safe",
+  "package_name": "Move_Target_Not_Null_Test",
+  "types": [
+    {
+      "name": "Payload",
+      "kind": "record",
+      "fields": {
+        "Value": "Integer"
+      }
+    },
+    {
+      "name": "Payload_Ptr",
+      "kind": "access",
+      "target": "Payload",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Bad_Move",
+      "kind": "procedure",
+      "entry_bb": "bb0",
+      "return_type": null,
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Source",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 15,
+            "start_col": 7,
+            "end_line": 15,
+            "end_col": 49
+          },
+          "type": {
+            "name": "Payload_Ptr",
+            "kind": "access",
+            "target": "Payload",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        },
+        {
+          "id": "v1",
+          "kind": "local",
+          "mode": "in",
+          "name": "Target",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 16,
+            "start_col": 7,
+            "end_line": 16,
+            "end_col": 49
+          },
+          "type": {
+            "name": "Payload_Ptr",
+            "kind": "access",
+            "target": "Payload",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0",
+            "v1"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 14,
+            "start_col": 4,
+            "end_line": 19,
+            "end_col": 16
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "span": {
+                "start_line": 14,
+                "start_col": 4,
+                "end_line": 19,
+                "end_col": 16
+              },
+              "scope_id": "scope0",
+              "locals": [
+                "Source",
+                "Target"
+              ]
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 15,
+                "start_col": 7,
+                "end_line": 15,
+                "end_col": 49
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Source",
+                "type": "Payload_Ptr",
+                "span": {
+                  "start_line": 15,
+                  "start_col": 7,
+                  "end_line": 15,
+                  "end_col": 12
+                }
+              },
+              "type": "Payload_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Payload",
+                "span": {
+                  "start_line": 15,
+                  "start_col": 27,
+                  "end_line": 15,
+                  "end_col": 49
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Payload",
+                  "span": {
+                    "start_line": 15,
+                    "start_col": 31,
+                    "end_line": 15,
+                    "end_col": 49
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Payload",
+                    "span": {
+                      "start_line": 15,
+                      "start_col": 31,
+                      "end_line": 15,
+                      "end_col": 37
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Payload",
+                    "span": {
+                      "start_line": 15,
+                      "start_col": 32,
+                      "end_line": 15,
+                      "end_col": 48
+                    },
+                    "fields": [
+                      {
+                        "field": "Value",
+                        "span": {
+                          "start_line": 15,
+                          "start_col": 33,
+                          "end_line": 15,
+                          "end_col": 48
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "1",
+                          "value": 1,
+                          "type": "Integer",
+                          "span": {
+                            "start_line": 15,
+                            "start_col": 48,
+                            "end_line": 15,
+                            "end_col": 48
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 16,
+                "start_col": 7,
+                "end_line": 16,
+                "end_col": 49
+              },
+              "ownership_effect": "None",
+              "target": {
+                "tag": "ident",
+                "name": "Target",
+                "type": "Payload_Ptr",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 7,
+                  "end_line": 16,
+                  "end_col": 12
+                }
+              },
+              "type": "Payload_Ptr",
+              "value": {
+                "tag": "allocator",
+                "type": "access Payload",
+                "span": {
+                  "start_line": 16,
+                  "start_col": 27,
+                  "end_line": 16,
+                  "end_col": 49
+                },
+                "value": {
+                  "tag": "annotated",
+                  "type": "access Payload",
+                  "span": {
+                    "start_line": 16,
+                    "start_col": 31,
+                    "end_line": 16,
+                    "end_col": 49
+                  },
+                  "subtype": {
+                    "tag": "ident",
+                    "name": "Payload",
+                    "span": {
+                      "start_line": 16,
+                      "start_col": 31,
+                      "end_line": 16,
+                      "end_col": 37
+                    }
+                  },
+                  "expr": {
+                    "tag": "aggregate",
+                    "type": "Payload",
+                    "span": {
+                      "start_line": 16,
+                      "start_col": 32,
+                      "end_line": 16,
+                      "end_col": 48
+                    },
+                    "fields": [
+                      {
+                        "field": "Value",
+                        "span": {
+                          "start_line": 16,
+                          "start_col": 33,
+                          "end_line": 16,
+                          "end_col": 48
+                        },
+                        "expr": {
+                          "tag": "int",
+                          "text": "2",
+                          "value": 2,
+                          "type": "Integer",
+                          "span": {
+                            "start_line": 16,
+                            "start_col": 48,
+                            "end_line": 16,
+                            "end_col": 48
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "declaration_init": true
+            },
+            {
+              "kind": "assign",
+              "span": {
+                "start_line": 18,
+                "start_col": 7,
+                "end_line": 18,
+                "end_col": 22
+              },
+              "ownership_effect": "Move",
+              "target": {
+                "tag": "ident",
+                "name": "Target",
+                "type": "Payload_Ptr",
+                "span": {
+                  "start_line": 18,
+                  "start_col": 7,
+                  "end_line": 18,
+                  "end_col": 12
+                }
+              },
+              "type": "Payload_Ptr",
+              "value": {
+                "tag": "ident",
+                "name": "Source",
+                "type": "Payload_Ptr",
+                "span": {
+                  "start_line": 18,
+                  "start_col": 16,
+                  "end_line": 18,
+                  "end_col": 21
+                }
+              },
+              "declaration_init": false
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 14,
+              "start_col": 4,
+              "end_line": 19,
+              "end_col": 16
+            },
+            "ownership_effect": "None",
+            "value": null
+          }
+        }
+      ]
+    }
+  ]
+}

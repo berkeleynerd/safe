@@ -1,0 +1,121 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/negative/neg_rule4_null_deref.safe",
+  "package_name": "Null_Deref_Test",
+  "types": [
+    {
+      "name": "Value",
+      "kind": "integer",
+      "low": 0,
+      "high": 1000
+    },
+    {
+      "name": "Value_Ptr",
+      "kind": "access",
+      "target": "Value",
+      "not_null": false,
+      "anonymous": false,
+      "is_constant": false,
+      "is_all": false,
+      "access_role": "Owner"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Read_Unsafe",
+      "kind": "function",
+      "entry_bb": "bb0",
+      "return_type": {
+        "name": "Value",
+        "kind": "integer",
+        "low": 0,
+        "high": 1000
+      },
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "param",
+          "mode": "in",
+          "name": "P",
+          "ownership_role": "Owner",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 11,
+            "start_col": 26,
+            "end_line": 11,
+            "end_col": 26
+          },
+          "type": {
+            "name": "Value_Ptr",
+            "kind": "access",
+            "target": "Value",
+            "not_null": false,
+            "anonymous": false,
+            "is_constant": false,
+            "is_all": false,
+            "access_role": "Owner"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [
+            "v0"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "span": {
+            "start_line": 11,
+            "start_col": 4,
+            "end_line": 15,
+            "end_col": 20
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 14,
+              "start_col": 7,
+              "end_line": 14,
+              "end_col": 18
+            },
+            "ownership_effect": "None",
+            "value": {
+              "tag": "select",
+              "selector": "all",
+              "type": "Value",
+              "span": {
+                "start_line": 14,
+                "start_col": 14,
+                "end_line": 14,
+                "end_col": 18
+              },
+              "prefix": {
+                "tag": "ident",
+                "name": "P",
+                "type": "Value_Ptr",
+                "span": {
+                  "start_line": 14,
+                  "start_col": 14,
+                  "end_line": 14,
+                  "end_col": 14
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
