@@ -153,7 +153,7 @@ def make_masked_env(temp_root: Path) -> tuple[dict[str, str], dict[str, Path], P
     stub_dir.mkdir(parents=True, exist_ok=True)
     blocked_log = temp_root / "blocked-python.log"
     stub_paths: dict[str, Path] = {}
-    for interpreter in ("python3", "python"):
+    for interpreter in ("python3", "python", "python3.11"):
         stub_path = stub_dir / interpreter
         stub_path.write_text(
             "\n".join(

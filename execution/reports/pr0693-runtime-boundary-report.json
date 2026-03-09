@@ -376,7 +376,8 @@
     "blocked_spawns": [],
     "stub_paths": {
       "python": "$TMPDIR/python-mask/python",
-      "python3": "$TMPDIR/python-mask/python3"
+      "python3": "$TMPDIR/python-mask/python3",
+      "python3.11": "$TMPDIR/python-mask/python3.11"
     }
   },
   "runtime_rule": {
