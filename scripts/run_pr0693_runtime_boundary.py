@@ -264,6 +264,15 @@ def main() -> int:
         temp_root = Path(temp_root_str)
         masked_env, stub_paths, blocked_log = make_masked_env(temp_root)
         masked_env = ensure_sdkroot(masked_env)
+        runtime_rule = runtime_boundary_report()
+        require(
+            not runtime_rule["legacy_backend_present"],
+            "runtime boundary: legacy backend must remain absent",
+        )
+        require(
+            not runtime_rule["violations"],
+            f"runtime boundary: static violations present: {runtime_rule['violations']}",
+        )
 
         lex_success = run(
             [str(safec), "lex", str(LEX_SUCCESS)],
@@ -523,7 +532,7 @@ def main() -> int:
 
         report = {
             "tool_versions": tool_versions(python, alr),
-            "runtime_rule": runtime_boundary_report(),
+            "runtime_rule": runtime_rule,
             "python_mask": {
                 "stub_paths": {
                     name: normalize_text(str(path), temp_root=temp_root)
