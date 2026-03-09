@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import re
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -97,7 +96,7 @@ def run_invalid_contract_cases(python: str) -> list[dict[str, Any]]:
     return results
 
 
-def generate_report(*, python: str, alr: str) -> dict[str, Any]:
+def generate_report(*, python: str, alr: str | None) -> dict[str, Any]:
     return {
         "task": "PR06.9.7",
         "status": "ok",
@@ -113,22 +112,23 @@ def main() -> int:
     args = parser.parse_args()
 
     python = find_command("python3")
-    alr = find_command("alr", Path.home() / "bin" / "alr")
+    try:
+        alr = find_command("alr", Path.home() / "bin" / "alr")
+    except FileNotFoundError:
+        alr = None
 
-    with tempfile.TemporaryDirectory(prefix="pr0697-gate-quality-") as temp_dir:
-        _ = Path(temp_dir)
-        report = generate_report(python=python, alr=alr)
-        repeat_report = generate_report(python=python, alr=alr)
+    report = generate_report(python=python, alr=alr)
+    repeat_report = generate_report(python=python, alr=alr)
 
-        serialized = serialize_report(report)
-        repeat_serialized = serialize_report(repeat_report)
-        report_sha256 = sha256_text(serialized)
-        repeat_sha256 = sha256_text(repeat_serialized)
-        require(serialized == repeat_serialized, "PR06.9.7 report generation is non-deterministic")
+    serialized = serialize_report(report)
+    repeat_serialized = serialize_report(repeat_report)
+    report_sha256 = sha256_text(serialized)
+    repeat_sha256 = sha256_text(repeat_serialized)
+    require(serialized == repeat_serialized, "PR06.9.7 report generation is non-deterministic")
 
-        report["deterministic"] = True
-        report["report_sha256"] = report_sha256
-        report["repeat_sha256"] = repeat_sha256
+    report["deterministic"] = True
+    report["report_sha256"] = report_sha256
+    report["repeat_sha256"] = repeat_sha256
 
     write_report(args.report, report)
     print(f"pr0697 gate quality: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
