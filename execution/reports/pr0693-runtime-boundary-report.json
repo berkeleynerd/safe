@@ -438,7 +438,7 @@
   },
   "tool_versions": {
     "alr": "alr 2.1.0",
-    "gprbuild": "GPRBUILD 25.0.0",
+    "gprbuild": "GPRBUILD 25.0.0 (2025-05-16) (aarch64-apple-darwin23.6.0)",
     "python3": "Python 3.9.6"
   }
 }

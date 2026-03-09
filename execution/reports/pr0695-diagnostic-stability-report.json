@@ -141,6 +141,111 @@
           "command": [
             "compiler_impl/bin/safec",
             "check",
+            "tests/negative/neg_own_double_move.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_double_move.safe:22:7: error: use of moved value 'Source'\n  |\n  | 22 |       Target2 = Source;  -- ERROR: Source has already been moved\n  |    |       ^~~~~~~~~~~~~~~~~\n  |\n  note: the source was already moved earlier on this path.\n  note: rule: Safe \u00a72.3.2 (move semantics)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_double_move.txt",
+        "source": "tests/negative/neg_own_double_move.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_borrow_conflict.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_borrow_conflict.safe:25:11: error: lender 'Owner' is frozen by an active mutable borrow\n  |\n  | 25 |       V = Owner.all.Value;  -- ERROR: lender accessed during active borrow\n  |    |           ^~~~~\n  |\n  note: reads, writes, and moves of the lender are forbidden while the borrow is active.\n  note: rule: Safe \u00a72.3.3 (mutable borrow freezes lender)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_borrow_conflict.txt",
+        "source": "tests/negative/neg_own_borrow_conflict.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_use_after_move.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_use_after_move.safe:25:11: error: dereference of moved access value\n  |\n  | 25 |       V = Source.all.Count;  -- ERROR: dereference of moved variable\n  |    |           ^~~~~~~~~~\n  |\n  note: the access value was moved before this dereference.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_use_after_move.txt",
+        "source": "tests/negative/neg_own_use_after_move.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_lifetime.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_lifetime.safe:19:14: error: returned borrow value cannot outlive lender 'Owner'\n  |\n  | 19 |       return Ref;  -- ERROR: borrowed value outlives local owner\n  |    |              ^~~\n  |\n  note: borrowed and observed values must remain within the lender lifetime.\n  note: rule: Safe \u00a72.3.3 / \u00a72.3.4a (lifetime containment)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_lifetime_violation.txt",
+        "source": "tests/negative/neg_own_lifetime.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_observe_mutate.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_observe_mutate.safe:22:7: error: observer 'Observer' provides read-only access\n  |\n  | 22 |       Observer.all.Rate = 200;  -- ERROR: mutation through observer\n  |    |       ^~~~~~~~\n  |\n  note: writes and moves through an active observer are not permitted.\n  note: rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_observe_mutation.txt",
+        "source": "tests/negative/neg_own_observe_mutate.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_target_not_null.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_target_not_null.safe:18:7: error: move target 'Target' is not provably null\n  |\n  | 18 |       Target = Source;  -- ERROR: target is not provably null\n  |    |       ^~~~~~~~~~~~~~~~\n  |\n  note: static analysis determined state 'NonNull' for the move target.\n  note: rule: Safe \u00a72.3.2 (target of move must be provably null)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_move_target_not_null.txt",
+        "source": "tests/negative/neg_own_target_not_null.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_own_source_maybe_null.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_own_source_maybe_null.safe:15:7: error: move source 'Source' is not provably non-null\n  |\n  | 15 |       Target = Source;  -- ERROR: source is not provably non-null\n  |    |       ^~~~~~~~~~~~~~~~\n  |\n  note: static analysis determined state 'Null' at this move site.\n  note: rule: Safe \u00a72.3.2 (source of move must be provably non-null)\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_move_source_not_nonnull.txt",
+        "source": "tests/negative/neg_own_source_maybe_null.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
             "tests/negative/neg_own_anon_reassign.safe"
           ],
           "cwd": "$REPO_ROOT",
@@ -165,126 +270,6 @@
         },
         "golden": "tests/diagnostics_golden/diag_anonymous_access_reassign_join.txt",
         "source": "tests/negative/neg_own_anon_reassign_join.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_borrow_conflict.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_borrow_conflict.safe:25:11: error: lender 'Owner' is frozen by an active mutable borrow\n  |\n  | 25 |       V = Owner.all.Value;  -- ERROR: lender accessed during active borrow\n  |    |           ^~~~~\n  |\n  note: reads, writes, and moves of the lender are forbidden while the borrow is active.\n  note: rule: Safe \u00a72.3.3 (mutable borrow freezes lender)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_borrow_conflict.txt",
-        "source": "tests/negative/neg_own_borrow_conflict.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_double_move.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_double_move.safe:22:7: error: use of moved value 'Source'\n  |\n  | 22 |       Target2 = Source;  -- ERROR: Source has already been moved\n  |    |       ^~~~~~~~~~~~~~~~~\n  |\n  note: the source was already moved earlier on this path.\n  note: rule: Safe \u00a72.3.2 (move semantics)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_double_move.txt",
-        "source": "tests/negative/neg_own_double_move.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_rule2_oob.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_rule2_oob.safe:15:14: error: index expression not provably within array bounds\n  |\n  | 15 |       return Arr (Slot (Idx));  -- ERROR: Idx may not be in 0..7\n  |    |              ^~~~~~~~~~~~~~~~\n  |\n  note: array 'Arr' has index range Slot (0 .. 7).\n  note: index expression 'Slot (Idx)' has type Integer, with range\n        [Integer'First .. Integer'Last].\n  note: static analysis cannot establish that the index is within\n        [0 .. 7] on all execution paths.\n  note: rule: D27 Rule 2 (Provable Index Safety)\n  note: per spec/02-restrictions.md section 2.8.2 paragraph 131:\n        \"The index expression in an indexed_component shall be provably\n        within the array object's index bounds at compile time.\"\n  note: per spec/02-restrictions.md section 2.8.2 paragraph 132:\n        \"If neither condition holds, the program is nonconforming and\n        the implementation shall reject it with a diagnostic identifying\n        the indexed_component and the unresolvable bound relationship.\"\n  suggestion: add a bounds check before indexing:\n        if Idx >= 0 and then Idx <= 7 then\n           return Arr (Slot (Idx));\n        end if;\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_index_oob.txt",
-        "source": "tests/negative/neg_rule2_oob.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_lifetime.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_lifetime.safe:19:14: error: returned borrow value cannot outlive lender 'Owner'\n  |\n  | 19 |       return Ref;  -- ERROR: borrowed value outlives local owner\n  |    |              ^~~\n  |\n  note: borrowed and observed values must remain within the lender lifetime.\n  note: rule: Safe \u00a72.3.3 / \u00a72.3.4a (lifetime containment)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_lifetime_violation.txt",
-        "source": "tests/negative/neg_own_lifetime.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_source_maybe_null.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_source_maybe_null.safe:15:7: error: move source 'Source' is not provably non-null\n  |\n  | 15 |       Target = Source;  -- ERROR: source is not provably non-null\n  |    |       ^~~~~~~~~~~~~~~~\n  |\n  note: static analysis determined state 'Null' at this move site.\n  note: rule: Safe \u00a72.3.2 (source of move must be provably non-null)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_move_source_not_nonnull.txt",
-        "source": "tests/negative/neg_own_source_maybe_null.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_target_not_null.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_target_not_null.safe:18:7: error: move target 'Target' is not provably null\n  |\n  | 18 |       Target = Source;  -- ERROR: target is not provably null\n  |    |       ^~~~~~~~~~~~~~~~\n  |\n  note: static analysis determined state 'NonNull' for the move target.\n  note: rule: Safe \u00a72.3.2 (target of move must be provably null)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_move_target_not_null.txt",
-        "source": "tests/negative/neg_own_target_not_null.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_rule4_null_deref.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P.all;  -- ERROR: P may be null\n  |    |              ^~~~~\n  |\n  note: P is of type Value_Ptr (access Value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_null_deref.txt",
-        "source": "tests/negative/neg_rule4_null_deref.safe"
-      },
-      {
-        "check": {
-          "command": [
-            "compiler_impl/bin/safec",
-            "check",
-            "tests/negative/neg_own_observe_mutate.safe"
-          ],
-          "cwd": "$REPO_ROOT",
-          "returncode": 1,
-          "stderr": "neg_own_observe_mutate.safe:22:7: error: observer 'Observer' provides read-only access\n  |\n  | 22 |       Observer.all.Rate = 200;  -- ERROR: mutation through observer\n  |    |       ^~~~~~~~\n  |\n  note: writes and moves through an active observer are not permitted.\n  note: rule: Safe \u00a72.3.4 (observe is read-only; source frozen for write/move)\n",
-          "stdout": ""
-        },
-        "golden": "tests/diagnostics_golden/diag_observe_mutation.txt",
-        "source": "tests/negative/neg_own_observe_mutate.safe"
       },
       {
         "check": {
@@ -321,15 +306,15 @@
           "command": [
             "compiler_impl/bin/safec",
             "check",
-            "tests/negative/neg_own_use_after_move.safe"
+            "tests/negative/neg_rule2_oob.safe"
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_own_use_after_move.safe:25:11: error: dereference of moved access value\n  |\n  | 25 |       V = Source.all.Count;  -- ERROR: dereference of moved variable\n  |    |           ^~~~~~~~~~\n  |\n  note: the access value was moved before this dereference.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n",
+          "stderr": "neg_rule2_oob.safe:15:14: error: index expression not provably within array bounds\n  |\n  | 15 |       return Arr (Slot (Idx));  -- ERROR: Idx may not be in 0..7\n  |    |              ^~~~~~~~~~~~~~~~\n  |\n  note: array 'Arr' has index range Slot (0 .. 7).\n  note: index expression 'Slot (Idx)' has type Integer, with range\n        [Integer'First .. Integer'Last].\n  note: static analysis cannot establish that the index is within\n        [0 .. 7] on all execution paths.\n  note: rule: D27 Rule 2 (Provable Index Safety)\n  note: per spec/02-restrictions.md section 2.8.2 paragraph 131:\n        \"The index expression in an indexed_component shall be provably\n        within the array object's index bounds at compile time.\"\n  note: per spec/02-restrictions.md section 2.8.2 paragraph 132:\n        \"If neither condition holds, the program is nonconforming and\n        the implementation shall reject it with a diagnostic identifying\n        the indexed_component and the unresolvable bound relationship.\"\n  suggestion: add a bounds check before indexing:\n        if Idx >= 0 and then Idx <= 7 then\n           return Arr (Slot (Idx));\n        end if;\n",
           "stdout": ""
         },
-        "golden": "tests/diagnostics_golden/diag_use_after_move.txt",
-        "source": "tests/negative/neg_own_use_after_move.safe"
+        "golden": "tests/diagnostics_golden/diag_index_oob.txt",
+        "source": "tests/negative/neg_rule2_oob.safe"
       },
       {
         "check": {
@@ -345,6 +330,21 @@
         },
         "golden": "tests/diagnostics_golden/diag_zero_div.txt",
         "source": "tests/negative/neg_rule3_zero_div.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule4_null_deref.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P.all;  -- ERROR: P may be null\n  |    |              ^~~~~\n  |\n  note: P is of type Value_Ptr (access Value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_null_deref.txt",
+        "source": "tests/negative/neg_rule4_null_deref.safe"
       }
     ],
     "parity": {
@@ -1745,20 +1745,20 @@
       "tests/negative/neg_rule4_null_deref.safe"
     ],
     "golden_cases": [
+      "tests/negative/neg_own_double_move.safe",
+      "tests/negative/neg_own_borrow_conflict.safe",
+      "tests/negative/neg_own_use_after_move.safe",
+      "tests/negative/neg_own_lifetime.safe",
+      "tests/negative/neg_own_observe_mutate.safe",
+      "tests/negative/neg_own_target_not_null.safe",
+      "tests/negative/neg_own_source_maybe_null.safe",
       "tests/negative/neg_own_anon_reassign.safe",
       "tests/negative/neg_own_anon_reassign_join.safe",
-      "tests/negative/neg_own_borrow_conflict.safe",
-      "tests/negative/neg_own_double_move.safe",
-      "tests/negative/neg_rule2_oob.safe",
-      "tests/negative/neg_own_lifetime.safe",
-      "tests/negative/neg_own_source_maybe_null.safe",
-      "tests/negative/neg_own_target_not_null.safe",
-      "tests/negative/neg_rule4_null_deref.safe",
-      "tests/negative/neg_own_observe_mutate.safe",
       "tests/negative/neg_own_observe_requires_access.safe",
       "tests/negative/neg_rule1_overflow.safe",
-      "tests/negative/neg_own_use_after_move.safe",
-      "tests/negative/neg_rule3_zero_div.safe"
+      "tests/negative/neg_rule2_oob.safe",
+      "tests/negative/neg_rule3_zero_div.safe",
+      "tests/negative/neg_rule4_null_deref.safe"
     ],
     "parity_cases": [
       {

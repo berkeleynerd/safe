@@ -1350,13 +1350,13 @@
     "tests/positive/rule2_binary_search.safe": {
       "iface/rule2_binary_search.safei.json": "dcdbb73b47e906727c47aa2cc65545d240295d139780f76e37079f66603e2dd0",
       "out/rule2_binary_search.ast.json": "2ad9a390149c6f97832bc851c9b629c25d0edc3fb8f41a2c351c25b18f8b3bcd",
-      "out/rule2_binary_search.mir.json": "998db034cfa0ec8cd95c0926e8e5acdb9137729cd679f72ce7e3a1463fe4d604",
+      "out/rule2_binary_search.mir.json": "62d0260a008859ece3e683042ee7e2938cec361b63a35d08c1c4dcb233cad2a2",
       "out/rule2_binary_search.typed.json": "918e37b64ee7ffd5e34a1eb1208710ec485f5712c98e4d964c0edc486a35054a"
     },
     "tests/positive/rule4_conditional.safe": {
       "iface/rule4_conditional.safei.json": "714df4ba3b1d7d9bc0573f6ff780ffc2642d3b284cc0e08468ef5d71ea29e7ee",
       "out/rule4_conditional.ast.json": "03c0e4a5b7a2a576a4f9651ef9edb475a5ecbc17a8c403e5e461304fe8c3cd8c",
-      "out/rule4_conditional.mir.json": "0c6e9be2b42c3c04641a099015107d11baed253d31c73a1dd45242200fe25893",
+      "out/rule4_conditional.mir.json": "b60313586f03972a89c1e5f7f38e4ba4b65cec1178ad868c072d5c48155ee13b",
       "out/rule4_conditional.typed.json": "ba99ea65794db085c505d7dd6d9aaa6ebceed47b2206cbc71e9e1cc2ab0f5704"
     }
   },

@@ -7,7 +7,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Sequence, Set
 
 from render_execution_status import DASHBOARD_PATH, TRACKER_PATH, load_tracker, render_dashboard
 
@@ -172,11 +172,13 @@ def check_documented_sha(meta_sha: str) -> None:
         fail(".github/workflows/ci.yml FROZEN_SHA does not match meta/commit.txt")
 
 
-def count_test_files() -> Dict[str, int]:
-    tests_root = REPO_ROOT / "tests"
+def count_test_files(
+    tests_root: Path = REPO_ROOT / "tests",
+    subdirs: Sequence[str] = ("positive", "negative", "golden", "concurrency", "diagnostics_golden"),
+) -> Dict[str, int]:
     distribution = {}
     total = 0
-    for subdir in ["positive", "negative", "golden", "concurrency", "diagnostics_golden"]:
+    for subdir in subdirs:
         count = len([entry for entry in (tests_root / subdir).iterdir() if entry.is_file()])
         distribution[subdir] = count
         total += count
@@ -184,9 +186,9 @@ def count_test_files() -> Dict[str, int]:
     return distribution
 
 
-def check_test_distribution(tracker: Dict[str, Any]) -> None:
+def check_test_distribution(tracker: Dict[str, Any], *, tests_root: Path = REPO_ROOT / "tests") -> None:
     expected = tracker["repo_facts"]["tests"]
-    actual = count_test_files()
+    actual = count_test_files(tests_root)
     if expected != actual:
         fail(f"test distribution mismatch: expected {expected}, actual {actual}")
 
@@ -198,32 +200,41 @@ def check_dashboard_freshness(tracker: Dict[str, Any]) -> None:
         fail("execution/dashboard.md is stale; run scripts/render_execution_status.py --write")
 
 
-def runtime_boundary_report() -> Dict[str, Any]:
+def runtime_boundary_report(
+    *,
+    repo_root: Path = REPO_ROOT,
+    runtime_boundary_patterns: Sequence[tuple[str, Sequence[str]]] = RUNTIME_BOUNDARY_PATTERNS,
+    legacy_runtime_backend: Path | None = None,
+    safec_allowed_os_lib_uses: Sequence[str] = SAFEC_ALLOWED_OS_LIB_USES,
+) -> Dict[str, Any]:
+    if legacy_runtime_backend is None:
+        legacy_runtime_backend = repo_root / "compiler_impl" / "backend" / "pr05_backend.py"
+
     violations: List[str] = []
     scanned_files: List[str] = []
-    for pattern, denylist in RUNTIME_BOUNDARY_PATTERNS:
-        for path in sorted(REPO_ROOT.glob(pattern)):
-            scanned_files.append(str(path.relative_to(REPO_ROOT)))
+    for pattern, denylist in runtime_boundary_patterns:
+        for path in sorted(repo_root.glob(pattern)):
+            scanned_files.append(str(path.relative_to(repo_root)))
             text = path.read_text(encoding="utf-8")
             for token in denylist:
                 if re.search(token, text, flags=re.IGNORECASE):
-                    violations.append(f"{path.relative_to(REPO_ROOT)}:{token}")
+                    violations.append(f"{path.relative_to(repo_root)}:{token}")
 
-    safec_path = REPO_ROOT / "compiler_impl" / "src" / "safec.adb"
+    safec_path = repo_root / "compiler_impl" / "src" / "safec.adb"
     safec_text = safec_path.read_text(encoding="utf-8")
     safec_remaining = safec_text
-    for allowed in SAFEC_ALLOWED_OS_LIB_USES:
+    for allowed in safec_allowed_os_lib_uses:
         safec_remaining = safec_remaining.replace(allowed, "")
     safec_remaining = re.sub(r"--.*$", "", safec_remaining, flags=re.MULTILINE)
     if re.search(r"\bGNAT\.OS_Lib\b", safec_remaining):
         violations.append(
-            f"{safec_path.relative_to(REPO_ROOT)}:unexpected GNAT.OS_Lib use outside OS_Exit"
+            f"{safec_path.relative_to(repo_root)}:unexpected GNAT.OS_Lib use outside OS_Exit"
         )
 
     return {
-        "legacy_backend_present": LEGACY_RUNTIME_BACKEND.exists(),
-        "legacy_backend_path": str(LEGACY_RUNTIME_BACKEND.relative_to(REPO_ROOT)),
-        "safec_allowed_os_lib_uses": SAFEC_ALLOWED_OS_LIB_USES,
+        "legacy_backend_present": legacy_runtime_backend.exists(),
+        "legacy_backend_path": str(legacy_runtime_backend.relative_to(repo_root)),
+        "safec_allowed_os_lib_uses": list(safec_allowed_os_lib_uses),
         "scanned_files": scanned_files,
         "violations": violations,
     }

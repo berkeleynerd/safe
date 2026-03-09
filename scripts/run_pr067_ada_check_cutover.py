@@ -4,15 +4,23 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import re
-import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from _lib.harness_common import (
+    display_path,
+    extract_expected_block,
+    find_command,
+    normalize_text,
+    read_diag_json,
+    require,
+    run,
+    tool_versions,
+    write_report,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -57,100 +65,6 @@ HARNESSES = [
     REPO_ROOT / "scripts" / "run_pr05_d27_harness.py",
     REPO_ROOT / "scripts" / "run_pr06_ownership_harness.py",
 ]
-
-
-def normalize_text(text: str, *, temp_root: Path | None = None) -> str:
-    result = text
-    if temp_root is not None:
-        result = result.replace(str(temp_root), "$TMPDIR")
-    return result.replace(str(REPO_ROOT), "$REPO_ROOT")
-
-
-def normalize_argv(argv: list[str], *, temp_root: Path | None = None) -> list[str]:
-    normalized: list[str] = []
-    for item in argv:
-        candidate = Path(item)
-        if candidate.is_absolute():
-            if temp_root is not None and temp_root in candidate.parents:
-                normalized.append("$TMPDIR/" + str(candidate.relative_to(temp_root)))
-            elif REPO_ROOT in candidate.parents:
-                normalized.append(str(candidate.relative_to(REPO_ROOT)))
-            else:
-                normalized.append(candidate.name)
-        else:
-            normalized.append(item)
-    return normalized
-
-
-def find_command(name: str, fallback: Path | None = None) -> str:
-    found = shutil.which(name)
-    if found:
-        return found
-    if fallback and fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError(f"required command not found: {name}")
-
-
-def run(
-    argv: list[str],
-    *,
-    cwd: Path,
-    env: dict[str, str] | None = None,
-    temp_root: Path | None = None,
-    expected_returncode: int = 0,
-) -> dict[str, Any]:
-    completed = subprocess.run(
-        argv,
-        cwd=cwd,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    result = {
-        "command": normalize_argv(argv, temp_root=temp_root),
-        "cwd": normalize_text(str(cwd), temp_root=temp_root),
-        "returncode": completed.returncode,
-        "stdout": normalize_text(completed.stdout, temp_root=temp_root),
-        "stderr": normalize_text(completed.stderr, temp_root=temp_root),
-    }
-    if completed.returncode != expected_returncode:
-        raise RuntimeError(json.dumps(result, indent=2))
-    return result
-
-
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise RuntimeError(message)
-
-
-def tool_versions(python: str, alr: str) -> dict[str, str]:
-    versions: dict[str, str] = {}
-    versions["python3"] = (
-        subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-        or subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stderr.strip()
-    )
-    versions["alr"] = subprocess.run([alr, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-    gprbuild = shutil.which("gprbuild")
-    if gprbuild:
-        versions["gprbuild"] = subprocess.run([gprbuild, "--version"], text=True, capture_output=True, check=False).stdout.splitlines()[0]
-    return versions
-
-
-def read_diag_json(stdout: str, source: str) -> dict[str, Any]:
-    payload = json.loads(stdout)
-    require(payload.get("format") == "diagnostics-v0", f"{source}: unexpected diagnostics format")
-    require(isinstance(payload.get("diagnostics"), list), f"{source}: diagnostics must be a list")
-    return payload
-
-
-def extract_expected_block(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    match = re.search(r"Expected diagnostic output:\n-+\n(.*)\n-+\n", text, flags=re.DOTALL)
-    require(match is not None, f"could not extract expected block from {path}")
-    return match.group(1).rstrip() + "\n"
-
-
 def make_masked_env(real_python: str, temp_root: Path, *, mode: str) -> tuple[dict[str, str], Path, Path]:
     require(mode in {"strict", "harness"}, f"unsupported mask mode: {mode}")
     stub_dir = temp_root / f"python-mask-{mode}"
@@ -439,8 +353,6 @@ def main() -> int:
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     args = parser.parse_args()
 
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-
     python = find_command("python3")
     alr = find_command("alr", Path.home() / "bin" / "alr")
     safec = COMPILER_ROOT / "bin" / "safec"
@@ -455,7 +367,7 @@ def main() -> int:
             python, temp_root, mode="harness"
         )
         report: dict[str, Any] = {
-            "tool_versions": tool_versions(python, alr),
+            "tool_versions": tool_versions(python=python, alr=alr),
             "python_mask": {
                 "direct_stub_path": normalize_text(str(direct_stub_path), temp_root=temp_root),
                 "direct_blocked_log_path": normalize_text(
@@ -485,8 +397,8 @@ def main() -> int:
         report["python_mask"]["direct_blocked_attempts"] = direct_blocked_attempts
         report["python_mask"]["harness_blocked_attempts"] = harness_blocked_attempts
 
-    args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"pr067 Ada check cutover: OK ({args.report})")
+    write_report(args.report, report)
+    print(f"pr067 Ada check cutover: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
     return 0
 
 

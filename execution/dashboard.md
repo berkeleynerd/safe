@@ -3,8 +3,8 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR06.9.7`
-- **Updated at:** `2026-03-09T21:02:05Z`
+- **Next task:** `PR06.9.8`
+- **Updated at:** `2026-03-09T22:47:56Z`
 
 ## Repo Facts
 
@@ -36,7 +36,7 @@
 | PR06.9.4 | done | PR06.9.3 | 1 |
 | PR06.9.5 | done | PR06.9.4 | 1 |
 | PR06.9.6 | done | PR06.9.5 | 1 |
-| PR06.9.7 | planned | PR06.9.6 | 0 |
+| PR06.9.7 | done | PR06.9.6 | 1 |
 | PR06.9.8 | planned | PR06.9.7 | 0 |
 | PR06.9.9 | planned | PR06.9.8 | 0 |
 | PR06.9.10 | planned | PR06.9.9 | 0 |
@@ -297,13 +297,15 @@
 
 ### PR06.9.7 — Regression coverage and gate quality
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR06.9.6
 - **Blockers:** none
 - **Acceptance:**
   - Existing gates remain the parity proof where appropriate, and direct command gates gain targeted negative and invariant cases.
   - Hardening checks cover lex, parse, resolve, lower, analyze, and export boundaries rather than only end-to-end happy paths.
   - Execution reports remain deterministic and high-signal.
+- **Evidence:**
+  - `execution/reports/pr0697-gate-quality-report.json`
 
 ### PR06.9.8 — Dormant legacy package cleanup
 

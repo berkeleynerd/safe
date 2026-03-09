@@ -1,0 +1,102 @@
+{
+  "deterministic": true,
+  "negative_output_contracts": [
+    {
+      "expected_error": "sample.typed.json.package_end_name is required",
+      "name": "invalid_typed_missing_package_end_name",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "scripts/tests/fixtures/output_contracts/invalid_typed_missing_package_end_name/sample.ast.json",
+          "--typed",
+          "scripts/tests/fixtures/output_contracts/invalid_typed_missing_package_end_name/sample.typed.json",
+          "--mir",
+          "scripts/tests/fixtures/output_contracts/invalid_typed_missing_package_end_name/sample.mir.json",
+          "--safei",
+          "scripts/tests/fixtures/output_contracts/invalid_typed_missing_package_end_name/sample.safei.json",
+          "--source-path",
+          "fixtures/sample.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "output contract validation: ERROR: sample.typed.json.package_end_name is required\n",
+        "stdout": ""
+      }
+    },
+    {
+      "expected_error": "sample.safei.json.public_declarations is required",
+      "name": "invalid_safei_missing_public_declarations",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_public_declarations/sample.ast.json",
+          "--typed",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_public_declarations/sample.typed.json",
+          "--mir",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_public_declarations/sample.mir.json",
+          "--safei",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_public_declarations/sample.safei.json",
+          "--source-path",
+          "fixtures/sample.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "output contract validation: ERROR: sample.safei.json.public_declarations is required\n",
+        "stdout": ""
+      }
+    },
+    {
+      "expected_error": "sample.mir.json.source_path must preserve the exact emit CLI path",
+      "name": "invalid_mir_source_path_mismatch",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "scripts/tests/fixtures/output_contracts/invalid_mir_source_path_mismatch/sample.ast.json",
+          "--typed",
+          "scripts/tests/fixtures/output_contracts/invalid_mir_source_path_mismatch/sample.typed.json",
+          "--mir",
+          "scripts/tests/fixtures/output_contracts/invalid_mir_source_path_mismatch/sample.mir.json",
+          "--safei",
+          "scripts/tests/fixtures/output_contracts/invalid_mir_source_path_mismatch/sample.safei.json",
+          "--source-path",
+          "fixtures/sample.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "output contract validation: ERROR: sample.mir.json.source_path must preserve the exact emit CLI path: expected 'fixtures/sample.safe', saw 'fixtures/different.safe'\n",
+        "stdout": ""
+      }
+    }
+  ],
+  "repeat_sha256": "1cb9f2f1ef13fd9eff236d55092056a993420fed7520a2947b6d7758e9d03e18",
+  "report_sha256": "1cb9f2f1ef13fd9eff236d55092056a993420fed7520a2947b6d7758e9d03e18",
+  "status": "ok",
+  "task": "PR06.9.7",
+  "tool_versions": {
+    "alr": "alr 2.1.0",
+    "gprbuild": "GPRBUILD 25.0.0 (2025-05-16) (aarch64-apple-darwin23.6.0)",
+    "python3": "Python 3.9.6"
+  },
+  "unit_tests": {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "scripts/tests",
+      "-p",
+      "test_*.py"
+    ],
+    "cwd": "$REPO_ROOT",
+    "returncode": 0,
+    "stderr": ".............\n----------------------------------------------------------------------\nRan 13 tests in <elapsed>\n\nOK\n",
+    "stdout": ""
+  }
+}

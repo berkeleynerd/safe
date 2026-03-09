@@ -1,0 +1,17 @@
+{
+  "format": "typed-v2",
+  "package_name": "Sample",
+  "package_end_name": "Sample",
+  "types": [],
+  "executables": [],
+  "public_declarations": [],
+  "ast": {
+    "node_type": "CompilationUnit",
+    "span": {
+      "start_line": 1,
+      "start_col": 1,
+      "end_line": 1,
+      "end_col": 10
+    }
+  }
+}

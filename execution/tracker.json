@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-09T21:02:05Z",
+  "updated_at": "2026-03-09T22:47:56Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR06.9.7",
+  "next_task_id": "PR06.9.8",
   "repo_facts": {
     "tests": {
       "positive": 35,
@@ -325,14 +325,14 @@
     {
       "id": "PR06.9.7",
       "title": "Regression coverage and gate quality",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR06.9.6"],
       "acceptance": [
         "Existing gates remain the parity proof where appropriate, and direct command gates gain targeted negative and invariant cases.",
         "Hardening checks cover lex, parse, resolve, lower, analyze, and export boundaries rather than only end-to-end happy paths.",
         "Execution reports remain deterministic and high-signal."
       ],
-      "evidence": [],
+      "evidence": ["execution/reports/pr0697-gate-quality-report.json"],
       "blockers": [],
       "unblock_condition": ""
     },

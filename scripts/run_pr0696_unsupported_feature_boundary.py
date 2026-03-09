@@ -6,11 +6,22 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from _lib.harness_common import (
+    display_path,
+    find_command,
+    normalize_text,
+    read_diag_json,
+    require,
+    require_repo_command,
+    run,
+    serialize_report,
+    sha256_text,
+    tool_versions,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -140,109 +151,6 @@ UNSUPPORTED_CASES = [
 ]
 
 
-def normalize_text(text: str, *, temp_root: Optional[Path] = None) -> str:
-    result = text.replace(str(REPO_ROOT), "$REPO_ROOT")
-    if temp_root is not None:
-        result = result.replace(str(temp_root), "$TMPDIR")
-    return result
-
-
-def normalize_argv(argv: List[str], *, temp_root: Optional[Path] = None) -> List[str]:
-    normalized: List[str] = []
-    for item in argv:
-        candidate = Path(item)
-        if candidate.is_absolute():
-            if temp_root is not None and temp_root in candidate.parents:
-                normalized.append("$TMPDIR/" + str(candidate.relative_to(temp_root)))
-            elif REPO_ROOT in candidate.parents:
-                normalized.append(str(candidate.relative_to(REPO_ROOT)))
-            else:
-                normalized.append(candidate.name)
-        else:
-            normalized.append(item)
-    return normalized
-
-
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise RuntimeError(message)
-
-
-def display_path(path: Path) -> str:
-    try:
-        return str(path.relative_to(REPO_ROOT))
-    except ValueError:
-        return str(path)
-
-
-def sha256_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def require_repo_command(path: Path, name: str) -> Path:
-    if path.exists():
-        return path
-    raise FileNotFoundError(f"required repo-local command not found: {name} at {path}")
-
-
-def find_command(name: str, fallback: Optional[Path] = None) -> str:
-    found = shutil.which(name)
-    if found:
-        return found
-    if fallback and fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError(f"required command not found: {name}")
-
-
-def tool_versions(python: str, alr: str) -> Dict[str, str]:
-    versions: Dict[str, str] = {}
-    versions["python3"] = (
-        subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-        or subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stderr.strip()
-    )
-    versions["alr"] = subprocess.run([alr, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-    gprbuild = shutil.which("gprbuild")
-    if gprbuild:
-        versions["gprbuild"] = (
-            subprocess.run([gprbuild, "--version"], text=True, capture_output=True, check=False)
-            .stdout.splitlines()[0]
-        )
-    return versions
-
-
-def run(
-    argv: List[str],
-    *,
-    cwd: Path,
-    temp_root: Optional[Path],
-    expected_returncode: int,
-) -> Dict[str, Any]:
-    completed = subprocess.run(
-        argv,
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    result = {
-        "command": normalize_argv(argv, temp_root=temp_root),
-        "cwd": normalize_text(str(cwd), temp_root=temp_root),
-        "returncode": completed.returncode,
-        "stdout": normalize_text(completed.stdout, temp_root=temp_root),
-        "stderr": normalize_text(completed.stderr, temp_root=temp_root),
-    }
-    if completed.returncode != expected_returncode:
-        raise RuntimeError(json.dumps(result, indent=2))
-    return result
-
-
-def read_diag_json(stdout: str, label: str) -> Dict[str, Any]:
-    payload = json.loads(stdout)
-    require(payload.get("format") == "diagnostics-v0", f"{label}: unexpected diagnostics format")
-    require(isinstance(payload.get("diagnostics"), list), f"{label}: diagnostics must be a list")
-    return payload
-
-
 def first_stderr_line(result: Dict[str, Any], label: str) -> str:
     lines = result["stderr"].splitlines()
     require(lines, f"{label}: expected stderr output")
@@ -267,10 +175,6 @@ def ensure_no_emit_artifacts(out_dir: Path, iface_dir: Path, label: str) -> Dict
     require(not out_files, f"{label}: emit unexpectedly wrote output artifacts {out_files}")
     require(not iface_files, f"{label}: emit unexpectedly wrote interface artifacts {iface_files}")
     return {"out_files": out_files, "iface_files": iface_files}
-
-
-def serialize_report(report: Dict[str, Any]) -> str:
-    return json.dumps(report, indent=2, sort_keys=True) + "\n"
 
 
 def validate_legacy_control_case(safec: Path, temp_root: Path) -> Dict[str, Any]:
@@ -491,7 +395,7 @@ def generate_report(
     return {
         "task": "PR06.9.6",
         "status": "ok",
-        "tool_versions": tool_versions(python, alr),
+        "tool_versions": tool_versions(python=python, alr=alr),
         "control_cases": control_cases,
         "unsupported_cases": unsupported_cases,
     }
@@ -542,7 +446,7 @@ def main() -> int:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(serialize_report(report), encoding="utf-8")
 
-    print(f"wrote {display_path(args.report)}")
+    print(f"wrote {display_path(args.report, repo_root=REPO_ROOT)}")
     return 0
 
 

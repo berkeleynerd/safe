@@ -6,13 +6,23 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
+from _lib.harness_common import (
+    display_path,
+    ensure_sdkroot,
+    find_command,
+    normalize_text,
+    read_diag_json,
+    require,
+    require_repo_command,
+    run,
+    tool_versions,
+    write_report,
+)
 from validate_execution_state import runtime_boundary_report
 
 
@@ -31,121 +41,6 @@ INVALID_MIR = COMPILER_ROOT / "tests" / "mir_validation" / "invalid_scope_id.jso
 VALID_MIR_V1 = COMPILER_ROOT / "tests" / "mir_validation" / "valid_mir_v1.json"
 DIVISION_BY_ZERO_MIR = COMPILER_ROOT / "tests" / "mir_analysis" / "pr05_division_by_zero.json"
 AST_VALIDATOR = REPO_ROOT / "scripts" / "validate_ast_output.py"
-
-
-def normalize_text(text: str, *, temp_root: Path | None = None) -> str:
-    result = text
-    if temp_root is not None:
-        result = result.replace(str(temp_root), "$TMPDIR")
-    return result.replace(str(REPO_ROOT), "$REPO_ROOT")
-
-
-def normalize_argv(argv: list[str], *, temp_root: Path | None = None) -> list[str]:
-    normalized: list[str] = []
-    for item in argv:
-        candidate = Path(item)
-        if candidate.is_absolute():
-            if temp_root is not None and temp_root in candidate.parents:
-                normalized.append("$TMPDIR/" + str(candidate.relative_to(temp_root)))
-            elif REPO_ROOT in candidate.parents:
-                normalized.append(str(candidate.relative_to(REPO_ROOT)))
-            else:
-                normalized.append(candidate.name)
-        else:
-            normalized.append(item)
-    return normalized
-
-
-def find_command(name: str, fallback: Path | None = None) -> str:
-    found = shutil.which(name)
-    if found:
-        return found
-    if fallback and fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError(f"required command not found: {name}")
-
-
-def require_repo_command(path: Path, name: str) -> Path:
-    if path.exists():
-        return path
-    raise FileNotFoundError(f"required repo-local command not found: {name} ({path})")
-
-
-def run(
-    argv: list[str],
-    *,
-    cwd: Path,
-    env: dict[str, str] | None = None,
-    stdout_path: Path | None = None,
-    temp_root: Path | None = None,
-    expected_returncode: int = 0,
-) -> dict[str, Any]:
-    if stdout_path is not None:
-        stdout_path.parent.mkdir(parents=True, exist_ok=True)
-        with stdout_path.open("w", encoding="utf-8") as handle:
-            completed = subprocess.run(
-                argv,
-                cwd=cwd,
-                env=env,
-                text=True,
-                stdout=handle,
-                stderr=subprocess.PIPE,
-                check=False,
-            )
-        stdout_text = stdout_path.read_text(encoding="utf-8")
-    else:
-        completed = subprocess.run(
-            argv,
-            cwd=cwd,
-            env=env,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        stdout_text = completed.stdout
-
-    result = {
-        "command": normalize_argv(argv, temp_root=temp_root),
-        "cwd": normalize_text(str(cwd), temp_root=temp_root),
-        "returncode": completed.returncode,
-        "stdout": normalize_text(stdout_text, temp_root=temp_root),
-        "stderr": normalize_text(completed.stderr, temp_root=temp_root),
-    }
-    if completed.returncode != expected_returncode:
-        raise RuntimeError(json.dumps(result, indent=2))
-    return result
-
-
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise RuntimeError(message)
-
-
-def ensure_sdkroot(env: dict[str, str]) -> dict[str, str]:
-    if sys.platform != "darwin" or env.get("SDKROOT"):
-        return env
-    candidate = Path("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")
-    if candidate.exists():
-        updated = env.copy()
-        updated["SDKROOT"] = str(candidate)
-        return updated
-    return env
-
-
-def tool_versions(python: str, alr: str) -> dict[str, str]:
-    versions: dict[str, str] = {}
-    versions["python3"] = (
-        subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-        or subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stderr.strip()
-    )
-    versions["alr"] = subprocess.run([alr, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-    gprbuild = shutil.which("gprbuild")
-    if gprbuild:
-        banner = subprocess.run(
-            [gprbuild, "--version"], text=True, capture_output=True, check=False
-        ).stdout.splitlines()[0]
-        versions["gprbuild"] = banner.split(" (", 1)[0]
-    return versions
 
 
 def make_masked_env(temp_root: Path) -> tuple[dict[str, str], dict[str, Path], Path]:
@@ -190,13 +85,6 @@ def require_no_blocked_spawns(blocked_log: Path, *, temp_root: Path, label: str)
     blocked = read_blocked_log(blocked_log, temp_root=temp_root)
     require(not blocked, f"{label}: unexpected python spawns: {blocked}")
     return blocked
-
-
-def read_diag_json(stdout: str, source: str) -> dict[str, Any]:
-    payload = json.loads(stdout)
-    require(payload.get("format") == "diagnostics-v0", f"{source}: unexpected diagnostics format")
-    require(isinstance(payload.get("diagnostics"), list), f"{source}: diagnostics must be a list")
-    return payload
 
 
 def load_json(path: Path) -> Any:
@@ -252,8 +140,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     args = parser.parse_args()
-
-    args.report.parent.mkdir(parents=True, exist_ok=True)
 
     python = find_command("python3")
     alr = find_command("alr", Path.home() / "bin" / "alr")
@@ -531,7 +417,7 @@ def main() -> int:
         )
 
         report = {
-            "tool_versions": tool_versions(python, alr),
+            "tool_versions": tool_versions(python=python, alr=alr),
             "runtime_rule": runtime_rule,
             "python_mask": {
                 "stub_paths": {
@@ -606,8 +492,8 @@ def main() -> int:
             },
         }
 
-    args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"pr0693 runtime-boundary gate: OK ({args.report})")
+    write_report(args.report, report)
+    print(f"pr0693 runtime-boundary gate: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
     return 0
 
 

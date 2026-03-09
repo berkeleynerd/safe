@@ -7,13 +7,23 @@ import argparse
 import hashlib
 import json
 import os
-import re
-import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from _lib.gate_expectations import D27_GOLDEN_CASES, PR05_NEGATIVE_CASES, PR05_POSITIVE_CASES, REPRESENTATIVE_EMIT_SAMPLES
+from _lib.harness_common import (
+    display_path,
+    extract_expected_block,
+    find_command,
+    read_diag_json,
+    read_expected_reason,
+    require,
+    run,
+    tool_versions,
+    write_report,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -21,74 +31,12 @@ COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr05-d27-report.json"
 DIAGNOSTICS_EXIT = 1
 
-GOLDEN_CASES = [
-    (
-        REPO_ROOT / "tests" / "negative" / "neg_rule1_overflow.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_overflow.txt",
-    ),
-    (
-        REPO_ROOT / "tests" / "negative" / "neg_rule2_oob.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_index_oob.txt",
-    ),
-    (
-        REPO_ROOT / "tests" / "negative" / "neg_rule3_zero_div.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_zero_div.txt",
-    ),
-    (
-        REPO_ROOT / "tests" / "negative" / "neg_rule4_null_deref.safe",
-        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_null_deref.txt",
-    ),
-]
-
-POSITIVE_CASES = [
-    "tests/positive/rule1_accumulate.safe",
-    "tests/positive/rule1_averaging.safe",
-    "tests/positive/rule1_conversion.safe",
-    "tests/positive/rule1_parameter.safe",
-    "tests/positive/rule1_return.safe",
-    "tests/positive/rule2_binary_search.safe",
-    "tests/positive/rule2_iteration.safe",
-    "tests/positive/rule2_lookup.safe",
-    "tests/positive/rule2_matrix.safe",
-    "tests/positive/rule2_slice.safe",
-    "tests/positive/rule3_average.safe",
-    "tests/positive/rule3_divide.safe",
-    "tests/positive/rule3_modulo.safe",
-    "tests/positive/rule3_percent.safe",
-    "tests/positive/rule3_remainder.safe",
-    "tests/positive/rule4_conditional.safe",
-    "tests/positive/rule4_deref.safe",
-    "tests/positive/rule4_factory.safe",
-    "tests/positive/rule4_linked_list.safe",
-    "tests/positive/rule4_optional.safe",
-]
-
-NEGATIVE_CASES = [
-    "tests/negative/neg_rule1_index_fail.safe",
-    "tests/negative/neg_rule1_narrow_fail.safe",
-    "tests/negative/neg_rule1_overflow.safe",
-    "tests/negative/neg_rule1_param_fail.safe",
-    "tests/negative/neg_rule1_return_fail.safe",
-    "tests/negative/neg_rule2_dynamic.safe",
-    "tests/negative/neg_rule2_empty.safe",
-    "tests/negative/neg_rule2_negative.safe",
-    "tests/negative/neg_rule2_off_by_one.safe",
-    "tests/negative/neg_rule2_oob.safe",
-    "tests/negative/neg_rule3_expression.safe",
-    "tests/negative/neg_rule3_variable.safe",
-    "tests/negative/neg_rule3_zero_div.safe",
-    "tests/negative/neg_rule3_zero_mod.safe",
-    "tests/negative/neg_rule3_zero_rem.safe",
-    "tests/negative/neg_rule4_freed.safe",
-    "tests/negative/neg_rule4_maybe_null.safe",
-    "tests/negative/neg_rule4_moved.safe",
-    "tests/negative/neg_rule4_null_deref.safe",
-    "tests/negative/neg_rule4_uninitialized.safe",
-]
+GOLDEN_CASES = [(REPO_ROOT / source, REPO_ROOT / golden) for source, golden in D27_GOLDEN_CASES]
+POSITIVE_CASES = PR05_POSITIVE_CASES
+NEGATIVE_CASES = PR05_NEGATIVE_CASES
 
 DETERMINISM_SAMPLES = [
-    REPO_ROOT / "tests" / "positive" / "rule2_binary_search.safe",
-    REPO_ROOT / "tests" / "positive" / "rule4_conditional.safe",
+    REPO_ROOT / path for path in REPRESENTATIVE_EMIT_SAMPLES
 ]
 
 MIR_VALIDATION_SAMPLES = [
@@ -97,95 +45,6 @@ MIR_VALIDATION_SAMPLES = [
     REPO_ROOT / "tests" / "positive" / "rule4_conditional.safe",
     REPO_ROOT / "tests" / "positive" / "rule4_linked_list.safe",
 ]
-
-
-def normalize_text(text: str, *, temp_root: Path | None = None) -> str:
-    result = text
-    if temp_root is not None:
-        result = result.replace(str(temp_root), "$TMPDIR")
-    return result.replace(str(REPO_ROOT), "$REPO_ROOT")
-
-
-def normalize_argv(argv: list[str], *, temp_root: Path | None = None) -> list[str]:
-    normalized: list[str] = []
-    for item in argv:
-        candidate = Path(item)
-        if candidate.is_absolute():
-            if temp_root is not None and temp_root in candidate.parents:
-                normalized.append("$TMPDIR/" + str(candidate.relative_to(temp_root)))
-            elif REPO_ROOT in candidate.parents:
-                normalized.append(str(candidate.relative_to(REPO_ROOT)))
-            else:
-                normalized.append(candidate.name)
-        else:
-            normalized.append(item)
-    return normalized
-
-
-def find_command(name: str, fallback: Path | None = None) -> str:
-    found = shutil.which(name)
-    if found:
-        return found
-    if fallback and fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError(f"required command not found: {name}")
-
-
-def run(
-    argv: list[str],
-    *,
-    cwd: Path,
-    env: dict[str, str] | None = None,
-    temp_root: Path | None = None,
-    expected_returncode: int = 0,
-) -> dict[str, Any]:
-    completed = subprocess.run(
-        argv,
-        cwd=cwd,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    result = {
-        "command": normalize_argv(argv, temp_root=temp_root),
-        "cwd": normalize_text(str(cwd), temp_root=temp_root),
-        "returncode": completed.returncode,
-        "stdout": normalize_text(completed.stdout, temp_root=temp_root),
-        "stderr": normalize_text(completed.stderr, temp_root=temp_root),
-    }
-    if completed.returncode != expected_returncode:
-        raise RuntimeError(json.dumps(result, indent=2))
-    return result
-
-
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise RuntimeError(message)
-
-
-def extract_expected_block(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    match = re.search(r"Expected diagnostic output:\n-+\n(.*)\n-+\n", text, flags=re.DOTALL)
-    if not match:
-        raise RuntimeError(f"could not extract expected block from {path}")
-    return match.group(1).rstrip() + "\n"
-
-
-def read_expected_reason(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    match = re.search(r"^-- Expected:\s+REJECT\s+([a-z_]+)\s*$", text, flags=re.MULTILINE)
-    if not match:
-        raise RuntimeError(f"missing expected reason header in {path}")
-    return match.group(1)
-
-
-def read_diag_json(stdout: str, source: str) -> dict[str, Any]:
-    payload = json.loads(stdout)
-    require(payload.get("format") == "diagnostics-v0", f"{source}: unexpected diagnostics format")
-    require(isinstance(payload.get("diagnostics"), list), f"{source}: diagnostics must be a list")
-    return payload
-
 
 def emitted_paths(root: Path, sample: Path) -> dict[str, Path]:
     stem = sample.stem.lower()
@@ -208,16 +67,6 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def tool_versions(python: str, alr: str) -> dict[str, str]:
-    versions: dict[str, str] = {}
-    versions["python3"] = subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stdout.strip() or subprocess.run([python, "--version"], text=True, capture_output=True, check=False).stderr.strip()
-    versions["alr"] = subprocess.run([alr, "--version"], text=True, capture_output=True, check=False).stdout.strip()
-    gprbuild = shutil.which("gprbuild")
-    if gprbuild:
-        versions["gprbuild"] = subprocess.run([gprbuild, "--version"], text=True, capture_output=True, check=False).stdout.splitlines()[0]
-    return versions
-
-
 def run_golden_mode(safec: Path, env: dict[str, str], temp_root: Path) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for source_path, golden_path in GOLDEN_CASES:
@@ -228,7 +77,7 @@ def run_golden_mode(safec: Path, env: dict[str, str], temp_root: Path) -> list[d
             temp_root=temp_root,
             expected_returncode=DIAGNOSTICS_EXIT,
         )
-        expected = normalize_text(extract_expected_block(golden_path), temp_root=temp_root)
+        expected = extract_expected_block(golden_path).replace(str(temp_root), "$TMPDIR")
         require(
             result["stderr"] == expected,
             f"golden mismatch for {source_path.name}",
@@ -366,8 +215,6 @@ def main() -> int:
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     args = parser.parse_args()
 
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-
     python = find_command("python3")
     alr = find_command("alr", Path.home() / "bin" / "alr")
     safec = COMPILER_ROOT / "bin" / "safec"
@@ -378,7 +225,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="pr05-d27-") as temp_root_str:
         temp_root = Path(temp_root_str)
         report: dict[str, Any] = {
-            "tool_versions": tool_versions(python, alr),
+            "tool_versions": tool_versions(python=python, alr=alr),
             "mode": args.mode,
         }
         if args.mode in {"all", "golden"}:
@@ -388,8 +235,8 @@ def main() -> int:
         report["determinism"] = run_determinism_checks(safec, env, temp_root)
         report["mir_validation"] = run_mir_validation(safec, env, temp_root)
 
-    args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"pr05 harness: OK ({args.report})")
+    write_report(args.report, report)
+    print(f"pr05 harness: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
     return 0
 
 

@@ -194,7 +194,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "pr05 harness: OK ($REPO_ROOT/execution/reports/pr05-d27-report.json)\n"
+        "stdout": "pr05 harness: OK (execution/reports/pr05-d27-report.json)\n"
       }
     },
     {
@@ -207,7 +207,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "pr06 ownership harness: OK ($REPO_ROOT/execution/reports/pr06-ownership-report.json)\n"
+        "stdout": "pr06 ownership harness: OK (execution/reports/pr06-ownership-report.json)\n"
       }
     }
   ],

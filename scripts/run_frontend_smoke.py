@@ -7,12 +7,21 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from _lib.gate_expectations import REPRESENTATIVE_EMIT_SAMPLES
+from _lib.harness_common import (
+    display_path,
+    ensure_sdkroot,
+    find_command,
+    normalize_text,
+    require,
+    run,
+    write_report,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -20,105 +29,10 @@ COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr00-pr04-frontend-smoke.json"
 POSITIVE_AST = REPO_ROOT / "tests" / "positive" / "rule1_accumulate.safe"
 CHECK_SAMPLE = REPO_ROOT / "tests" / "positive" / "rule2_binary_search.safe"
-EMIT_SAMPLES = [
-    REPO_ROOT / "tests" / "positive" / "rule2_binary_search.safe",
-    REPO_ROOT / "tests" / "positive" / "rule4_conditional.safe",
-]
+EMIT_SAMPLES = [REPO_ROOT / path for path in REPRESENTATIVE_EMIT_SAMPLES]
 EQUALITY_CHECK = REPO_ROOT / "tests" / "positive" / "result_equality_check.safe"
 LEGACY_TOKEN_FIXTURE = REPO_ROOT / "compiler_impl" / "tests" / "legacy_two_char_tokens.safe"
 DIAGNOSTICS_EXIT = 1
-
-
-def normalize_text(text: str, *, temp_root: Path | None = None) -> str:
-    result = text
-    if temp_root is not None:
-        result = result.replace(str(temp_root), "$TMPDIR")
-    return result.replace(str(REPO_ROOT), "$REPO_ROOT")
-
-
-def normalize_argv(argv: list[str], *, temp_root: Path | None = None) -> list[str]:
-    normalized: list[str] = []
-    for item in argv:
-        candidate = Path(item)
-        if candidate.is_absolute():
-            if temp_root is not None and temp_root in candidate.parents:
-                normalized.append("$TMPDIR/" + str(candidate.relative_to(temp_root)))
-            elif REPO_ROOT in candidate.parents:
-                normalized.append(str(candidate.relative_to(REPO_ROOT)))
-            else:
-                normalized.append(candidate.name)
-        else:
-            normalized.append(item)
-    return normalized
-
-
-def find_command(name: str, fallback: Path | None = None) -> str:
-    found = shutil.which(name)
-    if found:
-        return found
-    if fallback and fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError(f"required command not found: {name}")
-
-
-def run(
-    argv: list[str],
-    *,
-    cwd: Path,
-    env: dict[str, str] | None = None,
-    stdout_path: Path | None = None,
-    temp_root: Path | None = None,
-    expected_returncode: int = 0,
-) -> dict[str, Any]:
-    if stdout_path is not None:
-        stdout_path.parent.mkdir(parents=True, exist_ok=True)
-        with stdout_path.open("w", encoding="utf-8") as handle:
-            completed = subprocess.run(
-                argv,
-                cwd=cwd,
-                env=env,
-                text=True,
-                stdout=handle,
-                stderr=subprocess.PIPE,
-                check=False,
-            )
-        stdout_text = stdout_path.read_text(encoding="utf-8")
-    else:
-        completed = subprocess.run(
-            argv,
-            cwd=cwd,
-            env=env,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        stdout_text = completed.stdout
-    result = {
-        "command": normalize_argv(argv, temp_root=temp_root),
-        "cwd": normalize_text(str(cwd), temp_root=temp_root),
-        "returncode": completed.returncode,
-        "stdout": normalize_text(stdout_text, temp_root=temp_root),
-        "stderr": normalize_text(completed.stderr, temp_root=temp_root),
-    }
-    if completed.returncode != expected_returncode:
-        raise RuntimeError(json.dumps(result, indent=2))
-    return result
-
-
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise RuntimeError(message)
-
-
-def ensure_sdkroot(env: dict[str, str]) -> dict[str, str]:
-    if sys.platform != "darwin" or env.get("SDKROOT"):
-        return env
-    candidate = Path("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")
-    if candidate.exists():
-        updated = env.copy()
-        updated["SDKROOT"] = str(candidate)
-        return updated
-    return env
 
 
 def find_subsequence(lexemes: list[str], expected: list[str]) -> int:
@@ -223,8 +137,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     args = parser.parse_args()
-
-    args.report.parent.mkdir(parents=True, exist_ok=True)
 
     alr = find_command("alr", Path.home() / "bin" / "alr")
     python = find_command("python3")
@@ -349,8 +261,8 @@ def main() -> int:
             },
         }
 
-    args.report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"frontend smoke: OK ({args.report})")
+    write_report(args.report, report)
+    print(f"frontend smoke: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
     return 0
 
 
