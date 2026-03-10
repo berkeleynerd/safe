@@ -36,6 +36,10 @@ LEGACY_TOKEN_FIXTURE = REPO_ROOT / "compiler_impl" / "tests" / "legacy_two_char_
 DIAGNOSTICS_EXIT = 1
 
 
+def repo_arg(path: Path) -> str:
+    return str(path.relative_to(REPO_ROOT))
+
+
 def find_subsequence(lexemes: list[str], expected: list[str]) -> int:
     limit = len(lexemes) - len(expected) + 1
     for start in range(max(limit, 0)):
@@ -152,7 +156,7 @@ def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) 
         temp_root = Path(temp_root_str)
         ast_path = temp_root / "rule1_accumulate.ast.json"
         ast_run = run(
-            [str(safec), "ast", str(POSITIVE_AST)],
+            [str(safec), "ast", repo_arg(POSITIVE_AST)],
             cwd=REPO_ROOT,
             env=env,
             stdout_path=ast_path,
@@ -165,7 +169,7 @@ def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) 
             temp_root=temp_root,
         )
         equality_lex_run = run(
-            [str(safec), "lex", str(EQUALITY_CHECK)],
+            [str(safec), "lex", repo_arg(EQUALITY_CHECK)],
             cwd=REPO_ROOT,
             env=env,
             temp_root=temp_root,
@@ -173,7 +177,7 @@ def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) 
         equality_assertions = assert_equality_tokens(equality_lex_run)
 
         legacy_lex_run = run(
-            [str(safec), "lex", str(LEGACY_TOKEN_FIXTURE)],
+            [str(safec), "lex", repo_arg(LEGACY_TOKEN_FIXTURE)],
             cwd=REPO_ROOT,
             env=env,
             temp_root=temp_root,
@@ -182,13 +186,13 @@ def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) 
         legacy_assertions = assert_legacy_token_diagnostics(legacy_lex_run)
 
         check_accumulate = run(
-            [str(safec), "check", str(POSITIVE_AST)],
+            [str(safec), "check", repo_arg(POSITIVE_AST)],
             cwd=REPO_ROOT,
             env=env,
             temp_root=temp_root,
         )
         check_sequential = run(
-            [str(safec), "check", str(CHECK_SAMPLE)],
+            [str(safec), "check", repo_arg(CHECK_SAMPLE)],
             cwd=REPO_ROOT,
             env=env,
             temp_root=temp_root,
@@ -203,7 +207,7 @@ def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) 
                     [
                         str(safec),
                         "emit",
-                        str(sample),
+                        repo_arg(sample),
                         "--out-dir",
                         str(root / "out"),
                         "--interface-dir",
