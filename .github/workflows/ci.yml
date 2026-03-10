@@ -485,6 +485,10 @@ jobs:
         working-directory: .
         run: python3 scripts/run_pr0698_legacy_package_cleanup.py
 
+      - name: Verify committed PR06.9.8 evidence is up to date
+        working-directory: .
+        run: git diff --exit-code
+
   spark-verify:
     name: Build & Verify SPARK Companion
     runs-on: ubuntu-latest
