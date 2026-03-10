@@ -143,37 +143,38 @@ def sha256_file(path: Path) -> str:
 
 
 def stable_binary_sha256(path: Path) -> str:
-    if sys.platform != "darwin":
-        return sha256_file(path)
-
-    # Mach-O rebuilds on this host drift in debug-symbol bookkeeping and the
-    # linker-added ad hoc signature. Compare a stripped, unsigned copy so the
-    # gate proves payload stability across fresh rebuilds.
     with tempfile.TemporaryDirectory(prefix="safec-binary-hash-") as temp_root_str:
         projected = Path(temp_root_str) / path.name
         shutil.copy2(path, projected)
 
         strip = shutil.which("strip")
-        require(strip is not None, "required command not found: strip")
-        strip_run = subprocess.run(
-            [strip, "-S", str(projected)],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        require(
-            strip_run.returncode == 0,
-            f"strip -S failed for {path}: {strip_run.stderr.strip()}",
-        )
-
-        codesign = shutil.which("codesign")
-        if codesign is not None:
-            subprocess.run(
-                [codesign, "--remove-signature", str(projected)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+        if strip is not None:
+            # Fresh rebuilds can drift in debug/link metadata even when the
+            # executable payload is stable. Compare a stripped copy first so
+            # the gate proves reproducible runtime content rather than host-
+            # specific debug bookkeeping.
+            strip_run = subprocess.run(
+                [strip, "-S", str(projected)],
+                text=True,
+                capture_output=True,
                 check=False,
             )
+            require(
+                strip_run.returncode == 0,
+                f"strip -S failed for {path}: {strip_run.stderr.strip()}",
+            )
+
+        if sys.platform == "darwin":
+            # Mach-O links also carry an ad hoc signature that changes when the
+            # stripped copy path changes. Remove it from the comparison copy.
+            codesign = shutil.which("codesign")
+            if codesign is not None:
+                subprocess.run(
+                    [codesign, "--remove-signature", str(projected)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
 
         return sha256_file(projected)
 
