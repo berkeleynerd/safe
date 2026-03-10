@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -21,6 +21,8 @@ from _lib.harness_common import (
     normalize_text,
     require,
     run,
+    sha256_file,
+    stable_binary_sha256,
     write_report,
 )
 
@@ -117,15 +119,12 @@ def assert_legacy_token_diagnostics(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(65536)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
+def clean_frontend_build_outputs(safec: Path) -> None:
+    shutil.rmtree(COMPILER_ROOT / "obj", ignore_errors=True)
+    if safec.exists():
+        safec.unlink()
+    safec.parent.mkdir(parents=True, exist_ok=True)
+    (COMPILER_ROOT / "alire" / "tmp").mkdir(parents=True, exist_ok=True)
 
 
 def build_frontend(alr: str, env: dict[str, str]) -> dict[str, Any]:
@@ -143,21 +142,23 @@ def emitted_paths(root: Path, sample: Path) -> dict[str, Path]:
 
 
 def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) -> dict[str, Any]:
+    clean_frontend_build_outputs(safec)
     first_build = build_frontend(alr, env)
     require(
         safec.exists(),
         f"frontend build did not produce expected binary: {display_path(safec, repo_root=REPO_ROOT)}",
     )
-    first_binary_sha256 = sha256(safec)
+    first_binary_sha256 = stable_binary_sha256(safec)
+    clean_frontend_build_outputs(safec)
     second_build = build_frontend(alr, env)
     require(
         safec.exists(),
         f"frontend build did not produce expected binary: {display_path(safec, repo_root=REPO_ROOT)}",
     )
-    second_binary_sha256 = sha256(safec)
+    second_binary_sha256 = stable_binary_sha256(safec)
     require(
         first_binary_sha256 == second_binary_sha256,
-        "frontend build is non-deterministic: compiler_impl/bin/safec hash drifted",
+        "frontend build is non-deterministic: normalized compiler payload drifted across clean rebuilds",
     )
 
     with tempfile.TemporaryDirectory(prefix="safec-smoke-") as temp_root_str:
@@ -245,7 +246,7 @@ def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) 
                 right_bytes = right.read_bytes()
                 if left_bytes != right_bytes:
                     raise RuntimeError(f"non-deterministic output for {sample.name}::{relative}")
-                file_hashes[relative] = sha256(left)
+                file_hashes[relative] = sha256_file(left)
             deterministic_outputs[str(sample.relative_to(REPO_ROOT))] = file_hashes
 
         return {

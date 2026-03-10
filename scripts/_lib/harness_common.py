@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -128,6 +129,53 @@ def read_diag_json(stdout: str, label: str) -> dict[str, Any]:
 
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(65536)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def stable_binary_sha256(path: Path) -> str:
+    if sys.platform != "darwin":
+        return sha256_file(path)
+
+    # Mach-O rebuilds on this host drift in debug-symbol bookkeeping and the
+    # linker-added ad hoc signature. Compare a stripped, unsigned copy so the
+    # gate proves payload stability across fresh rebuilds.
+    with tempfile.TemporaryDirectory(prefix="safec-binary-hash-") as temp_root_str:
+        projected = Path(temp_root_str) / path.name
+        shutil.copy2(path, projected)
+
+        strip = shutil.which("strip")
+        require(strip is not None, "required command not found: strip")
+        strip_run = subprocess.run(
+            [strip, "-S", str(projected)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        require(
+            strip_run.returncode == 0,
+            f"strip -S failed for {path}: {strip_run.stderr.strip()}",
+        )
+
+        codesign = shutil.which("codesign")
+        if codesign is not None:
+            subprocess.run(
+                [codesign, "--remove-signature", str(projected)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+
+        return sha256_file(projected)
 
 
 def display_path(path: Path, *, repo_root: Path = REPO_ROOT) -> str:

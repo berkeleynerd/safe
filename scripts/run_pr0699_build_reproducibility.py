@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,7 @@ from _lib.harness_common import (
     find_command,
     require,
     run,
+    stable_binary_sha256,
     write_report,
 )
 
@@ -32,10 +33,6 @@ GATE_QUALITY_REPORT = REPO_ROOT / "execution" / "reports" / "pr0697-gate-quality
 LEGACY_CLEANUP_SCRIPT = REPO_ROOT / "scripts" / "run_pr0698_legacy_package_cleanup.py"
 LEGACY_CLEANUP_REPORT = REPO_ROOT / "execution" / "reports" / "pr0698-legacy-package-cleanup-report.json"
 VALIDATE_EXECUTION_STATE = REPO_ROOT / "scripts" / "validate_execution_state.py"
-
-
-def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -69,17 +66,39 @@ def current_dirty_report_paths(*, paths: list[Path], env: dict[str, str]) -> lis
     return dirty
 
 
+def current_dirty_report_diff(*, paths: list[Path], env: dict[str, str]) -> str:
+    relative_paths = repo_relative_report_args(paths)
+    if not relative_paths:
+        return ""
+    result = run(
+        ["git", "diff", "--", *relative_paths],
+        cwd=REPO_ROOT,
+        env=env,
+    )
+    return result["stdout"]
+
+
+def clean_frontend_build_outputs(safec: Path) -> None:
+    shutil.rmtree(COMPILER_ROOT / "obj", ignore_errors=True)
+    if safec.exists():
+        safec.unlink()
+    safec.parent.mkdir(parents=True, exist_ok=True)
+    (COMPILER_ROOT / "alire" / "tmp").mkdir(parents=True, exist_ok=True)
+
+
 def run_build_reproducibility(*, alr: str, safec: Path, env: dict[str, str]) -> dict[str, Any]:
+    clean_frontend_build_outputs(safec)
     first_build = run([alr, "build"], cwd=COMPILER_ROOT, env=env)
     require(safec.exists(), f"expected built compiler at {safec}")
-    first_binary_sha256 = sha256_file(safec)
+    first_binary_sha256 = stable_binary_sha256(safec)
 
+    clean_frontend_build_outputs(safec)
     second_build = run([alr, "build"], cwd=COMPILER_ROOT, env=env)
     require(safec.exists(), f"expected built compiler at {safec}")
-    second_binary_sha256 = sha256_file(safec)
+    second_binary_sha256 = stable_binary_sha256(safec)
     require(
         first_binary_sha256 == second_binary_sha256,
-        "PR06.9.9 build reproducibility: compiler binary changed between repeated builds",
+        "PR06.9.9 build reproducibility: normalized compiler payload changed between clean rebuilds",
     )
 
     return {
@@ -173,6 +192,7 @@ def main() -> int:
         args.report,
     ]
     initial_dirty = current_dirty_report_paths(paths=report_paths, env=env)
+    initial_diff = current_dirty_report_diff(paths=report_paths, env=env)
 
     report = finalize_deterministic_report(
         lambda: generate_report(python=python, alr=alr, safec=safec, env=env),
@@ -183,10 +203,15 @@ def main() -> int:
     run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
     final_dirty = current_dirty_report_paths(paths=report_paths, env=env)
     if initial_dirty:
+        final_diff = current_dirty_report_diff(paths=report_paths, env=env)
         require(
             final_dirty == initial_dirty,
             "PR06.9.9 evidence files changed further from an already-dirty baseline: "
             f"before={initial_dirty}, after={final_dirty}",
+        )
+        require(
+            final_diff == initial_diff,
+            "PR06.9.9 evidence diffs changed further from an already-dirty baseline",
         )
     else:
         relative_paths = repo_relative_report_args(report_paths)
