@@ -321,7 +321,7 @@ def legacy_frontend_cleanup_report(
     for path in scanned_source_files:
         text = path.read_text(encoding="utf-8")
         for package, pattern in package_patterns.items():
-            if re.search(pattern, text):
+            if re.search(pattern, text, flags=re.IGNORECASE):
                 forbidden_references.append(f"{path.relative_to(repo_root)}:{package}")
 
     live_runtime_roots: List[str] = []
@@ -337,7 +337,7 @@ def legacy_frontend_cleanup_report(
     for path in live_runtime_files:
         text = path.read_text(encoding="utf-8")
         for package, pattern in package_patterns.items():
-            if re.search(pattern, text):
+            if re.search(pattern, text, flags=re.IGNORECASE):
                 live_runtime_reference_violations.append(
                     f"{path.relative_to(repo_root)}:{package}"
                 )

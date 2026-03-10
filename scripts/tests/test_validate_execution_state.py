@@ -99,7 +99,11 @@ class ValidateExecutionStateTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (source_dir / "safe_frontend-driver.adb").write_text(
-                "with Safe_Frontend.Ast;\npackage body Safe_Frontend.Driver is end Safe_Frontend.Driver;\n",
+                "with SAFE_FRONTEND.AST;\npackage body Safe_Frontend.Driver is end Safe_Frontend.Driver;\n",
+                encoding="utf-8",
+            )
+            (source_dir / "safe_frontend-sample.adb").write_text(
+                "with safe_frontend.ast;\nprocedure Sample is begin null; end Sample;\n",
                 encoding="utf-8",
             )
             (source_dir / "safec.adb").write_text(
@@ -115,6 +119,10 @@ class ValidateExecutionStateTests(unittest.TestCase):
             self.assertEqual(report["present_files"], ["compiler_impl/src/safe_frontend-ast.ads"])
             self.assertEqual(report["missing_files"], ["compiler_impl/src/safe_frontend-ast.adb"])
             self.assertIn("compiler_impl/src/safe_frontend-ast.ads:Safe_Frontend.Ast", report["forbidden_references"])
+            self.assertIn(
+                "compiler_impl/src/safe_frontend-sample.adb:Safe_Frontend.Ast",
+                report["forbidden_references"],
+            )
             self.assertIn(
                 "compiler_impl/src/safe_frontend-driver.adb:Safe_Frontend.Ast",
                 report["live_runtime_reference_violations"],
