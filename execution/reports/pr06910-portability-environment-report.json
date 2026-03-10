@@ -19,9 +19,9 @@
       "(?<![A-Za-z0-9_./-])python(?![A-Za-z0-9_.-])",
       "(?<![A-Za-z0-9_./-])python3(?![A-Za-z0-9_.-])",
       "(?<![A-Za-z0-9_./-])python3\\.\\d+(?![A-Za-z0-9_.-])",
-      "/[^\\\"'\\s]*/python(?![A-Za-z0-9_.-])",
-      "/[^\\\"'\\s]*/python3(?![A-Za-z0-9_.-])",
-      "/[^\\\"'\\s]*/python3\\.\\d+(?![A-Za-z0-9_.-])"
+      "(?<![A-Za-z0-9_.-])(?:\\.{1,2}/|[^\\\"'\\s]+/)+python(?![A-Za-z0-9_.-])",
+      "(?<![A-Za-z0-9_.-])(?:\\.{1,2}/|[^\\\"'\\s]+/)+python3(?![A-Za-z0-9_.-])",
+      "(?<![A-Za-z0-9_.-])(?:\\.{1,2}/|[^\\\"'\\s]+/)+python3\\.\\d+(?![A-Za-z0-9_.-])"
     ],
     "runtime_source_files": [
       "compiler_impl/src/safe_frontend-check_emit.adb",
@@ -87,8 +87,8 @@
     "execution/reports/pr068-ada-ast-emit-no-python-report.json",
     "execution/reports/pr06910-portability-environment-report.json"
   ],
-  "repeat_sha256": "1073b2d6fa48880c76f6adbbbd01202884c02a160550cf8135e8dddcb8176c99",
-  "report_sha256": "1073b2d6fa48880c76f6adbbbd01202884c02a160550cf8135e8dddcb8176c99",
+  "repeat_sha256": "0d1c2f84fbe8bafe9c8dbf7acb1507eec18521b9b19cdd088afa600d8db92439",
+  "report_sha256": "0d1c2f84fbe8bafe9c8dbf7acb1507eec18521b9b19cdd088afa600d8db92439",
   "reruns": {
     "ast_emit_no_python": {
       "command": [

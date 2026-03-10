@@ -39,7 +39,7 @@ xcrun --show-sdk-path
 3. Re-run:
 
 ```sh
-cd /Users/agentc1/src/github.com/agentc1/safe/compiler_impl
+cd "$REPO_ROOT/compiler_impl"
 $HOME/bin/alr build
 ```
 

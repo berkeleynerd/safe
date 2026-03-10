@@ -170,6 +170,9 @@ PORTABILITY_PATH_LOOKUP_SCRIPTS = [
     "scripts/run_pr068_ada_ast_emit_no_python.py",
     "scripts/run_pr06910_portability_environment.py",
 ]
+PLATFORM_ASSUMPTIONS_IMPORT_PATTERN = (
+    r"^\s*(?:from\s+_lib\.platform_assumptions\s+import\b|import\s+_lib\.platform_assumptions\b)"
+)
 
 
 def fail(message: str) -> None:
@@ -560,7 +563,7 @@ def environment_assumptions_report(
             portability_module_violations.append(f"{relative_path}:missing")
             continue
         text = path.read_text(encoding="utf-8")
-        if "platform_assumptions" not in text:
+        if not re.search(PLATFORM_ASSUMPTIONS_IMPORT_PATTERN, text, flags=re.MULTILINE):
             portability_module_violations.append(f"{relative_path}:platform_assumptions import missing")
         for token in required_tokens:
             if token not in text:
@@ -603,8 +606,28 @@ def environment_assumptions_report(
     }
 
 
-def check_environment_assumptions() -> None:
-    report = environment_assumptions_report()
+def check_environment_assumptions(
+    *,
+    repo_root: Path = REPO_ROOT,
+    doc_requirements: Dict[str, Sequence[str]] = ENVIRONMENT_DOC_REQUIREMENTS,
+    runtime_source_globs: Sequence[str] = (
+        "compiler_impl/src/*.adb",
+        "compiler_impl/src/*.ads",
+    ),
+    python_patterns: Sequence[str] = STATIC_PYTHON_INVOCATION_PATTERNS,
+    module_requirements: Dict[str, Sequence[str]] = PORTABILITY_MODULE_REQUIREMENTS,
+    tempdir_scripts: Sequence[str] = PORTABILITY_TEMPDIR_SCRIPTS,
+    path_lookup_scripts: Sequence[str] = PORTABILITY_PATH_LOOKUP_SCRIPTS,
+) -> None:
+    report = environment_assumptions_report(
+        repo_root=repo_root,
+        doc_requirements=doc_requirements,
+        runtime_source_globs=runtime_source_globs,
+        python_patterns=python_patterns,
+        module_requirements=module_requirements,
+        tempdir_scripts=tempdir_scripts,
+        path_lookup_scripts=path_lookup_scripts,
+    )
     if report["missing_doc_files"]:
         fail(f"missing portability docs: {report['missing_doc_files']}")
     if report["doc_policy_violations"]:

@@ -219,7 +219,8 @@ class ValidateExecutionStateTests(unittest.TestCase):
             (source_dir / "safe_frontend-a.adb").write_text('python\n', encoding="utf-8")
             (source_dir / "safe_frontend-b.adb").write_text('python3\n', encoding="utf-8")
             (source_dir / "safe_frontend-c.adb").write_text('python3.11\n', encoding="utf-8")
-            (source_dir / "safe_frontend-d.adb").write_text('/usr/bin/python3.11\n', encoding="utf-8")
+            (source_dir / "safe_frontend-d.adb").write_text('bin/python3\n', encoding="utf-8")
+            (source_dir / "safe_frontend-e.adb").write_text('./python3.11\n', encoding="utf-8")
             docs_dir = repo_root / "docs"
             docs_dir.mkdir()
             (docs_dir / "policy.md").write_text(
@@ -244,7 +245,7 @@ class ValidateExecutionStateTests(unittest.TestCase):
                 tempdir_scripts=("scripts/runtime_gate.py",),
                 path_lookup_scripts=("scripts/runtime_gate.py",),
             )
-            self.assertEqual(len(report["runtime_source_violations"]), 4)
+            self.assertEqual(len(report["runtime_source_violations"]), 5)
             self.assertFalse(report["doc_policy_violations"])
             self.assertFalse(report["portability_module_violations"])
 
@@ -312,6 +313,14 @@ class ValidateExecutionStateTests(unittest.TestCase):
                 path_lookup_scripts=("scripts/runtime_gate.py",),
             )
             self.assertFalse(report["runtime_source_violations"])
+            check_environment_assumptions(
+                repo_root=repo_root,
+                doc_requirements={"docs/policy.md": ["Ubuntu/Linux CI and local macOS", "Windows is explicitly unsupported"]},
+                runtime_source_globs=("compiler_impl/src/*.adb",),
+                module_requirements={"scripts/runtime_gate.py": ["MASKED_PYTHON_INTERPRETERS"]},
+                tempdir_scripts=("scripts/runtime_gate.py",),
+                path_lookup_scripts=("scripts/runtime_gate.py",),
+            )
 
 
 if __name__ == "__main__":
