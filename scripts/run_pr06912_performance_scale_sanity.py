@@ -313,8 +313,9 @@ def run_supported_positive_check_sweep(*, safec: Path, env: dict[str, str]) -> d
 
 
 def run_full_mir_sweep(*, safec: Path, env: dict[str, str]) -> dict[str, Any]:
-    cases = sorted((COMPILER_ROOT / "tests" / "mir_analysis").glob("*.json"))
-    cases.append(COMPILER_ROOT / "tests" / "mir_validation" / "valid_mir_v2.json")
+    cases = sorted((COMPILER_ROOT / "tests" / "mir_analysis").glob("*.json")) + sorted(
+        (COMPILER_ROOT / "tests" / "mir_validation").glob("*.json")
+    )
     total_ms = 0.0
     for sample in cases:
         start = time.perf_counter()

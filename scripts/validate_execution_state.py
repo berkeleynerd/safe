@@ -217,6 +217,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr0699_build_reproducibility.py",
     "scripts/run_pr06910_portability_environment.py",
     "scripts/run_pr06911_glue_script_safety.py",
+    "scripts/run_pr06912_performance_scale_sanity.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
     "scripts/validate_output_contracts.py",
@@ -241,6 +242,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr0699_build_reproducibility.py",
     "scripts/run_pr06910_portability_environment.py",
     "scripts/run_pr06911_glue_script_safety.py",
+    "scripts/run_pr06912_performance_scale_sanity.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {

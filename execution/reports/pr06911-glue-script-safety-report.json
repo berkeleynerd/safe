@@ -20,6 +20,7 @@
       "scripts/run_pr0699_build_reproducibility.py",
       "scripts/run_pr06910_portability_environment.py",
       "scripts/run_pr06911_glue_script_safety.py",
+      "scripts/run_pr06912_performance_scale_sanity.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
       "scripts/validate_output_contracts.py",
@@ -51,7 +52,8 @@
       "scripts/run_pr0698_legacy_package_cleanup.py",
       "scripts/run_pr0699_build_reproducibility.py",
       "scripts/run_pr06910_portability_environment.py",
-      "scripts/run_pr06911_glue_script_safety.py"
+      "scripts/run_pr06911_glue_script_safety.py",
+      "scripts/run_pr06912_performance_scale_sanity.py"
     ],
     "safe_source_readers": [
       {
@@ -93,8 +95,8 @@
       "report_sha256": "d320ddb9970fa6afbe3f5aa7fc63e2aa0fe084c5405192e229f27fd98854b7cf"
     }
   },
-  "repeat_sha256": "e7b535a97e698b5103df745f52703a0433cbca7a8790d41a955a810f5f0c6ba0",
-  "report_sha256": "e7b535a97e698b5103df745f52703a0433cbca7a8790d41a955a810f5f0c6ba0",
+  "repeat_sha256": "a3ed6e8b822f31d59266bffb1cd0cf9b2fe0876a629fdcec7dc66bcff216d1f0",
+  "report_sha256": "a3ed6e8b822f31d59266bffb1cd0cf9b2fe0876a629fdcec7dc66bcff216d1f0",
   "reruns": {
     "gate_quality": {
       "repeat_sha256": "b6488d98342e7cfde4a1eb1f68b965d2774ebebec29e0ab40b596ad52d00b1ca",

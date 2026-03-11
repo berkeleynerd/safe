@@ -3,7 +3,7 @@
     "full_mir": {
       "budget_ms": 10000.0,
       "budget_pass": true,
-      "count": 17,
+      "count": 23,
       "largest_sample": {
         "bytes": 11351,
         "lines": 402,
@@ -67,7 +67,7 @@
     ],
     "missing_doc_files": []
   },
-  "repeat_sha256": "5cd5ed56a99510f2bfaed406ebbc34ae4d8a8e0c0b2e97001163845a35afaba8",
+  "repeat_sha256": "2cb47ec5a31a82e5b0069f41c0d73dcc28811d9c9f593354f6c221a59e26fea7",
   "repeated_scenarios": {
     "analyze_mir": [
       {
@@ -216,7 +216,7 @@
     "check": 5,
     "emit": 3
   },
-  "report_sha256": "5cd5ed56a99510f2bfaed406ebbc34ae4d8a8e0c0b2e97001163845a35afaba8",
+  "report_sha256": "2cb47ec5a31a82e5b0069f41c0d73dcc28811d9c9f593354f6c221a59e26fea7",
   "status": "ok",
   "task": "PR06.9.12"
 }
