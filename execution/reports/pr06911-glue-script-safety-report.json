@@ -81,39 +81,21 @@
     "execution/reports/pr06910-portability-environment-report.json",
     "execution/reports/pr06911-glue-script-safety-report.json"
   ],
-  "repeat_sha256": "33550d3a5242ce544390e614739d2b1de090ddc9a537a5d9923f0bfce89bda56",
-  "report_sha256": "33550d3a5242ce544390e614739d2b1de090ddc9a537a5d9923f0bfce89bda56",
-  "reruns": {
+  "referenced_deterministic_reports": {
     "build_reproducibility": {
       "repeat_sha256": "d49218b5e68ef3b3b1d01d51d757e3dea757f1e467bc68c25064ff2192fddca9",
       "report_path": "execution/reports/pr0699-build-reproducibility-report.json",
-      "report_sha256": "d49218b5e68ef3b3b1d01d51d757e3dea757f1e467bc68c25064ff2192fddca9",
-      "run": {
-        "command": [
-          "python3",
-          "scripts/run_pr0699_build_reproducibility.py"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "pr0699 build reproducibility: OK (execution/reports/pr0699-build-reproducibility-report.json)\n"
-      }
+      "report_sha256": "d49218b5e68ef3b3b1d01d51d757e3dea757f1e467bc68c25064ff2192fddca9"
     },
     "frontend_smoke": {
       "repeat_sha256": "d320ddb9970fa6afbe3f5aa7fc63e2aa0fe084c5405192e229f27fd98854b7cf",
       "report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
-      "report_sha256": "d320ddb9970fa6afbe3f5aa7fc63e2aa0fe084c5405192e229f27fd98854b7cf",
-      "run": {
-        "command": [
-          "python3",
-          "scripts/run_frontend_smoke.py"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "frontend smoke: OK (execution/reports/pr00-pr04-frontend-smoke.json)\n"
-      }
-    },
+      "report_sha256": "d320ddb9970fa6afbe3f5aa7fc63e2aa0fe084c5405192e229f27fd98854b7cf"
+    }
+  },
+  "repeat_sha256": "e7b535a97e698b5103df745f52703a0433cbca7a8790d41a955a810f5f0c6ba0",
+  "report_sha256": "e7b535a97e698b5103df745f52703a0433cbca7a8790d41a955a810f5f0c6ba0",
+  "reruns": {
     "gate_quality": {
       "repeat_sha256": "b6488d98342e7cfde4a1eb1f68b965d2774ebebec29e0ab40b596ad52d00b1ca",
       "report_path": "execution/reports/pr0697-gate-quality-report.json",

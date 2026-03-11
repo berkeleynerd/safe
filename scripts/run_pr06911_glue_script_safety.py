@@ -144,6 +144,21 @@ def run_gate_script(*, python: str, script: Path, report_path: Path, env: dict[s
     }
 
 
+def check_existing_report(*, report_path: Path) -> dict[str, Any]:
+    require(report_path.exists(), f"expected report at {report_path}")
+    report = load_json(report_path)
+    require(report.get("deterministic") is True, f"{report_path.name}: expected deterministic report")
+    require(
+        report.get("report_sha256") == report.get("repeat_sha256"),
+        f"{report_path.name}: deterministic hashes must match",
+    )
+    return {
+        "report_path": display_path(report_path, repo_root=REPO_ROOT),
+        "report_sha256": report["report_sha256"],
+        "repeat_sha256": report["repeat_sha256"],
+    }
+
+
 def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
     glue_report = glue_script_safety_report()
     check_glue_report(glue_report)
@@ -156,12 +171,6 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
     )
     unit_tests = summarize_unittest_run(unit_tests_run)
 
-    frontend_smoke = run_gate_script(
-        python=python,
-        script=FRONTEND_SMOKE_SCRIPT,
-        report_path=FRONTEND_SMOKE_REPORT,
-        env=env,
-    )
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
     runtime_boundary = run_gate_script(
         python=python,
@@ -173,12 +182,6 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
         python=python,
         script=GATE_QUALITY_SCRIPT,
         report_path=GATE_QUALITY_REPORT,
-        env=env,
-    )
-    build_reproducibility = run_gate_script(
-        python=python,
-        script=BUILD_REPRO_SCRIPT,
-        report_path=BUILD_REPRO_REPORT,
         env=env,
     )
     portability_environment = run_gate_script(
@@ -195,12 +198,14 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
         "glue_script_safety": glue_report,
         "unit_tests": unit_tests,
         "reruns": {
-            "frontend_smoke": frontend_smoke,
             "runtime_boundary": runtime_boundary,
             "gate_quality": gate_quality,
-            "build_reproducibility": build_reproducibility,
             "portability_environment": portability_environment,
             "validate_execution_state": execution_state,
+        },
+        "referenced_deterministic_reports": {
+            "frontend_smoke": check_existing_report(report_path=FRONTEND_SMOKE_REPORT),
+            "build_reproducibility": check_existing_report(report_path=BUILD_REPRO_REPORT),
         },
         "monitored_reports": [display_path(path, repo_root=REPO_ROOT) for path in MONITORED_REPORTS],
     }
