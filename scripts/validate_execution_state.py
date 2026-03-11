@@ -141,13 +141,102 @@ PERFORMANCE_DOC_REQUIREMENTS = {
     ],
     "compiler_impl/README.md": [
         "docs/frontend_scale_limits.md",
-        "PR06.9.12",
         "cliff-detection gate, not a benchmark commitment",
+        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
     ],
     "release/frontend_runtime_decision.md": [
         "docs/frontend_scale_limits.md",
-        "PR06.9.12",
-        "cliff-detection gate, not a benchmark commitment",
+        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
+        "PR07 starts from this cleaned baseline and must extend the live path rather than revive deleted legacy packages.",
+    ],
+}
+DOCUMENTATION_ARCHITECTURE_DOC_REQUIREMENTS = {
+    "README.md": [
+        "docs/frontend_architecture_baseline.md",
+        "docs/frontend_scale_limits.md",
+        "compiler_impl/README.md",
+        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
+        "Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit`",
+        "Python remains glue/orchestration only around the compiler.",
+        "PR07 starts from the cleaned PR06.9.x frontend baseline.",
+    ],
+    "compiler_impl/README.md": [
+        "../docs/frontend_architecture_baseline.md",
+        "../docs/frontend_scale_limits.md",
+        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
+        "All current user-facing `safec` commands are Ada-native for that subset.",
+        "Python remains glue/orchestration only around the compiler.",
+        "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.",
+        "PR07 must extend the live `Check_*` + `Mir_*` pipeline.",
+    ],
+    "release/frontend_runtime_decision.md": [
+        "../docs/frontend_architecture_baseline.md",
+        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
+        "Ada-native runtime commands:",
+        "Python is glue/orchestration only.",
+        "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.",
+        "PR06.9.1 through PR06.9.13 established the pre-PR07 frontend baseline.",
+        "PR07 starts from this cleaned baseline and must extend the live path rather than revive deleted legacy packages.",
+    ],
+    "docs/frontend_architecture_baseline.md": [
+        "`safec lex`",
+        "`safec ast`",
+        "`safec validate-mir`",
+        "`safec analyze-mir`",
+        "`safec check`",
+        "`safec emit`",
+        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
+        "Python is glue/orchestration only.",
+        "No user-facing `safec` command depends on Python at runtime.",
+        "`Check_*`",
+        "`Mir_*`",
+        "`Lexer`",
+        "`Source`",
+        "`Types`",
+        "`Diagnostics`",
+        "`Json`",
+        "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.",
+        "PR07 must extend the live path rather than revive deleted legacy packages.",
+    ],
+    "docs/frontend_scale_limits.md": [
+        "frontend_architecture_baseline.md",
+        "PR05/PR06 supported subset only",
+    ],
+}
+DOCUMENTATION_ARCHITECTURE_REQUIRED_LINKS = {
+    "README.md": [
+        "docs/frontend_architecture_baseline.md",
+        "docs/frontend_scale_limits.md",
+        "compiler_impl/README.md",
+    ],
+    "compiler_impl/README.md": [
+        "../docs/frontend_architecture_baseline.md",
+        "../docs/frontend_scale_limits.md",
+    ],
+    "release/frontend_runtime_decision.md": [
+        "../docs/frontend_architecture_baseline.md",
+    ],
+    "docs/frontend_scale_limits.md": [
+        "frontend_architecture_baseline.md",
+    ],
+}
+DOCUMENTATION_ARCHITECTURE_STALE_MARKERS = {
+    "README.md": [
+        "PR00–PR06.9.1 sequential frontend landed",
+        "EXEC_SUMMARY.md",
+        "CHANGELOG.md",
+    ],
+    "compiler_impl/README.md": [
+        "through PR06.9.8",
+        "through PR06.9.12",
+        "PR06.8 runtime doctrine:",
+        "PR06.9.3 hardens that boundary",
+        "PR06.9.10 hardens portability assumptions",
+    ],
+    "release/frontend_runtime_decision.md": [
+        "PR06.5 and PR06.6 removed the MIR validator and MIR analyzer",
+        "PR06.8 cuts `safec ast` and `safec emit` over",
+        "Before `PR07`, the roadmap now inserts a `PR06.9.1` through `PR06.9.13` stabilization series",
     ],
 }
 ENVIRONMENT_DOC_REQUIREMENTS = {
@@ -265,6 +354,7 @@ GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS = {
 PLATFORM_ASSUMPTIONS_IMPORT_PATTERN = (
     r"^\s*(?:from\s+_lib\.platform_assumptions\s+import\b|import\s+_lib\.platform_assumptions\b)"
 )
+MARKDOWN_LINK_PATTERN = re.compile(r"!?\[[^\]]+\]\(([^)]+)\)")
 
 
 def fail(message: str) -> None:
@@ -306,6 +396,18 @@ def _safe_source_binding_name(
             if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str) and first_arg.value.endswith(".safe"):
                 return first_arg.value
     return None
+
+
+def _local_markdown_links(text: str) -> list[str]:
+    links: list[str] = []
+    for target in MARKDOWN_LINK_PATTERN.findall(text):
+        candidate = target.strip()
+        if not candidate or candidate.startswith("#"):
+            continue
+        if "://" in candidate or candidate.startswith("mailto:"):
+            continue
+        links.append(candidate)
+    return links
 
 
 def check_tracker_schema(tracker: Dict[str, Any]) -> None:
@@ -849,6 +951,87 @@ def check_performance_scale_sanity(
         fail(f"missing performance/scale policy markers: {report['doc_policy_violations']}")
 
 
+def documentation_architecture_clarity_report(
+    *,
+    repo_root: Path = REPO_ROOT,
+    doc_requirements: Dict[str, Sequence[str]] = DOCUMENTATION_ARCHITECTURE_DOC_REQUIREMENTS,
+    required_links: Dict[str, Sequence[str]] = DOCUMENTATION_ARCHITECTURE_REQUIRED_LINKS,
+    stale_markers: Dict[str, Sequence[str]] = DOCUMENTATION_ARCHITECTURE_STALE_MARKERS,
+) -> Dict[str, Any]:
+    docs_scanned = sorted(set(doc_requirements) | set(required_links) | set(stale_markers))
+    missing_doc_files: List[str] = []
+    doc_policy_violations: List[str] = []
+    missing_required_links: List[str] = []
+    unresolved_local_links: List[str] = []
+    stale_boundary_violations: List[str] = []
+
+    for relative_path in docs_scanned:
+        path = repo_root / relative_path
+        if not path.exists():
+            missing_doc_files.append(relative_path)
+            continue
+        text = path.read_text(encoding="utf-8")
+        for marker in doc_requirements.get(relative_path, []):
+            if marker not in text:
+                doc_policy_violations.append(f"{relative_path}:{marker}")
+        for marker in stale_markers.get(relative_path, []):
+            if marker in text:
+                stale_boundary_violations.append(f"{relative_path}:{marker}")
+
+        local_links = _local_markdown_links(text)
+        link_targets = set(local_links)
+        for target in required_links.get(relative_path, []):
+            if target not in link_targets:
+                missing_required_links.append(f"{relative_path}:{target}")
+
+        for target in local_links:
+            clean_target = target.split("#", 1)[0]
+            if not clean_target:
+                continue
+            resolved = (path.parent / clean_target).resolve()
+            try:
+                resolved.relative_to(repo_root.resolve())
+            except ValueError:
+                unresolved_local_links.append(f"{relative_path}:{target}")
+                continue
+            if not resolved.exists():
+                unresolved_local_links.append(f"{relative_path}:{target}")
+
+    return {
+        "docs_scanned": docs_scanned,
+        "missing_doc_files": missing_doc_files,
+        "doc_policy_violations": doc_policy_violations,
+        "missing_required_links": missing_required_links,
+        "unresolved_local_links": unresolved_local_links,
+        "stale_boundary_violations": stale_boundary_violations,
+    }
+
+
+def check_documentation_architecture_clarity(
+    *,
+    repo_root: Path = REPO_ROOT,
+    doc_requirements: Dict[str, Sequence[str]] = DOCUMENTATION_ARCHITECTURE_DOC_REQUIREMENTS,
+    required_links: Dict[str, Sequence[str]] = DOCUMENTATION_ARCHITECTURE_REQUIRED_LINKS,
+    stale_markers: Dict[str, Sequence[str]] = DOCUMENTATION_ARCHITECTURE_STALE_MARKERS,
+) -> None:
+    report = documentation_architecture_clarity_report(
+        repo_root=repo_root,
+        doc_requirements=doc_requirements,
+        required_links=required_links,
+        stale_markers=stale_markers,
+    )
+    if report["missing_doc_files"]:
+        fail(f"missing architecture-baseline docs: {report['missing_doc_files']}")
+    if report["doc_policy_violations"]:
+        fail(f"missing architecture/boundary policy markers: {report['doc_policy_violations']}")
+    if report["missing_required_links"]:
+        fail(f"missing architecture/boundary cross-links: {report['missing_required_links']}")
+    if report["unresolved_local_links"]:
+        fail(f"unresolved local markdown links: {report['unresolved_local_links']}")
+    if report["stale_boundary_violations"]:
+        fail(f"stale frontend-boundary wording remains: {report['stale_boundary_violations']}")
+
+
 def glue_script_safety_report(
     *,
     repo_root: Path = REPO_ROOT,
@@ -1146,6 +1329,7 @@ def main() -> int:
     check_legacy_frontend_cleanup()
     check_glue_script_safety()
     check_performance_scale_sanity()
+    check_documentation_architecture_clarity()
     print("execution state: OK")
     return 0
 

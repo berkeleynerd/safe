@@ -3,7 +3,7 @@
   "updated_at": "2026-03-09T22:47:56Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR06.9.13",
+  "next_task_id": "PR07",
   "repo_facts": {
     "tests": {
       "positive": 35,
@@ -419,14 +419,16 @@
     {
       "id": "PR06.9.13",
       "title": "Documentation and architectural clarity",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR06.9.12"],
       "acceptance": [
         "Runtime path, supported subset, no-Python doctrine, and legacy-versus-live package ownership are documented consistently.",
         "The roadmap, dashboard, and frontend docs agree on the current compiler boundary before PR07 begins.",
         "PR07 starts from the cleaned architectural baseline established by the PR06.9 hardening series."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr06913-documentation-architecture-clarity-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

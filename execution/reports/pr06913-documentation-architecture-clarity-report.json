@@ -1,0 +1,123 @@
+{
+  "deterministic": true,
+  "documentation_architecture_clarity": {
+    "doc_policy_violations": [],
+    "docs_scanned": [
+      "README.md",
+      "compiler_impl/README.md",
+      "docs/frontend_architecture_baseline.md",
+      "docs/frontend_scale_limits.md",
+      "release/frontend_runtime_decision.md"
+    ],
+    "missing_doc_files": [],
+    "missing_required_links": [],
+    "stale_boundary_violations": [],
+    "unresolved_local_links": []
+  },
+  "monitored_paths": [
+    "README.md",
+    "compiler_impl/README.md",
+    "release/frontend_runtime_decision.md",
+    "docs/frontend_architecture_baseline.md",
+    "docs/frontend_scale_limits.md",
+    "execution/tracker.json",
+    "execution/dashboard.md",
+    "execution/reports/pr06913-documentation-architecture-clarity-report.json"
+  ],
+  "repeat_sha256": "2a4aa5a0e48b3b616437e8479da0ba633b915bc0795a0aa59e05a4da4c24323e",
+  "report_sha256": "2a4aa5a0e48b3b616437e8479da0ba633b915bc0795a0aa59e05a4da4c24323e",
+  "reruns": {
+    "gate_quality": {
+      "repeat_sha256": "c0ae0b745e8970845774e82536a1a8ed18afa111163c9533224b64a7c973af7f",
+      "report_path": "execution/reports/pr0697-gate-quality-report.json",
+      "report_sha256": "c0ae0b745e8970845774e82536a1a8ed18afa111163c9533224b64a7c973af7f",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr0697_gate_quality.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr0697 gate quality: OK (execution/reports/pr0697-gate-quality-report.json)\n"
+      }
+    },
+    "glue_script_safety": {
+      "repeat_sha256": "dd59ebb1b4eead71fab4119db9ff738a26f1e9036ef4504327292a29471d12a9",
+      "report_path": "execution/reports/pr06911-glue-script-safety-report.json",
+      "report_sha256": "dd59ebb1b4eead71fab4119db9ff738a26f1e9036ef4504327292a29471d12a9",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr06911_glue_script_safety.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr06911 glue script safety: OK (execution/reports/pr06911-glue-script-safety-report.json)\n"
+      }
+    },
+    "legacy_package_cleanup": {
+      "repeat_sha256": "1248e3f5d1f76dbaca16f194f2d86bc809f0f3587060179526b8e8ba5a2e2b3c",
+      "report_path": "execution/reports/pr0698-legacy-package-cleanup-report.json",
+      "report_sha256": "1248e3f5d1f76dbaca16f194f2d86bc809f0f3587060179526b8e8ba5a2e2b3c",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr0698_legacy_package_cleanup.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr0698 legacy package cleanup: OK (execution/reports/pr0698-legacy-package-cleanup-report.json)\n"
+      }
+    },
+    "performance_scale_sanity": {
+      "repeat_sha256": "2cb47ec5a31a82e5b0069f41c0d73dcc28811d9c9f593354f6c221a59e26fea7",
+      "report_path": "execution/reports/pr06912-performance-scale-sanity-report.json",
+      "report_sha256": "2cb47ec5a31a82e5b0069f41c0d73dcc28811d9c9f593354f6c221a59e26fea7",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr06912_performance_scale_sanity.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr06912 check rule1_accumulate.safe: median=2.15 ms over 5 runs\npr06912 check rule2_binary_search.safe: median=6.29 ms over 5 runs\npr06912 check ownership_borrow.safe: median=2.13 ms over 5 runs\npr06912 emit rule1_accumulate.safe: median=2.88 ms over 3 runs\npr06912 emit rule2_binary_search.safe: median=8.44 ms over 3 runs\npr06912 emit ownership_borrow.safe: median=4.17 ms over 3 runs\npr06912 analyze valid_mir_v2.json: median=2.49 ms over 5 runs\npr06912 analyze pr06_double_move.json: median=2.57 ms over 5 runs\npr06912 analyze pr0695_anonymous_access_reassign_parity.json: median=2.90 ms over 5 runs\npr06912 ratio check_rule2_vs_rule1: 2.93 (cap 8.00)\npr06912 ratio emit_rule2_vs_rule1: 2.93 (cap 8.00)\npr06912 ratio analyze_reassign_vs_valid: 1.17 (cap 8.00)\npr06912 full check sweep: total=111.45 ms over 26 cases\npr06912 full MIR sweep: total=99.69 ms over 23 cases\npr06912 performance and scale sanity: OK (execution/reports/pr06912-performance-scale-sanity-report.json)\n"
+      }
+    },
+    "portability_environment": {
+      "repeat_sha256": "e74730756cf8f474009ee3f1f918b95693465223f68d7479fd428305d1a825b0",
+      "report_path": "execution/reports/pr06910-portability-environment-report.json",
+      "report_sha256": "e74730756cf8f474009ee3f1f918b95693465223f68d7479fd428305d1a825b0",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr06910_portability_environment.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr06910 portability environment: OK (execution/reports/pr06910-portability-environment-report.json)\n"
+      }
+    },
+    "runtime_boundary": {
+      "repeat_sha256": "5ece643becaf3afe1be32dfc485f78c240eaaad4c12cbcbf9d6cb16f7e66a47c",
+      "report_path": "execution/reports/pr0693-runtime-boundary-report.json",
+      "report_sha256": "5ece643becaf3afe1be32dfc485f78c240eaaad4c12cbcbf9d6cb16f7e66a47c",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr0693_runtime_boundary.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr0693 runtime-boundary gate: OK (execution/reports/pr0693-runtime-boundary-report.json)\n"
+      }
+    }
+  },
+  "status": "ok",
+  "task": "PR06.9.13"
+}

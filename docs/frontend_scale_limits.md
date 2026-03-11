@@ -2,6 +2,8 @@
 
 PR06.9.12 is a cliff-detection gate, not a benchmark commitment.
 
+See [frontend_architecture_baseline.md](frontend_architecture_baseline.md) for the current live command set, supported subset boundary, and no-Python runtime doctrine.
+
 The current proven scale envelope is the PR05/PR06 supported subset only:
 - sequential Rule 1-4 checking
 - sequential ownership checking

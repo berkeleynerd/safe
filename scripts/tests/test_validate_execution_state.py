@@ -12,6 +12,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from validate_execution_state import (
     check_dependencies,
+    check_documentation_architecture_clarity,
     check_environment_assumptions,
     check_evidence_reproducibility,
     check_glue_script_safety,
@@ -19,6 +20,7 @@ from validate_execution_state import (
     check_status_rules,
     check_test_distribution,
     count_test_files,
+    documentation_architecture_clarity_report,
     environment_assumptions_report,
     evidence_reproducibility_report,
     glue_script_safety_report,
@@ -641,7 +643,7 @@ class ValidateExecutionStateTests(unittest.TestCase):
             compiler_dir = repo_root / "compiler_impl"
             compiler_dir.mkdir()
             (compiler_dir / "README.md").write_text(
-                "PR06.9.12\n"
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n"
                 "docs/frontend_scale_limits.md\n"
                 "cliff-detection gate, not a benchmark commitment\n",
                 encoding="utf-8",
@@ -649,13 +651,249 @@ class ValidateExecutionStateTests(unittest.TestCase):
             release_dir = repo_root / "release"
             release_dir.mkdir()
             (release_dir / "frontend_runtime_decision.md").write_text(
-                "PR06.9.12\n"
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n"
                 "docs/frontend_scale_limits.md\n"
-                "cliff-detection gate, not a benchmark commitment\n",
+                "PR07 starts from this cleaned baseline and must extend the live path rather than revive deleted legacy packages.\n",
                 encoding="utf-8",
             )
 
             check_performance_scale_sanity(repo_root=repo_root)
+
+    def test_documentation_architecture_clarity_report_detects_missing_baseline_doc(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            (repo_root / "README.md").write_text(
+                "[Baseline](docs/frontend_architecture_baseline.md)\n",
+                encoding="utf-8",
+            )
+            compiler_dir = repo_root / "compiler_impl"
+            compiler_dir.mkdir()
+            (compiler_dir / "README.md").write_text(
+                "[Baseline](../docs/frontend_architecture_baseline.md)\n",
+                encoding="utf-8",
+            )
+            release_dir = repo_root / "release"
+            release_dir.mkdir()
+            (release_dir / "frontend_runtime_decision.md").write_text(
+                "[Baseline](../docs/frontend_architecture_baseline.md)\n",
+                encoding="utf-8",
+            )
+            docs_dir = repo_root / "docs"
+            docs_dir.mkdir()
+            (docs_dir / "frontend_scale_limits.md").write_text(
+                "[Baseline](frontend_architecture_baseline.md)\n",
+                encoding="utf-8",
+            )
+
+            report = documentation_architecture_clarity_report(
+                repo_root=repo_root,
+                doc_requirements={
+                    "README.md": [],
+                    "compiler_impl/README.md": [],
+                    "release/frontend_runtime_decision.md": [],
+                    "docs/frontend_architecture_baseline.md": [],
+                    "docs/frontend_scale_limits.md": [],
+                },
+                required_links={},
+                stale_markers={},
+            )
+            self.assertIn("docs/frontend_architecture_baseline.md", report["missing_doc_files"])
+
+    def test_documentation_architecture_clarity_report_detects_missing_markers_and_links(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            docs_dir = repo_root / "docs"
+            docs_dir.mkdir()
+            (docs_dir / "frontend_architecture_baseline.md").write_text(
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n",
+                encoding="utf-8",
+            )
+            (docs_dir / "frontend_scale_limits.md").write_text(
+                "frontend_architecture_baseline.md\n",
+                encoding="utf-8",
+            )
+            (repo_root / "README.md").write_text(
+                "[Baseline](docs/frontend_architecture_baseline.md)\n",
+                encoding="utf-8",
+            )
+            compiler_dir = repo_root / "compiler_impl"
+            compiler_dir.mkdir()
+            (compiler_dir / "README.md").write_text(
+                "No link here\n",
+                encoding="utf-8",
+            )
+            release_dir = repo_root / "release"
+            release_dir.mkdir()
+            (release_dir / "frontend_runtime_decision.md").write_text(
+                "[Broken](../docs/missing.md)\n",
+                encoding="utf-8",
+            )
+
+            report = documentation_architecture_clarity_report(
+                repo_root=repo_root,
+                doc_requirements={
+                    "README.md": ["PR07 starts from the cleaned PR06.9.x frontend baseline."],
+                    "compiler_impl/README.md": ["PR07 must extend the live `Check_*` + `Mir_*` pipeline."],
+                    "release/frontend_runtime_decision.md": ["Python is glue/orchestration only."],
+                    "docs/frontend_architecture_baseline.md": ["PR07 must extend the live path rather than revive deleted legacy packages."],
+                    "docs/frontend_scale_limits.md": ["PR05/PR06 supported subset only"],
+                },
+                required_links={
+                    "README.md": ["docs/frontend_architecture_baseline.md"],
+                    "compiler_impl/README.md": ["../docs/frontend_architecture_baseline.md"],
+                    "release/frontend_runtime_decision.md": ["../docs/frontend_architecture_baseline.md"],
+                },
+                stale_markers={},
+            )
+            self.assertIn(
+                "README.md:PR07 starts from the cleaned PR06.9.x frontend baseline.",
+                report["doc_policy_violations"],
+            )
+            self.assertIn(
+                "compiler_impl/README.md:../docs/frontend_architecture_baseline.md",
+                report["missing_required_links"],
+            )
+            self.assertIn(
+                "release/frontend_runtime_decision.md:../docs/missing.md",
+                report["unresolved_local_links"],
+            )
+
+    def test_documentation_architecture_clarity_report_detects_stale_wording(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            docs_dir = repo_root / "docs"
+            docs_dir.mkdir()
+            (docs_dir / "frontend_architecture_baseline.md").write_text("ok\n", encoding="utf-8")
+            (docs_dir / "frontend_scale_limits.md").write_text("ok\n", encoding="utf-8")
+            (repo_root / "README.md").write_text(
+                "PR00–PR06.9.1 sequential frontend landed\n",
+                encoding="utf-8",
+            )
+            compiler_dir = repo_root / "compiler_impl"
+            compiler_dir.mkdir()
+            (compiler_dir / "README.md").write_text("ok\n", encoding="utf-8")
+            release_dir = repo_root / "release"
+            release_dir.mkdir()
+            (release_dir / "frontend_runtime_decision.md").write_text("ok\n", encoding="utf-8")
+
+            report = documentation_architecture_clarity_report(
+                repo_root=repo_root,
+                doc_requirements={
+                    "README.md": [],
+                    "compiler_impl/README.md": [],
+                    "release/frontend_runtime_decision.md": [],
+                    "docs/frontend_architecture_baseline.md": [],
+                    "docs/frontend_scale_limits.md": [],
+                },
+                required_links={},
+                stale_markers={"README.md": ["PR00–PR06.9.1 sequential frontend landed"]},
+            )
+            self.assertEqual(
+                report["stale_boundary_violations"],
+                ["README.md:PR00–PR06.9.1 sequential frontend landed"],
+            )
+
+    def test_check_documentation_architecture_clarity_accepts_valid_docs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            docs_dir = repo_root / "docs"
+            docs_dir.mkdir()
+            (docs_dir / "frontend_architecture_baseline.md").write_text(
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n"
+                "Python is glue/orchestration only.\n"
+                "No user-facing `safec` command depends on Python at runtime.\n"
+                "`Check_*`\n"
+                "`Mir_*`\n"
+                "`Lexer`\n"
+                "`Source`\n"
+                "`Types`\n"
+                "`Diagnostics`\n"
+                "`Json`\n"
+                "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.\n"
+                "PR07 must extend the live path rather than revive deleted legacy packages.\n"
+                "`safec lex`\n`ast`\n`safec validate-mir`\n`safec analyze-mir`\n`safec check`\n`safec emit`\n",
+                encoding="utf-8",
+            )
+            (docs_dir / "frontend_scale_limits.md").write_text(
+                "[Baseline](frontend_architecture_baseline.md)\nPR05/PR06 supported subset only\n",
+                encoding="utf-8",
+            )
+            (repo_root / "README.md").write_text(
+                "[Baseline](docs/frontend_architecture_baseline.md)\n"
+                "[Scale](docs/frontend_scale_limits.md)\n"
+                "[Compiler](compiler_impl/README.md)\n"
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n"
+                "Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit`\n"
+                "Python remains glue/orchestration only around the compiler.\n"
+                "PR07 starts from the cleaned PR06.9.x frontend baseline.\n",
+                encoding="utf-8",
+            )
+            compiler_dir = repo_root / "compiler_impl"
+            compiler_dir.mkdir()
+            (compiler_dir / "README.md").write_text(
+                "[Baseline](../docs/frontend_architecture_baseline.md)\n"
+                "[Scale](../docs/frontend_scale_limits.md)\n"
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n"
+                "All current user-facing `safec` commands are Ada-native for that subset.\n"
+                "Python remains glue/orchestration only around the compiler.\n"
+                "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.\n"
+                "PR07 must extend the live `Check_*` + `Mir_*` pipeline.\n",
+                encoding="utf-8",
+            )
+            release_dir = repo_root / "release"
+            release_dir.mkdir()
+            (release_dir / "frontend_runtime_decision.md").write_text(
+                "[Baseline](../docs/frontend_architecture_baseline.md)\n"
+                "PR05/PR06 sequential Rule 1-4 plus sequential ownership only\n"
+                "Ada-native runtime commands:\n"
+                "Python is glue/orchestration only.\n"
+                "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.\n"
+                "PR06.9.1 through PR06.9.13 established the pre-PR07 frontend baseline.\n"
+                "PR07 starts from this cleaned baseline and must extend the live path rather than revive deleted legacy packages.\n",
+                encoding="utf-8",
+            )
+
+            check_documentation_architecture_clarity(
+                repo_root=repo_root,
+                doc_requirements={
+                    "README.md": [
+                        "PR05/PR06 sequential Rule 1-4 plus sequential ownership only",
+                        "PR07 starts from the cleaned PR06.9.x frontend baseline.",
+                    ],
+                    "compiler_impl/README.md": [
+                        "PR07 must extend the live `Check_*` + `Mir_*` pipeline.",
+                    ],
+                    "release/frontend_runtime_decision.md": [
+                        "PR06.9.1 through PR06.9.13 established the pre-PR07 frontend baseline.",
+                    ],
+                    "docs/frontend_architecture_baseline.md": [
+                        "PR07 must extend the live path rather than revive deleted legacy packages.",
+                    ],
+                    "docs/frontend_scale_limits.md": [
+                        "PR05/PR06 supported subset only",
+                    ],
+                },
+                required_links={
+                    "README.md": [
+                        "docs/frontend_architecture_baseline.md",
+                        "docs/frontend_scale_limits.md",
+                        "compiler_impl/README.md",
+                    ],
+                    "compiler_impl/README.md": [
+                        "../docs/frontend_architecture_baseline.md",
+                        "../docs/frontend_scale_limits.md",
+                    ],
+                    "release/frontend_runtime_decision.md": [
+                        "../docs/frontend_architecture_baseline.md",
+                    ],
+                    "docs/frontend_scale_limits.md": [
+                        "frontend_architecture_baseline.md",
+                    ],
+                },
+                stale_markers={
+                    "README.md": ["PR00–PR06.9.1 sequential frontend landed"],
+                },
+            )
 
 
 if __name__ == "__main__":

@@ -1,23 +1,35 @@
 # SafeC Frontend
 
-This workspace hosts the current Safe compiler frontend through PR06.9.12.
+This workspace hosts the current pre-PR07 Safe compiler frontend baseline established by PR06.9.1 through PR06.9.13.
 
-## Scope
+## Current Boundary
 
 - `safec lex <file.safe>` lexes a Safe source file and writes versioned token JSON to stdout.
+- `safec ast <file.safe>` lexes and parses a Safe source file and writes AST JSON to stdout.
 - `safec validate-mir <file.mir.json>` validates emitted `mir-v1` / `mir-v2` structure in Ada and exits nonzero on structural contract failures.
 - `safec analyze-mir <file.mir.json>` validates analyzable `mir-v2` input and exits nonzero if MIR-level diagnostics are emitted.
 - `safec analyze-mir --diag-json <file.mir.json>` writes `diagnostics-v0` JSON for a `mir-v2` input.
-- `safec ast <file.safe>` lexes and parses a Safe source file and writes AST JSON to stdout.
 - `safec check <file.safe>` runs the Ada-native PR05/PR06 check pipeline and exits nonzero if diagnostics are emitted.
 - `safec check --diag-json <file.safe>` writes `diagnostics-v0` JSON for the Ada-native PR05/PR06 check pipeline.
 - `safec emit <file.safe> --out-dir <dir> --interface-dir <dir>` writes the current frontend artifacts for downstream inspection and regression checks.
 
-The current frontend implements the sequential Rule 1-4 subset plus the sequential ownership model used by the current PR06 corpus. It parses executable bodies, emits schema-true AST for the implemented subset, emits `typed-v2` and self-sufficient `mir-v2`, checks the current Rule 1-4 corpus, and checks the sequential ownership corpus through `safec check`. It is still not the concurrency frontend or the Ada/SPARK emitter.
+The current frontend supports PR05/PR06 sequential Rule 1-4 plus sequential ownership only.
 
-All current `safec` commands are now Ada-native for the implemented PR05/PR06 subset. Python remains allowed in the repository only as glue around the compiler, such as validation helpers, harness scripts, and CI/report orchestration.
+That current boundary includes:
 
-Supported-platform policy for PR06.9.x:
+- schema-true AST emission for the implemented subset
+- `typed-v2`, self-sufficient `mir-v2`, and `safei-v0` emission for that subset
+- Ada-native MIR validation and MIR analysis for that subset
+- Ada-native `check` over the PR05 Rule 1-4 corpus and the PR06 sequential ownership corpus
+
+All current user-facing `safec` commands are Ada-native for that subset. Python remains glue/orchestration only around the compiler.
+
+PR06.9.12 is a cliff-detection gate, not a benchmark commitment, for that current frontend subset.
+
+See [`../docs/frontend_architecture_baseline.md`](../docs/frontend_architecture_baseline.md) for the canonical frontend boundary and [`../docs/frontend_scale_limits.md`](../docs/frontend_scale_limits.md) for the current cliff-detection scale policy.
+
+## Current Doctrine
+
 - Ubuntu/Linux CI and local macOS are the supported environments for the current frontend.
 - Windows is explicitly unsupported for PR06.9.x.
 - On macOS, repo glue assumes an SDK is discoverable through `xcrun --show-sdk-path` or `SDKROOT`.
@@ -26,15 +38,14 @@ Supported-platform policy for PR06.9.x:
 - Portability-sensitive glue scripts remain shell-free and do not rely on `shell=True` or `os.system`.
 - Active Python glue is orchestration/validation only and stays argv-based.
 - Safe source may only be read by glue scripts for fixture metadata extraction or inline negative/control cases, never as a second semantic source of truth.
-- The recovery note in `docs/macos_alire_toolchain_repair.md` is a developer recovery procedure, not a compiler runtime dependency.
+- The recovery note in `../docs/macos_alire_toolchain_repair.md` is a developer recovery procedure, not a compiler runtime dependency.
+- No-Python runtime enforcement covers `python`, `python3`, `python3.11`, `python3.<minor>`, and path-qualified Python invocations in compiler runtime sources.
 
-PR06.8 runtime doctrine: Python may be used as glue/orchestration, but it may not own any user-facing compiler command and may not participate in parsing, lowering, semantic decisions, diagnostic selection, or emitted compiler artifacts.
-PR06.9.3 hardens that boundary with a fast static runtime scan in `scripts/validate_execution_state.py` plus a full-CLI masked-runtime gate covering `lex`, `ast`, `validate-mir`, `analyze-mir`, `check`, and `emit`.
-PR06.9.6 hardens the unsupported-feature boundary across `check`, `ast`, and `emit`.
-PR06.9.8 removes the old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain entirely. The only live frontend path is now the Ada-native `Check_*` plus `Mir_*` pipeline, and later work must extend that path rather than revive the deleted legacy chain.
-PR06.9.10 hardens portability assumptions around that same live path. No-Python runtime enforcement now documents `python`, `python3`, `python3.11`, `python3.<minor>`, and path-qualified Python invocations, and the repo glue gates share that same source of truth.
-PR06.9.11 hardens the active Python glue layer: subprocess execution stays centralized in `scripts/_lib/harness_common.py`, report-producing gates use deterministic shared helpers, and raw `.safe` source reads are limited to fixture metadata rather than semantic interpretation.
-PR06.9.12 adds a cliff-detection gate, not a benchmark commitment. The current scale policy is documented in `docs/frontend_scale_limits.md`: it applies only to the PR05/PR06 supported subset, keeps raw timings out of committed evidence, and treats Rule 5, result safety, and concurrency features as out of scope for performance claims.
+The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.
+
+The only live frontend path is now the Ada-native `Check_*` plus `Mir_*` pipeline, with `Lexer`, `Source`, `Types`, `Diagnostics`, and `Json` supporting that path.
+
+PR07 must extend the live `Check_*` + `Mir_*` pipeline.
 
 Unsupported-feature classification rule:
 - `unsupported_source_construct` means the Ada-native frontend recognized a construct that is outside the current PR05/PR06 subset.

@@ -74,8 +74,8 @@
       }
     }
   ],
-  "repeat_sha256": "b6488d98342e7cfde4a1eb1f68b965d2774ebebec29e0ab40b596ad52d00b1ca",
-  "report_sha256": "b6488d98342e7cfde4a1eb1f68b965d2774ebebec29e0ab40b596ad52d00b1ca",
+  "repeat_sha256": "c0ae0b745e8970845774e82536a1a8ed18afa111163c9533224b64a7c973af7f",
+  "report_sha256": "c0ae0b745e8970845774e82536a1a8ed18afa111163c9533224b64a7c973af7f",
   "status": "ok",
   "task": "PR06.9.7",
   "unit_tests": {
@@ -91,7 +91,7 @@
     ],
     "cwd": "$REPO_ROOT",
     "returncode": 0,
-    "stderr": "......................................\n----------------------------------------------------------------------\nRan 38 tests in <elapsed>\n\nOK\n",
+    "stderr": "..........................................\n----------------------------------------------------------------------\nRan 42 tests in <elapsed>\n\nOK\n",
     "stdout": ""
   }
 }

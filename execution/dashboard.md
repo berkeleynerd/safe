@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR06.9.13`
+- **Next task:** `PR07`
 - **Updated at:** `2026-03-09T22:47:56Z`
 
 ## Repo Facts
@@ -42,7 +42,7 @@
 | PR06.9.10 | done | PR06.9.9 | 1 |
 | PR06.9.11 | done | PR06.9.10 | 1 |
 | PR06.9.12 | done | PR06.9.11 | 1 |
-| PR06.9.13 | planned | PR06.9.12 | 0 |
+| PR06.9.13 | done | PR06.9.12 | 1 |
 | PR07 | planned | PR06.9.13 | 0 |
 | PR08 | planned | PR07 | 0 |
 | PR09 | planned | PR08 | 0 |
@@ -369,13 +369,15 @@
 
 ### PR06.9.13 — Documentation and architectural clarity
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR06.9.12
 - **Blockers:** none
 - **Acceptance:**
   - Runtime path, supported subset, no-Python doctrine, and legacy-versus-live package ownership are documented consistently.
   - The roadmap, dashboard, and frontend docs agree on the current compiler boundary before PR07 begins.
   - PR07 starts from the cleaned architectural baseline established by the PR06.9 hardening series.
+- **Evidence:**
+  - `execution/reports/pr06913-documentation-architecture-clarity-report.json`
 
 ### PR07 — Rule 5 and discriminant/result safety
 

@@ -111,7 +111,9 @@ safe/
 |----------------|-------|
 | Language specification | [`spec/00-front-matter.md`](spec/00-front-matter.md) |
 | Safe-to-Ada translation rules | [`compiler/translation_rules.md`](compiler/translation_rules.md) |
-| Early frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
+| Current frontend boundary | [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) |
+| Frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
+| Frontend scale limits | [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) |
 | SPARK companion overview | [`release/COMPANION_README.md`](release/COMPANION_README.md) |
 | Full traceability | [`docs/traceability_matrix.md`](docs/traceability_matrix.md) |
 | PO procedure index | [`docs/po_index.md`](docs/po_index.md) |
@@ -120,31 +122,21 @@ safe/
 | Template roadmap (M0–M7) | [`docs/template_plan.md`](docs/template_plan.md) |
 | Assumption registry | [`companion/assumptions.yaml`](companion/assumptions.yaml) |
 | Status report | [`release/status_report.md`](release/status_report.md) |
-| Spec generation decisions | [`EXEC_SUMMARY.md`](EXEC_SUMMARY.md) |
-| Spec change log | [`CHANGELOG.md`](CHANGELOG.md) |
 
 ---
 
 ## Continuous Integration
 
-Twelve CI jobs run on every push and pull request to `main`:
+CI runs a matrix of execution-guard checks, frontend smoke and regression/hardening gates through PR06.9.13, and the SPARK companion plus emission-template verification jobs.
 
-- **`execution-guard`** -- Ledger, dashboard, frozen-SHA, and test-distribution checks
-- **`lint-safe-syntax`** -- Surface-syntax guard across the `.safe` corpus
-- **`frontend-smoke`** -- Early frontend build, lexer regression checks, AST validation, and deterministic emit smoke checks
-- **`pr05-d27-harness`** -- Sequential Rule 1-4 golden diffs, corpus gating, and deterministic emit checks
-- **`pr06-ownership-harness`** -- Sequential ownership goldens, ownership corpus gating, and deterministic ownership emit checks
-- **`pr065-ada-mir-validator`** -- Ada-native MIR contract validation over fixtures and representative emitted MIR
-- **`pr066-ada-mir-analyzer`** -- MIR analyzer fixtures, emitted-MIR checks, and unchanged PR05 / PR06 harness reruns
-- **`pr067-ada-check-no-python`** -- Ada-native `safec check` cutover proof with Python masked for direct check invocations
-- **`pr068-ada-ast-emit-no-python`** -- Ada-native `safec ast` / `safec emit` proof with Python masked for direct compiler invocations
-- **`pr0691-semantic-correctness`** -- Cross-surface semantic parity checks for range, ownership, return, and call seams
-- **`spark-verify`** -- Companion: 64 VCs, 0 unproved
-- **`templates-verify`** -- Templates pipeline: 320 VCs, 0 unproved
+The frontend matrix now enforces:
 
-The SPARK companion and template jobs execute the 5-step verification pipeline (compile, flow, prove, extract, diff) and fail on any unproved check or assumption budget violation.
+- Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit`
+- the current PR05/PR06 sequential Rule 1-4 plus sequential ownership only subset
+- Python as glue/orchestration only around the compiler
+- deterministic committed evidence for the PR06.9.x hardening series
 
-See [`release/COMPANION_README.md`](release/COMPANION_README.md) Section 8 for the pipeline diagram and [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the workflow definition.
+See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the current workflow definition, [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, and [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current cliff-detection scale policy.
 
 ---
 
@@ -157,9 +149,11 @@ See [`release/COMPANION_README.md`](release/COMPANION_README.md) Section 8 for t
 | Generator | spec2spark v0.1.0 |
 | Companion status | All 13 companion tasks complete |
 | Emission templates | 14/14 proved (320 VCs, 0 unproved; M1–M7 complete) |
-| Compiler frontend | `compiler_impl/` PR00–PR06.9.1 sequential frontend landed, with Ada-native `safec lex` / `ast` / `check` / `emit` / `validate-mir` / `analyze-mir` for the current PR05/PR06 subset |
+| Compiler frontend | `compiler_impl/` current baseline: PR05/PR06 sequential Rule 1-4 plus sequential ownership only, with Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit` |
 
-The repository now includes a sequential compiler frontend under `compiler_impl/`. It can lex `.safe` inputs via `safec lex`, emit schema-true AST via `safec ast`, validate emitted MIR via `safec validate-mir`, analyze `mir-v2` payloads via `safec analyze-mir`, emit validated `typed-v2`, self-sufficient `mir-v2`, and `safei-v0` artifacts via `safec emit`, run D27 Rule 1–4 checking over the current sequential corpus, run the sequential ownership corpus and ownership diagnostics goldens, and expose machine-readable semantic diagnostics via `safec check --diag-json`. After PR06.8 no user-facing `safec` command depends on Python at runtime, and PR06.9.1 adds a dedicated cross-surface semantic parity gate before PR07. Python remains in the repository only as glue around the Ada-native compiler. The translation rules and AST schema in `compiler/` remain the contract the later compiler phases must satisfy.
+The repository now includes a sequential compiler frontend under `compiler_impl/`. The current compiler frontend supports PR05/PR06 sequential Rule 1-4 plus sequential ownership only. It provides Ada-native `safec lex`, `ast`, `validate-mir`, `analyze-mir`, `check`, and `emit` for that subset, while Python remains glue/orchestration only around the compiler. The old shallow legacy frontend chain is gone. PR07 starts from the cleaned PR06.9.x frontend baseline.
+
+See [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current scale policy, and [`compiler_impl/README.md`](compiler_impl/README.md) for the workspace-level output and verification details.
 
 
 ---
