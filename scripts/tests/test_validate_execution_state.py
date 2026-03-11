@@ -14,11 +14,13 @@ from validate_execution_state import (
     check_dependencies,
     check_environment_assumptions,
     check_evidence_reproducibility,
+    check_glue_script_safety,
     check_status_rules,
     check_test_distribution,
     count_test_files,
     environment_assumptions_report,
     evidence_reproducibility_report,
+    glue_script_safety_report,
     legacy_frontend_cleanup_report,
     runtime_boundary_report,
 )
@@ -392,6 +394,199 @@ class ValidateExecutionStateTests(unittest.TestCase):
                 tempdir_scripts=("scripts/runtime_gate.py",),
                 path_lookup_scripts=("scripts/runtime_gate.py",),
             )
+
+    def test_glue_script_safety_report_accepts_valid_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "from pathlib import Path\n"
+                "import tempfile\n"
+                "from _lib.harness_common import finalize_deterministic_report, find_command, require_repo_command, run, write_report\n"
+                "DEFAULT_REPORT = Path('execution/reports/sample.json')\n"
+                "COMPILER_ROOT = Path('compiler_impl')\n"
+                "with tempfile.TemporaryDirectory(prefix='ok-') as temp_dir:\n"
+                "    pass\n"
+                "git = find_command('git')\n"
+                "require_repo_command(COMPILER_ROOT / 'bin' / 'safec', 'safec')\n"
+                "run([git, 'status'], cwd=Path('.'))\n"
+                "report = finalize_deterministic_report(lambda: {'status': 'ok'}, label='sample')\n"
+                "write_report(DEFAULT_REPORT, report)\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=("scripts/runtime_gate.py",),
+                path_commands=("git",),
+            )
+            self.assertFalse(report["subprocess_import_violations"])
+            self.assertFalse(report["tempdir_violations"])
+            self.assertFalse(report["command_lookup_violations"])
+            self.assertFalse(report["report_helper_violations"])
+            check_glue_script_safety(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=("scripts/runtime_gate.py",),
+                path_commands=("git",),
+            )
+
+    def test_glue_script_safety_report_detects_shell_and_subprocess_usage(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "import os\n"
+                "import subprocess\n"
+                "subprocess.run(['echo'])\n"
+                "subprocess.run('echo hi', shell=True)\n"
+                "os.system('echo hi')\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=(),
+            )
+            self.assertIn("scripts/runtime_gate.py:subprocess", report["subprocess_import_violations"])
+            self.assertIn("scripts/runtime_gate.py:subprocess.run", report["subprocess_call_violations"])
+            self.assertIn("scripts/runtime_gate.py:shell=True", report["shell_assumption_violations"])
+            self.assertIn("scripts/runtime_gate.py:os.system", report["shell_assumption_violations"])
+
+    def test_glue_script_safety_report_detects_aliased_os_shell_calls(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "from os import system as sh\n"
+                "sh('echo hi')\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=(),
+            )
+            self.assertIn("scripts/runtime_gate.py:os.system", report["shell_assumption_violations"])
+
+    def test_glue_script_safety_report_detects_missing_prefix_and_lookup(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "import tempfile\n"
+                "from pathlib import Path\n"
+                "from _lib.harness_common import finalize_deterministic_report, run, write_report\n"
+                "DEFAULT_REPORT = Path('execution/reports/sample.json')\n"
+                "COMPILER_ROOT = Path('compiler_impl')\n"
+                "with tempfile.TemporaryDirectory() as temp_dir:\n"
+                "    pass\n"
+                "safec = COMPILER_ROOT / 'bin' / 'safec'\n"
+                "run(['git', 'status'], cwd=Path('.'))\n"
+                "report = finalize_deterministic_report(lambda: {'status': 'ok'}, label='sample')\n"
+                "write_report(DEFAULT_REPORT, report)\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=("scripts/runtime_gate.py",),
+                path_commands=("git",),
+            )
+            self.assertIn("scripts/runtime_gate.py:TemporaryDirectory", report["tempdir_violations"])
+            self.assertIn("scripts/runtime_gate.py:git", report["command_lookup_violations"])
+            self.assertIn("scripts/runtime_gate.py:safec", report["command_lookup_violations"])
+
+    def test_glue_script_safety_report_detects_aliased_tempfile_usage(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "import tempfile as tf\n"
+                "with tf.TemporaryDirectory() as temp_dir:\n"
+                "    pass\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=(),
+            )
+            self.assertIn("scripts/runtime_gate.py:TemporaryDirectory", report["tempdir_violations"])
+
+    def test_glue_script_safety_report_detects_missing_report_helpers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "def main():\n"
+                "    return 0\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=("scripts/runtime_gate.py",),
+            )
+            self.assertIn(
+                "scripts/runtime_gate.py:finalize_deterministic_report",
+                report["report_helper_violations"],
+            )
+            self.assertIn(
+                "scripts/runtime_gate.py:write_report",
+                report["report_helper_violations"],
+            )
+
+    def test_glue_script_safety_report_reports_missing_scripts_clearly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/missing_gate.py",),
+                report_scripts=(),
+            )
+            self.assertEqual(report["missing_script_violations"], ["scripts/missing_gate.py"])
+
+    def test_glue_script_safety_report_detects_unauthorized_safe_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "from pathlib import Path\n"
+                "text = Path('case.safe').read_text(encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=(),
+            )
+            self.assertTrue(report["unauthorized_safe_source_readers"])
+
+    def test_glue_script_safety_report_detects_safe_reader_via_bound_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "from pathlib import Path\n"
+                "fixture = Path('case.safe')\n"
+                "text = fixture.read_text(encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            report = glue_script_safety_report(
+                repo_root=repo_root,
+                audited_scripts=("scripts/runtime_gate.py",),
+                report_scripts=(),
+            )
+            self.assertIn("scripts/runtime_gate.py:read_text", report["unauthorized_safe_source_readers"])
 
 
 if __name__ == "__main__":

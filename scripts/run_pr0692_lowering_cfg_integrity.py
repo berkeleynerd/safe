@@ -638,7 +638,7 @@ def run_corpus_cases(
 
 
 def generate_report(*, safec: Path, env: dict[str, str]) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="pr0692-lowering-") as temp_dir:
         temp_root = Path(temp_dir)
         return {
             "task": "PR06.9.2",

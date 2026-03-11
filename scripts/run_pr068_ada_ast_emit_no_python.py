@@ -22,6 +22,7 @@ from _lib.harness_common import (
     normalize_text,
     read_diag_json,
     require,
+    require_repo_command,
     run,
     write_report,
 )
@@ -697,7 +698,7 @@ def main() -> int:
     find_command("alr", Path.home() / "bin" / "alr")
     env = ensure_sdkroot(os.environ.copy())
 
-    safec = COMPILER_ROOT / "bin" / "safec"
+    safec = require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
     if not safec.exists():
         raise RuntimeError(f"expected compiled binary at {safec}")
 

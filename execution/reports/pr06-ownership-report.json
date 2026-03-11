@@ -695,25 +695,25 @@
     "tests/positive/ownership_borrow.safe": {
       "iface/ownership_borrow.safei.json": "a81989a81818b0fa39d0ca7ca62699da793e9beebaefb94a72431c142dbe2554",
       "out/ownership_borrow.ast.json": "b6d5af9477354f3de4ed610109782a0005f79998517b5748125f92b760e30aac",
-      "out/ownership_borrow.mir.json": "ed8648df8c039c7e6dd724ff74009189a553445012013dc532cbd6b8ba21a32d",
+      "out/ownership_borrow.mir.json": "4d23e8bd3d41da84e86c1f7557a086da8f009a701742a51a323ce902950c3625",
       "out/ownership_borrow.typed.json": "28f5d04c7a67556c5376e5abae99ebbfda51c8412b7a5d4bb6d5d1a5712c0c54"
     },
     "tests/positive/ownership_inout.safe": {
       "iface/ownership_inout.safei.json": "90c06376af9c266b89d1f0c0620ff9a9ff32537580b5281d10632f8d7a5cfd75",
       "out/ownership_inout.ast.json": "b759a0330a959c97de92b65bb40038966c27a4ee712e600be1fe878d73557dd3",
-      "out/ownership_inout.mir.json": "1f2927561dbc46e8f0ac3b1ca40bc023cd8088bcdb7415753f55266f906e4685",
+      "out/ownership_inout.mir.json": "1897ffa3e4c1a47df3c4ba8b6a7559ce0dbde32718a8094742d9a5f049e7e468",
       "out/ownership_inout.typed.json": "65c60a1a188038d3f2eb97af6c76cf5e5b66f612f97256f2bb0a2951bef14fae"
     },
     "tests/positive/ownership_observe_access.safe": {
       "iface/ownership_observe_access.safei.json": "ee372ffcca155886a40a897623eb152bbc7def44e109e07f0422a78e50025bd4",
       "out/ownership_observe_access.ast.json": "92d48229155bff59817db58775d60dc98cdd6aaddc1c15a3ea3da65a7bc37f7f",
-      "out/ownership_observe_access.mir.json": "f26b255e6a369738879a0a9208571f1ed9c2a8d168a009e913dbc41a2839e933",
+      "out/ownership_observe_access.mir.json": "56e8d31a93b59584e757d33c816bce6f6017fbe39699052b4114098970da3e4a",
       "out/ownership_observe_access.typed.json": "abb15258fdff0d2b5bfdb77efb4d83c2542eac4dbf981895b0008197616f5723"
     },
     "tests/positive/ownership_return.safe": {
       "iface/ownership_return.safei.json": "7244e9f3b2ab54ee91f08f60f2e52a89705b732ab6133b9c117ad382fe950a1f",
       "out/ownership_return.ast.json": "3a3b65f3b9832c6cd7bd1788b98944fa63d3678c992516c164a05cf5c1e85ef5",
-      "out/ownership_return.mir.json": "b097bcc31836649774a9450d6215e35212556863d206c7cbcc479fc578d8554b",
+      "out/ownership_return.mir.json": "3bb447ba7f36ed4c8135a3ed96fa507a17bddf1f7b649f8f65ea30e63cb4a11d",
       "out/ownership_return.typed.json": "ad8b294b6fa2730898b92ac98fdc8a79d146e44be6e6e2dfb054467f58035590"
     }
   },
@@ -993,6 +993,6 @@
     }
   ],
   "mode": "all",
-  "repeat_sha256": "fce1ffb967e400a1a2b7296a082c34b3bf7f130464114395aa25d16438280784",
-  "report_sha256": "fce1ffb967e400a1a2b7296a082c34b3bf7f130464114395aa25d16438280784"
+  "repeat_sha256": "b9eb0e4092df2493fa9e5f31405828d3ec2c8444a1836797b5f79a2c85a216cf",
+  "report_sha256": "b9eb0e4092df2493fa9e5f31405828d3ec2c8444a1836797b5f79a2c85a216cf"
 }

@@ -18,6 +18,7 @@ from _lib.harness_common import (
     normalize_text,
     read_diag_json,
     require,
+    require_repo_command,
     run,
     write_report,
 )
@@ -396,7 +397,7 @@ def main() -> int:
 
     python = find_command("python3")
     find_command("alr", Path.home() / "bin" / "alr")
-    safec = COMPILER_ROOT / "bin" / "safec"
+    safec = require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
     require(safec.exists(), f"expected built compiler at {safec}")
 
     report = finalize_deterministic_report(

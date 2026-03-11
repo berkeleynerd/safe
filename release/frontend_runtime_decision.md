@@ -55,5 +55,12 @@ PR06.9.10 makes the platform policy explicit:
 - Portability-sensitive repo glue uses PATH-based command discovery instead of hard-coded tool paths.
 - Portability-sensitive gates use deterministic TemporaryDirectory prefixes for stable temp roots and evidence.
 - Portability-sensitive glue scripts remain shell-free and do not rely on `shell=True` or `os.system`.
+- Active Python glue remains argv-based orchestration and validation only.
+- Glue scripts may read `.safe` files only for fixture metadata extraction or inline temporary negative/control cases, never to duplicate compiler semantics.
 - The note in `docs/macos_alire_toolchain_repair.md` is a developer recovery procedure, not a compiler runtime dependency.
 - No-Python runtime enforcement covers `python`, `python3`, `python3.11`, `python3.<minor>`, and path-qualified Python invocations in compiler runtime sources.
+
+PR06.9.11 turns that glue policy into an audited invariant:
+- active Python glue stays argv-based and shell-free
+- tempdir, subprocess, tool lookup, and report-writing paths are centralized and deterministic
+- Python glue may orchestrate and validate, but it may not become a second semantic source of truth for Safe source

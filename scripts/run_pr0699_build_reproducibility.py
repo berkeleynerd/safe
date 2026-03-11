@@ -16,6 +16,7 @@ from _lib.harness_common import (
     finalize_deterministic_report,
     find_command,
     require,
+    require_repo_command,
     run,
     stable_binary_sha256,
     write_report,
@@ -53,8 +54,9 @@ def current_dirty_report_paths(*, paths: list[Path], env: dict[str, str]) -> lis
     relative_paths = repo_relative_report_args(paths)
     if not relative_paths:
         return []
+    git = find_command("git")
     result = run(
-        ["git", "status", "--short", "--", *relative_paths],
+        [git, "status", "--short", "--", *relative_paths],
         cwd=REPO_ROOT,
         env=env,
     )
@@ -70,8 +72,9 @@ def current_dirty_report_diff(*, paths: list[Path], env: dict[str, str]) -> str:
     relative_paths = repo_relative_report_args(paths)
     if not relative_paths:
         return ""
+    git = find_command("git")
     result = run(
-        ["git", "diff", "--", *relative_paths],
+        [git, "diff", "--", *relative_paths],
         cwd=REPO_ROOT,
         env=env,
     )
@@ -135,6 +138,7 @@ def run_gate_script(
 
 def generate_report(*, python: str, alr: str, safec: Path, env: dict[str, str]) -> dict[str, Any]:
     build_reproducibility = run_build_reproducibility(alr=alr, safec=safec, env=env)
+    require_repo_command(safec, "safec")
 
     frontend_smoke = run_gate_script(
         python=python,
@@ -192,7 +196,8 @@ def main() -> int:
         args.report,
     ]
     initial_dirty = current_dirty_report_paths(paths=report_paths, env=env)
-    initial_diff = current_dirty_report_diff(paths=report_paths, env=env)
+    compare_paths = [path for path in report_paths if path != args.report]
+    initial_diff = current_dirty_report_diff(paths=compare_paths, env=env)
 
     report = finalize_deterministic_report(
         lambda: generate_report(python=python, alr=alr, safec=safec, env=env),
@@ -203,9 +208,14 @@ def main() -> int:
     run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
     final_dirty = current_dirty_report_paths(paths=report_paths, env=env)
     if initial_dirty:
-        final_diff = current_dirty_report_diff(paths=report_paths, env=env)
+        final_diff = current_dirty_report_diff(paths=compare_paths, env=env)
+        allowed_dirty = set(initial_dirty)
+        try:
+            allowed_dirty.add(str(args.report.relative_to(REPO_ROOT)))
+        except ValueError:
+            pass
         require(
-            final_dirty == initial_dirty,
+            set(final_dirty) <= allowed_dirty,
             "PR06.9.9 evidence files changed further from an already-dirty baseline: "
             f"before={initial_dirty}, after={final_dirty}",
         )
@@ -215,9 +225,10 @@ def main() -> int:
         )
     else:
         relative_paths = repo_relative_report_args(report_paths)
+        git = find_command("git")
         run(
             [
-                "git",
+                git,
                 "diff",
                 "--exit-code",
                 "--",

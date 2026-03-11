@@ -24,6 +24,8 @@ Supported-platform policy for PR06.9.x:
 - Portability-sensitive repo glue uses PATH-based command discovery instead of hard-coded tool paths.
 - Portability-sensitive gates use deterministic TemporaryDirectory prefixes for stable temp roots and evidence.
 - Portability-sensitive glue scripts remain shell-free and do not rely on `shell=True` or `os.system`.
+- Active Python glue is orchestration/validation only and stays argv-based.
+- Safe source may only be read by glue scripts for fixture metadata extraction or inline negative/control cases, never as a second semantic source of truth.
 - The recovery note in `docs/macos_alire_toolchain_repair.md` is a developer recovery procedure, not a compiler runtime dependency.
 
 PR06.8 runtime doctrine: Python may be used as glue/orchestration, but it may not own any user-facing compiler command and may not participate in parsing, lowering, semantic decisions, diagnostic selection, or emitted compiler artifacts.
@@ -31,6 +33,7 @@ PR06.9.3 hardens that boundary with a fast static runtime scan in `scripts/valid
 PR06.9.6 hardens the unsupported-feature boundary across `check`, `ast`, and `emit`.
 PR06.9.8 removes the old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain entirely. The only live frontend path is now the Ada-native `Check_*` plus `Mir_*` pipeline, and later work must extend that path rather than revive the deleted legacy chain.
 PR06.9.10 hardens portability assumptions around that same live path. No-Python runtime enforcement now documents `python`, `python3`, `python3.11`, `python3.<minor>`, and path-qualified Python invocations, and the repo glue gates share that same source of truth.
+PR06.9.11 hardens the active Python glue layer: subprocess execution stays centralized in `scripts/_lib/harness_common.py`, report-producing gates use deterministic shared helpers, and raw `.safe` source reads are limited to fixture metadata rather than semantic interpretation.
 
 Unsupported-feature classification rule:
 - `unsupported_source_construct` means the Ada-native frontend recognized a construct that is outside the current PR05/PR06 subset.

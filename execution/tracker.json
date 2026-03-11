@@ -3,7 +3,7 @@
   "updated_at": "2026-03-09T22:47:56Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR06.9.11",
+  "next_task_id": "PR06.9.12",
   "repo_facts": {
     "tests": {
       "positive": 35,
@@ -387,14 +387,16 @@
     {
       "id": "PR06.9.11",
       "title": "Glue-script safety",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR06.9.10"],
       "acceptance": [
         "Python glue remains argv-based, shell-free by default, and limited to orchestration and validation duties.",
         "Temporary files, subprocess handling, and report writes follow deterministic and safe patterns.",
         "No glue script becomes a second semantic source of truth for Safe source or compiler decisions."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr06911-glue-script-safety-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

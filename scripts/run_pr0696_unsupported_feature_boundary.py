@@ -407,7 +407,7 @@ def main() -> int:
     find_command("alr", Path.home() / "bin" / "alr")
 
     def build_report() -> Dict[str, Any]:
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(prefix="pr0696-unsupported-") as temp_dir:
             temp_root = Path(temp_dir)
             return generate_report(
                 safec=safec,

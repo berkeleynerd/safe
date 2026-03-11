@@ -15,6 +15,7 @@ from _lib.harness_common import (
     finalize_deterministic_report,
     find_command,
     require,
+    require_repo_command,
     run,
     write_report,
 )
@@ -170,7 +171,7 @@ def main() -> int:
     args = parser.parse_args()
 
     find_command("alr", Path.home() / "bin" / "alr")
-    safec = COMPILER_ROOT / "bin" / "safec"
+    safec = require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
     require(safec.exists(), f"expected built compiler at {safec}")
 
     env = os.environ.copy()

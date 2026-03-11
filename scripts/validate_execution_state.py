@@ -180,6 +180,68 @@ PORTABILITY_PATH_LOOKUP_SCRIPTS = [
     "scripts/run_pr068_ada_ast_emit_no_python.py",
     "scripts/run_pr06910_portability_environment.py",
 ]
+GLUE_SAFETY_AUDITED_SCRIPTS = [
+    "scripts/run_frontend_smoke.py",
+    "scripts/run_pr05_d27_harness.py",
+    "scripts/run_pr06_ownership_harness.py",
+    "scripts/run_pr065_ada_mir_validator.py",
+    "scripts/run_pr066_ada_mir_analyzer.py",
+    "scripts/run_pr067_ada_check_cutover.py",
+    "scripts/run_pr068_ada_ast_emit_no_python.py",
+    "scripts/run_pr0691_semantic_correctness.py",
+    "scripts/run_pr0692_lowering_cfg_integrity.py",
+    "scripts/run_pr0693_runtime_boundary.py",
+    "scripts/run_pr0694_output_contract_stability.py",
+    "scripts/run_pr0695_diagnostic_stability.py",
+    "scripts/run_pr0696_unsupported_feature_boundary.py",
+    "scripts/run_pr0697_gate_quality.py",
+    "scripts/run_pr0698_legacy_package_cleanup.py",
+    "scripts/run_pr0699_build_reproducibility.py",
+    "scripts/run_pr06910_portability_environment.py",
+    "scripts/run_pr06911_glue_script_safety.py",
+    "scripts/validate_execution_state.py",
+    "scripts/validate_ast_output.py",
+    "scripts/validate_output_contracts.py",
+    "scripts/render_execution_status.py",
+]
+GLUE_SAFETY_REPORT_SCRIPTS = [
+    "scripts/run_frontend_smoke.py",
+    "scripts/run_pr05_d27_harness.py",
+    "scripts/run_pr06_ownership_harness.py",
+    "scripts/run_pr065_ada_mir_validator.py",
+    "scripts/run_pr066_ada_mir_analyzer.py",
+    "scripts/run_pr067_ada_check_cutover.py",
+    "scripts/run_pr068_ada_ast_emit_no_python.py",
+    "scripts/run_pr0691_semantic_correctness.py",
+    "scripts/run_pr0692_lowering_cfg_integrity.py",
+    "scripts/run_pr0693_runtime_boundary.py",
+    "scripts/run_pr0694_output_contract_stability.py",
+    "scripts/run_pr0695_diagnostic_stability.py",
+    "scripts/run_pr0696_unsupported_feature_boundary.py",
+    "scripts/run_pr0697_gate_quality.py",
+    "scripts/run_pr0698_legacy_package_cleanup.py",
+    "scripts/run_pr0699_build_reproducibility.py",
+    "scripts/run_pr06910_portability_environment.py",
+    "scripts/run_pr06911_glue_script_safety.py",
+]
+GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
+GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
+    "scripts/run_pr05_d27_harness.py": "fixture metadata extraction via read_expected_reason",
+    "scripts/run_pr06_ownership_harness.py": "fixture metadata extraction via read_expected_reason",
+    "scripts/run_pr0691_semantic_correctness.py": "fixture metadata extraction via read_expected_reason",
+}
+GLUE_SAFETY_DIRECT_SAFE_READ_PATTERNS = [
+    r'"[^"\n]*\.safe"\s*\)\.read_text\(',
+    r"'[^'\n]*\.safe'\s*\)\.read_text\(",
+    r'"[^"\n]*\.safe"\s*\)\.open\(',
+    r"'[^'\n]*\.safe'\s*\)\.open\(",
+]
+GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS = {
+    "safec": [
+        r"COMPILER_ROOT\s*/\s*['\"]bin['\"]\s*/\s*['\"]safec['\"]",
+        r"REPO_ROOT\s*/\s*['\"]compiler_impl['\"]\s*/\s*['\"]bin['\"]\s*/\s*['\"]safec['\"]",
+    ],
+}
 PLATFORM_ASSUMPTIONS_IMPORT_PATTERN = (
     r"^\s*(?:from\s+_lib\.platform_assumptions\s+import\b|import\s+_lib\.platform_assumptions\b)"
 )
@@ -187,6 +249,43 @@ PLATFORM_ASSUMPTIONS_IMPORT_PATTERN = (
 
 def fail(message: str) -> None:
     raise ValueError(message)
+
+
+def _call_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _call_name(node.value)
+        if prefix is None:
+            return node.attr
+        return f"{prefix}.{node.attr}"
+    return None
+
+
+def _has_prefix_keyword(node: ast.Call) -> bool:
+    for keyword in node.keywords:
+        if keyword.arg == "prefix":
+            return True
+    return False
+
+
+def _safe_source_binding_name(
+    node: ast.AST,
+    *,
+    imported_path_names: Set[str],
+) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.endswith(".safe"):
+        return node.value
+    if isinstance(node, ast.Call):
+        call_name = _call_name(node.func)
+        if (
+            call_name in imported_path_names
+            or call_name == "pathlib.Path"
+        ) and node.args:
+            first_arg = node.args[0]
+            if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str) and first_arg.value.endswith(".safe"):
+                return first_arg.value
+    return None
 
 
 def check_tracker_schema(tracker: Dict[str, Any]) -> None:
@@ -690,6 +789,283 @@ def check_environment_assumptions(
         )
 
 
+def glue_script_safety_report(
+    *,
+    repo_root: Path = REPO_ROOT,
+    audited_scripts: Sequence[str] = GLUE_SAFETY_AUDITED_SCRIPTS,
+    report_scripts: Sequence[str] = GLUE_SAFETY_REPORT_SCRIPTS,
+    path_commands: Sequence[str] = GLUE_SAFETY_PATH_COMMANDS,
+    allowed_safe_source_readers: Dict[str, str] = GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS,
+) -> Dict[str, Any]:
+    missing_script_violations: List[str] = []
+    subprocess_import_violations: List[str] = []
+    subprocess_call_violations: List[str] = []
+    shell_assumption_violations: List[str] = []
+    tempdir_violations: List[str] = []
+    report_helper_violations: List[str] = []
+    command_lookup_violations: List[str] = []
+    unauthorized_safe_source_readers: List[str] = []
+    safe_source_readers: List[Dict[str, str]] = []
+
+    for relative_path in audited_scripts:
+        path = repo_root / relative_path
+        if not path.exists():
+            missing_script_violations.append(relative_path)
+            continue
+
+        text = path.read_text(encoding="utf-8")
+        tree = ast.parse(text, filename=str(path))
+        imported_subprocess_names: Set[str] = set()
+        imported_tempfile_module_names: Set[str] = set()
+        imported_tempfile_function_names: Dict[str, str] = {}
+        imported_harness_names: Set[str] = set()
+        imported_os_module_names: Set[str] = set()
+        imported_os_shell_names: Dict[str, str] = {}
+        imported_path_names: Set[str] = {"Path"}
+        safe_source_bindings: Set[str] = set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "subprocess":
+                        subprocess_import_violations.append(f"{relative_path}:subprocess")
+                        imported_subprocess_names.add(alias.asname or alias.name)
+                    if alias.name == "tempfile":
+                        imported_tempfile_module_names.add(alias.asname or alias.name)
+                    if alias.name == "os":
+                        imported_os_module_names.add(alias.asname or alias.name)
+                    if alias.name == "pathlib":
+                        imported_path_names.add(f"{alias.asname or alias.name}.Path")
+            elif isinstance(node, ast.ImportFrom):
+                if node.module == "subprocess":
+                    for alias in node.names:
+                        subprocess_import_violations.append(f"{relative_path}:subprocess.{alias.name}")
+                        imported_subprocess_names.add(alias.asname or alias.name)
+                elif node.module == "tempfile":
+                    for alias in node.names:
+                        imported_tempfile_function_names[alias.asname or alias.name] = alias.name
+                elif node.module == "_lib.harness_common":
+                    for alias in node.names:
+                        imported_harness_names.add(alias.asname or alias.name)
+                elif node.module == "os":
+                    for alias in node.names:
+                        name = alias.asname or alias.name
+                        if alias.name in {"system", "popen"}:
+                            imported_os_shell_names[name] = alias.name
+                        else:
+                            imported_os_module_names.add(name)
+                elif node.module == "pathlib":
+                    for alias in node.names:
+                        if alias.name == "Path":
+                            imported_path_names.add(alias.asname or alias.name)
+            elif isinstance(node, ast.Assign):
+                bound_name = _safe_source_binding_name(node.value, imported_path_names=imported_path_names)
+                if bound_name is None:
+                    continue
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        safe_source_bindings.add(target.id)
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+
+            call_name = _call_name(node.func)
+            if call_name is None:
+                continue
+
+            base_name = call_name.split(".")[-1]
+            tempfile_name = imported_tempfile_function_names.get(call_name, base_name)
+            os_shell_name = imported_os_shell_names.get(call_name, base_name)
+
+            if (
+                call_name.startswith("subprocess.")
+                or call_name in imported_subprocess_names
+            ):
+                subprocess_call_violations.append(f"{relative_path}:{call_name}")
+
+            for keyword in node.keywords:
+                if keyword.arg == "shell" and isinstance(keyword.value, ast.Constant) and keyword.value.value is True:
+                    shell_assumption_violations.append(f"{relative_path}:shell=True")
+
+            if (
+                os_shell_name in {"system", "popen"}
+                and (
+                    call_name in {"os.system", "os.popen"}
+                    or (
+                        isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id in imported_os_module_names
+                    )
+                    or (
+                        isinstance(node.func, ast.Name)
+                        and node.func.id in imported_os_shell_names
+                    )
+                )
+            ):
+                shell_assumption_violations.append(f"{relative_path}:os.{os_shell_name}")
+
+            if tempfile_name == "TemporaryDirectory":
+                imported = (
+                    call_name == "tempfile.TemporaryDirectory"
+                    or (
+                        isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id in imported_tempfile_module_names
+                    )
+                    or call_name in imported_tempfile_function_names
+                )
+                if imported and not _has_prefix_keyword(node):
+                    tempdir_violations.append(f"{relative_path}:TemporaryDirectory")
+            elif tempfile_name == "NamedTemporaryFile":
+                imported = (
+                    call_name == "tempfile.NamedTemporaryFile"
+                    or (
+                        isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id in imported_tempfile_module_names
+                    )
+                    or call_name in imported_tempfile_function_names
+                )
+                if imported and not _has_prefix_keyword(node):
+                    tempdir_violations.append(f"{relative_path}:NamedTemporaryFile")
+            elif tempfile_name == "mkdtemp":
+                imported = (
+                    call_name == "tempfile.mkdtemp"
+                    or (
+                        isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id in imported_tempfile_module_names
+                    )
+                    or call_name in imported_tempfile_function_names
+                )
+                if imported and not _has_prefix_keyword(node):
+                    tempdir_violations.append(f"{relative_path}:mkdtemp")
+
+            if call_name == "run" and node.args:
+                argv = node.args[0]
+                if isinstance(argv, (ast.List, ast.Tuple)) and argv.elts:
+                    head = argv.elts[0]
+                    if isinstance(head, ast.Constant) and isinstance(head.value, str):
+                        command = head.value
+                        if command in path_commands and f'find_command("{command}")' not in text and f"find_command('{command}')" not in text:
+                            command_lookup_violations.append(f"{relative_path}:{command}")
+
+            if relative_path not in allowed_safe_source_readers:
+                safe_reader_violation = False
+                if (
+                    isinstance(node.func, ast.Name)
+                    and node.func.id == "open"
+                    and node.args
+                ):
+                    first_arg = node.args[0]
+                    if (
+                        isinstance(first_arg, ast.Constant)
+                        and isinstance(first_arg.value, str)
+                        and first_arg.value.endswith(".safe")
+                    ) or (
+                        isinstance(first_arg, ast.Name) and first_arg.id in safe_source_bindings
+                    ):
+                        safe_reader_violation = True
+                elif (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr in {"read_text", "open"}
+                ):
+                    target = node.func.value
+                    if isinstance(target, ast.Name) and target.id in safe_source_bindings:
+                        safe_reader_violation = True
+                    elif _safe_source_binding_name(target, imported_path_names=imported_path_names) is not None:
+                        safe_reader_violation = True
+                if safe_reader_violation:
+                    unauthorized_safe_source_readers.append(f"{relative_path}:{node.func.attr if isinstance(node.func, ast.Attribute) else 'open'}")
+
+        if relative_path in report_scripts:
+            has_finalize = any(
+                isinstance(node, ast.Call) and _call_name(node.func) == "finalize_deterministic_report"
+                for node in ast.walk(tree)
+            )
+            has_write = any(
+                isinstance(node, ast.Call) and _call_name(node.func) == "write_report"
+                for node in ast.walk(tree)
+            )
+            if not has_finalize:
+                report_helper_violations.append(f"{relative_path}:finalize_deterministic_report")
+            if not has_write:
+                report_helper_violations.append(f"{relative_path}:write_report")
+
+        for command, patterns in GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS.items():
+            if any(re.search(pattern, text) for pattern in patterns):
+                if "require_repo_command(" not in text:
+                    command_lookup_violations.append(f"{relative_path}:{command}")
+                break
+
+        if relative_path in allowed_safe_source_readers:
+            safe_source_readers.append(
+                {
+                    "script": relative_path,
+                    "category": allowed_safe_source_readers[relative_path],
+                }
+            )
+
+        if (
+            relative_path not in allowed_safe_source_readers
+            and "read_expected_reason(" in text
+            and "read_expected_reason" in imported_harness_names
+        ):
+            unauthorized_safe_source_readers.append(f"{relative_path}:read_expected_reason")
+
+    return {
+        "audited_scripts": list(audited_scripts),
+        "report_scripts": list(report_scripts),
+        "path_command_policy": list(path_commands),
+        "safe_source_readers": safe_source_readers,
+        "missing_script_violations": missing_script_violations,
+        "subprocess_import_violations": subprocess_import_violations,
+        "subprocess_call_violations": subprocess_call_violations,
+        "shell_assumption_violations": shell_assumption_violations,
+        "tempdir_violations": tempdir_violations,
+        "report_helper_violations": report_helper_violations,
+        "command_lookup_violations": command_lookup_violations,
+        "unauthorized_safe_source_readers": unauthorized_safe_source_readers,
+    }
+
+
+def check_glue_script_safety(
+    *,
+    repo_root: Path = REPO_ROOT,
+    audited_scripts: Sequence[str] = GLUE_SAFETY_AUDITED_SCRIPTS,
+    report_scripts: Sequence[str] = GLUE_SAFETY_REPORT_SCRIPTS,
+    path_commands: Sequence[str] = GLUE_SAFETY_PATH_COMMANDS,
+    allowed_safe_source_readers: Dict[str, str] = GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS,
+) -> None:
+    report = glue_script_safety_report(
+        repo_root=repo_root,
+        audited_scripts=audited_scripts,
+        report_scripts=report_scripts,
+        path_commands=path_commands,
+        allowed_safe_source_readers=allowed_safe_source_readers,
+    )
+    if report["missing_script_violations"]:
+        fail(f"glue safety audit is missing expected scripts: {report['missing_script_violations']}")
+    if report["subprocess_import_violations"]:
+        fail(f"glue scripts import subprocess directly: {report['subprocess_import_violations']}")
+    if report["subprocess_call_violations"]:
+        fail(f"glue scripts call subprocess directly: {report['subprocess_call_violations']}")
+    if report["shell_assumption_violations"]:
+        fail(f"glue scripts are not shell-free: {report['shell_assumption_violations']}")
+    if report["tempdir_violations"]:
+        fail(f"glue scripts use non-deterministic temp APIs: {report['tempdir_violations']}")
+    if report["report_helper_violations"]:
+        fail(f"glue scripts bypass report helpers: {report['report_helper_violations']}")
+    if report["command_lookup_violations"]:
+        fail(f"glue scripts bypass PATH-based command discovery: {report['command_lookup_violations']}")
+    if report["unauthorized_safe_source_readers"]:
+        fail(
+            "glue scripts read raw .safe source outside approved metadata paths: "
+            f"{report['unauthorized_safe_source_readers']}"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tracker", type=Path, default=TRACKER_PATH)
@@ -708,6 +1084,7 @@ def main() -> int:
     check_runtime_boundary()
     check_environment_assumptions()
     check_legacy_frontend_cleanup()
+    check_glue_script_safety()
     print("execution state: OK")
     return 0
 

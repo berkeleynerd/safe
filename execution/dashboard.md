@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR06.9.11`
+- **Next task:** `PR06.9.12`
 - **Updated at:** `2026-03-09T22:47:56Z`
 
 ## Repo Facts
@@ -40,7 +40,7 @@
 | PR06.9.8 | done | PR06.9.7 | 1 |
 | PR06.9.9 | done | PR06.9.8 | 1 |
 | PR06.9.10 | done | PR06.9.9 | 1 |
-| PR06.9.11 | planned | PR06.9.10 | 0 |
+| PR06.9.11 | done | PR06.9.10 | 1 |
 | PR06.9.12 | planned | PR06.9.11 | 0 |
 | PR06.9.13 | planned | PR06.9.12 | 0 |
 | PR07 | planned | PR06.9.13 | 0 |
@@ -345,13 +345,15 @@
 
 ### PR06.9.11 — Glue-script safety
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR06.9.10
 - **Blockers:** none
 - **Acceptance:**
   - Python glue remains argv-based, shell-free by default, and limited to orchestration and validation duties.
   - Temporary files, subprocess handling, and report writes follow deterministic and safe patterns.
   - No glue script becomes a second semantic source of truth for Safe source or compiler decisions.
+- **Evidence:**
+  - `execution/reports/pr06911-glue-script-safety-report.json`
 
 ### PR06.9.12 — Performance and scale sanity
 

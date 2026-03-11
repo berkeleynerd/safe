@@ -1,0 +1,191 @@
+{
+  "deterministic": true,
+  "glue_script_safety": {
+    "audited_scripts": [
+      "scripts/run_frontend_smoke.py",
+      "scripts/run_pr05_d27_harness.py",
+      "scripts/run_pr06_ownership_harness.py",
+      "scripts/run_pr065_ada_mir_validator.py",
+      "scripts/run_pr066_ada_mir_analyzer.py",
+      "scripts/run_pr067_ada_check_cutover.py",
+      "scripts/run_pr068_ada_ast_emit_no_python.py",
+      "scripts/run_pr0691_semantic_correctness.py",
+      "scripts/run_pr0692_lowering_cfg_integrity.py",
+      "scripts/run_pr0693_runtime_boundary.py",
+      "scripts/run_pr0694_output_contract_stability.py",
+      "scripts/run_pr0695_diagnostic_stability.py",
+      "scripts/run_pr0696_unsupported_feature_boundary.py",
+      "scripts/run_pr0697_gate_quality.py",
+      "scripts/run_pr0698_legacy_package_cleanup.py",
+      "scripts/run_pr0699_build_reproducibility.py",
+      "scripts/run_pr06910_portability_environment.py",
+      "scripts/run_pr06911_glue_script_safety.py",
+      "scripts/validate_execution_state.py",
+      "scripts/validate_ast_output.py",
+      "scripts/validate_output_contracts.py",
+      "scripts/render_execution_status.py"
+    ],
+    "command_lookup_violations": [],
+    "missing_script_violations": [],
+    "path_command_policy": [
+      "python3",
+      "alr",
+      "git"
+    ],
+    "report_helper_violations": [],
+    "report_scripts": [
+      "scripts/run_frontend_smoke.py",
+      "scripts/run_pr05_d27_harness.py",
+      "scripts/run_pr06_ownership_harness.py",
+      "scripts/run_pr065_ada_mir_validator.py",
+      "scripts/run_pr066_ada_mir_analyzer.py",
+      "scripts/run_pr067_ada_check_cutover.py",
+      "scripts/run_pr068_ada_ast_emit_no_python.py",
+      "scripts/run_pr0691_semantic_correctness.py",
+      "scripts/run_pr0692_lowering_cfg_integrity.py",
+      "scripts/run_pr0693_runtime_boundary.py",
+      "scripts/run_pr0694_output_contract_stability.py",
+      "scripts/run_pr0695_diagnostic_stability.py",
+      "scripts/run_pr0696_unsupported_feature_boundary.py",
+      "scripts/run_pr0697_gate_quality.py",
+      "scripts/run_pr0698_legacy_package_cleanup.py",
+      "scripts/run_pr0699_build_reproducibility.py",
+      "scripts/run_pr06910_portability_environment.py",
+      "scripts/run_pr06911_glue_script_safety.py"
+    ],
+    "safe_source_readers": [
+      {
+        "category": "fixture metadata extraction via read_expected_reason",
+        "script": "scripts/run_pr05_d27_harness.py"
+      },
+      {
+        "category": "fixture metadata extraction via read_expected_reason",
+        "script": "scripts/run_pr06_ownership_harness.py"
+      },
+      {
+        "category": "fixture metadata extraction via read_expected_reason",
+        "script": "scripts/run_pr0691_semantic_correctness.py"
+      }
+    ],
+    "shell_assumption_violations": [],
+    "subprocess_call_violations": [],
+    "subprocess_import_violations": [],
+    "tempdir_violations": [],
+    "unauthorized_safe_source_readers": []
+  },
+  "monitored_reports": [
+    "execution/reports/pr00-pr04-frontend-smoke.json",
+    "execution/reports/pr0693-runtime-boundary-report.json",
+    "execution/reports/pr0697-gate-quality-report.json",
+    "execution/reports/pr0699-build-reproducibility-report.json",
+    "execution/reports/pr06910-portability-environment-report.json",
+    "execution/reports/pr06911-glue-script-safety-report.json"
+  ],
+  "repeat_sha256": "5ce9eb7ade370a59e216fb3828beb9c921ff7523f0b62fed67f85792df2be2e0",
+  "report_sha256": "5ce9eb7ade370a59e216fb3828beb9c921ff7523f0b62fed67f85792df2be2e0",
+  "reruns": {
+    "build_reproducibility": {
+      "repeat_sha256": "f88cd4a937c3e09013c107990e67fcf57ccbe9ac302125dbe4dc88fcd5f2d0cd",
+      "report_path": "execution/reports/pr0699-build-reproducibility-report.json",
+      "report_sha256": "f88cd4a937c3e09013c107990e67fcf57ccbe9ac302125dbe4dc88fcd5f2d0cd",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr0699_build_reproducibility.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr0699 build reproducibility: OK (execution/reports/pr0699-build-reproducibility-report.json)\n"
+      }
+    },
+    "frontend_smoke": {
+      "repeat_sha256": "d320ddb9970fa6afbe3f5aa7fc63e2aa0fe084c5405192e229f27fd98854b7cf",
+      "report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
+      "report_sha256": "d320ddb9970fa6afbe3f5aa7fc63e2aa0fe084c5405192e229f27fd98854b7cf",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_frontend_smoke.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "frontend smoke: OK (execution/reports/pr00-pr04-frontend-smoke.json)\n"
+      }
+    },
+    "gate_quality": {
+      "repeat_sha256": "0f32b3cf68bbc5429553c50a249c858899bd36e170ebdd405dc7a86f6319a42d",
+      "report_path": "execution/reports/pr0697-gate-quality-report.json",
+      "report_sha256": "0f32b3cf68bbc5429553c50a249c858899bd36e170ebdd405dc7a86f6319a42d",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr0697_gate_quality.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr0697 gate quality: OK (execution/reports/pr0697-gate-quality-report.json)\n"
+      }
+    },
+    "portability_environment": {
+      "repeat_sha256": "10c1018625ad3489d8212554a6f04f30603a85c3bfab61db0166af12ab97b3ac",
+      "report_path": "execution/reports/pr06910-portability-environment-report.json",
+      "report_sha256": "10c1018625ad3489d8212554a6f04f30603a85c3bfab61db0166af12ab97b3ac",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr06910_portability_environment.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr06910 portability environment: OK (execution/reports/pr06910-portability-environment-report.json)\n"
+      }
+    },
+    "runtime_boundary": {
+      "repeat_sha256": "5ece643becaf3afe1be32dfc485f78c240eaaad4c12cbcbf9d6cb16f7e66a47c",
+      "report_path": "execution/reports/pr0693-runtime-boundary-report.json",
+      "report_sha256": "5ece643becaf3afe1be32dfc485f78c240eaaad4c12cbcbf9d6cb16f7e66a47c",
+      "run": {
+        "command": [
+          "python3",
+          "scripts/run_pr0693_runtime_boundary.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "pr0693 runtime-boundary gate: OK (execution/reports/pr0693-runtime-boundary-report.json)\n"
+      }
+    },
+    "validate_execution_state": {
+      "command": [
+        "python3",
+        "scripts/validate_execution_state.py"
+      ],
+      "cwd": "$REPO_ROOT",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "execution state: OK\n"
+    }
+  },
+  "status": "ok",
+  "task": "PR06.9.11",
+  "unit_tests": {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "scripts/tests",
+      "-p",
+      "test_*.py"
+    ],
+    "cwd": "$REPO_ROOT",
+    "result": "OK",
+    "returncode": 0,
+    "tests_ran": 36
+  }
+}

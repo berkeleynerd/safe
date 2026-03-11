@@ -20,6 +20,7 @@ from _lib.harness_common import (
     find_command,
     normalize_text,
     require,
+    require_repo_command,
     run,
     sha256_file,
     stable_binary_sha256,
@@ -144,17 +145,11 @@ def emitted_paths(root: Path, sample: Path) -> dict[str, Path]:
 def generate_report(*, alr: str, python: str, safec: Path, env: dict[str, str]) -> dict[str, Any]:
     clean_frontend_build_outputs(safec)
     first_build = build_frontend(alr, env)
-    require(
-        safec.exists(),
-        f"frontend build did not produce expected binary: {display_path(safec, repo_root=REPO_ROOT)}",
-    )
+    require_repo_command(safec, "safec")
     first_binary_sha256 = stable_binary_sha256(safec)
     clean_frontend_build_outputs(safec)
     second_build = build_frontend(alr, env)
-    require(
-        safec.exists(),
-        f"frontend build did not produce expected binary: {display_path(safec, repo_root=REPO_ROOT)}",
-    )
+    require_repo_command(safec, "safec")
     second_binary_sha256 = stable_binary_sha256(safec)
     require(
         first_binary_sha256 == second_binary_sha256,
