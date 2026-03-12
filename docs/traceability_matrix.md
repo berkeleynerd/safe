@@ -578,18 +578,23 @@ affected POs/models, severity, and related spec references.
 
 | Metric | Value |
 |--------|-------|
-| Number of test files | 5 |
-| Clause IDs covered | 13 |
+| Number of test files | 12 |
+| Clause IDs covered | 15 |
 | D27 rules exercised | None |
 
 | Test File | Clause References |
 |-----------|-------------------|
+| channel_ceiling_priority.safe | `4.3.p27:ef0ce6bd`, `4.3.p31:a7297e97` |
 | exclusive_variable.safe | `4.5.p45:8bdd0c99`, `5.4.1.p32:90d4f527`, `5.4.1.p33:0fc25399` |
 | fifo_ordering.safe | `4.2.p20:8aa1a21e`, `4.3.p27:ef0ce6bd`, `4.3.p28:ea6bd13c` |
 | multi_task_channel.safe | `4.3.p31:a7297e97`, `4.3.p27:ef0ce6bd`, `4.3.p28:ea6bd13c` |
 | select_delay_local_scope.safe | `4.4.p33:7a94ab51`, `4.4.p38:35ed84d9` |
+| select_ownership_binding.safe | `4.4.p33:7a94ab51`, `4.4.p38:35ed84d9`, `4.3.p28a:4cb19779` |
 | select_priority.safe | `4.4.p39:1012f4db`, `4.4.p33:7a94ab51`, `4.4.p35:2ad6e64f` |
 | select_with_delay.safe | `4.4.p33:7a94ab51`, `4.4.p38:35ed84d9` |
+| task_global_owner.safe | `4.5.p45:8bdd0c99`, `5.4.1.p32:90d4f527`, `5.4.1.p33:0fc25399` |
+| task_priority_delay.safe | `--` |
+| try_ops.safe | `4.3.p29:f792d704`, `4.3.p29a:8d3f2225`, `4.3.p29b:7121ccd7` |
 | try_send_ownership.safe | `4.3.p29:f792d704`, `4.3.p29a:8d3f2225`, `4.3.p29b:7121ccd7` |
 
 ### `diagnostics_golden/`

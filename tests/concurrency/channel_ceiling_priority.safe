@@ -1,0 +1,36 @@
+-- Test: channel_ceiling_priority
+-- Description: Channel ceiling summary uses transitive task access.
+--   Two tasks with explicit priorities access the same channel through a
+--   helper subprogram; the local Bronze ceiling should use the max priority.
+-- Expected: ACCEPT
+
+package Channel_Ceiling_Priority is
+
+   type Message is range 0 .. 1_000;
+
+   channel Data_Ch : Message capacity 2;
+
+   procedure Push (Value : Message) is
+   begin
+      send Data_Ch, Value;
+   end Push;
+
+   task Fast with Priority = 20 is
+      Next : Message = 0;
+   begin
+      loop
+         Push (Next);
+         Next = Next + 1;
+      end loop;
+   end Fast;
+
+   task Slow with Priority = 10 is
+      Next : Message = 100;
+   begin
+      loop
+         Push (Next);
+         Next = Next + 1;
+      end loop;
+   end Slow;
+
+end Channel_Ceiling_Priority;

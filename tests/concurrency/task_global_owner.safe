@@ -1,0 +1,25 @@
+-- Test: task_global_owner
+-- Description: One task reaches one package global through a local helper.
+--   This is the minimal passing case for the local task/global ownership map
+--   and the conservative Depends summary.
+-- Expected: ACCEPT
+
+package Task_Global_Owner is
+
+   type Counter is range 0 .. 100;
+
+   Shared : Counter = 0;
+
+   procedure Bump is
+   begin
+      Shared = Shared + 1;
+   end Bump;
+
+   task Worker is
+   begin
+      loop
+         Bump;
+      end loop;
+   end Worker;
+
+end Task_Global_Owner;

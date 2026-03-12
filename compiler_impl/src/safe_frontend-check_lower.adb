@@ -309,7 +309,7 @@ package body Safe_Frontend.Check_Lower is
       elsif Target_Role = "Borrow" then
          return GM.Ownership_Borrow;
       elsif Target_Role = "Owner" then
-         if Value /= null and then Value.Kind = CM.Expr_Call then
+         if Value /= null and then Value.Kind in CM.Expr_Call | CM.Expr_Allocator then
             return GM.Ownership_Move;
          elsif Value /= null and then Value.Kind in CM.Expr_Ident | CM.Expr_Select then
             Value_Type := Expr_Type (Value, Var_Types, Type_Env);
@@ -771,6 +771,19 @@ package body Safe_Frontend.Check_Lower is
            others    => <>);
    end Literal_Expr;
 
+   function Null_Expr
+     (Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind      => CM.Expr_Null,
+           Span      => Span,
+           Type_Name => FT.To_UString (Type_Name),
+           Text      => FT.To_UString ("null"),
+           others    => <>);
+   end Null_Expr;
+
    function Ident_Expr
      (Name      : String;
       Span      : FT.Source_Span;
@@ -1075,6 +1088,33 @@ package body Safe_Frontend.Check_Lower is
                        Stmt.Decl.Initializer,
                        Visible_Types,
                        Type_Env);
+                  Assign_Op.Declaration_Init := True;
+                  Add_Op (Work, UString_Value (Current_Id), Assign_Op);
+               end loop;
+            elsif FT.Lowercase (UString_Value (Stmt.Decl.Type_Info.Kind)) = "access"
+              and then not Stmt.Decl.Type_Info.Not_Null
+            then
+               for Name of Stmt.Decl.Names loop
+                  Assign_Op := (others => <>);
+                  Assign_Op.Kind := GM.Op_Assign;
+                  Assign_Op.Span := Stmt.Decl.Span;
+                  Assign_Op.Target :=
+                    Lower_Target
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Stmt.Decl.Span,
+                          UString_Value (Stmt.Decl.Type_Info.Name)),
+                       Visible_Types,
+                       Type_Env);
+                  Assign_Op.Value :=
+                    Lower_Expr
+                      (Null_Expr
+                         (Stmt.Decl.Span,
+                          UString_Value (Stmt.Decl.Type_Info.Name)),
+                       Visible_Types,
+                       Type_Env);
+                  Assign_Op.Type_Name := Stmt.Decl.Type_Info.Name;
+                  Assign_Op.Ownership_Effect := GM.Ownership_None;
                   Assign_Op.Declaration_Init := True;
                   Add_Op (Work, UString_Value (Current_Id), Assign_Op);
                end loop;

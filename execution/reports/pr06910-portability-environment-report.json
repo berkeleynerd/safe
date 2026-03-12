@@ -35,6 +35,7 @@
       "compiler_impl/src/safe_frontend-json.adb",
       "compiler_impl/src/safe_frontend-lexer.adb",
       "compiler_impl/src/safe_frontend-mir_analyze.adb",
+      "compiler_impl/src/safe_frontend-mir_bronze.adb",
       "compiler_impl/src/safe_frontend-mir_diagnostics.adb",
       "compiler_impl/src/safe_frontend-mir_json.adb",
       "compiler_impl/src/safe_frontend-mir_model.adb",
@@ -54,6 +55,7 @@
       "compiler_impl/src/safe_frontend-json.ads",
       "compiler_impl/src/safe_frontend-lexer.ads",
       "compiler_impl/src/safe_frontend-mir_analyze.ads",
+      "compiler_impl/src/safe_frontend-mir_bronze.ads",
       "compiler_impl/src/safe_frontend-mir_diagnostics.ads",
       "compiler_impl/src/safe_frontend-mir_json.ads",
       "compiler_impl/src/safe_frontend-mir_model.ads",
@@ -69,6 +71,7 @@
       "scripts/run_pr06910_portability_environment.py",
       "scripts/run_pr0693_runtime_boundary.py",
       "scripts/run_pr081_local_concurrency_frontend.py",
+      "scripts/run_pr082_local_concurrency_analysis.py",
       "scripts/validate_execution_state.py"
     ],
     "shell_assumption_violations": [],
@@ -89,8 +92,8 @@
     "execution/reports/pr068-ada-ast-emit-no-python-report.json",
     "execution/reports/pr06910-portability-environment-report.json"
   ],
-  "repeat_sha256": "b658b19a478d7b5c15aed2b8dc32c5a72b0e8f209bbec1be08c0d814a89bd1cb",
-  "report_sha256": "b658b19a478d7b5c15aed2b8dc32c5a72b0e8f209bbec1be08c0d814a89bd1cb",
+  "repeat_sha256": "fed61a33a688f19726402c2e2f2e312aa372272e1c8f36e150983871d4051c57",
+  "report_sha256": "fed61a33a688f19726402c2e2f2e312aa372272e1c8f36e150983871d4051c57",
   "reruns": {
     "ast_emit_no_python": {
       "command": [

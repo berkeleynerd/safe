@@ -1,0 +1,1613 @@
+{
+  "bronze_evidence": {
+    "tests/concurrency/channel_ceiling_priority.safe": {
+      "ceilings": [
+        {
+          "channel_name": "Data_Ch",
+          "priority": 20,
+          "task_names": [
+            "Fast",
+            "Slow"
+          ]
+        }
+      ],
+      "global_spans": {},
+      "graphs": [
+        {
+          "calls": [
+            "Push"
+          ],
+          "channels": [
+            "Data_Ch"
+          ],
+          "depends": [],
+          "inputs": [
+            "param:Value"
+          ],
+          "is_task": true,
+          "kind": "task",
+          "name": "Fast",
+          "outputs": [],
+          "priority": 20,
+          "reads": [],
+          "writes": []
+        },
+        {
+          "calls": [],
+          "channels": [
+            "Data_Ch"
+          ],
+          "depends": [],
+          "inputs": [
+            "param:Value"
+          ],
+          "is_task": false,
+          "kind": "procedure",
+          "name": "Push",
+          "outputs": [],
+          "priority": 0,
+          "reads": [],
+          "writes": []
+        },
+        {
+          "calls": [
+            "Push"
+          ],
+          "channels": [
+            "Data_Ch"
+          ],
+          "depends": [],
+          "inputs": [
+            "param:Value"
+          ],
+          "is_task": true,
+          "kind": "task",
+          "name": "Slow",
+          "outputs": [],
+          "priority": 10,
+          "reads": [],
+          "writes": []
+        }
+      ],
+      "initializes": [],
+      "ownership": [],
+      "shared_callees": [],
+      "shared_globals": []
+    },
+    "tests/concurrency/task_global_owner.safe": {
+      "ceilings": [],
+      "global_spans": {
+        "Shared": {
+          "end_col": 24,
+          "end_line": 11,
+          "start_col": 4,
+          "start_line": 11
+        }
+      },
+      "graphs": [
+        {
+          "calls": [],
+          "channels": [],
+          "depends": [
+            {
+              "inputs": [
+                "global:Shared"
+              ],
+              "output_name": "global:Shared"
+            }
+          ],
+          "inputs": [
+            "global:Shared"
+          ],
+          "is_task": false,
+          "kind": "procedure",
+          "name": "Bump",
+          "outputs": [
+            "global:Shared"
+          ],
+          "priority": 0,
+          "reads": [
+            "Shared"
+          ],
+          "writes": [
+            "Shared"
+          ]
+        },
+        {
+          "calls": [
+            "Bump"
+          ],
+          "channels": [],
+          "depends": [
+            {
+              "inputs": [
+                "global:Shared"
+              ],
+              "output_name": "global:Shared"
+            }
+          ],
+          "inputs": [
+            "global:Shared"
+          ],
+          "is_task": true,
+          "kind": "task",
+          "name": "Worker",
+          "outputs": [
+            "global:Shared"
+          ],
+          "priority": 31,
+          "reads": [
+            "Shared"
+          ],
+          "writes": [
+            "Shared"
+          ]
+        }
+      ],
+      "initializes": [
+        "Shared"
+      ],
+      "ownership": [
+        {
+          "global_name": "Shared",
+          "task_name": "Worker"
+        }
+      ],
+      "shared_callees": [],
+      "shared_globals": []
+    }
+  },
+  "concurrency_parity_cases": [
+    {
+      "analyze_first": {
+        "message": "package global 'Shared' is accessed by multiple tasks",
+        "path": "tests/negative/neg_task_shared_variable.safe",
+        "reason": "task_variable_ownership"
+      },
+      "check_first": {
+        "message": "package global 'Shared' is accessed by multiple tasks",
+        "path": "tests/negative/neg_task_shared_variable.safe",
+        "reason": "task_variable_ownership"
+      },
+      "fixture": "mir/task_variable_ownership_parity.json",
+      "name": "task_variable_ownership_parity",
+      "source": "tests/negative/neg_task_shared_variable.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/task_variable_ownership_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/task_variable_ownership_parity.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_receive_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "check_first": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_receive_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "fixture": "mir/receive_target_not_null_parity.json",
+      "name": "receive_target_not_null_parity",
+      "source": "tests/negative/neg_receive_target_not_null.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/receive_target_not_null_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/receive_target_not_null_parity.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_try_receive_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "check_first": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_try_receive_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "fixture": "mir/try_receive_target_not_null_parity.json",
+      "name": "try_receive_target_not_null_parity",
+      "source": "tests/negative/neg_try_receive_target_not_null.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/try_receive_target_not_null_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/try_receive_target_not_null_parity.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_send_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "check_first": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_send_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "fixture": "mir/send_use_after_move_parity.json",
+      "name": "send_use_after_move_parity",
+      "source": "tests/negative/neg_send_use_after_move.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/send_use_after_move_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/send_use_after_move_parity.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_try_send_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "check_first": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_try_send_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "fixture": "mir/try_send_use_after_move_parity.json",
+      "name": "try_send_use_after_move_parity",
+      "source": "tests/negative/neg_try_send_use_after_move.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/try_send_use_after_move_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/try_send_use_after_move_parity.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "move target 'Source' is not provably null",
+        "path": "tests/negative/neg_try_send_reassign_without_check.safe",
+        "reason": "move_target_not_null"
+      },
+      "check_first": {
+        "message": "move target 'Source' is not provably null",
+        "path": "tests/negative/neg_try_send_reassign_without_check.safe",
+        "reason": "move_target_not_null"
+      },
+      "fixture": "mir/try_send_reassign_without_check_parity.json",
+      "name": "try_send_reassign_without_check_parity",
+      "source": "tests/negative/neg_try_send_reassign_without_check.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/try_send_reassign_without_check_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/try_send_reassign_without_check_parity.json)\n"
+      }
+    }
+  ],
+  "deterministic": true,
+  "negative_cases": [
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_task_shared_variable.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"task_variable_ownership\",\"message\":\"package global 'Shared' is accessed by multiple tasks\",\"path\":\"tests/negative/neg_task_shared_variable.safe\",\"span\":{\"start_line\":9,\"start_col\":4,\"end_line\":9,\"end_col\":24},\"highlight_span\":{\"start_line\":9,\"start_col\":4,\"end_line\":9,\"end_col\":24},\"notes\":[\"tasks accessing 'Shared': A, B\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "task_variable_ownership",
+      "first_diagnostic": {
+        "message": "package global 'Shared' is accessed by multiple tasks",
+        "path": "tests/negative/neg_task_shared_variable.safe",
+        "reason": "task_variable_ownership"
+      },
+      "source": "tests/negative/neg_task_shared_variable.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_task_shared_subprogram_global.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"task_variable_ownership\",\"message\":\"package global 'Shared' is accessed by multiple tasks\",\"path\":\"tests/negative/neg_task_shared_subprogram_global.safe\",\"span\":{\"start_line\":10,\"start_col\":4,\"end_line\":10,\"end_col\":24},\"highlight_span\":{\"start_line\":10,\"start_col\":4,\"end_line\":10,\"end_col\":24},\"notes\":[\"tasks accessing 'Shared': A, B\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "task_variable_ownership",
+      "first_diagnostic": {
+        "message": "package global 'Shared' is accessed by multiple tasks",
+        "path": "tests/negative/neg_task_shared_subprogram_global.safe",
+        "reason": "task_variable_ownership"
+      },
+      "source": "tests/negative/neg_task_shared_subprogram_global.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_receive_target_not_null.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_target_not_null\",\"message\":\"move target 'Target' is not provably null\",\"path\":\"tests/negative/neg_receive_target_not_null.safe\",\"span\":{\"start_line\":18,\"start_col\":7,\"end_line\":18,\"end_col\":30},\"highlight_span\":{\"start_line\":18,\"start_col\":7,\"end_line\":18,\"end_col\":30},\"notes\":[\"static analysis determined state 'NonNull' for the move target.\",\"rule: Safe \u00a72.3.2 (target of move must be provably null)\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "move_target_not_null",
+      "first_diagnostic": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_receive_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "source": "tests/negative/neg_receive_target_not_null.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_try_receive_target_not_null.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_target_not_null\",\"message\":\"move target 'Target' is not provably null\",\"path\":\"tests/negative/neg_try_receive_target_not_null.safe\",\"span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":43},\"highlight_span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":43},\"notes\":[\"static analysis determined state 'NonNull' for the move target.\",\"rule: Safe \u00a72.3.2 (target of move must be provably null)\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "move_target_not_null",
+      "first_diagnostic": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_try_receive_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "source": "tests/negative/neg_try_receive_target_not_null.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_send_use_after_move.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"use_after_move\",\"message\":\"dereference of moved access value\",\"path\":\"tests/negative/neg_send_use_after_move.safe\",\"span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":12},\"highlight_span\":{\"start_line\":19,\"start_col\":7,\"end_line\":19,\"end_col\":12},\"notes\":[\"the access value was moved before this dereference.\",\"rule: D27 Rule 4 (Not-Null Dereference)\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "use_after_move",
+      "first_diagnostic": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_send_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "source": "tests/negative/neg_send_use_after_move.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_try_send_use_after_move.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"use_after_move\",\"message\":\"dereference of moved access value\",\"path\":\"tests/negative/neg_try_send_use_after_move.safe\",\"span\":{\"start_line\":20,\"start_col\":7,\"end_line\":20,\"end_col\":12},\"highlight_span\":{\"start_line\":20,\"start_col\":7,\"end_line\":20,\"end_col\":12},\"notes\":[\"the access value was moved before this dereference.\",\"rule: D27 Rule 4 (Not-Null Dereference)\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "use_after_move",
+      "first_diagnostic": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_try_send_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "source": "tests/negative/neg_try_send_use_after_move.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_try_send_reassign_without_check.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"move_target_not_null\",\"message\":\"move target 'Source' is not provably null\",\"path\":\"tests/negative/neg_try_send_reassign_without_check.safe\",\"span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":44},\"highlight_span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":44},\"notes\":[\"static analysis determined state 'Moved' for the move target.\",\"rule: Safe \u00a72.3.2 (target of move must be provably null)\"],\"suggestions\":[]}]}\n"
+      },
+      "expected_reason": "move_target_not_null",
+      "first_diagnostic": {
+        "message": "move target 'Source' is not provably null",
+        "path": "tests/negative/neg_try_send_reassign_without_check.safe",
+        "reason": "move_target_not_null"
+      },
+      "source": "tests/negative/neg_try_send_reassign_without_check.safe"
+    }
+  ],
+  "positive_cases": [
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/channel_pingpong/out/channel_pingpong.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/channel_pingpong.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/channel_pingpong.safe",
+          "--out-dir",
+          "$TMPDIR/channel_pingpong/out",
+          "--interface-dir",
+          "$TMPDIR/channel_pingpong/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/positive/channel_pingpong.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/channel_pingpong/out/channel_pingpong.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/channel_pingpong/out/channel_pingpong.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/channel_pingpong/out/channel_pingpong.ast.json",
+          "--typed",
+          "$TMPDIR/channel_pingpong/out/channel_pingpong.typed.json",
+          "--mir",
+          "$TMPDIR/channel_pingpong/out/channel_pingpong.mir.json",
+          "--safei",
+          "$TMPDIR/channel_pingpong/iface/channel_pingpong.safei.json",
+          "--source-path",
+          "tests/positive/channel_pingpong.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (channel_pingpong.ast.json, channel_pingpong.typed.json, channel_pingpong.mir.json, channel_pingpong.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/channel_pingpong/out/channel_pingpong.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/channel_pingpong/out/channel_pingpong.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/channel_pipeline/out/channel_pipeline.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/positive/channel_pipeline.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/channel_pipeline.safe",
+          "--out-dir",
+          "$TMPDIR/channel_pipeline/out",
+          "--interface-dir",
+          "$TMPDIR/channel_pipeline/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/positive/channel_pipeline.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/channel_pipeline/out/channel_pipeline.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/channel_pipeline/out/channel_pipeline.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/channel_pipeline/out/channel_pipeline.ast.json",
+          "--typed",
+          "$TMPDIR/channel_pipeline/out/channel_pipeline.typed.json",
+          "--mir",
+          "$TMPDIR/channel_pipeline/out/channel_pipeline.mir.json",
+          "--safei",
+          "$TMPDIR/channel_pipeline/iface/channel_pipeline.safei.json",
+          "--source-path",
+          "tests/positive/channel_pipeline.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (channel_pipeline.ast.json, channel_pipeline.typed.json, channel_pipeline.mir.json, channel_pipeline.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/channel_pipeline/out/channel_pipeline.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/channel_pipeline/out/channel_pipeline.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/multi_task_channel/out/multi_task_channel.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/multi_task_channel.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/multi_task_channel.safe",
+          "--out-dir",
+          "$TMPDIR/multi_task_channel/out",
+          "--interface-dir",
+          "$TMPDIR/multi_task_channel/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/multi_task_channel.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/multi_task_channel/out/multi_task_channel.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/multi_task_channel/out/multi_task_channel.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/multi_task_channel/out/multi_task_channel.ast.json",
+          "--typed",
+          "$TMPDIR/multi_task_channel/out/multi_task_channel.typed.json",
+          "--mir",
+          "$TMPDIR/multi_task_channel/out/multi_task_channel.mir.json",
+          "--safei",
+          "$TMPDIR/multi_task_channel/iface/multi_task_channel.safei.json",
+          "--source-path",
+          "tests/concurrency/multi_task_channel.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (multi_task_channel.ast.json, multi_task_channel.typed.json, multi_task_channel.mir.json, multi_task_channel.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/multi_task_channel/out/multi_task_channel.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/multi_task_channel/out/multi_task_channel.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/select_delay_local_scope.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/select_delay_local_scope.safe",
+          "--out-dir",
+          "$TMPDIR/select_delay_local_scope/out",
+          "--interface-dir",
+          "$TMPDIR/select_delay_local_scope/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/select_delay_local_scope.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.ast.json",
+          "--typed",
+          "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.typed.json",
+          "--mir",
+          "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.mir.json",
+          "--safei",
+          "$TMPDIR/select_delay_local_scope/iface/select_delay_local_scope.safei.json",
+          "--source-path",
+          "tests/concurrency/select_delay_local_scope.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (select_delay_local_scope.ast.json, select_delay_local_scope.typed.json, select_delay_local_scope.mir.json, select_delay_local_scope.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/select_delay_local_scope/out/select_delay_local_scope.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/select_delay_local_scope/out/select_delay_local_scope.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/select_priority/out/select_priority.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/select_priority.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/select_priority.safe",
+          "--out-dir",
+          "$TMPDIR/select_priority/out",
+          "--interface-dir",
+          "$TMPDIR/select_priority/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/select_priority.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/select_priority/out/select_priority.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/select_priority/out/select_priority.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/select_priority/out/select_priority.ast.json",
+          "--typed",
+          "$TMPDIR/select_priority/out/select_priority.typed.json",
+          "--mir",
+          "$TMPDIR/select_priority/out/select_priority.mir.json",
+          "--safei",
+          "$TMPDIR/select_priority/iface/select_priority.safei.json",
+          "--source-path",
+          "tests/concurrency/select_priority.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (select_priority.ast.json, select_priority.typed.json, select_priority.mir.json, select_priority.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/select_priority/out/select_priority.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/select_priority/out/select_priority.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/task_priority_delay/out/task_priority_delay.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/task_priority_delay.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/task_priority_delay.safe",
+          "--out-dir",
+          "$TMPDIR/task_priority_delay/out",
+          "--interface-dir",
+          "$TMPDIR/task_priority_delay/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/task_priority_delay.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/task_priority_delay/out/task_priority_delay.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/task_priority_delay/out/task_priority_delay.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/task_priority_delay/out/task_priority_delay.ast.json",
+          "--typed",
+          "$TMPDIR/task_priority_delay/out/task_priority_delay.typed.json",
+          "--mir",
+          "$TMPDIR/task_priority_delay/out/task_priority_delay.mir.json",
+          "--safei",
+          "$TMPDIR/task_priority_delay/iface/task_priority_delay.safei.json",
+          "--source-path",
+          "tests/concurrency/task_priority_delay.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (task_priority_delay.ast.json, task_priority_delay.typed.json, task_priority_delay.mir.json, task_priority_delay.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/task_priority_delay/out/task_priority_delay.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/task_priority_delay/out/task_priority_delay.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/try_ops/out/try_ops.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/try_ops.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/try_ops.safe",
+          "--out-dir",
+          "$TMPDIR/try_ops/out",
+          "--interface-dir",
+          "$TMPDIR/try_ops/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/try_ops.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/try_ops/out/try_ops.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/try_ops/out/try_ops.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/try_ops/out/try_ops.ast.json",
+          "--typed",
+          "$TMPDIR/try_ops/out/try_ops.typed.json",
+          "--mir",
+          "$TMPDIR/try_ops/out/try_ops.mir.json",
+          "--safei",
+          "$TMPDIR/try_ops/iface/try_ops.safei.json",
+          "--source-path",
+          "tests/concurrency/try_ops.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (try_ops.ast.json, try_ops.typed.json, try_ops.mir.json, try_ops.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/try_ops/out/try_ops.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/try_ops/out/try_ops.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/select_with_delay/out/select_with_delay.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/select_with_delay.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/select_with_delay.safe",
+          "--out-dir",
+          "$TMPDIR/select_with_delay/out",
+          "--interface-dir",
+          "$TMPDIR/select_with_delay/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/select_with_delay.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/select_with_delay/out/select_with_delay.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/select_with_delay/out/select_with_delay.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/select_with_delay/out/select_with_delay.ast.json",
+          "--typed",
+          "$TMPDIR/select_with_delay/out/select_with_delay.typed.json",
+          "--mir",
+          "$TMPDIR/select_with_delay/out/select_with_delay.mir.json",
+          "--safei",
+          "$TMPDIR/select_with_delay/iface/select_with_delay.safei.json",
+          "--source-path",
+          "tests/concurrency/select_with_delay.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (select_with_delay.ast.json, select_with_delay.typed.json, select_with_delay.mir.json, select_with_delay.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/select_with_delay/out/select_with_delay.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/select_with_delay/out/select_with_delay.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/exclusive_variable/out/exclusive_variable.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/exclusive_variable.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/exclusive_variable.safe",
+          "--out-dir",
+          "$TMPDIR/exclusive_variable/out",
+          "--interface-dir",
+          "$TMPDIR/exclusive_variable/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/exclusive_variable.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/exclusive_variable/out/exclusive_variable.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/exclusive_variable/out/exclusive_variable.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/exclusive_variable/out/exclusive_variable.ast.json",
+          "--typed",
+          "$TMPDIR/exclusive_variable/out/exclusive_variable.typed.json",
+          "--mir",
+          "$TMPDIR/exclusive_variable/out/exclusive_variable.mir.json",
+          "--safei",
+          "$TMPDIR/exclusive_variable/iface/exclusive_variable.safei.json",
+          "--source-path",
+          "tests/concurrency/exclusive_variable.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (exclusive_variable.ast.json, exclusive_variable.typed.json, exclusive_variable.mir.json, exclusive_variable.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/exclusive_variable/out/exclusive_variable.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/exclusive_variable/out/exclusive_variable.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/try_send_ownership/out/try_send_ownership.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/try_send_ownership.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/try_send_ownership.safe",
+          "--out-dir",
+          "$TMPDIR/try_send_ownership/out",
+          "--interface-dir",
+          "$TMPDIR/try_send_ownership/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/try_send_ownership.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/try_send_ownership/out/try_send_ownership.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/try_send_ownership/out/try_send_ownership.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/try_send_ownership/out/try_send_ownership.ast.json",
+          "--typed",
+          "$TMPDIR/try_send_ownership/out/try_send_ownership.typed.json",
+          "--mir",
+          "$TMPDIR/try_send_ownership/out/try_send_ownership.mir.json",
+          "--safei",
+          "$TMPDIR/try_send_ownership/iface/try_send_ownership.safei.json",
+          "--source-path",
+          "tests/concurrency/try_send_ownership.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (try_send_ownership.ast.json, try_send_ownership.typed.json, try_send_ownership.mir.json, try_send_ownership.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/try_send_ownership/out/try_send_ownership.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/try_send_ownership/out/try_send_ownership.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/task_global_owner/out/task_global_owner.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/task_global_owner.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/task_global_owner.safe",
+          "--out-dir",
+          "$TMPDIR/task_global_owner/out",
+          "--interface-dir",
+          "$TMPDIR/task_global_owner/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/task_global_owner.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/task_global_owner/out/task_global_owner.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/task_global_owner/out/task_global_owner.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/task_global_owner/out/task_global_owner.ast.json",
+          "--typed",
+          "$TMPDIR/task_global_owner/out/task_global_owner.typed.json",
+          "--mir",
+          "$TMPDIR/task_global_owner/out/task_global_owner.mir.json",
+          "--safei",
+          "$TMPDIR/task_global_owner/iface/task_global_owner.safei.json",
+          "--source-path",
+          "tests/concurrency/task_global_owner.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (task_global_owner.ast.json, task_global_owner.typed.json, task_global_owner.mir.json, task_global_owner.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/task_global_owner/out/task_global_owner.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/task_global_owner/out/task_global_owner.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/channel_ceiling_priority.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/channel_ceiling_priority.safe",
+          "--out-dir",
+          "$TMPDIR/channel_ceiling_priority/out",
+          "--interface-dir",
+          "$TMPDIR/channel_ceiling_priority/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/channel_ceiling_priority.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.ast.json",
+          "--typed",
+          "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.typed.json",
+          "--mir",
+          "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.mir.json",
+          "--safei",
+          "$TMPDIR/channel_ceiling_priority/iface/channel_ceiling_priority.safei.json",
+          "--source-path",
+          "tests/concurrency/channel_ceiling_priority.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (channel_ceiling_priority.ast.json, channel_ceiling_priority.typed.json, channel_ceiling_priority.mir.json, channel_ceiling_priority.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/channel_ceiling_priority/out/channel_ceiling_priority.mir.json)\n"
+      }
+    },
+    {
+      "analyze_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "analyze-mir",
+          "--diag-json",
+          "$TMPDIR/select_ownership_binding/out/select_ownership_binding.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/concurrency/select_ownership_binding.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/select_ownership_binding.safe",
+          "--out-dir",
+          "$TMPDIR/select_ownership_binding/out",
+          "--interface-dir",
+          "$TMPDIR/select_ownership_binding/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "source": "tests/concurrency/select_ownership_binding.safe",
+      "validate_ast": {
+        "command": [
+          "python3",
+          "scripts/validate_ast_output.py",
+          "$TMPDIR/select_ownership_binding/out/select_ownership_binding.ast.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "$TMPDIR/select_ownership_binding/out/select_ownership_binding.ast.json: OK\n"
+      },
+      "validate_contracts": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "$TMPDIR/select_ownership_binding/out/select_ownership_binding.ast.json",
+          "--typed",
+          "$TMPDIR/select_ownership_binding/out/select_ownership_binding.typed.json",
+          "--mir",
+          "$TMPDIR/select_ownership_binding/out/select_ownership_binding.mir.json",
+          "--safei",
+          "$TMPDIR/select_ownership_binding/iface/select_ownership_binding.safei.json",
+          "--source-path",
+          "tests/concurrency/select_ownership_binding.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "output contracts: OK (select_ownership_binding.ast.json, select_ownership_binding.typed.json, select_ownership_binding.mir.json, select_ownership_binding.safei.json)\n"
+      },
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/select_ownership_binding/out/select_ownership_binding.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/select_ownership_binding/out/select_ownership_binding.mir.json)\n"
+      }
+    }
+  ],
+  "repeat_sha256": "f027b8156b187f903d9c4f6b1f194e6658b75550d18dab5209ccadcdc4b905f7",
+  "report_sha256": "f027b8156b187f903d9c4f6b1f194e6658b75550d18dab5209ccadcdc4b905f7",
+  "sequential_regression_cases": [
+    {
+      "analyze_first": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_own_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "check_first": {
+        "message": "move target 'Target' is not provably null",
+        "path": "tests/negative/neg_own_target_not_null.safe",
+        "reason": "move_target_not_null"
+      },
+      "fixture": "compiler_impl/tests/mir_analysis/pr0695_move_target_not_null_parity.json",
+      "name": "move_target_not_null_regression",
+      "source": "tests/negative/neg_own_target_not_null.safe"
+    },
+    {
+      "analyze_first": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_own_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "check_first": {
+        "message": "dereference of moved access value",
+        "path": "tests/negative/neg_own_use_after_move.safe",
+        "reason": "use_after_move"
+      },
+      "fixture": "compiler_impl/tests/mir_analysis/pr0695_use_after_move_parity.json",
+      "name": "use_after_move_regression",
+      "source": "tests/negative/neg_own_use_after_move.safe"
+    },
+    {
+      "analyze_first": {
+        "message": "divisor not provably nonzero",
+        "path": "tests/negative/neg_rule3_expression.safe",
+        "reason": "division_by_zero"
+      },
+      "check_first": {
+        "message": "divisor not provably nonzero",
+        "path": "tests/negative/neg_rule3_expression.safe",
+        "reason": "division_by_zero"
+      },
+      "fixture": "compiler_impl/tests/mir_analysis/pr0695_division_by_zero_parity.json",
+      "name": "division_by_zero_regression",
+      "source": "tests/negative/neg_rule3_expression.safe"
+    }
+  ],
+  "status": "ok",
+  "task": "PR08.2"
+}

@@ -1,0 +1,21 @@
+-- Test: neg_receive_target_not_null
+-- Description: receive into a non-null owning target.
+-- Expected: REJECT move_target_not_null
+
+package Neg_Receive_Target_Not_Null is
+
+   type Payload is record
+      Value : Integer;
+   end record;
+
+   type Payload_Ptr is access Payload;
+
+   channel Data_Ch : Payload_Ptr capacity 1;
+
+   procedure Run is
+      Target : Payload_Ptr = new ((Value = 2) as Payload);
+   begin
+      receive Data_Ch, Target;
+   end Run;
+
+end Neg_Receive_Target_Not_Null;

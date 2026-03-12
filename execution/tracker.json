@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-12T15:05:00Z",
+  "updated_at": "2026-03-12T16:15:00Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR08.2",
+  "next_task_id": "PR08.3",
   "repo_facts": {
     "tests": {
       "positive": 35,
-      "negative": 56,
+      "negative": 63,
       "golden": 3,
-      "concurrency": 9,
+      "concurrency": 12,
       "diagnostics_golden": 17,
-      "total": 120
+      "total": 130
     }
   },
   "tasks": [
@@ -473,7 +473,7 @@
     {
       "id": "PR08.2",
       "title": "Local concurrency Bronze and Silver analysis",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR08.1"],
       "acceptance": [
         "Local-only Bronze summaries exist for task/channel programs, covering deterministic Global, Depends, and Initializes equivalents, task-variable ownership, and local channel-access and ceiling summaries.",
@@ -481,7 +481,9 @@
         "Representative local concurrency cases stay in parity between safec check --diag-json and emitted safec analyze-mir --diag-json.",
         "The accepted local concurrency corpus includes exclusive_variable.safe, try_send_ownership.safe, and select_priority.safe."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr082-local-concurrency-analysis-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

@@ -816,8 +816,8 @@
       "python3.11": "$TMPDIR/python-mask/python3.11"
     }
   },
-  "repeat_sha256": "2038e066669a876537340a69bc9528ae19789e99b895dbf2b3652c9518d5e789",
-  "report_sha256": "2038e066669a876537340a69bc9528ae19789e99b895dbf2b3652c9518d5e789",
+  "repeat_sha256": "95d2ba8b0da4941c54b0b77f5e1be7306102cf141bf006122cf2f9b2aa60bc51",
+  "report_sha256": "95d2ba8b0da4941c54b0b77f5e1be7306102cf141bf006122cf2f9b2aa60bc51",
   "runtime_rule": {
     "banned_tokens_absent": [
       "Run_Backend",
@@ -840,6 +840,7 @@
       "compiler_impl/src/safe_frontend-json.adb",
       "compiler_impl/src/safe_frontend-lexer.adb",
       "compiler_impl/src/safe_frontend-mir_analyze.adb",
+      "compiler_impl/src/safe_frontend-mir_bronze.adb",
       "compiler_impl/src/safe_frontend-mir_diagnostics.adb",
       "compiler_impl/src/safe_frontend-mir_json.adb",
       "compiler_impl/src/safe_frontend-mir_model.adb",
@@ -858,6 +859,7 @@
       "compiler_impl/src/safe_frontend-json.ads",
       "compiler_impl/src/safe_frontend-lexer.ads",
       "compiler_impl/src/safe_frontend-mir_analyze.ads",
+      "compiler_impl/src/safe_frontend-mir_bronze.ads",
       "compiler_impl/src/safe_frontend-mir_diagnostics.ads",
       "compiler_impl/src/safe_frontend-mir_json.ads",
       "compiler_impl/src/safe_frontend-mir_model.ads",

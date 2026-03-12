@@ -13,16 +13,14 @@ This workspace hosts the current Safe compiler frontend baseline established by 
 - `safec check --diag-json <file.safe>` writes `diagnostics-v0` JSON for the Ada-native check pipeline.
 - `safec emit <file.safe> --out-dir <dir> --interface-dir <dir>` writes the current frontend artifacts for downstream inspection and regression checks.
 
-The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern.
-
-PR08.1 also adds a local-only concurrency frontend slice for single-package task declarations, channel declarations, send, receive, try_send, try_receive, select, and relative delay on the `ast` / `emit` / `validate-mir` path. Positive accepted `check` semantics for the local concurrency corpus remain the PR08.2 milestone boundary.
+The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the current boolean result-record discriminant pattern, and the local-only PR08.1/PR08.2 concurrency slice for single-package task declarations, channel declarations, send, receive, try_send, try_receive, select, and relative delay.
 
 That current boundary includes:
 
 - schema-true AST emission for the implemented subset
 - `typed-v2`, self-sufficient `mir-v2`, and `safei-v0` emission for that subset
 - Ada-native MIR validation and MIR analysis for that subset
-- Ada-native `check` over the exact current Rule 5 fixture corpus, the sequential ownership corpus, and the current boolean result-record discriminant pattern
+- Ada-native `check` over the exact current Rule 5 fixture corpus, the sequential ownership corpus, the current boolean result-record discriminant pattern, and the accepted local-only concurrency corpus
 
 All current user-facing `safec` commands are Ada-native for that supported surface. Python remains glue/orchestration only around the compiler.
 
@@ -204,3 +202,12 @@ python3 scripts/run_pr081_local_concurrency_frontend.py
 ```
 
 That gate validates the local-only concurrency emit corpus on `safec ast`, `emit`, `validate-mir`, and `analyze-mir`, exercises the new source-legality negatives, checks deterministic repeated `emit` output on representative task/channel/select samples, validates the concurrency-bearing MIR fixtures, and records results in `execution/reports/pr081-local-concurrency-frontend-report.json`.
+
+The PR08.2 local concurrency analysis gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr082_local_concurrency_analysis.py
+```
+
+That gate promotes the accepted local concurrency corpus to a clean `safec check --diag-json` surface, checks direct `check` versus emitted `analyze-mir` first-diagnostic parity on representative concurrency negatives, re-derives deterministic Bronze evidence from emitted MIR, guards representative sequential parity cases against analyzer regressions, and records results in `execution/reports/pr082-local-concurrency-analysis-report.json`.
