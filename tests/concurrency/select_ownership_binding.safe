@@ -1,0 +1,40 @@
+-- Test: select_ownership_binding
+-- Description: Owning access binding in a select channel arm.
+--   The bound variable enters the arm as a moved-in owner and can be
+--   dereferenced immediately inside the arm body.
+-- Expected: ACCEPT
+
+package Select_Ownership_Binding is
+
+   type Payload is record
+      Value : Integer;
+   end record;
+
+   type Payload_Ptr is access Payload;
+
+   channel Data_Ch : Payload_Ptr capacity 1;
+
+   task Sender is
+      Counter : Integer = 0;
+   begin
+      loop
+         Item : Payload_Ptr = new ((Value = Counter) as Payload);
+         send Data_Ch, Item;
+         Counter = Counter + 1;
+      end loop;
+   end Sender;
+
+   task Receiver is
+   begin
+      loop
+         select
+            when Item : Payload_Ptr from Data_Ch then
+               Item.all.Value = Item.all.Value + 1;
+         or
+            delay 1.0 then
+               null;
+         end select;
+      end loop;
+   end Receiver;
+
+end Select_Ownership_Binding;

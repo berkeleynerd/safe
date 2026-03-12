@@ -35,12 +35,14 @@
       "compiler_impl/src/safe_frontend-check_render.ads",
       "compiler_impl/src/safe_frontend-check_resolve.ads",
       "compiler_impl/src/safe_frontend-mir_analyze.adb",
+      "compiler_impl/src/safe_frontend-mir_bronze.adb",
       "compiler_impl/src/safe_frontend-mir_diagnostics.adb",
       "compiler_impl/src/safe_frontend-mir_json.adb",
       "compiler_impl/src/safe_frontend-mir_model.adb",
       "compiler_impl/src/safe_frontend-mir_validate.adb",
       "compiler_impl/src/safe_frontend-mir_write.adb",
       "compiler_impl/src/safe_frontend-mir_analyze.ads",
+      "compiler_impl/src/safe_frontend-mir_bronze.ads",
       "compiler_impl/src/safe_frontend-mir_diagnostics.ads",
       "compiler_impl/src/safe_frontend-mir_json.ads",
       "compiler_impl/src/safe_frontend-mir_model.ads",
@@ -81,6 +83,7 @@
       "compiler_impl/src/safe_frontend-json.adb",
       "compiler_impl/src/safe_frontend-lexer.adb",
       "compiler_impl/src/safe_frontend-mir_analyze.adb",
+      "compiler_impl/src/safe_frontend-mir_bronze.adb",
       "compiler_impl/src/safe_frontend-mir_diagnostics.adb",
       "compiler_impl/src/safe_frontend-mir_json.adb",
       "compiler_impl/src/safe_frontend-mir_model.adb",
@@ -100,6 +103,7 @@
       "compiler_impl/src/safe_frontend-json.ads",
       "compiler_impl/src/safe_frontend-lexer.ads",
       "compiler_impl/src/safe_frontend-mir_analyze.ads",
+      "compiler_impl/src/safe_frontend-mir_bronze.ads",
       "compiler_impl/src/safe_frontend-mir_diagnostics.ads",
       "compiler_impl/src/safe_frontend-mir_json.ads",
       "compiler_impl/src/safe_frontend-mir_model.ads",
@@ -110,8 +114,8 @@
       "compiler_impl/src/safe_frontend.ads"
     ]
   },
-  "repeat_sha256": "1248e3f5d1f76dbaca16f194f2d86bc809f0f3587060179526b8e8ba5a2e2b3c",
-  "report_sha256": "1248e3f5d1f76dbaca16f194f2d86bc809f0f3587060179526b8e8ba5a2e2b3c",
+  "repeat_sha256": "1070321470b210dbcd10ffc6172b8c4e6f28a4ffee81249296d132dac377051a",
+  "report_sha256": "1070321470b210dbcd10ffc6172b8c4e6f28a4ffee81249296d132dac377051a",
   "status": "ok",
   "task": "PR06.9.8"
 }

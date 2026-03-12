@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR08.2`
-- **Updated at:** `2026-03-12T15:05:00Z`
+- **Next task:** `PR08.3`
+- **Updated at:** `2026-03-12T21:05:00Z`
 
 ## Repo Facts
 
 - `tests/positive`: 35
-- `tests/negative`: 56
+- `tests/negative`: 65
 - `tests/golden`: 3
-- `tests/concurrency`: 9
+- `tests/concurrency`: 12
 - `tests/diagnostics_golden`: 17
-- **Total test files:** 120
+- **Total test files:** 132
 
 ## Task Ledger
 
@@ -45,7 +45,7 @@
 | PR06.9.13 | done | PR06.9.12 | 1 |
 | PR07 | done | PR06.9.13 | 1 |
 | PR08.1 | done | PR07 | 1 |
-| PR08.2 | planned | PR08.1 | 0 |
+| PR08.2 | done | PR08.1 | 1 |
 | PR08.3 | planned | PR08.2 | 0 |
 | PR08.4 | planned | PR08.3 | 0 |
 | PR08 | planned | PR08.4 | 0 |
@@ -415,7 +415,7 @@
 
 ### PR08.2 — Local concurrency Bronze and Silver analysis
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR08.1
 - **Blockers:** none
 - **Acceptance:**
@@ -423,6 +423,8 @@
   - Local channel transfer forms enforce Silver ownership semantics for send, receive, try_send, try_receive, and select-arm bindings.
   - Representative local concurrency cases stay in parity between safec check --diag-json and emitted safec analyze-mir --diag-json.
   - The accepted local concurrency corpus includes exclusive_variable.safe, try_send_ownership.safe, and select_priority.safe.
+- **Evidence:**
+  - `execution/reports/pr082-local-concurrency-analysis-report.json`
 
 ### PR08.3 — Interface contracts and cross-package resolution
 

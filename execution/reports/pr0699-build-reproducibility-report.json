@@ -45,9 +45,9 @@
       }
     },
     "legacy_package_cleanup": {
-      "repeat_sha256": "1248e3f5d1f76dbaca16f194f2d86bc809f0f3587060179526b8e8ba5a2e2b3c",
+      "repeat_sha256": "1070321470b210dbcd10ffc6172b8c4e6f28a4ffee81249296d132dac377051a",
       "report_path": "execution/reports/pr0698-legacy-package-cleanup-report.json",
-      "report_sha256": "1248e3f5d1f76dbaca16f194f2d86bc809f0f3587060179526b8e8ba5a2e2b3c",
+      "report_sha256": "1070321470b210dbcd10ffc6172b8c4e6f28a4ffee81249296d132dac377051a",
       "run": {
         "command": [
           "python3",
@@ -61,8 +61,8 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "46770febd6962513c2561fac08f0d9d8ba89ace65539a7180b00586bb95eb6e0",
-  "report_sha256": "46770febd6962513c2561fac08f0d9d8ba89ace65539a7180b00586bb95eb6e0",
+  "repeat_sha256": "cb087097b5c882150d5db25002410e54a12edc7f9dee3bc75be187c6c0afcfec",
+  "report_sha256": "cb087097b5c882150d5db25002410e54a12edc7f9dee3bc75be187c6c0afcfec",
   "status": "ok",
   "task": "PR06.9.9"
 }

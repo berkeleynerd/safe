@@ -6,10 +6,12 @@ with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
+with Safe_Frontend.Mir_Bronze;
 with Safe_Frontend.Mir_Json;
 with Safe_Frontend.Mir_Validate;
 
 package body Safe_Frontend.Mir_Analyze is
+   package MB renames Safe_Frontend.Mir_Bronze;
    package GM renames Safe_Frontend.Mir_Model;
    package US renames Ada.Strings.Unbounded;
 
@@ -105,6 +107,17 @@ package body Safe_Frontend.Mir_Analyze is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
 
+   type Pending_Move is record
+      Source_Name : FT.UString := FT.To_UString ("");
+      Saved_Fact  : Access_Fact;
+   end record;
+
+   package Pending_Move_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Pending_Move,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
    package Type_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => GM.Type_Descriptor,
@@ -152,6 +165,8 @@ package body Safe_Frontend.Mir_Analyze is
       Ranges         : Range_Maps.Map;
       Float_Facts    : Float_Maps.Map;
       Access_Facts   : Access_Maps.Map;
+      Pending_Moves  : Pending_Move_Maps.Map;
+      Pending_Bindings : String_Sets.Set;
       Discriminants  : Discriminant_Maps.Map;
       Relations      : String_Sets.Set;
       Div_Bounds     : Interval_Maps.Map;
@@ -402,7 +417,32 @@ package body Safe_Frontend.Mir_Analyze is
       Target_Name : String;
       Current     : State;
       Var_Types   : Type_Maps.Map;
+      Span        : FT.Source_Span;
+      Require_Null_Target : Boolean := True) return MD.Diagnostic;
+   function Channel_Send_Precondition
+     (Source_Name : String;
+      Current     : State;
+      Var_Types   : Type_Maps.Map;
       Span        : FT.Source_Span) return MD.Diagnostic;
+   function Has_Pending_Move_For_Source
+     (Current : State;
+      Name    : String) return Boolean;
+   function Target_Is_Provably_Null
+     (Current   : State;
+      Name      : String;
+      Var_Types : Type_Maps.Map) return Boolean;
+   function Receive_Target_Precondition
+     (Target_Name : String;
+      Current     : State;
+      Var_Types   : Type_Maps.Map;
+      Span        : FT.Source_Span) return MD.Diagnostic;
+   procedure Clear_Pending_Move
+     (Current : in out State;
+      Name    : String);
+   procedure Apply_Pending_Move_Refinement
+     (Current : in out State;
+      Name    : String;
+      Truthy  : Boolean);
 
    function Eval_Access_Expr
      (Expr       : GM.Expr_Access;
@@ -493,7 +533,8 @@ package body Safe_Frontend.Mir_Analyze is
       Expr      : GM.Expr_Access;
       Truthy    : Boolean;
       Var_Types : Type_Maps.Map;
-      Type_Env  : Type_Maps.Map) return State;
+      Type_Env  : Type_Maps.Map;
+      Allow_Pending_Move_Refinement : Boolean := True) return State;
 
    procedure Initialize_Symbol
      (Current : in out State;
@@ -529,6 +570,8 @@ package body Safe_Frontend.Mir_Analyze is
      (Targets  : in out State_Maps.Map;
       Block_Id : String;
       Candidate : State) return Boolean;
+   function Diagnostic_Category_Rank
+     (Item : MD.Diagnostic) return Natural;
 
    procedure Validate_Assignment_Target
      (Expr      : GM.Expr_Access;
@@ -2039,7 +2082,8 @@ package body Safe_Frontend.Mir_Analyze is
       Target_Name : String;
       Current     : State;
       Var_Types   : Type_Maps.Map;
-      Span        : FT.Source_Span) return MD.Diagnostic
+      Span        : FT.Source_Span;
+      Require_Null_Target : Boolean := True) return MD.Diagnostic
    is
       Diag        : constant MD.Diagnostic := Owner_Write_Conflict (Source_Name, Current, Span);
       Source_Fact : Access_Fact;
@@ -2064,8 +2108,90 @@ package body Safe_Frontend.Mir_Analyze is
               "move source '" & Source_Name & "' is not provably non-null",
               "static analysis determined state '" & Image (Source_Fact.State) & "' at this move site.");
       end if;
+      if Require_Null_Target then
+         Target_Fact := Access_Fact_For_Name (Target_Name, Current, Var_Types);
+         if not Target_Is_Provably_Null (Current, Target_Name, Var_Types) then
+            return
+              Ownership_Diagnostic
+                ("move_target_not_null",
+                 Span,
+                 "move target '" & Target_Name & "' is not provably null",
+                 "static analysis determined state '" & Image (Target_Fact.State) & "' for the move target.");
+         end if;
+      end if;
+      return Null_Diagnostic;
+   end Owner_Move_Precondition;
+
+   function Channel_Send_Precondition
+     (Source_Name : String;
+      Current     : State;
+      Var_Types   : Type_Maps.Map;
+      Span        : FT.Source_Span) return MD.Diagnostic
+   is
+      Diag        : constant MD.Diagnostic := Owner_Write_Conflict (Source_Name, Current, Span);
+      Source_Fact : Access_Fact;
+   begin
+      if Has_Text (Diag.Reason) then
+         return Diag;
+      end if;
+      Source_Fact := Access_Fact_For_Name (Source_Name, Current, Var_Types);
+      if Source_Fact.State = Access_Moved then
+         return
+           Ownership_Diagnostic
+             ("use_after_move",
+              Span,
+              "use of moved value '" & Source_Name & "'",
+              "the source was already moved earlier on this path.");
+      elsif Source_Fact.State /= Access_NonNull then
+         return
+           Ownership_Diagnostic
+             ("move_source_not_nonnull",
+              Span,
+              "move source '" & Source_Name & "' is not provably non-null",
+              "static analysis determined state '" & Image (Source_Fact.State) & "' at this move site.");
+      end if;
+      return Null_Diagnostic;
+   end Channel_Send_Precondition;
+
+   function Has_Pending_Move_For_Source
+     (Current : State;
+      Name    : String) return Boolean
+   is
+      Cursor : Pending_Move_Maps.Cursor := Current.Pending_Moves.First;
+   begin
+      while Pending_Move_Maps.Has_Element (Cursor) loop
+         if UString_Value (Pending_Move_Maps.Element (Cursor).Source_Name) = Name then
+            return True;
+         end if;
+         Pending_Move_Maps.Next (Cursor);
+      end loop;
+      return False;
+   end Has_Pending_Move_For_Source;
+
+   function Target_Is_Provably_Null
+     (Current   : State;
+      Name      : String;
+      Var_Types : Type_Maps.Map) return Boolean
+   is
+      Target_Fact : constant Access_Fact := Access_Fact_For_Name (Name, Current, Var_Types);
+   begin
+      return
+        Target_Fact.State = Access_Null
+        or else
+          (Target_Fact.State = Access_Moved
+           and then not Has_Pending_Move_For_Source (Current, Name));
+   end Target_Is_Provably_Null;
+
+   function Receive_Target_Precondition
+     (Target_Name : String;
+      Current     : State;
+      Var_Types   : Type_Maps.Map;
+      Span        : FT.Source_Span) return MD.Diagnostic
+   is
+      Target_Fact : Access_Fact;
+   begin
       Target_Fact := Access_Fact_For_Name (Target_Name, Current, Var_Types);
-      if Target_Fact.State /= Access_Null then
+      if not Target_Is_Provably_Null (Current, Target_Name, Var_Types) then
          return
            Ownership_Diagnostic
              ("move_target_not_null",
@@ -2074,7 +2200,40 @@ package body Safe_Frontend.Mir_Analyze is
               "static analysis determined state '" & Image (Target_Fact.State) & "' for the move target.");
       end if;
       return Null_Diagnostic;
-   end Owner_Move_Precondition;
+   end Receive_Target_Precondition;
+
+   procedure Clear_Pending_Move
+     (Current : in out State;
+      Name    : String) is
+   begin
+      if Name /= "" and then Current.Pending_Moves.Contains (Name) then
+         Current.Pending_Moves.Delete (Name);
+      end if;
+   end Clear_Pending_Move;
+
+   procedure Apply_Pending_Move_Refinement
+     (Current : in out State;
+      Name    : String;
+      Truthy  : Boolean)
+   is
+      Pending : Pending_Move;
+   begin
+      if Name = "" or else not Current.Pending_Moves.Contains (Name) then
+         return;
+      end if;
+
+      Pending := Current.Pending_Moves.Element (Name);
+      if Truthy then
+         Current.Access_Facts.Include
+           (UString_Value (Pending.Source_Name),
+            (State => Access_Moved, others => <>));
+      else
+         Current.Access_Facts.Include
+           (UString_Value (Pending.Source_Name),
+            Pending.Saved_Fact);
+      end if;
+      Current.Pending_Moves.Delete (Name);
+   end Apply_Pending_Move_Refinement;
 
    function Eval_Access_Expr
      (Expr       : GM.Expr_Access;
@@ -3430,7 +3589,8 @@ package body Safe_Frontend.Mir_Analyze is
       Expr      : GM.Expr_Access;
       Truthy    : Boolean;
       Var_Types : Type_Maps.Map;
-      Type_Env  : Type_Maps.Map) return State
+      Type_Env  : Type_Maps.Map;
+      Allow_Pending_Move_Refinement : Boolean := True) return State
    is
       Result : State := Current;
       Op     : FT.UString := FT.To_UString ("");
@@ -3439,16 +3599,51 @@ package body Safe_Frontend.Mir_Analyze is
          return Result;
       end if;
       if Expr.Kind = GM.Expr_Unary and then UString_Value (Expr.Operator) = "not" then
-         return Refine_Condition (Result, Expr.Inner, not Truthy, Var_Types, Type_Env);
+         return
+           Refine_Condition
+             (Result,
+              Expr.Inner,
+              not Truthy,
+              Var_Types,
+              Type_Env,
+              Allow_Pending_Move_Refinement);
+      elsif Expr.Kind = GM.Expr_Ident
+        and then Var_Types.Contains (UString_Value (Expr.Name))
+        and then UString_Value (Var_Types.Element (UString_Value (Expr.Name)).Name) = "Boolean"
+      then
+         Result.Ranges.Include
+           (UString_Value (Expr.Name),
+            (Low => (if Truthy then 1 else 0),
+             High => (if Truthy then 1 else 0),
+             Excludes_Zero => Truthy));
+         if Allow_Pending_Move_Refinement then
+            Apply_Pending_Move_Refinement
+              (Result,
+               UString_Value (Expr.Name),
+               Truthy);
+         end if;
       elsif Expr.Kind = GM.Expr_Select then
          Apply_Discriminant_Refinement (Result, Expr, Var_Types, Truthy, Type_Env);
       elsif Expr.Kind = GM.Expr_Binary then
          Op := Expr.Operator;
          if UString_Value (Op) = "and then" then
             if Truthy then
-               return Refine_Condition (Refine_Condition (Result, Expr.Left, True, Var_Types, Type_Env), Expr.Right, True, Var_Types, Type_Env);
+               return
+                 Refine_Condition
+                   (Refine_Condition
+                      (Result,
+                       Expr.Left,
+                       True,
+                       Var_Types,
+                       Type_Env,
+                       False),
+                    Expr.Right,
+                    True,
+                    Var_Types,
+                    Type_Env,
+                    False);
             end if;
-            return Refine_Condition (Result, Expr.Left, False, Var_Types, Type_Env);
+            return Refine_Condition (Result, Expr.Left, False, Var_Types, Type_Env, False);
          elsif UString_Value (Op) = "!="
            or else UString_Value (Op) = "=="
            or else UString_Value (Op) = "<"
@@ -3667,13 +3862,32 @@ package body Safe_Frontend.Mir_Analyze is
                  or else (New_Fact.Has_Lender and then UString_Value (New_Fact.Lender) /= UString_Value (Item.Lender))
                  or else New_Fact.Alias_Kind /= Item.Alias_Kind
                then
-                  Result.Access_Facts.Include
-                    (Name,
-                     (State       => Access_MaybeNull,
-                      Has_Lender  => False,
-                      Lender      => FT.To_UString (""),
-                      Alias_Kind  => Role_None,
-                      Initialized => New_Fact.Initialized or else Item.Initialized));
+                  if not New_Fact.Has_Lender
+                    and then not Item.Has_Lender
+                    and then New_Fact.Alias_Kind = Role_None
+                    and then Item.Alias_Kind = Role_None
+                    and then
+                      ((New_Fact.State = Access_Null and then Item.State = Access_Moved)
+                       or else (New_Fact.State = Access_Moved and then Item.State = Access_Null))
+                    and then not Has_Pending_Move_For_Source (Left, Name)
+                    and then not Has_Pending_Move_For_Source (Right, Name)
+                  then
+                     Result.Access_Facts.Include
+                       (Name,
+                        (State       => Access_Moved,
+                         Has_Lender  => False,
+                         Lender      => FT.To_UString (""),
+                         Alias_Kind  => Role_None,
+                         Initialized => New_Fact.Initialized or else Item.Initialized));
+                  else
+                     Result.Access_Facts.Include
+                       (Name,
+                        (State       => Access_MaybeNull,
+                         Has_Lender  => False,
+                         Lender      => FT.To_UString (""),
+                         Alias_Kind  => Role_None,
+                         Initialized => New_Fact.Initialized or else Item.Initialized));
+                  end if;
                else
                   New_Fact.Initialized := New_Fact.Initialized or else Item.Initialized;
                   Result.Access_Facts.Include (Name, New_Fact);
@@ -3684,6 +3898,42 @@ package body Safe_Frontend.Mir_Analyze is
             Access_Maps.Next (Access_Cursor);
          end;
       end loop;
+
+      declare
+         Pending_Cursor : Pending_Move_Maps.Cursor := Left.Pending_Moves.First;
+      begin
+         Result.Pending_Moves.Clear;
+         while Pending_Move_Maps.Has_Element (Pending_Cursor) loop
+            declare
+               Name : constant String := Pending_Move_Maps.Key (Pending_Cursor);
+               Item : constant Pending_Move := Pending_Move_Maps.Element (Pending_Cursor);
+            begin
+               if Right.Pending_Moves.Contains (Name)
+                 and then Right.Pending_Moves.Element (Name) = Item
+               then
+                  Result.Pending_Moves.Include (Name, Item);
+               end if;
+               Pending_Move_Maps.Next (Pending_Cursor);
+            end;
+         end loop;
+      end;
+
+      declare
+         Binding_Cursor : String_Sets.Cursor := Left.Pending_Bindings.First;
+         New_Bindings   : String_Sets.Set;
+      begin
+         while String_Sets.Has_Element (Binding_Cursor) loop
+            declare
+               Name : constant String := String_Sets.Element (Binding_Cursor);
+            begin
+               if Right.Pending_Bindings.Contains (Name) then
+                  New_Bindings.Include (Name);
+               end if;
+               String_Sets.Next (Binding_Cursor);
+            end;
+         end loop;
+         Result.Pending_Bindings := New_Bindings;
+      end;
 
       Result.Discriminants.Clear;
       Discriminant_Cursor := Left.Discriminants.First;
@@ -3842,6 +4092,21 @@ package body Safe_Frontend.Mir_Analyze is
       end if;
       return False;
    end Join_State_Into;
+
+   function Diagnostic_Category_Rank
+     (Item : MD.Diagnostic) return Natural
+   is
+      Message : constant String := Lower (UString_Value (Item.Message));
+   begin
+      if UString_Value (Item.Reason) = "task_variable_ownership" then
+         if Ada.Strings.Fixed.Index (Message, "package global") = 1 then
+            return 0;
+         elsif Ada.Strings.Fixed.Index (Message, "subprogram") = 1 then
+            return 1;
+         end if;
+      end if;
+      return 2;
+   end Diagnostic_Category_Rank;
 
    procedure Validate_Assignment_Target
      (Expr      : GM.Expr_Access;
@@ -4089,20 +4354,68 @@ package body Safe_Frontend.Mir_Analyze is
         and then (Target_Role = Role_Owner or else Target_Role = Role_General_Access)
       then
          Source_Name := FT.To_UString (Assignment_Lender_Name (Op.Value));
-         if not Has_Text (Source_Name) and then Op.Value /= null and then Op.Value.Kind = GM.Expr_Call then
-            Target_Fact := Access_Fact_For_Name (Target_Name, Current, Var_Types);
-            if Target_Fact.State /= Access_Null then
-               return
-                 Ownership_Diagnostic
-                   ("move_target_not_null",
-                    Op.Span,
-                    "move target '" & Target_Name & "' is not provably null",
-                    "static analysis determined state '" & Image (Target_Fact.State) & "' for the move target.");
+         declare
+            Root_Source_Name : constant String := Root_Name (Op.Value);
+         begin
+            if not Has_Text (Source_Name)
+              and then Target_Name /= ""
+              and then Root_Source_Name = Target_Name
+            then
+               Diag := Owner_Write_Conflict (Target_Name, Current, Op.Span);
+               if Has_Text (Diag.Reason) then
+                  return Diag;
+               end if;
+
+               declare
+                  Source_Fact : constant Access_Fact :=
+                    Access_Fact_For_Name (Target_Name, Current, Var_Types);
+               begin
+                  if Source_Fact.State = Access_Moved then
+                     return
+                       Ownership_Diagnostic
+                         ("double_move",
+                          Op.Span,
+                          "use of moved value '" & Target_Name & "'",
+                          "the source was already moved earlier on this path.");
+                  elsif Source_Fact.State /= Access_NonNull then
+                     return
+                       Ownership_Diagnostic
+                         ("move_source_not_nonnull",
+                          Op.Span,
+                          "move source '" & Target_Name & "' is not provably non-null",
+                          "static analysis determined state '" & Image (Source_Fact.State)
+                          & "' at this move site.");
+                  end if;
+               end;
+
+               Current.Access_Facts.Include (Target_Name, Value_Fact);
+               return Null_Diagnostic;
             end if;
-            Current.Access_Facts.Include (Target_Name, (State => Value_Fact.State, others => <>));
+         end;
+
+         if not Has_Text (Source_Name) then
+            if not Op.Declaration_Init then
+               Target_Fact := Access_Fact_For_Name (Target_Name, Current, Var_Types);
+               if not Target_Is_Provably_Null (Current, Target_Name, Var_Types) then
+                  return
+                    Ownership_Diagnostic
+                      ("move_target_not_null",
+                       Op.Span,
+                       "move target '" & Target_Name & "' is not provably null",
+                       "static analysis determined state '" & Image (Target_Fact.State) & "' for the move target.");
+               end if;
+            end if;
+            Current.Access_Facts.Include (Target_Name, Value_Fact);
             return Null_Diagnostic;
          elsif Has_Text (Source_Name) then
-            Diag := Owner_Move_Precondition (UString_Value (Source_Name), Target_Name, Current, Var_Types, Op.Span);
+            Diag :=
+              Owner_Move_Precondition
+                (UString_Value (Source_Name),
+                 Target_Name,
+                 Current,
+                 Var_Types,
+                 Op.Span,
+                 Require_Null_Target => not Op.Declaration_Init);
             if Has_Text (Diag.Reason) then
                return Diag;
             end if;
@@ -4625,6 +4938,14 @@ package body Safe_Frontend.Mir_Analyze is
                      end;
                   else
                      Initialize_Symbol (Current, UString_Value (Name), Var_Types.Element (UString_Value (Name)));
+                     if Current.Pending_Bindings.Contains (UString_Value (Name)) then
+                        Current.Pending_Bindings.Delete (UString_Value (Name));
+                        if Type_Access_Role (Var_Types.Element (UString_Value (Name))) = Role_Owner then
+                           Current.Access_Facts.Include
+                             (UString_Value (Name),
+                              (State => Access_NonNull, others => <>));
+                        end if;
+                     end if;
                   end if;
                end if;
             end loop;
@@ -4632,6 +4953,10 @@ package body Safe_Frontend.Mir_Analyze is
             Local_Names := Op.Locals;
             Invalidate_Scope_Exit (Current, Local_Names, Owner_Vars);
             for Name of Op.Locals loop
+               Clear_Pending_Move (Current, UString_Value (Name));
+               if Current.Pending_Bindings.Contains (UString_Value (Name)) then
+                  Current.Pending_Bindings.Delete (UString_Value (Name));
+               end if;
                if Current.Ranges.Contains (UString_Value (Name)) then
                   Current.Ranges.Delete (UString_Value (Name));
                end if;
@@ -4674,11 +4999,60 @@ package body Safe_Frontend.Mir_Analyze is
                  UString_Value (Op.Type_Name));
             if Has_Text (Diag.Reason) then
                Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+            elsif Op.Value /= null
+              and then Type_Access_Role (Expr_Type (Op.Value, Var_Types, Type_Env, Functions)) = Role_Owner
+            then
+               declare
+                  Source_Name : constant String := Assignment_Lender_Name (Op.Value);
+                  Move_Diag   : MD.Diagnostic := Null_Diagnostic;
+               begin
+                  if Source_Name /= "" then
+                     Move_Diag :=
+                       Channel_Send_Precondition
+                         (Source_Name,
+                          Current,
+                          Var_Types,
+                          Op.Span);
+                     if Has_Text (Move_Diag.Reason) then
+                        Append_Diagnostic (Diagnostics, With_Path (Move_Diag, Path_String), Sequence);
+                     else
+                        Current.Access_Facts.Include
+                          (Source_Name,
+                           (State => Access_Moved, others => <>));
+                     end if;
+                  end if;
+               end;
             end if;
          when GM.Op_Channel_Receive =>
             begin
                Validate_Assignment_Target (Op.Target, Current, Var_Types, Type_Env, Functions);
-               Initialize_Target_Conservatively (Op.Target);
+               declare
+                  Target_Name : constant String := Root_Name (Op.Target);
+               begin
+                  if Target_Name /= ""
+                    and then Var_Types.Contains (Target_Name)
+                    and then Type_Access_Role (Var_Types.Element (Target_Name)) = Role_Owner
+                  then
+                     --  Safe spec 4.3 p30 requires try_receive targets to be
+                     --  treated conservatively as non-null after the operation
+                     --  unless later control flow re-establishes null.
+                     Diag :=
+                       Receive_Target_Precondition
+                         (Target_Name,
+                          Current,
+                          Var_Types,
+                          Op.Span);
+                     if Has_Text (Diag.Reason) then
+                        Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+                     else
+                        Current.Access_Facts.Include
+                          (Target_Name,
+                           (State => Access_NonNull, others => <>));
+                     end if;
+                  else
+                     Initialize_Target_Conservatively (Op.Target);
+                  end if;
+               end;
             exception
                when Diagnostic_Failure =>
                   Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
@@ -4704,6 +5078,39 @@ package body Safe_Frontend.Mir_Analyze is
                   Type_Env,
                   Functions);
                Initialize_Target_Conservatively (Op.Success_Target);
+               if Op.Value /= null
+                 and then Type_Access_Role (Expr_Type (Op.Value, Var_Types, Type_Env, Functions)) = Role_Owner
+               then
+                  declare
+                     Source_Name  : constant String := Assignment_Lender_Name (Op.Value);
+                     Success_Name : constant String := Root_Name (Op.Success_Target);
+                     Saved_Fact   : Access_Fact;
+                     Move_Diag    : MD.Diagnostic := Null_Diagnostic;
+                  begin
+                     if Source_Name /= "" then
+                        Move_Diag :=
+                          Channel_Send_Precondition
+                            (Source_Name,
+                             Current,
+                             Var_Types,
+                             Op.Span);
+                        if Has_Text (Move_Diag.Reason) then
+                           Append_Diagnostic (Diagnostics, With_Path (Move_Diag, Path_String), Sequence);
+                        else
+                           Saved_Fact := Access_Fact_For_Name (Source_Name, Current, Var_Types);
+                           Current.Access_Facts.Include
+                             (Source_Name,
+                              (State => Access_Moved, others => <>));
+                           if Success_Name /= "" then
+                              Current.Pending_Moves.Include
+                                (Success_Name,
+                                 (Source_Name => FT.To_UString (Source_Name),
+                                  Saved_Fact  => Saved_Fact));
+                           end if;
+                        end if;
+                     end if;
+                  end;
+               end if;
             exception
                when Diagnostic_Failure =>
                   Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
@@ -4717,7 +5124,30 @@ package body Safe_Frontend.Mir_Analyze is
                   Var_Types,
                   Type_Env,
                   Functions);
-               Initialize_Target_Conservatively (Op.Target);
+               declare
+                  Target_Name : constant String := Root_Name (Op.Target);
+               begin
+                  if Target_Name /= ""
+                    and then Var_Types.Contains (Target_Name)
+                    and then Type_Access_Role (Var_Types.Element (Target_Name)) = Role_Owner
+                  then
+                     Diag :=
+                       Receive_Target_Precondition
+                         (Target_Name,
+                          Current,
+                          Var_Types,
+                          Op.Span);
+                     if Has_Text (Diag.Reason) then
+                        Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+                     else
+                        Current.Access_Facts.Include
+                          (Target_Name,
+                           (State => Access_NonNull, others => <>));
+                     end if;
+                  else
+                     Initialize_Target_Conservatively (Op.Target);
+                  end if;
+               end;
                Initialize_Target_Conservatively (Op.Success_Target);
             exception
                when Diagnostic_Failure =>
@@ -4789,15 +5219,29 @@ package body Safe_Frontend.Mir_Analyze is
                Right : constant MD.Diagnostic := Diagnostics (J);
                Swap  : Boolean := False;
             begin
-               if Right.Span.Start_Pos.Line < Left.Span.Start_Pos.Line then
+               if Lower (UString_Value (Right.Path)) < Lower (UString_Value (Left.Path)) then
                   Swap := True;
-               elsif Right.Span.Start_Pos.Line = Left.Span.Start_Pos.Line then
+               elsif Lower (UString_Value (Right.Path)) = Lower (UString_Value (Left.Path))
+                 and then Right.Span.Start_Pos.Line < Left.Span.Start_Pos.Line
+               then
+                  Swap := True;
+               elsif Lower (UString_Value (Right.Path)) = Lower (UString_Value (Left.Path))
+                 and then Right.Span.Start_Pos.Line = Left.Span.Start_Pos.Line
+               then
                   if Right.Span.Start_Pos.Column < Left.Span.Start_Pos.Column then
                      Swap := True;
-                  elsif Right.Span.Start_Pos.Column = Left.Span.Start_Pos.Column
-                    and then Right.Sequence < Left.Sequence
-                  then
-                     Swap := True;
+                  elsif Right.Span.Start_Pos.Column = Left.Span.Start_Pos.Column then
+                     if Diagnostic_Category_Rank (Right) < Diagnostic_Category_Rank (Left) then
+                        Swap := True;
+                     elsif Diagnostic_Category_Rank (Right) = Diagnostic_Category_Rank (Left) then
+                        if Lower (UString_Value (Right.Message)) < Lower (UString_Value (Left.Message)) then
+                           Swap := True;
+                        elsif Lower (UString_Value (Right.Message)) = Lower (UString_Value (Left.Message))
+                          and then Right.Sequence < Left.Sequence
+                        then
+                           Swap := True;
+                        end if;
+                     end if;
                   end if;
                end if;
                if Swap then
@@ -4936,10 +5380,15 @@ package body Safe_Frontend.Mir_Analyze is
                         begin
                            if Arm.Kind = GM.Select_Arm_Channel then
                               if Var_Types.Contains (UString_Value (Arm.Channel_Data.Variable_Name)) then
-                                 Initialize_Symbol
-                                   (Arm_State,
-                                    UString_Value (Arm.Channel_Data.Variable_Name),
-                                    Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name)));
+                                 if Type_Access_Role (Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name))) = Role_Owner then
+                                    Arm_State.Pending_Bindings.Include
+                                      (UString_Value (Arm.Channel_Data.Variable_Name));
+                                 else
+                                    Initialize_Symbol
+                                      (Arm_State,
+                                       UString_Value (Arm.Channel_Data.Variable_Name),
+                                       Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name)));
+                                 end if;
                               end if;
                               Enqueue_Target (UString_Value (Arm.Channel_Data.Target), Arm_State);
                            elsif Arm.Kind = GM.Select_Arm_Delay then
@@ -4982,6 +5431,7 @@ package body Safe_Frontend.Mir_Analyze is
    function Analyze
      (Document : GM.Mir_Document) return Analyze_Result
    is
+      Bronze      : MB.Bronze_Result;
       Type_Env    : Type_Maps.Map;
       Functions   : Function_Maps.Map;
       Diagnostics : MD.Diagnostic_Vectors.Vector;
@@ -4992,6 +5442,13 @@ package body Safe_Frontend.Mir_Analyze is
    begin
       if Document.Format /= GM.Mir_V2 then
          return Error (UString_Value (Document.Path) & ": analyze-mir requires mir-v2 input");
+      end if;
+
+      Bronze := MB.Summarize (Document, Path_String);
+      if not Bronze.Diagnostics.Is_Empty then
+         for Item of Bronze.Diagnostics loop
+            Append_Diagnostic (Diagnostics, Item, Sequence);
+         end loop;
       end if;
 
       Type_Env := Build_Type_Env (Document);

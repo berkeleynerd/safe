@@ -285,12 +285,14 @@ PORTABILITY_TEMPDIR_SCRIPTS = [
     "scripts/run_pr0693_runtime_boundary.py",
     "scripts/run_pr068_ada_ast_emit_no_python.py",
     "scripts/run_pr081_local_concurrency_frontend.py",
+    "scripts/run_pr082_local_concurrency_analysis.py",
 ]
 PORTABILITY_PATH_LOOKUP_SCRIPTS = [
     "scripts/run_pr0693_runtime_boundary.py",
     "scripts/run_pr068_ada_ast_emit_no_python.py",
     "scripts/run_pr06910_portability_environment.py",
     "scripts/run_pr081_local_concurrency_frontend.py",
+    "scripts/run_pr082_local_concurrency_analysis.py",
 ]
 GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_frontend_smoke.py",
@@ -313,6 +315,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr06911_glue_script_safety.py",
     "scripts/run_pr06912_performance_scale_sanity.py",
     "scripts/run_pr081_local_concurrency_frontend.py",
+    "scripts/run_pr082_local_concurrency_analysis.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
     "scripts/validate_output_contracts.py",
@@ -339,6 +342,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr06911_glue_script_safety.py",
     "scripts/run_pr06912_performance_scale_sanity.py",
     "scripts/run_pr081_local_concurrency_frontend.py",
+    "scripts/run_pr082_local_concurrency_analysis.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
@@ -346,6 +350,7 @@ GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
     "scripts/run_pr06_ownership_harness.py": "fixture metadata extraction via read_expected_reason",
     "scripts/run_pr0691_semantic_correctness.py": "fixture metadata extraction via read_expected_reason",
     "scripts/run_pr081_local_concurrency_frontend.py": "fixture metadata extraction via read_expected_reason",
+    "scripts/run_pr082_local_concurrency_analysis.py": "fixture metadata extraction via read_expected_reason",
 }
 GLUE_SAFETY_DIRECT_SAFE_READ_PATTERNS = [
     r'"[^"\n]*\.safe"\s*\)\.read_text\(',

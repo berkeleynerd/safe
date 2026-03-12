@@ -1,0 +1,36 @@
+-- Test: neg_task_shared_subprogram_global
+-- Description: Two tasks reach package-global effects through shared callees.
+--   The reachability is genuinely transitive through Wrapper -> Helper.
+-- Expected: REJECT task_variable_ownership
+
+package Neg_Task_Shared_Subprogram_Global is
+
+   type Counter is range 0 .. 100;
+
+   Shared : Counter = 0;
+
+   procedure Helper is
+   begin
+      Shared = Shared + 1;
+   end Helper;
+
+   procedure Wrapper is
+   begin
+      Helper;
+   end Wrapper;
+
+   task A is
+   begin
+      loop
+         Helper;
+      end loop;
+   end A;
+
+   task B is
+   begin
+      loop
+         Wrapper;
+      end loop;
+   end B;
+
+end Neg_Task_Shared_Subprogram_Global;
