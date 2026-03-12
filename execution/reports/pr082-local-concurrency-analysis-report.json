@@ -1,5 +1,162 @@
 {
   "bronze_evidence": {
+    "synthetic/neg_task_shared_subprogram_global": {
+      "ceilings": [],
+      "global_spans": {
+        "Shared": {
+          "end_col": 23,
+          "end_line": 10,
+          "start_col": 4,
+          "start_line": 10
+        }
+      },
+      "graphs": [
+        {
+          "calls": [
+            "Helper"
+          ],
+          "channels": [],
+          "depends": [
+            {
+              "inputs": [
+                "global:Shared"
+              ],
+              "output_name": "global:Shared"
+            }
+          ],
+          "inputs": [
+            "global:Shared"
+          ],
+          "is_task": true,
+          "kind": "task",
+          "name": "A",
+          "outputs": [
+            "global:Shared"
+          ],
+          "priority": 31,
+          "reads": [
+            "Shared"
+          ],
+          "writes": [
+            "Shared"
+          ]
+        },
+        {
+          "calls": [
+            "Helper",
+            "Wrapper"
+          ],
+          "channels": [],
+          "depends": [
+            {
+              "inputs": [
+                "global:Shared"
+              ],
+              "output_name": "global:Shared"
+            }
+          ],
+          "inputs": [
+            "global:Shared"
+          ],
+          "is_task": true,
+          "kind": "task",
+          "name": "B",
+          "outputs": [
+            "global:Shared"
+          ],
+          "priority": 31,
+          "reads": [
+            "Shared"
+          ],
+          "writes": [
+            "Shared"
+          ]
+        },
+        {
+          "calls": [],
+          "channels": [],
+          "depends": [
+            {
+              "inputs": [
+                "global:Shared"
+              ],
+              "output_name": "global:Shared"
+            }
+          ],
+          "inputs": [
+            "global:Shared"
+          ],
+          "is_task": false,
+          "kind": "procedure",
+          "name": "Helper",
+          "outputs": [
+            "global:Shared"
+          ],
+          "priority": 0,
+          "reads": [
+            "Shared"
+          ],
+          "writes": [
+            "Shared"
+          ]
+        },
+        {
+          "calls": [
+            "Helper"
+          ],
+          "channels": [],
+          "depends": [
+            {
+              "inputs": [
+                "global:Shared"
+              ],
+              "output_name": "global:Shared"
+            }
+          ],
+          "inputs": [
+            "global:Shared"
+          ],
+          "is_task": false,
+          "kind": "procedure",
+          "name": "Wrapper",
+          "outputs": [
+            "global:Shared"
+          ],
+          "priority": 0,
+          "reads": [
+            "Shared"
+          ],
+          "writes": [
+            "Shared"
+          ]
+        }
+      ],
+      "initializes": [
+        "Shared"
+      ],
+      "ownership": [],
+      "shared_callees": [
+        {
+          "callee": "Helper",
+          "globals": [
+            "Shared"
+          ],
+          "tasks": [
+            "A",
+            "B"
+          ]
+        }
+      ],
+      "shared_globals": [
+        {
+          "global_name": "Shared",
+          "tasks": [
+            "A",
+            "B"
+          ]
+        }
+      ]
+    },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "ceilings": [
         {
@@ -182,6 +339,32 @@
         "returncode": 0,
         "stderr": "",
         "stdout": "validate-mir: OK ($TMPDIR/mir/task_variable_ownership_parity.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "package global 'Shared' is accessed by multiple tasks",
+        "path": "tests/negative/neg_task_shared_subprogram_global.safe",
+        "reason": "task_variable_ownership"
+      },
+      "check_first": {
+        "message": "package global 'Shared' is accessed by multiple tasks",
+        "path": "tests/negative/neg_task_shared_subprogram_global.safe",
+        "reason": "task_variable_ownership"
+      },
+      "fixture": "mir/task_shared_subprogram_global_parity.json",
+      "name": "task_shared_subprogram_global_parity",
+      "source": "tests/negative/neg_task_shared_subprogram_global.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/task_shared_subprogram_global_parity.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/task_shared_subprogram_global_parity.json)\n"
       }
     },
     {
@@ -1601,8 +1784,8 @@
       }
     }
   ],
-  "repeat_sha256": "82c3c5a4dbd1a93a5bbf4cdd2545ecf627522158970422199ee1c04f1bd3095b",
-  "report_sha256": "82c3c5a4dbd1a93a5bbf4cdd2545ecf627522158970422199ee1c04f1bd3095b",
+  "repeat_sha256": "93a69163fbcecfb99be0ff316e26c86c16f7cfa1faf85cc17eb9908fbcefd32f",
+  "report_sha256": "93a69163fbcecfb99be0ff316e26c86c16f7cfa1faf85cc17eb9908fbcefd32f",
   "sequential_positive_regression_cases": [
     {
       "check": {

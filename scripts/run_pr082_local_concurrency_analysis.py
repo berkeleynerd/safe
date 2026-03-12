@@ -423,6 +423,190 @@ def build_task_variable_ownership_fixture(source_path: str) -> dict[str, Any]:
     }
 
 
+def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, Any]:
+    counter = counter_type()
+    global_span = span(10, 4, 10, 23)
+    helper_span = span(12, 4, 15, 14)
+    wrapper_span = span(17, 4, 20, 15)
+    task_a_span = span(22, 4, 28, 9)
+    task_b_span = span(30, 4, 36, 9)
+    helper_call_span = span(19, 7, 19, 12)
+    wrapper_call_span = span(33, 10, 33, 16)
+    return {
+        "format": "mir-v2",
+        "source_path": source_path,
+        "package_name": "Neg_Task_Shared_Subprogram_Global",
+        "types": [counter],
+        "channels": [],
+        "graphs": [
+            {
+                "name": "Helper",
+                "kind": "procedure",
+                "entry_bb": "bb0",
+                "span": helper_span,
+                "return_type": None,
+                "locals": [
+                    {
+                        "id": "v0",
+                        "kind": "global",
+                        "mode": "in",
+                        "name": "Shared",
+                        "ownership_role": "",
+                        "scope_id": "scope0",
+                        "span": global_span,
+                        "type": counter,
+                    }
+                ],
+                "scopes": [root_scope(["v0"], "bb0", ["bb0"])],
+                "blocks": [
+                    {
+                        "id": "bb0",
+                        "active_scope_id": "scope0",
+                        "role": "entry",
+                        "span": helper_span,
+                        "ops": [
+                            {
+                                "kind": "assign",
+                                "span": global_span,
+                                "ownership_effect": "None",
+                                "target": ident("Shared", "Counter", global_span),
+                                "type": "Counter",
+                                "value": int_expr(0, "Integer", span(10, 23, 10, 23)),
+                                "declaration_init": True,
+                            },
+                            {
+                                "kind": "assign",
+                                "span": span(14, 7, 14, 26),
+                                "ownership_effect": "None",
+                                "target": ident("Shared", "Counter", span(14, 7, 14, 12)),
+                                "type": "Counter",
+                                "value": binary_expr(
+                                    "+",
+                                    ident("Shared", "Counter", span(14, 16, 14, 21)),
+                                    int_expr(1, "Integer", span(14, 25, 14, 25)),
+                                    "Integer",
+                                    span(14, 16, 14, 25),
+                                ),
+                                "declaration_init": False,
+                            },
+                        ],
+                        "terminator": return_terminator(helper_span),
+                    }
+                ],
+            },
+            {
+                "name": "Wrapper",
+                "kind": "procedure",
+                "entry_bb": "bb0",
+                "span": wrapper_span,
+                "return_type": None,
+                "locals": [],
+                "scopes": [root_scope([], "bb0", ["bb0"])],
+                "blocks": [
+                    {
+                        "id": "bb0",
+                        "active_scope_id": "scope0",
+                        "role": "entry",
+                        "span": wrapper_span,
+                        "ops": [
+                            {
+                                "kind": "call",
+                                "span": helper_call_span,
+                                "ownership_effect": "None",
+                                "target": None,
+                                "type": "Integer",
+                                "value": {
+                                    "tag": "call",
+                                    "span": helper_call_span,
+                                    "type": "Integer",
+                                    "callee": ident("Helper", "Integer", span(19, 7, 19, 12)),
+                                    "args": [],
+                                    "call_span": helper_call_span,
+                                },
+                            }
+                        ],
+                        "terminator": return_terminator(wrapper_span),
+                    }
+                ],
+            },
+            {
+                "name": "A",
+                "kind": "task",
+                "entry_bb": "bb0",
+                "span": task_a_span,
+                "return_type": None,
+                "priority": 31,
+                "has_explicit_priority": False,
+                "locals": [],
+                "scopes": [task_scope([], "bb0", ["bb0"])],
+                "blocks": [
+                    {
+                        "id": "bb0",
+                        "active_scope_id": "scope0",
+                        "role": "entry",
+                        "span": task_a_span,
+                        "ops": [
+                            {
+                                "kind": "call",
+                                "span": span(25, 10, 25, 15),
+                                "ownership_effect": "None",
+                                "target": None,
+                                "type": "Integer",
+                                "value": {
+                                    "tag": "call",
+                                    "span": span(25, 10, 25, 15),
+                                    "type": "Integer",
+                                    "callee": ident("Helper", "Integer", span(25, 10, 25, 15)),
+                                    "args": [],
+                                    "call_span": span(25, 10, 25, 15),
+                                },
+                            }
+                        ],
+                        "terminator": return_terminator(task_a_span),
+                    }
+                ],
+            },
+            {
+                "name": "B",
+                "kind": "task",
+                "entry_bb": "bb0",
+                "span": task_b_span,
+                "return_type": None,
+                "priority": 31,
+                "has_explicit_priority": False,
+                "locals": [],
+                "scopes": [task_scope([], "bb0", ["bb0"])],
+                "blocks": [
+                    {
+                        "id": "bb0",
+                        "active_scope_id": "scope0",
+                        "role": "entry",
+                        "span": task_b_span,
+                        "ops": [
+                            {
+                                "kind": "call",
+                                "span": wrapper_call_span,
+                                "ownership_effect": "None",
+                                "target": None,
+                                "type": "Integer",
+                                "value": {
+                                    "tag": "call",
+                                    "span": wrapper_call_span,
+                                    "type": "Integer",
+                                    "callee": ident("Wrapper", "Integer", span(33, 10, 33, 16)),
+                                    "args": [],
+                                    "call_span": wrapper_call_span,
+                                },
+                            }
+                        ],
+                        "terminator": return_terminator(task_b_span),
+                    }
+                ],
+            },
+        ],
+    }
+
+
 def build_receive_target_not_null_fixture(source_path: str, *, try_receive: bool) -> dict[str, Any]:
     run_span = span(15, 4, 20 if try_receive else 19, 17)
     target_decl_span = span(16, 7, 16, 49)
@@ -1477,6 +1661,21 @@ def build_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[str, 
         require(slow_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Slow channel access drifted")
         require(push_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Push channel access drifted")
 
+        shared_callee_fixture = build_task_shared_subprogram_global_fixture(
+            "tests/negative/neg_task_shared_subprogram_global.safe"
+        )
+        shared_callee_bronze = derive_bronze(shared_callee_fixture)
+        require(
+            shared_callee_bronze["shared_globals"] == [{"global_name": "Shared", "tasks": ["A", "B"]}],
+            "neg_task_shared_subprogram_global.safe: shared-global Bronze summary drifted",
+        )
+        require(
+            shared_callee_bronze["shared_callees"]
+            == [{"callee": "Helper", "tasks": ["A", "B"], "globals": ["Shared"]}],
+            "neg_task_shared_subprogram_global.safe: shared-callee Bronze summary drifted",
+        )
+        evidence["synthetic/neg_task_shared_subprogram_global"] = shared_callee_bronze
+
         concurrency_parity = [
             run_concurrency_parity_case(
                 safec=safec,
@@ -1485,6 +1684,14 @@ def build_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[str, 
                 env=env,
                 temp_root=temp_root,
                 label="task_variable_ownership_parity",
+            ),
+            run_concurrency_parity_case(
+                safec=safec,
+                source=REPO_ROOT / "tests" / "negative" / "neg_task_shared_subprogram_global.safe",
+                fixture_payload=shared_callee_fixture,
+                env=env,
+                temp_root=temp_root,
+                label="task_shared_subprogram_global_parity",
             ),
             run_concurrency_parity_case(
                 safec=safec,
