@@ -1,0 +1,233 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/fixtures/valid_mir_v2_concurrency.safe",
+  "package_name": "Fixture",
+  "types": [
+    {
+      "name": "Message",
+      "kind": "integer",
+      "low": 0,
+      "high": 10
+    }
+  ],
+  "channels": [
+    {
+      "name": "Data_Ch",
+      "element_type": {
+        "name": "Message",
+        "kind": "integer",
+        "low": 0,
+        "high": 10
+      },
+      "capacity": 1,
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 1
+      }
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Worker",
+      "kind": "task",
+      "entry_bb": "bb0",
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 1
+      },
+      "priority": 5,
+      "has_explicit_priority": true,
+      "return_type": null,
+      "locals": [
+        {
+          "id": "v0",
+          "kind": "local",
+          "mode": "in",
+          "name": "Count",
+          "ownership_role": "",
+          "scope_id": "scope0",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "type": {
+            "name": "Natural",
+            "kind": "integer",
+            "low": 0,
+            "high": 9223372036854775807
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "task",
+          "local_ids": [
+            "v0"
+          ],
+          "entry_block": "bb0",
+          "exit_blocks": []
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "role": "entry",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [
+            {
+              "kind": "scope_enter",
+              "scope_id": "scope0",
+              "locals": [
+                "Count"
+              ],
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              }
+            },
+            {
+              "kind": "assign",
+              "ownership_effect": "None",
+              "declaration_init": true,
+              "type": "Natural",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "target": {
+                "tag": "ident",
+                "type": "Natural",
+                "name": "Count",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "value": {
+                "tag": "int",
+                "type": "Integer",
+                "text": "0",
+                "value": 0,
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            }
+          ],
+          "terminator": {
+            "kind": "jump",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "target": "bb1"
+          }
+        },
+        {
+          "id": "bb1",
+          "active_scope_id": "scope0",
+          "role": "loop_body",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [
+            {
+              "kind": "channel_send",
+              "ownership_effect": "None",
+              "type": "Message",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "channel": {
+                "tag": "ident",
+                "type": "Integer",
+                "name": "Data_Ch",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "value": {
+                "tag": "int",
+                "type": "Integer",
+                "text": "1",
+                "value": 1,
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            },
+            {
+              "kind": "delay",
+              "ownership_effect": "None",
+              "type": "Duration",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "value": {
+                "tag": "real",
+                "type": "Long_Float",
+                "text": "0.1",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            }
+          ],
+          "terminator": {
+            "kind": "jump",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "target": "bb1"
+          }
+        }
+      ]
+    }
+  ]
+}

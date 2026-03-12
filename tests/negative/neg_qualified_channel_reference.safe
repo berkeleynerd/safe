@@ -1,0 +1,20 @@
+-- Test: neg_qualified_channel_reference
+-- Description: Package-qualified channel references remain outside local-only PR08.1.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+-- Expected: REJECT unsupported_source_construct
+
+with Remote_Package;
+
+package Qualified_Channel_Reference_Test is
+
+   type Message is range 0 .. 100;
+
+   task Worker is
+   begin
+      loop
+         send Remote_Package.Data_Ch, 1;
+      end loop;
+   end Worker;
+
+end Qualified_Channel_Reference_Test;

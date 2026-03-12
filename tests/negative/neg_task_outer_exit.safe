@@ -1,0 +1,15 @@
+-- Test: neg_task_outer_exit
+-- Description: Tasks may not exit their required outer loop.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53c:77a5f52c
+-- Expected: REJECT source_frontend_error
+
+package Task_Outer_Exit_Test is
+
+   task Worker is
+   begin
+      loop
+         exit;
+      end loop;
+   end Worker;
+
+end Task_Outer_Exit_Test;

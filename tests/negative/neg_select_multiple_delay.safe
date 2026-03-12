@@ -1,0 +1,21 @@
+-- Test: neg_select_multiple_delay
+-- Description: Select statements may have at most one delay arm.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p34:f0f83b83
+-- Expected: REJECT source_frontend_error
+
+package Select_Multiple_Delay_Test is
+
+   task Worker is
+   begin
+      loop
+         select
+            delay 0.10 then
+               null;
+         or
+            delay 0.20 then
+               null;
+         end select;
+      end loop;
+   end Worker;
+
+end Select_Multiple_Delay_Test;

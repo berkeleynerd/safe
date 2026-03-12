@@ -1,0 +1,21 @@
+-- Test: neg_try_receive_success_not_boolean
+-- Description: try_receive success variables must have type Boolean.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p25:961abe5a
+-- Expected: REJECT source_frontend_error
+
+package Try_Receive_Success_Not_Boolean_Test is
+
+   type Item is range 0 .. 10;
+
+   channel Data_Ch : Item capacity 1;
+
+   task Worker is
+      Value   : Item = 0;
+      Success : Natural = 0;
+   begin
+      loop
+         try_receive Data_Ch, Value, Success;
+      end loop;
+   end Worker;
+
+end Try_Receive_Success_Not_Boolean_Test;

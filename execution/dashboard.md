@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR08`
-- **Updated at:** `2026-03-09T22:47:56Z`
+- **Next task:** `PR08.2`
+- **Updated at:** `2026-03-12T04:15:11Z`
 
 ## Repo Facts
 
 - `tests/positive`: 35
-- `tests/negative`: 43
+- `tests/negative`: 55
 - `tests/golden`: 3
-- `tests/concurrency`: 5
+- `tests/concurrency`: 8
 - `tests/diagnostics_golden`: 17
-- **Total test files:** 103
+- **Total test files:** 118
 
 ## Task Ledger
 
@@ -44,7 +44,11 @@
 | PR06.9.12 | done | PR06.9.11 | 1 |
 | PR06.9.13 | done | PR06.9.12 | 1 |
 | PR07 | done | PR06.9.13 | 1 |
-| PR08 | planned | PR07 | 0 |
+| PR08.1 | done | PR07 | 1 |
+| PR08.2 | planned | PR08.1 | 0 |
+| PR08.3 | planned | PR08.2 | 0 |
+| PR08.4 | planned | PR08.3 | 0 |
+| PR08 | planned | PR08.4 | 0 |
 | PR09 | planned | PR08 | 0 |
 | PR10 | planned | PR09 | 0 |
 
@@ -392,17 +396,64 @@
   - Representative Rule 5 and result-record emitted AST, typed, MIR, and safei outputs remain valid under validate_ast_output.py, validate_output_contracts.py, and safec validate-mir, with additive-only float and discriminant metadata.
   - Only the newly supported floating-point Rule 5 cases and the current boolean result-record cases are removed from the unsupported boundary; fixed-point remains unsupported.
   - Canonical Rule 5 and result/discriminant goldens match byte-for-byte and are wired into the canonical golden map.
-  - Tracker, dashboard, and frontend docs agree on the frozen PR07 subset and advance next_task_id to PR08.
+  - Tracker, dashboard, and frontend docs agree on the frozen PR07 subset and hand off the next planned work to the PR08 concurrency series.
 - **Evidence:**
   - `execution/reports/pr07-rule5-result-safety-report.json`
+
+### PR08.1 — Local concurrency frontend
+
+- **Status:** `done`
+- **Depends on:** PR07
+- **Blockers:** none
+- **Acceptance:**
+  - Single-package task/channel/select sources parse, resolve, lower, and emit deterministically on the live Ada-native frontend path.
+  - safec ast, emit, and validate-mir handle local task declarations, channel declarations, send, receive, try_send, try_receive, select, and relative delay.
+  - Task/channel/select legality and task non-termination restrictions reject malformed local concurrency sources deterministically.
+  - typed-v2 and mir-v2 gain additive local task/channel metadata and explicit concurrency ops without changing the dependency-interface artifact.
+- **Evidence:**
+  - `execution/reports/pr081-local-concurrency-frontend-report.json`
+
+### PR08.2 — Local concurrency Bronze and Silver analysis
+
+- **Status:** `planned`
+- **Depends on:** PR08.1
+- **Blockers:** none
+- **Acceptance:**
+  - Local-only Bronze summaries exist for task/channel programs, covering deterministic Global, Depends, and Initializes equivalents, task-variable ownership, and local channel-access and ceiling summaries.
+  - Local channel transfer forms enforce Silver ownership semantics for send, receive, try_send, try_receive, and select-arm bindings.
+  - Representative local concurrency cases stay in parity between safec check --diag-json and emitted safec analyze-mir --diag-json.
+  - The accepted local concurrency corpus includes exclusive_variable.safe, try_send_ownership.safe, and select_priority.safe.
+
+### PR08.3 — Interface contracts and cross-package resolution
+
+- **Status:** `planned`
+- **Depends on:** PR08.2
+- **Blockers:** none
+- **Acceptance:**
+  - safec ast, check, and emit accept repeatable --interface-search-dir flags while emit keeps --interface-dir for output.
+  - safei-v1 is emitted with public declaration data plus effect and channel-access summaries derived from the local Bronze pass.
+  - Package-qualified resolution can consume imported interfaces for public types, subtypes, channels, objects and constants, and subprogram signatures without reading dependency source.
+  - Missing interfaces and duplicate same-package matches in one search dir fail deterministically as source_frontend_error.
+
+### PR08.4 — Transitive concurrency integration and baseline flip
+
+- **Status:** `planned`
+- **Depends on:** PR08.3
+- **Blockers:** none
+- **Acceptance:**
+  - Imported safei-v1 summaries are consumed transitively for cross-package task ownership, channel-access, and channel ceiling analysis.
+  - Representative imported concurrency cases preserve parity between safec check --diag-json and emitted safec analyze-mir --diag-json.
+  - A dedicated PR08 gate and report plus CI wiring exist, and unsupported-boundary expectations are updated for the newly supported concurrency surfaces.
+  - Tracker, dashboard, and frontend docs flip the supported baseline from PR07 to PR08 and advance next_task_id to PR09.
 
 ### PR08 — Concurrency legality and Bronze summaries
 
 - **Status:** `planned`
-- **Depends on:** PR07
+- **Depends on:** PR08.4
 - **Blockers:** none
 - **Acceptance:**
-  - Task/channel/select legality checks and deterministic Bronze summaries exist.
+  - PR08.1 through PR08.4 complete the concurrency frontend, local analysis, interface contracts, and transitive integration work on the live Ada-native path.
+  - The supported frontend subset expands from the PR07 sequential baseline to the PR08 concurrency baseline without reviving deleted legacy packages.
 
 ### PR09 — Ada/SPARK emission and snapshot refresh
 

@@ -15,6 +15,8 @@ This workspace hosts the current Safe compiler frontend baseline established by 
 
 The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern.
 
+PR08.1 also adds a local-only concurrency frontend slice for single-package task declarations, channel declarations, send, receive, try_send, try_receive, select, and relative delay on the `ast` / `emit` / `validate-mir` path. Positive accepted `check` semantics for the local concurrency corpus remain the PR08.2 milestone boundary.
+
 That current boundary includes:
 
 - schema-true AST emission for the implemented subset
@@ -78,11 +80,11 @@ dependency explicitly rather than allowing it to spread by default.
 
 - `<stem>.typed.json`
   Format tag: `typed-v2`.
-  Contents: package identity, resolved type inventory, executable summaries, public declarations, the AST snapshot used to derive lowering and diagnostics, and ownership-oriented access-role metadata for the sequential ownership model.
+  Contents: package identity, resolved type inventory, executable summaries, public declarations, the AST snapshot used to derive lowering and diagnostics, ownership-oriented access-role metadata for the sequential ownership model, and additive local `channels[]` / `tasks[]` metadata for the PR08.1 concurrency frontend slice.
 
 - `<stem>.mir.json`
   Format tag: `mir-v2`.
-  Contents: `source_path`, resolved `types[]`, package-level graph data, deterministic locals tables, `scopes[]`, blocks with `active_scope_id`, typed ops, explicit terminators, graph `return_type`, and ownership-effect metadata for the implemented sequential subset.
+  Contents: `source_path`, resolved `types[]`, package-level graph data, deterministic locals tables, `scopes[]`, blocks with `active_scope_id`, typed ops, explicit terminators, graph `return_type`, and ownership-effect metadata for the implemented sequential subset. PR08.1 extends this additively with top-level `channels[]`, task graphs with priority metadata, channel op kinds, and `select` terminators for the local concurrency frontend slice.
   Validation path: `safec validate-mir <stem>.mir.json`.
   Status: debug and regression artifact for the current sequential platform. Incompatible structural changes require a format-tag bump.
 
@@ -193,3 +195,12 @@ python3 scripts/run_pr0693_runtime_boundary.py
 ```
 
 That gate masks `python` and `python3` on `PATH` for every direct user-facing `safec` command, proves the CLI still behaves correctly for representative success and failure cases, confirms the blocked-spawn log stays empty, and records results in `execution/reports/pr0693-runtime-boundary-report.json`.
+
+The PR08.1 local concurrency frontend gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr081_local_concurrency_frontend.py
+```
+
+That gate validates the local-only concurrency emit corpus on `safec ast`, `emit`, `validate-mir`, and `analyze-mir`, exercises the new source-legality negatives, checks deterministic repeated `emit` output on representative task/channel/select samples, validates the concurrency-bearing MIR fixtures, and records results in `execution/reports/pr081-local-concurrency-frontend-report.json`.

@@ -1,0 +1,52 @@
+-- Test: try_ops
+-- Description: Non-owning try_send and try_receive operations.
+--   Producer and consumer tasks use the non-blocking channel forms with a
+--   Boolean success variable and relative delays on the retry path.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p25:961abe5a
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p29:f792d704
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p30:62619161
+-- Expected: ACCEPT
+
+package Try_Ops is
+
+   type Item is range 0 .. 100;
+
+   channel Data_Ch : Item capacity 2;
+
+   task Producer is
+      Next : Item = 0;
+      Sent : Boolean = False;
+   begin
+      loop
+         try_send Data_Ch, Next, Sent;
+         if Sent then
+            if Next < 100 then
+               Next = Next + 1;
+            else
+               Next = 0;
+            end if;
+         else
+            delay 0.01;
+         end if;
+      end loop;
+   end Producer;
+
+   task Consumer is
+      Value : Item = 0;
+      Got   : Boolean = False;
+      Total : Natural = 0;
+   begin
+      loop
+         try_receive Data_Ch, Value, Got;
+         if Got then
+            Total = Total + Natural (Value);
+         else
+            delay 0.01;
+         end if;
+         if Total > 10_000 then
+            Total = 0;
+         end if;
+      end loop;
+   end Consumer;
+
+end Try_Ops;

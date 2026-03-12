@@ -13,8 +13,11 @@ package body Safe_Frontend.Check_Lower is
    use type CM.Discrete_Range_Kind;
    use type CM.Expr_Access;
    use type CM.Expr_Kind;
+   use type CM.Select_Arm_Kind;
+   use type GM.Select_Arm_Kind;
    use type CM.Statement_Kind;
    use type GM.Terminator_Kind;
+   use type FT.UString;
 
    package Type_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -32,6 +35,7 @@ package body Safe_Frontend.Check_Lower is
    type Builder is record
       Blocks     : GM.Block_Vectors.Vector;
       Block_Map  : Index_Maps.Map;
+      Locals     : GM.Local_Vectors.Vector;
       Scopes     : GM.Scope_Vectors.Vector;
       Scope_Map  : Index_Maps.Map;
       Next_Block : Natural := 0;
@@ -98,6 +102,7 @@ package body Safe_Frontend.Check_Lower is
       Type_Env.Include ("Boolean", Make_Builtin ("Boolean", 0, 1));
       Type_Env.Include ("Float", Make_Float_Builtin ("Float"));
       Type_Env.Include ("Long_Float", Make_Float_Builtin ("Long_Float"));
+      Type_Env.Include ("Duration", Make_Float_Builtin ("Duration"));
    end Add_Builtins;
 
    function Resolve_Type
@@ -483,6 +488,16 @@ package body Safe_Frontend.Check_Lower is
                when GM.Terminator_Branch =>
                   Enqueue (UString_Value (Block.Terminator.True_Target));
                   Enqueue (UString_Value (Block.Terminator.False_Target));
+               when GM.Terminator_Select =>
+                  if not Block.Terminator.Arms.Is_Empty then
+                     for Arm of Block.Terminator.Arms loop
+                        if Arm.Kind = GM.Select_Arm_Channel then
+                           Enqueue (UString_Value (Arm.Channel_Data.Target));
+                        elsif Arm.Kind = GM.Select_Arm_Delay then
+                           Enqueue (UString_Value (Arm.Delay_Data.Target));
+                        end if;
+                     end loop;
+                  end if;
                when others =>
                   null;
             end case;
@@ -614,6 +629,27 @@ package body Safe_Frontend.Check_Lower is
       end loop;
       return Result;
    end Local_Names;
+
+   function Local_Names_For_Ids
+     (Locals : GM.Local_Vectors.Vector;
+      Ids    : FT.UString_Vectors.Vector) return FT.UString_Vectors.Vector
+   is
+      Result : FT.UString_Vectors.Vector;
+   begin
+      if Ids.Is_Empty then
+         return Result;
+      end if;
+
+      for Id of Ids loop
+         for Local of Locals loop
+            if Local.Id = Id then
+               Result.Append (Local.Name);
+               exit;
+            end if;
+         end loop;
+      end loop;
+      return Result;
+   end Local_Names_For_Ids;
 
    function Is_Integerish (Info : GM.Type_Descriptor) return Boolean is
       Kind : constant String := FT.Lowercase (UString_Value (Info.Kind));
@@ -780,13 +816,28 @@ package body Safe_Frontend.Check_Lower is
       Parent_Id  : String;
       Work       : in out Builder;
       Locals     : in out GM.Local_Vectors.Vector) is
+      Current_Visible : Type_Maps.Map := Visible;
+      Parent_Index    : constant Positive := Work.Scope_Map.Element (Parent_Id);
    begin
       for Stmt of Statements loop
-         if Stmt.Kind = CM.Stmt_Block then
+         if Stmt.Kind = CM.Stmt_Object_Decl then
+            for Name of Stmt.Decl.Names loop
+               Work.Scopes (Parent_Index).Local_Ids.Append
+                 (Append_Local
+                    (Locals,
+                     UString_Value (Name),
+                     "local",
+                     "in",
+                     Stmt.Decl.Type_Info,
+                     Stmt.Decl.Span,
+                     Parent_Id));
+               Current_Visible.Include (UString_Value (Name), Stmt.Decl.Type_Info);
+            end loop;
+         elsif Stmt.Kind = CM.Stmt_Block then
             declare
                Scope_Id : constant String := "scope" & Trimmed (Natural (Work.Scopes.Length));
                Scope    : GM.Scope_Entry := New_Scope (Scope_Id, Parent_Id, "block");
-               Child    : Type_Maps.Map := Visible;
+               Child    : Type_Maps.Map := Current_Visible;
             begin
                Stmt.Scope_Id := FT.To_UString (Scope_Id);
                for Decl of Stmt.Declarations loop
@@ -810,8 +861,8 @@ package body Safe_Frontend.Check_Lower is
             declare
                Scope_Id  : constant String := "scope" & Trimmed (Natural (Work.Scopes.Length));
                Scope     : GM.Scope_Entry := New_Scope (Scope_Id, Parent_Id, "loop");
-               Loop_Type : constant GM.Type_Descriptor := Static_Loop_Type (Stmt.Loop_Range, Visible, Visible);
-               Child     : Type_Maps.Map := Visible;
+               Loop_Type : constant GM.Type_Descriptor := Static_Loop_Type (Stmt.Loop_Range, Current_Visible, Visible);
+               Child     : Type_Maps.Map := Current_Visible;
             begin
                Stmt.Scope_Id := FT.To_UString (Scope_Id);
                Scope.Local_Ids.Append
@@ -828,15 +879,46 @@ package body Safe_Frontend.Check_Lower is
                Collect_Scopes (Stmt.Body_Stmts, Child, Scope_Id, Work, Locals);
             end;
          elsif Stmt.Kind = CM.Stmt_If then
-            Collect_Scopes (Stmt.Then_Stmts, Visible, Parent_Id, Work, Locals);
+            Collect_Scopes (Stmt.Then_Stmts, Current_Visible, Parent_Id, Work, Locals);
             for Part of Stmt.Elsifs loop
-               Collect_Scopes (Part.Statements, Visible, Parent_Id, Work, Locals);
+               Collect_Scopes (Part.Statements, Current_Visible, Parent_Id, Work, Locals);
             end loop;
             if Stmt.Has_Else then
-               Collect_Scopes (Stmt.Else_Stmts, Visible, Parent_Id, Work, Locals);
+               Collect_Scopes (Stmt.Else_Stmts, Current_Visible, Parent_Id, Work, Locals);
             end if;
-         elsif Stmt.Kind = CM.Stmt_While then
-            Collect_Scopes (Stmt.Body_Stmts, Visible, Parent_Id, Work, Locals);
+         elsif Stmt.Kind in CM.Stmt_While | CM.Stmt_Loop then
+            Collect_Scopes (Stmt.Body_Stmts, Current_Visible, Parent_Id, Work, Locals);
+         elsif Stmt.Kind = CM.Stmt_Select then
+            for Arm of Stmt.Arms loop
+               if Arm.Kind = CM.Select_Arm_Channel then
+                  declare
+                     Scope_Id : constant String := "scope" & Trimmed (Natural (Work.Scopes.Length));
+                     Scope    : GM.Scope_Entry := New_Scope (Scope_Id, Parent_Id, "select_arm");
+                     Child    : Type_Maps.Map := Current_Visible;
+                  begin
+                     Arm.Channel_Data.Scope_Id := FT.To_UString (Scope_Id);
+                     Arm.Channel_Data.Local_Id :=
+                       Append_Local
+                         (Locals,
+                          UString_Value (Arm.Channel_Data.Variable_Name),
+                          "local",
+                          "in",
+                          Arm.Channel_Data.Type_Info,
+                          Arm.Channel_Data.Span,
+                          Scope_Id);
+                     Scope.Local_Ids.Append (Arm.Channel_Data.Local_Id);
+                     Child.Include
+                       (UString_Value (Arm.Channel_Data.Variable_Name),
+                        Arm.Channel_Data.Type_Info);
+                     Register_Scope (Work, Scope);
+                     Collect_Scopes
+                       (Arm.Channel_Data.Statements, Child, Scope_Id, Work, Locals);
+                  end;
+               elsif Arm.Kind = CM.Select_Arm_Delay then
+                  Collect_Scopes
+                    (Arm.Delay_Data.Statements, Current_Visible, Parent_Id, Work, Locals);
+               end if;
+            end loop;
          end if;
       end loop;
    end Collect_Scopes;
@@ -858,7 +940,8 @@ package body Safe_Frontend.Check_Lower is
       Visible_Types    : Type_Maps.Map;
       Type_Env         : Type_Maps.Map;
       Current_Scope_Id : String;
-      Functions        : CM.Resolved_Subprogram_Vectors.Vector) return FT.UString;
+      Functions        : CM.Resolved_Subprogram_Vectors.Vector;
+      Loop_Exit_Target : String := "") return FT.UString;
 
    function Lower_Statement_List
      (Work             : in out Builder;
@@ -867,9 +950,11 @@ package body Safe_Frontend.Check_Lower is
       Visible_Types    : Type_Maps.Map;
       Type_Env         : Type_Maps.Map;
       Current_Scope_Id : String;
-      Functions        : CM.Resolved_Subprogram_Vectors.Vector) return FT.UString
+      Functions        : CM.Resolved_Subprogram_Vectors.Vector;
+      Loop_Exit_Target : String := "") return FT.UString
    is
-      Block_Id : FT.UString := Current_Id;
+      Block_Id     : FT.UString := Current_Id;
+      Local_Types  : Type_Maps.Map := Visible_Types;
    begin
       for Stmt of Statements loop
          if not Has_Block (Block_Id) then
@@ -880,10 +965,16 @@ package body Safe_Frontend.Check_Lower is
              (Work,
               Block_Id,
               Stmt,
-              Visible_Types,
+              Local_Types,
               Type_Env,
               Current_Scope_Id,
-              Functions);
+              Functions,
+              Loop_Exit_Target);
+         if Stmt.Kind = CM.Stmt_Object_Decl then
+            for Name of Stmt.Decl.Names loop
+               Local_Types.Include (UString_Value (Name), Stmt.Decl.Type_Info);
+            end loop;
+         end if;
       end loop;
       return Block_Id;
    end Lower_Statement_List;
@@ -942,7 +1033,8 @@ package body Safe_Frontend.Check_Lower is
       Visible_Types    : Type_Maps.Map;
       Type_Env         : Type_Maps.Map;
       Current_Scope_Id : String;
-      Functions        : CM.Resolved_Subprogram_Vectors.Vector) return FT.UString
+      Functions        : CM.Resolved_Subprogram_Vectors.Vector;
+      Loop_Exit_Target : String := "") return FT.UString
    is
       Assign_Op   : GM.Op_Entry;
       Call_Op     : GM.Op_Entry;
@@ -950,6 +1042,37 @@ package body Safe_Frontend.Check_Lower is
       Child_Types : Type_Maps.Map;
    begin
       case Stmt.Kind is
+         when CM.Stmt_Object_Decl =>
+            if Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null then
+               for Name of Stmt.Decl.Names loop
+                  Assign_Op := (others => <>);
+                  Assign_Op.Kind := GM.Op_Assign;
+                  Assign_Op.Span := Stmt.Decl.Span;
+                  Assign_Op.Target :=
+                    Lower_Target
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Stmt.Decl.Span,
+                          UString_Value (Stmt.Decl.Type_Info.Name)),
+                       Visible_Types,
+                       Type_Env);
+                  Assign_Op.Value := Lower_Expr (Stmt.Decl.Initializer, Visible_Types, Type_Env);
+                  Assign_Op.Type_Name := Stmt.Decl.Type_Info.Name;
+                  Assign_Op.Ownership_Effect :=
+                    Ownership_Assignment_Effect
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Stmt.Decl.Span,
+                          UString_Value (Stmt.Decl.Type_Info.Name)),
+                       Stmt.Decl.Initializer,
+                       Visible_Types,
+                       Type_Env);
+                  Assign_Op.Declaration_Init := True;
+                  Add_Op (Work, UString_Value (Current_Id), Assign_Op);
+               end loop;
+            end if;
+            return Current_Id;
+
          when CM.Stmt_Assign =>
             Assign_Op.Kind := GM.Op_Assign;
             Assign_Op.Span := Stmt.Span;
@@ -974,6 +1097,30 @@ package body Safe_Frontend.Check_Lower is
 
          when CM.Stmt_Null =>
             return Current_Id;
+
+         when CM.Stmt_Exit =>
+            if Stmt.Condition = null then
+               Terminator.Kind := GM.Terminator_Jump;
+               Terminator.Span := Stmt.Span;
+               Terminator.Target := FT.To_UString (Loop_Exit_Target);
+               Set_Terminator (Work, UString_Value (Current_Id), Terminator);
+               return Empty_Block_Id;
+            end if;
+            declare
+               Continue_Id : constant FT.UString :=
+                 New_Block (Work, Stmt.Span, "loop_continue", Current_Scope_Id);
+            begin
+               Lower_Branch_Condition
+                 (Work,
+                  UString_Value (Current_Id),
+                  Stmt.Condition,
+                  Visible_Types,
+                  Type_Env,
+                  Loop_Exit_Target,
+                  UString_Value (Continue_Id),
+                  Current_Scope_Id);
+               return Continue_Id;
+            end;
 
          when CM.Stmt_Return =>
             Terminator.Kind := GM.Terminator_Return;
@@ -1059,7 +1206,8 @@ package body Safe_Frontend.Check_Lower is
                     Child_Types,
                     Type_Env,
                     Scope_Id,
-                    Functions);
+                    Functions,
+                    Loop_Exit_Target);
 
                if Has_Block (Body_End) then
                   if not Local_Items.Is_Empty then
@@ -1106,7 +1254,8 @@ package body Safe_Frontend.Check_Lower is
                     Visible_Types,
                     Type_Env,
                     Current_Scope_Id,
-                    Functions);
+                    Functions,
+                    Loop_Exit_Target);
 
                if not Stmt.Elsifs.Is_Empty then
                   declare
@@ -1132,7 +1281,8 @@ package body Safe_Frontend.Check_Lower is
                           Visible_Types,
                           Type_Env,
                           Current_Scope_Id,
-                          Functions);
+                          Functions,
+                          Loop_Exit_Target);
                   end;
                elsif Stmt.Has_Else then
                   Else_End :=
@@ -1143,7 +1293,8 @@ package body Safe_Frontend.Check_Lower is
                        Visible_Types,
                        Type_Env,
                        Current_Scope_Id,
-                       Functions);
+                       Functions,
+                       Loop_Exit_Target);
                else
                   Else_End := Else_Id;
                end if;
@@ -1209,7 +1360,58 @@ package body Safe_Frontend.Check_Lower is
                     Visible_Types,
                     Type_Env,
                     Current_Scope_Id,
-                    Functions);
+                    Functions,
+                    UString_Value (Exit_Id));
+
+               if Has_Block (Body_End)
+                 and then not Block_Terminated (Work, UString_Value (Body_End))
+               then
+                  Terminator := (others => <>);
+                  Terminator.Kind := GM.Terminator_Jump;
+                  Terminator.Span := Stmt.Span;
+                  Terminator.Target := Header_Id;
+                  Set_Terminator (Work, UString_Value (Body_End), Terminator);
+               end if;
+               return Exit_Id;
+            end;
+
+         when CM.Stmt_Loop =>
+            declare
+               Header_Id : constant FT.UString :=
+                 New_Block (Work, Stmt.Span, "loop_header", Current_Scope_Id);
+               Body_Id   : constant FT.UString :=
+                 New_Block (Work, Stmt.Span, "loop_body", Current_Scope_Id);
+               Exit_Id   : constant FT.UString :=
+                 New_Block (Work, Stmt.Span, "loop_exit", Current_Scope_Id);
+               Body_End  : FT.UString;
+            begin
+               Terminator.Kind := GM.Terminator_Jump;
+               Terminator.Span := Stmt.Span;
+               Terminator.Target := Header_Id;
+               Set_Terminator (Work, UString_Value (Current_Id), Terminator);
+
+               Terminator := (others => <>);
+               Terminator.Kind := GM.Terminator_Jump;
+               Terminator.Span := Stmt.Span;
+               Terminator.Target := Body_Id;
+               Set_Terminator (Work, UString_Value (Header_Id), Terminator);
+               Set_Loop_Info
+                 (Work,
+                  UString_Value (Header_Id),
+                  "loop",
+                  "",
+                  UString_Value (Exit_Id));
+
+               Body_End :=
+                 Lower_Statement_List
+                   (Work,
+                    Body_Id,
+                    Stmt.Body_Stmts,
+                    Visible_Types,
+                    Type_Env,
+                    Current_Scope_Id,
+                    Functions,
+                    UString_Value (Exit_Id));
 
                if Has_Block (Body_End)
                  and then not Block_Terminated (Work, UString_Value (Body_End))
@@ -1317,7 +1519,8 @@ package body Safe_Frontend.Check_Lower is
                     Loop_Types,
                     Type_Env,
                     Scope_Id,
-                    Functions);
+                    Functions,
+                    UString_Value (Exit_Id));
 
                if Has_Block (Body_End)
                  and then not Block_Terminated (Work, UString_Value (Body_End))
@@ -1371,6 +1574,185 @@ package body Safe_Frontend.Check_Lower is
                Register_Scope_Exit (Work, Scope_Id, UString_Value (Exit_Id));
 
                return Exit_Id;
+            end;
+
+         when CM.Stmt_Send =>
+            Call_Op := (others => <>);
+            Call_Op.Kind := GM.Op_Channel_Send;
+            Call_Op.Span := Stmt.Span;
+            Call_Op.Channel := Lower_Expr (Stmt.Channel_Name, Visible_Types, Type_Env);
+            Call_Op.Value := Lower_Expr (Stmt.Value, Visible_Types, Type_Env);
+            Call_Op.Type_Name := Expr_Type (Stmt.Value, Visible_Types, Type_Env).Name;
+            Call_Op.Ownership_Effect := GM.Ownership_None;
+            Add_Op (Work, UString_Value (Current_Id), Call_Op);
+            return Current_Id;
+
+         when CM.Stmt_Receive =>
+            Assign_Op := (others => <>);
+            Assign_Op.Kind := GM.Op_Channel_Receive;
+            Assign_Op.Span := Stmt.Span;
+            Assign_Op.Channel := Lower_Expr (Stmt.Channel_Name, Visible_Types, Type_Env);
+            Assign_Op.Target := Lower_Target (Stmt.Target, Visible_Types, Type_Env);
+            Assign_Op.Type_Name := Expr_Type (Stmt.Target, Visible_Types, Type_Env).Name;
+            Assign_Op.Ownership_Effect := GM.Ownership_None;
+            Add_Op (Work, UString_Value (Current_Id), Assign_Op);
+            return Current_Id;
+
+         when CM.Stmt_Try_Send =>
+            Call_Op := (others => <>);
+            Call_Op.Kind := GM.Op_Channel_Try_Send;
+            Call_Op.Span := Stmt.Span;
+            Call_Op.Channel := Lower_Expr (Stmt.Channel_Name, Visible_Types, Type_Env);
+            Call_Op.Value := Lower_Expr (Stmt.Value, Visible_Types, Type_Env);
+            Call_Op.Success_Target := Lower_Target (Stmt.Success_Var, Visible_Types, Type_Env);
+            Call_Op.Type_Name := Expr_Type (Stmt.Value, Visible_Types, Type_Env).Name;
+            Call_Op.Ownership_Effect := GM.Ownership_None;
+            Add_Op (Work, UString_Value (Current_Id), Call_Op);
+            return Current_Id;
+
+         when CM.Stmt_Try_Receive =>
+            Assign_Op := (others => <>);
+            Assign_Op.Kind := GM.Op_Channel_Try_Receive;
+            Assign_Op.Span := Stmt.Span;
+            Assign_Op.Channel := Lower_Expr (Stmt.Channel_Name, Visible_Types, Type_Env);
+            Assign_Op.Target := Lower_Target (Stmt.Target, Visible_Types, Type_Env);
+            Assign_Op.Success_Target := Lower_Target (Stmt.Success_Var, Visible_Types, Type_Env);
+            Assign_Op.Type_Name := Expr_Type (Stmt.Target, Visible_Types, Type_Env).Name;
+            Assign_Op.Ownership_Effect := GM.Ownership_None;
+            Add_Op (Work, UString_Value (Current_Id), Assign_Op);
+            return Current_Id;
+
+         when CM.Stmt_Delay =>
+            Call_Op := (others => <>);
+            Call_Op.Kind := GM.Op_Delay;
+            Call_Op.Span := Stmt.Span;
+            Call_Op.Value := Lower_Expr (Stmt.Value, Visible_Types, Type_Env);
+            Call_Op.Type_Name := FT.To_UString ("Duration");
+            Call_Op.Ownership_Effect := GM.Ownership_None;
+            Add_Op (Work, UString_Value (Current_Id), Call_Op);
+            return Current_Id;
+
+         when CM.Stmt_Select =>
+            declare
+               Join_Id   : constant FT.UString :=
+                 New_Block (Work, Stmt.Span, "select_join", Current_Scope_Id);
+               Select_Term : GM.Terminator_Entry := (others => <>);
+               Reached   : Boolean := False;
+            begin
+               Select_Term.Kind := GM.Terminator_Select;
+               Select_Term.Span := Stmt.Span;
+               for Arm of Stmt.Arms loop
+                  if Arm.Kind = CM.Select_Arm_Channel then
+                     declare
+                        Scope_Id    : constant String := UString_Value (Arm.Channel_Data.Scope_Id);
+                        Entry_Id    : constant FT.UString :=
+                          New_Block (Work, Arm.Span, "select_channel_arm", Scope_Id);
+                        Body_End    : FT.UString;
+                        Scope_Op    : GM.Op_Entry;
+                        Scope_Index : constant Positive := Work.Scope_Map.Element (Scope_Id);
+                        Arm_Info    : GM.Select_Arm_Entry;
+                        Arm_Types   : Type_Maps.Map := Visible_Types;
+                     begin
+                        Register_Scope_Entry (Work, Scope_Id, UString_Value (Entry_Id));
+                        Arm_Types.Include
+                          (UString_Value (Arm.Channel_Data.Variable_Name),
+                           Arm.Channel_Data.Type_Info);
+                        Arm_Info.Kind := GM.Select_Arm_Channel;
+                        Arm_Info.Channel_Data.Channel_Name :=
+                          FT.To_UString (CM.Flatten_Name (Arm.Channel_Data.Channel_Name));
+                        Arm_Info.Channel_Data.Variable_Name := Arm.Channel_Data.Variable_Name;
+                        Arm_Info.Channel_Data.Scope_Id := Arm.Channel_Data.Scope_Id;
+                        Arm_Info.Channel_Data.Local_Id := Arm.Channel_Data.Local_Id;
+                        Arm_Info.Channel_Data.Type_Info := Arm.Channel_Data.Type_Info;
+                        Arm_Info.Channel_Data.Target := Entry_Id;
+                        Arm_Info.Channel_Data.Span := Arm.Channel_Data.Span;
+                        Select_Term.Arms.Append (Arm_Info);
+
+                        if not Work.Scopes (Scope_Index).Local_Ids.Is_Empty then
+                           Scope_Op.Kind := GM.Op_Scope_Enter;
+                           Scope_Op.Span := Arm.Channel_Data.Span;
+                           Scope_Op.Scope_Id := FT.To_UString (Scope_Id);
+                           Scope_Op.Locals :=
+                             Local_Names_For_Ids
+                               (Work.Locals,
+                                Work.Scopes (Scope_Index).Local_Ids);
+                           Add_Op (Work, UString_Value (Entry_Id), Scope_Op);
+                        end if;
+
+                        Body_End :=
+                          Lower_Statement_List
+                            (Work,
+                             Entry_Id,
+                             Arm.Channel_Data.Statements,
+                             Arm_Types,
+                             Type_Env,
+                             Scope_Id,
+                             Functions);
+
+                        if Has_Block (Body_End)
+                          and then not Block_Terminated (Work, UString_Value (Body_End))
+                        then
+                           if not Work.Scopes (Scope_Index).Local_Ids.Is_Empty then
+                              Scope_Op := (others => <>);
+                              Scope_Op.Kind := GM.Op_Scope_Exit;
+                              Scope_Op.Span := Arm.Channel_Data.Span;
+                              Scope_Op.Scope_Id := FT.To_UString (Scope_Id);
+                              Scope_Op.Locals :=
+                                Local_Names_For_Ids
+                                  (Work.Locals,
+                                   Work.Scopes (Scope_Index).Local_Ids);
+                              Add_Op (Work, UString_Value (Body_End), Scope_Op);
+                              Register_Scope_Exit (Work, Scope_Id, UString_Value (Body_End));
+                           end if;
+                           Terminator := (others => <>);
+                           Terminator.Kind := GM.Terminator_Jump;
+                           Terminator.Span := Arm.Channel_Data.Span;
+                           Terminator.Target := Join_Id;
+                           Set_Terminator (Work, UString_Value (Body_End), Terminator);
+                           Reached := True;
+                        end if;
+                     end;
+                  elsif Arm.Kind = CM.Select_Arm_Delay then
+                     declare
+                        Entry_Id : constant FT.UString :=
+                          New_Block (Work, Arm.Span, "select_delay_arm", Current_Scope_Id);
+                        Body_End : FT.UString;
+                        Arm_Info : GM.Select_Arm_Entry;
+                     begin
+                        Arm_Info.Kind := GM.Select_Arm_Delay;
+                        Arm_Info.Delay_Data.Duration_Expr :=
+                          Lower_Expr (Arm.Delay_Data.Duration_Expr, Visible_Types, Type_Env);
+                        Arm_Info.Delay_Data.Target := Entry_Id;
+                        Arm_Info.Delay_Data.Span := Arm.Delay_Data.Span;
+                        Select_Term.Arms.Append (Arm_Info);
+
+                        Body_End :=
+                          Lower_Statement_List
+                            (Work,
+                             Entry_Id,
+                             Arm.Delay_Data.Statements,
+                             Visible_Types,
+                             Type_Env,
+                             Current_Scope_Id,
+                             Functions);
+                        if Has_Block (Body_End)
+                          and then not Block_Terminated (Work, UString_Value (Body_End))
+                        then
+                           Terminator := (others => <>);
+                           Terminator.Kind := GM.Terminator_Jump;
+                           Terminator.Span := Arm.Delay_Data.Span;
+                           Terminator.Target := Join_Id;
+                           Set_Terminator (Work, UString_Value (Body_End), Terminator);
+                           Reached := True;
+                        end if;
+                     end;
+                  end if;
+               end loop;
+               Set_Terminator (Work, UString_Value (Current_Id), Select_Term);
+               if Reached then
+                  return Join_Id;
+               end if;
+               return Empty_Block_Id;
             end;
 
          when others =>
@@ -1466,6 +1848,7 @@ package body Safe_Frontend.Check_Lower is
       end loop;
 
       Collect_Scopes (Subprogram.Statements, Visible, "scope0", Work, Result.Locals);
+      Work.Locals := Result.Locals;
 
       Entry_Id := New_Block (Work, Subprogram.Span, "entry", "scope0");
       Register_Scope_Entry (Work, "scope0", UString_Value (Entry_Id));
@@ -1571,6 +1954,170 @@ package body Safe_Frontend.Check_Lower is
       return Result;
    end Lower_Subprogram;
 
+   function Lower_Task
+     (Task_Item       : CM.Resolved_Task;
+      All_Functions   : CM.Resolved_Subprogram_Vectors.Vector;
+      Type_Env        : Type_Maps.Map;
+      Package_Objects : CM.Resolved_Object_Decl_Vectors.Vector) return GM.Graph_Entry
+   is
+      Result       : GM.Graph_Entry;
+      Visible      : Type_Maps.Map := Type_Env;
+      Work         : Builder;
+      Root_Locals  : constant FT.UString_Vectors.Vector := Local_Names (Task_Item.Declarations);
+      Root_Scope   : constant GM.Scope_Entry := New_Scope ("scope0", "", "task");
+      Entry_Id     : FT.UString;
+      End_Id       : FT.UString;
+      Assign_Op    : GM.Op_Entry;
+      Scope_Op     : GM.Op_Entry;
+      Terminator   : GM.Terminator_Entry;
+   begin
+      Result.Name := Task_Item.Name;
+      Result.Kind := FT.To_UString ("task");
+      Result.Has_Span := True;
+      Result.Span := Task_Item.Span;
+      Result.Has_Priority := True;
+      Result.Priority := Task_Item.Priority;
+      Result.Has_Explicit_Priority := Task_Item.Has_Explicit_Priority;
+
+      Register_Scope (Work, Root_Scope);
+
+      for Decl of Package_Objects loop
+         for Name of Decl.Names loop
+            Visible.Include (UString_Value (Name), Decl.Type_Info);
+            declare
+               Global_Local_Id : constant FT.UString :=
+                 Append_Local
+                   (Result.Locals,
+                    UString_Value (Name),
+                    "global",
+                    "in",
+                    Decl.Type_Info,
+                    Decl.Span,
+                    "scope0");
+            begin
+               Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+                 (Global_Local_Id);
+            end;
+         end loop;
+      end loop;
+
+      for Decl of Task_Item.Declarations loop
+         for Name of Decl.Names loop
+            Visible.Include (UString_Value (Name), Decl.Type_Info);
+            Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+              (Append_Local
+                 (Result.Locals,
+                  UString_Value (Name),
+                  "local",
+                  "in",
+                  Decl.Type_Info,
+                  Decl.Span,
+                  "scope0"));
+         end loop;
+      end loop;
+
+      Collect_Scopes (Task_Item.Statements, Visible, "scope0", Work, Result.Locals);
+      Work.Locals := Result.Locals;
+
+      Entry_Id := New_Block (Work, Task_Item.Span, "entry", "scope0");
+      Register_Scope_Entry (Work, "scope0", UString_Value (Entry_Id));
+      Result.Entry_BB := Entry_Id;
+
+      if not Root_Locals.Is_Empty then
+         Scope_Op.Kind := GM.Op_Scope_Enter;
+         Scope_Op.Span := Task_Item.Span;
+         Scope_Op.Scope_Id := FT.To_UString ("scope0");
+         Scope_Op.Locals := Root_Locals;
+         Add_Op (Work, UString_Value (Entry_Id), Scope_Op);
+      end if;
+
+      for Decl of Package_Objects loop
+         for Name of Decl.Names loop
+            if Decl.Has_Initializer and then Decl.Initializer /= null then
+               Assign_Op := (others => <>);
+               Assign_Op.Kind := GM.Op_Assign;
+               Assign_Op.Span := Decl.Span;
+               Assign_Op.Target :=
+                 Lower_Target
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Visible,
+                    Type_Env);
+               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+               Assign_Op.Type_Name := Decl.Type_Info.Name;
+               Assign_Op.Ownership_Effect :=
+                 Ownership_Assignment_Effect
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Decl.Initializer,
+                    Visible,
+                    Type_Env);
+               Assign_Op.Declaration_Init := True;
+               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+            end if;
+         end loop;
+      end loop;
+
+      for Decl of Task_Item.Declarations loop
+         for Name of Decl.Names loop
+            if Decl.Has_Initializer and then Decl.Initializer /= null then
+               Assign_Op := (others => <>);
+               Assign_Op.Kind := GM.Op_Assign;
+               Assign_Op.Span := Decl.Span;
+               Assign_Op.Target :=
+                 Lower_Target
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Visible,
+                    Type_Env);
+               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+               Assign_Op.Type_Name := Decl.Type_Info.Name;
+               Assign_Op.Ownership_Effect :=
+                 Ownership_Assignment_Effect
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Decl.Initializer,
+                    Visible,
+                    Type_Env);
+               Assign_Op.Declaration_Init := True;
+               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+            end if;
+         end loop;
+      end loop;
+
+      End_Id :=
+        Lower_Statement_List
+          (Work,
+           Entry_Id,
+           Task_Item.Statements,
+           Visible,
+           Type_Env,
+           "scope0",
+           All_Functions);
+
+      if Has_Block (End_Id)
+        and then not Block_Terminated (Work, UString_Value (End_Id))
+      then
+         Terminator.Kind := GM.Terminator_Jump;
+         Terminator.Span := Task_Item.Span;
+         Terminator.Target := End_Id;
+         Set_Terminator (Work, UString_Value (End_Id), Terminator);
+      end if;
+
+      Finalize_Unknown_Terminators (Work, UString_Value (Result.Entry_BB));
+      Result.Scopes := Work.Scopes;
+      Result.Blocks := Work.Blocks;
+      return Result;
+   end Lower_Task;
+
    function Lower (Unit : CM.Resolved_Unit) return GM.Mir_Document is
       Result   : GM.Mir_Document;
       Type_Env : Type_Maps.Map;
@@ -1587,10 +2134,27 @@ package body Safe_Frontend.Check_Lower is
       Result.Source_Path := Unit.Path;
       Result.Package_Name := Unit.Package_Name;
 
+      for Channel_Item of Unit.Channels loop
+         Result.Channels.Append
+           ((Name => Channel_Item.Name,
+             Element_Type => Channel_Item.Element_Type,
+             Capacity => Channel_Item.Capacity,
+             Span => Channel_Item.Span));
+      end loop;
+
       for Subprogram of Unit.Subprograms loop
          Result.Graphs.Append
            (Lower_Subprogram
               (Subprogram,
+               Unit.Subprograms,
+               Type_Env,
+               Unit.Objects));
+      end loop;
+
+      for Task_Item of Unit.Tasks loop
+         Result.Graphs.Append
+           (Lower_Task
+              (Task_Item,
                Unit.Subprograms,
                Type_Env,
                Unit.Objects));

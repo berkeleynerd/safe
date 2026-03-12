@@ -218,24 +218,69 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Elsif_Part);
 
+   type Select_Arm_Kind is
+     (Select_Arm_Unknown,
+      Select_Arm_Channel,
+      Select_Arm_Delay);
+
+   type Channel_Select_Arm is record
+      Variable_Name : FT.UString := FT.To_UString ("");
+      Subtype_Mark  : Type_Spec;
+      Type_Info     : GM.Type_Descriptor;
+      Channel_Name  : Expr_Access := null;
+      Statements    : Statement_Access_Vectors.Vector;
+      Scope_Id      : FT.UString := FT.To_UString ("");
+      Local_Id      : FT.UString := FT.To_UString ("");
+      Span          : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Delay_Select_Arm is record
+      Duration_Expr : Expr_Access := null;
+      Statements    : Statement_Access_Vectors.Vector;
+      Span          : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Select_Arm is record
+      Kind         : Select_Arm_Kind := Select_Arm_Unknown;
+      Channel_Data : Channel_Select_Arm;
+      Delay_Data   : Delay_Select_Arm;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Select_Arm_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Select_Arm);
+
    type Statement_Kind is
      (Stmt_Unknown,
       Stmt_Null,
+      Stmt_Object_Decl,
       Stmt_Assign,
       Stmt_Call,
       Stmt_Return,
       Stmt_If,
       Stmt_While,
       Stmt_For,
-      Stmt_Block);
+      Stmt_Block,
+      Stmt_Loop,
+      Stmt_Exit,
+      Stmt_Send,
+      Stmt_Receive,
+      Stmt_Try_Send,
+      Stmt_Try_Receive,
+      Stmt_Select,
+      Stmt_Delay);
 
    type Statement is record
       Kind          : Statement_Kind := Stmt_Unknown;
       Span          : FT.Source_Span := FT.Null_Span;
+      Decl          : Object_Decl;
       Target        : Expr_Access := null;
       Value         : Expr_Access := null;
       Call          : Expr_Access := null;
       Condition     : Expr_Access := null;
+      Channel_Name  : Expr_Access := null;
+      Success_Var   : Expr_Access := null;
       Then_Stmts    : Statement_Access_Vectors.Vector;
       Elsifs        : Elsif_Part_Vectors.Vector;
       Has_Else      : Boolean := False;
@@ -244,6 +289,7 @@ package Safe_Frontend.Check_Model is
       Loop_Range    : Discrete_Range;
       Body_Stmts    : Statement_Access_Vectors.Vector;
       Declarations  : Object_Decl_Vectors.Vector;
+      Arms          : Select_Arm_Vectors.Vector;
       Scope_Id      : FT.UString := FT.To_UString ("");
    end record;
 
@@ -265,12 +311,32 @@ package Safe_Frontend.Check_Model is
       Span         : FT.Source_Span := FT.Null_Span;
    end record;
 
+   type Task_Decl is record
+      Name                 : FT.UString := FT.To_UString ("");
+      Has_Explicit_Priority : Boolean := False;
+      Priority             : Expr_Access := null;
+      Declarations         : Object_Decl_Vectors.Vector;
+      Statements           : Statement_Access_Vectors.Vector;
+      End_Name             : FT.UString := FT.To_UString ("");
+      Span                 : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Channel_Decl is record
+      Is_Public    : Boolean := False;
+      Name         : FT.UString := FT.To_UString ("");
+      Element_Type : Type_Spec;
+      Capacity     : Expr_Access := null;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
    type Package_Item_Kind is
      (Item_Unknown,
       Item_Type_Decl,
       Item_Subtype_Decl,
       Item_Object_Decl,
-      Item_Subprogram);
+      Item_Subprogram,
+      Item_Task,
+      Item_Channel);
 
    type Package_Item is record
       Kind       : Package_Item_Kind := Item_Unknown;
@@ -278,6 +344,8 @@ package Safe_Frontend.Check_Model is
       Sub_Data   : Subtype_Decl;
       Obj_Data   : Object_Decl;
       Subp_Data  : Subprogram_Body;
+      Task_Data  : Task_Decl;
+      Chan_Data  : Channel_Decl;
    end record;
 
    package Package_Item_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -326,6 +394,18 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Resolved_Object_Decl);
 
+   type Resolved_Channel_Decl is record
+      Is_Public    : Boolean := False;
+      Name         : FT.UString := FT.To_UString ("");
+      Element_Type : GM.Type_Descriptor;
+      Capacity     : Long_Long_Integer := 0;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Resolved_Channel_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Resolved_Channel_Decl);
+
    type Resolved_Subprogram is record
       Name                 : FT.UString := FT.To_UString ("");
       Kind                 : FT.UString := FT.To_UString ("");
@@ -342,12 +422,27 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Resolved_Subprogram);
 
+   type Resolved_Task is record
+      Name                  : FT.UString := FT.To_UString ("");
+      Has_Explicit_Priority : Boolean := False;
+      Priority              : Long_Long_Integer := 0;
+      Span                  : FT.Source_Span := FT.Null_Span;
+      Declarations          : Resolved_Object_Decl_Vectors.Vector;
+      Statements            : Statement_Access_Vectors.Vector;
+   end record;
+
+   package Resolved_Task_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Resolved_Task);
+
    type Resolved_Unit is record
       Path         : FT.UString := FT.To_UString ("");
       Package_Name : FT.UString := FT.To_UString ("");
       Types        : GM.Type_Descriptor_Vectors.Vector;
       Objects      : Resolved_Object_Decl_Vectors.Vector;
+      Channels     : Resolved_Channel_Decl_Vectors.Vector;
       Subprograms  : Resolved_Subprogram_Vectors.Vector;
+      Tasks        : Resolved_Task_Vectors.Vector;
    end record;
 
    type Parse_Result (Success : Boolean := False) is record

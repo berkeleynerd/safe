@@ -189,6 +189,7 @@ package body Safe_Frontend.Mir_Analyze is
    use type GM.Mir_Format_Kind;
    use type GM.Expr_Kind;
    use type GM.Op_Kind;
+   use type GM.Select_Arm_Kind;
    use type GM.Terminator_Kind;
    use type GM.Ownership_Effect_Kind;
    use type GM.Expr_Access;
@@ -562,6 +563,14 @@ package body Safe_Frontend.Mir_Analyze is
       Owner_Vars : String_Sets.Set;
       Type_Env   : Type_Maps.Map;
       Functions  : Function_Maps.Map) return MD.Diagnostic;
+   function Analyze_Runtime_Expr
+     (Expr               : GM.Expr_Access;
+      Current            : in out State;
+      Var_Types          : Type_Maps.Map;
+      Owner_Vars         : String_Sets.Set;
+      Type_Env           : Type_Maps.Map;
+      Functions          : Function_Maps.Map;
+      Expected_Type_Name : String := "") return MD.Diagnostic;
    function Check_Return_Expr
      (Expr         : GM.Expr_Access;
       Return_Type  : GM.Type_Descriptor;
@@ -767,6 +776,7 @@ package body Safe_Frontend.Mir_Analyze is
       Type_Env.Include ("Boolean", Make_Builtin ("Boolean", 0, 1));
       Type_Env.Include ("Float", Make_Builtin_Float ("Float"));
       Type_Env.Include ("Long_Float", Make_Builtin_Float ("Long_Float"));
+      Type_Env.Include ("Duration", Make_Builtin_Float ("Duration"));
    end Add_Builtins;
 
    function Parse_Anonymous_Access
@@ -4254,6 +4264,215 @@ package body Safe_Frontend.Mir_Analyze is
       return Null_Diagnostic;
    end Analyze_Call_Expr;
 
+   function Analyze_Runtime_Expr
+     (Expr               : GM.Expr_Access;
+      Current            : in out State;
+      Var_Types          : Type_Maps.Map;
+      Owner_Vars         : String_Sets.Set;
+      Type_Env           : Type_Maps.Map;
+      Functions          : Function_Maps.Map;
+      Expected_Type_Name : String := "") return MD.Diagnostic
+   is
+      Info         : GM.Type_Descriptor;
+      Diag         : MD.Diagnostic := Null_Diagnostic;
+      Has_Diag     : Boolean := False;
+      Interval_Out : Interval;
+      Float_Out    : Float_Interval;
+   begin
+      if Expr = null then
+         return Null_Diagnostic;
+      end if;
+
+      case Expr.Kind is
+         when GM.Expr_Select =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Expr.Prefix,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions);
+            if Has_Text (Diag.Reason) then
+               return Diag;
+            end if;
+         when GM.Expr_Resolved_Index =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Expr.Prefix,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions);
+            if Has_Text (Diag.Reason) then
+               return Diag;
+            end if;
+            if not Expr.Indices.Is_Empty then
+               for Index in Expr.Indices.First_Index .. Expr.Indices.Last_Index loop
+                  Diag :=
+                    Analyze_Runtime_Expr
+                      (Expr.Indices (Index),
+                       Current,
+                       Var_Types,
+                       Owner_Vars,
+                       Type_Env,
+                       Functions);
+                  if Has_Text (Diag.Reason) then
+                     return Diag;
+                  end if;
+               end loop;
+            end if;
+         when GM.Expr_Conversion | GM.Expr_Annotated | GM.Expr_Unary =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Expr.Inner,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions);
+            if Has_Text (Diag.Reason) then
+               return Diag;
+            end if;
+         when GM.Expr_Binary =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Expr.Left,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions);
+            if Has_Text (Diag.Reason) then
+               return Diag;
+            end if;
+            Diag :=
+              Analyze_Runtime_Expr
+                (Expr.Right,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions);
+            if Has_Text (Diag.Reason) then
+               return Diag;
+            end if;
+         when GM.Expr_Call =>
+            if not Expr.Args.Is_Empty then
+               for Index in Expr.Args.First_Index .. Expr.Args.Last_Index loop
+                  Diag :=
+                    Analyze_Runtime_Expr
+                      (Expr.Args (Index),
+                       Current,
+                       Var_Types,
+                       Owner_Vars,
+                       Type_Env,
+                       Functions);
+                  if Has_Text (Diag.Reason) then
+                     return Diag;
+                  end if;
+               end loop;
+            end if;
+         when GM.Expr_Allocator =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Expr.Value,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions);
+            if Has_Text (Diag.Reason) then
+               return Diag;
+            end if;
+         when GM.Expr_Aggregate =>
+            if not Expr.Fields.Is_Empty then
+               for Index in Expr.Fields.First_Index .. Expr.Fields.Last_Index loop
+                  Diag :=
+                    Analyze_Runtime_Expr
+                      (Expr.Fields (Index).Expr,
+                       Current,
+                       Var_Types,
+                       Owner_Vars,
+                       Type_Env,
+                       Functions);
+                  if Has_Text (Diag.Reason) then
+                     return Diag;
+                  end if;
+               end loop;
+            end if;
+         when others =>
+            null;
+      end case;
+
+      if Expr.Kind = GM.Expr_Call then
+         Diag :=
+           Analyze_Call_Expr
+             (Expr,
+              Current,
+              Var_Types,
+              Owner_Vars,
+              Type_Env,
+              Functions);
+         if Has_Text (Diag.Reason) then
+            return Diag;
+         end if;
+      end if;
+
+      if Expected_Type_Name /= "" then
+         Info := Resolve_Type (Expected_Type_Name, Var_Types, Type_Env);
+      else
+         Info := Expr_Type (Expr, Var_Types, Type_Env, Functions);
+      end if;
+
+      if Lower (UString_Value (Info.Kind)) = "access" then
+         declare
+            Ignored : constant Access_Fact :=
+              Eval_Access_Expr (Expr, Current, Var_Types, Type_Env, Functions);
+            pragma Unreferenced (Ignored);
+         begin
+            null;
+         exception
+            when Diagnostic_Failure =>
+               return Raised_Diagnostic;
+         end;
+      elsif Is_Float_Type (Info) then
+         Float_Out :=
+           Eval_Float_Expr_With_Diag
+             (Expr,
+              Current,
+              Var_Types,
+              Type_Env,
+              Functions,
+              Info,
+              Has_Diag,
+              Diag);
+         pragma Unreferenced (Float_Out);
+         if Has_Diag then
+            return Diag;
+         end if;
+      elsif Is_Integer_Type (Info) then
+         Interval_Out :=
+           Eval_Int_Expr_With_Diag
+             (Expr,
+              Current,
+              Var_Types,
+              Type_Env,
+              Functions,
+              Info,
+              False,
+              Has_Diag,
+              Diag);
+         pragma Unreferenced (Interval_Out);
+         if Has_Diag then
+            return Diag;
+         end if;
+      end if;
+
+      return Null_Diagnostic;
+   end Analyze_Runtime_Expr;
+
    function Check_Return_Expr
      (Expr         : GM.Expr_Access;
       Return_Type  : GM.Type_Descriptor;
@@ -4378,9 +4597,21 @@ package body Safe_Frontend.Mir_Analyze is
    is
       Local_Names : FT.UString_Vectors.Vector;
       Diag        : MD.Diagnostic := Null_Diagnostic;
+      procedure Initialize_Target_Conservatively (Expr : GM.Expr_Access) is
+         Name : constant String := Direct_Name (Expr);
+      begin
+         if Name = "" or else not Var_Types.Contains (Name) then
+            return;
+         end if;
+
+         Initialize_Symbol (Current, Name, Var_Types.Element (Name));
+         if Var_Types.Element (Name).Has_Discriminant then
+            Invalidate_Discriminant_Fact (Current, Name);
+         end if;
+      end Initialize_Target_Conservatively;
    begin
       case Op.Kind is
-        when GM.Op_Scope_Enter =>
+         when GM.Op_Scope_Enter =>
             for Name of Op.Locals loop
                if Var_Types.Contains (UString_Value (Name)) then
                   if Is_Float_Type (Var_Types.Element (UString_Value (Name))) then
@@ -4428,6 +4659,80 @@ package body Safe_Frontend.Mir_Analyze is
             end;
          when GM.Op_Call =>
             Diag := Analyze_Call_Expr (Op.Value, Current, Var_Types, Owner_Vars, Type_Env, Functions);
+            if Has_Text (Diag.Reason) then
+               Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+            end if;
+         when GM.Op_Channel_Send =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Op.Value,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions,
+                 UString_Value (Op.Type_Name));
+            if Has_Text (Diag.Reason) then
+               Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+            end if;
+         when GM.Op_Channel_Receive =>
+            begin
+               Validate_Assignment_Target (Op.Target, Current, Var_Types, Type_Env, Functions);
+               Initialize_Target_Conservatively (Op.Target);
+            exception
+               when Diagnostic_Failure =>
+                  Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
+            end;
+         when GM.Op_Channel_Try_Send =>
+            begin
+               Diag :=
+                 Analyze_Runtime_Expr
+                   (Op.Value,
+                    Current,
+                    Var_Types,
+                    Owner_Vars,
+                    Type_Env,
+                    Functions,
+                    UString_Value (Op.Type_Name));
+               if Has_Text (Diag.Reason) then
+                  Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+               end if;
+               Validate_Assignment_Target
+                 (Op.Success_Target,
+                  Current,
+                  Var_Types,
+                  Type_Env,
+                  Functions);
+               Initialize_Target_Conservatively (Op.Success_Target);
+            exception
+               when Diagnostic_Failure =>
+                  Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
+            end;
+         when GM.Op_Channel_Try_Receive =>
+            begin
+               Validate_Assignment_Target (Op.Target, Current, Var_Types, Type_Env, Functions);
+               Validate_Assignment_Target
+                 (Op.Success_Target,
+                  Current,
+                  Var_Types,
+                  Type_Env,
+                  Functions);
+               Initialize_Target_Conservatively (Op.Target);
+               Initialize_Target_Conservatively (Op.Success_Target);
+            exception
+               when Diagnostic_Failure =>
+                  Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
+            end;
+         when GM.Op_Delay =>
+            Diag :=
+              Analyze_Runtime_Expr
+                (Op.Value,
+                 Current,
+                 Var_Types,
+                 Owner_Vars,
+                 Type_Env,
+                 Functions,
+                 UString_Value (Op.Type_Name));
             if Has_Text (Diag.Reason) then
                Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
             end if;
@@ -4544,7 +4849,10 @@ package body Safe_Frontend.Mir_Analyze is
                Count        : Natural := 0;
             begin
                Target_Block := Block_Map.Element (Target_Id);
-               if UString_Value (Target_Block.Role) = "while_header" then
+               if UString_Value (Target_Block.Role) = "while_header"
+                 or else UString_Value (Target_Block.Role) = "loop_header"
+                 or else UString_Value (Target_Block.Role) = "for_header"
+               then
                   if not In_States.Contains (Target_Id) then
                      In_States.Include (Target_Id, Candidate);
                      Loop_Header_Updates.Include (Target_Id, 1);
@@ -4619,6 +4927,45 @@ package body Safe_Frontend.Mir_Analyze is
                      Enqueue_Target (UString_Value (Block.Terminator.True_Target), True_State);
                      Enqueue_Target (UString_Value (Block.Terminator.False_Target), False_State);
                   end;
+               when GM.Terminator_Select =>
+                  if not Block.Terminator.Arms.Is_Empty then
+                     for Index in Block.Terminator.Arms.First_Index .. Block.Terminator.Arms.Last_Index loop
+                        declare
+                           Arm       : constant GM.Select_Arm_Entry := Block.Terminator.Arms (Index);
+                           Arm_State : State := Current;
+                        begin
+                           if Arm.Kind = GM.Select_Arm_Channel then
+                              if Var_Types.Contains (UString_Value (Arm.Channel_Data.Variable_Name)) then
+                                 Initialize_Symbol
+                                   (Arm_State,
+                                    UString_Value (Arm.Channel_Data.Variable_Name),
+                                    Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name)));
+                              end if;
+                              Enqueue_Target (UString_Value (Arm.Channel_Data.Target), Arm_State);
+                           elsif Arm.Kind = GM.Select_Arm_Delay then
+                              declare
+                                 Arm_Diag : constant MD.Diagnostic :=
+                                   Analyze_Runtime_Expr
+                                     (Arm.Delay_Data.Duration_Expr,
+                                      Arm_State,
+                                      Var_Types,
+                                      Owner_Vars,
+                                      Type_Env,
+                                      Functions,
+                                      "Duration");
+                              begin
+                                 if Has_Text (Arm_Diag.Reason) then
+                                    Append_Diagnostic
+                                      (Diagnostics,
+                                       With_Path (Arm_Diag, Path_String),
+                                       Sequence);
+                                 end if;
+                              end;
+                              Enqueue_Target (UString_Value (Arm.Delay_Data.Target), Arm_State);
+                           end if;
+                        end;
+                     end loop;
+                  end if;
                when others =>
                   null;
             end case;

@@ -19,6 +19,8 @@ All of those commands are Ada-native runtime surfaces for the current implemente
 
 The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern.
 
+PR08.1 extends the live `ast` / `emit` / `validate-mir` path with a local-only concurrency frontend slice for single-package tasks, channels, channel operations, select, and relative delay. That does not change the current accepted `check` baseline yet; full local concurrency checking and later cross-package work stay in the remaining PR08.x milestones.
+
 That means the current frontend baseline covers:
 
 - the frozen Rule 5 floating-point corpus
@@ -33,7 +35,7 @@ The following surfaces remain explicitly out of scope for the current frontend b
 - general discriminants
 - discriminant constraints
 - access discriminants
-- tasks/channels/concurrency
+- full tasks/channels/concurrency analysis beyond the local PR08.1 frontend slice
 - broader Ada/SPARK emission work
 
 ## No-Python Doctrine

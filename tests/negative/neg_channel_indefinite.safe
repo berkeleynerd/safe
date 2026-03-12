@@ -1,0 +1,13 @@
+-- Test: neg_channel_indefinite
+-- Description: Channel element types must be definite.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p14:a35bd0fa
+-- Expected: REJECT source_frontend_error
+
+package Channel_Indefinite_Test is
+
+   type Index is range 1 .. 8;
+   type Buffer is array (Index range <>) of Integer;
+
+   channel Data_Ch : Buffer capacity 1;
+
+end Channel_Indefinite_Test;

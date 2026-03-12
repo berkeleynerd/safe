@@ -1,0 +1,15 @@
+-- Test: neg_task_priority_range
+-- Description: Explicit task priority must be inside System.Any_Priority.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p5:4e4afebc
+-- Expected: REJECT source_frontend_error
+
+package Task_Priority_Range_Test is
+
+   task Worker with Priority = 10_000 is
+   begin
+      loop
+         null;
+      end loop;
+   end Worker;
+
+end Task_Priority_Range_Test;

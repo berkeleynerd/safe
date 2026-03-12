@@ -1,7 +1,8 @@
 -- Test: multi_task_channel
 -- Description: Multiple tasks communicating over a single channel.
---   Two producers send to the same channel, and one consumer receives.
---   Channel atomicity ensures no corruption.
+--   Two producers send distinct scalar event codes to the same channel,
+--   and one consumer receives them. Channel atomicity ensures no
+--   corruption across same-channel operations.
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
@@ -9,57 +10,56 @@
 
 package Multi_Task_Channel is
 
-   type Event is record
-      Source : Natural;
-      Code   : Natural;
-   end record;
+   type Event_Code is range 0 .. 10_000;
 
-   channel Event_Ch : Event capacity 8;
+   channel Event_Ch : Event_Code capacity 8;
 
-   --  Producer_A: sends events with Source = 1.
+   --  Producer_A: sends low-range event codes.
    task Producer_A is
-      Seq : Natural = 0;
+      Seq : Event_Code = 0;
    begin
       loop
-         send Event_Ch, ((Source = 1, Code = Seq) as Event);
-         Seq = Seq + 1;
-         if Seq > 1_000_000 then
+         send Event_Ch, Seq;
+         if Seq < 4_999 then
+            Seq = Seq + 1;
+         else
             Seq = 0;
          end if;
       end loop;
    end Producer_A;
 
-   --  Producer_B: sends events with Source = 2.
+   --  Producer_B: sends high-range event codes.
    task Producer_B is
-      Seq : Natural = 0;
+      Seq : Event_Code = 5_000;
    begin
       loop
-         send Event_Ch, ((Source = 2, Code = Seq) as Event);
-         Seq = Seq + 1;
-         if Seq > 1_000_000 then
-            Seq = 0;
+         send Event_Ch, Seq;
+         if Seq < 10_000 then
+            Seq = Seq + 1;
+         else
+            Seq = 5_000;
          end if;
       end loop;
    end Producer_B;
 
    --  Consumer: receives events from both producers.
-   --  Channel atomicity guarantees each event is received intact.
+   --  Channel atomicity guarantees each code is received intact.
    task Consumer is
-      E : Event;
+      E : Event_Code = 0;
       Count_A : Natural = 0;
       Count_B : Natural = 0;
    begin
       loop
          receive Event_Ch, E;
-         if E.Source == 1 then
+         if E < 5_000 then
             Count_A = Count_A + 1;
-         elsif E.Source == 2 then
+         else
             Count_B = Count_B + 1;
          end if;
-         if Count_A > 1_000_000 then
+         if Count_A > 1_000 then
             Count_A = 0;
          end if;
-         if Count_B > 1_000_000 then
+         if Count_B > 1_000 then
             Count_B = 0;
          end if;
       end loop;

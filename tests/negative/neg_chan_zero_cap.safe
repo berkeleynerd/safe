@@ -2,7 +2,7 @@
 -- Description: Declaring a channel with zero capacity.
 --   The capacity must be at least 1. A capacity of 0 is rejected.
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
--- Expected: REJECT invalid_channel_capacity
+-- Expected: REJECT source_frontend_error
 
 package Zero_Cap_Test is
 

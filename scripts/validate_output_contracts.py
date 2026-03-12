@@ -37,6 +37,25 @@ def require_string(value: Any, path: str) -> str:
     return value
 
 
+def require_boolean(value: Any, path: str) -> bool:
+    if not isinstance(value, bool):
+        fail(f"{path} must be a boolean")
+    return value
+
+
+def require_positive_int(value: Any, path: str) -> int:
+    if not isinstance(value, int) or value <= 0:
+        fail(f"{path} must be a positive integer")
+    return value
+
+
+def validate_type_descriptor(value: Any, path: str) -> dict[str, Any]:
+    descriptor = require_mapping(value, path)
+    require_string(descriptor.get("name"), f"{path}.name")
+    require_string(descriptor.get("kind"), f"{path}.kind")
+    return descriptor
+
+
 def validate_span(value: Any, path: str) -> None:
     span = require_mapping(value, path)
     for field in ("start_line", "start_col", "end_line", "end_col"):
@@ -53,6 +72,144 @@ def validate_decl_list(items: Any, path: str) -> list[dict[str, Any]]:
         require_string(entry.get("kind"), f"{path}[{index}].kind")
         require_string(entry.get("signature"), f"{path}[{index}].signature")
         validate_span(entry.get("span"), f"{path}[{index}].span")
+        result.append(entry)
+    return result
+
+
+def validate_optional_typed_channels(value: Any, path: str) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, path)):
+        entry = require_mapping(item, f"{path}[{index}]")
+        require_string(entry.get("name"), f"{path}[{index}].name")
+        require_boolean(entry.get("is_public"), f"{path}[{index}].is_public")
+        validate_type_descriptor(entry.get("element_type"), f"{path}[{index}].element_type")
+        require_positive_int(entry.get("capacity"), f"{path}[{index}].capacity")
+        validate_span(entry.get("span"), f"{path}[{index}].span")
+        result.append(entry)
+    return result
+
+
+def validate_optional_typed_tasks(value: Any, path: str) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, path)):
+        entry = require_mapping(item, f"{path}[{index}]")
+        require_string(entry.get("name"), f"{path}[{index}].name")
+        if not isinstance(entry.get("priority"), int):
+            fail(f"{path}[{index}].priority must be an integer")
+        require_boolean(entry.get("has_explicit_priority"), f"{path}[{index}].has_explicit_priority")
+        validate_span(entry.get("span"), f"{path}[{index}].span")
+        result.append(entry)
+    return result
+
+
+def validate_optional_mir_channels(value: Any, path: str) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, path)):
+        entry = require_mapping(item, f"{path}[{index}]")
+        require_string(entry.get("name"), f"{path}[{index}].name")
+        validate_type_descriptor(entry.get("element_type"), f"{path}[{index}].element_type")
+        require_positive_int(entry.get("capacity"), f"{path}[{index}].capacity")
+        validate_span(entry.get("span"), f"{path}[{index}].span")
+        result.append(entry)
+    return result
+
+
+def validate_mir_expr(value: Any, path: str) -> dict[str, Any]:
+    expr = require_mapping(value, path)
+    require_string(expr.get("tag"), f"{path}.tag")
+    if "span" in expr:
+        validate_span(expr.get("span"), f"{path}.span")
+    return expr
+
+
+def validate_select_arms(value: Any, path: str) -> list[dict[str, Any]]:
+    arms = require_list(value, path)
+    if not arms:
+        fail(f"{path} must be a non-empty list")
+    result: list[dict[str, Any]] = []
+    delay_arms = 0
+    for index, item in enumerate(arms):
+        entry = require_mapping(item, f"{path}[{index}]")
+        kind = require_string(entry.get("kind"), f"{path}[{index}].kind")
+        validate_span(entry.get("span"), f"{path}[{index}].span")
+        if kind == "channel":
+            require_string(entry.get("channel_name"), f"{path}[{index}].channel_name")
+            require_string(entry.get("variable_name"), f"{path}[{index}].variable_name")
+            require_string(entry.get("scope_id"), f"{path}[{index}].scope_id")
+            require_string(entry.get("local_id"), f"{path}[{index}].local_id")
+            require_string(entry.get("target"), f"{path}[{index}].target")
+            validate_type_descriptor(entry.get("type"), f"{path}[{index}].type")
+        elif kind == "delay":
+            delay_arms += 1
+            validate_mir_expr(entry.get("duration_expr"), f"{path}[{index}].duration_expr")
+            require_string(entry.get("target"), f"{path}[{index}].target")
+        else:
+            fail(f"{path}[{index}].kind must be channel or delay")
+        result.append(entry)
+    if delay_arms > 1:
+        fail(f"{path} may contain at most one delay arm")
+    return result
+
+
+def validate_mir_blocks(value: Any, path: str) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, path)):
+        entry = require_mapping(item, f"{path}[{index}]")
+        require_string(entry.get("id"), f"{path}[{index}].id")
+        require_string(entry.get("role"), f"{path}[{index}].role")
+        require_string(entry.get("active_scope_id"), f"{path}[{index}].active_scope_id")
+        validate_span(entry.get("span"), f"{path}[{index}].span")
+        ops = require_list(entry.get("ops"), f"{path}[{index}].ops")
+        for op_index, op_item in enumerate(ops):
+            op = require_mapping(op_item, f"{path}[{index}].ops[{op_index}]")
+            kind = require_string(op.get("kind"), f"{path}[{index}].ops[{op_index}].kind")
+            if kind in {
+                "channel_send",
+                "channel_receive",
+                "channel_try_send",
+                "channel_try_receive",
+                "delay",
+            }:
+                require_string(op.get("ownership_effect"), f"{path}[{index}].ops[{op_index}].ownership_effect")
+                require_string(op.get("type"), f"{path}[{index}].ops[{op_index}].type")
+                if kind != "delay":
+                    validate_mir_expr(op.get("channel"), f"{path}[{index}].ops[{op_index}].channel")
+                if kind in {"channel_send", "channel_try_send", "delay"}:
+                    validate_mir_expr(op.get("value"), f"{path}[{index}].ops[{op_index}].value")
+                if kind in {"channel_receive", "channel_try_receive"}:
+                    validate_mir_expr(op.get("target"), f"{path}[{index}].ops[{op_index}].target")
+                if kind in {"channel_try_send", "channel_try_receive"}:
+                    validate_mir_expr(
+                        op.get("success_target"),
+                        f"{path}[{index}].ops[{op_index}].success_target",
+                    )
+        terminator = require_mapping(entry.get("terminator"), f"{path}[{index}].terminator")
+        kind = require_string(terminator.get("kind"), f"{path}[{index}].terminator.kind")
+        if kind == "select":
+            validate_select_arms(terminator.get("arms"), f"{path}[{index}].terminator.arms")
+        result.append(entry)
+    return result
+
+
+def validate_mir_graphs(value: Any, path: str) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, path)):
+        entry = require_mapping(item, f"{path}[{index}]")
+        require_string(entry.get("name"), f"{path}[{index}].name")
+        kind = require_string(entry.get("kind"), f"{path}[{index}].kind")
+        require_string(entry.get("entry_bb"), f"{path}[{index}].entry_bb")
+        validate_span(entry.get("span"), f"{path}[{index}].span")
+        if kind == "task":
+            if not isinstance(entry.get("priority"), int):
+                fail(f"{path}[{index}].priority must be an integer for task graphs")
+            require_boolean(entry.get("has_explicit_priority"), f"{path}[{index}].has_explicit_priority")
+        validate_mir_blocks(entry.get("blocks"), f"{path}[{index}].blocks")
         result.append(entry)
     return result
 
@@ -90,6 +247,8 @@ def validate_typed_payload(payload: Any, *, path: str, ast_payload: dict[str, An
             f"{typed['package_end_name']!r} != {typed['package_name']!r}"
         )
     require_list(typed.get("types"), f"{path}.types")
+    validate_optional_typed_channels(typed.get("channels"), f"{path}.channels")
+    validate_optional_typed_tasks(typed.get("tasks"), f"{path}.tasks")
     validate_decl_list(typed.get("executables"), f"{path}.executables")
     validate_decl_list(typed.get("public_declarations"), f"{path}.public_declarations")
     typed_ast = validate_ast_payload(typed.get("ast"), path=f"{path}.ast")
@@ -114,7 +273,8 @@ def validate_mir_payload(payload: Any, *, path: str, expected_source_path: str) 
         )
     require_string(mir.get("package_name"), f"{path}.package_name")
     require_list(mir.get("types"), f"{path}.types")
-    require_list(mir.get("graphs"), f"{path}.graphs")
+    validate_optional_mir_channels(mir.get("channels"), f"{path}.channels")
+    validate_mir_graphs(mir.get("graphs"), f"{path}.graphs")
     return mir
 
 

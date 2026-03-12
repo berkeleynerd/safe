@@ -74,6 +74,16 @@ package body Safe_Frontend.Mir_Model is
             return "assign";
          when Op_Call =>
             return "call";
+         when Op_Channel_Send =>
+            return "channel_send";
+         when Op_Channel_Receive =>
+            return "channel_receive";
+         when Op_Channel_Try_Send =>
+            return "channel_try_send";
+         when Op_Channel_Try_Receive =>
+            return "channel_try_receive";
+         when Op_Delay =>
+            return "delay";
       end case;
    end Image;
 
@@ -88,6 +98,8 @@ package body Safe_Frontend.Mir_Model is
             return "branch";
          when Terminator_Return =>
             return "return";
+         when Terminator_Select =>
+            return "select";
       end case;
    end Image;
 

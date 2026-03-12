@@ -1,0 +1,49 @@
+-- Test: select_with_delay
+-- Description: Select statement with one channel arm and one delay arm.
+--   The worker waits on a channel receive arm and falls back to a relative
+--   delay arm when no channel input is ready.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9
+-- Expected: ACCEPT
+
+package Select_With_Delay is
+
+   type Message is range 0 .. 100;
+
+   channel Msg_Ch : Message capacity 1;
+
+   task Producer is
+      Next : Message = 0;
+   begin
+      loop
+         send Msg_Ch, Next;
+         if Next < 100 then
+            Next = Next + 1;
+         else
+            Next = 0;
+         end if;
+      end loop;
+   end Producer;
+
+   task Poller is
+      Count : Natural = 0;
+   begin
+      loop
+         select
+            when Item : Message from Msg_Ch then
+               if Item > 0 then
+                  Count = Count + 1;
+               else
+                  Count = 0;
+               end if;
+         or
+            delay 0.05 then
+               Count = 0;
+         end select;
+         if Count > 1_000 then
+            Count = 0;
+         end if;
+      end loop;
+   end Poller;
+
+end Select_With_Delay;

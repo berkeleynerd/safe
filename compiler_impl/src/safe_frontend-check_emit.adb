@@ -28,6 +28,7 @@ package body Safe_Frontend.Check_Emit is
      (Item             : CM.Package_Item;
       Object_Index     : in out Natural;
       Subprogram_Index : in out Natural;
+      Task_Index       : in out Natural;
       Resolved         : CM.Resolved_Unit) return String;
 
    function Declaration_Node
@@ -39,6 +40,8 @@ package body Safe_Frontend.Check_Emit is
       Resolved : CM.Statement_Access) return String;
 
    function Expression_Node (Expr : CM.Expr_Access) return String;
+
+   function Type_Json (Info : GM.Type_Descriptor) return String;
 
    function Operator_String (Value : FT.UString) return String is
    begin
@@ -1054,12 +1057,25 @@ package body Safe_Frontend.Check_Emit is
             else
                Resolved_Stmt := Parsed_Stmt;
             end if;
-            Items.Append
-              ("{""node_type"":""InterleavedItem"",""kind"":""Statement"",""item"":"
-               & Statement_Node (Parsed_Stmt, Resolved_Stmt)
-               & ",""span"":"
-               & JS.Span_Object (Parsed_Stmt.Span)
-               & "}");
+            if Parsed_Stmt.Kind = CM.Stmt_Object_Decl then
+               Items.Append
+                 ("{""node_type"":""InterleavedItem"",""kind"":""BasicDeclaration"",""item"":"
+                  & Declaration_Node
+                      (Parsed_Stmt.Decl,
+                       (if Resolved_Stmt /= null and then Resolved_Stmt.Kind = CM.Stmt_Object_Decl
+                        then Resolved_Stmt.Decl.Initializer
+                        else null))
+                  & ",""span"":"
+                  & JS.Span_Object (Parsed_Stmt.Span)
+                  & "}");
+            else
+               Items.Append
+                 ("{""node_type"":""InterleavedItem"",""kind"":""Statement"",""item"":"
+                  & Statement_Node (Parsed_Stmt, Resolved_Stmt)
+                  & ",""span"":"
+                  & JS.Span_Object (Parsed_Stmt.Span)
+                  & "}");
+            end if;
          end loop;
       end if;
       return
@@ -1069,6 +1085,51 @@ package body Safe_Frontend.Check_Emit is
         & JS.Span_Object (Span)
         & "}";
    end Sequence_Node;
+
+   function Select_Arm_Node
+     (Parsed   : CM.Select_Arm;
+      Resolved : CM.Select_Arm) return String is
+   begin
+      case Parsed.Kind is
+         when CM.Select_Arm_Channel =>
+            return
+              "{""node_type"":""SelectArm"",""kind"":""Channel"",""arm"":{""node_type"":""ChannelArm"",""variable_name"":"
+              & JS.Quote (Parsed.Channel_Data.Variable_Name)
+              & ",""subtype_mark"":"
+              & Type_Spec_Name (Parsed.Channel_Data.Subtype_Mark)
+              & ",""channel_name"":"
+              & Name_Node (Resolved.Channel_Data.Channel_Name)
+              & ",""statements"":"
+              & Sequence_Node
+                  (Parsed.Channel_Data.Statements,
+                   Resolved.Channel_Data.Statements,
+                   Parsed.Channel_Data.Span)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Channel_Data.Span)
+              & "},""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Select_Arm_Delay =>
+            return
+              "{""node_type"":""SelectArm"",""kind"":""Delay"",""arm"":{""node_type"":""DelayArm"",""duration_expr"":"
+              & Expression_Node (Resolved.Delay_Data.Duration_Expr)
+              & ",""statements"":"
+              & Sequence_Node
+                  (Parsed.Delay_Data.Statements,
+                   Resolved.Delay_Data.Statements,
+                   Parsed.Delay_Data.Span)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Delay_Data.Span)
+              & "},""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when others =>
+            return
+              "{""node_type"":""SelectArm"",""kind"":""Channel"",""arm"":null,""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+      end case;
+   end Select_Arm_Node;
 
    function Statement_Node
      (Parsed   : CM.Statement_Access;
@@ -1092,6 +1153,13 @@ package body Safe_Frontend.Check_Emit is
               "{""node_type"":""NullStatement"",""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
+         when CM.Stmt_Object_Decl =>
+            return
+              Declaration_Node
+                (Parsed.Decl,
+                 (if Resolved_Expr.Kind = CM.Stmt_Object_Decl
+                  then Resolved_Expr.Decl.Initializer
+                  else null));
          when CM.Stmt_Assign =>
             return
               "{""node_type"":""AssignmentStatement"",""target"":"
@@ -1192,6 +1260,25 @@ package body Safe_Frontend.Check_Emit is
               & ",""end_loop_name"":null,""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
+         when CM.Stmt_Loop =>
+            return
+              "{""node_type"":""LoopStatement"",""loop_name"":null,""iteration_scheme"":null,""body"":"
+              & Sequence_Node
+                  (Parsed.Body_Stmts,
+                   Resolved_Expr.Body_Stmts,
+                   Parsed.Span)
+              & ",""end_loop_name"":null,""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Stmt_Exit =>
+            return
+              "{""node_type"":""ExitStatement"",""loop_name"":null,""condition"":"
+              & (if Resolved_Expr.Condition = null
+                 then "null"
+                 else Expression_Node (Resolved_Expr.Condition))
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
          when CM.Stmt_For =>
             return
               "{""node_type"":""LoopStatement"",""loop_name"":null,""iteration_scheme"":{""node_type"":""IterationScheme"",""kind"":""ForIn"",""condition"":null,""loop_variable"":"
@@ -1235,6 +1322,75 @@ package body Safe_Frontend.Check_Emit is
               & ",""end_block_name"":null,""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
+         when CM.Stmt_Send =>
+            return
+              "{""node_type"":""SendStatement"",""channel_name"":"
+              & Name_Node (Resolved_Expr.Channel_Name)
+              & ",""expression"":"
+              & Expression_Node (Resolved_Expr.Value)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Stmt_Receive =>
+            return
+              "{""node_type"":""ReceiveStatement"",""channel_name"":"
+              & Name_Node (Resolved_Expr.Channel_Name)
+              & ",""target"":"
+              & Name_Node (Resolved_Expr.Target)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Stmt_Try_Send =>
+            return
+              "{""node_type"":""TrySendStatement"",""channel_name"":"
+              & Name_Node (Resolved_Expr.Channel_Name)
+              & ",""expression"":"
+              & Expression_Node (Resolved_Expr.Value)
+              & ",""success_var"":"
+              & Name_Node (Resolved_Expr.Success_Var)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Stmt_Try_Receive =>
+            return
+              "{""node_type"":""TryReceiveStatement"",""channel_name"":"
+              & Name_Node (Resolved_Expr.Channel_Name)
+              & ",""target"":"
+              & Name_Node (Resolved_Expr.Target)
+              & ",""success_var"":"
+              & Name_Node (Resolved_Expr.Success_Var)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Stmt_Delay =>
+            return
+              "{""node_type"":""DelayStatement"",""expression"":"
+              & Expression_Node (Resolved_Expr.Value)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
+         when CM.Stmt_Select =>
+            declare
+               Arms : String_Vectors.Vector;
+            begin
+               if not Parsed.Arms.Is_Empty then
+                  for Index in Parsed.Arms.First_Index .. Parsed.Arms.Last_Index loop
+                     Arms.Append
+                       (Select_Arm_Node
+                          (Parsed.Arms (Index),
+                           (if not Resolved_Expr.Arms.Is_Empty
+                               and then Index in Resolved_Expr.Arms.First_Index .. Resolved_Expr.Arms.Last_Index
+                            then Resolved_Expr.Arms (Index)
+                            else Parsed.Arms (Index))));
+                  end loop;
+               end if;
+               return
+                 "{""node_type"":""SelectStatement"",""arms"":"
+                 & Json_List (Arms)
+                 & ",""span"":"
+                 & JS.Span_Object (Parsed.Span)
+                 & "}";
+            end;
          when others =>
             return
               "{""node_type"":""NullStatement"",""span"":"
@@ -1311,6 +1467,11 @@ package body Safe_Frontend.Check_Emit is
       return US.To_String (Result);
    end Signature_For;
 
+   function Signature_For (Task_Item : CM.Resolved_Task) return String is
+   begin
+      return "task " & FT.To_String (Task_Item.Name);
+   end Signature_For;
+
    function Subprogram_Node
      (Parsed   : CM.Subprogram_Body;
       Resolved : CM.Resolved_Subprogram) return String
@@ -1381,10 +1542,66 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Subprogram_Node;
 
+   function Task_Node
+     (Parsed   : CM.Task_Decl;
+      Resolved : CM.Resolved_Task) return String
+   is
+      Decls : String_Vectors.Vector;
+   begin
+      if not Parsed.Declarations.Is_Empty then
+         for Index in Parsed.Declarations.First_Index .. Parsed.Declarations.Last_Index loop
+            if not Resolved.Declarations.Is_Empty
+              and then Index in Resolved.Declarations.First_Index .. Resolved.Declarations.Last_Index
+            then
+               Decls.Append
+                 (Declaration_Node
+                    (Parsed.Declarations (Index),
+                     Resolved.Declarations (Index).Initializer));
+            else
+               Decls.Append (Declaration_Node (Parsed.Declarations (Index)));
+            end if;
+         end loop;
+      end if;
+
+      return
+        "{""node_type"":""TaskDeclaration"",""name"":"
+        & JS.Quote (Parsed.Name)
+        & ",""priority"":"
+        & (if Parsed.Has_Explicit_Priority and then Parsed.Priority /= null
+           then Expression_Node (Parsed.Priority)
+           else "null")
+        & ",""declarative_part"":"
+        & Json_List (Decls)
+        & ",""body"":"
+        & Sequence_Node (Parsed.Statements, Resolved.Statements, Parsed.Span)
+        & ",""end_name"":"
+        & JS.Quote (Parsed.End_Name)
+        & ",""span"":"
+        & JS.Span_Object (Parsed.Span)
+        & "}";
+   end Task_Node;
+
+   function Channel_Node (Parsed : CM.Channel_Decl) return String is
+   begin
+      return
+        "{""node_type"":""ChannelDeclaration"",""is_public"":"
+        & JS.Bool_Literal (Parsed.Is_Public)
+        & ",""name"":"
+        & JS.Quote (Parsed.Name)
+        & ",""element_type"":"
+        & Type_Spec_Name (Parsed.Element_Type)
+        & ",""capacity"":"
+        & Expression_Node (Parsed.Capacity)
+        & ",""span"":"
+        & JS.Span_Object (Parsed.Span)
+        & "}";
+   end Channel_Node;
+
    function Package_Item_Node
      (Item             : CM.Package_Item;
       Object_Index     : in out Natural;
       Subprogram_Index : in out Natural;
+      Task_Index       : in out Natural;
       Resolved         : CM.Resolved_Unit) return String
    is
    begin
@@ -1438,9 +1655,34 @@ package body Safe_Frontend.Check_Emit is
                      Return_Is_Access_Def => False,
                      Span => Item.Subp_Data.Span,
                      Declarations => <>,
-                     Statements => Item.Subp_Data.Statements)))
+                    Statements => Item.Subp_Data.Statements)))
               & ",""span"":"
               & JS.Span_Object (Item.Subp_Data.Span)
+              & "}";
+         when CM.Item_Task =>
+            Task_Index := Task_Index + 1;
+            return
+              "{""node_type"":""PackageItem"",""kind"":""TaskDeclaration"",""item"":"
+              & (if not Resolved.Tasks.Is_Empty
+                    and then Task_Index in Resolved.Tasks.First_Index .. Resolved.Tasks.Last_Index
+                 then Task_Node (Item.Task_Data, Resolved.Tasks (Task_Index))
+                 else Task_Node
+                   (Item.Task_Data,
+                    (Name => Item.Task_Data.Name,
+                     Has_Explicit_Priority => Item.Task_Data.Has_Explicit_Priority,
+                     Priority => 0,
+                     Span => Item.Task_Data.Span,
+                     Declarations => <>,
+                     Statements => Item.Task_Data.Statements)))
+              & ",""span"":"
+              & JS.Span_Object (Item.Task_Data.Span)
+              & "}";
+         when CM.Item_Channel =>
+            return
+              "{""node_type"":""PackageItem"",""kind"":""ChannelDeclaration"",""item"":"
+              & Channel_Node (Item.Chan_Data)
+              & ",""span"":"
+              & JS.Span_Object (Item.Chan_Data.Span)
               & "}";
          when others =>
             return
@@ -1537,8 +1779,62 @@ package body Safe_Frontend.Check_Emit is
                & "}");
          end loop;
       end if;
+      if not Resolved.Tasks.Is_Empty then
+         for Task_Item of Resolved.Tasks loop
+            Items.Append
+              ("{""name"":"
+               & JS.Quote (Task_Item.Name)
+               & ",""kind"":""task"",""signature"":"
+               & JS.Quote (Signature_For (Task_Item))
+               & ",""span"":"
+               & JS.Span_Object (Task_Item.Span)
+               & "}");
+         end loop;
+      end if;
       return Json_List (Items);
    end Executables;
+
+   function Channels_Json (Resolved : CM.Resolved_Unit) return String is
+      Items : String_Vectors.Vector;
+   begin
+      if not Resolved.Channels.Is_Empty then
+         for Channel_Item of Resolved.Channels loop
+            Items.Append
+              ("{""name"":"
+               & JS.Quote (Channel_Item.Name)
+               & ",""is_public"":"
+               & JS.Bool_Literal (Channel_Item.Is_Public)
+               & ",""element_type"":"
+               & Type_Json (Channel_Item.Element_Type)
+               & ",""capacity"":"
+               & Long_Long_Integer'Image (Channel_Item.Capacity)
+               & ",""span"":"
+               & JS.Span_Object (Channel_Item.Span)
+               & "}");
+         end loop;
+      end if;
+      return Json_List (Items);
+   end Channels_Json;
+
+   function Tasks_Json (Resolved : CM.Resolved_Unit) return String is
+      Items : String_Vectors.Vector;
+   begin
+      if not Resolved.Tasks.Is_Empty then
+         for Task_Item of Resolved.Tasks loop
+            Items.Append
+              ("{""name"":"
+               & JS.Quote (Task_Item.Name)
+               & ",""priority"":"
+               & Long_Long_Integer'Image (Task_Item.Priority)
+               & ",""has_explicit_priority"":"
+               & JS.Bool_Literal (Task_Item.Has_Explicit_Priority)
+               & ",""span"":"
+               & JS.Span_Object (Task_Item.Span)
+               & "}");
+         end loop;
+      end if;
+      return Json_List (Items);
+   end Tasks_Json;
 
    function Type_Json (Info : GM.Type_Descriptor) return String is
       Items  : String_Vectors.Vector;
@@ -1648,6 +1944,7 @@ package body Safe_Frontend.Check_Emit is
       Items            : String_Vectors.Vector;
       Object_Index     : Natural := 0;
       Subprogram_Index : Natural := 0;
+      Task_Index       : Natural := 0;
    begin
       if not Parsed.Withs.Is_Empty then
          for Clause of Parsed.Withs loop
@@ -1675,6 +1972,7 @@ package body Safe_Frontend.Check_Emit is
                  (Item,
                   Object_Index,
                   Subprogram_Index,
+                  Task_Index,
                   Resolved));
          end loop;
       end if;
@@ -1717,6 +2015,12 @@ package body Safe_Frontend.Check_Emit is
         & ","
         & """types"":"
         & Types_Json (Resolved)
+        & ","
+        & """channels"":"
+        & Channels_Json (Resolved)
+        & ","
+        & """tasks"":"
+        & Tasks_Json (Resolved)
         & ","
         & """executables"":"
         & Executables (Resolved)

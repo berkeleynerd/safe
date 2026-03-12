@@ -171,8 +171,8 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "ef83f0a8df917e046b1d6bb2bc7af633732415b2fba955cb9ac57c9415846580",
-  "report_sha256": "ef83f0a8df917e046b1d6bb2bc7af633732415b2fba955cb9ac57c9415846580",
+  "repeat_sha256": "f99557508832d9aa10996918aed00ca1607880d5470b7dabc9c1a5de3efa107f",
+  "report_sha256": "f99557508832d9aa10996918aed00ca1607880d5470b7dabc9c1a5de3efa107f",
   "status": "ok",
   "task": "PR06.9.6",
   "unsupported_cases": [
@@ -254,22 +254,22 @@
         "command": [
           "compiler_impl/bin/safec",
           "ast",
-          "tests/positive/channel_pingpong.safe"
+          "tests/negative/neg_delay_until.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "channel_pingpong.safe:17:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 17 |    channel Ping_Ch : Message capacity 1;\n  |    |    ^~~~~~~\n  |\n",
+        "stderr": "neg_delay_until.safe:11:16: error: absolute `delay until` is outside the current PR08.1 concurrency subset\n  |\n  | 11 |          delay until 1.0;\n  |    |                ^~~~~\n  |\n",
         "stdout": ""
       },
       "check": {
         "command": [
           "compiler_impl/bin/safec",
           "check",
-          "tests/positive/channel_pingpong.safe"
+          "tests/negative/neg_delay_until.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "channel_pingpong.safe:17:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 17 |    channel Ping_Ch : Message capacity 1;\n  |    |    ^~~~~~~\n  |\n",
+        "stderr": "neg_delay_until.safe:11:16: error: absolute `delay until` is outside the current PR08.1 concurrency subset\n  |\n  | 11 |          delay until 1.0;\n  |    |                ^~~~~\n  |\n",
         "stdout": ""
       },
       "check_diag_json": {
@@ -277,25 +277,25 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "tests/positive/channel_pingpong.safe"
+          "tests/negative/neg_delay_until.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `channel` is outside the current PR05/PR06 check subset\",\"path\":\"tests/positive/channel_pingpong.safe\",\"span\":{\"start_line\":17,\"start_col\":4,\"end_line\":17,\"end_col\":10},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"absolute `delay until` is outside the current PR08.1 concurrency subset\",\"path\":\"tests/negative/neg_delay_until.safe\",\"span\":{\"start_line\":11,\"start_col\":16,\"end_line\":11,\"end_col\":20},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
       },
       "diagnostics": [
         {
           "highlight_span": null,
-          "message": "package item `channel` is outside the current PR05/PR06 check subset",
+          "message": "absolute `delay until` is outside the current PR08.1 concurrency subset",
           "notes": [],
-          "path": "tests/positive/channel_pingpong.safe",
+          "path": "tests/negative/neg_delay_until.safe",
           "reason": "unsupported_source_construct",
           "span": {
-            "end_col": 10,
-            "end_line": 17,
-            "start_col": 4,
-            "start_line": 17
+            "end_col": 20,
+            "end_line": 11,
+            "start_col": 16,
+            "start_line": 11
           },
           "suggestions": []
         }
@@ -304,45 +304,45 @@
         "command": [
           "compiler_impl/bin/safec",
           "emit",
-          "tests/positive/channel_pingpong.safe",
+          "tests/negative/neg_delay_until.safe",
           "--out-dir",
-          "$TMPDIR/channel_pingpong-out",
+          "$TMPDIR/neg_delay_until-out",
           "--interface-dir",
-          "$TMPDIR/channel_pingpong-iface"
+          "$TMPDIR/neg_delay_until-iface"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "channel_pingpong.safe:17:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 17 |    channel Ping_Ch : Message capacity 1;\n  |    |    ^~~~~~~\n  |\n",
+        "stderr": "neg_delay_until.safe:11:16: error: absolute `delay until` is outside the current PR08.1 concurrency subset\n  |\n  | 11 |          delay until 1.0;\n  |    |                ^~~~~\n  |\n",
         "stdout": ""
       },
       "emit_artifacts": {
         "iface_files": [],
         "out_files": []
       },
-      "name": "channel_pingpong",
-      "source": "tests/positive/channel_pingpong.safe"
+      "name": "delay_until",
+      "source": "tests/negative/neg_delay_until.safe"
     },
     {
       "ast": {
         "command": [
           "compiler_impl/bin/safec",
           "ast",
-          "tests/positive/channel_pipeline.safe"
+          "tests/negative/neg_qualified_channel_reference.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "channel_pipeline.safe:18:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 18 |    channel Raw_Ch      : Sample capacity 4;\n  |    |    ^~~~~~~\n  |\n",
+        "stderr": "neg_qualified_channel_reference.safe:16:15: error: package-qualified channel references are outside the current PR08.1 concurrency subset\n  |\n  | 16 |          send Remote_Package.Data_Ch, 1;\n  |    |               ^~~~~~~~~~~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check": {
         "command": [
           "compiler_impl/bin/safec",
           "check",
-          "tests/positive/channel_pipeline.safe"
+          "tests/negative/neg_qualified_channel_reference.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "channel_pipeline.safe:18:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 18 |    channel Raw_Ch      : Sample capacity 4;\n  |    |    ^~~~~~~\n  |\n",
+        "stderr": "neg_qualified_channel_reference.safe:16:15: error: package-qualified channel references are outside the current PR08.1 concurrency subset\n  |\n  | 16 |          send Remote_Package.Data_Ch, 1;\n  |    |               ^~~~~~~~~~~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check_diag_json": {
@@ -350,25 +350,25 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "tests/positive/channel_pipeline.safe"
+          "tests/negative/neg_qualified_channel_reference.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `channel` is outside the current PR05/PR06 check subset\",\"path\":\"tests/positive/channel_pipeline.safe\",\"span\":{\"start_line\":18,\"start_col\":4,\"end_line\":18,\"end_col\":10},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package-qualified channel references are outside the current PR08.1 concurrency subset\",\"path\":\"tests/negative/neg_qualified_channel_reference.safe\",\"span\":{\"start_line\":16,\"start_col\":15,\"end_line\":16,\"end_col\":36},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
       },
       "diagnostics": [
         {
           "highlight_span": null,
-          "message": "package item `channel` is outside the current PR05/PR06 check subset",
+          "message": "package-qualified channel references are outside the current PR08.1 concurrency subset",
           "notes": [],
-          "path": "tests/positive/channel_pipeline.safe",
+          "path": "tests/negative/neg_qualified_channel_reference.safe",
           "reason": "unsupported_source_construct",
           "span": {
-            "end_col": 10,
-            "end_line": 18,
-            "start_col": 4,
-            "start_line": 18
+            "end_col": 36,
+            "end_line": 16,
+            "start_col": 15,
+            "start_line": 16
           },
           "suggestions": []
         }
@@ -377,169 +377,23 @@
         "command": [
           "compiler_impl/bin/safec",
           "emit",
-          "tests/positive/channel_pipeline.safe",
+          "tests/negative/neg_qualified_channel_reference.safe",
           "--out-dir",
-          "$TMPDIR/channel_pipeline-out",
+          "$TMPDIR/neg_qualified_channel_reference-out",
           "--interface-dir",
-          "$TMPDIR/channel_pipeline-iface"
+          "$TMPDIR/neg_qualified_channel_reference-iface"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "channel_pipeline.safe:18:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 18 |    channel Raw_Ch      : Sample capacity 4;\n  |    |    ^~~~~~~\n  |\n",
+        "stderr": "neg_qualified_channel_reference.safe:16:15: error: package-qualified channel references are outside the current PR08.1 concurrency subset\n  |\n  | 16 |          send Remote_Package.Data_Ch, 1;\n  |    |               ^~~~~~~~~~~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "emit_artifacts": {
         "iface_files": [],
         "out_files": []
       },
-      "name": "channel_pipeline",
-      "source": "tests/positive/channel_pipeline.safe"
-    },
-    {
-      "ast": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "ast",
-          "tests/concurrency/select_priority.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "select_priority.safe:15:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 15 |    channel High_Ch : Command capacity 2;\n  |    |    ^~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "tests/concurrency/select_priority.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "select_priority.safe:15:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 15 |    channel High_Ch : Command capacity 2;\n  |    |    ^~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "check_diag_json": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/concurrency/select_priority.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `channel` is outside the current PR05/PR06 check subset\",\"path\":\"tests/concurrency/select_priority.safe\",\"span\":{\"start_line\":15,\"start_col\":4,\"end_line\":15,\"end_col\":10},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
-      },
-      "diagnostics": [
-        {
-          "highlight_span": null,
-          "message": "package item `channel` is outside the current PR05/PR06 check subset",
-          "notes": [],
-          "path": "tests/concurrency/select_priority.safe",
-          "reason": "unsupported_source_construct",
-          "span": {
-            "end_col": 10,
-            "end_line": 15,
-            "start_col": 4,
-            "start_line": 15
-          },
-          "suggestions": []
-        }
-      ],
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/concurrency/select_priority.safe",
-          "--out-dir",
-          "$TMPDIR/select_priority-out",
-          "--interface-dir",
-          "$TMPDIR/select_priority-iface"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "select_priority.safe:15:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 15 |    channel High_Ch : Command capacity 2;\n  |    |    ^~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "emit_artifacts": {
-        "iface_files": [],
-        "out_files": []
-      },
-      "name": "select_priority",
-      "source": "tests/concurrency/select_priority.safe"
-    },
-    {
-      "ast": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "ast",
-          "tests/concurrency/try_send_ownership.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "try_send_ownership.safe:20:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 20 |    channel Data_Ch : Payload_Ptr capacity 2;\n  |    |    ^~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "tests/concurrency/try_send_ownership.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "try_send_ownership.safe:20:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 20 |    channel Data_Ch : Payload_Ptr capacity 2;\n  |    |    ^~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "check_diag_json": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/concurrency/try_send_ownership.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `channel` is outside the current PR05/PR06 check subset\",\"path\":\"tests/concurrency/try_send_ownership.safe\",\"span\":{\"start_line\":20,\"start_col\":4,\"end_line\":20,\"end_col\":10},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
-      },
-      "diagnostics": [
-        {
-          "highlight_span": null,
-          "message": "package item `channel` is outside the current PR05/PR06 check subset",
-          "notes": [],
-          "path": "tests/concurrency/try_send_ownership.safe",
-          "reason": "unsupported_source_construct",
-          "span": {
-            "end_col": 10,
-            "end_line": 20,
-            "start_col": 4,
-            "start_line": 20
-          },
-          "suggestions": []
-        }
-      ],
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/concurrency/try_send_ownership.safe",
-          "--out-dir",
-          "$TMPDIR/try_send_ownership-out",
-          "--interface-dir",
-          "$TMPDIR/try_send_ownership-iface"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "try_send_ownership.safe:20:4: error: package item `channel` is outside the current PR05/PR06 check subset\n  |\n  | 20 |    channel Data_Ch : Payload_Ptr capacity 2;\n  |    |    ^~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "emit_artifacts": {
-        "iface_files": [],
-        "out_files": []
-      },
-      "name": "try_send_ownership",
-      "source": "tests/concurrency/try_send_ownership.safe"
+      "name": "qualified_channel_reference",
+      "source": "tests/negative/neg_qualified_channel_reference.safe"
     },
     {
       "ast": {
@@ -769,7 +623,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "protected_case.safe:2:4: error: package item `protected` is outside the current PR05/PR06 check subset\n  |\n  | 2 |    protected Lock is\n  |   |    ^~~~~~~~~\n  |\n",
+        "stderr": "protected_case.safe:2:4: error: package item `protected` is outside the current PR08.1 concurrency subset\n  |\n  | 2 |    protected Lock is\n  |   |    ^~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check": {
@@ -780,7 +634,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "protected_case.safe:2:4: error: package item `protected` is outside the current PR05/PR06 check subset\n  |\n  | 2 |    protected Lock is\n  |   |    ^~~~~~~~~\n  |\n",
+        "stderr": "protected_case.safe:2:4: error: package item `protected` is outside the current PR08.1 concurrency subset\n  |\n  | 2 |    protected Lock is\n  |   |    ^~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check_diag_json": {
@@ -793,12 +647,12 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `protected` is outside the current PR05/PR06 check subset\",\"path\":\"$TMPDIR/protected_case.safe\",\"span\":{\"start_line\":2,\"start_col\":4,\"end_line\":2,\"end_col\":12},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"package item `protected` is outside the current PR08.1 concurrency subset\",\"path\":\"$TMPDIR/protected_case.safe\",\"span\":{\"start_line\":2,\"start_col\":4,\"end_line\":2,\"end_col\":12},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
       },
       "diagnostics": [
         {
           "highlight_span": null,
-          "message": "package item `protected` is outside the current PR05/PR06 check subset",
+          "message": "package item `protected` is outside the current PR08.1 concurrency subset",
           "notes": [],
           "path": "$TMPDIR/protected_case.safe",
           "reason": "unsupported_source_construct",
@@ -823,7 +677,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "protected_case.safe:2:4: error: package item `protected` is outside the current PR05/PR06 check subset\n  |\n  | 2 |    protected Lock is\n  |   |    ^~~~~~~~~\n  |\n",
+        "stderr": "protected_case.safe:2:4: error: package item `protected` is outside the current PR08.1 concurrency subset\n  |\n  | 2 |    protected Lock is\n  |   |    ^~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "emit_artifacts": {

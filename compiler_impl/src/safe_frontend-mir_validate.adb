@@ -16,6 +16,7 @@ package body Safe_Frontend.Mir_Validate is
    use type GM.Mir_Format_Kind;
    use type GM.Op_Kind;
    use type GM.Ownership_Effect_Kind;
+   use type GM.Select_Arm_Kind;
    use type GM.Terminator_Kind;
 
    Validation_Error : exception;
@@ -102,6 +103,17 @@ package body Safe_Frontend.Mir_Validate is
       Format : GM.Mir_Format_Kind;
       Where  : String);
 
+   procedure Validate_Channel
+     (Value : GM.Channel_Entry;
+      Where : String);
+
+   procedure Validate_Select_Arm
+     (Value           : GM.Select_Arm_Entry;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
+      Where           : String);
+
    procedure Validate_Scope
      (Value           : GM.Scope_Entry;
       Valid_Scope_Ids : FT.UString_Vectors.Vector;
@@ -114,6 +126,7 @@ package body Safe_Frontend.Mir_Validate is
       Format          : GM.Mir_Format_Kind;
       Valid_Block_Ids : FT.UString_Vectors.Vector;
       Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
       Where           : String);
 
    procedure Validate_Graph
@@ -260,6 +273,52 @@ package body Safe_Frontend.Mir_Validate is
       end case;
    end Validate_Expr;
 
+   procedure Validate_Channel
+     (Value : GM.Channel_Entry;
+      Where : String)
+   is
+   begin
+      Require (Has_Text (Value.Name), Where & ": missing channel name");
+      Require (Value.Capacity > 0, Where & ": channel capacity must be positive");
+      Validate_Type_Descriptor (Value.Element_Type, Where & ".element_type");
+   end Validate_Channel;
+
+   procedure Validate_Select_Arm
+     (Value           : GM.Select_Arm_Entry;
+      Valid_Block_Ids : FT.UString_Vectors.Vector;
+      Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
+      Where           : String)
+   is
+   begin
+      case Value.Kind is
+         when GM.Select_Arm_Channel =>
+            Require
+              (Has_Text (Value.Channel_Data.Channel_Name),
+               Where & ": missing channel_name");
+            Require
+              (Has_Text (Value.Channel_Data.Variable_Name),
+               Where & ": missing variable_name");
+            Require
+              (Contains (Valid_Scope_Ids, Text (Value.Channel_Data.Scope_Id)),
+               Where & ": invalid scope_id");
+            Require
+              (Contains (Valid_Local_Ids, Text (Value.Channel_Data.Local_Id)),
+               Where & ": invalid local_id");
+            Require
+              (Contains (Valid_Block_Ids, Text (Value.Channel_Data.Target)),
+               Where & ": invalid target");
+            Validate_Type_Descriptor (Value.Channel_Data.Type_Info, Where & ".type");
+         when GM.Select_Arm_Delay =>
+            Validate_Expr (Value.Delay_Data.Duration_Expr, Where & ".duration_expr");
+            Require
+              (Contains (Valid_Block_Ids, Text (Value.Delay_Data.Target)),
+               Where & ": invalid target");
+         when others =>
+            Require (False, Where & ": unsupported select arm kind");
+      end case;
+   end Validate_Select_Arm;
+
    procedure Validate_Local
      (Value  : GM.Local_Entry;
       Format : GM.Mir_Format_Kind;
@@ -319,6 +378,7 @@ package body Safe_Frontend.Mir_Validate is
       Format          : GM.Mir_Format_Kind;
       Valid_Block_Ids : FT.UString_Vectors.Vector;
       Valid_Scope_Ids : FT.UString_Vectors.Vector;
+      Valid_Local_Ids : FT.UString_Vectors.Vector;
       Where           : String)
    is
    begin
@@ -378,6 +438,42 @@ package body Safe_Frontend.Mir_Validate is
                            Op_Where & ": missing op type");
                      end if;
                      Validate_Expr (Op.Value, Op_Where & ".value");
+                  when GM.Op_Channel_Send =>
+                     Require
+                       (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                        Op_Where & ": invalid ownership_effect");
+                     Require (Has_Text (Op.Type_Name), Op_Where & ": missing op type");
+                     Validate_Expr (Op.Channel, Op_Where & ".channel");
+                     Validate_Expr (Op.Value, Op_Where & ".value");
+                  when GM.Op_Channel_Receive =>
+                     Require
+                       (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                        Op_Where & ": invalid ownership_effect");
+                     Require (Has_Text (Op.Type_Name), Op_Where & ": missing op type");
+                     Validate_Expr (Op.Channel, Op_Where & ".channel");
+                     Validate_Expr (Op.Target, Op_Where & ".target");
+                  when GM.Op_Channel_Try_Send =>
+                     Require
+                       (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                        Op_Where & ": invalid ownership_effect");
+                     Require (Has_Text (Op.Type_Name), Op_Where & ": missing op type");
+                     Validate_Expr (Op.Channel, Op_Where & ".channel");
+                     Validate_Expr (Op.Value, Op_Where & ".value");
+                     Validate_Expr (Op.Success_Target, Op_Where & ".success_target");
+                  when GM.Op_Channel_Try_Receive =>
+                     Require
+                       (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                        Op_Where & ": invalid ownership_effect");
+                     Require (Has_Text (Op.Type_Name), Op_Where & ": missing op type");
+                     Validate_Expr (Op.Channel, Op_Where & ".channel");
+                     Validate_Expr (Op.Target, Op_Where & ".target");
+                     Validate_Expr (Op.Success_Target, Op_Where & ".success_target");
+                  when GM.Op_Delay =>
+                     Require
+                       (Op.Ownership_Effect /= GM.Ownership_Invalid,
+                        Op_Where & ": invalid ownership_effect");
+                     Require (Has_Text (Op.Type_Name), Op_Where & ": missing op type");
+                     Validate_Expr (Op.Value, Op_Where & ".value");
                   when GM.Op_Unknown =>
                      null;
                end case;
@@ -411,6 +507,28 @@ package body Safe_Frontend.Mir_Validate is
             if Value.Terminator.Has_Value then
                Validate_Expr (Value.Terminator.Value, Where & ".terminator.value");
             end if;
+         when GM.Terminator_Select =>
+            Require
+              (not Value.Terminator.Arms.Is_Empty,
+               Where & ".terminator: select terminator must have at least one arm");
+            declare
+               Delay_Arms : Natural := 0;
+            begin
+               for Index in Value.Terminator.Arms.First_Index .. Value.Terminator.Arms.Last_Index loop
+                  if Value.Terminator.Arms (Index).Kind = GM.Select_Arm_Delay then
+                     Delay_Arms := Delay_Arms + 1;
+                  end if;
+                  Validate_Select_Arm
+                    (Value.Terminator.Arms (Index),
+                     Valid_Block_Ids,
+                     Valid_Scope_Ids,
+                     Valid_Local_Ids,
+                     Where & ".terminator.arms[" & Image (Index - 1) & "]");
+               end loop;
+               Require
+                 (Delay_Arms <= 1,
+                  Where & ".terminator: select terminator may have at most one delay arm");
+            end;
          when GM.Terminator_Unknown =>
             null;
       end case;
@@ -430,6 +548,10 @@ package body Safe_Frontend.Mir_Validate is
    begin
       Require (Has_Text (Value.Name), Where & ": missing graph name");
       Require (not Value.Blocks.Is_Empty, Where & ": blocks must be a non-empty list");
+      if Text (Value.Kind) = "task" then
+         Require (Value.Has_Priority, Where & ": task graphs must include priority");
+         Require (not Value.Has_Return_Type, Where & ": task graphs must not include return_type");
+      end if;
 
       for Index in Value.Blocks.First_Index .. Value.Blocks.Last_Index loop
          declare
@@ -516,6 +638,7 @@ package body Safe_Frontend.Mir_Validate is
             Format,
             Valid_Block_Ids,
             Valid_Scope_Ids,
+            Valid_Local_Ids,
             Where & ".blocks[" & Image (Index - 1) & "]");
       end loop;
    end Validate_Graph;
@@ -539,6 +662,14 @@ package body Safe_Frontend.Mir_Validate is
             Validate_Type_Descriptor
               (Document.Types (Index),
                "root.types[" & Image (Index - 1) & "]");
+         end loop;
+      end if;
+
+      if not Document.Channels.Is_Empty then
+         for Index in Document.Channels.First_Index .. Document.Channels.Last_Index loop
+            Validate_Channel
+              (Document.Channels (Index),
+               "root.channels[" & Image (Index - 1) & "]");
          end loop;
       end if;
 

@@ -1,0 +1,23 @@
+-- Test: task_priority_delay
+-- Description: Task with explicit priority and relative delay.
+--   A local task uses an explicit Priority aspect and a relative delay
+--   inside its required outer loop body.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p5:4e4afebc
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53:897d5577
+-- Expected: ACCEPT
+
+package Task_Priority_Delay is
+
+   task Worker with Priority = 5 is
+      Ticks : Natural = 0;
+   begin
+      loop
+         delay 0.25;
+         Ticks = Ticks + 1;
+         if Ticks > 1_000 then
+            Ticks = 0;
+         end if;
+      end loop;
+   end Worker;
+
+end Task_Priority_Delay;

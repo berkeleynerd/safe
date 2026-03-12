@@ -1,5 +1,6 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
+with System;
 with Safe_Frontend.Mir_Model;
 with Safe_Frontend.Types;
 
@@ -11,6 +12,7 @@ package body Safe_Frontend.Check_Resolve is
    use type CM.Expr_Kind;
    use type CM.Discrete_Range_Kind;
    use type CM.Package_Item_Kind;
+   use type CM.Select_Arm_Kind;
    use type CM.Statement_Kind;
    use type CM.Type_Decl_Kind;
    use type FT.UString;
@@ -77,6 +79,7 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env.Include ("Boolean", Make_Builtin ("Boolean", 0, 1));
       Type_Env.Include ("Float", Make_Float_Builtin ("Float"));
       Type_Env.Include ("Long_Float", Make_Float_Builtin ("Long_Float"));
+      Type_Env.Include ("Duration", Make_Float_Builtin ("Duration"));
    end Add_Builtins;
 
    procedure Raise_Diag (Item : CM.MD.Diagnostic) is
@@ -100,6 +103,127 @@ package body Safe_Frontend.Check_Resolve is
       return Make_Float_Builtin ("Long_Float");
    end Default_Float;
 
+   function Default_Duration return GM.Type_Descriptor is
+   begin
+      return Make_Float_Builtin ("Duration");
+   end Default_Duration;
+
+   function Default_Task_Priority return Long_Long_Integer is
+   begin
+      return Long_Long_Integer (System.Default_Priority);
+   end Default_Task_Priority;
+
+   function Min_Task_Priority return Long_Long_Integer is
+   begin
+      return Long_Long_Integer (System.Any_Priority'First);
+   end Min_Task_Priority;
+
+   function Max_Task_Priority return Long_Long_Integer is
+   begin
+      return Long_Long_Integer (System.Any_Priority'Last);
+   end Max_Task_Priority;
+
+   function Base_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor
+   is
+      Result : GM.Type_Descriptor := Info;
+      Name   : String := UString_Value (Result.Name);
+   begin
+      while Result.Has_Base and then Type_Env.Contains (UString_Value (Result.Base)) loop
+         Result := Type_Env.Element (UString_Value (Result.Base));
+         Name := UString_Value (Result.Name);
+         exit when Name = "";
+      end loop;
+      return Result;
+   end Base_Type;
+
+   function Is_Integerish
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Equivalent_Type
+     (Left     : GM.Type_Descriptor;
+      Right    : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Left_Base  : constant GM.Type_Descriptor := Base_Type (Left, Type_Env);
+      Right_Base : constant GM.Type_Descriptor := Base_Type (Right, Type_Env);
+   begin
+      return UString_Value (Left.Name) = UString_Value (Right.Name)
+        or else UString_Value (Left_Base.Name) = UString_Value (Right_Base.Name);
+   end Equivalent_Type;
+
+   function Compatible_Type
+     (Left     : GM.Type_Descriptor;
+      Right    : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Left_Base  : constant GM.Type_Descriptor := Base_Type (Left, Type_Env);
+      Right_Base : constant GM.Type_Descriptor := Base_Type (Right, Type_Env);
+      Left_Kind  : constant String := FT.Lowercase (UString_Value (Left_Base.Kind));
+      Right_Kind : constant String := FT.Lowercase (UString_Value (Right_Base.Kind));
+   begin
+      return Equivalent_Type (Left, Right, Type_Env)
+        or else (Is_Integerish (Left, Type_Env) and then Is_Integerish (Right, Type_Env))
+        or else (Left_Kind = "float" and then Right_Kind = "float");
+   end Compatible_Type;
+
+   function Is_Boolean_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return UString_Value (Base_Type (Info, Type_Env).Name) = "Boolean";
+   end Is_Boolean_Type;
+
+   function Is_Duration_Compatible
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+   begin
+      return UString_Value (Base.Name) = "Duration"
+        or else Kind in "integer" | "float" | "subtype";
+   end Is_Duration_Compatible;
+
+   function Is_Integerish
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+   begin
+      return Kind in "integer" | "subtype";
+   end Is_Integerish;
+
+   function Is_Definite_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+   begin
+      if Kind = "incomplete" then
+         return False;
+      elsif Kind = "array" then
+         return not Base.Unconstrained;
+      elsif Kind = "record" and then Base.Has_Discriminant then
+         return Base.Has_Discriminant_Default;
+      end if;
+      return True;
+   end Is_Definite_Type;
+
+   function Contains_Dot (Name : String) return Boolean is
+   begin
+      for Ch of Name loop
+         if Ch = '.' then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Contains_Dot;
+
    function Classify_Access_Role
      (Anonymous   : Boolean;
       Is_Constant : Boolean;
@@ -119,7 +243,7 @@ package body Safe_Frontend.Check_Resolve is
 
    function Is_Builtin_Name (Name : String) return Boolean is
    begin
-      return Name in "Integer" | "Natural" | "Boolean" | "Float" | "Long_Float";
+      return Name in "Integer" | "Natural" | "Boolean" | "Float" | "Long_Float" | "Duration";
    end Is_Builtin_Name;
 
    function Expr_Text (Expr : CM.Expr_Access) return String;
@@ -650,19 +774,116 @@ package body Safe_Frontend.Check_Resolve is
       return Expr;
    end Normalize_Procedure_Call;
 
-   function Normalize_Statement
-     (Stmt      : CM.Statement_Access;
+   function Channel_Element_Type
+     (Expr        : CM.Expr_Access;
+      Channel_Env : Type_Maps.Map;
+      Path        : String) return GM.Type_Descriptor
+   is
+      Name : constant String := Flatten_Name (Expr);
+   begin
+      if Name = "" then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => (if Expr = null then FT.Null_Span else Expr.Span),
+               Message => "channel reference must be a channel name"));
+      end if;
+
+      if Contains_Dot (Name) then
+         Raise_Diag
+           (CM.Unsupported_Source_Construct
+              (Path    => Path,
+               Span    => Expr.Span,
+               Message =>
+                 "package-qualified channel references are outside the current PR08.1 concurrency subset"));
+      elsif not Channel_Env.Contains (Name) then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Expr.Span,
+               Message => "unknown channel `" & Name & "`"));
+      end if;
+
+      return Channel_Env.Element (Name);
+   end Channel_Element_Type;
+
+   function Normalize_Object_Decl
+     (Decl      : CM.Object_Decl;
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
-      Path      : String) return CM.Statement_Access
+      Path      : String) return CM.Object_Decl
    is
-      Result      : constant CM.Statement_Access := new CM.Statement'(Stmt.all);
+      Result : CM.Object_Decl := Decl;
+   begin
+      Result.Type_Info := Resolve_Decl_Type (Decl, Var_Types, Path);
+      if Decl.Has_Initializer and then Decl.Initializer /= null then
+         Result.Initializer := Normalize_Expr (Decl.Initializer, Var_Types, Functions, Type_Env);
+      end if;
+      return Result;
+   end Normalize_Object_Decl;
+
+   function Normalize_Statement
+     (Stmt        : CM.Statement_Access;
+      Var_Types   : Type_Maps.Map;
+      Functions   : Function_Maps.Map;
+      Type_Env    : Type_Maps.Map;
+      Channel_Env : Type_Maps.Map;
+      Path        : String) return CM.Statement_Access;
+
+   function Normalize_Statement_List
+     (Statements  : CM.Statement_Access_Vectors.Vector;
+      Var_Types   : Type_Maps.Map;
+      Functions   : Function_Maps.Map;
+      Type_Env    : Type_Maps.Map;
+      Channel_Env : Type_Maps.Map;
+      Path        : String) return CM.Statement_Access_Vectors.Vector
+   is
+      Result      : CM.Statement_Access_Vectors.Vector;
       Local_Types : Type_Maps.Map := Var_Types;
-      Loop_Type   : GM.Type_Descriptor;
-      Decl_Type   : GM.Type_Descriptor;
+   begin
+      for Item of Statements loop
+         declare
+            Normalized : constant CM.Statement_Access :=
+              Normalize_Statement
+                (Item,
+                 Local_Types,
+                 Functions,
+                 Type_Env,
+                 Channel_Env,
+                 Path);
+         begin
+            Result.Append (Normalized);
+            if Normalized.Kind = CM.Stmt_Object_Decl then
+               for Name of Normalized.Decl.Names loop
+                  Local_Types.Include (UString_Value (Name), Normalized.Decl.Type_Info);
+               end loop;
+            end if;
+         end;
+      end loop;
+      return Result;
+   end Normalize_Statement_List;
+
+   function Normalize_Statement
+     (Stmt        : CM.Statement_Access;
+      Var_Types   : Type_Maps.Map;
+      Functions   : Function_Maps.Map;
+      Type_Env    : Type_Maps.Map;
+      Channel_Env : Type_Maps.Map;
+      Path        : String) return CM.Statement_Access
+   is
+      Result         : constant CM.Statement_Access := new CM.Statement'(Stmt.all);
+      Local_Types    : Type_Maps.Map := Var_Types;
+      Loop_Type      : GM.Type_Descriptor;
+      Decl_Type      : GM.Type_Descriptor;
+      Channel_Type   : GM.Type_Descriptor;
+      Success_Type   : GM.Type_Descriptor;
+      Target_Type    : GM.Type_Descriptor;
    begin
       case Stmt.Kind is
+         when CM.Stmt_Object_Decl =>
+            Result.Decl := Normalize_Object_Decl (Stmt.Decl, Var_Types, Functions, Type_Env, Path);
+
          when CM.Stmt_Assign =>
             Result.Target := Normalize_Expr (Stmt.Target, Var_Types, Functions, Type_Env);
             if not Is_Assignable_Target (Result.Target) then
@@ -673,17 +894,17 @@ package body Safe_Frontend.Check_Resolve is
                      Message => "assignment target must be a writable name"));
             end if;
             Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+
          when CM.Stmt_Return =>
             if Stmt.Value /= null then
                Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
             end if;
+
          when CM.Stmt_If =>
             Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
-            Result.Then_Stmts.Clear;
-            for Item of Stmt.Then_Stmts loop
-               Result.Then_Stmts.Append
-                 (Normalize_Statement (Item, Var_Types, Functions, Type_Env, Path));
-            end loop;
+            Result.Then_Stmts :=
+              Normalize_Statement_List
+                (Stmt.Then_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Path);
             Result.Elsifs.Clear;
             for Part of Stmt.Elsifs loop
                declare
@@ -691,28 +912,34 @@ package body Safe_Frontend.Check_Resolve is
                begin
                   New_Part.Condition :=
                     Normalize_Expr (Part.Condition, Var_Types, Functions, Type_Env);
-                  New_Part.Statements.Clear;
-                  for Item of Part.Statements loop
-                     New_Part.Statements.Append
-                       (Normalize_Statement (Item, Var_Types, Functions, Type_Env, Path));
-                  end loop;
+                  New_Part.Statements :=
+                    Normalize_Statement_List
+                      (Part.Statements, Var_Types, Functions, Type_Env, Channel_Env, Path);
                   Result.Elsifs.Append (New_Part);
                end;
             end loop;
             if Stmt.Has_Else then
-               Result.Else_Stmts.Clear;
-               for Item of Stmt.Else_Stmts loop
-                  Result.Else_Stmts.Append
-                    (Normalize_Statement (Item, Var_Types, Functions, Type_Env, Path));
-               end loop;
+               Result.Else_Stmts :=
+                 Normalize_Statement_List
+                   (Stmt.Else_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Path);
             end if;
+
          when CM.Stmt_While =>
             Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
-            Result.Body_Stmts.Clear;
-            for Item of Stmt.Body_Stmts loop
-               Result.Body_Stmts.Append
-                 (Normalize_Statement (Item, Var_Types, Functions, Type_Env, Path));
-            end loop;
+            Result.Body_Stmts :=
+              Normalize_Statement_List
+                (Stmt.Body_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Path);
+
+         when CM.Stmt_Loop =>
+            Result.Body_Stmts :=
+              Normalize_Statement_List
+                (Stmt.Body_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Path);
+
+         when CM.Stmt_Exit =>
+            if Stmt.Condition /= null then
+               Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
+            end if;
+
          when CM.Stmt_For =>
             Result.Loop_Range := Stmt.Loop_Range;
             if Stmt.Loop_Range.Kind = CM.Range_Explicit then
@@ -729,22 +956,17 @@ package body Safe_Frontend.Check_Resolve is
                  Resolve_Type (Flatten_Name (Stmt.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
             end if;
             Local_Types.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
-            Result.Body_Stmts.Clear;
-            for Item of Stmt.Body_Stmts loop
-               Result.Body_Stmts.Append
-                 (Normalize_Statement (Item, Local_Types, Functions, Type_Env, Path));
-            end loop;
+            Result.Body_Stmts :=
+              Normalize_Statement_List
+                (Stmt.Body_Stmts, Local_Types, Functions, Type_Env, Channel_Env, Path);
+
          when CM.Stmt_Block =>
             Result.Declarations.Clear;
             for Decl of Stmt.Declarations loop
                declare
-                  New_Decl : CM.Object_Decl := Decl;
+                  New_Decl : constant CM.Object_Decl :=
+                    Normalize_Object_Decl (Decl, Local_Types, Functions, Type_Env, Path);
                begin
-                  New_Decl.Type_Info := Resolve_Decl_Type (Decl, Local_Types, Path);
-                  if Decl.Has_Initializer and then Decl.Initializer /= null then
-                     New_Decl.Initializer :=
-                       Normalize_Expr (Decl.Initializer, Local_Types, Functions, Type_Env);
-                  end if;
                   Result.Declarations.Append (New_Decl);
                   Decl_Type := New_Decl.Type_Info;
                   for Name of Decl.Names loop
@@ -752,17 +974,208 @@ package body Safe_Frontend.Check_Resolve is
                   end loop;
                end;
             end loop;
-            Result.Body_Stmts.Clear;
-            for Item of Stmt.Body_Stmts loop
-               Result.Body_Stmts.Append
-                 (Normalize_Statement (Item, Local_Types, Functions, Type_Env, Path));
-            end loop;
+            Result.Body_Stmts :=
+              Normalize_Statement_List
+                (Stmt.Body_Stmts, Local_Types, Functions, Type_Env, Channel_Env, Path);
+
          when CM.Stmt_Call =>
             Result.Call :=
               Normalize_Procedure_Call
                 (Normalize_Expr (Stmt.Call, Var_Types, Functions, Type_Env),
                  Functions,
                  Path);
+
+         when CM.Stmt_Send | CM.Stmt_Try_Send =>
+            Result.Channel_Name :=
+              Normalize_Expr (Stmt.Channel_Name, Var_Types, Functions, Type_Env);
+            Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+            Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
+            if not Compatible_Type
+              (Expr_Type (Result.Value, Var_Types, Functions, Type_Env),
+               Channel_Type,
+               Type_Env)
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Result.Value.Span,
+                     Message => "channel send expression type does not match channel element type"));
+            end if;
+            if Stmt.Kind = CM.Stmt_Try_Send then
+               Result.Success_Var :=
+                 Normalize_Expr (Stmt.Success_Var, Var_Types, Functions, Type_Env);
+               if not Is_Assignable_Target (Result.Success_Var) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Result.Success_Var.Span,
+                        Message => "try_send success variable must be a writable name"));
+               end if;
+               Success_Type := Expr_Type (Result.Success_Var, Var_Types, Functions, Type_Env);
+               if not Is_Boolean_Type (Success_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Result.Success_Var.Span,
+                        Message => "try_send success variable must have type Boolean"));
+               end if;
+            end if;
+
+         when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
+            Result.Channel_Name :=
+              Normalize_Expr (Stmt.Channel_Name, Var_Types, Functions, Type_Env);
+            Result.Target := Normalize_Expr (Stmt.Target, Var_Types, Functions, Type_Env);
+            if not Is_Assignable_Target (Result.Target) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Result.Target.Span,
+                     Message => "receive target must be a writable name"));
+            end if;
+            Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
+            Target_Type := Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
+            if not Compatible_Type (Target_Type, Channel_Type, Type_Env) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Result.Target.Span,
+                     Message => "channel receive target type does not match channel element type"));
+            end if;
+            if Stmt.Kind = CM.Stmt_Try_Receive then
+               Result.Success_Var :=
+                 Normalize_Expr (Stmt.Success_Var, Var_Types, Functions, Type_Env);
+               if not Is_Assignable_Target (Result.Success_Var) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Result.Success_Var.Span,
+                        Message => "try_receive success variable must be a writable name"));
+               end if;
+               Success_Type := Expr_Type (Result.Success_Var, Var_Types, Functions, Type_Env);
+               if not Is_Boolean_Type (Success_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Result.Success_Var.Span,
+                        Message => "try_receive success variable must have type Boolean"));
+               end if;
+            end if;
+
+         when CM.Stmt_Delay =>
+            Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+            if not Is_Duration_Compatible
+              (Expr_Type (Result.Value, Var_Types, Functions, Type_Env), Type_Env)
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Result.Value.Span,
+                     Message => "relative delay expression must be duration-compatible"));
+            end if;
+
+         when CM.Stmt_Select =>
+            declare
+               Channel_Arms : Natural := 0;
+               Delay_Arms   : Natural := 0;
+            begin
+               Result.Arms.Clear;
+               for Arm of Stmt.Arms loop
+                  declare
+                     New_Arm    : CM.Select_Arm := Arm;
+                     Arm_Types  : Type_Maps.Map := Var_Types;
+                  begin
+                     case Arm.Kind is
+                        when CM.Select_Arm_Channel =>
+                           Channel_Arms := Channel_Arms + 1;
+                           New_Arm.Channel_Data.Channel_Name :=
+                             Normalize_Expr
+                               (Arm.Channel_Data.Channel_Name,
+                                Var_Types,
+                                Functions,
+                                Type_Env);
+                           Channel_Type :=
+                             Channel_Element_Type
+                               (New_Arm.Channel_Data.Channel_Name,
+                                Channel_Env,
+                                Path);
+                           New_Arm.Channel_Data.Type_Info :=
+                             Resolve_Type_Spec
+                               (Arm.Channel_Data.Subtype_Mark, Type_Env, Path);
+                           if not Compatible_Type
+                             (New_Arm.Channel_Data.Type_Info,
+                              Channel_Type,
+                              Type_Env)
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Arm.Channel_Data.Subtype_Mark.Span,
+                                    Message =>
+                                      "select arm binding type does not match channel element type"));
+                           end if;
+                           Arm_Types.Include
+                             (UString_Value (Arm.Channel_Data.Variable_Name),
+                              New_Arm.Channel_Data.Type_Info);
+                           New_Arm.Channel_Data.Statements :=
+                             Normalize_Statement_List
+                               (Arm.Channel_Data.Statements,
+                                Arm_Types,
+                                Functions,
+                                Type_Env,
+                                Channel_Env,
+                                Path);
+                        when CM.Select_Arm_Delay =>
+                           Delay_Arms := Delay_Arms + 1;
+                           New_Arm.Delay_Data.Duration_Expr :=
+                             Normalize_Expr
+                               (Arm.Delay_Data.Duration_Expr,
+                                Var_Types,
+                                Functions,
+                                Type_Env);
+                           if not Is_Duration_Compatible
+                             (Expr_Type
+                                (New_Arm.Delay_Data.Duration_Expr,
+                                 Var_Types,
+                                 Functions,
+                                 Type_Env),
+                              Type_Env)
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => New_Arm.Delay_Data.Duration_Expr.Span,
+                                    Message => "select delay arm must be duration-compatible"));
+                           end if;
+                           New_Arm.Delay_Data.Statements :=
+                             Normalize_Statement_List
+                               (Arm.Delay_Data.Statements,
+                                Var_Types,
+                                Functions,
+                                Type_Env,
+                                Channel_Env,
+                                Path);
+                        when others =>
+                           null;
+                     end case;
+                     Result.Arms.Append (New_Arm);
+                  end;
+               end loop;
+
+               if Channel_Arms = 0 then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Span,
+                        Message => "select must contain at least one channel arm"));
+               elsif Delay_Arms > 1 then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Span,
+                        Message => "select may contain at most one delay arm"));
+               end if;
+            end;
+
          when others =>
             null;
       end case;
@@ -905,13 +1318,105 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Register_Function;
 
+   function Resolve_Channel_Declaration
+     (Decl     : CM.Channel_Decl;
+      Type_Env : Type_Maps.Map;
+      Path     : String) return CM.Resolved_Channel_Decl
+   is
+      Result    : CM.Resolved_Channel_Decl;
+      Type_Info : constant GM.Type_Descriptor :=
+        Resolve_Type_Spec (Decl.Element_Type, Type_Env, Path);
+   begin
+      if not Is_Definite_Type (Type_Info, Type_Env) then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Decl.Element_Type.Span,
+               Message => "channel element type must be definite"));
+      end if;
+
+      Result.Is_Public := Decl.Is_Public;
+      Result.Name := Decl.Name;
+      Result.Element_Type := Type_Info;
+      Result.Capacity := Long_Long_Integer (Literal_Value (Decl.Capacity, Path));
+      if Result.Capacity <= 0 then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Decl.Capacity.Span,
+               Message => "channel capacity must be positive"));
+      end if;
+      Result.Span := Decl.Span;
+      return Result;
+   end Resolve_Channel_Declaration;
+
+   procedure Validate_Task_Nontermination
+     (Statements  : CM.Statement_Access_Vectors.Vector;
+      Path        : String;
+      Task_Name   : String;
+      Loop_Depth  : Natural := 0)
+   is
+   begin
+      for Stmt of Statements loop
+         case Stmt.Kind is
+            when CM.Stmt_Return =>
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Stmt.Span,
+                     Message => "task `" & Task_Name & "` must not contain return statements"));
+            when CM.Stmt_Exit =>
+               if Loop_Depth <= 1 then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Span,
+                        Message => "task `" & Task_Name & "` must not exit its outer loop"));
+               end if;
+            when CM.Stmt_If =>
+               Validate_Task_Nontermination
+                 (Stmt.Then_Stmts, Path, Task_Name, Loop_Depth);
+               for Part of Stmt.Elsifs loop
+                  Validate_Task_Nontermination
+                    (Part.Statements, Path, Task_Name, Loop_Depth);
+               end loop;
+               if Stmt.Has_Else then
+                  Validate_Task_Nontermination
+                    (Stmt.Else_Stmts, Path, Task_Name, Loop_Depth);
+               end if;
+            when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+               Validate_Task_Nontermination
+                 (Stmt.Body_Stmts, Path, Task_Name, Loop_Depth + 1);
+            when CM.Stmt_Block =>
+               Validate_Task_Nontermination
+                 (Stmt.Body_Stmts, Path, Task_Name, Loop_Depth);
+            when CM.Stmt_Select =>
+               for Arm of Stmt.Arms loop
+                  case Arm.Kind is
+                     when CM.Select_Arm_Channel =>
+                        Validate_Task_Nontermination
+                          (Arm.Channel_Data.Statements, Path, Task_Name, Loop_Depth);
+                     when CM.Select_Arm_Delay =>
+                        Validate_Task_Nontermination
+                          (Arm.Delay_Data.Statements, Path, Task_Name, Loop_Depth);
+                     when others =>
+                        null;
+                  end case;
+               end loop;
+            when others =>
+               null;
+         end case;
+      end loop;
+   end Validate_Task_Nontermination;
+
    function Resolve
      (Unit : CM.Parsed_Unit) return CM.Resolve_Result
    is
-      Type_Env   : Type_Maps.Map;
-      Functions  : Function_Maps.Map;
+      Type_Env     : Type_Maps.Map;
+      Functions    : Function_Maps.Map;
       Package_Vars : Type_Maps.Map;
-      Result     : CM.Resolved_Unit;
+      Channel_Env  : Type_Maps.Map;
+      Result       : CM.Resolved_Unit;
    begin
       Add_Builtins (Type_Env);
       Result.Path := Unit.Path;
@@ -968,6 +1473,22 @@ package body Safe_Frontend.Check_Resolve is
             when others =>
                null;
          end case;
+      end loop;
+
+      for Item of Unit.Items loop
+         if Item.Kind = CM.Item_Channel then
+            declare
+               Channel_Decl : constant CM.Resolved_Channel_Decl :=
+                 Resolve_Channel_Declaration
+                   (Item.Chan_Data,
+                    Type_Env,
+                    UString_Value (Unit.Path));
+            begin
+               Result.Channels.Append (Channel_Decl);
+               Channel_Env.Include
+                 (UString_Value (Channel_Decl.Name), Channel_Decl.Element_Type);
+            end;
+         end if;
       end loop;
 
       Package_Vars := Type_Env;
@@ -1038,17 +1559,113 @@ package body Safe_Frontend.Check_Resolve is
                   end loop;
                end loop;
 
-               for Stmt of Item.Subp_Data.Statements loop
-                  Subprogram.Statements.Append
-                    (Normalize_Statement
-                       (Stmt,
-                        Visible,
-                        Functions,
-                        Type_Env,
-                        UString_Value (Unit.Path)));
-               end loop;
+               Subprogram.Statements :=
+                 Normalize_Statement_List
+                   (Item.Subp_Data.Statements,
+                    Visible,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    UString_Value (Unit.Path));
 
                Result.Subprograms.Append (Subprogram);
+            end;
+         elsif Item.Kind = CM.Item_Task then
+            declare
+               Visible        : Type_Maps.Map := Package_Vars;
+               Task_Item      : CM.Resolved_Task;
+               Decl_Type      : GM.Type_Descriptor;
+               Local_Decl     : CM.Resolved_Object_Decl;
+               Priority_Expr  : CM.Expr_Access := null;
+               Priority_Type  : GM.Type_Descriptor;
+            begin
+               if UString_Value (Item.Task_Data.End_Name) /=
+                 UString_Value (Item.Task_Data.Name)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => UString_Value (Unit.Path),
+                        Span    => Item.Task_Data.Span,
+                        Message =>
+                          "task end name `" & UString_Value (Item.Task_Data.End_Name)
+                          & "` does not match `" & UString_Value (Item.Task_Data.Name) & "`"));
+               end if;
+
+               Task_Item.Name := Item.Task_Data.Name;
+               Task_Item.Has_Explicit_Priority := Item.Task_Data.Has_Explicit_Priority;
+               Task_Item.Priority := Default_Task_Priority;
+               Task_Item.Span := Item.Task_Data.Span;
+
+               if Item.Task_Data.Has_Explicit_Priority and then Item.Task_Data.Priority /= null then
+                  Priority_Expr :=
+                    Normalize_Expr
+                      (Item.Task_Data.Priority,
+                       Package_Vars,
+                       Functions,
+                       Type_Env);
+                  Priority_Type := Expr_Type (Priority_Expr, Package_Vars, Functions, Type_Env);
+                  if not Is_Integerish (Priority_Type, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => UString_Value (Unit.Path),
+                           Span    => Priority_Expr.Span,
+                           Message => "task priority expression must be integer"));
+                  end if;
+                  Task_Item.Priority := Long_Long_Integer (Literal_Value (Priority_Expr, UString_Value (Unit.Path)));
+                  if Task_Item.Priority < Min_Task_Priority
+                    or else Task_Item.Priority > Max_Task_Priority
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => UString_Value (Unit.Path),
+                           Span    => Priority_Expr.Span,
+                           Message =>
+                             "task priority must be within System.Any_Priority"));
+                  end if;
+               end if;
+
+               for Decl of Item.Task_Data.Declarations loop
+                  Decl_Type := Resolve_Decl_Type (Decl, Visible, UString_Value (Unit.Path));
+                  Local_Decl.Names := Decl.Names;
+                  Local_Decl.Type_Info := Decl_Type;
+                  Local_Decl.Has_Initializer := Decl.Has_Initializer;
+                  Local_Decl.Span := Decl.Span;
+                  Local_Decl.Initializer := null;
+                  if Decl.Has_Initializer and then Decl.Initializer /= null then
+                     Local_Decl.Initializer :=
+                       Normalize_Expr (Decl.Initializer, Visible, Functions, Type_Env);
+                  end if;
+                  Task_Item.Declarations.Append (Local_Decl);
+                  for Name of Decl.Names loop
+                     Visible.Include (UString_Value (Name), Decl_Type);
+                  end loop;
+               end loop;
+
+               Task_Item.Statements :=
+                 Normalize_Statement_List
+                   (Item.Task_Data.Statements,
+                    Visible,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    UString_Value (Unit.Path));
+
+               if Natural (Task_Item.Statements.Length) /= 1
+                 or else Task_Item.Statements (Task_Item.Statements.First_Index).Kind /= CM.Stmt_Loop
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => UString_Value (Unit.Path),
+                        Span    => Item.Task_Data.Span,
+                        Message => "task body must consist of a single outer loop"));
+               end if;
+
+               Validate_Task_Nontermination
+                 (Task_Item.Statements,
+                  UString_Value (Unit.Path),
+                  UString_Value (Task_Item.Name));
+
+               Result.Tasks.Append (Task_Item);
             end;
          end if;
       end loop;

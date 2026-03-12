@@ -26,8 +26,14 @@ package body Safe_Frontend.Mir_Json is
    function Parse_Scope
      (Value : GNATCOLL.JSON.JSON_Value) return GM.Scope_Entry;
 
+   function Parse_Channel
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Channel_Entry;
+
    function Parse_Op
      (Value : GNATCOLL.JSON.JSON_Value) return GM.Op_Entry;
+
+   function Parse_Select_Arm
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Select_Arm_Entry;
 
    function Parse_Terminator
      (Value : GNATCOLL.JSON.JSON_Value) return GM.Terminator_Entry;
@@ -588,6 +594,29 @@ package body Safe_Frontend.Mir_Json is
       return Result;
    end Parse_Scope;
 
+   function Parse_Channel
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Channel_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Channel_Entry;
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
+         Result.Name := FT.To_UString (Get (Value, "name"));
+      end if;
+      if Has_Field (Value, "element_type") then
+         Result.Element_Type := Parse_Type (Get (Value, "element_type"));
+      end if;
+      if Has_Field (Value, "capacity") and then Get (Value, "capacity").Kind = JSON_Int_Type then
+         Result.Capacity := Get (Get (Value, "capacity"));
+      end if;
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      return Result;
+   end Parse_Channel;
+
    function Parse_Op
      (Value : GNATCOLL.JSON.JSON_Value) return GM.Op_Entry
    is
@@ -614,6 +643,16 @@ package body Safe_Frontend.Mir_Json is
          Result.Kind := GM.Op_Assign;
       elsif FT.To_String (Name) = "call" then
          Result.Kind := GM.Op_Call;
+      elsif FT.To_String (Name) = "channel_send" then
+         Result.Kind := GM.Op_Channel_Send;
+      elsif FT.To_String (Name) = "channel_receive" then
+         Result.Kind := GM.Op_Channel_Receive;
+      elsif FT.To_String (Name) = "channel_try_send" then
+         Result.Kind := GM.Op_Channel_Try_Send;
+      elsif FT.To_String (Name) = "channel_try_receive" then
+         Result.Kind := GM.Op_Channel_Try_Receive;
+      elsif FT.To_String (Name) = "delay" then
+         Result.Kind := GM.Op_Delay;
       else
          Result.Kind := GM.Op_Unknown;
       end if;
@@ -648,8 +687,76 @@ package body Safe_Frontend.Mir_Json is
 
       Result.Target := Parse_Expr (Field_Or_Null (Value, "target"));
       Result.Value := Parse_Expr (Field_Or_Null (Value, "value"));
+      Result.Channel := Parse_Expr (Field_Or_Null (Value, "channel"));
+      Result.Success_Target := Parse_Expr (Field_Or_Null (Value, "success_target"));
       return Result;
    end Parse_Op;
+
+   function Parse_Select_Arm
+     (Value : GNATCOLL.JSON.JSON_Value) return GM.Select_Arm_Entry
+   is
+      use GNATCOLL.JSON;
+      Result : GM.Select_Arm_Entry;
+      Name   : FT.UString := FT.To_UString ("");
+   begin
+      if Value.Kind /= JSON_Object_Type then
+         return Result;
+      end if;
+
+      if Has_Field (Value, "kind") and then Get (Value, "kind").Kind = JSON_String_Type then
+         Name := FT.To_UString (Get (Value, "kind"));
+      end if;
+      if FT.To_String (Name) = "channel" then
+         Result.Kind := GM.Select_Arm_Channel;
+      elsif FT.To_String (Name) = "delay" then
+         Result.Kind := GM.Select_Arm_Delay;
+      end if;
+
+      case Result.Kind is
+         when GM.Select_Arm_Channel =>
+            if Has_Field (Value, "channel_name")
+              and then Get (Value, "channel_name").Kind = JSON_String_Type
+            then
+               Result.Channel_Data.Channel_Name := FT.To_UString (Get (Value, "channel_name"));
+            end if;
+            if Has_Field (Value, "variable_name")
+              and then Get (Value, "variable_name").Kind = JSON_String_Type
+            then
+               Result.Channel_Data.Variable_Name := FT.To_UString (Get (Value, "variable_name"));
+            end if;
+            if Has_Field (Value, "scope_id")
+              and then Get (Value, "scope_id").Kind = JSON_String_Type
+            then
+               Result.Channel_Data.Scope_Id := FT.To_UString (Get (Value, "scope_id"));
+            end if;
+            if Has_Field (Value, "local_id")
+              and then Get (Value, "local_id").Kind = JSON_String_Type
+            then
+               Result.Channel_Data.Local_Id := FT.To_UString (Get (Value, "local_id"));
+            end if;
+            if Has_Field (Value, "type") then
+               Result.Channel_Data.Type_Info := Parse_Type (Get (Value, "type"));
+            end if;
+            if Has_Field (Value, "target")
+              and then Get (Value, "target").Kind = JSON_String_Type
+            then
+               Result.Channel_Data.Target := FT.To_UString (Get (Value, "target"));
+            end if;
+            Result.Channel_Data.Span := Parse_Span (Field_Or_Null (Value, "span"));
+         when GM.Select_Arm_Delay =>
+            Result.Delay_Data.Duration_Expr := Parse_Expr (Field_Or_Null (Value, "duration_expr"));
+            if Has_Field (Value, "target")
+              and then Get (Value, "target").Kind = JSON_String_Type
+            then
+               Result.Delay_Data.Target := FT.To_UString (Get (Value, "target"));
+            end if;
+            Result.Delay_Data.Span := Parse_Span (Field_Or_Null (Value, "span"));
+         when others =>
+            null;
+      end case;
+      Result.Span := Parse_Span (Field_Or_Null (Value, "span"));
+      return Result;
+   end Parse_Select_Arm;
 
    function Parse_Terminator
      (Value : GNATCOLL.JSON.JSON_Value) return GM.Terminator_Entry
@@ -657,6 +764,7 @@ package body Safe_Frontend.Mir_Json is
       use GNATCOLL.JSON;
       Result : GM.Terminator_Entry;
       Name   : FT.UString := FT.To_UString ("");
+      Arms   : constant JSON_Array := Json_Array_Or_Empty (Value, "arms");
    begin
       if Value.Kind /= JSON_Object_Type then
          return Result;
@@ -674,6 +782,8 @@ package body Safe_Frontend.Mir_Json is
          Result.Kind := GM.Terminator_Branch;
       elsif FT.To_String (Name) = "return" then
          Result.Kind := GM.Terminator_Return;
+      elsif FT.To_String (Name) = "select" then
+         Result.Kind := GM.Terminator_Select;
       else
          Result.Kind := GM.Terminator_Unknown;
       end if;
@@ -699,6 +809,9 @@ package body Safe_Frontend.Mir_Json is
          Result.Has_Value := True;
          Result.Value := Parse_Expr (Get (Value, "value"));
       end if;
+      for Index in 1 .. Length (Arms) loop
+         Result.Arms.Append (Parse_Select_Arm (Get (Arms, Index)));
+      end loop;
       return Result;
    end Parse_Terminator;
 
@@ -784,6 +897,15 @@ package body Safe_Frontend.Mir_Json is
          Result.Has_Span := True;
          Result.Span := Parse_Span (Get (Value, "span"));
       end if;
+      if Has_Field (Value, "priority") and then Get (Value, "priority").Kind = JSON_Int_Type then
+         Result.Has_Priority := True;
+         Result.Priority := Get (Get (Value, "priority"));
+      end if;
+      if Has_Field (Value, "has_explicit_priority")
+        and then Get (Value, "has_explicit_priority").Kind = JSON_Boolean_Type
+      then
+         Result.Has_Explicit_Priority := Get (Get (Value, "has_explicit_priority"));
+      end if;
       if Has_Field (Value, "return_type") then
          Result.Has_Return_Type := Get (Value, "return_type").Kind /= JSON_Null_Type;
          if Result.Has_Return_Type then
@@ -812,6 +934,7 @@ package body Safe_Frontend.Mir_Json is
       Kind   : GM.Mir_Format_Kind;
       Result : GM.Mir_Document;
       Types  : JSON_Array;
+      Channels : JSON_Array;
       Graphs : JSON_Array;
    begin
       if not Parsed.Success then
@@ -880,6 +1003,11 @@ package body Safe_Frontend.Mir_Json is
       Types := Json_Array_Or_Empty (Root, "types");
       for Index in 1 .. Length (Types) loop
          Result.Types.Append (Parse_Type (Get (Types, Index)));
+      end loop;
+
+      Channels := Json_Array_Or_Empty (Root, "channels");
+      for Index in 1 .. Length (Channels) loop
+         Result.Channels.Append (Parse_Channel (Get (Channels, Index)));
       end loop;
 
       Graphs := Json_Array_Or_Empty (Root, "graphs");

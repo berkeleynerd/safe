@@ -607,6 +607,18 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Object_Declaration;
 
+   function Parse_Object_Declaration_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Decl   : constant CM.Object_Decl := Parse_Object_Declaration (State, False);
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_Object_Decl;
+      Result.Decl := Decl;
+      Result.Span := Decl.Span;
+      return Result;
+   end Parse_Object_Declaration_Statement;
+
    function Parse_Statement
      (State : in out Parser_State) return CM.Statement_Access;
 
@@ -770,6 +782,214 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Block_Statement;
 
+   function Parse_Loop_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Ends   : FT.UString_Vectors.Vector;
+      Start  : constant FL.Token := Expect (State, "loop");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      Result.Kind := CM.Stmt_Loop;
+      Ends.Append (FT.To_UString ("end"));
+      Result.Body_Stmts := Parse_Statement_Sequence (State, Ends);
+      Require (State, "end");
+      Require (State, "loop");
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Loop_Statement;
+
+   function Parse_Exit_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start  : constant FL.Token := Expect (State, "exit");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      if Current (State).Kind in FL.Identifier | FL.Keyword
+        and then Current_Lower (State) /= "when"
+        and then Current (State).Lexeme /= FT.To_UString (";")
+      then
+         Reject_Unsupported
+           (State,
+            "named loop labels and named exits are outside the current PR08.1 concurrency subset");
+      end if;
+
+      Result.Kind := CM.Stmt_Exit;
+      if Match (State, "when") then
+         Result.Condition := Parse_Expression (State);
+      end if;
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Exit_Statement;
+
+   function Parse_Send_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start  : constant FL.Token := Expect (State, "send");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      Result.Kind := CM.Stmt_Send;
+      Result.Channel_Name := Parse_Name_Expression (State);
+      Require (State, ",");
+      Result.Value := Parse_Expression (State);
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Send_Statement;
+
+   function Parse_Receive_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start  : constant FL.Token := Expect (State, "receive");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      Result.Kind := CM.Stmt_Receive;
+      Result.Channel_Name := Parse_Name_Expression (State);
+      Require (State, ",");
+      Result.Target := Parse_Name_Expression (State);
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Receive_Statement;
+
+   function Parse_Try_Send_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start  : constant FL.Token := Expect (State, "try_send");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      Result.Kind := CM.Stmt_Try_Send;
+      Result.Channel_Name := Parse_Name_Expression (State);
+      Require (State, ",");
+      Result.Value := Parse_Expression (State);
+      Require (State, ",");
+      Result.Success_Var := Parse_Name_Expression (State);
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Try_Send_Statement;
+
+   function Parse_Try_Receive_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start  : constant FL.Token := Expect (State, "try_receive");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      Result.Kind := CM.Stmt_Try_Receive;
+      Result.Channel_Name := Parse_Name_Expression (State);
+      Require (State, ",");
+      Result.Target := Parse_Name_Expression (State);
+      Require (State, ",");
+      Result.Success_Var := Parse_Name_Expression (State);
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Try_Receive_Statement;
+
+   function Parse_Delay_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start  : constant FL.Token := Expect (State, "delay");
+      Result : constant CM.Statement_Access := new CM.Statement;
+      Semi   : FL.Token;
+   begin
+      if Current_Lower (State) = "until" then
+         Reject_Unsupported
+           (State,
+            "absolute `delay until` is outside the current PR08.1 concurrency subset");
+      end if;
+      Result.Kind := CM.Stmt_Delay;
+      Result.Value := Parse_Expression (State);
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Delay_Statement;
+
+   function Parse_Select_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Arm_Ends  : FT.UString_Vectors.Vector;
+      Start     : constant FL.Token := Expect (State, "select");
+      Result    : constant CM.Statement_Access := new CM.Statement;
+      Semi      : FL.Token;
+      New_Arm   : CM.Select_Arm;
+   begin
+      Result.Kind := CM.Stmt_Select;
+      Arm_Ends.Append (FT.To_UString ("or"));
+      Arm_Ends.Append (FT.To_UString ("end"));
+
+      loop
+         if Current_Lower (State) = "when" then
+            declare
+               Arm_Start : constant FL.Token := Expect (State, "when");
+            begin
+               New_Arm := (others => <>);
+               New_Arm.Kind := CM.Select_Arm_Channel;
+               New_Arm.Channel_Data.Variable_Name := Expect_Identifier (State).Lexeme;
+               Require (State, ":");
+               New_Arm.Channel_Data.Subtype_Mark := Parse_Subtype_Indication (State);
+               Require (State, "from");
+               New_Arm.Channel_Data.Channel_Name := Parse_Name_Expression (State);
+               Require (State, "then");
+               New_Arm.Channel_Data.Statements := Parse_Statement_Sequence (State, Arm_Ends);
+               New_Arm.Channel_Data.Span :=
+                 (if New_Arm.Channel_Data.Statements.Is_Empty
+                  then CM.Join (Arm_Start.Span, New_Arm.Channel_Data.Channel_Name.Span)
+                  else CM.Join
+                    (Arm_Start.Span,
+                     New_Arm.Channel_Data.Statements
+                       (New_Arm.Channel_Data.Statements.Last_Index).Span));
+               New_Arm.Span := New_Arm.Channel_Data.Span;
+            end;
+         elsif Current_Lower (State) = "delay" then
+            declare
+               Arm_Start : constant FL.Token := Expect (State, "delay");
+            begin
+               New_Arm := (others => <>);
+               New_Arm.Kind := CM.Select_Arm_Delay;
+               if Current_Lower (State) = "until" then
+                  Reject_Unsupported
+                    (State,
+                     "absolute `delay until` is outside the current PR08.1 concurrency subset");
+               end if;
+               New_Arm.Delay_Data.Duration_Expr := Parse_Expression (State);
+               Require (State, "then");
+               New_Arm.Delay_Data.Statements := Parse_Statement_Sequence (State, Arm_Ends);
+               New_Arm.Delay_Data.Span :=
+                 (if New_Arm.Delay_Data.Statements.Is_Empty
+                  then CM.Join (Arm_Start.Span, New_Arm.Delay_Data.Duration_Expr.Span)
+                  else CM.Join
+                    (Arm_Start.Span,
+                     New_Arm.Delay_Data.Statements
+                       (New_Arm.Delay_Data.Statements.Last_Index).Span));
+               New_Arm.Span := New_Arm.Delay_Data.Span;
+            end;
+         else
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message => "expected `when` or `delay` in select arm"));
+         end if;
+
+         Result.Arms.Append (New_Arm);
+         exit when not Match (State, "or");
+      end loop;
+
+      Require (State, "end");
+      Require (State, "select");
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Select_Statement;
+
    function Parse_Simple_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
@@ -804,10 +1024,26 @@ package body Safe_Frontend.Check_Parse is
          return Parse_While_Statement (State);
       elsif Lower = "for" then
          return Parse_For_Statement (State);
+      elsif Lower = "loop" then
+         return Parse_Loop_Statement (State);
       elsif Lower = "declare" then
          return Parse_Block_Statement (State);
+      elsif Lower = "exit" then
+         return Parse_Exit_Statement (State);
       elsif Lower = "return" then
          return Parse_Return_Statement (State);
+      elsif Lower = "send" then
+         return Parse_Send_Statement (State);
+      elsif Lower = "receive" then
+         return Parse_Receive_Statement (State);
+      elsif Lower = "try_send" then
+         return Parse_Try_Send_Statement (State);
+      elsif Lower = "try_receive" then
+         return Parse_Try_Receive_Statement (State);
+      elsif Lower = "delay" then
+         return Parse_Delay_Statement (State);
+      elsif Lower = "select" then
+         return Parse_Select_Statement (State);
       elsif Lower = "null" then
          declare
             Start  : constant FL.Token := Expect (State, "null");
@@ -818,10 +1054,21 @@ package body Safe_Frontend.Check_Parse is
             Result.Span := CM.Join (Start.Span, Semi.Span);
             return Result;
          end;
-      elsif Lower in "case" | "exit" | "raise" | "accept" | "select" | "delay" | "goto" then
+      elsif Lower in "case" | "raise" | "accept" | "goto" then
          Reject_Unsupported
            (State,
-            "statement form `" & Lower & "` is outside the current PR05/PR06 check subset");
+            "statement form `" & Lower & "` is outside the current PR08.1 concurrency subset");
+      elsif Current (State).Kind in FL.Identifier | FL.Keyword
+        and then Next (State).Lexeme = FT.To_UString (":")
+      then
+         if FT.Lowercase (FT.To_String (Next (State, 2).Lexeme))
+           in "loop" | "while" | "for" | "declare"
+         then
+            Reject_Unsupported
+              (State,
+               "named loop labels and named statement labels are outside the current PR08.1 concurrency subset");
+         end if;
+         return Parse_Object_Declaration_Statement (State);
       end if;
 
       return Parse_Simple_Statement (State);
@@ -1200,6 +1447,88 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Subprogram_Body;
 
+   function Parse_Task_Declaration
+     (State     : in out Parser_State;
+      Is_Public : Boolean) return CM.Package_Item
+   is
+      Result : CM.Package_Item;
+      Ends   : FT.UString_Vectors.Vector;
+      Start  : constant FT.Source_Span := Current (State).Span;
+      Semi   : FL.Token;
+   begin
+      if Is_Public then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Current (State).Span,
+               Message => "task declarations cannot be public"));
+      end if;
+
+      Result.Kind := CM.Item_Task;
+      Require (State, "task");
+      Result.Task_Data.Name := Expect_Identifier (State).Lexeme;
+      if Match (State, "with") then
+         if Current_Lower (State) /= "priority" then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message => "only `Priority` is supported in task aspect clauses"));
+         end if;
+         Advance (State);
+         Require (State, "=");
+         Result.Task_Data.Has_Explicit_Priority := True;
+         Result.Task_Data.Priority := Parse_Expression (State);
+      end if;
+      Require (State, "is");
+      while Current_Lower (State) /= "begin" loop
+         declare
+            Lower : constant String := Current_Lower (State);
+         begin
+            if Lower in "type" | "subtype" | "function" | "procedure" then
+               Reject_Unsupported
+                 (State,
+                  "task declarative parts only support object declarations in the current PR08.1 concurrency subset");
+            elsif Lower in "task" | "channel" then
+               Reject_Unsupported
+                 (State,
+                  "nested task and channel declarations are outside the current PR08.1 concurrency subset");
+            end if;
+         end;
+         Result.Task_Data.Declarations.Append
+           (Parse_Object_Declaration (State, False));
+      end loop;
+      Require (State, "begin");
+      Ends.Append (FT.To_UString ("end"));
+      Result.Task_Data.Statements := Parse_Statement_Sequence (State, Ends);
+      Require (State, "end");
+      Result.Task_Data.End_Name := Expect_Identifier (State).Lexeme;
+      Semi := Expect (State, ";");
+      Result.Task_Data.Span := CM.Join (Start, Semi.Span);
+      return Result;
+   end Parse_Task_Declaration;
+
+   function Parse_Channel_Declaration
+     (State     : in out Parser_State;
+      Is_Public : Boolean) return CM.Package_Item
+   is
+      Result : CM.Package_Item;
+      Start  : constant FT.Source_Span := Current (State).Span;
+      Semi   : FL.Token;
+   begin
+      Result.Kind := CM.Item_Channel;
+      Result.Chan_Data.Is_Public := Is_Public;
+      Require (State, "channel");
+      Result.Chan_Data.Name := Expect_Identifier (State).Lexeme;
+      Require (State, ":");
+      Result.Chan_Data.Element_Type := Parse_Subtype_Indication (State);
+      Require (State, "capacity");
+      Result.Chan_Data.Capacity := Parse_Expression (State);
+      Semi := Expect (State, ";");
+      Result.Chan_Data.Span := CM.Join (Start, Semi.Span);
+      return Result;
+   end Parse_Channel_Declaration;
+
    function Parse_Package_Item
      (State : in out Parser_State) return CM.Package_Item
    is
@@ -1213,10 +1542,14 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Subtype_Declaration (State, Is_Public);
       elsif Lower = "function" or else Lower = "procedure" then
          return Parse_Subprogram_Body (State, Is_Public);
-      elsif Lower in "task" | "channel" | "generic" | "protected" | "accept" | "entry" then
+      elsif Lower = "task" then
+         return Parse_Task_Declaration (State, Is_Public);
+      elsif Lower = "channel" then
+         return Parse_Channel_Declaration (State, Is_Public);
+      elsif Lower in "generic" | "protected" | "accept" | "entry" then
          Reject_Unsupported
            (State,
-            "package item `" & Lower & "` is outside the current PR05/PR06 check subset");
+            "package item `" & Lower & "` is outside the current PR08.1 concurrency subset");
       end if;
 
       Result.Kind := CM.Item_Object_Decl;

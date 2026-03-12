@@ -87,23 +87,13 @@ UNSUPPORTED_CASES = [
         "expected_reason": "unsupported_source_construct",
     },
     {
-        "name": "channel_pingpong",
-        "source": REPO_ROOT / "tests" / "positive" / "channel_pingpong.safe",
+        "name": "delay_until",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_delay_until.safe",
         "expected_reason": "unsupported_source_construct",
     },
     {
-        "name": "channel_pipeline",
-        "source": REPO_ROOT / "tests" / "positive" / "channel_pipeline.safe",
-        "expected_reason": "unsupported_source_construct",
-    },
-    {
-        "name": "select_priority",
-        "source": REPO_ROOT / "tests" / "concurrency" / "select_priority.safe",
-        "expected_reason": "unsupported_source_construct",
-    },
-    {
-        "name": "try_send_ownership",
-        "source": REPO_ROOT / "tests" / "concurrency" / "try_send_ownership.safe",
+        "name": "qualified_channel_reference",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_qualified_channel_reference.safe",
         "expected_reason": "unsupported_source_construct",
     },
     {

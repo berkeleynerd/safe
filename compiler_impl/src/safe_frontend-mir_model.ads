@@ -134,6 +134,17 @@ package Safe_Frontend.Mir_Model is
      (Index_Type   => Positive,
       Element_Type => Type_Descriptor);
 
+   type Channel_Entry is record
+      Name         : FT.UString := FT.To_UString ("");
+      Element_Type : Type_Descriptor;
+      Capacity     : Long_Long_Integer := 0;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Channel_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Channel_Entry);
+
    type Local_Entry is record
       Id             : FT.UString := FT.To_UString ("");
       Kind           : FT.UString := FT.To_UString ("");
@@ -168,7 +179,12 @@ package Safe_Frontend.Mir_Model is
       Op_Scope_Enter,
       Op_Scope_Exit,
       Op_Assign,
-      Op_Call);
+      Op_Call,
+      Op_Channel_Send,
+      Op_Channel_Receive,
+      Op_Channel_Try_Send,
+      Op_Channel_Try_Receive,
+      Op_Delay);
    function Image (Item : Op_Kind) return String;
 
    type Op_Entry is record
@@ -178,8 +194,10 @@ package Safe_Frontend.Mir_Model is
       Type_Name        : FT.UString := FT.To_UString ("");
       Scope_Id         : FT.UString := FT.To_UString ("");
       Locals           : FT.UString_Vectors.Vector;
+      Channel          : Expr_Access := null;
       Target           : Expr_Access := null;
       Value            : Expr_Access := null;
+      Success_Target   : Expr_Access := null;
       Has_Declaration_Init   : Boolean := False;
       Declaration_Init_Valid : Boolean := False;
       Declaration_Init       : Boolean := False;
@@ -193,8 +211,41 @@ package Safe_Frontend.Mir_Model is
      (Terminator_Unknown,
       Terminator_Jump,
       Terminator_Branch,
-      Terminator_Return);
+      Terminator_Return,
+      Terminator_Select);
    function Image (Item : Terminator_Kind) return String;
+
+   type Select_Arm_Kind is
+     (Select_Arm_Unknown,
+      Select_Arm_Channel,
+      Select_Arm_Delay);
+
+   type Select_Channel_Arm_Entry is record
+      Channel_Name  : FT.UString := FT.To_UString ("");
+      Variable_Name : FT.UString := FT.To_UString ("");
+      Scope_Id      : FT.UString := FT.To_UString ("");
+      Local_Id      : FT.UString := FT.To_UString ("");
+      Type_Info     : Type_Descriptor;
+      Target        : FT.UString := FT.To_UString ("");
+      Span          : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Select_Delay_Arm_Entry is record
+      Duration_Expr : Expr_Access := null;
+      Target        : FT.UString := FT.To_UString ("");
+      Span          : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   type Select_Arm_Entry is record
+      Kind         : Select_Arm_Kind := Select_Arm_Unknown;
+      Channel_Data : Select_Channel_Arm_Entry;
+      Delay_Data   : Select_Delay_Arm_Entry;
+      Span         : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Select_Arm_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Select_Arm_Entry);
 
    type Terminator_Entry is record
       Kind             : Terminator_Kind := Terminator_Unknown;
@@ -206,6 +257,7 @@ package Safe_Frontend.Mir_Model is
       Condition        : Expr_Access := null;
       Has_Value        : Boolean := False;
       Value            : Expr_Access := null;
+      Arms             : Select_Arm_Vectors.Vector;
    end record;
 
    type Block_Entry is record
@@ -231,6 +283,9 @@ package Safe_Frontend.Mir_Model is
       Entry_BB        : FT.UString := FT.To_UString ("");
       Has_Span        : Boolean := False;
       Span            : FT.Source_Span := FT.Null_Span;
+      Has_Priority    : Boolean := False;
+      Priority        : Long_Long_Integer := 0;
+      Has_Explicit_Priority : Boolean := False;
       Has_Return_Type : Boolean := False;
       Return_Type     : Type_Descriptor;
       Locals          : Local_Vectors.Vector;
@@ -249,6 +304,7 @@ package Safe_Frontend.Mir_Model is
       Source_Path     : FT.UString := FT.To_UString ("");
       Package_Name    : FT.UString := FT.To_UString ("");
       Types           : Type_Descriptor_Vectors.Vector;
+      Channels        : Channel_Vectors.Vector;
       Graphs          : Graph_Vectors.Vector;
       Root            : GNATCOLL.JSON.JSON_Value := GNATCOLL.JSON.Create;
    end record;

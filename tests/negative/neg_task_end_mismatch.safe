@@ -1,0 +1,15 @@
+-- Test: neg_task_end_mismatch
+-- Description: Task end name must match the declared task name.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p4:016e5737
+-- Expected: REJECT source_frontend_error
+
+package Task_End_Mismatch_Test is
+
+   task Worker is
+   begin
+      loop
+         null;
+      end loop;
+   end Different_Name;
+
+end Task_End_Mismatch_Test;

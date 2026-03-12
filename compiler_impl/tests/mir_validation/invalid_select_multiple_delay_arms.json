@@ -1,0 +1,145 @@
+{
+  "format": "mir-v2",
+  "source_path": "tests/fixtures/invalid_select_multiple_delay_arms.safe",
+  "package_name": "Fixture",
+  "types": [],
+  "channels": [],
+  "graphs": [
+    {
+      "name": "Worker",
+      "kind": "task",
+      "entry_bb": "bb0",
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 1
+      },
+      "priority": 5,
+      "has_explicit_priority": true,
+      "return_type": null,
+      "locals": [],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "task",
+          "local_ids": [],
+          "entry_block": "bb0",
+          "exit_blocks": []
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "role": "entry",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "select",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "arms": [
+              {
+                "kind": "delay",
+                "duration_expr": {
+                  "tag": "real",
+                  "type": "Long_Float",
+                  "text": "0.1",
+                  "span": {
+                    "start_line": 1,
+                    "start_col": 1,
+                    "end_line": 1,
+                    "end_col": 1
+                  }
+                },
+                "target": "bb1",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              {
+                "kind": "delay",
+                "duration_expr": {
+                  "tag": "real",
+                  "type": "Long_Float",
+                  "text": "0.2",
+                  "span": {
+                    "start_line": 1,
+                    "start_col": 1,
+                    "end_line": 1,
+                    "end_col": 1
+                  }
+                },
+                "target": "bb2",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "bb1",
+          "active_scope_id": "scope0",
+          "role": "select_delay_arm",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "jump",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "target": "bb0"
+          }
+        },
+        {
+          "id": "bb2",
+          "active_scope_id": "scope0",
+          "role": "select_delay_arm",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "jump",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "target": "bb0"
+          }
+        }
+      ]
+    }
+  ]
+}

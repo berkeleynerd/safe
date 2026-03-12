@@ -326,6 +326,68 @@ package body Safe_Frontend.Mir_Write is
         & "}";
    end Scope_Json;
 
+   function Channel_Json (Item : GM.Channel_Entry) return String is
+   begin
+      return
+        "{""name"":"
+        & JS.Quote (Item.Name)
+        & ",""element_type"":"
+        & Type_Json (Item.Element_Type)
+        & ",""capacity"":" 
+        & Long_Long_Integer'Image (Item.Capacity)
+        & ",""span"":"
+        & JS.Span_Object (Item.Span)
+        & "}";
+   end Channel_Json;
+
+   function Select_Arm_Json (Item : GM.Select_Arm_Entry) return String is
+      Kind : constant String :=
+        (case Item.Kind is
+            when GM.Select_Arm_Channel => "channel",
+            when GM.Select_Arm_Delay => "delay",
+            when others => "<unknown>");
+   begin
+      case Item.Kind is
+         when GM.Select_Arm_Channel =>
+            return
+              "{""kind"":"
+              & JS.Quote (Kind)
+              & ",""channel_name"":"
+              & JS.Quote (Item.Channel_Data.Channel_Name)
+              & ",""variable_name"":"
+              & JS.Quote (Item.Channel_Data.Variable_Name)
+              & ",""scope_id"":"
+              & JS.Quote (Item.Channel_Data.Scope_Id)
+              & ",""local_id"":"
+              & JS.Quote (Item.Channel_Data.Local_Id)
+              & ",""type"":"
+              & Type_Json (Item.Channel_Data.Type_Info)
+              & ",""target"":"
+              & JS.Quote (Item.Channel_Data.Target)
+              & ",""span"":"
+              & JS.Span_Object (Item.Channel_Data.Span)
+              & "}";
+         when GM.Select_Arm_Delay =>
+            return
+              "{""kind"":"
+              & JS.Quote (Kind)
+              & ",""duration_expr"":"
+              & Expr_Json (Item.Delay_Data.Duration_Expr)
+              & ",""target"":"
+              & JS.Quote (Item.Delay_Data.Target)
+              & ",""span"":"
+              & JS.Span_Object (Item.Delay_Data.Span)
+              & "}";
+         when others =>
+            return
+              "{""kind"":"
+              & JS.Quote (Kind)
+              & ",""span"":"
+              & JS.Span_Object (Item.Span)
+              & "}";
+      end case;
+   end Select_Arm_Json;
+
    function Op_Json (Item : GM.Op_Entry) return String is
       Locals : String_Vectors.Vector;
       Items  : String_Vectors.Vector;
@@ -350,6 +412,23 @@ package body Safe_Frontend.Mir_Write is
                Items.Append
                  ("""declaration_init"":" & JS.Bool_Literal (Item.Declaration_Init));
             end if;
+         when GM.Op_Channel_Send | GM.Op_Channel_Receive | GM.Op_Channel_Try_Send | GM.Op_Channel_Try_Receive =>
+            Items.Append ("""ownership_effect"":" & JS.Quote (GM.Image (Item.Ownership_Effect)));
+            Items.Append ("""channel"":" & Expr_Json (Item.Channel));
+            Items.Append ("""type"":" & JS.Quote (Item.Type_Name));
+            if Item.Target /= null then
+               Items.Append ("""target"":" & Expr_Json (Item.Target));
+            end if;
+            if Item.Value /= null then
+               Items.Append ("""value"":" & Expr_Json (Item.Value));
+            end if;
+            if Item.Success_Target /= null then
+               Items.Append ("""success_target"":" & Expr_Json (Item.Success_Target));
+            end if;
+         when GM.Op_Delay =>
+            Items.Append ("""ownership_effect"":" & JS.Quote (GM.Image (Item.Ownership_Effect)));
+            Items.Append ("""type"":" & JS.Quote (Item.Type_Name));
+            Items.Append ("""value"":" & Expr_Json (Item.Value));
          when others =>
             null;
       end case;
@@ -375,6 +454,15 @@ package body Safe_Frontend.Mir_Write is
             else
                Items.Append ("""value"":null");
             end if;
+         when GM.Terminator_Select =>
+            declare
+               Arms : String_Vectors.Vector;
+            begin
+               for Arm of Item.Arms loop
+                  Arms.Append (Select_Arm_Json (Arm));
+               end loop;
+               Items.Append ("""arms"":" & Json_List (Arms));
+            end;
          when others =>
             null;
       end case;
@@ -432,6 +520,11 @@ package body Safe_Frontend.Mir_Write is
       if Item.Has_Span then
          Items.Append ("""span"":" & JS.Span_Object (Item.Span));
       end if;
+      if Item.Has_Priority then
+         Items.Append ("""priority"":" & Long_Long_Integer'Image (Item.Priority));
+         Items.Append
+           ("""has_explicit_priority"":" & JS.Bool_Literal (Item.Has_Explicit_Priority));
+      end if;
       if Item.Has_Return_Type then
          Items.Append ("""return_type"":" & Type_Json (Item.Return_Type));
       else
@@ -447,10 +540,14 @@ package body Safe_Frontend.Mir_Write is
      (Document : GM.Mir_Document) return String
    is
       Types  : String_Vectors.Vector;
+      Channels : String_Vectors.Vector;
       Graphs : String_Vectors.Vector;
    begin
       for Item of Document.Types loop
          Types.Append (Type_Json (Item));
+      end loop;
+      for Item of Document.Channels loop
+         Channels.Append (Channel_Json (Item));
       end loop;
       for Item of Document.Graphs loop
          Graphs.Append (Graph_Json (Item));
@@ -468,6 +565,9 @@ package body Safe_Frontend.Mir_Write is
         & ","
         & """types"":"
         & Json_List (Types)
+        & ","
+        & """channels"":"
+        & Json_List (Channels)
         & ","
         & """graphs"":"
         & Json_List (Graphs)
