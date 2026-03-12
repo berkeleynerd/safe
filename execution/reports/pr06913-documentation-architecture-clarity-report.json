@@ -24,8 +24,8 @@
     "execution/dashboard.md",
     "execution/reports/pr06913-documentation-architecture-clarity-report.json"
   ],
-  "repeat_sha256": "80e358fb8e4de174a842a09559e58f7170886652107f704fa3d6712cc5c4d01d",
-  "report_sha256": "80e358fb8e4de174a842a09559e58f7170886652107f704fa3d6712cc5c4d01d",
+  "repeat_sha256": "71a4f813bea96665f0352e82f4e91dd6c69943e5768caa5fd7f537c7eddcf75a",
+  "report_sha256": "71a4f813bea96665f0352e82f4e91dd6c69943e5768caa5fd7f537c7eddcf75a",
   "reruns": {
     "gate_quality": {
       "repeat_sha256": "be2abd6ff29c8404a334488bb3ecc11da343c27d95bd3c2a92be7dfffc7c72f7",
@@ -41,9 +41,9 @@
       }
     },
     "glue_script_safety": {
-      "repeat_sha256": "e83c0e54fd53f0e9366d99a6eaa600983c5b2acbce24ed940c9e98524ff0b148",
+      "repeat_sha256": "a56056bd54c1d8f7066261083c7abcd2d73f84137b4df9712b6aa1f909b4065d",
       "report_path": "execution/reports/pr06911-glue-script-safety-report.json",
-      "report_sha256": "e83c0e54fd53f0e9366d99a6eaa600983c5b2acbce24ed940c9e98524ff0b148",
+      "report_sha256": "a56056bd54c1d8f7066261083c7abcd2d73f84137b4df9712b6aa1f909b4065d",
       "run": {
         "command": [
           "python3",
