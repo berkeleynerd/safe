@@ -33,6 +33,7 @@ DEFAULT_REPORT = (
 )
 AST_VALIDATOR = REPO_ROOT / "scripts" / "validate_ast_output.py"
 OUTPUT_VALIDATOR = REPO_ROOT / "scripts" / "validate_output_contracts.py"
+DEFAULT_TASK_PRIORITY = 31
 
 POSITIVE_EMIT_CASES = [
     REPO_ROOT / "tests" / "positive" / "channel_pingpong.safe",
@@ -303,6 +304,11 @@ def inspect_emitted_payloads(
     for graph in mir_task_graphs:
         require(isinstance(graph.get("priority"), int), f"{sample.name}: task graph missing priority")
         require(graph.get("return_type") is None, f"{sample.name}: task graph must not carry return_type")
+        if graph.get("has_explicit_priority") is False:
+            require(
+                graph["priority"] == DEFAULT_TASK_PRIORITY,
+                f"{sample.name}: default task priority drifted",
+            )
         for block in graph["blocks"]:
             require(
                 block["terminator"]["kind"] != "return",

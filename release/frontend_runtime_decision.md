@@ -25,6 +25,7 @@ Current environment policy:
 
 - Ubuntu/Linux CI and local macOS are the supported environments for the current frontend.
 - Windows is explicitly unsupported for PR06.9.x.
+- Omitted task `Priority` aspects currently lower to the documented frontend default priority `31` so emitted typed/MIR artifacts remain stable across the supported hosts; explicit priorities are still checked against `System.Any_Priority`.
 - On macOS, repo glue assumes an SDK is discoverable through `xcrun --show-sdk-path` or `SDKROOT`.
 - Portability-sensitive repo glue uses PATH-based command discovery instead of hard-coded tool paths.
 - Portability-sensitive gates use deterministic TemporaryDirectory prefixes for stable temp roots and evidence.

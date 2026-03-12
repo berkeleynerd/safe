@@ -42,6 +42,7 @@ package body Safe_Frontend.Check_Resolve is
 
    Resolve_Failure : exception;
    Raised_Diag     : CM.MD.Diagnostic;
+   Documented_Default_Task_Priority : constant Long_Long_Integer := 31;
 
    function UString_Value (Value : FT.UString) return String is
    begin
@@ -110,7 +111,9 @@ package body Safe_Frontend.Check_Resolve is
 
    function Default_Task_Priority return Long_Long_Integer is
    begin
-      return Long_Long_Integer (System.Default_Priority);
+      --  Keep omitted task priorities stable across supported hosts so typed
+      --  and MIR artifacts remain deterministic for the same source input.
+      return Documented_Default_Task_Priority;
    end Default_Task_Priority;
 
    function Min_Task_Priority return Long_Long_Integer is
