@@ -58,7 +58,7 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 
 | Item | Source | Area | Priority |
 |------|--------|------|----------|
-| Binary arithmetic folding beyond literals, unary minus, and direct constant references | `PR08.3a`, `compiler_impl/README.md` | `resolver` | `blocking-if-needed` |
+| Static evaluation beyond the minimal constant-reference subset used by PR08.3a/PR08.3b, including binary arithmetic and declaration-time dot-attribute references such as `.First` / `.Last` | `PR08.3a`, `spec/03-single-file-packages.md` section `3.2.7`, `compiler_impl/src/safe_frontend-check_resolve.adb` | `resolver` | `blocking-if-needed` |
 | Fixed-point Rule 5 support beyond the frozen current subset | `docs/frontend_architecture_baseline.md` | `analyzer` | `blocking-if-needed` |
 
 ## Concurrency, Ownership, and Runtime Model
@@ -70,7 +70,7 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 | Channel deadlock analysis (TBD-09) | `spec/00-front-matter.md` section `0.8` | `analyzer` | `long-term` |
 | `Constant_After_Elaboration` for concurrency analysis (TBD-06) | `spec/00-front-matter.md` section `0.8` | `analyzer` | `blocking-if-needed` |
 | Task-level fault containment and restart intensity | `spec/02-restrictions.md` paragraphs `151a`-`151g` | `spec` | `long-term` |
-| Constant access-object mutability semantics through `.all` writes | `PR08.3a` review fallout | `spec` | `long-term` |
+| Clarify and standardise spec text for constant access objects versus access-to-constant / observe writes through `.all` | `PR08.3a` review fallout, `compiler_impl/src/safe_frontend-check_resolve.adb`, `compiler_impl/src/safe_frontend-mir_analyze.adb` | `spec` | `long-term` |
 
 ## Language Surface and Semantic Coverage
 
@@ -79,7 +79,7 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 | String and character literals | `PR03`, `compiler_impl/src/safe_frontend-check_parse.adb` | `parser` | `blocking-if-needed` |
 | Case statements | `spec/02-restrictions.md` paragraph 28, current unsupported surface | `parser` | `blocking-if-needed` |
 | Task declarative parts beyond object declarations | `PR08.1` boundary | `resolver` | `long-term` |
-| Goto statements | `spec/02-restrictions.md` paragraph 28 | `parser` | `long-term` |
+| Decide whether `goto` and statement labels remain retained or are formally excluded from the future language surface; implement only if the spec keeps them | `docs/syntax_proposals.md`, `spec/02-restrictions.md` paragraph 28, `compiler_impl/src/safe_frontend-check_parse.adb` | `language-design` | `long-term` |
 | General discriminants | `docs/frontend_architecture_baseline.md` | `resolver` | `blocking-if-needed` |
 | Discriminant constraints | `docs/frontend_architecture_baseline.md` | `resolver` | `blocking-if-needed` |
 
@@ -90,7 +90,7 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 | Selective interface search-dir scanning or scoped tolerance for unrelated malformed `.safei.json` files | `PR08.3` review fallout | `tooling` | `nice-to-have` |
 | Ada-side Bronze regression harness independent of Python evidence re-derivation | `PR08.2` review fallout | `tooling` | `nice-to-have` |
 | Diagnostic catalogue and localisation (TBD-05) | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
-| AST/IR interchange format (TBD-08) | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
+| Stabilise and document interchange-format policy for existing `safei-v1` and `mir-v2` artifacts, including compatibility and what is normative versus implementation-defined (TBD-08) | `spec/00-front-matter.md` section `0.8`, `compiler_impl/src/safe_frontend-interfaces.adb`, `compiler_impl/src/safe_frontend-mir_analyze.adb` | `tooling` | `long-term` |
 | Performance targets (TBD-02) | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
 | SPARK container library compatibility gaps | `docs/spark_container_compatibility.md` | `tooling` | `long-term` |
 

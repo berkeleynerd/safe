@@ -59,9 +59,15 @@ deferred beyond `PR10`.
   Old status: blocking correctness gap
   New status: analyzer precision improvement under the current conservative,
   spec-compliant behaviour
+- Static-evaluation row
+  Old status: binary arithmetic folding only
+  New status: widened to the real open gap: declaration-time static evaluation
+  beyond the minimal PR08.3a/PR08.3b subset, including binary arithmetic and
+  dot-attribute references such as `.First` / `.Last`
 - `Raise/accept/goto statements`
   Old status: combined mixed row
-  New status: rewritten as `goto statements` only
+  New status: narrowed to a language-design/spec decision about whether `goto`
+  and statement labels remain retained at all
 - Proof-obligation rows
   Old status: two raw counts from `docs/po_index.md`
   New status: one post-PR10 assurance item for proof discharge beyond the
@@ -70,6 +76,15 @@ deferred beyond `PR10`.
   Old status: duplicated entire `spec/00-front-matter.md` list
   New status: trimmed to post-PR10 items that are not already tracked before
   `PR10`
+- Constant access-object mutability row
+  Old status: generic backlog phrasing
+  New status: narrowed to a spec-clarification item covering constant access
+  objects versus access-to-constant / observe writes through `.all`
+- Interchange-format row
+  Old status: implied lack of a format
+  New status: rewritten around the existing `safei-v1` / `mir-v2` reality so
+  the deferred work is format stabilisation and normative policy, not format
+  existence
 
 ## Newly Added Post-PR10 Items
 
@@ -79,8 +94,6 @@ deferred beyond `PR10`.
 - Ada-side Bronze regression harness independent of Python evidence
   re-derivation
   Source validation: `PR08.2` review fallout
-- Constant access-object mutability semantics through `.all` writes
-  Source validation: `PR08.3a` review fallout
 
 ## Priority Count Delta
 
