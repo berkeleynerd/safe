@@ -35,6 +35,8 @@ LOCAL_RANGE = REPO_ROOT / "tests" / "positive" / "constant_range_bound.safe"
 LOCAL_CAPACITY = REPO_ROOT / "tests" / "positive" / "constant_channel_capacity.safe"
 LOCAL_PRIORITY = REPO_ROOT / "tests" / "positive" / "constant_task_priority.safe"
 LOCAL_BOOL = REPO_ROOT / "tests" / "positive" / "constant_discriminant_default.safe"
+LOCAL_ACCESS_DEREF = REPO_ROOT / "tests" / "positive" / "constant_access_deref_write.safe"
+LOCAL_SHADOW = REPO_ROOT / "tests" / "positive" / "constant_shadow_mutable.safe"
 
 PROVIDER_INT = REPO_ROOT / "tests" / "interfaces" / "provider_constant_int.safe"
 CLIENT_RANGE = REPO_ROOT / "tests" / "interfaces" / "client_constant_range.safe"
@@ -759,6 +761,24 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
                 env=env,
                 temp_root=temp_root,
                 expect_mir_constants=False,
+            ),
+            "constant_access_deref_write": run_local_positive_case(
+                name="local-constant-access-deref",
+                source=LOCAL_ACCESS_DEREF,
+                safec=safec,
+                python=python,
+                env=env,
+                temp_root=temp_root,
+                expect_mir_constants=True,
+            ),
+            "constant_shadow_mutable": run_local_positive_case(
+                name="local-constant-shadow",
+                source=LOCAL_SHADOW,
+                safec=safec,
+                python=python,
+                env=env,
+                temp_root=temp_root,
+                expect_mir_constants=True,
             ),
         }
 

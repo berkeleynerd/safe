@@ -1,0 +1,21 @@
+-- Test: constant_access_deref_write
+-- Description: Constant access object does not imply deep immutability.
+--   The access value itself is constant, but writes through `.all`
+--   still target the designated object rather than the constant object.
+-- Expected: ACCEPT
+
+package Constant_Access_Deref_Write is
+
+   type Payload is record
+      Value : Integer;
+   end record;
+
+   type Payload_Ptr is access Payload;
+
+   procedure Mutate_Through_Constant_Access is
+      Ptr : constant Payload_Ptr = new ((Value = 1) as Payload);
+   begin
+      Ptr.all.Value = 2;
+   end Mutate_Through_Constant_Access;
+
+end Constant_Access_Deref_Write;

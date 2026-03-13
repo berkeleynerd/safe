@@ -1,0 +1,20 @@
+-- Test: constant_shadow_mutable
+-- Description: Mutable shadowing declaration clears outer constant binding.
+--   An inner mutable object with the same name as an outer constant must
+--   remain writable after shadowing.
+-- Expected: ACCEPT
+
+package Constant_Shadow_Mutable is
+
+   Value : constant Integer = 1;
+
+   procedure Update_Local is
+   begin
+      declare
+         Value : Integer = 0;
+      begin
+         Value = 2;
+      end;
+   end Update_Local;
+
+end Constant_Shadow_Mutable;

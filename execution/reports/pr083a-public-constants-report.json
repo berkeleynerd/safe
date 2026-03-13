@@ -483,6 +483,214 @@
         }
       }
     },
+    "constant_access_deref_write": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/positive/constant_access_deref_write.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<8771 chars>"
+      },
+      "ast_constant_nodes": 1,
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/constant_access_deref_write.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/constant_access_deref_write.safe",
+          "--out-dir",
+          "$TMPDIR/local-constant-access-deref/out",
+          "--interface-dir",
+          "$TMPDIR/local-constant-access-deref/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "bb236e0dd078bad64e324020df7ae06177a405170911790556fb86c98e2618d1",
+        "mir": "0e440921e3473ced5548e01a833af929c14fc9358aafddd7d5b8c03a40449876",
+        "safei": "1f332d25e32b75e1e33d8ed6b684a8ac8c1e88d5be63d0a54bef32233d426faa",
+        "typed": "28b7768e0bdd5849ca5d29505be3762bba6526681842ee74f0af848204630a50"
+      },
+      "mir_constant_locals": 1,
+      "source": "tests/positive/constant_access_deref_write.safe",
+      "validators": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.ast.json",
+            "--typed",
+            "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.typed.json",
+            "--mir",
+            "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.mir.json",
+            "--safei",
+            "$TMPDIR/local-constant-access-deref/iface/constant_access_deref_write.safei.json",
+            "--source-path",
+            "tests/positive/constant_access_deref_write.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (constant_access_deref_write.ast.json, constant_access_deref_write.typed.json, constant_access_deref_write.mir.json, constant_access_deref_write.safei.json)\n"
+        },
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/local-constant-access-deref/out/constant_access_deref_write.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/local-constant-access-deref/out/constant_access_deref_write.mir.json)\n"
+        }
+      }
+    },
+    "constant_shadow_mutable": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/positive/constant_shadow_mutable.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<5783 chars>"
+      },
+      "ast_constant_nodes": 1,
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/constant_shadow_mutable.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/constant_shadow_mutable.safe",
+          "--out-dir",
+          "$TMPDIR/local-constant-shadow/out",
+          "--interface-dir",
+          "$TMPDIR/local-constant-shadow/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "adf6f9ea0b80f76e8ca0969e8c01745f338db1a771869503cfe94202fe21407e",
+        "mir": "be8e09e78bef23bf31748c6447356946c6d24541705300111c2a2532ae943731",
+        "safei": "d6b75350072d3bd0ab0b40fce53d490d186a8507ac582fd184755898bf681dbe",
+        "typed": "72fb452d057c2d616089e0f237293c29b6dfb8c735fbdad44de690fc97f99392"
+      },
+      "mir_constant_locals": 1,
+      "source": "tests/positive/constant_shadow_mutable.safe",
+      "validators": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.ast.json",
+            "--typed",
+            "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.typed.json",
+            "--mir",
+            "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.mir.json",
+            "--safei",
+            "$TMPDIR/local-constant-shadow/iface/constant_shadow_mutable.safei.json",
+            "--source-path",
+            "tests/positive/constant_shadow_mutable.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (constant_shadow_mutable.ast.json, constant_shadow_mutable.typed.json, constant_shadow_mutable.mir.json, constant_shadow_mutable.safei.json)\n"
+        },
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/local-constant-shadow/out/constant_shadow_mutable.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/local-constant-shadow/out/constant_shadow_mutable.mir.json)\n"
+        }
+      }
+    },
     "range_bound": {
       "ast": {
         "command": [
@@ -983,8 +1191,8 @@
       ]
     }
   },
-  "repeat_sha256": "dfdad08c9487e0d2c51a63a9aae4414abbcaf072fbfce3578c6330c80d43f916",
-  "report_sha256": "dfdad08c9487e0d2c51a63a9aae4414abbcaf072fbfce3578c6330c80d43f916",
+  "repeat_sha256": "8fac3659263377736344ebec69949a2e5d882124fd984e2282c07d0a0564e834",
+  "report_sha256": "8fac3659263377736344ebec69949a2e5d882124fd984e2282c07d0a0564e834",
   "source_failures": {
     "imported_missing_static_value": {
       "ast": {

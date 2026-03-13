@@ -583,7 +583,8 @@ package body Safe_Frontend.Mir_Analyze is
       Local_Meta : Local_Maps.Map;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
-      Functions : Function_Maps.Map);
+      Functions : Function_Maps.Map;
+      Skip_Constant_Check : Boolean := False);
    procedure Ensure_Discriminant_Safe
      (Expr      : GM.Expr_Access;
       Current   : State;
@@ -4118,21 +4119,26 @@ package body Safe_Frontend.Mir_Analyze is
      (Expr       : GM.Expr_Access;
       Local_Meta : Local_Maps.Map) return Boolean
    is
-      Name : constant String := Root_Name (Expr);
    begin
       if Expr = null then
          return False;
-      elsif Expr.Kind = GM.Expr_Select and then UString_Value (Expr.Selector) = "all" then
-         return False;
-      elsif Name /= ""
-        and then Local_Meta.Contains (Name)
-        and then Local_Meta.Element (Name).Is_Constant
-      then
-         return True;
       end if;
 
       case Expr.Kind is
-         when GM.Expr_Select | GM.Expr_Resolved_Index =>
+         when GM.Expr_Ident =>
+            declare
+               Name : constant String := Root_Name (Expr);
+            begin
+               return Name /= ""
+                 and then Local_Meta.Contains (Name)
+                 and then Local_Meta.Element (Name).Is_Constant;
+            end;
+         when GM.Expr_Select =>
+            if UString_Value (Expr.Selector) = "all" then
+               return False;
+            end if;
+            return Is_Constant_Target (Expr.Prefix, Local_Meta);
+         when GM.Expr_Resolved_Index =>
             return Is_Constant_Target (Expr.Prefix, Local_Meta);
          when GM.Expr_Conversion =>
             return Is_Constant_Target (Expr.Inner, Local_Meta);
@@ -4141,20 +4147,28 @@ package body Safe_Frontend.Mir_Analyze is
       end case;
    end Is_Constant_Target;
 
+   function Is_All_Dereference (Expr : GM.Expr_Access) return Boolean is
+   begin
+      return Expr /= null
+        and then Expr.Kind = GM.Expr_Select
+        and then UString_Value (Expr.Selector) = "all";
+   end Is_All_Dereference;
+
    procedure Validate_Assignment_Target
      (Expr      : GM.Expr_Access;
       Current   : State;
       Local_Meta : Local_Maps.Map;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
-      Functions : Function_Maps.Map) is
+      Functions : Function_Maps.Map;
+      Skip_Constant_Check : Boolean := False) is
       Role : Access_Role_Kind;
       Diag : MD.Diagnostic;
       Name : constant String := Root_Name (Expr);
    begin
       if Expr = null then
          return;
-      elsif Is_Constant_Target (Expr, Local_Meta) then
+      elsif not Skip_Constant_Check and then Is_Constant_Target (Expr, Local_Meta) then
          Raise_Diag
            (Ownership_Diagnostic
               ("write_to_constant",
@@ -4174,7 +4188,17 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
          end if;
       elsif Expr.Kind = GM.Expr_Select then
-         Validate_Assignment_Target (Expr.Prefix, Current, Local_Meta, Var_Types, Type_Env, Functions);
+         Validate_Assignment_Target
+           (Expr.Prefix,
+            Current,
+            Local_Meta,
+            Var_Types,
+            Type_Env,
+            Functions,
+            Skip_Constant_Check =>
+              Skip_Constant_Check
+              or else UString_Value (Expr.Selector) = "all"
+              or else Is_All_Dereference (Expr.Prefix));
          if UString_Value (Expr.Selector) = "Access" then
             declare
                Result : MD.Diagnostic := Null_Diagnostic;
@@ -4193,7 +4217,14 @@ package body Safe_Frontend.Mir_Analyze is
             Ensure_Access_Safe (Expr.Prefix, Expr.Prefix.Span, Current, Var_Types, Type_Env, Functions);
          end if;
       elsif Expr.Kind = GM.Expr_Resolved_Index then
-         Validate_Assignment_Target (Expr.Prefix, Current, Local_Meta, Var_Types, Type_Env, Functions);
+         Validate_Assignment_Target
+           (Expr.Prefix,
+            Current,
+            Local_Meta,
+            Var_Types,
+            Type_Env,
+            Functions,
+            Skip_Constant_Check => Skip_Constant_Check or else Is_All_Dereference (Expr.Prefix));
          declare
             Value : constant Interval := Eval_Index_Expr (Expr, Current, Var_Types, Type_Env, Functions);
          begin

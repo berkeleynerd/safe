@@ -87,6 +87,29 @@ package body Safe_Frontend.Check_Resolve is
       Map.Include (Canonical_Name (Name), Info);
    end Put_Type;
 
+   procedure Remove_Type
+     (Map  : in out Type_Maps.Map;
+      Name : String) is
+      Key : constant String := Canonical_Name (Name);
+   begin
+      if Map.Contains (Key) then
+         Map.Delete (Key);
+      end if;
+   end Remove_Type;
+
+   procedure Update_Constant_Visibility
+     (Map         : in out Type_Maps.Map;
+      Name        : String;
+      Info        : GM.Type_Descriptor;
+      Is_Constant : Boolean) is
+   begin
+      if Is_Constant then
+         Put_Type (Map, Name, Info);
+      else
+         Remove_Type (Map, Name);
+      end if;
+   end Update_Constant_Visibility;
+
    function Has_Type
      (Map  : Type_Maps.Map;
       Name : String) return Boolean is
@@ -1143,18 +1166,24 @@ package body Safe_Frontend.Check_Resolve is
      (Expr            : CM.Expr_Access;
       Local_Constants : Type_Maps.Map) return Boolean
    is
-      Name : constant String := Root_Name (Expr);
    begin
       if Expr = null then
          return False;
-      elsif Expr.Kind = CM.Expr_Select and then UString_Value (Expr.Selector) = "all" then
-         return False;
-      elsif Name /= "" and then Has_Type (Local_Constants, Name) then
-         return True;
       end if;
 
       case Expr.Kind is
-         when CM.Expr_Select | CM.Expr_Resolved_Index =>
+         when CM.Expr_Ident =>
+            declare
+               Name : constant String := Root_Name (Expr);
+            begin
+               return Name /= "" and then Has_Type (Local_Constants, Name);
+            end;
+         when CM.Expr_Select =>
+            if UString_Value (Expr.Selector) = "all" then
+               return False;
+            end if;
+            return Is_Local_Constant_Target (Expr.Prefix, Local_Constants);
+         when CM.Expr_Resolved_Index =>
             return Is_Local_Constant_Target (Expr.Prefix, Local_Constants);
          when CM.Expr_Conversion =>
             return Is_Local_Constant_Target (Expr.Inner, Local_Constants);
@@ -1230,9 +1259,11 @@ package body Safe_Frontend.Check_Resolve is
             if Normalized.Kind = CM.Stmt_Object_Decl then
                for Name of Normalized.Decl.Names loop
                   Put_Type (Local_Types, UString_Value (Name), Normalized.Decl.Type_Info);
-                  if Normalized.Decl.Is_Constant then
-                     Put_Type (Current_Constants, UString_Value (Name), Normalized.Decl.Type_Info);
-                  end if;
+                  Update_Constant_Visibility
+                    (Current_Constants,
+                     UString_Value (Name),
+                     Normalized.Decl.Type_Info,
+                     Normalized.Decl.Is_Constant);
                end loop;
             end if;
          end;
@@ -1376,6 +1407,7 @@ package body Safe_Frontend.Check_Resolve is
                  Resolve_Type (Flatten_Name (Stmt.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
             end if;
             Put_Type (Local_Types, UString_Value (Stmt.Loop_Var), Loop_Type);
+            Remove_Type (Current_Constants, UString_Value (Stmt.Loop_Var));
             Result.Body_Stmts :=
               Normalize_Statement_List
                 (Stmt.Body_Stmts,
@@ -1398,9 +1430,11 @@ package body Safe_Frontend.Check_Resolve is
                   Decl_Type := New_Decl.Type_Info;
                   for Name of Decl.Names loop
                      Put_Type (Local_Types, UString_Value (Name), Decl_Type);
-                     if New_Decl.Is_Constant then
-                        Put_Type (Current_Constants, UString_Value (Name), Decl_Type);
-                     end if;
+                     Update_Constant_Visibility
+                       (Current_Constants,
+                        UString_Value (Name),
+                        Decl_Type,
+                        New_Decl.Is_Constant);
                   end loop;
                end;
             end loop;
@@ -1571,6 +1605,9 @@ package body Safe_Frontend.Check_Resolve is
                            Arm_Types.Include
                              (UString_Value (Arm.Channel_Data.Variable_Name),
                               New_Arm.Channel_Data.Type_Info);
+                           Remove_Type
+                             (Current_Constants,
+                              UString_Value (Arm.Channel_Data.Variable_Name));
                            New_Arm.Channel_Data.Statements :=
                              Normalize_Statement_List
                                (Arm.Channel_Data.Statements,
@@ -2202,6 +2239,7 @@ package body Safe_Frontend.Check_Resolve is
 
                for Param of Info.Params loop
                   Put_Type (Visible, UString_Value (Param.Name), Param.Type_Info);
+                  Remove_Type (Visible_Constants, UString_Value (Param.Name));
                end loop;
 
                for Decl of Item.Subp_Data.Declarations loop
@@ -2219,9 +2257,11 @@ package body Safe_Frontend.Check_Resolve is
                   Subprogram.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
                      Put_Type (Visible, UString_Value (Name), Decl_Type);
-                     if Decl.Is_Constant then
-                        Put_Type (Visible_Constants, UString_Value (Name), Decl_Type);
-                     end if;
+                     Update_Constant_Visibility
+                       (Visible_Constants,
+                        UString_Value (Name),
+                        Decl_Type,
+                        Decl.Is_Constant);
                   end loop;
                end loop;
 
@@ -2294,9 +2334,11 @@ package body Safe_Frontend.Check_Resolve is
                   Task_Item.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
                      Put_Type (Visible, UString_Value (Name), Decl_Type);
-                     if Decl.Is_Constant then
-                        Put_Type (Visible_Constants, UString_Value (Name), Decl_Type);
-                     end if;
+                     Update_Constant_Visibility
+                       (Visible_Constants,
+                        UString_Value (Name),
+                        Decl_Type,
+                        Decl.Is_Constant);
                   end loop;
                end loop;
 
