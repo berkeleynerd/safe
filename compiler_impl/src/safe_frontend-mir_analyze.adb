@@ -4483,7 +4483,11 @@ package body Safe_Frontend.Mir_Analyze is
                   Diag.Has_Highlight_Span := True;
                   Diag.Highlight_Span := Actual.Span;
                   Diag.Notes.Append
-                    (FT.To_UString ("formal '" & UString_Value (Formal.Name) & "' has type " & UString_Value (Formal.Type_Info.Name) & " with range " & Interval_Format (Range_Interval (Formal.Type_Info))));
+                    (FT.To_UString
+                       ("formal '" & UString_Value (Formal.Name)
+                        & "' has type " & UString_Value (Formal.Type_Info.Name)
+                        & " with range "
+                        & Interval_Format (Range_Interval (Formal.Type_Info))));
                   Diag.Notes.Append
                     (FT.To_UString ("actual expression range is " & Interval_Format (Interval_Value)));
                   return Diag;

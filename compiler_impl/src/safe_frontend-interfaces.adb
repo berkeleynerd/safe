@@ -511,7 +511,7 @@ package body Safe_Frontend.Interfaces is
                   Dep_Item          : constant JSON_Value := Get (Depends, Dep_Index);
                   Ignore_Output_Name : constant String :=
                     Require_String (Dep_Item, "output_name", File_Path);
-                begin
+               begin
                   Validate_Name_List (Require_Array (Dep_Item, "inputs", File_Path), "depends.inputs", File_Path);
                   null;
                end;

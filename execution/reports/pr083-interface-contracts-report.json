@@ -13,7 +13,7 @@
       ],
       "cwd": "$REPO_ROOT",
       "returncode": 1,
-      "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with Provider_Types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
+      "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with provider_types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
       "stdout": ""
     },
     "iface_files_after": [
@@ -35,7 +35,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: duplicate interface for package `Provider_Types` in search dir `$TMPDIR/duplicate-dir`\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: duplicate interface for package `Provider_Types` in search dir `$TMPDIR/duplicate-dir`\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check": {
@@ -48,7 +48,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: duplicate interface for package `Provider_Types` in search dir `$TMPDIR/duplicate-dir`\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: duplicate interface for package `Provider_Types` in search dir `$TMPDIR/duplicate-dir`\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check_diag": {
@@ -79,7 +79,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: duplicate interface for package `Provider_Types` in search dir `$TMPDIR/duplicate-dir`\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: duplicate interface for package `Provider_Types` in search dir `$TMPDIR/duplicate-dir`\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "expected_reason": "source_frontend_error",
@@ -218,7 +218,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/malformed-dir/broken.safei.json: invalid JSON: 1:3: invalid token\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/malformed-dir/broken.safei.json: invalid JSON: 1:3: invalid token\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check": {
@@ -231,7 +231,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/malformed-dir/broken.safei.json: invalid JSON: 1:3: invalid token\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/malformed-dir/broken.safei.json: invalid JSON: 1:3: invalid token\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check_diag": {
@@ -262,7 +262,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/malformed-dir/broken.safei.json: invalid JSON: 1:3: invalid token\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/malformed-dir/broken.safei.json: invalid JSON: 1:3: invalid token\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "expected_reason": "source_frontend_error",
@@ -325,7 +325,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with Provider_Types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
+        "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with provider_types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check": {
@@ -336,7 +336,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with Provider_Types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
+        "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with provider_types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check_diag": {
@@ -363,7 +363,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with Provider_Types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
+        "stderr": "client_types.safe:1:1: error: missing dependency interface for package `provider_types`\n  |\n  | 1 | with provider_types;\n  |   | ^~~~~~~~~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "expected_reason": "source_frontend_error",
@@ -428,7 +428,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/missing-subprogram-type/provider_types.safei.json: subprograms[].return_type must be an object\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/missing-subprogram-type/provider_types.safei.json: subprograms[].return_type must be an object\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check_diag": {
@@ -459,7 +459,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/missing-subprogram-type/provider_types.safei.json: subprograms[].return_type must be an object\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/missing-subprogram-type/provider_types.safei.json: subprograms[].return_type must be an object\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "expected_reason": "source_frontend_error",
@@ -643,7 +643,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/wrong-format/provider_types.safei.json: format must be safei-v1\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/wrong-format/provider_types.safei.json: format must be safei-v1\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check": {
@@ -656,7 +656,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/wrong-format/provider_types.safei.json: format must be safei-v1\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/wrong-format/provider_types.safei.json: format must be safei-v1\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "check_diag": {
@@ -687,7 +687,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "client_types.safe:1:1: error: $TMPDIR/wrong-format/provider_types.safei.json: format must be safei-v1\n  |\n  | 1 | with Provider_Types;\n  |   | ^\n  |\n",
+        "stderr": "client_types.safe:1:1: error: $TMPDIR/wrong-format/provider_types.safei.json: format must be safei-v1\n  |\n  | 1 | with provider_types;\n  |   | ^\n  |\n",
         "stdout": ""
       },
       "expected_reason": "source_frontend_error",
@@ -1188,8 +1188,8 @@
           "cwd": "$REPO_ROOT",
           "returncode": 0,
           "stderr": "",
-          "stdout": "<5464 chars>",
-          "stdout_sha256": "81a919cdce789e5fd1f96e9fadc0b48b62e387ffedab4042b34445bc104d619e"
+          "stdout": "<7939 chars>",
+          "stdout_sha256": "b72fe89c16267b36ebfb865d4d6ddfe355f0246df9335f599573d9b3e148ad59"
         },
         "check": {
           "command": [
@@ -1228,16 +1228,17 @@
           "typed": "out/client_types.typed.json"
         },
         "hashes": {
-          "ast": "d8ced4ffb8f4a9487260163e6b478ca7067fcf3e903680803a5621a7278c7264",
-          "mir": "5ab405ae71e65dcb19730c186d7d5478b6806839604b1deef375809c7681f506",
-          "safei": "547f667946a77cc7ca0976d59da7d018de2046298672fc12239aae9d2baf46c5",
-          "typed": "faa39a9c0194589a7fca523b82f00c71662c81d969ab061455b07acaa7b0eba2"
+          "ast": "64bc7a2bffd82081362e4b3be2aae7b8be6791d49671dd5185644aebc80da8c1",
+          "mir": "c579de89d360fae5b531e7bee0c0d4a31b64ff1c3f708a509e44103a75894b40",
+          "safei": "ee5c08a537e09a57188c0ed986ba7ea1ef863890d1d3a039e7088fe30f3c8d23",
+          "typed": "292b7bf65b8252cf415d3601917abdded61c8ab495a9abe95797fe2488c0dd6b"
         },
         "mir_summary": {
           "graph_names": [],
           "package_name": "Client_Types",
           "source_path": "tests/interfaces/client_types.safe",
           "type_names": [
+            "Handle_Ref",
             "Provider_Types.Count",
             "Provider_Types.Handle",
             "Provider_Types.Small_Count"
@@ -1247,7 +1248,7 @@
           "channel_names": [],
           "channel_summary_names": [],
           "dependencies": [
-            "Provider_Types"
+            "provider_types"
           ],
           "effect_summary_names": [],
           "object_names": [],
@@ -1260,6 +1261,7 @@
           "package_name": "Client_Types",
           "public_declaration_names": [],
           "type_names": [
+            "Handle_Ref",
             "Provider_Types.Count",
             "Provider_Types.Handle",
             "Provider_Types.Small_Count"
@@ -1444,6 +1446,11 @@
         "channel_summary_names": [
           "Next"
         ],
+        "client_imported_type_names": [
+          "Provider_Types.Count",
+          "Provider_Types.Handle",
+          "Provider_Types.Small_Count"
+        ],
         "effect_summary_names": [
           "Next"
         ],
@@ -1457,10 +1464,10 @@
       },
       "repeat_emit": {
         "hashes": {
-          "ast": "d8ced4ffb8f4a9487260163e6b478ca7067fcf3e903680803a5621a7278c7264",
-          "mir": "5ab405ae71e65dcb19730c186d7d5478b6806839604b1deef375809c7681f506",
-          "safei": "547f667946a77cc7ca0976d59da7d018de2046298672fc12239aae9d2baf46c5",
-          "typed": "faa39a9c0194589a7fca523b82f00c71662c81d969ab061455b07acaa7b0eba2"
+          "ast": "64bc7a2bffd82081362e4b3be2aae7b8be6791d49671dd5185644aebc80da8c1",
+          "mir": "c579de89d360fae5b531e7bee0c0d4a31b64ff1c3f708a509e44103a75894b40",
+          "safei": "ee5c08a537e09a57188c0ed986ba7ea1ef863890d1d3a039e7088fe30f3c8d23",
+          "typed": "292b7bf65b8252cf415d3601917abdded61c8ab495a9abe95797fe2488c0dd6b"
         },
         "runs": [
           {
@@ -1501,8 +1508,8 @@
       }
     }
   },
-  "repeat_sha256": "f5ffbdd704e6510a5b3ee64936b6a59905bdaea7e97021096391a1c3a9880529",
-  "report_sha256": "f5ffbdd704e6510a5b3ee64936b6a59905bdaea7e97021096391a1c3a9880529",
+  "repeat_sha256": "dc22e07be4e7a500dfa83abeb67b83d3e538db2ad471f877dfdb0f696f4b384a",
+  "report_sha256": "dc22e07be4e7a500dfa83abeb67b83d3e538db2ad471f877dfdb0f696f4b384a",
   "search_order": {
     "failure": {
       "command": [

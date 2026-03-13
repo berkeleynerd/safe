@@ -3,8 +3,6 @@ with Ada.Strings.Hash;
 with System;
 with Safe_Frontend.Interfaces;
 with Safe_Frontend.Mir_Model;
-with Safe_Frontend.Types;
-
 package body Safe_Frontend.Check_Resolve is
    package GM renames Safe_Frontend.Mir_Model;
    package SI renames Safe_Frontend.Interfaces;
@@ -56,6 +54,50 @@ package body Safe_Frontend.Check_Resolve is
       return FT.Lowercase (Value);
    end Canonical_Name;
 
+   procedure Put_Type
+     (Map  : in out Type_Maps.Map;
+      Name : String;
+      Info : GM.Type_Descriptor) is
+   begin
+      Map.Include (Canonical_Name (Name), Info);
+   end Put_Type;
+
+   function Has_Type
+     (Map  : Type_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      return Map.Contains (Canonical_Name (Name));
+   end Has_Type;
+
+   function Get_Type
+     (Map  : Type_Maps.Map;
+      Name : String) return GM.Type_Descriptor is
+   begin
+      return Map.Element (Canonical_Name (Name));
+   end Get_Type;
+
+   procedure Put_Function
+     (Map  : in out Function_Maps.Map;
+      Name : String;
+      Info : Function_Info) is
+   begin
+      Map.Include (Canonical_Name (Name), Info);
+   end Put_Function;
+
+   function Has_Function
+     (Map  : Function_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      return Map.Contains (Canonical_Name (Name));
+   end Has_Function;
+
+   function Get_Function
+     (Map  : Function_Maps.Map;
+      Name : String) return Function_Info is
+   begin
+      return Map.Element (Canonical_Name (Name));
+   end Get_Function;
+
    function Make_Builtin
      (Name : String;
       Low  : CM.Wide_Integer;
@@ -82,12 +124,12 @@ package body Safe_Frontend.Check_Resolve is
 
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
-      Type_Env.Include ("Integer", Make_Builtin ("Integer", -(2 ** 63), (2 ** 63) - 1));
-      Type_Env.Include ("Natural", Make_Builtin ("Natural", 0, (2 ** 63) - 1));
-      Type_Env.Include ("Boolean", Make_Builtin ("Boolean", 0, 1));
-      Type_Env.Include ("Float", Make_Float_Builtin ("Float"));
-      Type_Env.Include ("Long_Float", Make_Float_Builtin ("Long_Float"));
-      Type_Env.Include ("Duration", Make_Float_Builtin ("Duration"));
+      Put_Type (Type_Env, "Integer", Make_Builtin ("Integer", -(2 ** 63), (2 ** 63) - 1));
+      Put_Type (Type_Env, "Natural", Make_Builtin ("Natural", 0, (2 ** 63) - 1));
+      Put_Type (Type_Env, "Boolean", Make_Builtin ("Boolean", 0, 1));
+      Put_Type (Type_Env, "Float", Make_Float_Builtin ("Float"));
+      Put_Type (Type_Env, "Long_Float", Make_Float_Builtin ("Long_Float"));
+      Put_Type (Type_Env, "Duration", Make_Float_Builtin ("Duration"));
    end Add_Builtins;
 
    procedure Raise_Diag (Item : CM.MD.Diagnostic) is
@@ -140,8 +182,8 @@ package body Safe_Frontend.Check_Resolve is
       Result : GM.Type_Descriptor := Info;
       Name   : String := UString_Value (Result.Name);
    begin
-      while Result.Has_Base and then Type_Env.Contains (UString_Value (Result.Base)) loop
-         Result := Type_Env.Element (UString_Value (Result.Base));
+      while Result.Has_Base and then Has_Type (Type_Env, UString_Value (Result.Base)) loop
+         Result := Get_Type (Type_Env, UString_Value (Result.Base));
          Name := UString_Value (Result.Name);
          exit when Name = "";
       end loop;
@@ -392,8 +434,8 @@ package body Safe_Frontend.Check_Resolve is
       Span     : FT.Source_Span) return GM.Type_Descriptor
    is
    begin
-      if Type_Env.Contains (Name) then
-         return Type_Env.Element (Name);
+      if Has_Type (Type_Env, Name) then
+         return Get_Type (Type_Env, Name);
       end if;
 
       if FT.Lowercase (Name) = "exception" then
@@ -526,24 +568,26 @@ package body Safe_Frontend.Check_Resolve is
 
       case Expr.Kind is
          when CM.Expr_Real =>
-            if UString_Value (Expr.Type_Name)'Length > 0 and then Type_Env.Contains (UString_Value (Expr.Type_Name)) then
-               return Type_Env.Element (UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0
+              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
+            then
+               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
             end if;
             return Default_Float;
          when CM.Expr_Ident =>
             Name := Expr.Name;
-            if Var_Types.Contains (UString_Value (Name)) then
-               return Var_Types.Element (UString_Value (Name));
+            if Has_Type (Var_Types, UString_Value (Name)) then
+               return Get_Type (Var_Types, UString_Value (Name));
             end if;
          when CM.Expr_Select =>
             Name := FT.To_UString (Flatten_Name (Expr));
-            if Var_Types.Contains (UString_Value (Name)) then
-               return Var_Types.Element (UString_Value (Name));
-            elsif Type_Env.Contains (UString_Value (Name)) then
-               return Type_Env.Element (UString_Value (Name));
-            elsif Functions.Contains (UString_Value (Name)) then
+            if Has_Type (Var_Types, UString_Value (Name)) then
+               return Get_Type (Var_Types, UString_Value (Name));
+            elsif Has_Type (Type_Env, UString_Value (Name)) then
+               return Get_Type (Type_Env, UString_Value (Name));
+            elsif Has_Function (Functions, UString_Value (Name)) then
                declare
-                  Info : constant Function_Info := Functions.Element (UString_Value (Name));
+                  Info : constant Function_Info := Get_Function (Functions, UString_Value (Name));
                begin
                   if Info.Has_Return_Type then
                      return Info.Return_Type;
@@ -595,10 +639,9 @@ package body Safe_Frontend.Check_Resolve is
               (Flatten_Name (Expr.Target), Type_Env, "", FT.Null_Span);
          when CM.Expr_Call =>
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
-            if Functions.Contains (UString_Value (Name)) then
+            if Has_Function (Functions, UString_Value (Name)) then
                declare
-                  Info : constant Function_Info :=
-                    Functions.Element (UString_Value (Name));
+                  Info : constant Function_Info := Get_Function (Functions, UString_Value (Name));
                begin
                   if Info.Has_Return_Type then
                      return Info.Return_Type;
@@ -606,12 +649,12 @@ package body Safe_Frontend.Check_Resolve is
                end;
             elsif UString_Value (Name) = "Long_Float.Copy_Sign" then
                return Resolve_Type ("Long_Float", Type_Env, "", FT.Null_Span);
-            elsif Var_Types.Contains (UString_Value (Name)) then
-               return Var_Types.Element (UString_Value (Name));
+            elsif Has_Type (Var_Types, UString_Value (Name)) then
+               return Get_Type (Var_Types, UString_Value (Name));
             elsif UString_Value (Expr.Type_Name)'Length > 0
-              and then Type_Env.Contains (UString_Value (Expr.Type_Name))
+              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
             then
-               return Type_Env.Element (UString_Value (Expr.Type_Name));
+               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
             end if;
          when CM.Expr_Allocator =>
             if Expr.Value /= null then
@@ -689,20 +732,20 @@ package body Safe_Frontend.Check_Resolve is
 
       if Expr.Callee /= null and then Expr.Callee.Kind = CM.Expr_Ident then
          Callee_Name := Expr.Callee.Name;
-         if Var_Types.Contains (UString_Value (Callee_Name))
+         if Has_Type (Var_Types, UString_Value (Callee_Name))
            and then UString_Value
-             (Var_Types.Element (UString_Value (Callee_Name)).Kind) = "array"
+             (Get_Type (Var_Types, UString_Value (Callee_Name)).Kind) = "array"
          then
             Result.Kind := CM.Expr_Resolved_Index;
             Result.Prefix := Expr.Callee;
             Result.Args := Expr.Args;
-         elsif Functions.Contains (UString_Value (Callee_Name)) then
+         elsif Has_Function (Functions, UString_Value (Callee_Name)) then
             Result.Kind := CM.Expr_Call;
             Result.Callee := Expr.Callee;
             Result.Args := Expr.Args;
-         elsif Var_Types.Contains (UString_Value (Callee_Name))
+         elsif Has_Type (Var_Types, UString_Value (Callee_Name))
            and then UString_Value
-             (Var_Types.Element (UString_Value (Callee_Name)).Kind)
+             (Get_Type (Var_Types, UString_Value (Callee_Name)).Kind)
                     in "integer" | "subtype" | "record" | "float"
            and then Natural (Expr.Args.Length) = 1
          then
@@ -844,17 +887,17 @@ package body Safe_Frontend.Check_Resolve is
                Message => "expected assignment or procedure call"));
       elsif Expr.Kind = CM.Expr_Call then
          Name := FT.To_UString (Flatten_Name (Expr.Callee));
-         if Functions.Contains (UString_Value (Name))
+         if Has_Function (Functions, UString_Value (Name))
            and then UString_Value
-             (Functions.Element (UString_Value (Name)).Kind) = "procedure"
+             (Get_Function (Functions, UString_Value (Name)).Kind) = "procedure"
          then
             return Expr;
          end if;
       elsif Expr.Kind = CM.Expr_Ident or else Expr.Kind = CM.Expr_Select then
          Name := FT.To_UString (Flatten_Name (Expr));
-         if Functions.Contains (UString_Value (Name))
+         if Has_Function (Functions, UString_Value (Name))
            and then UString_Value
-             (Functions.Element (UString_Value (Name)).Kind) = "procedure"
+             (Get_Function (Functions, UString_Value (Name)).Kind) = "procedure"
          then
             Result := new CM.Expr_Node'(Expr.all);
             Result.Kind := CM.Expr_Call;
@@ -888,7 +931,7 @@ package body Safe_Frontend.Check_Resolve is
                Message => "channel reference must be a channel name"));
       end if;
 
-      if not Channel_Env.Contains (Name) then
+      if not Has_Type (Channel_Env, Name) then
          Raise_Diag
            (CM.Source_Frontend_Error
               (Path    => Path,
@@ -896,7 +939,7 @@ package body Safe_Frontend.Check_Resolve is
                Message => "unknown channel `" & Name & "`"));
       end if;
 
-      return Channel_Env.Element (Name);
+      return Get_Type (Channel_Env, Name);
    end Channel_Element_Type;
 
    function Contains_Label_Like_Syntax (Name : String) return Boolean is
@@ -919,14 +962,14 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Decl.Decl_Type.Kind /= CM.Type_Spec_Name
         or else Natural (Decl.Names.Length) /= 1
-        or else Type_Env.Contains (Type_Name)
+        or else Has_Type (Type_Env, Type_Name)
       then
          return False;
       end if;
 
       return
-        Var_Types.Contains (Type_Name)
-        or else Functions.Contains (Type_Name)
+        Has_Type (Var_Types, Type_Name)
+        or else Has_Function (Functions, Type_Name)
         or else Contains_Label_Like_Syntax (Type_Name);
    end Looks_Like_Unsupported_Statement_Label;
 
@@ -962,7 +1005,7 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Expr = null then
          return False;
-      elsif Name /= "" and then Imported_Objects.Contains (Name) then
+      elsif Name /= "" and then Has_Type (Imported_Objects, Name) then
          return True;
       end if;
 
@@ -1027,7 +1070,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Append (Normalized);
             if Normalized.Kind = CM.Stmt_Object_Decl then
                for Name of Normalized.Decl.Names loop
-                  Local_Types.Include (UString_Value (Name), Normalized.Decl.Type_Info);
+                  Put_Type (Local_Types, UString_Value (Name), Normalized.Decl.Type_Info);
                end loop;
             end if;
          end;
@@ -1138,7 +1181,7 @@ package body Safe_Frontend.Check_Resolve is
                Loop_Type :=
                  Resolve_Type (Flatten_Name (Stmt.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
             end if;
-            Local_Types.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
+            Put_Type (Local_Types, UString_Value (Stmt.Loop_Var), Loop_Type);
             Result.Body_Stmts :=
               Normalize_Statement_List
                 (Stmt.Body_Stmts, Local_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
@@ -1153,7 +1196,7 @@ package body Safe_Frontend.Check_Resolve is
                   Result.Declarations.Append (New_Decl);
                   Decl_Type := New_Decl.Type_Info;
                   for Name of Decl.Names loop
-                     Local_Types.Include (UString_Value (Name), Decl_Type);
+                     Put_Type (Local_Types, UString_Value (Name), Decl_Type);
                   end loop;
                end;
             end loop;
@@ -1238,12 +1281,12 @@ package body Safe_Frontend.Check_Resolve is
                Result.Success_Var :=
                  Normalize_Expr (Stmt.Success_Var, Var_Types, Functions, Type_Env);
                if not Is_Assignable_Target (Result.Success_Var) then
-               Raise_Diag
-                 (CM.Source_Frontend_Error
-                    (Path    => Path,
-                     Span    => Result.Success_Var.Span,
-                     Message => "try_receive success variable must be a writable name"));
-              end if;
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Result.Success_Var.Span,
+                        Message => "try_receive success variable must be a writable name"));
+               end if;
                Ensure_Writable_Target
                  (Result.Success_Var,
                   Imported_Objects,
@@ -1480,7 +1523,7 @@ package body Safe_Frontend.Check_Resolve is
                   Span    => Decl.Span,
                   Message => "unsupported type definition in current PR05/PR06 check subset"));
       end case;
-      Type_Env.Include (UString_Value (Result.Name), Result);
+      Put_Type (Type_Env, UString_Value (Result.Name), Result);
       return Result;
    end Resolve_Type_Declaration;
 
@@ -1629,7 +1672,7 @@ package body Safe_Frontend.Check_Resolve is
                Info : constant GM.Type_Descriptor :=
                  Qualify_Type_Info (Type_Item, Package_Name);
             begin
-               Type_Env.Include (UString_Value (Info.Name), Info);
+               Put_Type (Type_Env, UString_Value (Info.Name), Info);
                Result.Imported_Types.Append (Info);
             end;
          end loop;
@@ -1639,7 +1682,7 @@ package body Safe_Frontend.Check_Resolve is
                Info : constant GM.Type_Descriptor :=
                  Qualify_Type_Info (Type_Item, Package_Name);
             begin
-               Type_Env.Include (UString_Value (Info.Name), Info);
+               Put_Type (Type_Env, UString_Value (Info.Name), Info);
                Result.Imported_Types.Append (Info);
             end;
          end loop;
@@ -1652,8 +1695,9 @@ package body Safe_Frontend.Check_Resolve is
                  FT.To_UString (Qualify_Name (Package_Name, UString_Value (Channel_Item.Name)));
                Qualified.Element_Type :=
                  Qualify_Type_Info (Channel_Item.Element_Type, Package_Name);
-               Channel_Env.Include
-                 (UString_Value (Qualified.Name),
+               Put_Type
+                 (Channel_Env,
+                  UString_Value (Qualified.Name),
                   Qualified.Element_Type);
             end;
          end loop;
@@ -1665,7 +1709,7 @@ package body Safe_Frontend.Check_Resolve is
                Qualified_Type : constant GM.Type_Descriptor :=
                  Qualify_Type_Info (Object_Item.Type_Info, Package_Name);
             begin
-               Imported_Objects.Include (Qualified_Name, Qualified_Type);
+               Put_Type (Imported_Objects, Qualified_Name, Qualified_Type);
             end;
          end loop;
 
@@ -1690,7 +1734,7 @@ package body Safe_Frontend.Check_Resolve is
                      Info.Params.Append (Symbol);
                   end;
                end loop;
-               Functions.Include (UString_Value (Info.Name), Info);
+               Put_Function (Functions, UString_Value (Info.Name), Info);
             end;
          end loop;
       end Add_Imported_Interface;
@@ -1751,7 +1795,7 @@ package body Safe_Frontend.Check_Resolve is
                   end if;
                   Info.Has_Base := True;
                   Info.Base := Base.Name;
-                  Type_Env.Include (UString_Value (Info.Name), Info);
+                  Put_Type (Type_Env, UString_Value (Info.Name), Info);
                   Result.Types.Append (Info);
                end;
             when CM.Item_Subprogram =>
@@ -1762,7 +1806,7 @@ package body Safe_Frontend.Check_Resolve is
                        Type_Env,
                        UString_Value (Unit.Path));
                begin
-                  Functions.Include (UString_Value (Info.Name), Info);
+                  Put_Function (Functions, UString_Value (Info.Name), Info);
                end;
             when others =>
                null;
@@ -1779,8 +1823,10 @@ package body Safe_Frontend.Check_Resolve is
                     UString_Value (Unit.Path));
             begin
                Result.Channels.Append (Channel_Decl);
-               Channel_Env.Include
-                 (UString_Value (Channel_Decl.Name), Channel_Decl.Element_Type);
+               Put_Type
+                 (Channel_Env,
+                  UString_Value (Channel_Decl.Name),
+                  Channel_Decl.Element_Type);
             end;
          end if;
       end loop;
@@ -1788,8 +1834,9 @@ package body Safe_Frontend.Check_Resolve is
       Package_Vars := Type_Env;
       if not Imported_Objects.Is_Empty then
          for Cursor in Imported_Objects.Iterate loop
-            Package_Vars.Include
-              (Type_Maps.Key (Cursor),
+            Put_Type
+              (Package_Vars,
+               Type_Maps.Key (Cursor),
                Type_Maps.Element (Cursor));
          end loop;
       end if;
@@ -1816,7 +1863,7 @@ package body Safe_Frontend.Check_Resolve is
                end if;
                Result.Objects.Append (Local_Decl);
                for Name of Item.Obj_Data.Names loop
-                  Package_Vars.Include (UString_Value (Name), Decl_Type);
+                  Put_Type (Package_Vars, UString_Value (Name), Decl_Type);
                end loop;
             end;
          end if;
@@ -1826,7 +1873,7 @@ package body Safe_Frontend.Check_Resolve is
          if Item.Kind = CM.Item_Subprogram then
             declare
                Info         : constant Function_Info :=
-                 Functions.Element (UString_Value (Item.Subp_Data.Spec.Name));
+                 Get_Function (Functions, UString_Value (Item.Subp_Data.Spec.Name));
                Subprogram   : CM.Resolved_Subprogram;
                Visible      : Type_Maps.Map := Package_Vars;
                Decl_Type    : GM.Type_Descriptor;
@@ -1841,7 +1888,7 @@ package body Safe_Frontend.Check_Resolve is
                Subprogram.Span := Info.Span;
 
                for Param of Info.Params loop
-                  Visible.Include (UString_Value (Param.Name), Param.Type_Info);
+                  Put_Type (Visible, UString_Value (Param.Name), Param.Type_Info);
                end loop;
 
                for Decl of Item.Subp_Data.Declarations loop
@@ -1857,7 +1904,7 @@ package body Safe_Frontend.Check_Resolve is
                   end if;
                   Subprogram.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
-                     Visible.Include (UString_Value (Name), Decl_Type);
+                     Put_Type (Visible, UString_Value (Name), Decl_Type);
                   end loop;
                end loop;
 
@@ -1940,7 +1987,7 @@ package body Safe_Frontend.Check_Resolve is
                   end if;
                   Task_Item.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
-                     Visible.Include (UString_Value (Name), Decl_Type);
+                     Put_Type (Visible, UString_Value (Name), Decl_Type);
                   end loop;
                end loop;
 

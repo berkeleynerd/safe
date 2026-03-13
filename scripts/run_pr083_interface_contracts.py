@@ -421,12 +421,25 @@ def run_positive_case(
             and len(provider_safei["channel_access_summaries"]) == 1,
             "provider_types: expected Bronze-derived public summaries in safei-v1",
         )
+        require(
+            any(entry["name"] == "Provider_Types.Handle" for entry in client_typed["types"]),
+            "client_types: expected imported incomplete type in typed-v2 output",
+        )
+        require(
+            any(entry["name"] == "Provider_Types.Handle" for entry in client_mir["types"]),
+            "client_types: expected imported incomplete type in MIR output",
+        )
         result["provider_contract"] = {
             "type_names": [entry["name"] for entry in provider_safei["types"]],
             "subprogram_names": [entry["name"] for entry in provider_safei["subprograms"]],
             "effect_summary_names": [entry["name"] for entry in provider_safei["effect_summaries"]],
             "channel_summary_names": [
                 entry["name"] for entry in provider_safei["channel_access_summaries"]
+            ],
+            "client_imported_type_names": [
+                entry["name"]
+                for entry in client_typed["types"]
+                if entry["name"].startswith("Provider_Types.")
             ],
         }
     elif provider == PROVIDER_CHANNEL:

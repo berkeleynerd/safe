@@ -960,24 +960,27 @@ package body Safe_Frontend.Check_Emit is
             declare
                Component_List : constant String := Component_List_Node (Decl);
             begin
-            return
-              "{""node_type"":""TypeDeclaration"",""is_public"":"
-              & JS.Bool_Literal (Decl.Is_Public)
-              & ",""name"":"
-              & JS.Quote (Decl.Name)
-              & ",""discriminant_part"":"
-              & Discriminant_Part_Node (Decl)
-              & ",""type_definition"":{""node_type"":""RecordTypeDefinition"",""is_limited"":false,""is_private"":false,""record_definition"":{""node_type"":""RecordDefinition"",""is_null_record"":"
-              & JS.Bool_Literal (Component_List = "null")
-              & ",""component_list"":"
-              & Component_List
-              & ",""span"":"
-              & JS.Span_Object (Decl.Span)
-              & "},""span"":"
-              & JS.Span_Object (Decl.Span)
-              & "},""span"":"
-              & JS.Span_Object (Decl.Span)
-              & "}";
+               return
+                 "{""node_type"":""TypeDeclaration"",""is_public"":"
+                 & JS.Bool_Literal (Decl.Is_Public)
+                 & ",""name"":"
+                 & JS.Quote (Decl.Name)
+                 & ",""discriminant_part"":"
+                 & Discriminant_Part_Node (Decl)
+                 & ",""type_definition"":{""node_type"":""RecordTypeDefinition"""
+                 & ",""is_limited"":false,""is_private"":false"
+                 & ",""record_definition"":{""node_type"":""RecordDefinition"""
+                 & ",""is_null_record"":"
+                 & JS.Bool_Literal (Component_List = "null")
+                 & ",""component_list"":"
+                 & Component_List
+                 & ",""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "},""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "},""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "}";
             end;
          when CM.Type_Decl_Access =>
             return
