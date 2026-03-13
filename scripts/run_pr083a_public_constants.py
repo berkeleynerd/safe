@@ -597,17 +597,35 @@ def assert_failure_parity(
             expected_header_substring in ast_header,
             f"{name}: expected first header to contain {expected_header_substring!r}, saw {ast_header!r}",
         )
-    require(read_first_reason(check_diag, source) == reason, f"{name}: check --diag-json reason drifted")
+    diag_payload = read_diag_json(check_diag["stdout"], cli_arg(source))
+    first = first_diag(diag_payload, name)
+    require(first["reason"] == reason, f"{name}: check --diag-json reason drifted")
     require(observed_files(emit_root / "out") == [], f"{name}: emit unexpectedly wrote output artifacts")
     require(observed_files(emit_root / "iface") == [], f"{name}: emit unexpectedly wrote interface artifacts")
 
+    ast_record = compact_result(ast_result)
+    ast_record["stderr"] = ast_header
+    check_record = compact_result(check_result)
+    check_record["stderr"] = check_header
+    emit_record = compact_result(emit_result)
+    emit_record["stderr"] = emit_header
+
     return {
         "expected_reason": reason,
-        "ast": compact_result(ast_result),
-        "check": compact_result(check_result),
-        "check_diag": compact_result(check_diag),
-        "emit": compact_result(emit_result),
-        "first_header": ast_header,
+        "ast": ast_record,
+        "check": check_record,
+        "check_diag": {
+            "command": check_diag["command"],
+            "cwd": check_diag["cwd"],
+            "returncode": check_diag["returncode"],
+            "first_diagnostic": {
+                "reason": first["reason"],
+                "path": first["path"],
+            },
+        },
+        "emit": emit_record,
+        "header_parity": True,
+        "header_contains": expected_header_substring,
     }
 
 
