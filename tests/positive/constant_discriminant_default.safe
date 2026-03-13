@@ -1,0 +1,13 @@
+-- Test: constant_discriminant_default
+-- Description: Local boolean constant used in a record discriminant default.
+-- Expected: ACCEPT
+
+package Constant_Discriminant_Default is
+
+   Default_Active : constant Boolean = True;
+
+   type Result (Active : Boolean = Default_Active) is record
+      Value : Integer;
+   end record;
+
+end Constant_Discriminant_Default;

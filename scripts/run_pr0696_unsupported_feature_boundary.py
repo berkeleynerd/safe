@@ -97,6 +97,11 @@ UNSUPPORTED_CASES = [
         "expected_reason": "unsupported_source_construct",
     },
     {
+        "name": "named_number_unsupported",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_named_number_unsupported.safe",
+        "expected_reason": "unsupported_source_construct",
+    },
+    {
         "name": "generic_case.safe",
         "text": "generic\npackage Generic_Case is\nend Generic_Case;\n",
         "expected_reason": "unsupported_source_construct",

@@ -1,4 +1,5 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Hash;
 with System;
 with Safe_Frontend.Interfaces;
@@ -13,6 +14,7 @@ package body Safe_Frontend.Check_Resolve is
    use type CM.Package_Item_Kind;
    use type CM.Select_Arm_Kind;
    use type CM.Statement_Kind;
+   use type CM.Static_Value_Kind;
    use type CM.Type_Decl_Kind;
    use type CM.Type_Spec_Kind;
    use type FT.UString;
@@ -27,6 +29,14 @@ package body Safe_Frontend.Check_Resolve is
       Span                 : FT.Source_Span := FT.Null_Span;
    end record;
 
+   function Equal_Static_Value
+     (Left, Right : CM.Static_Value) return Boolean is
+   begin
+      return Left.Kind = Right.Kind
+        and then Left.Int_Value = Right.Int_Value
+        and then Left.Bool_Value = Right.Bool_Value;
+   end Equal_Static_Value;
+
    package Type_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => GM.Type_Descriptor,
@@ -39,6 +49,21 @@ package body Safe_Frontend.Check_Resolve is
       Element_Type    => Function_Info,
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
+
+   package Static_Value_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => CM.Static_Value,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=",
+      "="             => Equal_Static_Value);
+
+   type Task_Priority_Info is record
+      Priority : Long_Long_Integer := 0;
+   end record;
+
+   package Task_Priority_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Task_Priority_Info);
 
    Resolve_Failure : exception;
    Raised_Diag     : CM.MD.Diagnostic;
@@ -93,10 +118,32 @@ package body Safe_Frontend.Check_Resolve is
 
    function Get_Function
      (Map  : Function_Maps.Map;
-      Name : String) return Function_Info is
+     Name : String) return Function_Info is
    begin
       return Map.Element (Canonical_Name (Name));
    end Get_Function;
+
+   procedure Put_Static_Value
+     (Map   : in out Static_Value_Maps.Map;
+      Name  : String;
+      Value : CM.Static_Value) is
+   begin
+      Map.Include (Canonical_Name (Name), Value);
+   end Put_Static_Value;
+
+   function Has_Static_Value
+     (Map  : Static_Value_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      return Map.Contains (Canonical_Name (Name));
+   end Has_Static_Value;
+
+   function Get_Static_Value
+     (Map  : Static_Value_Maps.Map;
+      Name : String) return CM.Static_Value is
+   begin
+      return Map.Element (Canonical_Name (Name));
+   end Get_Static_Value;
 
    function Make_Builtin
      (Name : String;
@@ -398,23 +445,6 @@ package body Safe_Frontend.Check_Resolve is
       return CM.Flatten_Name (Expr);
    end Expr_Text;
 
-   function Bool_Literal_Value
-     (Expr : CM.Expr_Access;
-      Path : String) return Boolean
-   is
-   begin
-      if Expr /= null and then Expr.Kind = CM.Expr_Bool then
-         return Expr.Bool_Value;
-      end if;
-
-      Raise_Diag
-        (CM.Source_Frontend_Error
-           (Path    => Path,
-            Span    => (if Expr = null then FT.Null_Span else Expr.Span),
-            Message => "boolean discriminant defaults must be boolean literals"));
-      return False;
-   end Bool_Literal_Value;
-
    function Flatten_Name (Expr : CM.Expr_Access) return String is
    begin
       if Expr = null then
@@ -426,6 +456,93 @@ package body Safe_Frontend.Check_Resolve is
       end if;
       return "";
    end Flatten_Name;
+
+   function Root_Name (Expr : CM.Expr_Access) return String is
+   begin
+      if Expr = null then
+         return "";
+      elsif Expr.Kind = CM.Expr_Ident then
+         return UString_Value (Expr.Name);
+      elsif Expr.Kind = CM.Expr_Select then
+         return Root_Name (Expr.Prefix);
+      elsif Expr.Kind = CM.Expr_Resolved_Index then
+         return Root_Name (Expr.Prefix);
+      elsif Expr.Kind = CM.Expr_Conversion then
+         return Root_Name (Expr.Inner);
+      end if;
+      return "";
+   end Root_Name;
+
+   function Try_Static_Value
+     (Expr      : CM.Expr_Access;
+      Const_Env : Static_Value_Maps.Map;
+      Result    : out CM.Static_Value) return Boolean
+   is
+   begin
+      Result := (others => <>);
+      if Expr = null then
+         return False;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Int =>
+            Result.Kind := CM.Static_Value_Integer;
+            Result.Int_Value := Expr.Int_Value;
+            return True;
+         when CM.Expr_Bool =>
+            Result.Kind := CM.Static_Value_Boolean;
+            Result.Bool_Value := Expr.Bool_Value;
+            return True;
+         when CM.Expr_Unary =>
+            if UString_Value (Expr.Operator) = "-" then
+               declare
+                  Inner_Value : CM.Static_Value;
+               begin
+                  if Try_Static_Value (Expr.Inner, Const_Env, Inner_Value)
+                    and then Inner_Value.Kind = CM.Static_Value_Integer
+                  then
+                     Result.Kind := CM.Static_Value_Integer;
+                     Result.Int_Value := -Inner_Value.Int_Value;
+                     return True;
+                  end if;
+               end;
+            end if;
+            return False;
+         when CM.Expr_Ident | CM.Expr_Select =>
+            declare
+               Name : constant String := Flatten_Name (Expr);
+            begin
+               if Name /= "" and then Has_Static_Value (Const_Env, Name) then
+                  Result := Get_Static_Value (Const_Env, Name);
+                  return Result.Kind /= CM.Static_Value_None;
+               end if;
+               return False;
+            end;
+         when others =>
+            return False;
+      end case;
+   end Try_Static_Value;
+
+   function Bool_Literal_Value
+     (Expr      : CM.Expr_Access;
+      Const_Env : Static_Value_Maps.Map;
+      Path      : String) return Boolean
+   is
+      Value : CM.Static_Value;
+   begin
+      if Try_Static_Value (Expr, Const_Env, Value)
+        and then Value.Kind = CM.Static_Value_Boolean
+      then
+         return Value.Bool_Value;
+      end if;
+
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => Path,
+            Span    => (if Expr = null then FT.Null_Span else Expr.Span),
+            Message => "boolean discriminant defaults must be boolean literals or constant references"));
+      return False;
+   end Bool_Literal_Value;
 
    function Resolve_Type
      (Name     : String;
@@ -456,29 +573,24 @@ package body Safe_Frontend.Check_Resolve is
    end Resolve_Type;
 
    function Literal_Value
-     (Expr : CM.Expr_Access;
-      Path : String) return CM.Wide_Integer
+     (Expr      : CM.Expr_Access;
+      Const_Env : Static_Value_Maps.Map;
+      Path      : String;
+      Context   : String) return CM.Wide_Integer
    is
+      Value : CM.Static_Value;
    begin
-      if Expr = null then
-         Raise_Diag
-           (CM.Source_Frontend_Error
-              (Path    => Path,
-               Span    => FT.Null_Span,
-               Message => "expected integer literal"));
-      elsif Expr.Kind = CM.Expr_Int then
-         return Expr.Int_Value;
-      elsif Expr.Kind = CM.Expr_Bool then
-         return (if Expr.Bool_Value then 1 else 0);
-      elsif Expr.Kind = CM.Expr_Unary and then UString_Value (Expr.Operator) = "-" then
-         return -Literal_Value (Expr.Inner, Path);
+      if Try_Static_Value (Expr, Const_Env, Value)
+        and then Value.Kind = CM.Static_Value_Integer
+      then
+         return Value.Int_Value;
       end if;
 
       Raise_Diag
         (CM.Source_Frontend_Error
            (Path    => Path,
-            Span    => Expr.Span,
-            Message => "type bounds must be integer literals"));
+            Span    => (if Expr = null then FT.Null_Span else Expr.Span),
+            Message => Context));
       return 0;
    end Literal_Value;
 
@@ -868,6 +980,13 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env  : Type_Maps.Map;
       Path      : String) return GM.Type_Descriptor is
    begin
+      if Decl.Is_Constant and then not Decl.Has_Initializer then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Decl.Span,
+               Message => "constant declarations require initializers"));
+      end if;
       return Resolve_Type_Spec (Decl.Decl_Type, Type_Env, Path);
    end Resolve_Decl_Type;
 
@@ -991,6 +1110,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       Result.Type_Info := Resolve_Decl_Type (Decl, Type_Env, Path);
+      Result.Is_Constant := Decl.Is_Constant;
       if Decl.Has_Initializer and then Decl.Initializer /= null then
          Result.Initializer := Normalize_Expr (Decl.Initializer, Var_Types, Functions, Type_Env);
       end if;
@@ -1019,11 +1139,37 @@ package body Safe_Frontend.Check_Resolve is
       end case;
    end Is_Read_Only_Imported_Target;
 
+   function Is_Local_Constant_Target
+     (Expr            : CM.Expr_Access;
+      Local_Constants : Type_Maps.Map) return Boolean
+   is
+      Name : constant String := Root_Name (Expr);
+   begin
+      if Expr = null then
+         return False;
+      elsif Expr.Kind = CM.Expr_Select and then UString_Value (Expr.Selector) = "all" then
+         return False;
+      elsif Name /= "" and then Has_Type (Local_Constants, Name) then
+         return True;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Select | CM.Expr_Resolved_Index =>
+            return Is_Local_Constant_Target (Expr.Prefix, Local_Constants);
+         when CM.Expr_Conversion =>
+            return Is_Local_Constant_Target (Expr.Inner, Local_Constants);
+         when others =>
+            return False;
+      end case;
+   end Is_Local_Constant_Target;
+
    procedure Ensure_Writable_Target
      (Expr             : CM.Expr_Access;
       Imported_Objects : Type_Maps.Map;
+      Local_Constants  : Type_Maps.Map;
       Path             : String;
       Message          : String) is
+      Name : constant String := Root_Name (Expr);
    begin
       if Is_Read_Only_Imported_Target (Expr, Imported_Objects) then
          Raise_Diag
@@ -1031,6 +1177,15 @@ package body Safe_Frontend.Check_Resolve is
               (Path    => Path,
                Span    => (if Expr = null then FT.Null_Span else Expr.Span),
                Message => Message));
+      elsif Is_Local_Constant_Target (Expr, Local_Constants) then
+         Raise_Diag
+           (CM.Write_To_Constant
+              (Path    => Path,
+               Span    => (if Expr = null then FT.Null_Span else Expr.Span),
+               Message =>
+                 "assignment target rooted in constant `"
+                 & (if Name'Length = 0 then "<unknown>" else Name)
+                 & "` is not writable"));
       end if;
    end Ensure_Writable_Target;
 
@@ -1041,6 +1196,7 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env    : Type_Maps.Map;
       Channel_Env : Type_Maps.Map;
       Imported_Objects : Type_Maps.Map;
+      Local_Constants : Type_Maps.Map;
       Path        : String) return CM.Statement_Access;
 
    function Normalize_Statement_List
@@ -1050,10 +1206,12 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env    : Type_Maps.Map;
       Channel_Env : Type_Maps.Map;
       Imported_Objects : Type_Maps.Map;
+      Local_Constants : Type_Maps.Map;
       Path        : String) return CM.Statement_Access_Vectors.Vector
    is
       Result      : CM.Statement_Access_Vectors.Vector;
       Local_Types : Type_Maps.Map := Var_Types;
+      Current_Constants : Type_Maps.Map := Local_Constants;
    begin
       for Item of Statements loop
          declare
@@ -1065,12 +1223,16 @@ package body Safe_Frontend.Check_Resolve is
                  Type_Env,
                  Channel_Env,
                  Imported_Objects,
+                 Current_Constants,
                  Path);
          begin
             Result.Append (Normalized);
             if Normalized.Kind = CM.Stmt_Object_Decl then
                for Name of Normalized.Decl.Names loop
                   Put_Type (Local_Types, UString_Value (Name), Normalized.Decl.Type_Info);
+                  if Normalized.Decl.Is_Constant then
+                     Put_Type (Current_Constants, UString_Value (Name), Normalized.Decl.Type_Info);
+                  end if;
                end loop;
             end if;
          end;
@@ -1085,10 +1247,12 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env    : Type_Maps.Map;
       Channel_Env : Type_Maps.Map;
       Imported_Objects : Type_Maps.Map;
+      Local_Constants : Type_Maps.Map;
       Path        : String) return CM.Statement_Access
    is
       Result         : constant CM.Statement_Access := new CM.Statement'(Stmt.all);
       Local_Types    : Type_Maps.Map := Var_Types;
+      Current_Constants : Type_Maps.Map := Local_Constants;
       Loop_Type      : GM.Type_Descriptor;
       Decl_Type      : GM.Type_Descriptor;
       Channel_Type   : GM.Type_Descriptor;
@@ -1111,6 +1275,7 @@ package body Safe_Frontend.Check_Resolve is
             Ensure_Writable_Target
               (Result.Target,
                Imported_Objects,
+               Local_Constants,
                Path,
                "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
             Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
@@ -1130,6 +1295,7 @@ package body Safe_Frontend.Check_Resolve is
                  Type_Env,
                  Channel_Env,
                  Imported_Objects,
+                 Local_Constants,
                  Path);
             Result.Elsifs.Clear;
             for Part of Stmt.Elsifs loop
@@ -1140,26 +1306,54 @@ package body Safe_Frontend.Check_Resolve is
                     Normalize_Expr (Part.Condition, Var_Types, Functions, Type_Env);
                   New_Part.Statements :=
                     Normalize_Statement_List
-                      (Part.Statements, Var_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
+                      (Part.Statements,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Channel_Env,
+                       Imported_Objects,
+                       Local_Constants,
+                       Path);
                   Result.Elsifs.Append (New_Part);
                end;
             end loop;
             if Stmt.Has_Else then
                Result.Else_Stmts :=
                  Normalize_Statement_List
-                   (Stmt.Else_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
+                   (Stmt.Else_Stmts,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    Imported_Objects,
+                    Local_Constants,
+                    Path);
             end if;
 
          when CM.Stmt_While =>
             Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
             Result.Body_Stmts :=
               Normalize_Statement_List
-                (Stmt.Body_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
+                (Stmt.Body_Stmts,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Channel_Env,
+                 Imported_Objects,
+                 Local_Constants,
+                 Path);
 
          when CM.Stmt_Loop =>
             Result.Body_Stmts :=
               Normalize_Statement_List
-                (Stmt.Body_Stmts, Var_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
+                (Stmt.Body_Stmts,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Channel_Env,
+                 Imported_Objects,
+                 Local_Constants,
+                 Path);
 
          when CM.Stmt_Exit =>
             if Stmt.Condition /= null then
@@ -1184,7 +1378,14 @@ package body Safe_Frontend.Check_Resolve is
             Put_Type (Local_Types, UString_Value (Stmt.Loop_Var), Loop_Type);
             Result.Body_Stmts :=
               Normalize_Statement_List
-                (Stmt.Body_Stmts, Local_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
+                (Stmt.Body_Stmts,
+                 Local_Types,
+                 Functions,
+                 Type_Env,
+                 Channel_Env,
+                 Imported_Objects,
+                 Current_Constants,
+                 Path);
 
          when CM.Stmt_Block =>
             Result.Declarations.Clear;
@@ -1197,12 +1398,22 @@ package body Safe_Frontend.Check_Resolve is
                   Decl_Type := New_Decl.Type_Info;
                   for Name of Decl.Names loop
                      Put_Type (Local_Types, UString_Value (Name), Decl_Type);
+                     if New_Decl.Is_Constant then
+                        Put_Type (Current_Constants, UString_Value (Name), Decl_Type);
+                     end if;
                   end loop;
                end;
             end loop;
             Result.Body_Stmts :=
               Normalize_Statement_List
-                (Stmt.Body_Stmts, Local_Types, Functions, Type_Env, Channel_Env, Imported_Objects, Path);
+                (Stmt.Body_Stmts,
+                 Local_Types,
+                 Functions,
+                 Type_Env,
+                 Channel_Env,
+                 Imported_Objects,
+                 Current_Constants,
+                 Path);
 
          when CM.Stmt_Call =>
             Result.Call :=
@@ -1240,6 +1451,7 @@ package body Safe_Frontend.Check_Resolve is
                Ensure_Writable_Target
                  (Result.Success_Var,
                   Imported_Objects,
+                  Local_Constants,
                   Path,
                   "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
                Success_Type := Expr_Type (Result.Success_Var, Var_Types, Functions, Type_Env);
@@ -1266,6 +1478,7 @@ package body Safe_Frontend.Check_Resolve is
             Ensure_Writable_Target
               (Result.Target,
                Imported_Objects,
+               Local_Constants,
                Path,
                "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
             Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
@@ -1290,6 +1503,7 @@ package body Safe_Frontend.Check_Resolve is
                Ensure_Writable_Target
                  (Result.Success_Var,
                   Imported_Objects,
+                  Local_Constants,
                   Path,
                   "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
                Success_Type := Expr_Type (Result.Success_Var, Var_Types, Functions, Type_Env);
@@ -1365,6 +1579,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Type_Env,
                                 Channel_Env,
                                 Imported_Objects,
+                                Local_Constants,
                                 Path);
                         when CM.Select_Arm_Delay =>
                            Delay_Arms := Delay_Arms + 1;
@@ -1396,6 +1611,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Type_Env,
                                 Channel_Env,
                                 Imported_Objects,
+                                Local_Constants,
                                 Path);
                         when others =>
                            null;
@@ -1429,6 +1645,7 @@ package body Safe_Frontend.Check_Resolve is
    function Resolve_Type_Declaration
      (Decl      : CM.Type_Decl;
       Type_Env  : in out Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
       Path      : String) return GM.Type_Descriptor
    is
       Result : GM.Type_Descriptor;
@@ -1441,9 +1658,21 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Type_Decl_Integer =>
             Result.Kind := FT.To_UString ("integer");
             Result.Has_Low := True;
-            Result.Low := Long_Long_Integer (Literal_Value (Decl.Low_Expr, Path));
+            Result.Low :=
+              Long_Long_Integer
+                (Literal_Value
+                   (Decl.Low_Expr,
+                    Const_Env,
+                    Path,
+                    "type bounds must be integer literals or constant references"));
             Result.Has_High := True;
-            Result.High := Long_Long_Integer (Literal_Value (Decl.High_Expr, Path));
+            Result.High :=
+              Long_Long_Integer
+                (Literal_Value
+                   (Decl.High_Expr,
+                    Const_Env,
+                    Path,
+                    "type bounds must be integer literals or constant references"));
          when CM.Type_Decl_Float =>
             Result.Kind := FT.To_UString ("float");
             Result.Has_Digits_Text := True;
@@ -1474,7 +1703,7 @@ package body Safe_Frontend.Check_Resolve is
                if Decl.Discriminant.Has_Default then
                   Result.Has_Discriminant_Default := True;
                   Result.Discriminant_Default_Bool :=
-                    Bool_Literal_Value (Decl.Discriminant.Default_Expr, Path);
+                    Bool_Literal_Value (Decl.Discriminant.Default_Expr, Const_Env, Path);
                end if;
             end if;
             for Field_Decl of Decl.Components loop
@@ -1564,6 +1793,7 @@ package body Safe_Frontend.Check_Resolve is
    function Resolve_Channel_Declaration
      (Decl     : CM.Channel_Decl;
       Type_Env : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
       Path     : String) return CM.Resolved_Channel_Decl
    is
       Result    : CM.Resolved_Channel_Decl;
@@ -1581,7 +1811,13 @@ package body Safe_Frontend.Check_Resolve is
       Result.Is_Public := Decl.Is_Public;
       Result.Name := Decl.Name;
       Result.Element_Type := Type_Info;
-      Result.Capacity := Long_Long_Integer (Literal_Value (Decl.Capacity, Path));
+      Result.Capacity :=
+        Long_Long_Integer
+          (Literal_Value
+             (Decl.Capacity,
+              Const_Env,
+              Path,
+              "channel capacity must be integer literals or constant references"));
       if Result.Capacity <= 0 then
          Raise_Diag
            (CM.Source_Frontend_Error
@@ -1661,7 +1897,9 @@ package body Safe_Frontend.Check_Resolve is
       Functions        : Function_Maps.Map;
       Package_Vars     : Type_Maps.Map;
       Channel_Env      : Type_Maps.Map;
+      Const_Env        : Static_Value_Maps.Map;
       Imported_Objects : Type_Maps.Map;
+      Task_Priorities  : Task_Priority_Vectors.Vector;
       Result           : CM.Resolved_Unit;
 
       procedure Add_Imported_Interface (Item : SI.Loaded_Interface) is
@@ -1710,6 +1948,14 @@ package body Safe_Frontend.Check_Resolve is
                  Qualify_Type_Info (Object_Item.Type_Info, Package_Name);
             begin
                Put_Type (Imported_Objects, Qualified_Name, Qualified_Type);
+               if Object_Item.Is_Constant
+                 and then Object_Item.Static_Info.Kind /= CM.Static_Value_None
+               then
+                  Put_Static_Value
+                    (Const_Env,
+                     Qualified_Name,
+                     Object_Item.Static_Info);
+               end if;
             end;
          end loop;
 
@@ -1760,6 +2006,16 @@ package body Safe_Frontend.Check_Resolve is
          end;
       end if;
 
+      Package_Vars := Type_Env;
+      if not Imported_Objects.Is_Empty then
+         for Cursor in Imported_Objects.Iterate loop
+            Put_Type
+              (Package_Vars,
+               Type_Maps.Key (Cursor),
+               Type_Maps.Element (Cursor));
+         end loop;
+      end if;
+
       for Item of Unit.Items loop
          case Item.Kind is
             when CM.Item_Type_Decl =>
@@ -1768,11 +2024,13 @@ package body Safe_Frontend.Check_Resolve is
                     Resolve_Type_Declaration
                       (Item.Type_Data,
                        Type_Env,
+                       Const_Env,
                        UString_Value (Unit.Path));
                begin
                   if not Is_Builtin_Name (UString_Value (Info.Name)) then
                      Result.Types.Append (Info);
                   end if;
+                  Put_Type (Package_Vars, UString_Value (Info.Name), Info);
                end;
             when CM.Item_Subtype_Decl =>
                declare
@@ -1796,7 +2054,106 @@ package body Safe_Frontend.Check_Resolve is
                   Info.Has_Base := True;
                   Info.Base := Base.Name;
                   Put_Type (Type_Env, UString_Value (Info.Name), Info);
+                  Put_Type (Package_Vars, UString_Value (Info.Name), Info);
                   Result.Types.Append (Info);
+               end;
+            when CM.Item_Channel =>
+               declare
+                  Channel_Decl : constant CM.Resolved_Channel_Decl :=
+                    Resolve_Channel_Declaration
+                      (Item.Chan_Data,
+                       Type_Env,
+                       Const_Env,
+                       UString_Value (Unit.Path));
+               begin
+                  Result.Channels.Append (Channel_Decl);
+                  Put_Type
+                    (Channel_Env,
+                     UString_Value (Channel_Decl.Name),
+                     Channel_Decl.Element_Type);
+               end;
+            when CM.Item_Object_Decl =>
+               declare
+                  Decl_Type    : constant GM.Type_Descriptor :=
+                    Resolve_Decl_Type (Item.Obj_Data, Package_Vars, UString_Value (Unit.Path));
+                  Local_Decl   : CM.Resolved_Object_Decl;
+                  Static_Value : CM.Static_Value;
+               begin
+                  Local_Decl.Names := Item.Obj_Data.Names;
+                  Local_Decl.Type_Info := Decl_Type;
+                  Local_Decl.Is_Constant := Item.Obj_Data.Is_Constant;
+                  Local_Decl.Has_Initializer := Item.Obj_Data.Has_Initializer;
+                  Local_Decl.Span := Item.Obj_Data.Span;
+                  Local_Decl.Initializer := null;
+                  if Item.Obj_Data.Has_Initializer and then Item.Obj_Data.Initializer /= null then
+                     Local_Decl.Initializer :=
+                       Normalize_Expr
+                         (Item.Obj_Data.Initializer,
+                          Package_Vars,
+                          Functions,
+                          Type_Env);
+                     if Item.Obj_Data.Is_Constant
+                       and then Try_Static_Value (Local_Decl.Initializer, Const_Env, Static_Value)
+                     then
+                        Local_Decl.Static_Info := Static_Value;
+                     end if;
+                  end if;
+                  Result.Objects.Append (Local_Decl);
+                  for Name of Item.Obj_Data.Names loop
+                     Put_Type (Package_Vars, UString_Value (Name), Decl_Type);
+                     if Local_Decl.Is_Constant
+                       and then Local_Decl.Static_Info.Kind /= CM.Static_Value_None
+                     then
+                        Put_Static_Value
+                          (Const_Env,
+                           UString_Value (Name),
+                           Local_Decl.Static_Info);
+                     end if;
+                  end loop;
+               end;
+            when CM.Item_Task =>
+               declare
+                  Priority_Info : Task_Priority_Info;
+                  Priority_Expr : CM.Expr_Access := null;
+                  Priority_Type : GM.Type_Descriptor;
+               begin
+                  Priority_Info.Priority := Default_Task_Priority;
+                  if Item.Task_Data.Has_Explicit_Priority
+                    and then Item.Task_Data.Priority /= null
+                  then
+                     Priority_Expr :=
+                       Normalize_Expr
+                         (Item.Task_Data.Priority,
+                          Package_Vars,
+                          Functions,
+                          Type_Env);
+                     Priority_Type := Expr_Type (Priority_Expr, Package_Vars, Functions, Type_Env);
+                     if not Is_Integerish (Priority_Type, Type_Env) then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => UString_Value (Unit.Path),
+                              Span    => Priority_Expr.Span,
+                              Message => "task priority expression must be integer"));
+                     end if;
+                     Priority_Info.Priority :=
+                       Long_Long_Integer
+                         (Literal_Value
+                            (Priority_Expr,
+                             Const_Env,
+                             UString_Value (Unit.Path),
+                             "task priority expression must be integer literals or constant references"));
+                     if Priority_Info.Priority < Min_Task_Priority
+                       or else Priority_Info.Priority > Max_Task_Priority
+                     then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => UString_Value (Unit.Path),
+                              Span    => Priority_Expr.Span,
+                              Message =>
+                                "task priority must be within System.Any_Priority"));
+                     end if;
+                  end if;
+                  Task_Priorities.Append (Priority_Info);
                end;
             when CM.Item_Subprogram =>
                declare
@@ -1814,68 +2171,13 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
 
       for Item of Unit.Items loop
-         if Item.Kind = CM.Item_Channel then
-            declare
-               Channel_Decl : constant CM.Resolved_Channel_Decl :=
-                 Resolve_Channel_Declaration
-                   (Item.Chan_Data,
-                    Type_Env,
-                    UString_Value (Unit.Path));
-            begin
-               Result.Channels.Append (Channel_Decl);
-               Put_Type
-                 (Channel_Env,
-                  UString_Value (Channel_Decl.Name),
-                  Channel_Decl.Element_Type);
-            end;
-         end if;
-      end loop;
-
-      Package_Vars := Type_Env;
-      if not Imported_Objects.Is_Empty then
-         for Cursor in Imported_Objects.Iterate loop
-            Put_Type
-              (Package_Vars,
-               Type_Maps.Key (Cursor),
-               Type_Maps.Element (Cursor));
-         end loop;
-      end if;
-
-      for Item of Unit.Items loop
-         if Item.Kind = CM.Item_Object_Decl then
-            declare
-               Decl_Type  : constant GM.Type_Descriptor :=
-                 Resolve_Decl_Type (Item.Obj_Data, Package_Vars, UString_Value (Unit.Path));
-               Local_Decl : CM.Resolved_Object_Decl;
-            begin
-               Local_Decl.Names := Item.Obj_Data.Names;
-               Local_Decl.Type_Info := Decl_Type;
-               Local_Decl.Has_Initializer := Item.Obj_Data.Has_Initializer;
-               Local_Decl.Span := Item.Obj_Data.Span;
-               Local_Decl.Initializer := null;
-               if Item.Obj_Data.Has_Initializer and then Item.Obj_Data.Initializer /= null then
-                  Local_Decl.Initializer :=
-                    Normalize_Expr
-                      (Item.Obj_Data.Initializer,
-                       Package_Vars,
-                       Functions,
-                       Type_Env);
-               end if;
-               Result.Objects.Append (Local_Decl);
-               for Name of Item.Obj_Data.Names loop
-                  Put_Type (Package_Vars, UString_Value (Name), Decl_Type);
-               end loop;
-            end;
-         end if;
-      end loop;
-
-      for Item of Unit.Items loop
          if Item.Kind = CM.Item_Subprogram then
             declare
                Info         : constant Function_Info :=
                  Get_Function (Functions, UString_Value (Item.Subp_Data.Spec.Name));
                Subprogram   : CM.Resolved_Subprogram;
                Visible      : Type_Maps.Map := Package_Vars;
+               Visible_Constants : Type_Maps.Map;
                Decl_Type    : GM.Type_Descriptor;
                Local_Decl   : CM.Resolved_Object_Decl;
             begin
@@ -1887,6 +2189,17 @@ package body Safe_Frontend.Check_Resolve is
                Subprogram.Return_Is_Access_Def := Info.Return_Is_Access_Def;
                Subprogram.Span := Info.Span;
 
+               for Object_Decl of Result.Objects loop
+                  if Object_Decl.Is_Constant then
+                     for Name of Object_Decl.Names loop
+                        Put_Type
+                          (Visible_Constants,
+                           UString_Value (Name),
+                           Object_Decl.Type_Info);
+                     end loop;
+                  end if;
+               end loop;
+
                for Param of Info.Params loop
                   Put_Type (Visible, UString_Value (Param.Name), Param.Type_Info);
                end loop;
@@ -1895,6 +2208,7 @@ package body Safe_Frontend.Check_Resolve is
                   Decl_Type := Resolve_Decl_Type (Decl, Visible, UString_Value (Unit.Path));
                   Local_Decl.Names := Decl.Names;
                   Local_Decl.Type_Info := Decl_Type;
+                  Local_Decl.Is_Constant := Decl.Is_Constant;
                   Local_Decl.Has_Initializer := Decl.Has_Initializer;
                   Local_Decl.Span := Decl.Span;
                   Local_Decl.Initializer := null;
@@ -1905,6 +2219,9 @@ package body Safe_Frontend.Check_Resolve is
                   Subprogram.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
                      Put_Type (Visible, UString_Value (Name), Decl_Type);
+                     if Decl.Is_Constant then
+                        Put_Type (Visible_Constants, UString_Value (Name), Decl_Type);
+                     end if;
                   end loop;
                end loop;
 
@@ -1916,6 +2233,7 @@ package body Safe_Frontend.Check_Resolve is
                     Type_Env,
                     Channel_Env,
                     Imported_Objects,
+                    Visible_Constants,
                     UString_Value (Unit.Path));
 
                Result.Subprograms.Append (Subprogram);
@@ -1923,11 +2241,11 @@ package body Safe_Frontend.Check_Resolve is
          elsif Item.Kind = CM.Item_Task then
             declare
                Visible        : Type_Maps.Map := Package_Vars;
+               Visible_Constants : Type_Maps.Map;
                Task_Item      : CM.Resolved_Task;
                Decl_Type      : GM.Type_Descriptor;
                Local_Decl     : CM.Resolved_Object_Decl;
-               Priority_Expr  : CM.Expr_Access := null;
-               Priority_Type  : GM.Type_Descriptor;
+               Task_Index     : Natural := Natural (Result.Tasks.Length) + 1;
             begin
                if UString_Value (Item.Task_Data.End_Name) /=
                  UString_Value (Item.Task_Data.Name)
@@ -1943,41 +2261,29 @@ package body Safe_Frontend.Check_Resolve is
 
                Task_Item.Name := Item.Task_Data.Name;
                Task_Item.Has_Explicit_Priority := Item.Task_Data.Has_Explicit_Priority;
-               Task_Item.Priority := Default_Task_Priority;
+               if Task_Index in Task_Priorities.First_Index .. Task_Priorities.Last_Index then
+                  Task_Item.Priority := Task_Priorities (Task_Index).Priority;
+               else
+                  Task_Item.Priority := Default_Task_Priority;
+               end if;
                Task_Item.Span := Item.Task_Data.Span;
 
-               if Item.Task_Data.Has_Explicit_Priority and then Item.Task_Data.Priority /= null then
-                  Priority_Expr :=
-                    Normalize_Expr
-                      (Item.Task_Data.Priority,
-                       Package_Vars,
-                       Functions,
-                       Type_Env);
-                  Priority_Type := Expr_Type (Priority_Expr, Package_Vars, Functions, Type_Env);
-                  if not Is_Integerish (Priority_Type, Type_Env) then
-                     Raise_Diag
-                       (CM.Source_Frontend_Error
-                          (Path    => UString_Value (Unit.Path),
-                           Span    => Priority_Expr.Span,
-                           Message => "task priority expression must be integer"));
+               for Object_Decl of Result.Objects loop
+                  if Object_Decl.Is_Constant then
+                     for Name of Object_Decl.Names loop
+                        Put_Type
+                          (Visible_Constants,
+                           UString_Value (Name),
+                           Object_Decl.Type_Info);
+                     end loop;
                   end if;
-                  Task_Item.Priority := Long_Long_Integer (Literal_Value (Priority_Expr, UString_Value (Unit.Path)));
-                  if Task_Item.Priority < Min_Task_Priority
-                    or else Task_Item.Priority > Max_Task_Priority
-                  then
-                     Raise_Diag
-                       (CM.Source_Frontend_Error
-                          (Path    => UString_Value (Unit.Path),
-                           Span    => Priority_Expr.Span,
-                           Message =>
-                             "task priority must be within System.Any_Priority"));
-                  end if;
-               end if;
+               end loop;
 
                for Decl of Item.Task_Data.Declarations loop
                   Decl_Type := Resolve_Decl_Type (Decl, Visible, UString_Value (Unit.Path));
                   Local_Decl.Names := Decl.Names;
                   Local_Decl.Type_Info := Decl_Type;
+                  Local_Decl.Is_Constant := Decl.Is_Constant;
                   Local_Decl.Has_Initializer := Decl.Has_Initializer;
                   Local_Decl.Span := Decl.Span;
                   Local_Decl.Initializer := null;
@@ -1988,6 +2294,9 @@ package body Safe_Frontend.Check_Resolve is
                   Task_Item.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
                      Put_Type (Visible, UString_Value (Name), Decl_Type);
+                     if Decl.Is_Constant then
+                        Put_Type (Visible_Constants, UString_Value (Name), Decl_Type);
+                     end if;
                   end loop;
                end loop;
 
@@ -1999,6 +2308,7 @@ package body Safe_Frontend.Check_Resolve is
                     Type_Env,
                     Channel_Env,
                     Imported_Objects,
+                    Visible_Constants,
                     UString_Value (Unit.Path));
 
                if Natural (Task_Item.Statements.Length) /= 1

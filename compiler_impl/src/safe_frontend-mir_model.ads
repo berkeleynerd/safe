@@ -150,6 +150,7 @@ package Safe_Frontend.Mir_Model is
       Kind           : FT.UString := FT.To_UString ("");
       Mode           : FT.UString := FT.To_UString ("");
       Name           : FT.UString := FT.To_UString ("");
+      Is_Constant    : Boolean := False;
       Ownership_Role : FT.UString := FT.To_UString ("");
       Scope_Id       : FT.UString := FT.To_UString ("");
       Span           : FT.Source_Span := FT.Null_Span;

@@ -9,9 +9,11 @@ package Safe_Frontend.Interfaces is
    package GM renames Safe_Frontend.Mir_Model;
 
    type Imported_Object is record
-      Name      : FT.UString := FT.To_UString ("");
-      Type_Info : GM.Type_Descriptor;
-      Span      : FT.Source_Span := FT.Null_Span;
+      Name         : FT.UString := FT.To_UString ("");
+      Type_Info    : GM.Type_Descriptor;
+      Is_Constant  : Boolean := False;
+      Static_Info  : CM.Static_Value;
+      Span         : FT.Source_Span := FT.Null_Span;
    end record;
 
    package Imported_Object_Vectors is new Ada.Containers.Indefinite_Vectors

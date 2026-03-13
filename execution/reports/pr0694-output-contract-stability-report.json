@@ -37,7 +37,7 @@
         "file_hashes": {
           "iface/ownership_inout.safei.json": "86e2eef21ae9848df178cec99a0b5cf17467a705ddb0afc2343509114698c27d",
           "out/ownership_inout.ast.json": "b759a0330a959c97de92b65bb40038966c27a4ee712e600be1fe878d73557dd3",
-          "out/ownership_inout.mir.json": "4c5bbb28b954245ba9b289ccfdf8209ac193c181e81f2c26289861c56b071618",
+          "out/ownership_inout.mir.json": "78e9297228d2726dda10fc127757e6b3d731f980788b8532d2d068c53e920800",
           "out/ownership_inout.typed.json": "16f62b09050ecc86a9b08f132d4ef24dde35d90bacaea3e90e7a5ed984dbd12f"
         },
         "format_tags": {
@@ -138,7 +138,7 @@
         "file_hashes": {
           "iface/rule2_binary_search.safei.json": "d0a45bdc66522b274a9c67bca10528f755682161554b6308e5b021035b474a4c",
           "out/rule2_binary_search.ast.json": "2ad9a390149c6f97832bc851c9b629c25d0edc3fb8f41a2c351c25b18f8b3bcd",
-          "out/rule2_binary_search.mir.json": "a41d75c8bb0b854a5e26d0d34cd5fe3c0588e42a176a3d9bbc281aaafa092175",
+          "out/rule2_binary_search.mir.json": "1e2f63510f7f58845d8db6867e138377b27e0269ef1adbd31bbd887b83bcfc29",
           "out/rule2_binary_search.typed.json": "485ea2e66cb34bbabfe7ccf8e6cf5689de546ac6ef6cd4d3e6ef863ed990e1c7"
         },
         "format_tags": {
@@ -237,7 +237,7 @@
         "file_hashes": {
           "iface/rule4_conditional.safei.json": "9e4779ddb3c599f80d1845d9effbe54bd0a2a48bc3bbe19234901628d8d91659",
           "out/rule4_conditional.ast.json": "03c0e4a5b7a2a576a4f9651ef9edb475a5ecbc17a8c403e5e461304fe8c3cd8c",
-          "out/rule4_conditional.mir.json": "92f992811cf7e8e380ff9df18f7bb39b0663e16d4068520dfdc7ac3edb5d2d91",
+          "out/rule4_conditional.mir.json": "099795d23a8f0cf70a51eee558f2a74d529b4130a44b1ef0a6db602f8d332e83",
           "out/rule4_conditional.typed.json": "2e85711a22460b0fae2afed59fe9b05762fdb7ca2cfd2b35347f4aeda9ef15f6"
         },
         "format_tags": {
@@ -336,9 +336,9 @@
           }
         ],
         "file_hashes": {
-          "iface/public_interface.safei.json": "ba3439f5ad567024f5bf1b1978946964c93167960fd03d2bbb3d579b04fe8434",
+          "iface/public_interface.safei.json": "3820662e5f6497ce28e633d9eae17b8ef971ee94bc58a8c300c9c9d2b7321d23",
           "out/public_interface.ast.json": "cd4f8cad5bb12b61e7fc20058e15f364891473c41d668a6946de62bed25c85bb",
-          "out/public_interface.mir.json": "65580c0f1ec784d41a6cfa7f516c3143676a7a7ac5c1454489dbb9c2d6b8eaa6",
+          "out/public_interface.mir.json": "03e753c775f8c85011a74e6287fe64b3f900a3598ee8094bfbe86694539ef93a",
           "out/public_interface.typed.json": "630a379bfab5f482b54fdfe0c0ce4db71ff2bad7952f3c025d5ce022ef6196e0"
         },
         "format_tags": {
@@ -434,8 +434,8 @@
       "public_interface"
     ]
   },
-  "repeat_sha256": "dc83a89fac42e5debb23a888a4c6b025e3087b92a93ee58be62f6877173e28d4",
-  "report_sha256": "dc83a89fac42e5debb23a888a4c6b025e3087b92a93ee58be62f6877173e28d4",
+  "repeat_sha256": "51c125e60ca9bebcca39049dd7154ec6b141e86c673d2587e7e7327d5d9f89fc",
+  "report_sha256": "51c125e60ca9bebcca39049dd7154ec6b141e86c673d2587e7e7327d5d9f89fc",
   "status": "ok",
   "task": "PR06.9.4"
 }

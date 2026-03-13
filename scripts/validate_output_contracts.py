@@ -304,6 +304,27 @@ def validate_safei_object_list(items: Any, path: str) -> list[dict[str, Any]]:
         entry = require_mapping(item, f"{path}[{index}]")
         require_string(entry.get("name"), f"{path}[{index}].name")
         validate_type_descriptor(entry.get("type"), f"{path}[{index}].type")
+        is_constant = entry.get("is_constant", False)
+        if "is_constant" in entry:
+            is_constant = require_boolean(entry.get("is_constant"), f"{path}[{index}].is_constant")
+        static_kind = entry.get("static_value_kind")
+        has_static_value = "static_value" in entry
+        if static_kind is None:
+            if has_static_value:
+                fail(f"{path}[{index}].static_value_kind is required when static_value is present")
+        else:
+            if not is_constant:
+                fail(f"{path}[{index}].static_value_kind requires is_constant to be true")
+            if type(static_kind) is not str or static_kind not in {"integer", "boolean"}:
+                fail(f"{path}[{index}].static_value_kind must be `integer` or `boolean`")
+            if not has_static_value:
+                fail(f"{path}[{index}].static_value is required when static_value_kind is present")
+            value = entry.get("static_value")
+            if static_kind == "integer":
+                if type(value) is not int:
+                    fail(f"{path}[{index}].static_value must be an integer")
+            elif type(value) is not bool:
+                fail(f"{path}[{index}].static_value must be a boolean")
         validate_span(entry.get("span"), f"{path}[{index}].span")
         result.append(entry)
     return result

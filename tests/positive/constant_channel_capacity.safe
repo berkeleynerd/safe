@@ -1,0 +1,11 @@
+-- Test: constant_channel_capacity
+-- Description: Local integer constant used in a channel capacity.
+-- Expected: ACCEPT
+
+package Constant_Channel_Capacity is
+
+   Capacity_Value : constant Integer = 3;
+   type Message is range 0 .. 10;
+   channel Data_Ch : Message capacity Capacity_Value;
+
+end Constant_Channel_Capacity;

@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-13T00:07:34Z",
+  "updated_at": "2026-03-13T02:22:50Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR08.3a",
+  "next_task_id": "PR08.3b",
   "repo_facts": {
     "tests": {
-      "positive": 35,
-      "negative": 69,
+      "positive": 39,
+      "negative": 73,
       "golden": 3,
       "concurrency": 12,
       "diagnostics_golden": 17,
-      "total": 136
+      "total": 144
     }
   },
   "tasks": [
@@ -508,7 +508,7 @@
     {
       "id": "PR08.3a",
       "title": "Public constants and imported constant values",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR08.3"],
       "acceptance": [
         "Ordinary package-level X : constant T = Expr declarations are supported on the live Ada-native path and preserve constant-ness through parse, resolve, and emit.",
@@ -517,7 +517,9 @@
         "Missing or invalid imported constant values fail deterministically and safei-v1 constant payloads remain validator-covered and deterministic.",
         "A dedicated PR08.3a gate and report cover imported public constants and keep committed evidence up to date."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr083a-public-constants-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

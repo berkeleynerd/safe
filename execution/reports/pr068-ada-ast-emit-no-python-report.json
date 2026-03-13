@@ -28,13 +28,13 @@
     "tests/positive/rule2_binary_search.safe": {
       "iface/rule2_binary_search.safei.json": "d0a45bdc66522b274a9c67bca10528f755682161554b6308e5b021035b474a4c",
       "out/rule2_binary_search.ast.json": "2ad9a390149c6f97832bc851c9b629c25d0edc3fb8f41a2c351c25b18f8b3bcd",
-      "out/rule2_binary_search.mir.json": "3ee771e9a0c69818af40b06b2f5b81cb3652709115887f1d1d76d51bcd0faf09",
+      "out/rule2_binary_search.mir.json": "51fc519d23e50289f56b005a55226a71569528e3c362c40342e5d548271ba029",
       "out/rule2_binary_search.typed.json": "485ea2e66cb34bbabfe7ccf8e6cf5689de546ac6ef6cd4d3e6ef863ed990e1c7"
     },
     "tests/positive/rule4_conditional.safe": {
       "iface/rule4_conditional.safei.json": "9e4779ddb3c599f80d1845d9effbe54bd0a2a48bc3bbe19234901628d8d91659",
       "out/rule4_conditional.ast.json": "03c0e4a5b7a2a576a4f9651ef9edb475a5ecbc17a8c403e5e461304fe8c3cd8c",
-      "out/rule4_conditional.mir.json": "0c535736abefdfd17d9b40834bbaf6875a595f8c6d8761c0baaa6dc54619d861",
+      "out/rule4_conditional.mir.json": "6e0b7de1d7c61e4c3946c88b6c4f82c58d01fba9c94c2b0d2187f1a552f699ea",
       "out/rule4_conditional.typed.json": "2e85711a22460b0fae2afed59fe9b05762fdb7ca2cfd2b35347f4aeda9ef15f6"
     }
   },
@@ -90,6 +90,7 @@
         ],
         "data_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Data",
@@ -273,6 +274,7 @@
         },
         "owner_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Owner",
@@ -297,6 +299,7 @@
         },
         "ref_local": {
           "id": "v1",
+          "is_constant": false,
           "kind": "param",
           "mode": "in",
           "name": "Ref",
@@ -439,6 +442,7 @@
         },
         "owner_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Owner",
@@ -510,6 +514,7 @@
         ],
         "current_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Current",
@@ -654,7 +659,7 @@
         "hashes": {
           "iface/rule2_binary_search.safei.json": "d0a45bdc66522b274a9c67bca10528f755682161554b6308e5b021035b474a4c",
           "out/rule2_binary_search.ast.json": "2ad9a390149c6f97832bc851c9b629c25d0edc3fb8f41a2c351c25b18f8b3bcd",
-          "out/rule2_binary_search.mir.json": "3ee771e9a0c69818af40b06b2f5b81cb3652709115887f1d1d76d51bcd0faf09",
+          "out/rule2_binary_search.mir.json": "51fc519d23e50289f56b005a55226a71569528e3c362c40342e5d548271ba029",
           "out/rule2_binary_search.typed.json": "485ea2e66cb34bbabfe7ccf8e6cf5689de546ac6ef6cd4d3e6ef863ed990e1c7"
         },
         "mir_analysis": {
@@ -756,7 +761,7 @@
         "hashes": {
           "iface/rule4_conditional.safei.json": "9e4779ddb3c599f80d1845d9effbe54bd0a2a48bc3bbe19234901628d8d91659",
           "out/rule4_conditional.ast.json": "03c0e4a5b7a2a576a4f9651ef9edb475a5ecbc17a8c403e5e461304fe8c3cd8c",
-          "out/rule4_conditional.mir.json": "0c535736abefdfd17d9b40834bbaf6875a595f8c6d8761c0baaa6dc54619d861",
+          "out/rule4_conditional.mir.json": "6e0b7de1d7c61e4c3946c88b6c4f82c58d01fba9c94c2b0d2187f1a552f699ea",
           "out/rule4_conditional.typed.json": "2e85711a22460b0fae2afed59fe9b05762fdb7ca2cfd2b35347f4aeda9ef15f6"
         },
         "mir_analysis": {
@@ -816,8 +821,8 @@
       "python3.11": "$TMPDIR/python-mask/python3.11"
     }
   },
-  "repeat_sha256": "b566dfd147aad1939e85a322a25e77184c7c7498ca9ed7cab0dce0c39bf1b80a",
-  "report_sha256": "b566dfd147aad1939e85a322a25e77184c7c7498ca9ed7cab0dce0c39bf1b80a",
+  "repeat_sha256": "780451b66aca47b73583171c26844c865d34e7d81139af17f913655098301137",
+  "report_sha256": "780451b66aca47b73583171c26844c865d34e7d81139af17f913655098301137",
   "runtime_rule": {
     "banned_tokens_absent": [
       "Run_Backend",

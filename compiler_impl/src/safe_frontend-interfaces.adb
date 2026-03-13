@@ -641,9 +641,53 @@ package body Safe_Frontend.Interfaces is
             declare
                Item   : constant JSON_Value := Get (Objects, Index);
                Object : Imported_Object;
+               Kind   : constant JSON_Value := Field_Or_Null (Item, "static_value_kind");
+               Value  : constant JSON_Value := Field_Or_Null (Item, "static_value");
             begin
                Object.Name := FT.To_UString (Require_String (Item, "name", File_Path));
                Object.Type_Info := Require_Type_Field (Item, "type", "objects[].type", File_Path);
+               if Has_Field (Item, "is_constant") then
+                  if Get (Item, "is_constant").Kind = JSON_Boolean_Type then
+                     Object.Is_Constant := Get (Get (Item, "is_constant"));
+                  else
+                     raise Constraint_Error with File_Path & ": objects[].is_constant must be a boolean";
+                  end if;
+               end if;
+               if Kind.Kind /= JSON_Null_Type and then not Object.Is_Constant then
+                  raise Constraint_Error with
+                    File_Path & ": objects[].static_value_kind requires is_constant = true";
+               end if;
+               if Value.Kind /= JSON_Null_Type and then Kind.Kind = JSON_Null_Type then
+                  raise Constraint_Error with
+                    File_Path & ": objects[].static_value requires static_value_kind";
+               end if;
+               if Kind.Kind /= JSON_Null_Type then
+                  if Kind.Kind /= JSON_String_Type then
+                     raise Constraint_Error with
+                       File_Path & ": objects[].static_value_kind must be a string";
+                  elsif Get (Kind) = "integer" then
+                     if Value.Kind /= JSON_Int_Type then
+                        raise Constraint_Error with
+                          File_Path & ": objects[].static_value must be an integer";
+                     end if;
+                     declare
+                        Int_Value : constant Long_Long_Integer := Get (Value);
+                     begin
+                        Object.Static_Info.Kind := CM.Static_Value_Integer;
+                        Object.Static_Info.Int_Value := CM.Wide_Integer (Int_Value);
+                     end;
+                  elsif Get (Kind) = "boolean" then
+                     if Value.Kind /= JSON_Boolean_Type then
+                        raise Constraint_Error with
+                          File_Path & ": objects[].static_value must be a boolean";
+                     end if;
+                     Object.Static_Info.Kind := CM.Static_Value_Boolean;
+                     Object.Static_Info.Bool_Value := Get (Value);
+                  else
+                     raise Constraint_Error with
+                       File_Path & ": objects[].static_value_kind must be `integer` or `boolean`";
+                  end if;
+               end if;
                Object.Span := Parse_Span (Field_Or_Null (Item, "span"));
                Result.Objects.Append (Object);
             end;

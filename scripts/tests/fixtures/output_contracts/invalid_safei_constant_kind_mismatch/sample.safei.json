@@ -1,0 +1,107 @@
+{
+  "format": "safei-v1",
+  "package_name": "Sample",
+  "dependencies": [
+    "Provider"
+  ],
+  "executables": [],
+  "public_declarations": [],
+  "types": [
+    {
+      "name": "Count",
+      "kind": "integer",
+      "low": 0,
+      "high": 10
+    }
+  ],
+  "subtypes": [],
+  "channels": [],
+  "objects": [
+    {
+      "name": "Max_Count",
+      "type": {
+        "name": "Count",
+        "kind": "integer",
+        "low": 0,
+        "high": 10
+      },
+      "is_constant": true,
+      "static_value_kind": "integer",
+      "static_value": true,
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 10
+      }
+    }
+  ],
+  "subprograms": [
+    {
+      "name": "Next",
+      "kind": "function",
+      "signature": "function Next (Value: Count) return Count",
+      "params": [
+        {
+          "name": "Value",
+          "mode": "in",
+          "type": {
+            "name": "Count",
+            "kind": "integer",
+            "low": 0,
+            "high": 10
+          },
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 10
+          }
+        }
+      ],
+      "has_return_type": true,
+      "return_type": {
+        "name": "Count",
+        "kind": "integer",
+        "low": 0,
+        "high": 10
+      },
+      "return_is_access_def": false,
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 10
+      }
+    }
+  ],
+  "effect_summaries": [
+    {
+      "name": "Next",
+      "signature": "function Next (Value: Count) return Count",
+      "reads": [],
+      "writes": [],
+      "inputs": [
+        "param:Value"
+      ],
+      "outputs": [
+        "return"
+      ],
+      "depends": [
+        {
+          "output_name": "return",
+          "inputs": [
+            "param:Value"
+          ]
+        }
+      ]
+    }
+  ],
+  "channel_access_summaries": [
+    {
+      "name": "Next",
+      "signature": "function Next (Value: Count) return Count",
+      "channels": []
+    }
+  ]
+}

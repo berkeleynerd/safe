@@ -1,0 +1,1512 @@
+{
+  "deterministic": true,
+  "imported_constant_cases": {
+    "bool_discriminant_default": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/interfaces/client_constant_bool.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-bool/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<3530 chars>"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/interfaces/client_constant_bool.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-bool/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/client_constant_bool.safe",
+          "--out-dir",
+          "$TMPDIR/client-constant-bool/out",
+          "--interface-dir",
+          "$TMPDIR/client-constant-bool/iface",
+          "--interface-search-dir",
+          "$TMPDIR/provider-bool/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "cd5ec67253d97a4eff96415849371674fec369df763b9e0037034bffc3ffa00b",
+        "mir": "748511631219435d2a4bdf6662157d80923c5b951dbea5096fe3bc4825fa39c3",
+        "safei": "b4c1f2413acc0de72c8993bcf1431952b3a9c73ecf4e897cc91f6ff1d48533c0",
+        "typed": "05a08f6fd00563b907804a2935f33c7eb64a4a8f43340ae177f7aa0042e64187"
+      },
+      "safei_summary": {
+        "object_names": [],
+        "package_name": "Client_Constant_Bool",
+        "type_names": [
+          "Result"
+        ]
+      },
+      "source": "tests/interfaces/client_constant_bool.safe",
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/client-constant-bool/out/client_constant_bool.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/client-constant-bool/out/client_constant_bool.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/client-constant-bool/out/client_constant_bool.ast.json",
+            "--typed",
+            "$TMPDIR/client-constant-bool/out/client_constant_bool.typed.json",
+            "--mir",
+            "$TMPDIR/client-constant-bool/out/client_constant_bool.mir.json",
+            "--safei",
+            "$TMPDIR/client-constant-bool/iface/client_constant_bool.safei.json",
+            "--source-path",
+            "tests/interfaces/client_constant_bool.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (client_constant_bool.ast.json, client_constant_bool.typed.json, client_constant_bool.mir.json, client_constant_bool.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "channel_capacity": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/interfaces/client_constant_capacity.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<4525 chars>"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/interfaces/client_constant_capacity.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/client_constant_capacity.safe",
+          "--out-dir",
+          "$TMPDIR/client-constant-capacity/out",
+          "--interface-dir",
+          "$TMPDIR/client-constant-capacity/iface",
+          "--interface-search-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "4f7121ed3932390a894430f4d1310caffc25c96e57f3278ae434321afa85062c",
+        "mir": "e8069c6cfc5d042fadec7f6f645513400a86f10d0b63c15f2f7a748253690dfe",
+        "safei": "24ea0c7e8079fe8a50955107f4f086eb0d10da05ce0bbdaefc5d0d4438a699e5",
+        "typed": "311346337af9229273ce7e0e7f868749094cb97fbf53c278fca1fd4ea9ef7d4e"
+      },
+      "safei_summary": {
+        "object_names": [],
+        "package_name": "Client_Constant_Capacity",
+        "type_names": [
+          "Message",
+          "Provider_Constant_Int.Count"
+        ]
+      },
+      "source": "tests/interfaces/client_constant_capacity.safe",
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/client-constant-capacity/out/client_constant_capacity.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/client-constant-capacity/out/client_constant_capacity.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/client-constant-capacity/out/client_constant_capacity.ast.json",
+            "--typed",
+            "$TMPDIR/client-constant-capacity/out/client_constant_capacity.typed.json",
+            "--mir",
+            "$TMPDIR/client-constant-capacity/out/client_constant_capacity.mir.json",
+            "--safei",
+            "$TMPDIR/client-constant-capacity/iface/client_constant_capacity.safei.json",
+            "--source-path",
+            "tests/interfaces/client_constant_capacity.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (client_constant_capacity.ast.json, client_constant_capacity.typed.json, client_constant_capacity.mir.json, client_constant_capacity.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "range_bound": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<3119 chars>"
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/client_constant_range.safe",
+          "--out-dir",
+          "$TMPDIR/client-constant-range/out",
+          "--interface-dir",
+          "$TMPDIR/client-constant-range/iface",
+          "--interface-search-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "69fa49c254111566399bbe6aa6a2410bac4b517009a38ed775e1466a66d5df63",
+        "mir": "5b0cc858d64aa551e7798cfdb5620bc21c85822e4868023102f4e7d98850a600",
+        "safei": "838c8b65515a7ace3af4e0f643cb886ed5cfd241a9232efb5bc8cd7f2c7e9f7e",
+        "typed": "aed90367db363f2b4adf5c296df8ffb1f93eb01738f67ff156d9bf9021eac9d5"
+      },
+      "safei_summary": {
+        "object_names": [],
+        "package_name": "Client_Constant_Range",
+        "type_names": [
+          "Index",
+          "Provider_Constant_Int.Count"
+        ]
+      },
+      "source": "tests/interfaces/client_constant_range.safe",
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/client-constant-range/out/client_constant_range.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/client-constant-range/out/client_constant_range.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/client-constant-range/out/client_constant_range.ast.json",
+            "--typed",
+            "$TMPDIR/client-constant-range/out/client_constant_range.typed.json",
+            "--mir",
+            "$TMPDIR/client-constant-range/out/client_constant_range.mir.json",
+            "--safei",
+            "$TMPDIR/client-constant-range/iface/client_constant_range.safei.json",
+            "--source-path",
+            "tests/interfaces/client_constant_range.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (client_constant_range.ast.json, client_constant_range.typed.json, client_constant_range.mir.json, client_constant_range.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    }
+  },
+  "local_positive_cases": {
+    "bool_discriminant_default": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/positive/constant_discriminant_default.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<4728 chars>"
+      },
+      "ast_constant_nodes": 1,
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/constant_discriminant_default.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/constant_discriminant_default.safe",
+          "--out-dir",
+          "$TMPDIR/local-bool-discriminant/out",
+          "--interface-dir",
+          "$TMPDIR/local-bool-discriminant/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "9842b7ed161d3faffde41bf47339f69b1edb3065bff81e731fa152db6890164d",
+        "mir": "345a9d51ea7e6a6a47a5a97ca6bc9fcd1f4d1761932351042dddc48f9d758a94",
+        "safei": "0b1115d73209ded45e5c62df0fb32335ac720e0a59bd08087426756c2f538c3b",
+        "typed": "5d4b769a5deb4ff52b64b497820e58dc0e1d56dcf4ed3edfca640e940aaeefff"
+      },
+      "mir_constant_locals": 0,
+      "source": "tests/positive/constant_discriminant_default.safe",
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/local-bool-discriminant/out/constant_discriminant_default.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/local-bool-discriminant/out/constant_discriminant_default.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/local-bool-discriminant/out/constant_discriminant_default.ast.json",
+            "--typed",
+            "$TMPDIR/local-bool-discriminant/out/constant_discriminant_default.typed.json",
+            "--mir",
+            "$TMPDIR/local-bool-discriminant/out/constant_discriminant_default.mir.json",
+            "--safei",
+            "$TMPDIR/local-bool-discriminant/iface/constant_discriminant_default.safei.json",
+            "--source-path",
+            "tests/positive/constant_discriminant_default.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (constant_discriminant_default.ast.json, constant_discriminant_default.typed.json, constant_discriminant_default.mir.json, constant_discriminant_default.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "channel_capacity": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/positive/constant_channel_capacity.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<5725 chars>"
+      },
+      "ast_constant_nodes": 1,
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/constant_channel_capacity.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/constant_channel_capacity.safe",
+          "--out-dir",
+          "$TMPDIR/local-channel-capacity/out",
+          "--interface-dir",
+          "$TMPDIR/local-channel-capacity/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "f66302403cfa8eb4d8e3edb46455523a219f9289884d92d66e3c444094d69704",
+        "mir": "32e0fa373fa2ff5a19200229eddf06610a6b65b25835aeed508fb889608e9f77",
+        "safei": "49b04bc16f652273f75ccb5fe6a512fd211155754b250c376b4289eaffecf64e",
+        "typed": "00537d0f502d6a18a804c98154b66372b75fcf5d3e856a10437d695433be5f49"
+      },
+      "mir_constant_locals": 0,
+      "source": "tests/positive/constant_channel_capacity.safe",
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/local-channel-capacity/out/constant_channel_capacity.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/local-channel-capacity/out/constant_channel_capacity.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/local-channel-capacity/out/constant_channel_capacity.ast.json",
+            "--typed",
+            "$TMPDIR/local-channel-capacity/out/constant_channel_capacity.typed.json",
+            "--mir",
+            "$TMPDIR/local-channel-capacity/out/constant_channel_capacity.mir.json",
+            "--safei",
+            "$TMPDIR/local-channel-capacity/iface/constant_channel_capacity.safei.json",
+            "--source-path",
+            "tests/positive/constant_channel_capacity.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (constant_channel_capacity.ast.json, constant_channel_capacity.typed.json, constant_channel_capacity.mir.json, constant_channel_capacity.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "range_bound": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/positive/constant_range_bound.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<4305 chars>"
+      },
+      "ast_constant_nodes": 1,
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/constant_range_bound.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/constant_range_bound.safe",
+          "--out-dir",
+          "$TMPDIR/local-range-bound/out",
+          "--interface-dir",
+          "$TMPDIR/local-range-bound/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "c6cf662b6d80f48fd0b34ecdd5c253e28c4f7456ff282c1a8272a5f5710e520f",
+        "mir": "d41728981d30c1da0e20f2a5b15719eb27ff66bb931b39ade72c059cfab8d69c",
+        "safei": "d3d8ce0eb822e35b215dc55a5afb4b11f152b3e6c5300f099ce4b3d8cfb13d6a",
+        "typed": "fc73979384329fc54e0783eee69de44f15dc1156bd44f99c8b3adc9470519094"
+      },
+      "mir_constant_locals": 0,
+      "source": "tests/positive/constant_range_bound.safe",
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/local-range-bound/out/constant_range_bound.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/local-range-bound/out/constant_range_bound.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/local-range-bound/out/constant_range_bound.ast.json",
+            "--typed",
+            "$TMPDIR/local-range-bound/out/constant_range_bound.typed.json",
+            "--mir",
+            "$TMPDIR/local-range-bound/out/constant_range_bound.mir.json",
+            "--safei",
+            "$TMPDIR/local-range-bound/iface/constant_range_bound.safei.json",
+            "--source-path",
+            "tests/positive/constant_range_bound.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (constant_range_bound.ast.json, constant_range_bound.typed.json, constant_range_bound.mir.json, constant_range_bound.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "task_priority": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/positive/constant_task_priority.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "<10501 chars>"
+      },
+      "ast_constant_nodes": 1,
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/constant_task_priority.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/constant_task_priority.safe",
+          "--out-dir",
+          "$TMPDIR/local-task-priority/out",
+          "--interface-dir",
+          "$TMPDIR/local-task-priority/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "hashes": {
+        "ast": "6677db80dea917ca52f4f60a66a839fb4c72ba1371eafc5d3c2ff5759538a5d8",
+        "mir": "48867b7726e629b7fb91b0facf8ae09b08100ccbcdf469c92d83c7ec1d89e5d9",
+        "safei": "56030787f1ee8a25425219eec82acf1e148f51c5c7163e01649fbdb7865b74e1",
+        "typed": "8d8af16fd22dca4f63474d23c47a8d9f3cc4e89f952d45c033d83e14a657ac61"
+      },
+      "mir_constant_locals": 1,
+      "source": "tests/positive/constant_task_priority.safe",
+      "validators": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/local-task-priority/out/constant_task_priority.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/local-task-priority/out/constant_task_priority.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/local-task-priority/out/constant_task_priority.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/local-task-priority/out/constant_task_priority.ast.json",
+            "--typed",
+            "$TMPDIR/local-task-priority/out/constant_task_priority.typed.json",
+            "--mir",
+            "$TMPDIR/local-task-priority/out/constant_task_priority.mir.json",
+            "--safei",
+            "$TMPDIR/local-task-priority/iface/constant_task_priority.safei.json",
+            "--source-path",
+            "tests/positive/constant_task_priority.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (constant_task_priority.ast.json, constant_task_priority.typed.json, constant_task_priority.mir.json, constant_task_priority.safei.json)\n"
+        },
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/local-task-priority/out/constant_task_priority.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/local-task-priority/out/constant_task_priority.mir.json)\n"
+        }
+      }
+    }
+  },
+  "provider_interfaces": {
+    "boolean": {
+      "constant_object": {
+        "is_constant": true,
+        "name": "Default_Active",
+        "span": {
+          "end_col": 51,
+          "end_line": 3,
+          "start_col": 11,
+          "start_line": 3
+        },
+        "static_value": true,
+        "static_value_kind": "boolean",
+        "type": {
+          "high": 1,
+          "kind": "integer",
+          "low": 0,
+          "name": "Boolean"
+        }
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/provider_constant_bool.safe",
+          "--out-dir",
+          "$TMPDIR/provider-bool/out",
+          "--interface-dir",
+          "$TMPDIR/provider-bool/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "files": {
+        "ast": "out/provider_constant_bool.ast.json",
+        "mir": "out/provider_constant_bool.mir.json",
+        "safei": "iface/provider_constant_bool.safei.json",
+        "typed": "out/provider_constant_bool.typed.json"
+      },
+      "hashes": {
+        "ast": "e06d63cce9f75e67cecdf0d02c5876f82323c5ffa916683023e9614ade546c7a",
+        "mir": "1de34e6ea9de78cca9c66f832228aac7d4c1a559c4e0eec05c28f7ad91bcb541",
+        "safei": "7ff892033e495bf88e5c704f8ef355877a74ca3640b04b49db11f9997c05d0cd",
+        "typed": "01162cbd0f457edd13239993b71d661705f67ce99957354062bd52d864e5b593"
+      },
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/provider-bool/out/provider_constant_bool.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/provider-bool/out/provider_constant_bool.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/provider-bool/out/provider_constant_bool.ast.json",
+            "--typed",
+            "$TMPDIR/provider-bool/out/provider_constant_bool.typed.json",
+            "--mir",
+            "$TMPDIR/provider-bool/out/provider_constant_bool.mir.json",
+            "--safei",
+            "$TMPDIR/provider-bool/iface/provider_constant_bool.safei.json",
+            "--source-path",
+            "tests/interfaces/provider_constant_bool.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (provider_constant_bool.ast.json, provider_constant_bool.typed.json, provider_constant_bool.mir.json, provider_constant_bool.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "integer": {
+      "constant_object": {
+        "is_constant": true,
+        "name": "Max_Count",
+        "span": {
+          "end_col": 41,
+          "end_line": 4,
+          "start_col": 11,
+          "start_line": 4
+        },
+        "static_value": 4,
+        "static_value_kind": "integer",
+        "type": {
+          "high": 10,
+          "kind": "integer",
+          "low": 0,
+          "name": "Count"
+        }
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/provider_constant_int.safe",
+          "--out-dir",
+          "$TMPDIR/provider-int/out",
+          "--interface-dir",
+          "$TMPDIR/provider-int/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "files": {
+        "ast": "out/provider_constant_int.ast.json",
+        "mir": "out/provider_constant_int.mir.json",
+        "safei": "iface/provider_constant_int.safei.json",
+        "typed": "out/provider_constant_int.typed.json"
+      },
+      "hashes": {
+        "ast": "65308402bafa9ea50f38938d552414496a1edb14f17e3c97c90a14f8aef5f5f2",
+        "mir": "5b492cec2ab6e14b460716cf1832b9eae7a842b0032882252481e9ef282076ad",
+        "safei": "e6c7dbc6755c1894ab9ce0893f9d0613e3c98dd90b318fdd5a66fcf2599a7829",
+        "typed": "753544b281004c1adca402c8e539cd1af08bbf937d70a118b01b51b3c0e2dc0a"
+      },
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/provider-int/out/provider_constant_int.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/provider-int/out/provider_constant_int.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/provider-int/out/provider_constant_int.ast.json",
+            "--typed",
+            "$TMPDIR/provider-int/out/provider_constant_int.typed.json",
+            "--mir",
+            "$TMPDIR/provider-int/out/provider_constant_int.mir.json",
+            "--safei",
+            "$TMPDIR/provider-int/iface/provider_constant_int.safei.json",
+            "--source-path",
+            "tests/interfaces/provider_constant_int.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (provider_constant_int.ast.json, provider_constant_int.typed.json, provider_constant_int.mir.json, provider_constant_int.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    },
+    "unsupported_static_subset": {
+      "constant_object": {
+        "is_constant": true,
+        "name": "Limit",
+        "span": {
+          "end_col": 44,
+          "end_line": 5,
+          "start_col": 11,
+          "start_line": 5
+        },
+        "type": {
+          "high": 10,
+          "kind": "integer",
+          "low": 0,
+          "name": "Count"
+        }
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/provider_constant_unsupported.safe",
+          "--out-dir",
+          "$TMPDIR/provider-unsupported/out",
+          "--interface-dir",
+          "$TMPDIR/provider-unsupported/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "files": {
+        "ast": "out/provider_constant_unsupported.ast.json",
+        "mir": "out/provider_constant_unsupported.mir.json",
+        "safei": "iface/provider_constant_unsupported.safei.json",
+        "typed": "out/provider_constant_unsupported.typed.json"
+      },
+      "hashes": {
+        "ast": "af6c3eed31d68b245969ace7e1d32d718d85bc89652cd5ac7942bea7ccd8f773",
+        "mir": "37775623785f515fc26c346f6f7417f65c1fddb9cc91a87bc88e8fa6b09be1e7",
+        "safei": "70ac52d63e2dbdd415a40c7b1cbe8a2ab15fed63f8877cbd96174305c587cee7",
+        "typed": "369b496bd78c958b5f9f683ee21f20a75962cbd7072743009e18180ba1562ecc"
+      },
+      "validators": {
+        "analyze_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        },
+        "ast": {
+          "command": [
+            "python3",
+            "scripts/validate_ast_output.py",
+            "$TMPDIR/provider-unsupported/out/provider_constant_unsupported.ast.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "$TMPDIR/provider-unsupported/out/provider_constant_unsupported.ast.json: OK\n"
+        },
+        "output_contracts": {
+          "command": [
+            "python3",
+            "scripts/validate_output_contracts.py",
+            "--ast",
+            "$TMPDIR/provider-unsupported/out/provider_constant_unsupported.ast.json",
+            "--typed",
+            "$TMPDIR/provider-unsupported/out/provider_constant_unsupported.typed.json",
+            "--mir",
+            "$TMPDIR/provider-unsupported/out/provider_constant_unsupported.mir.json",
+            "--safei",
+            "$TMPDIR/provider-unsupported/iface/provider_constant_unsupported.safei.json",
+            "--source-path",
+            "tests/interfaces/provider_constant_unsupported.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "output contracts: OK (provider_constant_unsupported.ast.json, provider_constant_unsupported.typed.json, provider_constant_unsupported.mir.json, provider_constant_unsupported.safei.json)\n"
+        },
+        "validate_mir": {
+          "reason": "no_local_graphs",
+          "skipped": true
+        }
+      }
+    }
+  },
+  "repeat_emit": {
+    "provider_constant_int": {
+      "hashes": {
+        "ast": "65308402bafa9ea50f38938d552414496a1edb14f17e3c97c90a14f8aef5f5f2",
+        "mir": "5b492cec2ab6e14b460716cf1832b9eae7a842b0032882252481e9ef282076ad",
+        "safei": "e6c7dbc6755c1894ab9ce0893f9d0613e3c98dd90b318fdd5a66fcf2599a7829",
+        "typed": "753544b281004c1adca402c8e539cd1af08bbf937d70a118b01b51b3c0e2dc0a"
+      },
+      "runs": [
+        {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/interfaces/provider_constant_int.safe",
+            "--out-dir",
+            "$TMPDIR/repeat-a/out",
+            "--interface-dir",
+            "$TMPDIR/repeat-a/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/interfaces/provider_constant_int.safe",
+            "--out-dir",
+            "$TMPDIR/repeat-b/out",
+            "--interface-dir",
+            "$TMPDIR/repeat-b/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        }
+      ]
+    }
+  },
+  "repeat_sha256": "dfdad08c9487e0d2c51a63a9aae4414abbcaf072fbfce3578c6330c80d43f916",
+  "report_sha256": "dfdad08c9487e0d2c51a63a9aae4414abbcaf072fbfce3578c6330c80d43f916",
+  "source_failures": {
+    "imported_missing_static_value": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/interfaces/client_constant_missing_value.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-unsupported/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_missing_value.safe:5:29: error: type bounds must be integer literals or constant references\n  |\n  | 5 |    type Index is range 0 .. Provider_Constant_Unsupported.Limit;\n  |   |                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/interfaces/client_constant_missing_value.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-unsupported/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_missing_value.safe:5:29: error: type bounds must be integer literals or constant references\n  |\n  | 5 |    type Index is range 0 .. Provider_Constant_Unsupported.Limit;\n  |   |                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/interfaces/client_constant_missing_value.safe",
+          "--interface-search-dir",
+          "$TMPDIR/provider-unsupported/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"type bounds must be integer literals or constant references\",\"path\":\"tests/interfaces/client_constant_missing_value.safe\",\"span\":{\"start_line\":5,\"start_col\":29,\"end_line\":5,\"end_col\":63},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/client_constant_missing_value.safe",
+          "--out-dir",
+          "$TMPDIR/imported-missing-static-value-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/imported-missing-static-value-emit-failure/iface",
+          "--interface-search-dir",
+          "$TMPDIR/provider-unsupported/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_missing_value.safe:5:29: error: type bounds must be integer literals or constant references\n  |\n  | 5 |    type Index is range 0 .. Provider_Constant_Unsupported.Limit;\n  |   |                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "source_frontend_error",
+      "first_header": "client_constant_missing_value.safe:5:29: error: type bounds must be integer literals or constant references"
+    },
+    "malformed_constant_payload_kind_mismatch": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/kind-mismatch"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_range.safe:1:1: error: $TMPDIR/kind-mismatch/provider_constant_int.safei.json: objects[].static_value must be a boolean\n  |\n  | 1 | with Provider_Constant_Int;\n  |   | ^\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/kind-mismatch"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_range.safe:1:1: error: $TMPDIR/kind-mismatch/provider_constant_int.safei.json: objects[].static_value must be a boolean\n  |\n  | 1 | with Provider_Constant_Int;\n  |   | ^\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/kind-mismatch"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"$TMPDIR/kind-mismatch/provider_constant_int.safei.json: objects[].static_value must be a boolean\",\"path\":\"tests/interfaces/client_constant_range.safe\",\"span\":{\"start_line\":1,\"start_col\":1,\"end_line\":1,\"end_col\":1},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/client_constant_range.safe",
+          "--out-dir",
+          "$TMPDIR/malformed-constant-payload-kind-mismatch-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/malformed-constant-payload-kind-mismatch-emit-failure/iface",
+          "--interface-search-dir",
+          "$TMPDIR/kind-mismatch"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_range.safe:1:1: error: $TMPDIR/kind-mismatch/provider_constant_int.safei.json: objects[].static_value must be a boolean\n  |\n  | 1 | with Provider_Constant_Int;\n  |   | ^\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "source_frontend_error",
+      "first_header": "client_constant_range.safe:1:1: error: $TMPDIR/kind-mismatch/provider_constant_int.safei.json: objects[].static_value must be a boolean"
+    },
+    "malformed_constant_payload_missing_value": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/missing-static-value"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_range.safe:1:1: error: $TMPDIR/missing-static-value/provider_constant_int.safei.json: objects[].static_value must be an integer\n  |\n  | 1 | with Provider_Constant_Int;\n  |   | ^\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/missing-static-value"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_range.safe:1:1: error: $TMPDIR/missing-static-value/provider_constant_int.safei.json: objects[].static_value must be an integer\n  |\n  | 1 | with Provider_Constant_Int;\n  |   | ^\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/interfaces/client_constant_range.safe",
+          "--interface-search-dir",
+          "$TMPDIR/missing-static-value"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"$TMPDIR/missing-static-value/provider_constant_int.safei.json: objects[].static_value must be an integer\",\"path\":\"tests/interfaces/client_constant_range.safe\",\"span\":{\"start_line\":1,\"start_col\":1,\"end_line\":1,\"end_col\":1},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/interfaces/client_constant_range.safe",
+          "--out-dir",
+          "$TMPDIR/malformed-constant-payload-missing-value-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/malformed-constant-payload-missing-value-emit-failure/iface",
+          "--interface-search-dir",
+          "$TMPDIR/missing-static-value"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "client_constant_range.safe:1:1: error: $TMPDIR/missing-static-value/provider_constant_int.safei.json: objects[].static_value must be an integer\n  |\n  | 1 | with Provider_Constant_Int;\n  |   | ^\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "source_frontend_error",
+      "first_header": "client_constant_range.safe:1:1: error: $TMPDIR/missing-static-value/provider_constant_int.safei.json: objects[].static_value must be an integer"
+    },
+    "named_number_unsupported": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/negative/neg_named_number_unsupported.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_named_number_unsupported.safe:7:23: error: named number declarations are outside the current PR08.3a constant subset\n  |\n  | 7 |    Limit : constant = 4;\n  |   |                       ^\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_named_number_unsupported.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_named_number_unsupported.safe:7:23: error: named number declarations are outside the current PR08.3a constant subset\n  |\n  | 7 |    Limit : constant = 4;\n  |   |                       ^\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_named_number_unsupported.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"named number declarations are outside the current PR08.3a constant subset\",\"path\":\"tests/negative/neg_named_number_unsupported.safe\",\"span\":{\"start_line\":7,\"start_col\":23,\"end_line\":7,\"end_col\":23},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/negative/neg_named_number_unsupported.safe",
+          "--out-dir",
+          "$TMPDIR/named-number-unsupported-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/named-number-unsupported-emit-failure/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_named_number_unsupported.safe:7:23: error: named number declarations are outside the current PR08.3a constant subset\n  |\n  | 7 |    Limit : constant = 4;\n  |   |                       ^\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "unsupported_source_construct",
+      "first_header": "neg_named_number_unsupported.safe:7:23: error: named number declarations are outside the current PR08.3a constant subset"
+    },
+    "write_to_constant_assign": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/negative/neg_write_to_constant_assign.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_assign.safe:10:7: error: assignment target rooted in constant `Limit` is not writable\n  |\n  | 10 |       Limit = 2;\n  |    |       ^~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_write_to_constant_assign.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_assign.safe:10:7: error: assignment target rooted in constant `Limit` is not writable\n  |\n  | 10 |       Limit = 2;\n  |    |       ^~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_write_to_constant_assign.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"write_to_constant\",\"message\":\"assignment target rooted in constant `Limit` is not writable\",\"path\":\"tests/negative/neg_write_to_constant_assign.safe\",\"span\":{\"start_line\":10,\"start_col\":7,\"end_line\":10,\"end_col\":11},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/negative/neg_write_to_constant_assign.safe",
+          "--out-dir",
+          "$TMPDIR/write-to-constant-assign-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/write-to-constant-assign-emit-failure/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_assign.safe:10:7: error: assignment target rooted in constant `Limit` is not writable\n  |\n  | 10 |       Limit = 2;\n  |    |       ^~~~~\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "write_to_constant",
+      "first_header": "neg_write_to_constant_assign.safe:10:7: error: assignment target rooted in constant `Limit` is not writable"
+    },
+    "write_to_constant_field": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/negative/neg_write_to_constant_field.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_field.safe:15:7: error: assignment target rooted in constant `Value` is not writable\n  |\n  | 15 |       Value.Left = 3;\n  |    |       ^~~~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_write_to_constant_field.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_field.safe:15:7: error: assignment target rooted in constant `Value` is not writable\n  |\n  | 15 |       Value.Left = 3;\n  |    |       ^~~~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_write_to_constant_field.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"write_to_constant\",\"message\":\"assignment target rooted in constant `Value` is not writable\",\"path\":\"tests/negative/neg_write_to_constant_field.safe\",\"span\":{\"start_line\":15,\"start_col\":7,\"end_line\":15,\"end_col\":16},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/negative/neg_write_to_constant_field.safe",
+          "--out-dir",
+          "$TMPDIR/write-to-constant-field-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/write-to-constant-field-emit-failure/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_field.safe:15:7: error: assignment target rooted in constant `Value` is not writable\n  |\n  | 15 |       Value.Left = 3;\n  |    |       ^~~~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "write_to_constant",
+      "first_header": "neg_write_to_constant_field.safe:15:7: error: assignment target rooted in constant `Value` is not writable"
+    },
+    "write_to_constant_index": {
+      "ast": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "ast",
+          "tests/negative/neg_write_to_constant_index.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_index.safe:22:7: error: assignment target rooted in constant `Data` is not writable\n  |\n  | 22 |       Data (1) = 0;\n  |    |       ^~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/negative/neg_write_to_constant_index.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_index.safe:22:7: error: assignment target rooted in constant `Data` is not writable\n  |\n  | 22 |       Data (1) = 0;\n  |    |       ^~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "check_diag": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_write_to_constant_index.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "",
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"write_to_constant\",\"message\":\"assignment target rooted in constant `Data` is not writable\",\"path\":\"tests/negative/neg_write_to_constant_index.safe\",\"span\":{\"start_line\":22,\"start_col\":7,\"end_line\":22,\"end_col\":14},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/negative/neg_write_to_constant_index.safe",
+          "--out-dir",
+          "$TMPDIR/write-to-constant-index-emit-failure/out",
+          "--interface-dir",
+          "$TMPDIR/write-to-constant-index-emit-failure/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "neg_write_to_constant_index.safe:22:7: error: assignment target rooted in constant `Data` is not writable\n  |\n  | 22 |       Data (1) = 0;\n  |    |       ^~~~~~~~\n  |\n",
+        "stdout": ""
+      },
+      "expected_reason": "write_to_constant",
+      "first_header": "neg_write_to_constant_index.safe:22:7: error: assignment target rooted in constant `Data` is not writable"
+    }
+  },
+  "status": "ok",
+  "synthetic_mir_parity": [
+    {
+      "analyze_first": {
+        "message": "assignment target rooted in constant `Limit` is not writable",
+        "path": "tests/negative/neg_write_to_constant_assign.safe",
+        "reason": "write_to_constant"
+      },
+      "check_first": {
+        "message": "assignment target rooted in constant `Limit` is not writable",
+        "path": "tests/negative/neg_write_to_constant_assign.safe",
+        "reason": "write_to_constant"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "$TMPDIR/write-to-constant-assign.safe",
+          "--out-dir",
+          "$TMPDIR/write-to-constant-assign-emit/out",
+          "--interface-dir",
+          "$TMPDIR/write-to-constant-assign-emit/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "fixture": "mir/write-to-constant-assign.json",
+      "name": "write-to-constant-assign",
+      "source": "tests/negative/neg_write_to_constant_assign.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/write-to-constant-assign.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/write-to-constant-assign.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "assignment target rooted in constant `Value` is not writable",
+        "path": "tests/negative/neg_write_to_constant_field.safe",
+        "reason": "write_to_constant"
+      },
+      "check_first": {
+        "message": "assignment target rooted in constant `Value` is not writable",
+        "path": "tests/negative/neg_write_to_constant_field.safe",
+        "reason": "write_to_constant"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "$TMPDIR/write-to-constant-field.safe",
+          "--out-dir",
+          "$TMPDIR/write-to-constant-field-emit/out",
+          "--interface-dir",
+          "$TMPDIR/write-to-constant-field-emit/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "fixture": "mir/write-to-constant-field.json",
+      "name": "write-to-constant-field",
+      "source": "tests/negative/neg_write_to_constant_field.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/write-to-constant-field.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/write-to-constant-field.json)\n"
+      }
+    },
+    {
+      "analyze_first": {
+        "message": "assignment target rooted in constant `Data` is not writable",
+        "path": "tests/negative/neg_write_to_constant_index.safe",
+        "reason": "write_to_constant"
+      },
+      "check_first": {
+        "message": "assignment target rooted in constant `Data` is not writable",
+        "path": "tests/negative/neg_write_to_constant_index.safe",
+        "reason": "write_to_constant"
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "$TMPDIR/write-to-constant-index.safe",
+          "--out-dir",
+          "$TMPDIR/write-to-constant-index-emit/out",
+          "--interface-dir",
+          "$TMPDIR/write-to-constant-index-emit/iface"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "fixture": "mir/write-to-constant-index.json",
+      "name": "write-to-constant-index",
+      "source": "tests/negative/neg_write_to_constant_index.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/mir/write-to-constant-index.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "validate-mir: OK ($TMPDIR/mir/write-to-constant-index.json)\n"
+      }
+    }
+  ],
+  "task": "PR08.3a"
+}

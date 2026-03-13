@@ -13,7 +13,7 @@ This workspace hosts the current Safe compiler frontend baseline established by 
 - `safec check --diag-json <file.safe> [--interface-search-dir <dir>]...` writes `diagnostics-v0` JSON for the Ada-native check pipeline.
 - `safec emit <file.safe> --out-dir <dir> --interface-dir <dir> [--interface-search-dir <dir>]...` writes the current frontend artifacts for downstream inspection and regression checks.
 
-The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the current boolean result-record discriminant pattern, the local-only PR08.1/PR08.2 concurrency slice for single-package task declarations, channel declarations, send, receive, try_send, try_receive, select, and relative delay, and the PR08.3 interface-contract slice for imported package-qualified resolution through explicit dependency interfaces.
+The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the current boolean result-record discriminant pattern, the local-only PR08.1/PR08.2 concurrency slice for single-package task declarations, channel declarations, send, receive, try_send, try_receive, select, and relative delay, the PR08.3 interface-contract slice for imported package-qualified resolution through explicit dependency interfaces, and the PR08.3a additive constant slice for ordinary object constants plus imported integer/boolean constant values in the currently supported static-expression sites.
 
 That current boundary includes:
 
@@ -78,7 +78,7 @@ dependency explicitly rather than allowing it to spread by default.
 
 - `<stem>.typed.json`
   Format tag: `typed-v2`.
-  Contents: package identity, resolved type inventory, executable summaries, public declarations, the AST snapshot used to derive lowering and diagnostics, ownership-oriented access-role metadata for the sequential ownership model, and additive local `channels[]` / `tasks[]` metadata for the PR08.1 concurrency frontend slice.
+  Contents: package identity, resolved type inventory, executable summaries, public declarations, the AST snapshot used to derive lowering and diagnostics, ownership-oriented access-role metadata for the sequential ownership model, and additive local `channels[]` / `tasks[]` metadata for the PR08.1 concurrency frontend slice. Constantness for ordinary object constants is reflected through the embedded AST payload; PR08.3a does not add a new top-level typed-v2 constant table.
 
 - `<stem>.mir.json`
   Format tag: `mir-v2`.
@@ -100,9 +100,9 @@ dependency explicitly rather than allowing it to spread by default.
   - `subprograms[]`
   - `effect_summaries[]`
   - `channel_access_summaries[]`
-  Public subprogram entries carry structured parameter and return-type descriptors, and the summary arrays are populated from the local Bronze pass for public subprograms.
+  Public subprogram entries carry structured parameter and return-type descriptors, and the summary arrays are populated from the local Bronze pass for public subprograms. PR08.3a extends `objects[]` additively with `is_constant` plus optional `static_value_kind` / `static_value` for the supported integer and boolean constant subset.
 
-`safei-v1` is the versioned dependency-interface contract for cross-unit resolution. It carries structured public declarations, local Bronze-derived effect/channel summaries, and remains the additive base for later constant and named-number extensions. If the schema changes incompatibly, the format tag must change as well.
+`safei-v1` is the versioned dependency-interface contract for cross-unit resolution. It carries structured public declarations, local Bronze-derived effect/channel summaries, and additive object constant metadata while remaining the base for later named-number extensions. If the schema changes incompatibly, the format tag must change as well.
 
 ## Verification
 
@@ -228,3 +228,12 @@ python3 scripts/run_pr083_interface_contracts.py
 ```
 
 That gate emits provider interfaces, compiles clients through explicit `--interface-search-dir` inputs, validates `safei-v1`, exercises deterministic lookup failures and search-order behavior, proves `--interface-dir` is output-only, and records results in `execution/reports/pr083-interface-contracts-report.json`.
+
+The PR08.3a public constants gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr083a_public_constants.py
+```
+
+That gate promotes ordinary object constants to the live Ada-native path, validates additive `safei-v1` constant payloads, proves imported integer/boolean constants work in the current static-expression sites, checks local `write_to_constant` parity between direct `check` and emitted `analyze-mir`, and records results in `execution/reports/pr083a-public-constants-report.json`.

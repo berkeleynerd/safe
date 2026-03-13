@@ -597,6 +597,14 @@ package body Safe_Frontend.Check_Parse is
          Result.Names.Append (Expect_Identifier (State).Lexeme);
       end loop;
       Require (State, ":");
+      if Match (State, "constant") then
+         Result.Is_Constant := True;
+         if Match (State, "=") then
+            Reject_Unsupported
+              (State,
+               "named number declarations are outside the current PR08.3a constant subset");
+         end if;
+      end if;
       Result.Decl_Type := Parse_Object_Type (State);
       if Match (State, "=") then
          Result.Has_Initializer := True;

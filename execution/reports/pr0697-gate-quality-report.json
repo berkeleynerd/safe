@@ -146,6 +146,78 @@
       }
     },
     {
+      "expected_error": "sample.safei.json.objects[0].static_value_kind requires is_constant to be true",
+      "name": "invalid_safei_constant_kind_without_constant",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_without_constant/sample.ast.json",
+          "--typed",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_without_constant/sample.typed.json",
+          "--mir",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_without_constant/sample.mir.json",
+          "--safei",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_without_constant/sample.safei.json",
+          "--source-path",
+          "fixtures/sample.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "output contract validation: ERROR: sample.safei.json.objects[0].static_value_kind requires is_constant to be true\n",
+        "stdout": ""
+      }
+    },
+    {
+      "expected_error": "sample.safei.json.objects[0].static_value must be an integer",
+      "name": "invalid_safei_constant_kind_mismatch",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_mismatch/sample.ast.json",
+          "--typed",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_mismatch/sample.typed.json",
+          "--mir",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_mismatch/sample.mir.json",
+          "--safei",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_constant_kind_mismatch/sample.safei.json",
+          "--source-path",
+          "fixtures/sample.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "output contract validation: ERROR: sample.safei.json.objects[0].static_value must be an integer\n",
+        "stdout": ""
+      }
+    },
+    {
+      "expected_error": "sample.safei.json.objects[0].static_value_kind is required when static_value is present",
+      "name": "invalid_safei_missing_static_value_kind",
+      "result": {
+        "command": [
+          "python3",
+          "scripts/validate_output_contracts.py",
+          "--ast",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_static_value_kind/sample.ast.json",
+          "--typed",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_static_value_kind/sample.typed.json",
+          "--mir",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_static_value_kind/sample.mir.json",
+          "--safei",
+          "scripts/tests/fixtures/output_contracts/invalid_safei_missing_static_value_kind/sample.safei.json",
+          "--source-path",
+          "fixtures/sample.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1,
+        "stderr": "output contract validation: ERROR: sample.safei.json.objects[0].static_value_kind is required when static_value is present\n",
+        "stdout": ""
+      }
+    },
+    {
       "expected_error": "sample.mir.json.source_path must preserve the exact emit CLI path",
       "name": "invalid_mir_source_path_mismatch",
       "result": {
@@ -170,8 +242,8 @@
       }
     }
   ],
-  "repeat_sha256": "ab227379efe080f2b35e05c9af38d3536c0a9e9400902d4e04e650db36baeb4b",
-  "report_sha256": "ab227379efe080f2b35e05c9af38d3536c0a9e9400902d4e04e650db36baeb4b",
+  "repeat_sha256": "1f954dabedc1761b8fe29824942d13e6a7d487e9454dd1af3cbd74a90e1bbeda",
+  "report_sha256": "1f954dabedc1761b8fe29824942d13e6a7d487e9454dd1af3cbd74a90e1bbeda",
   "status": "ok",
   "task": "PR06.9.7",
   "unit_tests": {
@@ -187,7 +259,7 @@
     ],
     "cwd": "$REPO_ROOT",
     "returncode": 0,
-    "stderr": ".........................................................\n----------------------------------------------------------------------\nRan 57 tests in <elapsed>\n\nOK\n",
+    "stderr": ".............................................................\n----------------------------------------------------------------------\nRan 61 tests in <elapsed>\n\nOK\n",
     "stdout": ""
   },
   "valid_output_contracts": [

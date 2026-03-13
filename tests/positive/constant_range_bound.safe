@@ -1,0 +1,11 @@
+-- Test: constant_range_bound
+-- Description: Local integer constant used in a type range bound.
+-- Expected: ACCEPT
+
+package Constant_Range_Bound is
+
+   Max_Count : constant Integer = 4;
+
+   type Index is range 0 .. Max_Count;
+
+end Constant_Range_Bound;

@@ -1,0 +1,7 @@
+package Provider_Constant_Unsupported is
+
+   public type Count is range 0 .. 10;
+   public Base : constant Count = 3;
+   public Limit : constant Count = Base + 1;
+
+end Provider_Constant_Unsupported;

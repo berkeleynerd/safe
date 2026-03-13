@@ -1,5 +1,7 @@
 with Ada.Characters.Latin_1;
 with Ada.Containers.Indefinite_Vectors;
+with Ada.Strings;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Json;
 with Safe_Frontend.Mir_Bronze;
@@ -48,6 +50,11 @@ package body Safe_Frontend.Check_Emit is
    begin
       return FT.To_String (Value);
    end Operator_String;
+
+   function Trimmed (Value : CM.Wide_Integer) return String is
+   begin
+      return Ada.Strings.Fixed.Trim (CM.Wide_Integer'Image (Value), Ada.Strings.Both);
+   end Trimmed;
 
    function Json_List (Items : String_Vectors.Vector) return String is
       Result : US.Unbounded_String := US.Null_Unbounded_String;
@@ -1031,7 +1038,9 @@ package body Safe_Frontend.Check_Emit is
         & JS.Bool_Literal (Decl.Is_Public)
         & ",""names"":"
         & Json_List (Names)
-        & ",""is_aliased"":false,""is_constant"":false,""object_type"":"
+        & ",""is_aliased"":false,""is_constant"":"
+        & JS.Bool_Literal (Decl.Is_Constant)
+        & ",""object_type"":"
         & Object_Type_Node (Decl.Decl_Type)
         & ",""initializer"":"
         & (if Decl.Has_Initializer and then Initializer /= null
@@ -1938,14 +1947,30 @@ package body Safe_Frontend.Check_Emit is
               and then Object_Index in Resolved.Objects.First_Index .. Resolved.Objects.Last_Index
             then
                for Name of Item.Obj_Data.Names loop
-                  Items.Append
-                    ("{""name"":"
-                     & JS.Quote (Name)
-                     & ",""type"":"
-                     & Type_Json (Resolved.Objects (Object_Index).Type_Info)
-                     & ",""span"":"
-                     & JS.Span_Object (Item.Obj_Data.Span)
-                     & "}");
+                  declare
+                     Fields : String_Vectors.Vector;
+                     Info   : constant CM.Resolved_Object_Decl := Resolved.Objects (Object_Index);
+                  begin
+                     Fields.Append ("""name"":" & JS.Quote (Name));
+                     Fields.Append ("""type"":" & Type_Json (Info.Type_Info));
+                     Fields.Append ("""is_constant"":" & JS.Bool_Literal (Info.Is_Constant));
+                     case Info.Static_Info.Kind is
+                        when CM.Static_Value_Integer =>
+                           Fields.Append ("""static_value_kind"":""integer""");
+                           Fields.Append
+                             ("""static_value"":"
+                              & Trimmed (Info.Static_Info.Int_Value));
+                        when CM.Static_Value_Boolean =>
+                           Fields.Append ("""static_value_kind"":""boolean""");
+                           Fields.Append
+                             ("""static_value"":"
+                              & JS.Bool_Literal (Info.Static_Info.Bool_Value));
+                        when others =>
+                           null;
+                     end case;
+                     Fields.Append ("""span"":" & JS.Span_Object (Item.Obj_Data.Span));
+                     Items.Append ("{" & Join_Object_Fields (Fields) & "}");
+                  end;
                end loop;
             end if;
          end if;

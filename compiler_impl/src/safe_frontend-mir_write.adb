@@ -289,6 +289,8 @@ package body Safe_Frontend.Mir_Write is
         & JS.Quote (Item.Mode)
         & ",""name"":"
         & JS.Quote (Item.Name)
+        & ",""is_constant"":"
+        & JS.Bool_Literal (Item.Is_Constant)
         & ",""ownership_role"":"
         & JS.Quote (Item.Ownership_Role)
         & ",""scope_id"":"

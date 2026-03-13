@@ -100,4 +100,18 @@ package body Safe_Frontend.Check_Model is
            Note       => Note,
            Suggestion => Suggestion);
    end Source_Frontend_Error;
+
+   function Write_To_Constant
+     (Path    : String;
+      Span    : FT.Source_Span;
+      Message : String) return MD.Diagnostic
+   is
+   begin
+      return
+        Make_Diagnostic
+          (Reason  => "write_to_constant",
+           Path    => Path,
+           Span    => Span,
+           Message => Message);
+   end Write_To_Constant;
 end Safe_Frontend.Check_Model;

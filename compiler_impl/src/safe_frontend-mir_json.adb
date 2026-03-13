@@ -529,6 +529,11 @@ package body Safe_Frontend.Mir_Json is
       if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
          Result.Name := FT.To_UString (Get (Value, "name"));
       end if;
+      if Has_Field (Value, "is_constant")
+        and then Get (Value, "is_constant").Kind = JSON_Boolean_Type
+      then
+         Result.Is_Constant := Get (Get (Value, "is_constant"));
+      end if;
       if Has_Field (Value, "ownership_role")
         and then Get (Value, "ownership_role").Kind = JSON_String_Type
       then

@@ -1,0 +1,7 @@
+{
+  "format": "mir-v2",
+  "source_path": "fixtures/sample.safe",
+  "package_name": "Sample",
+  "types": [],
+  "graphs": []
+}

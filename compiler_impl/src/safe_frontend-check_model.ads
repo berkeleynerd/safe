@@ -111,10 +111,22 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Parameter_Spec);
 
+   type Static_Value_Kind is
+     (Static_Value_None,
+      Static_Value_Integer,
+      Static_Value_Boolean);
+
+   type Static_Value is record
+      Kind       : Static_Value_Kind := Static_Value_None;
+      Int_Value  : Wide_Integer := 0;
+      Bool_Value : Boolean := False;
+   end record;
+
    type Object_Decl is record
       Names           : FT.UString_Vectors.Vector;
       Decl_Type       : Type_Spec;
       Type_Info       : GM.Type_Descriptor;
+      Is_Constant     : Boolean := False;
       Has_Initializer : Boolean := False;
       Initializer     : Expr_Access := null;
       Span            : FT.Source_Span := FT.Null_Span;
@@ -386,8 +398,10 @@ package Safe_Frontend.Check_Model is
    type Resolved_Object_Decl is record
       Names           : FT.UString_Vectors.Vector;
       Type_Info       : GM.Type_Descriptor;
+      Is_Constant     : Boolean := False;
       Has_Initializer : Boolean := False;
       Initializer     : Expr_Access := null;
+      Static_Info     : Static_Value;
       Span            : FT.Source_Span := FT.Null_Span;
    end record;
 
@@ -502,4 +516,9 @@ package Safe_Frontend.Check_Model is
       Message : String;
       Note    : String := "";
       Suggestion : String := "") return MD.Diagnostic;
+
+   function Write_To_Constant
+     (Path    : String;
+      Span    : FT.Source_Span;
+      Message : String) return MD.Diagnostic;
 end Safe_Frontend.Check_Model;

@@ -16,7 +16,42 @@
   ],
   "subtypes": [],
   "channels": [],
-  "objects": [],
+  "objects": [
+    {
+      "name": "Max_Count",
+      "type": {
+        "name": "Count",
+        "kind": "integer",
+        "low": 0,
+        "high": 10
+      },
+      "is_constant": true,
+      "static_value_kind": "integer",
+      "static_value": 4,
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 10
+      }
+    },
+    {
+      "name": "Enabled",
+      "type": {
+        "name": "Boolean",
+        "kind": "boolean"
+      },
+      "is_constant": true,
+      "static_value_kind": "boolean",
+      "static_value": true,
+      "span": {
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 10
+      }
+    }
+  ],
   "subprograms": [
     {
       "name": "Next",

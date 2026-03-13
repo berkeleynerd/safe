@@ -55,6 +55,21 @@ INVALID_CONTRACT_CASES = [
         "source_path": "fixtures/sample.safe",
     },
     {
+        "name": "invalid_safei_constant_kind_without_constant",
+        "expected_error": "sample.safei.json.objects[0].static_value_kind requires is_constant to be true",
+        "source_path": "fixtures/sample.safe",
+    },
+    {
+        "name": "invalid_safei_constant_kind_mismatch",
+        "expected_error": "sample.safei.json.objects[0].static_value must be an integer",
+        "source_path": "fixtures/sample.safe",
+    },
+    {
+        "name": "invalid_safei_missing_static_value_kind",
+        "expected_error": "sample.safei.json.objects[0].static_value_kind is required when static_value is present",
+        "source_path": "fixtures/sample.safe",
+    },
+    {
         "name": "invalid_mir_source_path_mismatch",
         "expected_error": "sample.mir.json.source_path must preserve the exact emit CLI path",
         "source_path": "fixtures/sample.safe",

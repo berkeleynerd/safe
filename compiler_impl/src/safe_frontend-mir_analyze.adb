@@ -573,9 +573,14 @@ package body Safe_Frontend.Mir_Analyze is
    function Diagnostic_Category_Rank
      (Item : MD.Diagnostic) return Natural;
 
+   function Is_Constant_Target
+     (Expr       : GM.Expr_Access;
+      Local_Meta : Local_Maps.Map) return Boolean;
+
    procedure Validate_Assignment_Target
      (Expr      : GM.Expr_Access;
       Current   : State;
+      Local_Meta : Local_Maps.Map;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map);
@@ -628,6 +633,7 @@ package body Safe_Frontend.Mir_Analyze is
       Diagnostics : in out MD.Diagnostic_Vectors.Vector;
       Sequence    : in out Natural;
       Path_String : String;
+      Local_Meta  : Local_Maps.Map;
       Var_Types   : Type_Maps.Map;
       Owner_Vars  : String_Sets.Set;
       Type_Env    : Type_Maps.Map;
@@ -4108,17 +4114,55 @@ package body Safe_Frontend.Mir_Analyze is
       return 2;
    end Diagnostic_Category_Rank;
 
+   function Is_Constant_Target
+     (Expr       : GM.Expr_Access;
+      Local_Meta : Local_Maps.Map) return Boolean
+   is
+      Name : constant String := Root_Name (Expr);
+   begin
+      if Expr = null then
+         return False;
+      elsif Expr.Kind = GM.Expr_Select and then UString_Value (Expr.Selector) = "all" then
+         return False;
+      elsif Name /= ""
+        and then Local_Meta.Contains (Name)
+        and then Local_Meta.Element (Name).Is_Constant
+      then
+         return True;
+      end if;
+
+      case Expr.Kind is
+         when GM.Expr_Select | GM.Expr_Resolved_Index =>
+            return Is_Constant_Target (Expr.Prefix, Local_Meta);
+         when GM.Expr_Conversion =>
+            return Is_Constant_Target (Expr.Inner, Local_Meta);
+         when others =>
+            return False;
+      end case;
+   end Is_Constant_Target;
+
    procedure Validate_Assignment_Target
      (Expr      : GM.Expr_Access;
       Current   : State;
+      Local_Meta : Local_Maps.Map;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map) is
       Role : Access_Role_Kind;
       Diag : MD.Diagnostic;
+      Name : constant String := Root_Name (Expr);
    begin
       if Expr = null then
          return;
+      elsif Is_Constant_Target (Expr, Local_Meta) then
+         Raise_Diag
+           (Ownership_Diagnostic
+              ("write_to_constant",
+               Expr.Span,
+               "assignment target rooted in constant `"
+               & (if Name = "" then "<unknown>" else Name)
+               & "` is not writable",
+               "constant objects are immutable after declaration initialization in the current PR08.3a subset."));
       elsif Expr.Kind = GM.Expr_Ident then
          Role := Type_Access_Role (Resolve_Type (UString_Value (Expr.Name), Var_Types, Type_Env));
          if Role = Role_Observe or else Role = Role_Named_Constant then
@@ -4130,7 +4174,7 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
          end if;
       elsif Expr.Kind = GM.Expr_Select then
-         Validate_Assignment_Target (Expr.Prefix, Current, Var_Types, Type_Env, Functions);
+         Validate_Assignment_Target (Expr.Prefix, Current, Local_Meta, Var_Types, Type_Env, Functions);
          if UString_Value (Expr.Selector) = "Access" then
             declare
                Result : MD.Diagnostic := Null_Diagnostic;
@@ -4149,7 +4193,7 @@ package body Safe_Frontend.Mir_Analyze is
             Ensure_Access_Safe (Expr.Prefix, Expr.Prefix.Span, Current, Var_Types, Type_Env, Functions);
          end if;
       elsif Expr.Kind = GM.Expr_Resolved_Index then
-         Validate_Assignment_Target (Expr.Prefix, Current, Var_Types, Type_Env, Functions);
+         Validate_Assignment_Target (Expr.Prefix, Current, Local_Meta, Var_Types, Type_Env, Functions);
          declare
             Value : constant Interval := Eval_Index_Expr (Expr, Current, Var_Types, Type_Env, Functions);
          begin
@@ -4907,6 +4951,7 @@ package body Safe_Frontend.Mir_Analyze is
       Diagnostics : in out MD.Diagnostic_Vectors.Vector;
       Sequence    : in out Natural;
       Path_String : String;
+      Local_Meta  : Local_Maps.Map;
       Var_Types   : Type_Maps.Map;
       Owner_Vars  : String_Sets.Set;
       Type_Env    : Type_Maps.Map;
@@ -4970,13 +5015,15 @@ package body Safe_Frontend.Mir_Analyze is
             end loop;
          when GM.Op_Assign =>
             begin
-               if not (Op.Declaration_Init
-                       and then Base_Name (Op.Target) /= ""
-                       and then Var_Types.Contains (Base_Name (Op.Target))
-                       and then (Type_Access_Role (Var_Types.Element (Base_Name (Op.Target))) = Role_Borrow
-                                 or else Type_Access_Role (Var_Types.Element (Base_Name (Op.Target))) = Role_Observe))
+               if not Op.Declaration_Init
+                 and then not
+                   (Base_Name (Op.Target) /= ""
+                    and then Var_Types.Contains (Base_Name (Op.Target))
+                    and then (Type_Access_Role (Var_Types.Element (Base_Name (Op.Target))) = Role_Borrow
+                              or else Type_Access_Role (Var_Types.Element (Base_Name (Op.Target))) = Role_Observe))
                then
-                  Validate_Assignment_Target (Op.Target, Current, Var_Types, Type_Env, Functions);
+                  Validate_Assignment_Target
+                    (Op.Target, Current, Local_Meta, Var_Types, Type_Env, Functions);
                end if;
                Diag := Apply_Mir_Assignment (Op, Current, Var_Types, Owner_Vars, Type_Env, Functions);
                if Has_Text (Diag.Reason) then
@@ -5029,7 +5076,8 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
          when GM.Op_Channel_Receive =>
             begin
-               Validate_Assignment_Target (Op.Target, Current, Var_Types, Type_Env, Functions);
+               Validate_Assignment_Target
+                 (Op.Target, Current, Local_Meta, Var_Types, Type_Env, Functions);
                declare
                   Target_Name : constant String := Root_Name (Op.Target);
                begin
@@ -5078,6 +5126,7 @@ package body Safe_Frontend.Mir_Analyze is
                Validate_Assignment_Target
                  (Op.Success_Target,
                   Current,
+                  Local_Meta,
                   Var_Types,
                   Type_Env,
                   Functions);
@@ -5121,10 +5170,12 @@ package body Safe_Frontend.Mir_Analyze is
             end;
          when GM.Op_Channel_Try_Receive =>
             begin
-               Validate_Assignment_Target (Op.Target, Current, Var_Types, Type_Env, Functions);
+               Validate_Assignment_Target
+                 (Op.Target, Current, Local_Meta, Var_Types, Type_Env, Functions);
                Validate_Assignment_Target
                  (Op.Success_Target,
                   Current,
+                  Local_Meta,
                   Var_Types,
                   Type_Env,
                   Functions);
@@ -5276,7 +5327,7 @@ package body Safe_Frontend.Mir_Analyze is
       Loop_Header_Updates : Natural_Maps.Map;
       Sequence            : Natural := 0;
    begin
-      pragma Unreferenced (Local_Meta, Scope_Map);
+      pragma Unreferenced (Scope_Map);
       Initialize_Graph_Entry_State (Graph, Type_Env, Entry_State, Var_Types, Owner_Vars, Local_Meta, Scope_Map);
       for Block of Graph.Blocks loop
          Block_Map.Include (UString_Value (Block.Id), Block);
@@ -5330,7 +5381,17 @@ package body Safe_Frontend.Mir_Analyze is
             Block := Block_Map.Element (Block_Id);
             Current := In_States.Element (Block_Id);
             for Op of Block.Ops loop
-               Transfer_Mir_Op (Op, Current, Diagnostics, Sequence, Path_String, Var_Types, Owner_Vars, Type_Env, Functions);
+               Transfer_Mir_Op
+                 (Op,
+                  Current,
+                  Diagnostics,
+                  Sequence,
+                  Path_String,
+                  Local_Meta,
+                  Var_Types,
+                  Owner_Vars,
+                  Type_Env,
+                  Functions);
             end loop;
 
             case Block.Terminator.Kind is

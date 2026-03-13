@@ -381,7 +381,8 @@ package body Safe_Frontend.Check_Lower is
       Type_Info      : GM.Type_Descriptor;
       Span           : FT.Source_Span;
       Scope_Id       : String;
-      Ownership_Role : String := "") return FT.UString
+      Ownership_Role : String := "";
+      Is_Constant    : Boolean := False) return FT.UString
    is
       Local_Item : GM.Local_Entry;
       Role       : constant String :=
@@ -391,6 +392,7 @@ package body Safe_Frontend.Check_Lower is
       Local_Item.Name := FT.To_UString (Name);
       Local_Item.Kind := FT.To_UString (Kind);
       Local_Item.Mode := FT.To_UString (Mode);
+      Local_Item.Is_Constant := Is_Constant;
       Local_Item.Scope_Id := FT.To_UString (Scope_Id);
       Local_Item.Ownership_Role := FT.To_UString (Role);
       Local_Item.Type_Info := Type_Info;
@@ -843,7 +845,8 @@ package body Safe_Frontend.Check_Lower is
                      "in",
                      Stmt.Decl.Type_Info,
                      Stmt.Decl.Span,
-                     Parent_Id));
+                     Parent_Id,
+                     Is_Constant => Stmt.Decl.Is_Constant));
                Current_Visible.Include (UString_Value (Name), Stmt.Decl.Type_Info);
             end loop;
          elsif Stmt.Kind = CM.Stmt_Block then
@@ -863,7 +866,8 @@ package body Safe_Frontend.Check_Lower is
                            "in",
                            Decl.Type_Info,
                            Decl.Span,
-                           Scope_Id));
+                           Scope_Id,
+                           Is_Constant => Decl.Is_Constant));
                      Child.Include (UString_Value (Name), Decl.Type_Info);
                   end loop;
                end loop;
@@ -1874,7 +1878,8 @@ package body Safe_Frontend.Check_Lower is
                     "in",
                     Decl.Type_Info,
                     Decl.Span,
-                    "scope0");
+                    "scope0",
+                    Is_Constant => Decl.Is_Constant);
             begin
                Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
                  (Global_Local_Id);
@@ -1919,7 +1924,8 @@ package body Safe_Frontend.Check_Lower is
                   "in",
                   Decl.Type_Info,
                   Decl.Span,
-                  "scope0"));
+                  "scope0",
+                  Is_Constant => Decl.Is_Constant));
          end loop;
       end loop;
 
@@ -2069,7 +2075,8 @@ package body Safe_Frontend.Check_Lower is
                     "in",
                     Decl.Type_Info,
                     Decl.Span,
-                    "scope0");
+                    "scope0",
+                    Is_Constant => Decl.Is_Constant);
             begin
                Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
                  (Global_Local_Id);
@@ -2088,7 +2095,8 @@ package body Safe_Frontend.Check_Lower is
                   "in",
                   Decl.Type_Info,
                   Decl.Span,
-                  "scope0"));
+                  "scope0",
+                  Is_Constant => Decl.Is_Constant));
          end loop;
       end loop;
 

@@ -47,7 +47,7 @@ The `companion/templates/` directory contains 14 templates (M1–M7 complete) de
 | Companion VCs (flow / proved / justified / unproved) | 29 / 34 / 1 / 0 (64 total) |
 | Template VCs (flow / proved / justified / unproved) | 107 / 217 / 1 / 0 (325 total, 17 units) |
 | Tracked assumptions | 14 (4 critical, 4 major, 5 minor, 1 template) |
-| Test files | 143 |
+| Test files | 144 |
 
 ---
 
@@ -93,7 +93,7 @@ safe/
 ├── compiler_impl/               # Reference compiler workspace (early frontend)
 ├── clauses/                     # 205 clauses + PO mappings
 ├── execution/                   # Execution ledger, dashboard, and session notes
-├── tests/                       # 143 test files (6 categories)
+├── tests/                       # 144 test files (6 categories)
 ├── docs/                        # Technical documentation
 ├── scripts/                     # CI, validation, and automation helpers
 ├── meta/                        # Frozen commit SHA, generator version
@@ -151,7 +151,7 @@ See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the current workf
 | Emission templates | 14/14 proved (320 VCs, 0 unproved; M1–M7 complete) |
 | Compiler frontend | `compiler_impl/` current baseline: the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern, with Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit` |
 
-The repository now includes an Ada-native compiler frontend under `compiler_impl/`. The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the accepted local-only PR08.2 concurrency checking slice, and the PR08.3 interface-contract slice for `safei-v1` emission plus imported resolution through explicit `--interface-search-dir` inputs. It provides Ada-native `safec lex`, `ast`, `validate-mir`, `analyze-mir`, `check`, and `emit` for that supported surface, while Python remains glue/orchestration only around the compiler. The old shallow legacy frontend chain is gone. PR07 is the milestone that establishes this expanded baseline before PR08. PR08 continues on the live Ada-native path rather than reviving deleted packages.
+The repository now includes an Ada-native compiler frontend under `compiler_impl/`. The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the accepted local-only PR08.2 concurrency checking slice, the PR08.3 interface-contract slice for `safei-v1` emission plus imported resolution through explicit `--interface-search-dir` inputs, and the PR08.3a additive constant slice for ordinary `X : constant T = Expr;` declarations plus imported integer/boolean constant values in the current static-expression sites. It provides Ada-native `safec lex`, `ast`, `validate-mir`, `analyze-mir`, `check`, and `emit` for that supported surface, while Python remains glue/orchestration only around the compiler. The old shallow legacy frontend chain is gone. PR07 is the milestone that establishes this expanded baseline before PR08. PR08 continues on the live Ada-native path rather than reviving deleted packages.
 
 See [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current scale policy, and [`compiler_impl/README.md`](compiler_impl/README.md) for the workspace-level output and verification details.
 

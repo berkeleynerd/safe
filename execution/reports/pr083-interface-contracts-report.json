@@ -1096,7 +1096,7 @@
         "hashes": {
           "ast": "36eced619f38c33c5b142873a27d0247ceecd8cf86e65666ee4f37a520ba2e21",
           "mir": "d961032dbace50bb7d036793f2abb93480456a3a8335636e41e67d9bbbf7d02c",
-          "safei": "bb344c5b75d8fa1456b4e42d7dcdfaed7eca4844c93803439ceab988a5298fce",
+          "safei": "fdfaff6aeea50165447de1f104fc1f3cace4371b593365f72ef43d28d416f013",
           "typed": "700d775f81e8cb8be3825adf489cf40a41f4c31dad306dd16ece57824f53d9da"
         },
         "mir_summary": {
@@ -1333,7 +1333,7 @@
         },
         "hashes": {
           "ast": "dd61f126f075fd4f70a015040d7da25fc4cd46a731262ad8a8e1736e8ce6a82b",
-          "mir": "9bf2772ee800398ff679097e5f3514523746d57b72bf8987edcca40a8f92d32c",
+          "mir": "1a7c5b009fb25c685bffa9c87dabd131431314e9947025015f2d48405af9a34b",
           "safei": "b0b945cb8c6674b0940582dd5bb101de771ea6a9a90eea50a2a3fdb30dbc0609",
           "typed": "1b793326bab1a04904edb382f053c31df4802dd709b31ef0a5571eef29745632"
         },
@@ -1508,8 +1508,8 @@
       }
     }
   },
-  "repeat_sha256": "dc22e07be4e7a500dfa83abeb67b83d3e538db2ad471f877dfdb0f696f4b384a",
-  "report_sha256": "dc22e07be4e7a500dfa83abeb67b83d3e538db2ad471f877dfdb0f696f4b384a",
+  "repeat_sha256": "63da83fd81f04abcf6dba148d2417601e10f07ff80c688332fecd36b1619c352",
+  "report_sha256": "63da83fd81f04abcf6dba148d2417601e10f07ff80c688332fecd36b1619c352",
   "search_order": {
     "failure": {
       "command": [
@@ -1585,7 +1585,7 @@
       "hashes": {
         "ast": "e3755eb5b2786dfda65630da41b58388c13a67f4316cfe21053bc48192fa8c22",
         "mir": "eb5012b05a208ac15a020818af8d426535da08c8c5f1965993e2afbfbad4330f",
-        "safei": "7d5f2d679eef6a769664c1a09575f4ccdadff71b668adf527a569d55f15634d5",
+        "safei": "2986935b0d6aa2b184a48f5e8af26053cf7db16dd6361da05f376b757c4ffbdc",
         "typed": "1f45f82992dace62a4d7905157cc3050fa16da735e4a8115a7c2b1e87aea37f3"
       },
       "mir_payload": {
@@ -1621,6 +1621,7 @@
         "format": "safei-v1",
         "objects": [
           {
+            "is_constant": false,
             "name": "State",
             "span": {
               "end_col": 28,

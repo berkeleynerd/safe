@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR08.3a`
-- **Updated at:** `2026-03-13T00:07:34Z`
+- **Next task:** `PR08.3b`
+- **Updated at:** `2026-03-13T02:22:50Z`
 
 ## Repo Facts
 
-- `tests/positive`: 35
-- `tests/negative`: 69
+- `tests/positive`: 39
+- `tests/negative`: 73
 - `tests/golden`: 3
 - `tests/concurrency`: 12
 - `tests/diagnostics_golden`: 17
-- **Total test files:** 136
+- **Total test files:** 144
 
 ## Task Ledger
 
@@ -47,7 +47,7 @@
 | PR08.1 | done | PR07 | 1 |
 | PR08.2 | done | PR08.1 | 1 |
 | PR08.3 | done | PR08.2 | 1 |
-| PR08.3a | planned | PR08.3 | 0 |
+| PR08.3a | done | PR08.3 | 1 |
 | PR08.3b | planned | PR08.3a | 0 |
 | PR08.4 | planned | PR08.3 | 0 |
 | PR08 | planned | PR08.3b, PR08.4 | 0 |
@@ -444,7 +444,7 @@
 
 ### PR08.3a — Public constants and imported constant values
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR08.3
 - **Blockers:** none
 - **Acceptance:**
@@ -453,6 +453,8 @@
   - Provider/client fixtures prove imported public constants work in package-qualified static contexts without changing typed-v2, mir-v2, or adding new CLI JSON surfaces.
   - Missing or invalid imported constant values fail deterministically and safei-v1 constant payloads remain validator-covered and deterministic.
   - A dedicated PR08.3a gate and report cover imported public constants and keep committed evidence up to date.
+- **Evidence:**
+  - `execution/reports/pr083a-public-constants-report.json`
 
 ### PR08.3b — Named numbers
 
