@@ -655,11 +655,11 @@ package body Safe_Frontend.Interfaces is
                end if;
                if Kind.Kind /= JSON_Null_Type and then not Object.Is_Constant then
                   raise Constraint_Error with
-                    File_Path & ": objects[].static_value_kind requires is_constant = true";
+                    File_Path & ": objects[].static_value_kind requires is_constant to be true";
                end if;
                if Value.Kind /= JSON_Null_Type and then Kind.Kind = JSON_Null_Type then
                   raise Constraint_Error with
-                    File_Path & ": objects[].static_value requires static_value_kind";
+                    File_Path & ": objects[].static_value_kind is required when static_value is present";
                end if;
                if Kind.Kind /= JSON_Null_Type then
                   if Kind.Kind /= JSON_String_Type then
