@@ -1526,6 +1526,88 @@ the spec.
    with Safe's Ada heritage and word-based naming philosophy (`in out` not
    `&mut`, `access` not `*`).
 
+## Required Companion: Wide-Intermediate Overflow Checking
+
+**This section describes work that MUST ship with the Three-Tier Integer
+Model. Implementing one without the other creates a soundness hole in
+Silver.**
+
+### The problem
+
+The Safe spec defines intermediate arithmetic as operating on "mathematical
+integers" — unbounded, no overflow. The implementation approximates this
+with 64-bit `Wide_Integer`. Today, `Integer` is narrower than `Wide_Integer`
+(typically 32-bit), so the 64-bit intermediate has headroom and overflow is
+unlikely.
+
+The Three-Tier Model makes `integer` 64-bit — the same width as
+`Wide_Integer`. At that point there is zero headroom. Any arithmetic that
+could exceed 64-bit range overflows the implementation's intermediate, but
+the compiler's Silver analysis only checks overflow at **narrowing points**
+(wide → narrow conversion). When both operands and the result are `integer`,
+there is no narrowing point, and the overflow is undetected.
+
+### Example
+
+```
+function sum_range (lo, hi : integer) returns integer {
+   total : integer = 0
+   for i in lo .. hi {
+      total = total + i
+   }
+   return total
+}
+```
+
+Silver does not reject this today. But if `hi` is `integer'last`, the
+running `total` overflows 64-bit signed range. The "can't crash" guarantee
+has a silent exception.
+
+### The fix
+
+Extend the Silver analyzer's existing interval tracking to check every
+arithmetic expression against the `Wide_Integer` range, not just at explicit
+narrowing points. The machinery already exists — the analyzer computes
+intervals for every expression. The change is one additional check: if the
+computed interval of any arithmetic result exceeds -(2^63) .. (2^63 - 1),
+emit a diagnostic.
+
+For accumulating loops, the analyzer's interval for `total` grows without
+bound across iterations. The check rejects the program unless the developer
+bounds the loop range or uses a narrower accumulator:
+
+```
+type counter is range 0 .. 1_000_000
+
+function sum_range (lo, hi : counter) returns integer {
+   total : integer = 0
+   for i in lo .. hi {
+      total = total + integer (i)
+   }
+   return total
+}
+```
+
+Now the compiler knows: at most 1,000,000 iterations, each adding at most
+1,000,000. Maximum `total` is 10^12, which fits in 64-bit. Silver proves it.
+
+### Why they are coupled
+
+| Scenario | Without Three-Tier | With Three-Tier, without this fix |
+|---|---|---|
+| `integer + integer` | Lifted to 64-bit `Wide_Integer`; 32-bit operands can't overflow 64-bit | Both operands are already 64-bit; sum can overflow with no check |
+| Silver guarantee | Sound (headroom protects) | **Unsound** (no headroom, no check) |
+
+The Three-Tier Model must not ship without wide-intermediate overflow
+checking. They are a single atomic change to the language's soundness model.
+
+### Relationship to TBD-10
+
+TBD-10 in `spec/00-front-matter.md` §0.8 asks: "Numeric model: required
+ranges for predefined integer types." The Three-Tier Model resolves TBD-10
+by fixing `Integer` at 64-bit. This companion fix ensures the resolution
+does not weaken Silver.
+
 ---
 
 # Discriminant-Constrained Dispatch
@@ -1869,6 +1951,375 @@ TBD-13's cross-package type views — without committing to full OOP now.
    loop) becomes a single statement instead of a declaration-then-receive
    pair, and the compiler can enforce §97a structurally rather than relying
    solely on flow analysis.
+
+---
+
+# Optional Semicolons
+
+## Motivation
+
+Safe already uses braces for block delimiters, `=` for assignment, and `returns`
+for function signatures — each reducing ceremony inherited from Ada. Semicolons
+are the next candidate. In a brace-delimited language, the semicolon's
+block-structuring role is redundant; its only remaining job is separating
+consecutive statements on the same line or across lines.
+
+Go demonstrates that semicolons can be eliminated from source without
+ambiguity by having the lexer insert them automatically based on line-ending
+tokens.
+
+## Proposed Change
+
+Make semicolons **optional** in Safe source by adopting Go-style automatic
+semicolon insertion in the lexer.
+
+### Insertion rule
+
+After lexing a line, if the final token is one of the following, the lexer
+inserts a semicolon:
+
+- an identifier (including type names and keywords used as values: `True`,
+  `False`, `null`)
+- a numeric or string literal
+- `)`, `]`, or `}`
+- the keywords `return`, `end`
+
+All other line-ending tokens (operators, `,`, `(`, `{`, `is`, `then`, `else`,
+`elsif`, `loop`) do **not** trigger insertion, allowing statements to be
+broken across lines after those tokens.
+
+### What this enables
+
+```
+-- Semicolons omitted
+package Safe_Return {
+
+   type Bounded is range -500 .. 500
+   type Small is range -10 .. 10
+
+   function Signum (V : Bounded) returns Small {
+      if V > 0 {
+         return 1
+      } elsif V < 0 {
+         return -1
+      } else {
+         return 0
+      }
+   }
+
+   function Bounded_Add (A, B : Small) returns Bounded {
+      return Bounded (A) + Bounded (B)
+   }
+
+}
+```
+
+Explicit semicolons remain legal everywhere — existing code does not break.
+
+### Multi-line expressions
+
+The insertion rule means a line can only be continued **after** an operator or
+opening delimiter. This is the same constraint Go enforces:
+
+```
+-- Valid: break after operator
+Total = Base_Amount
+   + Tax
+   + Shipping
+
+-- Invalid: break before operator (lexer inserts semicolon after Base_Amount)
+Total = Base_Amount
+   + Tax
+```
+
+This constrains formatting style but eliminates parsing ambiguity without
+requiring an explicit line-continuation character.
+
+## Design Rationale
+
+- **Backward compatible** — semicolons are still accepted. No existing code
+  breaks. Teams that prefer explicit semicolons can continue using them.
+- **Proven model** — Go has used automatic semicolon insertion since 2009 with
+  no reported ambiguity issues. The rule is simple enough for developers to
+  internalise quickly.
+- **Reduces visual noise** — in brace-delimited code, semicolons after `}`
+  and before `}` are pure ceremony. Removing them produces cleaner code.
+- **Mechanical formatting** — `safe fmt` can strip or restore semicolons
+  deterministically, just as `gofmt` does.
+- **No grammar ambiguity** — the insertion rule is purely lexical. The parser
+  sees the same token stream regardless of whether the developer wrote the
+  semicolons or the lexer inserted them.
+
+## Interaction with `pragma Strict`
+
+Under `pragma Strict`, the language uses Ada-style `begin`/`end` delimiters
+where semicolons are syntactically required in more positions (e.g.,
+`end loop;`, `end Package_Name;`). Two options:
+
+1. **Semicolons remain required under `pragma Strict`** — strict mode is
+   explicitly about more rigorous syntax, so requiring semicolons fits.
+2. **Auto-insertion applies under both modes** — the insertion rule handles
+   `end` as a triggering token, so `end loop` at end-of-line would get an
+   auto-inserted semicolon.
+
+Option 1 is recommended: `pragma Strict` keeps semicolons mandatory,
+reinforcing the "explicit everything" philosophy of strict mode.
+
+## Alternatives Considered
+
+1. **Newline-as-terminator (Python/Ruby)** — makes semicolons an error rather
+   than optional. Too aggressive; breaks backward compatibility and prevents
+   multiple statements per line.
+
+2. **Explicit line continuation (`\` or `_`)** — adds a new token for
+   multi-line statements instead of relying on lexer rules. More ceremony,
+   not less.
+
+3. **Status quo (always required)** — safe and simple, but leaves Safe with
+   more ceremony than any C-family language for no parsing benefit in
+   brace-delimited mode.
+
+---
+
+# `else if` Keyword
+
+## Motivation
+
+Safe inherits `elsif` from Ada. In a brace-delimited language, `elsif` is an
+outlier — every C-family language uses `else if` as two separate tokens.
+With braces, `} else if cond {` reads naturally and requires no special
+compound keyword.
+
+## Proposed Change
+
+Replace `elsif` with `else if` throughout the grammar.
+
+### Brace syntax (default)
+
+```
+if v > 0 {
+   return 1
+} else if v < 0 {
+   return -1
+} else {
+   return 0
+}
+```
+
+### Under `pragma Strict`
+
+```
+if V > 0 then
+   return 1;
+else if V < 0 then
+   return -1;
+else
+   return 0;
+end if;
+```
+
+Under strict mode, `else if ... then` replaces `elsif ... then`. The closing
+`end if;` applies once to the entire chain, not per branch — the same
+semantics as the current `elsif` chain.
+
+## Design Rationale
+
+- **Familiar** — `else if` is universal across C, Go, Rust, Swift, Python,
+  JavaScript, and every mainstream language except Ada and its descendants.
+- **No ambiguity** — in both brace and strict modes, the parser treats
+  `else if` as an else-clause containing a nested if. The semantics are
+  identical to `elsif`.
+- **One fewer keyword** — `elsif` is removed from the reserved word list.
+  `else` and `if` are already reserved.
+- **Mechanical migration** — `elsif` → `else if` is a global find-replace
+  with no semantic change.
+
+## Alternatives Considered
+
+1. **Keep `elsif`** — preserves Ada compatibility. But Safe has already
+   departed from Ada syntax in multiple ways (braces, `=` for assignment,
+   `returns`, `==` for equality). `elsif` is not carrying its weight.
+
+2. **Support both `elsif` and `else if`** — avoid a breaking change. But
+   permitting two spellings of the same construct invites style inconsistency
+   and complicates the grammar for no benefit.
+
+---
+
+# Simplified Predefined Type Names
+
+## Motivation
+
+The Three-Tier Integer Model (proposed earlier in this document) introduces
+fixed-width types named `Integer_8`, `Integer_16`, `Integer_32`, `Integer_64`
+and `Unsigned_8`, `Unsigned_16`, `Unsigned_32`, `Unsigned_64`. These names are
+precise but verbose, and they read as Ada library types rather than language
+primitives.
+
+Every mainstream language provides short, familiar names for its built-in
+integer types:
+
+| Language | 8-bit unsigned | 16-bit signed | 32-bit signed | 64-bit signed |
+|----------|---------------|---------------|---------------|---------------|
+| Go       | `byte`        | `int16`       | `int32`       | `int64`       |
+| Java/C#  | `byte`        | `short`       | `int`         | `long`        |
+| Rust     | `u8`          | `i16`         | `i32`         | `i64`         |
+
+Safe's "words over symbols" philosophy (`in out` not `&mut`, `access` not `*`)
+favours the Java/C# style over the Rust style. But Safe's integer model
+differs from Java's in one important way: the default `integer` is always
+64-bit (matching the D27 wide intermediate range), not 32-bit.
+
+## Proposed Change
+
+Add short predefined names as built-in aliases for the fixed-width types.
+The full `Integer_N`/`Unsigned_N` names remain available.
+
+### Signed types
+
+| Short name | Alias for | Range |
+|------------|-----------|-------|
+| `integer`  | `Integer` (Tier 1) | -(2^63) .. (2^63 - 1) |
+| `short`    | `Integer_16` | -(2^15) .. (2^15 - 1) |
+
+### Unsigned types
+
+| Short name | Alias for | Range |
+|------------|-----------|-------|
+| `byte`     | `Unsigned_8` | 0 .. 255 |
+
+### What is NOT aliased
+
+| Full name | Reason |
+|-----------|--------|
+| `Integer_8` | Signed 8-bit is rare; `byte` covers the unsigned case |
+| `Integer_32` | Use `integer` (64-bit) for general arithmetic, range types for domain bounds |
+| `Integer_64` | Same range as `integer`; the alias would be redundant |
+| `Unsigned_16/32/64` | These are hardware/storage types used explicitly; short names add little |
+
+The set of short names is intentionally small. Developers who need a specific
+width spell it out: `Integer_32`, `Unsigned_16`. The short names cover the
+three most common cases: default arithmetic (`integer`), compact signed
+storage (`short`), and byte-level operations (`byte`).
+
+### Subtypes
+
+`natural` and `positive` remain as subtypes of `integer`:
+
+```
+subtype natural  is integer range 0 .. integer'last
+subtype positive is integer range 1 .. integer'last
+```
+
+### Example
+
+```
+package sensor_protocol {
+
+   type header is record {
+      version  : byte
+      msg_type : byte
+      length   : short
+      sequence : integer
+   }
+
+   function checksum (h : header) returns byte {
+      sum : integer = integer (h.version)
+                    + integer (h.msg_type)
+                    + integer (h.length)
+                    + integer (h.sequence)
+      return byte (sum mod 256)
+   }
+}
+```
+
+## Design Rationale
+
+- **Reads as English** — `version : byte` and `length : short` are
+  immediately clear to any programmer.
+- **Three names, not eight** — the short-name set covers the common cases
+  without creating a zoo of aliases.
+- **Consistent with Safe's philosophy** — words over symbols, familiarity
+  over Ada heritage.
+- **No ambiguity with range types** — `short` is a predefined type, not a
+  keyword. A developer can still write `type sensor_reading is range 0 .. 4095`
+  for domain-specific bounds. The two mechanisms serve different purposes.
+
+## Alternatives Considered
+
+1. **Go-style numeric names (`int8`, `int16`, `uint32`)** — concise but
+   reads as abbreviated jargon rather than English. Inconsistent with Safe's
+   word-based naming philosophy.
+
+2. **Rust-style (`i8`, `i16`, `u32`)** — maximally terse but even more
+   symbol-like. Poor fit for a language that uses `in out` and `access`.
+
+3. **Keep only the `Integer_N`/`Unsigned_N` names** — precise and
+   self-documenting, but verbose for everyday use. `h.version : Unsigned_8`
+   is noisier than `h.version : byte` for no informational gain.
+
+---
+
+# Case Insensitivity
+
+## Status
+
+This is a confirmation of inherited behaviour from Ada, with a note on
+possible future direction.
+
+## Current Rule
+
+Safe inherits Ada's case insensitivity (8652:2023 §2.3). Identifiers that
+differ only in case are the same identifier:
+
+```
+Counter, counter, COUNTER, cOuNtEr  -- all the same identifier
+```
+
+This applies everywhere: type names, variable names, function names, package
+names, keywords. The compiler normalises all identifiers internally.
+
+## Why This Is the Right Default
+
+- **Ada compatibility** — Safe is subtractively defined from Ada. Case
+  insensitivity is part of the base language.
+- **No case-convention wars** — teams do not need to agree on `camelCase` vs
+  `snake_case` vs `PascalCase` at the language level. The compiler treats
+  them identically.
+- **Readable at any style** — `Get_Length`, `get_length`, and `getLength`
+  all work. Code from different style backgrounds compiles without renaming.
+- **Grep-friendly with `-i`** — searching for identifiers does not require
+  exact-case matching.
+
+## Possible Future Direction: Meaningful Capitalisation
+
+Go uses capitalisation as a visibility mechanism: `Exported` (uppercase
+initial) vs `unexported` (lowercase initial). This is a powerful, zero-syntax
+way to express visibility.
+
+Safe already has the `public` keyword for visibility, so Go-style
+capitalisation is not needed for that purpose today. However, a future
+language revision could assign semantic meaning to case in other ways:
+
+- **Constant naming** — `ALL_CAPS` identifiers could be recognised as
+  constants by convention or by rule.
+- **Type vs value distinction** — `PascalCase` for types, `snake_case` for
+  values, enforced by the compiler.
+- **Module-level exports** — if `public` were ever removed in favour of
+  case-based visibility.
+
+Any such change would be a significant departure from Ada's case-insensitive
+model and would require a separate proposal with migration analysis. Until
+then, Safe remains fully case-insensitive.
+
+## Interaction with `pragma Strict`
+
+Case insensitivity applies identically under both default and strict modes.
+`pragma Strict` controls block delimiters and closing labels, not identifier
+casing.
+
+A separate `pragma Style` or formatting tool could enforce a consistent
+casing convention per project without changing the language semantics.
 
 ---
 
