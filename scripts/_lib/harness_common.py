@@ -29,6 +29,17 @@ def normalize_argv(
 ) -> list[str]:
     normalized: list[str] = []
     for item in argv:
+        if "=" in item:
+            prefix, suffix = item.split("=", 1)
+            candidate = Path(suffix)
+            if candidate.is_absolute():
+                if temp_root is not None and temp_root in candidate.parents:
+                    normalized.append(prefix + "=$TMPDIR/" + str(candidate.relative_to(temp_root)))
+                elif repo_root in candidate.parents:
+                    normalized.append(prefix + "=" + str(candidate.relative_to(repo_root)))
+                else:
+                    normalized.append(prefix + "=" + candidate.name)
+                continue
         candidate = Path(item)
         if candidate.is_absolute():
             if temp_root is not None and temp_root in candidate.parents:

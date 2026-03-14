@@ -6,8 +6,8 @@
     "frontend_baseline": "docs/frontend_architecture_baseline.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "7bf4805ba34c37fbc0a0a4bb54c0c8319edd34305e9ff61e14d8e8df4b96d636",
-  "report_sha256": "7bf4805ba34c37fbc0a0a4bb54c0c8319edd34305e9ff61e14d8e8df4b96d636",
+  "repeat_sha256": "3e55a546998c04b9c21e98047d879965bb06042705c96258001399c2d6144895",
+  "report_sha256": "3e55a546998c04b9c21e98047d879965bb06042705c96258001399c2d6144895",
   "retired_snapshots_absent": [
     "tests/golden/golden_sensors.ada",
     "tests/golden/golden_ownership.ada",
@@ -16,37 +16,37 @@
   "slice_reports": [
     {
       "deterministic": true,
-      "report_sha256": "f36b45bc2e26eb95ee945730116760c2b9d5a94b4d2cedfd98b6b20aee1bb69a",
+      "report_sha256": "cd850c0f8df7316ab20380dd94ff2e58e8a550a171b1bfc5cf0dd994e5ab3028",
       "script": "scripts/run_pr09a_emitter_surface.py",
       "stdout": "pr09a emitter surface: OK ($TMPDIR/run_pr09a_emitter_surface.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "7db8228c1f71a5fedb52e3907cf7c1e3a14aa63198dc0d4bd59e241148838548",
+      "report_sha256": "de069fc3e412a34db7714a7d0f73490274dd3928ccf97fb536e2e2ffe08db7fd",
       "script": "scripts/run_pr09a_emitter_mvp.py",
       "stdout": "pr09a emitter MVP: OK ($TMPDIR/run_pr09a_emitter_mvp.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "281b8823dfde307483b510cea95b47455417128ea9326f9efa6c6eae11c6344f",
+      "report_sha256": "dd750aa840afd4df9d621c6d389c52e453b2f1548798673d75d951dc341deba0",
       "script": "scripts/run_pr09b_sequential_semantics.py",
       "stdout": "pr09b sequential semantics: OK ($TMPDIR/run_pr09b_sequential_semantics.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "35970dfb25b038c37e8e101ba1d174625fdf5d37c045f1f01cb34afb83ad8c60",
+      "report_sha256": "313b059cbfe579608b554de2070cbd84f51562246b051d9503a146329ad43626",
       "script": "scripts/run_pr09b_concurrency_output.py",
       "stdout": "pr09b concurrency output: OK ($TMPDIR/run_pr09b_concurrency_output.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "f560d764fcec4a77e9c4484708a514f0d2bd8d8e5a5e666c6a38a5c31c7f29c5",
+      "report_sha256": "71ff1dbbb59abfab356d055520b31064c41a4075b4eb1a1f13bc4b23c0412683",
       "script": "scripts/run_pr09b_snapshot_refresh.py",
       "stdout": "pr09b snapshot refresh: OK ($TMPDIR/run_pr09b_snapshot_refresh.json)\n"
     }
   ],
   "tracker": {
-    "next_task_id": "PR10",
+    "next_task_id": null,
     "pr09_evidence": [
       "execution/reports/pr09a-emitter-surface-report.json",
       "execution/reports/pr09a-emitter-mvp-report.json",

@@ -1,7 +1,7 @@
 with Safe_Runtime;
 use type Safe_Runtime.Wide_Integer;
 
-package body Sensor_Average is
+package body Sensor_Average with SPARK_Mode => On is
 
    function Average(Data : Readings) return Reading is
       Sum : Safe_Runtime.Wide_Integer := Safe_Runtime.Wide_Integer (0);

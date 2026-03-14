@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-14T13:55:27Z",
+  "updated_at": "2026-03-14T18:40:06Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR10",
+  "next_task_id": null,
   "repo_facts": {
     "tests": {
       "positive": 44,
@@ -579,12 +579,19 @@
     {
       "id": "PR10",
       "title": "GNATprove flow/prove gate on emitted output",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR09"],
       "acceptance": [
-        "Selected emitted outputs build and pass GNATprove flow/prove with zero unproved checks."
+        "The selected emitted corpus spans Rules 1-5, ownership, and concurrency through the named PR10 fixtures.",
+        "Selected emitted outputs build and pass GNATprove flow/prove with zero warnings, zero justified checks, and zero unproved checks.",
+        "docs/emitted_output_verification_matrix.md is the canonical emitted-output coverage statement, and docs/post_pr10_scope.md records every residual gap beyond the selected corpus."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr10-contract-baseline-report.json",
+        "execution/reports/pr10-emitted-flow-report.json",
+        "execution/reports/pr10-emitted-prove-report.json",
+        "execution/reports/pr10-emitted-baseline-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     }

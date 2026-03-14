@@ -1045,6 +1045,142 @@ jobs:
         working-directory: .
         run: git diff --exit-code execution/reports/pr09-ada-emission-baseline-report.json
 
+  pr10-contract-baseline:
+    name: PR10 Contract Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Run PR10 contract baseline gate
+        working-directory: .
+        run: python3 scripts/run_pr10_contract_baseline.py
+
+      - name: Verify committed PR10 contract evidence is up to date
+        working-directory: .
+        run: git diff --exit-code execution/reports/pr10-contract-baseline-report.json
+
+  pr10-emitted-flow:
+    name: PR10 Emitted Flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Install GNATprove
+        working-directory: .
+        run: |
+          alr install gnatprove
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
+      - name: Build compiler frontend
+        working-directory: .
+        run: cd compiler_impl && alr build
+
+      - name: Run PR10 emitted flow gate
+        working-directory: .
+        run: python3 scripts/run_pr10_emitted_flow.py
+
+      - name: Verify committed PR10 emitted flow evidence is up to date
+        working-directory: .
+        run: git diff --exit-code execution/reports/pr10-emitted-flow-report.json
+
+  pr10-emitted-prove:
+    name: PR10 Emitted Prove
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Install GNATprove
+        working-directory: .
+        run: |
+          alr install gnatprove
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
+      - name: Build compiler frontend
+        working-directory: .
+        run: cd compiler_impl && alr build
+
+      - name: Run PR10 emitted prove gate
+        working-directory: .
+        run: python3 scripts/run_pr10_emitted_prove.py
+
+      - name: Verify committed PR10 emitted prove evidence is up to date
+        working-directory: .
+        run: git diff --exit-code execution/reports/pr10-emitted-prove-report.json
+
+  pr10-emitted-baseline:
+    name: PR10 Emitted Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Install GNATprove
+        working-directory: .
+        run: |
+          alr install gnatprove
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
+      - name: Build compiler frontend
+        working-directory: .
+        run: cd compiler_impl && alr build
+
+      - name: Run PR10 emitted baseline gate
+        working-directory: .
+        run: python3 scripts/run_pr10_emitted_baseline.py
+
+      - name: Verify committed PR10 baseline evidence is up to date
+        working-directory: .
+        run: git diff --exit-code execution/reports/pr10-emitted-baseline-report.json
+
   spark-verify:
     name: Build & Verify SPARK Companion
     runs-on: ubuntu-latest

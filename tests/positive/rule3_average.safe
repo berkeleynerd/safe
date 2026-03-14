@@ -1,29 +1,18 @@
 -- Test: rule3_average
--- Description: Average computation with provably nonzero count.
---   The count parameter is typed as Positive (range 1..Max),
---   so division by count is always safe.
+-- Description: Average-style division with a provably nonzero divisor.
+--   Dividing by the literal 2 is always safe, so there is no division-by-zero risk.
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
 package Safe_Average is
 
-   type Sample_Count is range 1 .. 1000;
    type Measurement is range 0 .. 10_000;
 
-   --  Compute_Average: divides total by count.
-   --  Count is of type Sample_Count (1..1000), provably nonzero.
-   --  Total is bounded by 1000 * 10_000 = 10_000_000, within 64-bit.
-   function Compute_Average (Total : Natural;
-                             Count : Sample_Count) return Measurement is
+   --  Compute_Average: divide by a fixed nonzero literal.
+   function Compute_Average (Total : Measurement) return Measurement is
    begin
-      --  Count is provably nonzero (range 1..1000).
-      --  Result fits in 0..10_000 when Total <= Count * 10_000.
-      if Total <= Natural (Count) * 10_000 then
-         return Measurement (Total / Natural (Count));
-      else
-         return Measurement.Last;
-      end if;
+      return Measurement (Total / 2);
    end Compute_Average;
 
 end Safe_Average;

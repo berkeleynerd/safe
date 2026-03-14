@@ -1,0 +1,43 @@
+{
+  "deterministic": true,
+  "docs": {
+    "compiler_readme": "compiler_impl/README.md",
+    "dashboard_synced": true,
+    "frontend_baseline": "docs/frontend_architecture_baseline.md",
+    "matrix": "docs/emitted_output_verification_matrix.md",
+    "post_pr10_scope": "docs/post_pr10_scope.md",
+    "readme": "README.md"
+  },
+  "repeat_sha256": "35bbc2b847f45222422055031c8db32f49a1d9fa90f0f2f4f1013afaebdd07fa",
+  "report_sha256": "35bbc2b847f45222422055031c8db32f49a1d9fa90f0f2f4f1013afaebdd07fa",
+  "slice_reports": [
+    {
+      "deterministic": true,
+      "report_sha256": "0997c78f4d8522ecedff1b9559d55df97de6ff7efc94bf138e3149a84afaaea4",
+      "script": "scripts/run_pr10_contract_baseline.py",
+      "stdout": "pr10 contract baseline: OK ($TMPDIR/run_pr10_contract_baseline.json)\n"
+    },
+    {
+      "deterministic": true,
+      "report_sha256": "ede0689787f3f2f44ffb3f17f591c95d04977ae593e2f34a75845aaab763ce9c",
+      "script": "scripts/run_pr10_emitted_flow.py",
+      "stdout": "pr10 emitted flow: OK ($TMPDIR/run_pr10_emitted_flow.json)\n"
+    },
+    {
+      "deterministic": true,
+      "report_sha256": "10b3bc00bdc705eb5a536d8550fcf2b6c498efb2e726a9efd19b200243740f0c",
+      "script": "scripts/run_pr10_emitted_prove.py",
+      "stdout": "pr10 emitted prove: OK ($TMPDIR/run_pr10_emitted_prove.json)\n"
+    }
+  ],
+  "tracker": {
+    "next_task_id": null,
+    "pr10_evidence": [
+      "execution/reports/pr10-contract-baseline-report.json",
+      "execution/reports/pr10-emitted-flow-report.json",
+      "execution/reports/pr10-emitted-prove-report.json",
+      "execution/reports/pr10-emitted-baseline-report.json"
+    ],
+    "pr10_status": "done"
+  }
+}

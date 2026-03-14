@@ -1,6 +1,6 @@
 with Ada.Unchecked_Deallocation;
 
-package body Ownership_Move is
+package body Ownership_Move with SPARK_Mode => On is
 
    procedure Transfer is
       Source : Payload_Ptr := new Payload'(Value => 42);

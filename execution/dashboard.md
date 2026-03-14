@@ -3,8 +3,8 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR10`
-- **Updated at:** `2026-03-14T13:55:27Z`
+- **Next task:** `none`
+- **Updated at:** `2026-03-14T18:40:06Z`
 
 ## Repo Facts
 
@@ -51,7 +51,7 @@
 | PR08.4 | done | PR08.3 | 1 |
 | PR08 | done | PR08.4 | 1 |
 | PR09 | done | PR08 | 6 |
-| PR10 | planned | PR09 | 0 |
+| PR10 | done | PR09 | 4 |
 
 ## Acceptance Snapshot
 
@@ -498,8 +498,15 @@
 
 ### PR10 — GNATprove flow/prove gate on emitted output
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR09
 - **Blockers:** none
 - **Acceptance:**
-  - Selected emitted outputs build and pass GNATprove flow/prove with zero unproved checks.
+  - The selected emitted corpus spans Rules 1-5, ownership, and concurrency through the named PR10 fixtures.
+  - Selected emitted outputs build and pass GNATprove flow/prove with zero warnings, zero justified checks, and zero unproved checks.
+  - docs/emitted_output_verification_matrix.md is the canonical emitted-output coverage statement, and docs/post_pr10_scope.md records every residual gap beyond the selected corpus.
+- **Evidence:**
+  - `execution/reports/pr10-contract-baseline-report.json`
+  - `execution/reports/pr10-emitted-flow-report.json`
+  - `execution/reports/pr10-emitted-prove-report.json`
+  - `execution/reports/pr10-emitted-baseline-report.json`

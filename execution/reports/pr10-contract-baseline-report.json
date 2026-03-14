@@ -1,0 +1,41 @@
+{
+  "contract": {
+    "acceptance": [
+      "The selected emitted corpus spans Rules 1-5, ownership, and concurrency through the named PR10 fixtures.",
+      "Selected emitted outputs build and pass GNATprove flow/prove with zero warnings, zero justified checks, and zero unproved checks.",
+      "docs/emitted_output_verification_matrix.md is the canonical emitted-output coverage statement, and docs/post_pr10_scope.md records every residual gap beyond the selected corpus."
+    ],
+    "coverage_categories": [
+      "Rule 1",
+      "Rule 2",
+      "Rule 3",
+      "Rule 4",
+      "Rule 5",
+      "ownership",
+      "concurrency"
+    ],
+    "selected_corpus": [
+      "tests/positive/rule1_averaging.safe",
+      "tests/positive/rule2_binary_search.safe",
+      "tests/positive/rule3_average.safe",
+      "tests/positive/rule1_parameter.safe",
+      "tests/positive/ownership_move.safe",
+      "tests/positive/rule4_linked_list.safe",
+      "tests/positive/rule5_normalize.safe",
+      "tests/positive/channel_pingpong.safe",
+      "tests/positive/channel_pipeline.safe",
+      "tests/concurrency/select_with_delay.safe"
+    ]
+  },
+  "deterministic": true,
+  "docs": {
+    "compiler_readme": "compiler_impl/README.md",
+    "frontend_baseline": "docs/frontend_architecture_baseline.md",
+    "matrix": "docs/emitted_output_verification_matrix.md",
+    "post_pr10_scope": "docs/post_pr10_scope.md",
+    "readme": "README.md"
+  },
+  "repeat_sha256": "0997c78f4d8522ecedff1b9559d55df97de6ff7efc94bf138e3149a84afaaea4",
+  "report_sha256": "0997c78f4d8522ecedff1b9559d55df97de6ff7efc94bf138e3149a84afaaea4",
+  "task": "PR10"
+}

@@ -1,0 +1,3067 @@
+{
+  "deterministic": true,
+  "fixtures": [
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "sensor_average.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/rule1_averaging.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 1,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 5,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 5,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 4,
+                "detail": "40%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 6,
+                "detail": "60%"
+              },
+              "total": {
+                "count": 10,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 4,
+              "detail": "40%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 6,
+              "detail": "60%"
+            },
+            "total": {
+              "count": 10,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "binary_search.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/rule2_binary_search.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 3,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 3,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 6,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 6,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 1,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 6,
+                "detail": "38%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 10,
+                "detail": "63%"
+              },
+              "total": {
+                "count": 16,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 6,
+              "detail": "38%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 10,
+              "detail": "63%"
+            },
+            "total": {
+              "count": 16,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "safe_average.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/rule3_average.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 1,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 4,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 4,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 4,
+                "detail": "44%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 5,
+                "detail": "56%"
+              },
+              "total": {
+                "count": 9,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 4,
+              "detail": "44%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 5,
+              "detail": "56%"
+            },
+            "total": {
+              "count": 9,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "safe_parameters.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/rule1_parameter.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 1,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 3,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 3,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 5,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 5,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 8,
+                "detail": "57%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 6,
+                "detail": "43%"
+              },
+              "total": {
+                "count": 14,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 8,
+              "detail": "57%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 6,
+              "detail": "43%"
+            },
+            "total": {
+              "count": 14,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "ownership_move.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/ownership_move.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 5,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 5,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 2,
+                "detail": "29%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 5,
+                "detail": "71%"
+              },
+              "total": {
+                "count": 7,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 2,
+              "detail": "29%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 5,
+              "detail": "71%"
+            },
+            "total": {
+              "count": 7,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "safe_linked_list.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/rule4_linked_list.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 3,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 7,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 7,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 2,
+                "detail": "Trivial"
+              },
+              "total": {
+                "count": 4,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 7,
+                "detail": "44%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 9,
+                "detail": "56%"
+              },
+              "total": {
+                "count": 16,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 7,
+              "detail": "44%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 9,
+              "detail": "56%"
+            },
+            "total": {
+              "count": 16,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "vector_normalize.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/rule5_normalize.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 3,
+                "detail": "CVC5 67%, Trivial 33%"
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 5,
+                "detail": "63%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 3,
+                "detail": "38%"
+              },
+              "total": {
+                "count": 8,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 5,
+              "detail": "63%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 3,
+              "detail": "38%"
+            },
+            "total": {
+              "count": 8,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "ping_pong.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/channel_pingpong.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on",
+          "-cargs",
+          "-gnatec=$TMPDIR/ada/gnat.adc"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 2,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 2,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 12,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 12,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 26,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 26,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 15,
+                "detail": "37%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 26,
+                "detail": "63%"
+              },
+              "total": {
+                "count": 41,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 15,
+              "detail": "37%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 26,
+              "detail": "63%"
+            },
+            "total": {
+              "count": 41,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "pipeline.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/positive/channel_pipeline.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on",
+          "-cargs",
+          "-gnatec=$TMPDIR/ada/gnat.adc"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 3,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 3,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 14,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 14,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 27,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 27,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 18,
+                "detail": "40%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 27,
+                "detail": "60%"
+              },
+              "total": {
+                "count": 45,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 18,
+              "detail": "40%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 27,
+              "detail": "60%"
+            },
+            "total": {
+              "count": 45,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "select_with_delay.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "fixture": "tests/concurrency/select_with_delay.safe",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "$TMPDIR/ada/build.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on",
+          "-cargs",
+          "-gnatec=$TMPDIR/ada/gnat.adc"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0,
+        "summary": {
+          "rows": {
+            "Assertions": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Concurrency": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Data Dependencies": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Flow Dependencies": {
+              "flow": {
+                "count": 1,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 1,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Functional Contracts": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Initialization": {
+              "flow": {
+                "count": 8,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 8,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "LSP Verification": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Non-Aliasing": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Run-time Checks": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 15,
+                "detail": "CVC5"
+              },
+              "total": {
+                "count": 15,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Termination": {
+              "flow": {
+                "count": 0,
+                "detail": ""
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 0,
+                "detail": ""
+              },
+              "total": {
+                "count": 0,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            },
+            "Total": {
+              "flow": {
+                "count": 9,
+                "detail": "38%"
+              },
+              "justified": {
+                "count": 0,
+                "detail": ""
+              },
+              "provers": {
+                "count": 15,
+                "detail": "63%"
+              },
+              "total": {
+                "count": 24,
+                "detail": ""
+              },
+              "unproved": {
+                "count": 0,
+                "detail": ""
+              }
+            }
+          },
+          "total": {
+            "flow": {
+              "count": 9,
+              "detail": "38%"
+            },
+            "justified": {
+              "count": 0,
+              "detail": ""
+            },
+            "provers": {
+              "count": 15,
+              "detail": "63%"
+            },
+            "total": {
+              "count": 24,
+              "detail": ""
+            },
+            "unproved": {
+              "count": 0,
+              "detail": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "notes": [
+    "PR10 selected emitted outputs compile and pass GNATprove prove with all-proved-only semantics.",
+    "The prove gate treats warnings as errors and requires zero justified plus zero unproved checks."
+  ],
+  "repeat_sha256": "10b3bc00bdc705eb5a536d8550fcf2b6c498efb2e726a9efd19b200243740f0c",
+  "report_sha256": "10b3bc00bdc705eb5a536d8550fcf2b6c498efb2e726a9efd19b200243740f0c"
+}

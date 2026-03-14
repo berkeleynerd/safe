@@ -72,7 +72,7 @@ def generate_report(*, safec: Path, env: dict[str, str]) -> dict[str, object]:
             spec_path = body_path.with_suffix(".ads")
             fragments = ["protected type", "task "]
             if fixture.name == "select_with_delay.safe":
-                body_fragments = ["select", "delay 0.05;", ".Receive ("]
+                body_fragments = ["Try_Receive (", "Select_Done", "delay 0.05;"]
             else:
                 body_fragments = [".Send (", ".Receive ("]
             fixtures.append(

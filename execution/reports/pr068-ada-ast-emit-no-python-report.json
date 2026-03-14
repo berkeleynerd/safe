@@ -26,10 +26,10 @@
   "deterministic": true,
   "deterministic_outputs": {
     "tests/positive/rule2_binary_search.safe": {
-      "iface/rule2_binary_search.safei.json": "1313762ddb7bb6ee079a053403e0da7adc34bca3b40d8aceb632e990b89efa06",
-      "out/rule2_binary_search.ast.json": "8be5388c0d93d0a069c083cb5ed210ef111abd5c7bbae6cd689b0fe9da19fc51",
-      "out/rule2_binary_search.mir.json": "b64c4cd083526e86a4a84eef432a0dc05e098a81bff98c595687e635286c5264",
-      "out/rule2_binary_search.typed.json": "11ae1dec406b00e2168de8641f9c5d1b119a2e6e8e83ebe66d958e392ddb66f5"
+      "iface/rule2_binary_search.safei.json": "5afb9dac240a321770bbe5962e8b2f8a79eacb3a72cdf311dc0215c05c1b1a79",
+      "out/rule2_binary_search.ast.json": "193ef7c79a3399e4acc5b5727d33a80fdcde94c9c2bbdb41059ad0417c639727",
+      "out/rule2_binary_search.mir.json": "e894656d80e073ef09231c944694d230ec21c8781330ebd38e1c32d601a86f7c",
+      "out/rule2_binary_search.typed.json": "38e3c2b3d157f69eeb5b23dd1c004e3c58e84daa1737fa87722195e11a34cce6"
     },
     "tests/positive/rule4_conditional.safe": {
       "iface/rule4_conditional.safei.json": "206b289a0f8ed8a59c8c5b9d124c1f6fadfefdfc72c5a990bc86daa5fcc06ccb",
@@ -657,10 +657,10 @@
           "stdout": ""
         },
         "hashes": {
-          "iface/rule2_binary_search.safei.json": "1313762ddb7bb6ee079a053403e0da7adc34bca3b40d8aceb632e990b89efa06",
-          "out/rule2_binary_search.ast.json": "8be5388c0d93d0a069c083cb5ed210ef111abd5c7bbae6cd689b0fe9da19fc51",
-          "out/rule2_binary_search.mir.json": "b64c4cd083526e86a4a84eef432a0dc05e098a81bff98c595687e635286c5264",
-          "out/rule2_binary_search.typed.json": "11ae1dec406b00e2168de8641f9c5d1b119a2e6e8e83ebe66d958e392ddb66f5"
+          "iface/rule2_binary_search.safei.json": "5afb9dac240a321770bbe5962e8b2f8a79eacb3a72cdf311dc0215c05c1b1a79",
+          "out/rule2_binary_search.ast.json": "193ef7c79a3399e4acc5b5727d33a80fdcde94c9c2bbdb41059ad0417c639727",
+          "out/rule2_binary_search.mir.json": "e894656d80e073ef09231c944694d230ec21c8781330ebd38e1c32d601a86f7c",
+          "out/rule2_binary_search.typed.json": "38e3c2b3d157f69eeb5b23dd1c004e3c58e84daa1737fa87722195e11a34cce6"
         },
         "mir_analysis": {
           "command": [
@@ -821,8 +821,8 @@
       "python3.11": "$TMPDIR/python-mask/python3.11"
     }
   },
-  "repeat_sha256": "fb5dad460923a6437fddb1553838c8f1ded3551639a20579b8d816204a244b0e",
-  "report_sha256": "fb5dad460923a6437fddb1553838c8f1ded3551639a20579b8d816204a244b0e",
+  "repeat_sha256": "c214eaa36f4cdf82c2ba1c83403ecb8a8d15ccc968ec800d87252d9b88d25879",
+  "report_sha256": "c214eaa36f4cdf82c2ba1c83403ecb8a8d15ccc968ec800d87252d9b88d25879",
   "runtime_rule": {
     "banned_tokens_absent": [
       "Run_Backend",

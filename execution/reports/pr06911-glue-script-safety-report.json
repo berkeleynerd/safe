@@ -133,13 +133,13 @@
       "report_sha256": "80d6827f5a41c28626f50dc113594795f2216057504f11de8f5139cc31bb75ed"
     }
   },
-  "repeat_sha256": "8395501198e8aa44614ba67f1b52e04fbebdd05f9aa5ae5fa33fef852d4818ac",
-  "report_sha256": "8395501198e8aa44614ba67f1b52e04fbebdd05f9aa5ae5fa33fef852d4818ac",
+  "repeat_sha256": "4abebf19c5ce97781d2632266a9ffefc42b74efe813b393e8383bc7631eecd94",
+  "report_sha256": "4abebf19c5ce97781d2632266a9ffefc42b74efe813b393e8383bc7631eecd94",
   "reruns": {
     "gate_quality": {
-      "repeat_sha256": "1e92f36eb6170aa8f65dd9b9d558110ce628503e4c29712320c44f2df0cac366",
+      "repeat_sha256": "6ae6bf20cad621f70a9a4ff2ee1fc43066c19c5d1507f6e1af39485f5b820c41",
       "report_path": "execution/reports/pr0697-gate-quality-report.json",
-      "report_sha256": "1e92f36eb6170aa8f65dd9b9d558110ce628503e4c29712320c44f2df0cac366",
+      "report_sha256": "6ae6bf20cad621f70a9a4ff2ee1fc43066c19c5d1507f6e1af39485f5b820c41",
       "run": {
         "command": [
           "python3",
@@ -152,9 +152,9 @@
       }
     },
     "portability_environment": {
-      "repeat_sha256": "2d475a4e25225bbae8653311b53a13741efe97a1084cb755f5572f16ac416071",
+      "repeat_sha256": "c90e045698db36444cf77ff23bd50a97db557b1536da0102884faca7d4fb7dce",
       "report_path": "execution/reports/pr06910-portability-environment-report.json",
-      "report_sha256": "2d475a4e25225bbae8653311b53a13741efe97a1084cb755f5572f16ac416071",
+      "report_sha256": "c90e045698db36444cf77ff23bd50a97db557b1536da0102884faca7d4fb7dce",
       "run": {
         "command": [
           "python3",
@@ -208,6 +208,6 @@
     "cwd": "$REPO_ROOT",
     "result": "OK",
     "returncode": 0,
-    "tests_ran": 80
+    "tests_ran": 83
   }
 }

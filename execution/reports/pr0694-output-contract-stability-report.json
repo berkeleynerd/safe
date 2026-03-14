@@ -136,10 +136,10 @@
           }
         ],
         "file_hashes": {
-          "iface/rule2_binary_search.safei.json": "1313762ddb7bb6ee079a053403e0da7adc34bca3b40d8aceb632e990b89efa06",
-          "out/rule2_binary_search.ast.json": "8be5388c0d93d0a069c083cb5ed210ef111abd5c7bbae6cd689b0fe9da19fc51",
-          "out/rule2_binary_search.mir.json": "f7b1764aa7c7bab3f547b069317179f2505ebc487c5c4560c19099b8ef46d121",
-          "out/rule2_binary_search.typed.json": "11ae1dec406b00e2168de8641f9c5d1b119a2e6e8e83ebe66d958e392ddb66f5"
+          "iface/rule2_binary_search.safei.json": "5afb9dac240a321770bbe5962e8b2f8a79eacb3a72cdf311dc0215c05c1b1a79",
+          "out/rule2_binary_search.ast.json": "193ef7c79a3399e4acc5b5727d33a80fdcde94c9c2bbdb41059ad0417c639727",
+          "out/rule2_binary_search.mir.json": "8ddef2bdf36c26fed45b3f5269f622e6236fc1a48036553c6c2d844214694419",
+          "out/rule2_binary_search.typed.json": "38e3c2b3d157f69eeb5b23dd1c004e3c58e84daa1737fa87722195e11a34cce6"
         },
         "format_tags": {
           "mir": "mir-v2",
@@ -434,8 +434,8 @@
       "public_interface"
     ]
   },
-  "repeat_sha256": "325dc460823994f78872ffe4081fc118a3fb4f8ee9a34a3efbe02a77f6ad68d4",
-  "report_sha256": "325dc460823994f78872ffe4081fc118a3fb4f8ee9a34a3efbe02a77f6ad68d4",
+  "repeat_sha256": "f208795bbd87801c4c7be9dab3038dce26da4c8e90bcaf17c1e789f3c29d646d",
+  "report_sha256": "f208795bbd87801c4c7be9dab3038dce26da4c8e90bcaf17c1e789f3c29d646d",
   "status": "ok",
   "task": "PR06.9.4"
 }

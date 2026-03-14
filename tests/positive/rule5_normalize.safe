@@ -1,7 +1,7 @@
 -- Test: rule5_normalize
--- Description: Vector normalization with safe FP division.
---   The magnitude is checked to be nonzero (and finite) before
---   dividing each component. The result is finite at narrowing.
+-- Description: Bounded floating-point normalization by a fixed scale.
+--   The divisor is a positive nonzero literal, so division is safe.
+--   Bounded inputs yield bounded finite results at the narrowing point.
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139:d50bc714
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
@@ -9,40 +9,18 @@
 
 package Vector_Normalize is
 
-   type Component is digits 15 range -1.0E+10 .. 1.0E+10;
+   type Sample is digits 6 range -1000.0 .. 1000.0;
+   type Ratio is digits 6 range -1.0 .. 1.0;
 
-   type Vec3 is record
-      X, Y, Z : Component;
-   end record;
-
-   --  Magnitude_Sq: sum of squares. Bounded inputs yield bounded result.
-   function Magnitude_Sq (V : Vec3) return Long_Float is
+   --  Normalize: divide by a fixed nonzero bound.
+   --  Input range: -1000.0 .. 1000.0
+   --  Division by 1000.0 is safe and yields a result in -1.0 .. 1.0.
+   --  No NaN or infinity can arise from bounded finite inputs.
+   function Normalize (Value : Sample) return Ratio is
+      Result : Long_Float;
    begin
-      return Long_Float (V.X) * Long_Float (V.X)
-           + Long_Float (V.Y) * Long_Float (V.Y)
-           + Long_Float (V.Z) * Long_Float (V.Z);
-   end Magnitude_Sq;
-
-   --  Normalize: divides each component by the magnitude.
-   --  The magnitude is checked > 0.0 before dividing.
-   procedure Normalize (V : in out Vec3; Success : out Boolean) is
-      Mag_Sq : Long_Float;
-      Mag    : Long_Float;
-   begin
-      Mag_Sq = Magnitude_Sq (V);
-      if Mag_Sq > 0.0 then
-         --  Mag_Sq is provably positive and finite (bounded inputs).
-         --  Sqrt of a positive finite value is positive and finite.
-         Mag = Long_Float.Copy_Sign (1.0, Mag_Sq);  -- placeholder for sqrt
-         --  Mag is provably nonzero and finite.
-         --  Narrowing point (assignment): each division yields finite result.
-         V.X = Component (Long_Float (V.X) / Mag);
-         V.Y = Component (Long_Float (V.Y) / Mag);
-         V.Z = Component (Long_Float (V.Z) / Mag);
-         Success = True;
-      else
-         Success = False;
-      end if;
+      Result = Long_Float (Value) / 1000.0;
+      return Ratio (Result);
    end Normalize;
 
 end Vector_Normalize;

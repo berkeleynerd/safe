@@ -114,6 +114,8 @@ safe/
 | Current frontend boundary | [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) |
 | Frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
 | Frontend scale limits | [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) |
+| Emitted output verification matrix | [`docs/emitted_output_verification_matrix.md`](docs/emitted_output_verification_matrix.md) |
+| Post-PR10 residual ledger | [`docs/post_pr10_scope.md`](docs/post_pr10_scope.md) |
 | SPARK companion overview | [`release/COMPANION_README.md`](release/COMPANION_README.md) |
 | Full traceability | [`docs/traceability_matrix.md`](docs/traceability_matrix.md) |
 | PO procedure index | [`docs/po_index.md`](docs/po_index.md) |
@@ -127,16 +129,17 @@ safe/
 
 ## Continuous Integration
 
-CI runs a matrix of execution-guard checks, frontend smoke and regression/hardening gates through PR06.9.13, the PR08 frontend baseline jobs, the PR09 Ada-emission slice/baseline jobs, and the SPARK companion plus emission-template verification jobs.
+CI runs a matrix of execution-guard checks, frontend smoke and regression/hardening gates through PR06.9.13, the PR08 frontend baseline jobs, the PR09 Ada-emission slice/baseline jobs, the PR10 emitted-output GNATprove contract/flow/prove/baseline jobs, and the SPARK companion plus emission-template verification jobs.
 
 The frontend matrix now enforces:
 
 - Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit`
 - the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern
 - Python as glue/orchestration only around the compiler
-- deterministic committed evidence for the PR06.9.x hardening series, the PR08 frontend baseline, and the PR09 Ada-emission baseline
+- deterministic committed evidence for the PR06.9.x hardening series, the PR08 frontend baseline, the PR09 Ada-emission baseline, and the PR10 emitted-output GNATprove baseline
+- selected emitted-output GNATprove `flow` / `prove` verification for Rules 1-5, ownership, and the current concurrency emission corpus under an all-proved-only policy
 
-See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the current workflow definition, [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, and [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current cliff-detection scale policy.
+See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the current workflow definition, [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current cliff-detection scale policy, and [`docs/emitted_output_verification_matrix.md`](docs/emitted_output_verification_matrix.md) for the canonical emitted-output assurance boundary.
 
 For local milestone work, you can enforce the same serial gate/report-refresh lesson before `git push`:
 
@@ -144,7 +147,7 @@ For local milestone work, you can enforce the same serial gate/report-refresh le
 git config core.hooksPath .githooks
 ```
 
-That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_push.py), which maps known `codex/pr08...` and `codex/pr09...` branches to the appropriate milestone gate plus the downstream evidence-refresh chain, then requires `git diff --exit-code` to remain clean. Unknown milestone branches fail closed until the mapping is updated.
+That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_push.py), which maps known `codex/pr08...`, `codex/pr09...`, and `codex/pr10...` branches to the appropriate milestone gate plus the downstream evidence-refresh chain, then requires `git diff --exit-code` to remain clean. Unknown milestone branches fail closed until the mapping is updated.
 
 ---
 
@@ -159,9 +162,9 @@ That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_p
 | Emission templates | 14/14 proved (320 VCs, 0 unproved; M1–M7 complete) |
 | Compiler frontend | `compiler_impl/` current baseline: the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern, with Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit` |
 
-The repository now includes an Ada-native compiler frontend under `compiler_impl/`. The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the accepted local-only PR08.2 concurrency checking slice, the PR08.3 interface-contract slice for `safei-v1` emission plus imported resolution through explicit `--interface-search-dir` inputs, the PR08.3a additive constant slice for ordinary `X : constant T = Expr;` declarations plus imported integer/boolean constant values in the current static-expression sites, and the PR08.4 transitive integration slice for imported-summary consumption plus cross-package ownership/channel-ceiling analysis. It provides Ada-native `safec lex`, `ast`, `validate-mir`, `analyze-mir`, `check`, and `emit` for that supported surface, while Python remains glue/orchestration only around the compiler. The old shallow legacy frontend chain is gone. PR08 is now the supported frontend baseline, and later work continues on that live Ada-native path rather than reviving deleted packages. `safec emit --ada-out-dir` can now additionally write deterministic Ada/SPARK artifacts for the current PR09 subset, including `.ads` / `.adb`, optional `safe_runtime.ads`, and optional `gnat.adc`.
+The repository now includes an Ada-native compiler frontend under `compiler_impl/`. The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, the accepted local-only PR08.2 concurrency checking slice, the PR08.3 interface-contract slice for `safei-v1` emission plus imported resolution through explicit `--interface-search-dir` inputs, the PR08.3a additive constant slice for ordinary `X : constant T = Expr;` declarations plus imported integer/boolean constant values in the current static-expression sites, and the PR08.4 transitive integration slice for imported-summary consumption plus cross-package ownership/channel-ceiling analysis. It provides Ada-native `safec lex`, `ast`, `validate-mir`, `analyze-mir`, `check`, and `emit` for that supported surface, while Python remains glue/orchestration only around the compiler. The old shallow legacy frontend chain is gone. PR08 is now the supported frontend baseline, and later work continues on that live Ada-native path rather than reviving deleted packages. `safec emit --ada-out-dir` can now additionally write deterministic Ada/SPARK artifacts for the current PR09 subset, including `.ads` / `.adb`, optional `safe_runtime.ads`, and optional `gnat.adc`. PR10 adds selected emitted-output GNATprove verification for Rules 1-5, ownership, and the current concurrency emission corpus; [`docs/emitted_output_verification_matrix.md`](docs/emitted_output_verification_matrix.md) is the canonical coverage statement, and [`docs/post_pr10_scope.md`](docs/post_pr10_scope.md) records every residual beyond that selected proof corpus.
 
-See [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current scale policy, and [`compiler_impl/README.md`](compiler_impl/README.md) for the workspace-level output and verification details.
+See [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current scale policy, [`docs/emitted_output_verification_matrix.md`](docs/emitted_output_verification_matrix.md) for emitted-output assurance coverage, and [`compiler_impl/README.md`](compiler_impl/README.md) for the workspace-level output and verification details.
 
 
 ---

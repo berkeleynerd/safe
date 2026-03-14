@@ -90,6 +90,9 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 |------|--------|------|----------|
 | Selective interface search-dir scanning or scoped tolerance for unrelated malformed `.safei.json` files | `PR08.3` review fallout | `tooling` | `nice-to-have` |
 | Ada-side Bronze regression harness independent of Python evidence re-derivation | `PR08.2` review fallout | `tooling` | `nice-to-have` |
+| Emitted-output GNATprove coverage beyond the selected PR10 sequential corpus | `docs/emitted_output_verification_matrix.md`, `execution/tracker.json` | `tooling` | `long-term` |
+| Emitted-output GNATprove coverage beyond the selected PR10 concurrency corpus | `docs/emitted_output_verification_matrix.md`, `execution/tracker.json` | `tooling` | `long-term` |
+| I/O seam wrapper obligations beyond direct emitted-package proof | `docs/emitted_output_verification_matrix.md` | `tooling` | `long-term` |
 | Diagnostic catalogue and localisation (TBD-05) | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
 | Stabilise and document interchange-format policy for existing `safei-v1` and `mir-v2` artifacts, including compatibility and what is normative versus implementation-defined (TBD-08) | `spec/00-front-matter.md` section `0.8`, `compiler_impl/src/safe_frontend-interfaces.adb`, `compiler_impl/src/safe_frontend-mir_analyze.adb` | `tooling` | `long-term` |
 | Performance targets (TBD-02) | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
@@ -106,7 +109,7 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 | Numeric model: required ranges for predefined integer types (TBD-10) | `spec/00-front-matter.md` section `0.8` | `spec` | `blocking-if-needed` |
 | Automatic deallocation semantics and ordering at scope exit (TBD-11) | `spec/00-front-matter.md` section `0.8` | `spec` | `blocking-if-needed` |
 | Modular arithmetic wrapping semantics (TBD-12) | `spec/00-front-matter.md` section `0.8` | `spec` | `blocking-if-needed` |
-| Broad proof-obligation discharge beyond the selected PR10 GNATprove gate | `docs/po_index.md`, `execution/tracker.json` | `spec` | `long-term` |
+| Jorvik/Ravenscar runtime scheduling, ceiling-locking, and polling-timing obligations beyond direct emitted-package proof | `docs/emitted_output_verification_matrix.md`, `spec/04-tasks-and-channels.md` | `spec` | `long-term` |
 | Limited/private type views across packages (TBD-13) | `spec/00-front-matter.md` section `0.8` | `language-design` | `long-term` |
 | Partial initialisation facility (TBD-14) | `spec/00-front-matter.md` section `0.8` | `language-design` | `long-term` |
 
@@ -116,8 +119,8 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 |----------|------:|
 | `blocking-if-needed` | 14 |
 | `nice-to-have` | 3 |
-| `long-term` | 14 |
-| **Total** | **31** |
+| `long-term` | 17 |
+| **Total** | **34** |
 
 See [`docs/post_pr10_scope_audit.md`](post_pr10_scope_audit.md) for the audit
 record that removed fixed items, pre-PR10 tracked work, spec-excluded rows, and

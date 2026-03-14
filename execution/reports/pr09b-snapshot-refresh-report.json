@@ -1,7 +1,7 @@
 {
   "deterministic": true,
-  "repeat_sha256": "f560d764fcec4a77e9c4484708a514f0d2bd8d8e5a5e666c6a38a5c31c7f29c5",
-  "report_sha256": "f560d764fcec4a77e9c4484708a514f0d2bd8d8e5a5e666c6a38a5c31c7f29c5",
+  "repeat_sha256": "71ff1dbbb59abfab356d055520b31064c41a4075b4eb1a1f13bc4b23c0412683",
+  "report_sha256": "71ff1dbbb59abfab356d055520b31064c41a4075b4eb1a1f13bc4b23c0412683",
   "retired_snapshots_absent": [
     "tests/golden/golden_sensors.ada",
     "tests/golden/golden_ownership.ada",
@@ -16,7 +16,7 @@
           "sha256": "1e2fcc19815107411c19daec797fc78f9a1f5357527b26c5611e8b5ab6b76b3a"
         },
         "sensor_average.adb": {
-          "sha256": "7135cc711a6f61516102e07e132dde005b00be95a6fc355239f761ddb0d1cbad"
+          "sha256": "9011cb90053d1aed632e5b1646062430ae8bb56d710ce7de080c5fae4b4321f4"
         },
         "sensor_average.ads": {
           "sha256": "b2c94dfa2474bcfd1f8f238dd54b7cc52993e97720b6ee03570b425ea5d5581a"
@@ -28,7 +28,7 @@
       "golden_dir": "tests/golden/golden_ownership",
       "hashes": {
         "ownership_move.adb": {
-          "sha256": "caee9e45b7ccdc187fa930571e9c155c760425ac3968206ad5145f47758d89df"
+          "sha256": "d23bd21dc655a59b1965fe45fc7c231e462c8d86978e95bb86a2bd65ec575cb1"
         },
         "ownership_move.ads": {
           "sha256": "76046e138c42551c25e2982f1db7ff51e44b74419162f694d9af4961e0943bc2"
@@ -43,13 +43,10 @@
           "sha256": "02f745f7b4743057317a8e6b81f29ef7431b7672dc8d5cdc4ea5550036d82daf"
         },
         "pipeline.adb": {
-          "sha256": "8e5fa2d527d0003935f4e65a36162499935f47f230e686ce7c754384a9b145c4"
+          "sha256": "f14695e4ffe1781c8594fc6863e0118a64c8c7a516a32fbd1c8213a1d78d6f47"
         },
         "pipeline.ads": {
-          "sha256": "83e39535b65ee91fa26e8ee9ff6d06997081df9ca6d083176a709100895cdcc5"
-        },
-        "safe_runtime.ads": {
-          "sha256": "1e2fcc19815107411c19daec797fc78f9a1f5357527b26c5611e8b5ab6b76b3a"
+          "sha256": "2a4f25a5495fc1a84782e506cd6de6e9e17e501eb8c32edac54fa4bbdb8967c6"
         }
       }
     }

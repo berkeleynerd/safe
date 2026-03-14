@@ -46,6 +46,7 @@ PRIMARY_GATE_SCRIPTS = {
         "scripts/run_pr08_frontend_baseline.py",
     ),
     "codex/pr09": ("scripts/run_pr09_ada_emission_baseline.py",),
+    "codex/pr10": ("scripts/run_pr10_emitted_baseline.py",),
 }
 
 
@@ -65,7 +66,7 @@ def gate_scripts_for_branch(branch: str) -> tuple[str, ...]:
     for prefix, scripts in PRIMARY_GATE_SCRIPTS.items():
         if branch == prefix or branch.startswith(prefix + "-"):
             return scripts
-    if branch.startswith("codex/pr08") or branch.startswith("codex/pr09"):
+    if branch.startswith("codex/pr08") or branch.startswith("codex/pr09") or branch.startswith("codex/pr10"):
         raise RuntimeError(
             f"{branch}: no local pre-push plan is defined yet; update scripts/run_local_pre_push.py"
         )

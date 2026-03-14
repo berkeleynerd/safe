@@ -17,6 +17,12 @@ All of those commands are Ada-native runtime surfaces for the current implemente
 
 PR09 adds deterministic Ada/SPARK emission on top of that PR08 frontend baseline through `safec emit --ada-out-dir`, without widening the accepted frontend-analysis subset.
 
+PR10 adds selected emitted-output GNATprove `flow` / `prove` verification on top
+of that emitted surface without claiming universal proof coverage for every
+currently emitted Safe program. [`emitted_output_verification_matrix.md`](emitted_output_verification_matrix.md)
+is the canonical statement of what emitted output is compile-validated,
+GNATprove-validated, exception-backed, or deferred.
+
 ## Current Supported Subset
 
 The current frontend supports the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern.
@@ -49,7 +55,7 @@ The following surfaces remain explicitly out of scope for the current frontend b
 - discriminant constraints
 - access discriminants
 - named numbers and richer constant folding beyond the PR08.3a constant slice
-- broader proof-ready Ada/SPARK emission work beyond the current PR09 subset
+- emitted-output GNATprove coverage beyond the selected PR10 corpus
 
 ## No-Python Doctrine
 

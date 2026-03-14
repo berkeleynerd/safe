@@ -1,6 +1,6 @@
 # SafeC Frontend
 
-This workspace hosts the current Safe compiler frontend baseline established by PR08 on top of the PR06.9.x hardening series, plus the PR09 Ada/SPARK emission layer on top of that baseline.
+This workspace hosts the current Safe compiler frontend baseline established by PR08 on top of the PR06.9.x hardening series, plus the PR09 Ada/SPARK emission layer and the PR10 selected emitted-output GNATprove layer on top of that baseline.
 
 ## Current Boundary
 
@@ -27,7 +27,7 @@ All current user-facing `safec` commands are Ada-native for that supported surfa
 
 PR06.9.12 is a cliff-detection gate, not a benchmark commitment, for that current frontend subset.
 
-See [`../docs/frontend_architecture_baseline.md`](../docs/frontend_architecture_baseline.md) for the canonical frontend boundary and [`../docs/frontend_scale_limits.md`](../docs/frontend_scale_limits.md) for the current cliff-detection scale policy.
+See [`../docs/frontend_architecture_baseline.md`](../docs/frontend_architecture_baseline.md) for the canonical frontend boundary, [`../docs/frontend_scale_limits.md`](../docs/frontend_scale_limits.md) for the current cliff-detection scale policy, and [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md) for the emitted-output assurance boundary.
 For a host-local end-to-end walkthrough from Safe source to a runnable native
 binary, see [`../docs/safec_end_to_end_cli_tutorial.md`](../docs/safec_end_to_end_cli_tutorial.md).
 On macOS, local emitted-Ada executable builds should use a generated project
@@ -52,6 +52,7 @@ The only live frontend path is now the Ada-native `Check_*` plus `Mir_*` pipelin
 
 PR08 extends the live `Check_*` + `Mir_*` pipeline, and the current frontend baseline is now PR08.
 PR09 layers deterministic Ada/SPARK emission on top of that frontend baseline through the optional `--ada-out-dir` path.
+PR10 layers selected emitted-output GNATprove verification on top of that emitted surface; [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md) is the canonical statement of what is compile-only versus `flow` / `prove` verified, and [`../docs/post_pr10_scope.md`](../docs/post_pr10_scope.md) records everything still open after the selected proof corpus.
 
 Unsupported-feature classification rule:
 - `unsupported_source_construct` means the Ada-native frontend recognized a construct that is outside the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern.
@@ -364,6 +365,42 @@ python3 scripts/run_pr09_ada_emission_baseline.py
 ```
 
 That gate reruns the PR09 slice gates, verifies tracker/dashboard/docs describe PR09 as complete with `PR10` next, and records results in `execution/reports/pr09-ada-emission-baseline-report.json`.
+
+The PR10 contract baseline gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr10_contract_baseline.py
+```
+
+That gate verifies the PR10 acceptance contract, selected emitted proof corpus, emitted-output verification matrix, README cross-links, and post-PR10 residual ledger, then records results in `execution/reports/pr10-contract-baseline-report.json`.
+
+The PR10 emitted flow gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr10_emitted_flow.py
+```
+
+That gate emits the selected PR10 corpus, compiles each emitted package, runs `gnatprove --mode=flow --warnings=error`, and records results in `execution/reports/pr10-emitted-flow-report.json`.
+
+The PR10 emitted prove gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr10_emitted_prove.py
+```
+
+That gate emits the selected PR10 corpus, compiles each emitted package, runs `gnatprove --mode=prove` under the fixed prover profile, requires zero warnings plus zero justified and zero unproved checks, and records results in `execution/reports/pr10-emitted-prove-report.json`.
+
+The PR10 emitted baseline gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr10_emitted_baseline.py
+```
+
+That gate reruns the PR10 contract, flow, and prove gates, verifies tracker/dashboard/docs describe PR10 as complete with no next tracked milestone, and records results in `execution/reports/pr10-emitted-baseline-report.json`.
 
 To enforce the local pre-push gate chain in this clone, enable the tracked hook once:
 

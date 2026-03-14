@@ -15,31 +15,51 @@ package Safe_Linked_List is
       Next  : Node_Ptr;
    end record;
 
-   --  Length: counts the number of nodes in the list.
-   --  The while loop guard checks Current != null before dereference.
-   function Length (Head : Node_Ptr) return Natural is
-      Count   : Natural = 0;
-      Current : Node_Ptr = Head;
+   --  Last_Value: traverses to the tail and returns its value.
+   --  The traversal uses a local observer derived from Head.Access.
+   function Last_Value (Head : Node_Ptr) return Integer is
    begin
-      while Current != null loop
-         --  Current is provably not null by the while guard.
-         Count = Count + 1;
-         Current = Current.all.Next;
-      end loop;
-      return Count;
-   end Length;
+      if Head == null then
+         return 0;
+      end if;
 
-   --  Sum: sums all values in the list.
-   function Sum (Head : Node_Ptr) return Integer is
-      Total   : Integer = 0;
-      Current : Node_Ptr = Head;
+      declare
+         Current : access constant Node = Head.Access;
+      begin
+         while Current != null loop
+            if Current.all.Next == null then
+               return Current.all.Value;
+            else
+               Current = Current.all.Next.Access;
+            end if;
+         end loop;
+      end;
+
+      return 0;
+   end Last_Value;
+
+   --  Has_Tail: proves nested null guards before traversing further.
+   function Has_Tail (Head : Node_Ptr) return Boolean is
    begin
-      while Current != null loop
-         --  Current is provably not null by the while guard.
-         Total = Total + Current.all.Value;
-         Current = Current.all.Next;
-      end loop;
-      return Total;
-   end Sum;
+      if Head == null then
+         return False;
+      end if;
+
+      declare
+         Current : access constant Node = Head.Access;
+      begin
+         while Current != null loop
+            if Current.all.Next == null then
+               return False;
+            elsif Current.all.Next.all.Next == null then
+               return True;
+            else
+               Current = Current.all.Next.Access;
+            end if;
+         end loop;
+      end;
+
+      return False;
+   end Has_Tail;
 
 end Safe_Linked_List;

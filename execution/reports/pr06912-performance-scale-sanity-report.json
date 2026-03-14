@@ -15,9 +15,9 @@
       "budget_pass": true,
       "count": 32,
       "largest_sample": {
-        "bytes": 1822,
-        "lines": 48,
-        "path": "tests/positive/rule5_normalize.safe"
+        "bytes": 1830,
+        "lines": 53,
+        "path": "tests/positive/rule2_binary_search.safe"
       }
     }
   },
@@ -67,7 +67,7 @@
     ],
     "missing_doc_files": []
   },
-  "repeat_sha256": "261bfa99a239c5daa7ef7f8cc96bff24a89033181a2b953155008ead478eac22",
+  "repeat_sha256": "a6999c30412a8b5f2e5fc53239a926ae587f3d5dc2f1426b852c134515decca6",
   "repeated_scenarios": {
     "analyze_mir": [
       {
@@ -117,8 +117,8 @@
         "median_budget_ms": 500.0,
         "repetitions": 5,
         "sample": {
-          "bytes": 1781,
-          "lines": 51,
+          "bytes": 1830,
+          "lines": 53,
           "path": "tests/positive/rule2_binary_search.safe"
         }
       },
@@ -161,11 +161,11 @@
       },
       {
         "artifact_bytes": {
-          "ast": 39532,
-          "mir": 13839,
-          "safei": 431,
-          "total": 93906,
-          "typed": 40104
+          "ast": 38292,
+          "mir": 14401,
+          "safei": 434,
+          "total": 91994,
+          "typed": 38867
         },
         "artifact_ratio_caps": {
           "ast": 32.0,
@@ -179,8 +179,8 @@
         "median_budget_ms": 1000.0,
         "repetitions": 3,
         "sample": {
-          "bytes": 1781,
-          "lines": 51,
+          "bytes": 1830,
+          "lines": 53,
           "path": "tests/positive/rule2_binary_search.safe"
         }
       },
@@ -216,7 +216,7 @@
     "check": 5,
     "emit": 3
   },
-  "report_sha256": "261bfa99a239c5daa7ef7f8cc96bff24a89033181a2b953155008ead478eac22",
+  "report_sha256": "a6999c30412a8b5f2e5fc53239a926ae587f3d5dc2f1426b852c134515decca6",
   "status": "ok",
   "task": "PR06.9.12"
 }

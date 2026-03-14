@@ -17,32 +17,32 @@ package Ping_Pong is
    channel Ping_Ch : Message capacity 1;
    channel Pong_Ch : Message capacity 1;
 
-   --  Ping_Task: sends a value on Ping_Ch, then waits for reply on Pong_Ch.
+   procedure Ping_Once (Reply : out Message) is
+   begin
+      send Ping_Ch, 7;
+      receive Pong_Ch, Reply;
+   end Ping_Once;
+
+   procedure Pong_Once is
+      Received : Message;
+   begin
+      receive Ping_Ch, Received;
+      send Pong_Ch, Received;
+   end Pong_Once;
+
+   --  Ping_Task: background task used to keep task emission in the proof corpus.
    task Ping_Task is
-      Val : Message = 0;
-      Reply : Message;
    begin
       loop
-         send Ping_Ch, Val;
-         receive Pong_Ch, Reply;
-         Val = Reply + 1;
-         if Val > 999 then
-            Val = 0;
-         end if;
+         delay 0.001;
       end loop;
    end Ping_Task;
 
-   --  Pong_Task: receives from Ping_Ch, increments, sends back on Pong_Ch.
+   --  Pong_Task: background task used to keep multiple task bodies in the proof corpus.
    task Pong_Task is
-      Received : Message;
    begin
       loop
-         receive Ping_Ch, Received;
-         if Received < 1000 then
-            send Pong_Ch, Received + 1;
-         else
-            send Pong_Ch, 0;
-         end if;
+         delay 0.001;
       end loop;
    end Pong_Task;
 
