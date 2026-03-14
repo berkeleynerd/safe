@@ -95,6 +95,55 @@ package body Safe_Frontend.Driver is
          raise;
    end Write_File;
 
+   procedure Best_Effort_Delete (Path : String) is
+   begin
+      if Ada.Directories.Exists (Path) then
+         Ada.Directories.Delete_File (Path);
+      end if;
+   exception
+      when others =>
+         null;
+   end Best_Effort_Delete;
+
+   procedure Write_Shared_Support_File
+     (Path     : String;
+      Contents : String) is
+      Temp_Path   : constant String := Path & ".safec-tmp";
+      Backup_Path : constant String := Path & ".safec-bak";
+      Had_Target  : constant Boolean := Ada.Directories.Exists (Path);
+   begin
+      Best_Effort_Delete (Temp_Path);
+      Best_Effort_Delete (Backup_Path);
+
+      Write_File (Temp_Path, Contents);
+
+      if Had_Target then
+         Ada.Directories.Rename (Old_Name => Path, New_Name => Backup_Path);
+      end if;
+
+      begin
+         Ada.Directories.Rename (Old_Name => Temp_Path, New_Name => Path);
+      exception
+         when others =>
+            Best_Effort_Delete (Temp_Path);
+            if Had_Target and then Ada.Directories.Exists (Backup_Path) then
+               begin
+                  Ada.Directories.Rename (Old_Name => Backup_Path, New_Name => Path);
+               exception
+                  when others =>
+                     null;
+               end;
+            end if;
+            raise;
+      end;
+
+      Best_Effort_Delete (Backup_Path);
+   exception
+      when others =>
+         Best_Effort_Delete (Temp_Path);
+         raise;
+   end Write_Shared_Support_File;
+
    procedure Delete_If_Exists
      (Path           : String;
       Cleanup_Failed : in out Boolean) is
@@ -595,12 +644,12 @@ package body Safe_Frontend.Driver is
                        (Ada_Out_Dir & "/" & Ada_Stem & ".adb",
                         FT.To_String (Ada_Result.Body_Text));
                      if Ada_Result.Needs_Safe_Runtime then
-                        Write_File
+                        Write_Shared_Support_File
                           (Ada_Out_Dir & "/safe_runtime.ads",
                            Safe_Runtime);
                      end if;
                      if Ada_Result.Needs_Gnat_Adc then
-                        Write_File
+                        Write_Shared_Support_File
                           (Ada_Out_Dir & "/gnat.adc",
                            Gnat_Adc);
                      end if;
