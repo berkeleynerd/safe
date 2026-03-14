@@ -36,7 +36,16 @@ def require_safec() -> Path:
 
 
 def gprbuild_command() -> str:
-    return find_command("gprbuild", Path.home() / ".local" / "bin" / "gprbuild")
+    try:
+        return find_command("gprbuild")
+    except FileNotFoundError:
+        for fallback in (
+            Path.home() / ".alire" / "bin" / "gprbuild",
+            Path.home() / ".local" / "bin" / "gprbuild",
+        ):
+            if fallback.exists():
+                return str(fallback)
+        raise
 
 
 def python_command() -> str:
