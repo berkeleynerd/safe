@@ -5,11 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 from _lib.harness_common import display_path, finalize_deterministic_report, require, write_report
-from _lib.pr10_emit import EXPECTED_COVERAGE, REPO_ROOT, selected_emitted_corpus
+from _lib.pr10_emit import (
+    EXPECTED_COVERAGE,
+    REPO_ROOT,
+    normalize_source_text,
+    normalized_source_fragments,
+    selected_emitted_corpus,
+)
 
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr10-contract-baseline-report.json"
@@ -35,18 +42,22 @@ EXPECTED_COVERAGE_LINES = [
     "concurrency",
 ]
 MATRIX_REQUIRED_SNIPPETS = [
+    "Coverage Notes",
     "Other currently emitted sequential fixtures outside the PR10 corpus",
     "Other currently emitted concurrency fixtures outside the PR10 corpus",
+    "Channel access-type compile-only subset",
     "I/O seams outside pure emitted packages",
     "zero warnings",
     "zero justified checks",
     "zero unproved checks",
+    "polling-based lowering",
 ]
 POST_PR10_REQUIRED_SNIPPETS = [
     "Emitted-output GNATprove coverage beyond the selected PR10 sequential corpus",
     "Emitted-output GNATprove coverage beyond the selected PR10 concurrency corpus",
     "I/O seam wrapper obligations beyond direct emitted-package proof",
     "Jorvik/Ravenscar runtime scheduling, ceiling-locking, and polling-timing obligations beyond direct emitted-package proof",
+    "Faithful source-level `select ... or delay ...` semantics beyond the current emitted polling-based lowering",
 ]
 
 
@@ -56,6 +67,11 @@ def load_tracker() -> dict[str, object]:
 
 def require_contains(text: str, snippet: str, label: str) -> None:
     require(snippet in text, f"{label}: expected to contain {snippet!r}")
+
+
+def row_contains(text: str, *parts: str) -> bool:
+    pattern = r"\|[^\n]*" + r"[^\n]*".join(re.escape(part) for part in parts) + r"[^\n]*\|"
+    return re.search(pattern, text) is not None
 
 
 def extract_bullets_after(text: str, anchor: str, *, label: str) -> list[str]:
@@ -87,7 +103,8 @@ def generate_report() -> dict[str, object]:
     require(pr10["depends_on"] == ["PR09"], "PR10 must depend on PR09")
     require(pr10["acceptance"] == EXPECTED_ACCEPTANCE, "PR10 acceptance text must match the strengthened contract")
 
-    expected_fixtures = [f"`{item['fixture']}`" for item in selected_emitted_corpus()]
+    selected_corpus = selected_emitted_corpus()
+    expected_fixtures = [f"`{item['fixture']}`" for item in selected_corpus]
     expected_coverage = set(EXPECTED_COVERAGE)
     require(expected_coverage == EXPECTED_COVERAGE, "internal expected coverage must remain stable")
 
@@ -110,13 +127,26 @@ def generate_report() -> dict[str, object]:
         matrix_coverage == EXPECTED_COVERAGE_LINES,
         "docs/emitted_output_verification_matrix.md: coverage bullets must match the PR10 contract exactly",
     )
-    observed_coverage = {item["coverage"] for item in selected_emitted_corpus()}
+    observed_coverage = {item["coverage"] for item in selected_corpus}
     require(
         observed_coverage == EXPECTED_COVERAGE,
         "selected emitted corpus must cover Rules 1-5, ownership, and concurrency",
     )
     for snippet in MATRIX_REQUIRED_SNIPPETS:
         require_contains(matrix_text, snippet, "docs/emitted_output_verification_matrix.md")
+    for item in selected_corpus:
+        fixture_name = Path(item["fixture"]).name
+        require(
+            row_contains(matrix_text, item["feature"], fixture_name, item["matrix_note"]),
+            "docs/emitted_output_verification_matrix.md: expected row "
+            f"for {fixture_name} with feature {item['feature']!r} and note {item['matrix_note']!r}",
+        )
+        normalized_source = normalize_source_text((REPO_ROOT / item["fixture"]).read_text(encoding="utf-8"))
+        for fragment in normalized_source_fragments(item):
+            require(
+                fragment in normalized_source,
+                f"{item['fixture']}: missing required normalized source fragment {fragment!r}",
+            )
 
     post_pr10_text = POST_PR10_SCOPE_PATH.read_text(encoding="utf-8")
     for snippet in POST_PR10_REQUIRED_SNIPPETS:

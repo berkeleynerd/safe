@@ -69,6 +69,7 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 | Imported package-qualified writes with sound cross-package mutability rules | `PR08.3` boundary, `compiler_impl/README.md` | `resolver` | `long-term` |
 | Channel deadlock analysis (TBD-09) | `spec/00-front-matter.md` section `0.8` | `analyzer` | `long-term` |
 | `Constant_After_Elaboration` for concurrency analysis (TBD-06) | `spec/00-front-matter.md` section `0.8` | `analyzer` | `blocking-if-needed` |
+| Faithful source-level `select ... or delay ...` semantics beyond the current emitted polling-based lowering | `docs/emitted_output_verification_matrix.md`, `spec/04-tasks-and-channels.md` section `4.4` | `spec` | `long-term` |
 | Task-level fault containment and restart intensity | `spec/02-restrictions.md` paragraphs `151a`-`151g` | `spec` | `long-term` |
 | Clarify and standardise spec text for constant access objects versus access-to-constant / observe writes through `.all` | `PR08.3a` review fallout, `compiler_impl/src/safe_frontend-check_resolve.adb`, `compiler_impl/src/safe_frontend-mir_analyze.adb` | `spec` | `long-term` |
 
@@ -119,8 +120,8 @@ before PR10, and not better owned by `docs/syntax_proposals.md`.
 |----------|------:|
 | `blocking-if-needed` | 14 |
 | `nice-to-have` | 3 |
-| `long-term` | 17 |
-| **Total** | **34** |
+| `long-term` | 18 |
+| **Total** | **35** |
 
 See [`docs/post_pr10_scope_audit.md`](post_pr10_scope_audit.md) for the audit
 record that removed fixed items, pre-PR10 tracked work, spec-excluded rows, and

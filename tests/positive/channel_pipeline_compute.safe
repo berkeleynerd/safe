@@ -1,0 +1,56 @@
+-- Test: channel_pipeline_compute
+-- Description: Three-stage channel pipeline with arithmetic in flight.
+--   Stage 1 produces bounded samples, Stage 2 transforms them, and Stage 3
+--   accumulates bounded totals from the filtered stream.
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p2:78f022f7
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27:ef0ce6bd
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p20:8aa1a21e
+-- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
+-- Expected: ACCEPT
+
+package Channel_Pipeline_Compute is
+
+   type Sample is range 0 .. 100;
+   type Running_Total is range 0 .. 1000;
+
+   channel Raw_Ch      : Sample capacity 2;
+   channel Filtered_Ch : Sample capacity 2;
+
+   task Producer with Priority = 10 is
+      Seed : Sample = 8;
+   begin
+      loop
+         send Raw_Ch, Seed;
+         delay 0.001;
+      end loop;
+   end Producer;
+
+   task Filter with Priority = 10 is
+      Input  : Sample;
+      Output : Sample;
+   begin
+      loop
+         receive Raw_Ch, Input;
+         Output = Input / 2 + 1;
+         send Filtered_Ch, Output;
+      end loop;
+   end Filter;
+
+   task Consumer with Priority = 10 is
+      Data     : Sample;
+      Adjusted : Running_Total;
+   begin
+      loop
+         receive Filtered_Ch, Data;
+         Adjusted = Running_Total (Running_Total (Data) + 1);
+         if Running_Total (Adjusted) > Running_Total (50) then
+            delay 0.001;
+         else
+            delay 0.002;
+         end if;
+      end loop;
+   end Consumer;
+
+end Channel_Pipeline_Compute;

@@ -16,14 +16,14 @@
     ],
     "selected_corpus": [
       "tests/positive/rule1_averaging.safe",
-      "tests/positive/rule2_binary_search.safe",
-      "tests/positive/rule3_average.safe",
+      "tests/positive/rule2_binary_search_function.safe",
+      "tests/positive/rule3_divide.safe",
       "tests/positive/rule1_parameter.safe",
       "tests/positive/ownership_move.safe",
-      "tests/positive/rule4_linked_list.safe",
-      "tests/positive/rule5_normalize.safe",
+      "tests/positive/rule4_linked_list_sum.safe",
+      "tests/positive/rule5_vector_normalize.safe",
       "tests/positive/channel_pingpong.safe",
-      "tests/positive/channel_pipeline.safe",
+      "tests/positive/channel_pipeline_compute.safe",
       "tests/concurrency/select_with_delay.safe"
     ]
   },
@@ -35,7 +35,7 @@
     "post_pr10_scope": "docs/post_pr10_scope.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "0997c78f4d8522ecedff1b9559d55df97de6ff7efc94bf138e3149a84afaaea4",
-  "report_sha256": "0997c78f4d8522ecedff1b9559d55df97de6ff7efc94bf138e3149a84afaaea4",
+  "repeat_sha256": "ed6681e5a07e1e6d84d96bbfa968892b92bec273f6294e890321759d582291c0",
+  "report_sha256": "ed6681e5a07e1e6d84d96bbfa968892b92bec273f6294e890321759d582291c0",
   "task": "PR10"
 }
