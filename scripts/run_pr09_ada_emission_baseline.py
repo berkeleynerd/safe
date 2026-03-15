@@ -60,12 +60,22 @@ def require_contains(text: str, snippet: str, label: str) -> None:
     require(snippet in text, f"{label}: expected to contain {snippet!r}")
 
 
+def parse_task_id(value: object) -> tuple[int, int | None] | None:
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"PR(\d+)(?:\.(\d+))?", value)
+    if match is None:
+        return None
+    major = int(match.group(1))
+    minor = int(match.group(2)) if match.group(2) is not None else None
+    return (major, minor)
+
+
 def next_task_is_at_or_beyond_pr10(value: object) -> bool:
     if value is None:
         return True
-    if not isinstance(value, str):
-        return False
-    return value == "PR10" or value.startswith("PR10.")
+    parsed = parse_task_id(value)
+    return parsed is not None and parsed[0] >= 10
 
 
 def generate_report(*, env: dict[str, str]) -> dict[str, object]:
@@ -105,8 +115,12 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
             dashboard_text == rendered_dashboard["stdout"],
             "execution/dashboard.md must match scripts/render_execution_status.py output",
         )
+        next_task_match = re.search(r"- \*\*Next task:\*\* `(PR\d+(?:\.[0-9]+)?|none)`", dashboard_text)
         require(
-            re.search(r"- \*\*Next task:\*\* `(PR10(?:\.[0-9]+)?|none)`", dashboard_text) is not None,
+            next_task_match is not None
+            and next_task_is_at_or_beyond_pr10(
+                None if next_task_match.group(1) == "none" else next_task_match.group(1)
+            ),
             "execution/dashboard.md: expected PR10-or-later as next task until milestone completion, then none",
         )
         require_contains(dashboard_text, "| PR09 | done | PR08 | 6 |", "execution/dashboard.md")

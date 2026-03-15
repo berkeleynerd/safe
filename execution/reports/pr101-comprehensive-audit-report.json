@@ -223,12 +223,12 @@
     {
       "disposition": "fix-in-pr101",
       "id": "PR101-001",
-      "target": "scripts/run_pr10_emitted_baseline.py`; `compiler_impl/README.md"
+      "target": "scripts/run_pr10_emitted_baseline.py; compiler_impl/README.md"
     },
     {
       "disposition": "fix-in-pr101",
       "id": "PR101-002",
-      "target": "README.md`; `compiler_impl/README.md`; `.github/workflows/ci.yml"
+      "target": "README.md; compiler_impl/README.md; .github/workflows/ci.yml"
     },
     {
       "disposition": "close-as-fixed",
@@ -296,8 +296,8 @@
       "title": "GNATprove evidence and parser hardening"
     }
   ],
-  "repeat_sha256": "531c96b793089b9e05ab36916d68a688d933fe41c71ca893df575655cb334c50",
-  "report_sha256": "531c96b793089b9e05ab36916d68a688d933fe41c71ca893df575655cb334c50",
+  "repeat_sha256": "30932ce98c2493979bc518e040d32ac698fddbbaf3ef1548e42361d0ac816bc5",
+  "report_sha256": "30932ce98c2493979bc518e040d32ac698fddbbaf3ef1548e42361d0ac816bc5",
   "retained_post_pr10_residuals": [
     {
       "area": "resolver",

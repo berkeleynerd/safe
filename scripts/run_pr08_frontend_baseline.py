@@ -56,12 +56,22 @@ def require_absent(text: str, snippet: str, label: str) -> None:
     require(snippet not in text, f"{label}: did not expect {snippet!r}")
 
 
+def parse_task_id(value: object) -> tuple[int, int | None] | None:
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"PR(\d+)(?:\.(\d+))?", value)
+    if match is None:
+        return None
+    major = int(match.group(1))
+    minor = int(match.group(2)) if match.group(2) is not None else None
+    return (major, minor)
+
+
 def next_task_is_at_or_beyond_pr09(value: object) -> bool:
     if value is None:
         return True
-    if not isinstance(value, str):
-        return False
-    return value == "PR09" or value.startswith("PR10")
+    parsed = parse_task_id(value)
+    return parsed is not None and parsed[0] >= 9
 
 
 def run_subgates(*, python: str) -> dict[str, Any]:
@@ -98,8 +108,10 @@ def generate_report(
         dashboard_text == rendered_dashboard["stdout"],
         "execution/dashboard.md must match scripts/render_execution_status.py output",
     )
+    next_task_match = re.search(r"- \*\*Next task:\*\* `(PR\d+(?:\.[0-9]+)?|none)`", dashboard_text)
     require(
-        re.search(r"- \*\*Next task:\*\* `(PR09|PR10(?:\.[0-9]+)?|none)`", dashboard_text) is not None,
+        next_task_match is not None
+        and next_task_is_at_or_beyond_pr09(None if next_task_match.group(1) == "none" else next_task_match.group(1)),
         "execution/dashboard.md: expected PR09-or-later as next task until completion, then none",
     )
     require_contains(dashboard_text, "| PR08.4 | done | PR08.3 | 1 |", "execution/dashboard.md")

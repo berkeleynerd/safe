@@ -172,7 +172,7 @@ def parse_findings(text: str) -> list[dict[str, str]]:
                 "observed_reality": cells[3],
                 "evidence": cells[4],
                 "disposition": cells[5].strip("`"),
-                "target": cells[6].strip("`"),
+                "target": cells[6].replace("`", ""),
                 "notes": cells[7],
             }
         )
@@ -541,8 +541,6 @@ def main() -> int:
 
     env = ensure_sdkroot(os.environ.copy())
     baseline_truth = run_baseline_truth(env=env)
-    DEFAULT_REPORT.parent.mkdir(parents=True, exist_ok=True)
-    DEFAULT_REPORT.write_text("{}\n", encoding="utf-8")
     baseline_truth["execution_state_validation"] = compact_result(
         run([find_command("python3"), "scripts/validate_execution_state.py"], cwd=REPO_ROOT, env=env)
     )
