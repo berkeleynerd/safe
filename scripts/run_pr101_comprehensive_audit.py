@@ -572,8 +572,6 @@ def main() -> int:
         label="PR10.1 comprehensive audit",
     )
     write_report(args.report, report)
-    if args.report != DEFAULT_REPORT:
-        write_report(DEFAULT_REPORT, report)
     print(f"pr10.1 comprehensive audit: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
     return 0
 
