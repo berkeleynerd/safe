@@ -1,5 +1,8 @@
 # Post-PR10 Scope Audit
 
+Superseded by [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md) as
+the canonical repo-wide PR10.1 audit record.
+
 Audit date: `2026-03-13`
 
 This note records the cleanup applied to

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,14 @@ def require_absent(text: str, snippet: str, label: str) -> None:
     require(snippet not in text, f"{label}: did not expect {snippet!r}")
 
 
+def next_task_is_at_or_beyond_pr09(value: object) -> bool:
+    if value is None:
+        return True
+    if not isinstance(value, str):
+        return False
+    return value == "PR09" or value.startswith("PR10")
+
+
 def run_subgates(*, python: str) -> dict[str, Any]:
     results: dict[str, Any] = {}
     for script in SUBGATE_SCRIPTS:
@@ -70,10 +79,7 @@ def generate_report(
 ) -> dict[str, Any]:
     tracker = load_tracker()
     task_map = {task["id"]: task for task in tracker["tasks"]}
-    require(
-        tracker.get("next_task_id") in {"PR09", "PR10", None},
-        "tracker next_task_id must remain at or beyond PR09 for the PR08 baseline",
-    )
+    require(next_task_is_at_or_beyond_pr09(tracker.get("next_task_id")), "tracker next_task_id must remain at or beyond PR09 for the PR08 baseline")
     require(task_map["PR08.4"]["status"] == "done", "PR08.4 must be marked done")
     require(task_map["PR08"]["status"] == "done", "PR08 umbrella task must be marked done")
     require(
@@ -93,10 +99,8 @@ def generate_report(
         "execution/dashboard.md must match scripts/render_execution_status.py output",
     )
     require(
-        "- **Next task:** `PR09`" in dashboard_text
-        or "- **Next task:** `PR10`" in dashboard_text
-        or "- **Next task:** `none`" in dashboard_text,
-        "execution/dashboard.md: expected PR09/PR10 as next task until completion, then none",
+        re.search(r"- \*\*Next task:\*\* `(PR09|PR10(?:\.[0-9]+)?|none)`", dashboard_text) is not None,
+        "execution/dashboard.md: expected PR09-or-later as next task until completion, then none",
     )
     require_contains(dashboard_text, "| PR08.4 | done | PR08.3 | 1 |", "execution/dashboard.md")
     require_contains(dashboard_text, "| PR08 | done | PR08.4 | 1 |", "execution/dashboard.md")

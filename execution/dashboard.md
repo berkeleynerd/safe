@@ -3,8 +3,8 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `none`
-- **Updated at:** `2026-03-14T23:59:00Z`
+- **Next task:** `PR10.2`
+- **Updated at:** `2026-03-15T00:00:00Z`
 
 ## Repo Facts
 
@@ -52,6 +52,10 @@
 | PR08 | done | PR08.4 | 1 |
 | PR09 | done | PR08 | 6 |
 | PR10 | done | PR09 | 4 |
+| PR10.1 | done | PR10 | 1 |
+| PR10.2 | planned | PR10.1 | 0 |
+| PR10.3 | planned | PR10.1 | 0 |
+| PR10.4 | planned | PR10.1 | 0 |
 
 ## Acceptance Snapshot
 
@@ -510,3 +514,45 @@
   - `execution/reports/pr10-emitted-flow-report.json`
   - `execution/reports/pr10-emitted-prove-report.json`
   - `execution/reports/pr10-emitted-baseline-report.json`
+
+### PR10.1 — Comprehensive assessment and refinement audit
+
+- **Status:** `done`
+- **Depends on:** PR10
+- **Blockers:** none
+- **Acceptance:**
+  - Authoritative PR08, PR09, PR10, supplemental hardening, companion/template verification, and execution-state baselines rerun serially and establish the audit truth baseline.
+  - docs/pr10_refinement_audit.md classifies every current post-PR10 residual and current PR10/post-PR10 claim surface using the required finding schema and allowed dispositions.
+  - docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json.
+- **Evidence:**
+  - `execution/reports/pr101-comprehensive-audit-report.json`
+
+### PR10.2 — Rule 5 proof-boundary closure and loop-termination diagnostics
+
+- **Status:** `planned`
+- **Depends on:** PR10.1
+- **Blockers:** none
+- **Acceptance:**
+  - Computed-divisor floating-point cases in the current accepted Rule 5 subset either prove under the emitted GNATprove profile or fail deterministically with named diagnostics and fixtures.
+  - Overflow-to-infinity and unbounded convergence-loop cases are rejected or constrained by explicit analyzer/emitter policy, with deterministic regression fixtures and documentation.
+  - A dedicated PR10.2 gate, report, CI job, and matrix/post-PR10 updates capture the resulting Rule 5 proof boundary without weakening the frozen PR10 claim.
+
+### PR10.3 — Sequential emitted proof-corpus expansion beyond PR10
+
+- **Status:** `planned`
+- **Depends on:** PR10.1
+- **Blockers:** none
+- **Acceptance:**
+  - At least one named sequential emitted corpus beyond the frozen PR10 representatives passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy.
+  - docs/emitted_output_verification_matrix.md and related audit/docs surfaces distinguish the frozen PR10 claim from post-PR10 supplemental proved sequential fixtures.
+  - A dedicated PR10.3 gate, report, and CI wiring keep the expanded sequential proof corpus deterministic and evidence-backed.
+
+### PR10.4 — GNATprove evidence and parser hardening
+
+- **Status:** `planned`
+- **Depends on:** PR10.1
+- **Blockers:** none
+- **Acceptance:**
+  - The emitted proof gates consume a stricter evidence path for GNATprove results, with malformed-output regression coverage and deterministic failure on format drift.
+  - Audit and emitted-output gates verify explicit gnat.adc application and proof-summary/report stability without relying on unchecked textual assumptions.
+  - A dedicated PR10.4 gate, report, and CI job keep the hardened evidence path under committed deterministic coverage.

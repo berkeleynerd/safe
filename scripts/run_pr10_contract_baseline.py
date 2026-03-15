@@ -53,13 +53,19 @@ MATRIX_REQUIRED_SNIPPETS = [
     "zero justified checks",
     "zero unproved checks",
     "polling-based lowering",
+    "frontend Silver ownership analysis is the mechanism that prevents use-after-free",
+    "PR10.3",
+    "PS-007",
+    "PS-019",
+    "PS-031",
+    "docs/pr10_refinement_audit.md",
 ]
 POST_PR10_REQUIRED_SNIPPETS = [
-    "Emitted-output GNATprove coverage beyond the selected PR10 sequential corpus",
-    "Emitted-output GNATprove coverage beyond the selected PR10 concurrency corpus",
+    "PS-018",
     "I/O seam wrapper obligations beyond direct emitted-package proof",
     "Jorvik/Ravenscar runtime scheduling, ceiling-locking, and polling-timing obligations beyond direct emitted-package proof",
     "Faithful source-level `select ... or delay ...` semantics beyond the current emitted polling-based lowering",
+    "docs/pr10_refinement_audit.md",
 ]
 
 

@@ -76,7 +76,6 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
 
         tracker = load_tracker()
         task_map = {task["id"]: task for task in tracker["tasks"]}  # type: ignore[index]
-        require(tracker.get("next_task_id") is None, "tracker next_task_id must be null once PR10 is complete")
         require(task_map["PR10"]["status"] == "done", "PR10 must be marked done")
         require(
             task_map["PR10"]["evidence"] == EXPECTED_EVIDENCE,
@@ -89,7 +88,6 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
             dashboard_text == rendered_dashboard["stdout"],
             "execution/dashboard.md must match scripts/render_execution_status.py output",
         )
-        require_contains(dashboard_text, "- **Next task:** `none`", "execution/dashboard.md")
         require_contains(dashboard_text, "| PR10 | done | PR09 | 4 |", "execution/dashboard.md")
 
         baseline_text = FRONTEND_BASELINE_PATH.read_text(encoding="utf-8")
@@ -106,9 +104,11 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
         post_pr10_text = POST_PR10_SCOPE_PATH.read_text(encoding="utf-8")
         require_contains(
             post_pr10_text,
-            "Emitted-output GNATprove coverage beyond the selected PR10 sequential corpus",
+            "Faithful source-level `select ... or delay ...` semantics beyond the current emitted polling-based lowering",
             "docs/post_pr10_scope.md",
         )
+        require_contains(post_pr10_text, "PS-018", "docs/post_pr10_scope.md")
+        require_contains(post_pr10_text, "PS-019", "docs/post_pr10_scope.md")
 
         readme_text = README_PATH.read_text(encoding="utf-8")
         require_contains(
@@ -130,7 +130,7 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
         )
         require_contains(
             compiler_readme_text,
-            "no next tracked milestone",
+            "later tracked milestones may exist",
             "compiler_impl/README.md",
         )
 

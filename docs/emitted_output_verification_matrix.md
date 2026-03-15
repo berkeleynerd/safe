@@ -14,6 +14,11 @@ It answers a narrower question than the Safe language spec as a whole:
 PR10 is intentionally a **selected emitted-output** milestone. It does not claim
 universal GNATprove proof coverage for every currently emitted Safe program.
 
+PR10.1 keeps that selected corpus frozen, audits the surrounding claim surfaces,
+and uses supplemental hardening plus the post-PR10 ledger for everything
+beyond it. See [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md) for
+the canonical audit record.
+
 ## Status Definitions
 
 | State | Meaning |
@@ -79,14 +84,14 @@ PR10 proof representatives: `tests/positive/rule2_binary_search.safe`,
 | Rule 3 division-safety subset | `tests/positive/rule3_divide.safe` | Typed nonzero divisor plus guarded variable-divisor division. | yes | yes | yes | yes | yes | none | no |
 | Rule 4 observer-traversal subset | `tests/positive/rule4_linked_list_sum.safe` | Null-guarded linked-list prefix accumulation with dereference plus bounded count and total arithmetic. | yes | yes | yes | yes | yes | none | no |
 | Rule 5 computed-divisor vector subset | `tests/positive/rule5_vector_normalize.safe` | Three-field floating-point record computation with a branch-computed positive divisor derived from all components and a returned normalized component. | yes | yes | yes | yes | yes | none | no |
-| Sequential ownership move subset | `tests/positive/ownership_move.safe` | Single-owner move with post-move nulling and target-only dereference. | yes | yes | yes | yes | yes | none within the selected `ownership_move` subset; broader cleanup ordering remains deferred in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
-| Concurrency ping-pong subset | `tests/positive/channel_pingpong.safe` | Two priority-bearing tasks exchanging bounded channel messages in both directions. | yes | yes | yes | yes | yes | Jorvik/Ravenscar runtime scheduling remains outside direct GNATprove proof. | no |
-| Concurrency pipeline compute subset | `tests/positive/channel_pipeline_compute.safe` | Three-task channel pipeline with arithmetic in the filter and consumer task bodies. | yes | yes | yes | yes | yes | Jorvik/Ravenscar runtime scheduling remains outside direct GNATprove proof. | no |
-| Select-with-delay emitted polling subset | `tests/concurrency/select_with_delay.safe`, `tests/concurrency/select_with_delay_multiarm.safe` | Frozen PR10 coverage proves one receive arm plus one delay arm, and supplemental hardening additionally proves a two-channel-arm success-path variant. Both are proved through the emitted polling-based lowering, not source-level blocking fairness or timing semantics. | yes | yes | yes | yes | yes | Polling-based lowering is proved, while source-level blocking fairness, latency, and timing semantics remain deferred in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
+| Sequential ownership move subset | `tests/positive/ownership_move.safe` | Single-owner move with post-move nulling and target-only dereference. GNATprove `prove` here covers emitted runtime checks; the frontend Silver ownership analysis is the mechanism that prevents use-after-free across the accepted ownership subset. | yes | yes | yes | yes | yes | none within the selected `ownership_move` subset; broader cleanup ordering remains deferred as `PS-029` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
+| Concurrency ping-pong subset | `tests/positive/channel_pingpong.safe` | Two priority-bearing tasks exchanging bounded channel messages in both directions. | yes | yes | yes | yes | yes | Jorvik/Ravenscar runtime scheduling remains outside direct GNATprove proof; see `PS-031` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
+| Concurrency pipeline compute subset | `tests/positive/channel_pipeline_compute.safe` | Three-task channel pipeline with arithmetic in the filter and consumer task bodies. | yes | yes | yes | yes | yes | Jorvik/Ravenscar runtime scheduling remains outside direct GNATprove proof; see `PS-031` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
+| Select-with-delay emitted polling subset | `tests/concurrency/select_with_delay.safe`, `tests/concurrency/select_with_delay_multiarm.safe` | Frozen PR10 coverage proves one receive arm plus one delay arm, and supplemental hardening additionally proves a two-channel-arm success-path variant. Both are proved through the emitted polling-based lowering, not source-level blocking fairness or timing semantics. | yes | yes | yes | yes | yes | Polling-based lowering is proved, while source-level blocking fairness, latency, and timing semantics remain deferred as `PS-007` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
 | Access-typed channel elements and composites containing access-type subcomponents | `tests/concurrency/channel_access_type.safe`, `tests/concurrency/try_send_ownership.safe`, `tests/concurrency/select_ownership_binding.safe`, `tests/negative/neg_channel_access_component.safe` | Spec-excluded by channel element legality. The frontend rejects these declarations before emit, flow, or prove. | no | no | no | no | no | n/a | no |
-| Other currently emitted sequential fixtures outside the PR10 corpus | current PR09 and PR08 accepted sequential subset | Additional accepted sequential emission remains outside the selected PR10 proof representatives. | yes | yes | yes | no | no | none | yes |
-| Other currently emitted concurrency fixtures outside the PR10 corpus | current PR08 concurrency subset beyond the three PR10 proof fixtures | Additional accepted concurrency emission remains outside the selected PR10 proof representatives. | yes | yes | yes | no | no | Jorvik/Ravenscar runtime behaviour plus runtime timing remain external | yes |
-| I/O seams outside pure emitted packages | runtime wrapper boundaries | Wrapper integration obligations are tracked separately from pure emitted-package proof. | n/a | n/a | n/a | no | no | wrapper/runtime mechanisms and interface contracts | yes |
+| Other currently emitted sequential fixtures outside the PR10 corpus | current PR09 and PR08 accepted sequential subset | Additional accepted sequential emission remains outside the frozen PR10 proof representatives. Expansion is promoted to tracked task `PR10.3` in [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md). | yes | yes | yes | no | no | none | yes |
+| Other currently emitted concurrency fixtures outside the PR10 corpus | current PR08 concurrency subset beyond the three PR10 proof fixtures | Additional accepted concurrency emission remains outside the selected PR10 proof representatives. Broader proof expansion remains retained as `PS-018`, while runtime timing and scheduling obligations remain `PS-031` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | yes | yes | yes | no | no | Jorvik/Ravenscar runtime behaviour plus runtime timing remain external | yes |
+| I/O seams outside pure emitted packages | runtime wrapper boundaries | Wrapper integration obligations are tracked separately from pure emitted-package proof and remain `PS-019` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | n/a | n/a | n/a | no | no | wrapper/runtime mechanisms and interface contracts | yes |
 
 The Rule 5 row above reflects the frozen PR10 representative only. Broader
 floating-point proof shaping, overflow-to-infinity handling, and
@@ -107,5 +112,6 @@ Silver/Bronze verified.
 
 ## Residual Ownership
 
-Residual items after PR10 and the supplemental hardening regressions are tracked in
-[`docs/post_pr10_scope.md`](post_pr10_scope.md).
+Residual items after PR10 and the supplemental hardening regressions are tracked
+in [`docs/post_pr10_scope.md`](post_pr10_scope.md), with the full disposition
+record in [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md).

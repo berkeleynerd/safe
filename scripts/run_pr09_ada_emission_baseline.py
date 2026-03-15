@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -59,6 +60,14 @@ def require_contains(text: str, snippet: str, label: str) -> None:
     require(snippet in text, f"{label}: expected to contain {snippet!r}")
 
 
+def next_task_is_at_or_beyond_pr10(value: object) -> bool:
+    if value is None:
+        return True
+    if not isinstance(value, str):
+        return False
+    return value == "PR10" or value.startswith("PR10.")
+
+
 def generate_report(*, env: dict[str, str]) -> dict[str, object]:
     python = find_command("python3")
     with tempfile.TemporaryDirectory(prefix="pr09-baseline-") as temp_root_str:
@@ -83,10 +92,7 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
             )
         tracker = load_tracker()
         task_map = {task["id"]: task for task in tracker["tasks"]}
-        require(
-            tracker.get("next_task_id") in ("PR10", None),
-            "tracker next_task_id must be PR10 until PR10 is complete, then null",
-        )
+        require(next_task_is_at_or_beyond_pr10(tracker.get("next_task_id")), "tracker next_task_id must remain at or beyond PR10 for the PR09 baseline")
         require(task_map["PR09"]["status"] == "done", "PR09 must be marked done")
         require(
             task_map["PR09"]["evidence"] == EXPECTED_EVIDENCE,
@@ -100,9 +106,8 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
             "execution/dashboard.md must match scripts/render_execution_status.py output",
         )
         require(
-            "- **Next task:** `PR10`" in dashboard_text
-            or "- **Next task:** `none`" in dashboard_text,
-            "execution/dashboard.md: expected PR10 as next task until completion, then none",
+            re.search(r"- \*\*Next task:\*\* `(PR10(?:\.[0-9]+)?|none)`", dashboard_text) is not None,
+            "execution/dashboard.md: expected PR10-or-later as next task until milestone completion, then none",
         )
         require_contains(dashboard_text, "| PR09 | done | PR08 | 6 |", "execution/dashboard.md")
 

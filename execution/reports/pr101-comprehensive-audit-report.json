@@ -1,0 +1,496 @@
+{
+  "artifact_hashes": {
+    "audit_doc": "d9823291a9d7f3b8c8a278a6f5e96006a3861332aa18de053e08e08517499d1a",
+    "compiler_readme": "05188ccfcaf9e0c14a02927b175159b64bc8d3c26016eaef18a51d5f61581ecc",
+    "dashboard": "1b297cd28a02e69a029757553b6852d0302646bc7304e0049d0d4b8c2aed89f6",
+    "matrix": "3c695e9c7c63643f96eaaa8092edff788c5bd3bc327278ba2055de6886503b4b",
+    "post_pr10_scope": "b06e77c19375ac71491ade442bb98ef18fe6266802949e61b6ef568dc6141a26",
+    "readme": "18b4c914ca6f68eb7a01bc1d5e63687926fae68b35fdd4450811a453587c6c9d",
+    "tracker": "85abfac8d0fe98ad8106c821d86f63c980aa1c67e4fa40f8309917a426d4dcb2",
+    "workflow": "3aff563110e3a3d27fa2ba15a28f839645cf569b8fc511ba7dff16e6f20fe695"
+  },
+  "audited_surfaces": [
+    "spec/TBD consistency",
+    "frontend parser/resolver/analyzer supported surface",
+    "emitted Ada/SPARK proof surface",
+    "ownership/concurrency/runtime boundaries",
+    "companion and emission-template verification",
+    "tooling/evidence/report determinism",
+    "traceability and docs",
+    "open review and deferred concerns"
+  ],
+  "baseline_truth": {
+    "companion_verify": {
+      "assumptions_extracted_sha256": "7be328a1ab4a8f756617ed8e9ad5ae5bba13d39f8eac36a68abce4d14f27e37a",
+      "build": {
+        "command": [
+          "alr",
+          "build"
+        ],
+        "cwd": "$REPO_ROOT/companion/gen",
+        "returncode": 0
+      },
+      "diff_assumptions": {
+        "command": [
+          "bash",
+          "scripts/diff_assumptions.sh"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "extract_assumptions": {
+        "command": [
+          "bash",
+          "scripts/extract_assumptions.sh"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "flow": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "companion.gpr",
+          "--mode=flow",
+          "--report=all",
+          "--warnings=error"
+        ],
+        "cwd": "$REPO_ROOT/companion/gen",
+        "returncode": 0
+      },
+      "gnatprove_out_sha256": "ea975670c2c08783a830817f41341ce517bf85658758b71d411cde356901c275",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "companion.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/companion/gen",
+        "returncode": 0
+      },
+      "prove_golden_sha256": "cfb2bbf6bef2d0782922f50bccb1c5004bd322a942c38208e3bbf885cb26e0a0"
+    },
+    "execution_state_validation": {
+      "command": [
+        "python3",
+        "scripts/validate_execution_state.py"
+      ],
+      "cwd": "$REPO_ROOT",
+      "returncode": 0
+    },
+    "python_gates": [
+      {
+        "deterministic": true,
+        "report_sha256": "8aa478e0fdb8983287f984dd579dde7fd8e4f61ccc997089597f78115256f899",
+        "result": {
+          "command": [
+            "python3",
+            "scripts/run_pr08_frontend_baseline.py",
+            "--report",
+            "$TMPDIR/run_pr08_frontend_baseline.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0
+        },
+        "script": "scripts/run_pr08_frontend_baseline.py"
+      },
+      {
+        "deterministic": true,
+        "report_sha256": "e589314d3e5a989bb100bfa68a597bbe674420b016b6d6670ba5a2d26275c71e",
+        "result": {
+          "command": [
+            "python3",
+            "scripts/run_pr09_ada_emission_baseline.py",
+            "--report",
+            "$TMPDIR/run_pr09_ada_emission_baseline.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0
+        },
+        "script": "scripts/run_pr09_ada_emission_baseline.py"
+      },
+      {
+        "deterministic": true,
+        "report_sha256": "cee4f5302473d749d0a3601173674d55920ede363bb95a15066cbb982059a2c2",
+        "result": {
+          "command": [
+            "python3",
+            "scripts/run_pr10_emitted_baseline.py",
+            "--report",
+            "$TMPDIR/run_pr10_emitted_baseline.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0
+        },
+        "script": "scripts/run_pr10_emitted_baseline.py"
+      },
+      {
+        "deterministic": true,
+        "report_sha256": "d9cd52848fcac8e4584c08442d7ebb5b5723997148a5ee1ad385ce85a500257f",
+        "result": {
+          "command": [
+            "python3",
+            "scripts/run_emitted_hardening_regressions.py",
+            "--report",
+            "$TMPDIR/run_emitted_hardening_regressions.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0
+        },
+        "script": "scripts/run_emitted_hardening_regressions.py"
+      }
+    ],
+    "templates_verify": {
+      "assumptions_extracted_sha256": "7cf95c34b90658ffaffe55b682de866a3232042418d86564dbe21404b1e21e95",
+      "build": {
+        "command": [
+          "alr",
+          "build"
+        ],
+        "cwd": "$REPO_ROOT/companion/templates",
+        "returncode": 0
+      },
+      "diff_assumptions": {
+        "command": [
+          "bash",
+          "scripts/diff_assumptions.sh"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "extract_assumptions": {
+        "command": [
+          "bash",
+          "scripts/extract_assumptions.sh"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "flow": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "templates.gpr",
+          "--mode=flow",
+          "--report=all",
+          "--warnings=error"
+        ],
+        "cwd": "$REPO_ROOT/companion/templates",
+        "returncode": 0
+      },
+      "gnatprove_out_sha256": "93b0d64d3042c8eea5d85ad7bc4d4d8d507d1f4018365822e97bcc7ebc0f36b9",
+      "prove": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gnatprove",
+          "-P",
+          "templates.gpr",
+          "--mode=prove",
+          "--level=2",
+          "--prover=cvc5,z3,altergo",
+          "--steps=0",
+          "--timeout=120",
+          "--report=all",
+          "--warnings=error",
+          "--checks-as-errors=on"
+        ],
+        "cwd": "$REPO_ROOT/companion/templates",
+        "returncode": 0
+      },
+      "prove_golden_sha256": "48fd70f953451f2274faf24399eaca9f318ce551f810b809f95aa175b50f9d7f"
+    }
+  },
+  "closed_removed_residuals": [
+    {
+      "disposition": "fix-in-pr101",
+      "id": "PR101-001",
+      "target": "scripts/run_pr10_emitted_baseline.py`; `compiler_impl/README.md"
+    },
+    {
+      "disposition": "fix-in-pr101",
+      "id": "PR101-002",
+      "target": "README.md`; `compiler_impl/README.md`; `.github/workflows/ci.yml"
+    },
+    {
+      "disposition": "close-as-fixed",
+      "id": "PR101-013",
+      "target": "n/a"
+    },
+    {
+      "disposition": "close-as-fixed",
+      "id": "PR101-014",
+      "target": "n/a"
+    },
+    {
+      "disposition": "fix-in-pr101",
+      "id": "PR101-015",
+      "target": "docs/emitted_output_verification_matrix.md"
+    },
+    {
+      "disposition": "close-as-pretracked",
+      "id": "PR101-022",
+      "target": "docs/syntax_proposals.md"
+    }
+  ],
+  "deterministic": true,
+  "finding_counts": {
+    "by_area": {
+      "analyzer": 8,
+      "docs": 2,
+      "language-design": 3,
+      "parser": 2,
+      "resolver": 6,
+      "spec": 11,
+      "tooling": 12
+    },
+    "by_disposition": {
+      "close-as-fixed": 2,
+      "close-as-pretracked": 1,
+      "fix-in-pr101": 3,
+      "promote-to-pr10x": 5,
+      "retain-in-post-pr10": 33
+    },
+    "total": 44
+  },
+  "promoted_follow_on_candidates": [
+    {
+      "finding_ids": [
+        "PR101-005",
+        "PR101-006",
+        "PR101-007"
+      ],
+      "task": "PR10.2",
+      "title": "Rule 5 proof-boundary closure and loop-termination diagnostics"
+    },
+    {
+      "finding_ids": [
+        "PR101-027"
+      ],
+      "task": "PR10.3",
+      "title": "Sequential emitted proof-corpus expansion beyond PR10"
+    },
+    {
+      "finding_ids": [
+        "PR101-030"
+      ],
+      "task": "PR10.4",
+      "title": "GNATprove evidence and parser hardening"
+    }
+  ],
+  "repeat_sha256": "a17967600554eec7a94c9ca4f353fe2f755722b21947227f84a9e27b9b69ac89",
+  "report_sha256": "a17967600554eec7a94c9ca4f353fe2f755722b21947227f84a9e27b9b69ac89",
+  "retained_post_pr10_residuals": [
+    {
+      "area": "resolver",
+      "id": "PS-001",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "analyzer",
+      "id": "PS-002",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "analyzer",
+      "id": "PS-003",
+      "priority": "nice-to-have"
+    },
+    {
+      "area": "resolver",
+      "id": "PS-004",
+      "priority": "long-term"
+    },
+    {
+      "area": "analyzer",
+      "id": "PS-005",
+      "priority": "long-term"
+    },
+    {
+      "area": "analyzer",
+      "id": "PS-006",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-007",
+      "priority": "long-term"
+    },
+    {
+      "area": "spec",
+      "id": "PS-008",
+      "priority": "long-term"
+    },
+    {
+      "area": "spec",
+      "id": "PS-009",
+      "priority": "long-term"
+    },
+    {
+      "area": "resolver",
+      "id": "PS-010",
+      "priority": "long-term"
+    },
+    {
+      "area": "parser",
+      "id": "PS-011",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "parser",
+      "id": "PS-012",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "resolver",
+      "id": "PS-013",
+      "priority": "long-term"
+    },
+    {
+      "area": "resolver",
+      "id": "PS-014",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "resolver",
+      "id": "PS-015",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-016",
+      "priority": "nice-to-have"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-017",
+      "priority": "nice-to-have"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-018",
+      "priority": "long-term"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-019",
+      "priority": "long-term"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-020",
+      "priority": "long-term"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-021",
+      "priority": "long-term"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-022",
+      "priority": "long-term"
+    },
+    {
+      "area": "tooling",
+      "id": "PS-023",
+      "priority": "long-term"
+    },
+    {
+      "area": "spec",
+      "id": "PS-024",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-025",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-026",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-027",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-028",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-029",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-030",
+      "priority": "blocking-if-needed"
+    },
+    {
+      "area": "spec",
+      "id": "PS-031",
+      "priority": "long-term"
+    },
+    {
+      "area": "language-design",
+      "id": "PS-032",
+      "priority": "long-term"
+    },
+    {
+      "area": "language-design",
+      "id": "PS-033",
+      "priority": "long-term"
+    }
+  ],
+  "task": "PR10.1",
+  "tracker": {
+    "next_task_id": "PR10.2",
+    "pr101_evidence": [
+      "execution/reports/pr101-comprehensive-audit-report.json"
+    ],
+    "pr101_status": "done",
+    "promoted_tasks": {
+      "PR10.2": {
+        "depends_on": [
+          "PR10.1"
+        ],
+        "status": "planned"
+      },
+      "PR10.3": {
+        "depends_on": [
+          "PR10.1"
+        ],
+        "status": "planned"
+      },
+      "PR10.4": {
+        "depends_on": [
+          "PR10.1"
+        ],
+        "status": "planned"
+      }
+    }
+  }
+}

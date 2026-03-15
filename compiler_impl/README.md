@@ -1,6 +1,6 @@
 # SafeC Frontend
 
-This workspace hosts the current Safe compiler frontend baseline established by PR08 on top of the PR06.9.x hardening series, plus the PR09 Ada/SPARK emission layer and the PR10 selected emitted-output GNATprove layer on top of that baseline.
+This workspace hosts the current Safe compiler frontend baseline established by PR08 on top of the PR06.9.x hardening series, plus the PR09 Ada/SPARK emission layer, the PR10 selected emitted-output GNATprove layer, and the PR10.1 refinement audit layer on top of that baseline.
 
 ## Current Boundary
 
@@ -52,7 +52,7 @@ The only live frontend path is now the Ada-native `Check_*` plus `Mir_*` pipelin
 
 PR08 extends the live `Check_*` + `Mir_*` pipeline, and the current frontend baseline is now PR08.
 PR09 layers deterministic Ada/SPARK emission on top of that frontend baseline through the optional `--ada-out-dir` path.
-PR10 layers selected emitted-output GNATprove verification on top of that emitted surface; [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md) is the canonical statement of what is compile-only versus `flow` / `prove` verified, and [`../docs/post_pr10_scope.md`](../docs/post_pr10_scope.md) records everything still open after the selected proof corpus. Supplemental emitted hardening regressions can extend coverage outside that frozen PR10 corpus without changing the milestone claim.
+PR10 layers selected emitted-output GNATprove verification on top of that emitted surface; [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md) is the canonical statement of what is compile-only versus `flow` / `prove` verified, [`../docs/pr10_refinement_audit.md`](../docs/pr10_refinement_audit.md) is the canonical audit/disposition record, and [`../docs/post_pr10_scope.md`](../docs/post_pr10_scope.md) records everything still retained after the selected proof corpus. Supplemental emitted hardening regressions can extend coverage outside that frozen PR10 corpus without changing the milestone claim.
 
 Unsupported-feature classification rule:
 - `unsupported_source_construct` means the Ada-native frontend recognized a construct that is outside the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern.
@@ -364,7 +364,7 @@ cd compiler_impl && $HOME/bin/alr build
 python3 scripts/run_pr09_ada_emission_baseline.py
 ```
 
-That gate reruns the PR09 slice gates, verifies tracker/dashboard/docs describe PR09 as complete with `PR10` next, and records results in `execution/reports/pr09-ada-emission-baseline-report.json`.
+That gate reruns the PR09 slice gates, verifies tracker/dashboard/docs describe PR09 as complete while later `PR10` milestones may exist, and records results in `execution/reports/pr09-ada-emission-baseline-report.json`.
 
 The PR10 contract baseline gate is:
 
@@ -400,7 +400,7 @@ cd compiler_impl && $HOME/bin/alr build
 python3 scripts/run_pr10_emitted_baseline.py
 ```
 
-That gate reruns the PR10 contract, flow, and prove gates, verifies tracker/dashboard/docs describe PR10 as complete with no next tracked milestone, and records results in `execution/reports/pr10-emitted-baseline-report.json`.
+That gate reruns the PR10 contract, flow, and prove gates, verifies tracker/dashboard/docs still describe PR10 as complete even when later tracked milestones may exist, and records results in `execution/reports/pr10-emitted-baseline-report.json`.
 
 The supplemental emitted hardening gate is:
 
@@ -410,6 +410,15 @@ python3 scripts/run_emitted_hardening_regressions.py
 ```
 
 That gate keeps the frozen PR10 selected corpus intact while hardening emitted regressions beyond it, including ownership early-return ordering plus supplemental concurrency proof samples, and records results in `execution/reports/emitted-hardening-regressions-report.json`.
+
+The PR10.1 comprehensive audit gate is:
+
+```bash
+cd compiler_impl && $HOME/bin/alr build
+python3 scripts/run_pr101_comprehensive_audit.py
+```
+
+That gate reruns the authoritative PR08, PR09, PR10, supplemental hardening, companion, template, and execution-state baselines; reconciles tracker/dashboard/docs against the committed audit findings; and records results in `execution/reports/pr101-comprehensive-audit-report.json`.
 
 To enforce the local pre-push gate chain in this clone, enable the tracked hook once:
 

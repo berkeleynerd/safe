@@ -10,7 +10,7 @@ Initialization                   36           36                             .  
 Non-Aliasing                      .            .                             .           .          .
 Run-time Checks                  66            .     65 (CVC5 99%, Trivial 1%)           1          .
 Assertions                       45            .     45 (CVC5 97%, Trivial 3%)           .          .
-Functional Contracts            122            .    122 (CVC5 99%, Trivial 1%)           .          .
+Functional Contracts            122            .    122 (CVC5 98%, Trivial 2%)           .          .
 LSP Verification                  .            .                             .           .          .
 Termination                      61           61                             .           .          .
 Concurrency                       .            .                             .           .          .
