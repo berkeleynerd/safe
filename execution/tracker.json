@@ -835,7 +835,7 @@
       "id": "PR11.8b",
       "title": "Concurrency proof expansion",
       "status": "planned",
-      "depends_on": ["PR10.6"],
+      "depends_on": ["PR10.5", "PR10.6"],
       "acceptance": [
         "The currently accepted emitted concurrency subset beyond the frozen PR10 representatives and the already-proved supplemental hardening fixture is explicitly enumerated as a non-shrinkable proof corpus: channel_ceiling_priority.safe, exclusive_variable.safe, fifo_ordering.safe, multi_task_channel.safe, select_delay_local_scope.safe, select_priority.safe, task_global_owner.safe, task_priority_delay.safe, and try_ops.safe.",
         "That bounded concurrency corpus passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence, without restating spec-excluded fixtures as proof debt.",

@@ -68,7 +68,7 @@
 | PR11.7 | planned | PR11.6 | 0 |
 | PR11.8 | planned | PR11.7 | 0 |
 | PR11.8a | planned | PR11.8, PR11.3a | 0 |
-| PR11.8b | planned | PR10.6 | 0 |
+| PR11.8b | planned | PR10.5, PR10.6 | 0 |
 | PR11.9 | planned | PR11.8a, PR11.8b | 0 |
 | PR11.10 | planned | PR11.9 | 0 |
 | PR11.11 | planned | PR11.10 | 0 |
@@ -706,7 +706,7 @@
 ### PR11.8b — Concurrency proof expansion
 
 - **Status:** `planned`
-- **Depends on:** PR10.6
+- **Depends on:** PR10.5, PR10.6
 - **Blockers:** none
 - **Acceptance:**
   - The currently accepted emitted concurrency subset beyond the frozen PR10 representatives and the already-proved supplemental hardening fixture is explicitly enumerated as a non-shrinkable proof corpus: channel_ceiling_priority.safe, exclusive_variable.safe, fifo_ordering.safe, multi_task_channel.safe, select_delay_local_scope.safe, select_priority.safe, task_global_owner.safe, task_priority_delay.safe, and try_ops.safe.
