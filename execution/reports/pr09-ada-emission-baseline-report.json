@@ -6,8 +6,8 @@
     "frontend_baseline": "docs/frontend_architecture_baseline.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "52be2676e9cc173d862cc7147ea9575d260d611d84fa087023317fce94a2667b",
-  "report_sha256": "52be2676e9cc173d862cc7147ea9575d260d611d84fa087023317fce94a2667b",
+  "repeat_sha256": "363bc40e3488121d8eccebf13737b0f333430d2af1f02dcc5c6c40df83816316",
+  "report_sha256": "363bc40e3488121d8eccebf13737b0f333430d2af1f02dcc5c6c40df83816316",
   "retired_snapshots_absent": [
     "tests/golden/golden_sensors.ada",
     "tests/golden/golden_ownership.ada",
@@ -28,7 +28,7 @@
     },
     {
       "deterministic": true,
-      "report_sha256": "b2afce83e62f6b749605f81a014343017498c01fcf60bb3a442a88a73957a113",
+      "report_sha256": "f900a8ed63cba62fb3369e7162dd885cae844e8eafa6a52ddea8a962ea8ea632",
       "script": "scripts/run_pr09b_sequential_semantics.py",
       "stdout": "pr09b sequential semantics: OK ($TMPDIR/run_pr09b_sequential_semantics.json)\n"
     },
