@@ -182,6 +182,20 @@ If any VC becomes unproved, the engineer must either:
 - **After any change** to `safe_model.ads`, `safe_po.ads`, or `safe_po.adb`.
 - **Optionally in CI** with a reduced timeout (`--timeout=30`) for early warning.
 
+### 4.7 Emitted-Proof Reproducibility Contract
+
+The emitted-output proof gates used by `PR10`, `PR10.2`, `PR10.3`, and later emitted-proof follow-ons reuse one enforced profile:
+
+`--mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=120 --report=all --warnings=error --checks-as-errors=on`
+
+For those emitted gates, the committed reproducibility contract is:
+
+- deterministic reports plus normalized GNATprove summaries
+- explicit command-line enforcement of the profile above
+- explicit `-cargs -gnatec=<ada_dir>/gnat.adc` application on emitted compile/flow/prove commands when `gnat.adc` is present
+
+GNATprove session artifacts are not committed and are not part of the reproducibility contract. The repo intentionally treats transient session files as tool-local scratch output rather than stable evidence.
+
 ---
 
 ## 5. Concurrency Profile

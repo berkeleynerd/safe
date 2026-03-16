@@ -1,0 +1,20 @@
+[findings]
+| `PR101-030` | `tooling` | PR10 review | Parser surface still under-tested | `scripts/run_pr101_comprehensive_audit.py` | `promote-to-pr10x` | `PR10.4`; `PR10.5` | Track the remaining parser hardening. |
+| malformed | row | with | wrong | number | of | cells |
+| `PR101-031` | `tooling` | PR10 review | Hash-only rollups still churn | `execution/reports/pr06911-glue-script-safety-report.json` | `promote-to-pr10x` | `PR10.4` | De-cascade the parent reports. |
+| ----------- | --------- | ------------ | ------------------------------ | ------------------------------------------- | ------------------ | -------- | -------------------------------- |
+| `NOT-A-FINDING` | `tooling` | ignored | because | id | is wrong | `PR10.4` | no |
+
+[residuals]
+| `PS-001` | Named numbers and richer constant evaluation | Spec retained residual | `frontend` | `blocking-if-needed` |
+| `PS-002` | Fixed-point Rule 5 coverage | Spec retained residual | `analysis` | `nice-to-have` |
+| `BAD-ROW` | ignored | because | id | is wrong |
+| `PS-026` | Broader floating semantics | Spec retained residual | `analysis` | `long-term` |
+| too | few | cells |
+
+[summary]
+| `blocking-if-needed` | `14` |
+| `nice-to-have` | `3` |
+| `long-term` | `16` |
+| `Total` | `33` |
+| `ignored` | `999` |

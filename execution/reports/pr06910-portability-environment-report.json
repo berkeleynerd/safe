@@ -106,28 +106,38 @@
     "execution/reports/pr068-ada-ast-emit-no-python-report.json",
     "execution/reports/pr06910-portability-environment-report.json"
   ],
-  "repeat_sha256": "4cfb4b7cc3a9d8bbe68977cdfc887a1c095c904819dc29a9f48e6031f58878c5",
-  "report_sha256": "4cfb4b7cc3a9d8bbe68977cdfc887a1c095c904819dc29a9f48e6031f58878c5",
+  "repeat_sha256": "246e558da4d0326723a24d9bfb5f96300fb3d9de14a9bccd92e481e0ce0544c2",
+  "report_sha256": "246e558da4d0326723a24d9bfb5f96300fb3d9de14a9bccd92e481e0ce0544c2",
   "reruns": {
     "ast_emit_no_python": {
-      "command": [
-        "python3",
-        "scripts/run_pr068_ada_ast_emit_no_python.py"
-      ],
-      "cwd": "$REPO_ROOT",
-      "returncode": 0,
-      "stderr": "",
-      "stdout": "pr068 ast/emit gate: OK (execution/reports/pr068-ada-ast-emit-no-python-report.json)\n"
+      "committed_report_path": "execution/reports/pr068-ada-ast-emit-no-python-report.json",
+      "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr068_ada_ast_emit_no_python.py",
+          "--report",
+          "$TMPDIR/pr068-ada-ast-emit-no-python-report.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "script": "scripts/run_pr068_ada_ast_emit_no_python.py"
     },
     "runtime_boundary": {
-      "command": [
-        "python3",
-        "scripts/run_pr0693_runtime_boundary.py"
-      ],
-      "cwd": "$REPO_ROOT",
-      "returncode": 0,
-      "stderr": "",
-      "stdout": "pr0693 runtime-boundary gate: OK (execution/reports/pr0693-runtime-boundary-report.json)\n"
+      "committed_report_path": "execution/reports/pr0693-runtime-boundary-report.json",
+      "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0693_runtime_boundary.py",
+          "--report",
+          "$TMPDIR/pr0693-runtime-boundary-report.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "script": "scripts/run_pr0693_runtime_boundary.py"
     },
     "validate_execution_state": {
       "command": [
@@ -135,27 +145,9 @@
         "scripts/validate_execution_state.py"
       ],
       "cwd": "$REPO_ROOT",
-      "returncode": 0,
-      "stderr": "",
-      "stdout": "execution state: OK\n"
+      "returncode": 0
     }
   },
   "status": "ok",
-  "task": "PR06.9.10",
-  "unit_tests": {
-    "command": [
-      "python3",
-      "-m",
-      "unittest",
-      "discover",
-      "-s",
-      "scripts/tests",
-      "-p",
-      "test_*.py"
-    ],
-    "cwd": "$REPO_ROOT",
-    "result": "OK",
-    "returncode": 0,
-    "tests_ran": 95
-  }
+  "task": "PR06.9.10"
 }

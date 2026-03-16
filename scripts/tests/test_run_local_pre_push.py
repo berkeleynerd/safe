@@ -90,6 +90,15 @@ class RunLocalPrePushTests(unittest.TestCase):
             ),
         )
 
+    def test_gate_scripts_for_branch_maps_known_pr104_branch(self) -> None:
+        self.assertEqual(
+            gate_scripts_for_branch("codex/pr104-gnatprove-evidence-hardening"),
+            (
+                "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
+                "scripts/run_pr101_comprehensive_audit.py",
+            ),
+        )
+
     def test_build_steps_skips_unmapped_non_pr08_branch(self) -> None:
         self.assertEqual(
             build_steps(

@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -128,6 +129,56 @@ class HarnessCommonTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             hc.finalize_deterministic_report(generator, label="drift")
+
+    def test_rerun_report_gate_and_compare_returns_stable_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            script = temp_root / "sample_gate.py"
+            report_path = temp_root / "sample-report.json"
+            compare_root = temp_root / "rerun"
+            compare_root.mkdir()
+            script.write_text(
+                textwrap.dedent(
+                    """
+                    from pathlib import Path
+                    import argparse
+                    import sys
+
+                    SCRIPTS_DIR = Path(__SCRIPTS_DIR__)
+                    if str(SCRIPTS_DIR) not in sys.path:
+                        sys.path.insert(0, str(SCRIPTS_DIR))
+
+                    from _lib.harness_common import finalize_deterministic_report, write_report
+
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--report", type=Path, required=True)
+                    args = parser.parse_args()
+                    report = finalize_deterministic_report(
+                        lambda: {"task": "sample", "status": "ok"},
+                        label="sample",
+                    )
+                    write_report(args.report, report)
+                    """
+                ).replace("__SCRIPTS_DIR__", repr(str(hc.REPO_ROOT / "scripts"))).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [sys.executable, str(script), "--report", str(report_path)],
+                check=True,
+                cwd=hc.REPO_ROOT,
+            )
+            metadata = hc.rerun_report_gate_and_compare(
+                python=sys.executable,
+                script=script,
+                committed_report_path=report_path,
+                cwd=hc.REPO_ROOT,
+                temp_root=compare_root,
+            )
+            self.assertEqual(metadata["script"], str(script))
+            self.assertEqual(metadata["committed_report_path"], str(report_path))
+            self.assertTrue(metadata["matches_committed_report"])
+            self.assertEqual(metadata["rerun"]["returncode"], 0)
 
     def test_ensure_sdkroot_respects_existing_value(self) -> None:
         env = {"SDKROOT": "/tmp/sdk"}

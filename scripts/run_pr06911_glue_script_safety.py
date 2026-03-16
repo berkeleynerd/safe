@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ from _lib.harness_common import (
     find_command,
     require,
     require_repo_command,
+    rerun_report_gate_and_compare,
     run,
     write_report,
 )
@@ -48,12 +49,6 @@ MONITORED_REPORTS = [
 ]
 
 
-def load_json(path: Path) -> dict[str, Any]:
-    import json
-
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 def repo_relative_paths(paths: list[Path]) -> list[str]:
     relative_paths: list[str] = []
     for path in paths:
@@ -81,18 +76,6 @@ def current_dirty_diff(*, git: str, paths: list[Path], env: dict[str, str]) -> s
     if not relative_paths:
         return ""
     return run([git, "diff", "--", *relative_paths], cwd=REPO_ROOT, env=env)["stdout"]
-
-
-def summarize_unittest_run(result: dict[str, Any]) -> dict[str, Any]:
-    match = re.search(r"Ran (\d+) tests? in [0-9.]+s", result["stderr"])
-    require(match is not None, "PR06.9.11 unittest run: missing test summary")
-    return {
-        "command": result["command"],
-        "cwd": result["cwd"],
-        "returncode": result["returncode"],
-        "tests_ran": int(match.group(1)),
-        "result": "OK" if result["stderr"].rstrip().endswith("OK") else "UNKNOWN",
-    }
 
 
 def check_glue_report(report: dict[str, Any]) -> None:
@@ -127,85 +110,72 @@ def check_glue_report(report: dict[str, Any]) -> None:
     )
 
 
-def run_gate_script(*, python: str, script: Path, report_path: Path, env: dict[str, str]) -> dict[str, Any]:
-    result = run([python, str(script)], cwd=REPO_ROOT, env=env)
-    require(report_path.exists(), f"expected report at {report_path}")
-    report = load_json(report_path)
-    require(report.get("deterministic") is True, f"{report_path.name}: expected deterministic report")
-    require(
-        report.get("report_sha256") == report.get("repeat_sha256"),
-        f"{report_path.name}: deterministic hashes must match",
-    )
-    return {
-        "run": result,
-        "report_path": display_path(report_path, repo_root=REPO_ROOT),
-        "report_sha256": report["report_sha256"],
-        "repeat_sha256": report["repeat_sha256"],
-    }
-
-
-def check_existing_report(*, report_path: Path) -> dict[str, Any]:
-    require(report_path.exists(), f"expected report at {report_path}")
-    report = load_json(report_path)
-    require(report.get("deterministic") is True, f"{report_path.name}: expected deterministic report")
-    require(
-        report.get("report_sha256") == report.get("repeat_sha256"),
-        f"{report_path.name}: deterministic hashes must match",
-    )
-    return {
-        "report_path": display_path(report_path, repo_root=REPO_ROOT),
-        "report_sha256": report["report_sha256"],
-        "repeat_sha256": report["repeat_sha256"],
-    }
-
-
 def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
     glue_report = glue_script_safety_report()
     check_glue_report(glue_report)
     check_glue_script_safety()
-
-    unit_tests_run = run(
-        [python, "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"],
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    unit_tests = summarize_unittest_run(unit_tests_run)
-
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    runtime_boundary = run_gate_script(
-        python=python,
-        script=RUNTIME_BOUNDARY_SCRIPT,
-        report_path=RUNTIME_BOUNDARY_REPORT,
-        env=env,
-    )
-    gate_quality = run_gate_script(
-        python=python,
-        script=GATE_QUALITY_SCRIPT,
-        report_path=GATE_QUALITY_REPORT,
-        env=env,
-    )
-    portability_environment = run_gate_script(
-        python=python,
-        script=PORTABILITY_SCRIPT,
-        report_path=PORTABILITY_REPORT,
-        env=env,
-    )
-    execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
+    with tempfile.TemporaryDirectory(prefix="pr06911-glue-safety-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        runtime_boundary = rerun_report_gate_and_compare(
+            python=python,
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        gate_quality = rerun_report_gate_and_compare(
+            python=python,
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        portability_environment = rerun_report_gate_and_compare(
+            python=python,
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        frontend_smoke = rerun_report_gate_and_compare(
+            python=python,
+            script=FRONTEND_SMOKE_SCRIPT,
+            committed_report_path=FRONTEND_SMOKE_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        build_reproducibility = rerun_report_gate_and_compare(
+            python=python,
+            script=BUILD_REPRO_SCRIPT,
+            committed_report_path=BUILD_REPRO_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
 
     return {
         "task": "PR06.9.11",
         "status": "ok",
         "glue_script_safety": glue_report,
-        "unit_tests": unit_tests,
         "reruns": {
             "runtime_boundary": runtime_boundary,
             "gate_quality": gate_quality,
             "portability_environment": portability_environment,
-            "validate_execution_state": execution_state,
+            "validate_execution_state": {
+                "command": execution_state["command"],
+                "cwd": execution_state["cwd"],
+                "returncode": execution_state["returncode"],
+            },
         },
         "referenced_deterministic_reports": {
-            "frontend_smoke": check_existing_report(report_path=FRONTEND_SMOKE_REPORT),
-            "build_reproducibility": check_existing_report(report_path=BUILD_REPRO_REPORT),
+            "frontend_smoke": frontend_smoke,
+            "build_reproducibility": build_reproducibility,
         },
         "monitored_reports": [display_path(path, repo_root=REPO_ROOT) for path in MONITORED_REPORTS],
     }

@@ -34,6 +34,7 @@
       "scripts/run_pr09_ada_emission_baseline.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
+      "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
@@ -79,7 +80,8 @@
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
-      "scripts/run_pr103_sequential_proof_expansion.py"
+      "scripts/run_pr103_sequential_proof_expansion.py",
+      "scripts/run_pr104_gnatprove_evidence_parser_hardening.py"
     ],
     "safe_source_readers": [
       {
@@ -135,63 +137,83 @@
   ],
   "referenced_deterministic_reports": {
     "build_reproducibility": {
-      "repeat_sha256": "1b287969295bfdb1c9cd9beb0e6b21fef84a9f2b55b94ceb2d372966c4a73cc1",
-      "report_path": "execution/reports/pr0699-build-reproducibility-report.json",
-      "report_sha256": "1b287969295bfdb1c9cd9beb0e6b21fef84a9f2b55b94ceb2d372966c4a73cc1"
+      "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
+      "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0699_build_reproducibility.py",
+          "--report",
+          "$TMPDIR/pr0699-build-reproducibility-report.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "script": "scripts/run_pr0699_build_reproducibility.py"
     },
     "frontend_smoke": {
-      "repeat_sha256": "523a8540a6b51e6d632289be814ef8170dc90dac99f2d655ebe9e600014716ad",
-      "report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
-      "report_sha256": "523a8540a6b51e6d632289be814ef8170dc90dac99f2d655ebe9e600014716ad"
+      "committed_report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
+      "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_frontend_smoke.py",
+          "--report",
+          "$TMPDIR/pr00-pr04-frontend-smoke.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "cb477411448f15812ac1c0b0361f0e8ac7b4532bee7a9b50999660648de191d6",
-  "report_sha256": "cb477411448f15812ac1c0b0361f0e8ac7b4532bee7a9b50999660648de191d6",
+  "repeat_sha256": "cd4fd4fd4ed088a6bb55e316ef327351125fb3666527d23b72b666526ce56f36",
+  "report_sha256": "cd4fd4fd4ed088a6bb55e316ef327351125fb3666527d23b72b666526ce56f36",
   "reruns": {
     "gate_quality": {
-      "repeat_sha256": "215f2fe46db113f2680e20d58a76e068ce7172d1c891ec65ac8e607849688ab7",
-      "report_path": "execution/reports/pr0697-gate-quality-report.json",
-      "report_sha256": "215f2fe46db113f2680e20d58a76e068ce7172d1c891ec65ac8e607849688ab7",
-      "run": {
+      "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr0697_gate_quality.py"
+          "scripts/run_pr0697_gate_quality.py",
+          "--report",
+          "$TMPDIR/pr0697-gate-quality-report.json"
         ],
         "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "pr0697 gate quality: OK (execution/reports/pr0697-gate-quality-report.json)\n"
-      }
+        "returncode": 0
+      },
+      "script": "scripts/run_pr0697_gate_quality.py"
     },
     "portability_environment": {
-      "repeat_sha256": "4cfb4b7cc3a9d8bbe68977cdfc887a1c095c904819dc29a9f48e6031f58878c5",
-      "report_path": "execution/reports/pr06910-portability-environment-report.json",
-      "report_sha256": "4cfb4b7cc3a9d8bbe68977cdfc887a1c095c904819dc29a9f48e6031f58878c5",
-      "run": {
+      "committed_report_path": "execution/reports/pr06910-portability-environment-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr06910_portability_environment.py"
+          "scripts/run_pr06910_portability_environment.py",
+          "--report",
+          "$TMPDIR/pr06910-portability-environment-report.json"
         ],
         "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "pr06910 portability environment: OK (execution/reports/pr06910-portability-environment-report.json)\n"
-      }
+        "returncode": 0
+      },
+      "script": "scripts/run_pr06910_portability_environment.py"
     },
     "runtime_boundary": {
-      "repeat_sha256": "8e7166b46475fef09f8ac00b8e273747534093612bf06889ddeffd1f1e7251bf",
-      "report_path": "execution/reports/pr0693-runtime-boundary-report.json",
-      "report_sha256": "8e7166b46475fef09f8ac00b8e273747534093612bf06889ddeffd1f1e7251bf",
-      "run": {
+      "committed_report_path": "execution/reports/pr0693-runtime-boundary-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr0693_runtime_boundary.py"
+          "scripts/run_pr0693_runtime_boundary.py",
+          "--report",
+          "$TMPDIR/pr0693-runtime-boundary-report.json"
         ],
         "cwd": "$REPO_ROOT",
-        "returncode": 0,
-        "stderr": "",
-        "stdout": "pr0693 runtime-boundary gate: OK (execution/reports/pr0693-runtime-boundary-report.json)\n"
-      }
+        "returncode": 0
+      },
+      "script": "scripts/run_pr0693_runtime_boundary.py"
     },
     "validate_execution_state": {
       "command": [
@@ -199,27 +221,9 @@
         "scripts/validate_execution_state.py"
       ],
       "cwd": "$REPO_ROOT",
-      "returncode": 0,
-      "stderr": "",
-      "stdout": "execution state: OK\n"
+      "returncode": 0
     }
   },
   "status": "ok",
-  "task": "PR06.9.11",
-  "unit_tests": {
-    "command": [
-      "python3",
-      "-m",
-      "unittest",
-      "discover",
-      "-s",
-      "scripts/tests",
-      "-p",
-      "test_*.py"
-    ],
-    "cwd": "$REPO_ROOT",
-    "result": "OK",
-    "returncode": 0,
-    "tests_ran": 95
-  }
+  "task": "PR06.9.11"
 }

@@ -62,6 +62,10 @@ PRIMARY_GATE_SCRIPTS = {
         "scripts/run_pr10_emitted_baseline.py",
         "scripts/run_pr101_comprehensive_audit.py",
     ),
+    "codex/pr104": (
+        "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
+        "scripts/run_pr101_comprehensive_audit.py",
+    ),
 }
 
 

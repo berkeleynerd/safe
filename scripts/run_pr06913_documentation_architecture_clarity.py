@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,7 @@ from _lib.harness_common import (
     finalize_deterministic_report,
     find_command,
     require,
+    rerun_report_gate_and_compare,
     run,
     write_report,
 )
@@ -55,10 +56,6 @@ MONITORED_PATHS = [
 ]
 
 
-def load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 def repo_relative_paths(paths: list[Path]) -> list[str]:
     return [str(path.relative_to(REPO_ROOT)) for path in paths if path.is_relative_to(REPO_ROOT)]
 
@@ -80,27 +77,6 @@ def current_dirty_diff(*, git: str, paths: list[Path], env: dict[str, str]) -> s
     if not relative_paths:
         return ""
     return run([git, "diff", "--", *relative_paths], cwd=REPO_ROOT, env=env)["stdout"]
-
-
-def run_gate_script(*, python: str, script: Path, report_path: Path, env: dict[str, str]) -> dict[str, Any]:
-    result = run([python, str(script)], cwd=REPO_ROOT, env=env)
-    require(report_path.exists(), f"expected report at {report_path}")
-    report = load_json(report_path)
-    require(report.get("deterministic") is True, f"{report_path.name}: expected deterministic report")
-    require(
-        report.get("report_sha256") == report.get("repeat_sha256"),
-        f"{report_path.name}: deterministic hashes must match",
-    )
-    return {
-        "run": {
-            "command": result["command"],
-            "cwd": result["cwd"],
-            "returncode": result["returncode"],
-        },
-        "report_path": display_path(report_path, repo_root=REPO_ROOT),
-        "report_sha256": report["report_sha256"],
-        "repeat_sha256": report["repeat_sha256"],
-    }
 
 
 def build_report(
@@ -162,42 +138,56 @@ def main() -> int:
     )
     write_report(args.report, bootstrap_report)
 
-    runtime_boundary = run_gate_script(
-        python=python,
-        script=RUNTIME_BOUNDARY_SCRIPT,
-        report_path=RUNTIME_BOUNDARY_REPORT,
-        env=env,
-    )
-    legacy_cleanup = run_gate_script(
-        python=python,
-        script=LEGACY_CLEANUP_SCRIPT,
-        report_path=LEGACY_CLEANUP_REPORT,
-        env=env,
-    )
-    portability_environment = run_gate_script(
-        python=python,
-        script=PORTABILITY_SCRIPT,
-        report_path=PORTABILITY_REPORT,
-        env=env,
-    )
-    gate_quality = run_gate_script(
-        python=python,
-        script=GATE_QUALITY_SCRIPT,
-        report_path=GATE_QUALITY_REPORT,
-        env=env,
-    )
-    glue_script_safety = run_gate_script(
-        python=python,
-        script=GLUE_SAFETY_SCRIPT,
-        report_path=GLUE_SAFETY_REPORT,
-        env=env,
-    )
-    performance_scale_sanity = run_gate_script(
-        python=python,
-        script=SCALE_SANITY_SCRIPT,
-        report_path=SCALE_SANITY_REPORT,
-        env=env,
-    )
+    with tempfile.TemporaryDirectory(prefix="pr06913-doc-clarity-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        runtime_boundary = rerun_report_gate_and_compare(
+            python=python,
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        legacy_cleanup = rerun_report_gate_and_compare(
+            python=python,
+            script=LEGACY_CLEANUP_SCRIPT,
+            committed_report_path=LEGACY_CLEANUP_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        portability_environment = rerun_report_gate_and_compare(
+            python=python,
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        gate_quality = rerun_report_gate_and_compare(
+            python=python,
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        glue_script_safety = rerun_report_gate_and_compare(
+            python=python,
+            script=GLUE_SAFETY_SCRIPT,
+            committed_report_path=GLUE_SAFETY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        performance_scale_sanity = rerun_report_gate_and_compare(
+            python=python,
+            script=SCALE_SANITY_SCRIPT,
+            committed_report_path=SCALE_SANITY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
 
     validate_execution_state_run = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
 

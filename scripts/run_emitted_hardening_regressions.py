@@ -28,6 +28,7 @@ from _lib.pr09_emit import (
     run_emit,
 )
 from _lib.pr10_emit import emit_fixture, gnatprove_emitted_ada
+from _lib.pr10_emit import require_explicit_gnat_adc
 
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "emitted-hardening-regressions-report.json"
@@ -41,15 +42,6 @@ REJECTED_CHANNEL_FIXTURES = [
     REPO_ROOT / "tests" / "concurrency" / "try_send_ownership.safe",
     REPO_ROOT / "tests" / "concurrency" / "select_ownership_binding.safe",
 ]
-
-
-def require_explicit_gnat_adc(command: list[str], *, fixture: Path, label: str) -> None:
-    require("-cargs" in command, f"{fixture}: {label} must pass -cargs explicitly")
-    require(
-        any(arg.startswith("-gnatec=") and arg.endswith("/ada/gnat.adc") for arg in command),
-        f"{fixture}: {label} must pass an explicit -gnatec=<ada_dir>/gnat.adc argument",
-    )
-
 
 def ownership_early_return_regression(*, env: dict[str, str], temp_root: Path) -> dict[str, object]:
     root = temp_root / OWNERSHIP_FIXTURE.stem

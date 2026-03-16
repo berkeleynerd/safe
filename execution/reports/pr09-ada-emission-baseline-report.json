@@ -6,8 +6,8 @@
     "frontend_baseline": "docs/frontend_architecture_baseline.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "363bc40e3488121d8eccebf13737b0f333430d2af1f02dcc5c6c40df83816316",
-  "report_sha256": "363bc40e3488121d8eccebf13737b0f333430d2af1f02dcc5c6c40df83816316",
+  "repeat_sha256": "e06df85e156c35bab261d6f002b33cd2f93f849f6df25a973b5869c532a36228",
+  "report_sha256": "e06df85e156c35bab261d6f002b33cd2f93f849f6df25a973b5869c532a36228",
   "retired_snapshots_absent": [
     "tests/golden/golden_sensors.ada",
     "tests/golden/golden_ownership.ada",
@@ -46,7 +46,7 @@
     }
   ],
   "tracker": {
-    "next_task_id": "PR10.4",
+    "next_task_id": "PR10.5",
     "pr09_evidence": [
       "execution/reports/pr09a-emitter-surface-report.json",
       "execution/reports/pr09a-emitter-mvp-report.json",

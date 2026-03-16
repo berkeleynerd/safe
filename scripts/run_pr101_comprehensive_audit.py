@@ -60,6 +60,9 @@ EXPECTED_PR104_ACCEPTANCE = [
     "Dependent deterministic report rollups are de-cascaded so parent reports do not churn solely because child report hashes changed: freshness checks rerun child gates into comparison artifacts or validate stable path-level invariants, and portability/glue/doc hardening reports avoid repo-wide unittest-count summaries that change for unrelated test additions.",
     "A dedicated PR10.4 gate, report, and CI job keep the hardened evidence path and parser-regression surface under committed deterministic coverage.",
 ]
+EXPECTED_PR104_EVIDENCE = [
+    "execution/reports/pr104-gnatprove-evidence-parser-hardening-report.json",
+]
 EXPECTED_PR102_ACCEPTANCE = [
     "The exact six-fixture PR10.2 Rule 5 positive corpus is tests/positive/rule5_filter.safe, tests/positive/rule5_interpolate.safe, tests/positive/rule5_normalize.safe, tests/positive/rule5_statistics.safe, tests/positive/rule5_temperature.safe, and tests/positive/rule5_vector_normalize.safe; that merged PR07-plus-PR10 set is non-shrinkable and each fixture is frontend-accepted, Ada-emitted, compile-valid, and passes emitted GNATprove flow and prove under the all-proved-only policy.",
     "The source-level Rule 5 negative contract remains tests/negative/neg_rule5_div_zero.safe -> fp_division_by_zero, tests/negative/neg_rule5_infinity.safe -> infinity_at_narrowing, tests/negative/neg_rule5_nan.safe -> nan_at_narrowing, tests/negative/neg_rule5_overflow.safe -> fp_overflow_at_narrowing, and tests/negative/neg_rule5_uninitialized.safe -> fp_uninitialized_at_narrowing; unsupported float-evaluator shapes use the new fp_unsupported_expression_at_narrowing reason under MIR analysis parity coverage instead of being mislabeled as overflow.",
@@ -103,10 +106,10 @@ EXPECTED_AUDIT_SNIPPETS = [
     "`scripts/run_emitted_hardening_regressions.py`",
     "`PR10.2` — Rule 5 proof-boundary closure and loop-termination diagnostics",
     "`PR10.3` — Ownership emitted proof-corpus expansion beyond the frozen PR10 `ownership_move` representative",
-    "`PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, proof-repeatability policy, and deterministic report de-cascading",
+    "`PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, proof-repeatability policy, and deterministic report de-cascading (completed)",
     "`PR10.5` — Ada emitter maintenance hardening",
     "`PR10.6` — Remaining sequential emitted proof-corpus expansion beyond the completed ownership set",
-    "`next_task_id` advances to `PR10.4`",
+    "`next_task_id` advances to `PR10.5`",
 ]
 EXPECTED_MATRIX_SNIPPETS = [
     "frontend Silver ownership analysis is the mechanism that prevents use-after-free",
@@ -142,11 +145,15 @@ EXPECTED_WORKFLOW_SNIPPETS = [
     "pr101-comprehensive-audit:",
     "python3 scripts/run_pr101_comprehensive_audit.py",
     "git diff --exit-code execution/reports/pr101-comprehensive-audit-report.json",
+    "pr104-gnatprove-evidence-parser-hardening:",
+    "python3 scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
+    "git diff --exit-code execution/reports/pr104-gnatprove-evidence-parser-hardening-report.json",
     "pr103-sequential-proof-expansion:",
     "python3 scripts/run_pr103_sequential_proof_expansion.py",
     "git diff --exit-code execution/reports/pr103-sequential-proof-expansion-report.json",
 ]
 EXPECTED_PRE_PUSH_SNIPPETS = [
+    "\"scripts/run_pr104_gnatprove_evidence_parser_hardening.py\"",
     "\"scripts/run_pr101_comprehensive_audit.py\"",
     "\"scripts/run_pr103_sequential_proof_expansion.py\"",
 ]
@@ -486,6 +493,11 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         task_map["PR10.4"]["acceptance"] == EXPECTED_PR104_ACCEPTANCE,
         "PR10.4 acceptance text must match the tightened parser/evidence hardening scope",
     )
+    require(task_map["PR10.4"]["status"] == "done", "PR10.4 must be marked done")
+    require(
+        task_map["PR10.4"]["evidence"] == EXPECTED_PR104_EVIDENCE,
+        "PR10.4 evidence must list the committed parser/evidence hardening report",
+    )
 
     rendered_dashboard = run([find_command("python3"), "scripts/render_execution_status.py"], cwd=REPO_ROOT, env=ensure_sdkroot(os.environ.copy()))
     dashboard_text = DASHBOARD_PATH.read_text(encoding="utf-8")
@@ -499,9 +511,9 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         "execution/dashboard.md must show a next task at or beyond PR10.2 (or none)",
     )
     require(
-        re.search(r"\| PR10\.4 \| (planned|ready|in_progress|done) \| PR10\.1 \| \d+ \|", dashboard_text)
+        re.search(r"\| PR10\.4 \| done \| PR10\.1 \| \d+ \|", dashboard_text)
         is not None,
-        "execution/dashboard.md must contain the tracked PR10.4 row",
+        "execution/dashboard.md must contain the completed PR10.4 row",
     )
 
     audit_text = AUDIT_DOC_PATH.read_text(encoding="utf-8")

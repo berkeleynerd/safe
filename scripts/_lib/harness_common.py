@@ -244,6 +244,65 @@ def finalize_deterministic_report(
     return finalized
 
 
+def rerun_report_gate_and_compare(
+    *,
+    python: str,
+    script: Path,
+    committed_report_path: Path,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+    temp_root: Path,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    temp_report_path = temp_root / committed_report_path.name
+    result = run(
+        [python, str(script), "--report", str(temp_report_path)],
+        cwd=cwd,
+        env=env,
+        temp_root=temp_root,
+        repo_root=repo_root,
+    )
+    require(committed_report_path.exists(), f"missing committed report: {committed_report_path}")
+    require(temp_report_path.exists(), f"expected temp report at {temp_report_path}")
+
+    committed_text = committed_report_path.read_text(encoding="utf-8")
+    temp_text = temp_report_path.read_text(encoding="utf-8")
+    committed_payload = json.loads(committed_text)
+    temp_payload = json.loads(temp_text)
+
+    require(
+        committed_payload.get("deterministic") is True,
+        f"{display_path(committed_report_path, repo_root=repo_root)}: expected deterministic committed report",
+    )
+    require(
+        committed_payload.get("report_sha256") == committed_payload.get("repeat_sha256"),
+        f"{display_path(committed_report_path, repo_root=repo_root)}: committed report hashes must match",
+    )
+    require(
+        temp_payload.get("deterministic") is True,
+        f"{display_path(temp_report_path, repo_root=repo_root)}: expected deterministic temp report",
+    )
+    require(
+        temp_payload.get("report_sha256") == temp_payload.get("repeat_sha256"),
+        f"{display_path(temp_report_path, repo_root=repo_root)}: temp report hashes must match",
+    )
+    require(
+        temp_text == committed_text,
+        f"{display_path(script, repo_root=repo_root)} rerun drifted from committed report "
+        f"{display_path(committed_report_path, repo_root=repo_root)}",
+    )
+    return {
+        "script": display_path(script, repo_root=repo_root),
+        "committed_report_path": display_path(committed_report_path, repo_root=repo_root),
+        "rerun": {
+            "command": result["command"],
+            "cwd": result["cwd"],
+            "returncode": result["returncode"],
+        },
+        "matches_committed_report": True,
+    }
+
+
 def extract_expected_block(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     match = re.search(r"Expected diagnostic output:\n-+\n(.*)\n-+\n", text, flags=re.DOTALL)

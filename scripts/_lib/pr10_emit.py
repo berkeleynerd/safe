@@ -191,6 +191,14 @@ PROVE_SWITCHES = [
 ]
 
 
+def require_explicit_gnat_adc(command: list[str], *, fixture: Path, label: str) -> None:
+    require("-cargs" in command, f"{fixture}: {label} must pass -cargs explicitly")
+    require(
+        any(arg.startswith("-gnatec=") and arg.endswith("/ada/gnat.adc") for arg in command),
+        f"{fixture}: {label} must pass an explicit -gnatec=<ada_dir>/gnat.adc argument",
+    )
+
+
 def selected_emitted_corpus() -> list[dict[str, Any]]:
     return [dict(item) for item in SELECTED_EMITTED_CORPUS]
 

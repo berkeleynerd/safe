@@ -340,6 +340,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr09_ada_emission_baseline.py",
     "scripts/run_pr102_rule5_boundary_closure.py",
     "scripts/run_pr103_sequential_proof_expansion.py",
+    "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
@@ -378,6 +379,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr09_ada_emission_baseline.py",
     "scripts/run_pr102_rule5_boundary_closure.py",
     "scripts/run_pr103_sequential_proof_expansion.py",
+    "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {

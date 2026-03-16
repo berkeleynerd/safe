@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR10.4`
+- **Next task:** `PR10.5`
 - **Updated at:** `2026-03-16T00:00:00Z`
 
 ## Repo Facts
@@ -55,7 +55,7 @@
 | PR10.1 | done | PR10 | 1 |
 | PR10.2 | done | PR10.1 | 1 |
 | PR10.3 | done | PR10.1 | 1 |
-| PR10.4 | planned | PR10.1 | 0 |
+| PR10.4 | done | PR10.1 | 1 |
 | PR10.5 | planned | PR10.1 | 0 |
 | PR10.6 | planned | PR10.3 | 0 |
 | PR11.1 | planned | PR10.4, PR10.5, PR10.6 | 0 |
@@ -567,7 +567,7 @@
 
 ### PR10.4 — GNATprove evidence and parser hardening
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR10.1
 - **Blockers:** none
 - **Acceptance:**
@@ -577,6 +577,8 @@
   - parse_task_id() is extended to handle three-level milestone IDs (e.g., PR06.9.8) that already exist in the tracker's own task list, so forward-stability checks match the project's actual ID convention rather than silently rejecting valid historical IDs.
   - Dependent deterministic report rollups are de-cascaded so parent reports do not churn solely because child report hashes changed: freshness checks rerun child gates into comparison artifacts or validate stable path-level invariants, and portability/glue/doc hardening reports avoid repo-wide unittest-count summaries that change for unrelated test additions.
   - A dedicated PR10.4 gate, report, and CI job keep the hardened evidence path and parser-regression surface under committed deterministic coverage.
+- **Evidence:**
+  - `execution/reports/pr104-gnatprove-evidence-parser-hardening-report.json`
 
 ### PR10.5 — Ada emitter maintenance hardening
 

@@ -24,86 +24,98 @@
     "execution/dashboard.md",
     "execution/reports/pr06913-documentation-architecture-clarity-report.json"
   ],
-  "repeat_sha256": "4163425db2e9aea24d5501127152cf934b2b3044743c4923dd8dacb570e991a9",
-  "report_sha256": "4163425db2e9aea24d5501127152cf934b2b3044743c4923dd8dacb570e991a9",
+  "repeat_sha256": "f03815c1559b4a6737e3568bc623dbd982baa13562512e5a0fe05b713558852a",
+  "report_sha256": "f03815c1559b4a6737e3568bc623dbd982baa13562512e5a0fe05b713558852a",
   "reruns": {
     "gate_quality": {
-      "repeat_sha256": "215f2fe46db113f2680e20d58a76e068ce7172d1c891ec65ac8e607849688ab7",
-      "report_path": "execution/reports/pr0697-gate-quality-report.json",
-      "report_sha256": "215f2fe46db113f2680e20d58a76e068ce7172d1c891ec65ac8e607849688ab7",
-      "run": {
+      "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr0697_gate_quality.py"
+          "scripts/run_pr0697_gate_quality.py",
+          "--report",
+          "$TMPDIR/pr0697-gate-quality-report.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
-      }
+      },
+      "script": "scripts/run_pr0697_gate_quality.py"
     },
     "glue_script_safety": {
-      "repeat_sha256": "cb477411448f15812ac1c0b0361f0e8ac7b4532bee7a9b50999660648de191d6",
-      "report_path": "execution/reports/pr06911-glue-script-safety-report.json",
-      "report_sha256": "cb477411448f15812ac1c0b0361f0e8ac7b4532bee7a9b50999660648de191d6",
-      "run": {
+      "committed_report_path": "execution/reports/pr06911-glue-script-safety-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr06911_glue_script_safety.py"
+          "scripts/run_pr06911_glue_script_safety.py",
+          "--report",
+          "$TMPDIR/pr06911-glue-script-safety-report.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
-      }
+      },
+      "script": "scripts/run_pr06911_glue_script_safety.py"
     },
     "legacy_package_cleanup": {
-      "repeat_sha256": "79ea1419901a7de3866a948ee576fbfcdf04ddfc9703c5e331ba4a37190df0bc",
-      "report_path": "execution/reports/pr0698-legacy-package-cleanup-report.json",
-      "report_sha256": "79ea1419901a7de3866a948ee576fbfcdf04ddfc9703c5e331ba4a37190df0bc",
-      "run": {
+      "committed_report_path": "execution/reports/pr0698-legacy-package-cleanup-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr0698_legacy_package_cleanup.py"
+          "scripts/run_pr0698_legacy_package_cleanup.py",
+          "--report",
+          "$TMPDIR/pr0698-legacy-package-cleanup-report.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
-      }
+      },
+      "script": "scripts/run_pr0698_legacy_package_cleanup.py"
     },
     "performance_scale_sanity": {
-      "repeat_sha256": "e0d63589dfb7f2f02c72c9cf874dd0ba89be010810eb1e5d56fb9ca0b1825e1e",
-      "report_path": "execution/reports/pr06912-performance-scale-sanity-report.json",
-      "report_sha256": "e0d63589dfb7f2f02c72c9cf874dd0ba89be010810eb1e5d56fb9ca0b1825e1e",
-      "run": {
+      "committed_report_path": "execution/reports/pr06912-performance-scale-sanity-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr06912_performance_scale_sanity.py"
+          "scripts/run_pr06912_performance_scale_sanity.py",
+          "--report",
+          "$TMPDIR/pr06912-performance-scale-sanity-report.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
-      }
+      },
+      "script": "scripts/run_pr06912_performance_scale_sanity.py"
     },
     "portability_environment": {
-      "repeat_sha256": "4cfb4b7cc3a9d8bbe68977cdfc887a1c095c904819dc29a9f48e6031f58878c5",
-      "report_path": "execution/reports/pr06910-portability-environment-report.json",
-      "report_sha256": "4cfb4b7cc3a9d8bbe68977cdfc887a1c095c904819dc29a9f48e6031f58878c5",
-      "run": {
+      "committed_report_path": "execution/reports/pr06910-portability-environment-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr06910_portability_environment.py"
+          "scripts/run_pr06910_portability_environment.py",
+          "--report",
+          "$TMPDIR/pr06910-portability-environment-report.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
-      }
+      },
+      "script": "scripts/run_pr06910_portability_environment.py"
     },
     "runtime_boundary": {
-      "repeat_sha256": "8e7166b46475fef09f8ac00b8e273747534093612bf06889ddeffd1f1e7251bf",
-      "report_path": "execution/reports/pr0693-runtime-boundary-report.json",
-      "report_sha256": "8e7166b46475fef09f8ac00b8e273747534093612bf06889ddeffd1f1e7251bf",
-      "run": {
+      "committed_report_path": "execution/reports/pr0693-runtime-boundary-report.json",
+      "matches_committed_report": true,
+      "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr0693_runtime_boundary.py"
+          "scripts/run_pr0693_runtime_boundary.py",
+          "--report",
+          "$TMPDIR/pr0693-runtime-boundary-report.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
-      }
+      },
+      "script": "scripts/run_pr0693_runtime_boundary.py"
     },
     "validate_execution_state": {
       "command": [

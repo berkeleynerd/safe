@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ from _lib.harness_common import (
     find_command,
     require,
     require_repo_command,
+    rerun_report_gate_and_compare,
     run,
     write_report,
 )
@@ -44,7 +45,13 @@ MONITORED_PATHS = [
 
 
 def repo_relative_paths(paths: list[Path]) -> list[str]:
-    return [str(path.relative_to(REPO_ROOT)) for path in paths]
+    relative_paths: list[str] = []
+    for path in paths:
+        try:
+            relative_paths.append(str(path.relative_to(REPO_ROOT)))
+        except ValueError:
+            continue
+    return relative_paths
 
 
 def current_dirty_paths(*, git: str, paths: list[Path], env: dict[str, str]) -> list[str]:
@@ -95,42 +102,42 @@ def check_environment_report(report: dict[str, Any]) -> None:
     )
 
 
-def summarize_unittest_run(result: dict[str, Any]) -> dict[str, Any]:
-    match = re.search(r"Ran (\d+) tests in [0-9.]+s", result["stderr"])
-    require(match is not None, "PR06.9.10 unittest run: missing test summary")
-    return {
-        "command": result["command"],
-        "cwd": result["cwd"],
-        "returncode": result["returncode"],
-        "tests_ran": int(match.group(1)),
-        "result": "OK" if result["stderr"].rstrip().endswith("OK") else "UNKNOWN",
-    }
-
-
 def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
     environment_report = environment_assumptions_report()
     check_environment_report(environment_report)
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-
-    unit_tests_run = run(
-        [python, "-m", "unittest", "discover", "-s", "scripts/tests", "-p", "test_*.py"],
-        cwd=REPO_ROOT,
-        env=env,
-    )
-    unit_tests = summarize_unittest_run(unit_tests_run)
-    runtime_boundary = run([python, str(RUNTIME_BOUNDARY_SCRIPT)], cwd=REPO_ROOT, env=env)
-    no_python = run([python, str(NO_PYTHON_SCRIPT)], cwd=REPO_ROOT, env=env)
-    execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
+    with tempfile.TemporaryDirectory(prefix="pr06910-portability-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        runtime_boundary = rerun_report_gate_and_compare(
+            python=python,
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        no_python = rerun_report_gate_and_compare(
+            python=python,
+            script=NO_PYTHON_SCRIPT,
+            committed_report_path=NO_PYTHON_REPORT,
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=temp_root,
+        )
+        execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
 
     return {
         "task": "PR06.9.10",
         "status": "ok",
         "environment_assumptions": environment_report,
-        "unit_tests": unit_tests,
         "reruns": {
             "runtime_boundary": runtime_boundary,
             "ast_emit_no_python": no_python,
-            "validate_execution_state": execution_state,
+            "validate_execution_state": {
+                "command": execution_state["command"],
+                "cwd": execution_state["cwd"],
+                "returncode": execution_state["returncode"],
+            },
         },
         "monitored_paths": [display_path(path, repo_root=REPO_ROOT) for path in MONITORED_PATHS],
     }

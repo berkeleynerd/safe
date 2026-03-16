@@ -116,11 +116,11 @@ The PR10.1 audit carved the following evidence-ready follow-on tasks:
 
 - `PR10.2` — Rule 5 proof-boundary closure and loop-termination diagnostics (completed)
 - `PR10.3` — Ownership emitted proof-corpus expansion beyond the frozen PR10 `ownership_move` representative (completed)
-- `PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, proof-repeatability policy, and deterministic report de-cascading
+- `PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, proof-repeatability policy, and deterministic report de-cascading (completed)
 - `PR10.5` — Ada emitter maintenance hardening
 - `PR10.6` — Remaining sequential emitted proof-corpus expansion beyond the completed ownership set
 
-The live tracker now records `PR10.3` as done, and `next_task_id` advances to `PR10.4`.
+The live tracker now records `PR10.4` as done, and `next_task_id` advances to `PR10.5`.
 
 ## Supersession Note
 

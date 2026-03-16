@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -17,6 +18,15 @@ import run_pr101_comprehensive_audit
 
 
 class Pr101AuditHardeningTests(unittest.TestCase):
+    def load_fixture_section(self, name: str) -> str:
+        text = (FIXTURES_DIR / "pr101_audit_tables.txt").read_text(encoding="utf-8")
+        marker = f"[{name}]"
+        start = text.index(marker) + len(marker)
+        next_section = text.find("\n[", start)
+        if next_section == -1:
+            next_section = len(text)
+        return text[start:next_section].strip() + "\n"
+
     def test_pr08_baseline_parser_accepts_letter_suffixed_minor_ids(self) -> None:
         self.assertEqual(run_pr08_frontend_baseline.parse_task_id("PR09.1a"), (9, 1))
         self.assertEqual(run_pr08_frontend_baseline.parse_task_id("PR06.9.8"), (6, 9))
@@ -39,6 +49,65 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertEqual(run_pr101_comprehensive_audit.parse_task_id("PR06.9.8"), (6, 9))
         self.assertEqual(run_pr101_comprehensive_audit.parse_task_id("PR06.9.10"), (6, 9))
         self.assertEqual(run_pr101_comprehensive_audit.parse_task_id("PR10.3a"), (10, 3))
+
+    def test_split_table_row_rejects_non_data_rows(self) -> None:
+        self.assertEqual(
+            run_pr101_comprehensive_audit.split_table_row("| `PR101-030` | `tooling` |"),
+            ["`PR101-030`", "`tooling`"],
+        )
+        self.assertIsNone(
+            run_pr101_comprehensive_audit.split_table_row("| ----------- | --------- |")
+        )
+        self.assertIsNone(run_pr101_comprehensive_audit.split_table_row("not a table row"))
+
+    def test_parse_findings_ignores_malformed_rows_and_keeps_multi_target_cells(self) -> None:
+        findings = run_pr101_comprehensive_audit.parse_findings(self.load_fixture_section("findings"))
+        self.assertEqual(len(findings), 2)
+        self.assertEqual(findings[0]["id"], "PR101-030")
+        self.assertEqual(findings[0]["area"], "tooling")
+        self.assertEqual(findings[0]["target"], "PR10.4; PR10.5")
+        self.assertEqual(findings[1]["id"], "PR101-031")
+        self.assertEqual(findings[1]["target"], "PR10.4")
+
+    def test_parse_residuals_ignores_malformed_rows(self) -> None:
+        residuals = run_pr101_comprehensive_audit.parse_residuals(self.load_fixture_section("residuals"))
+        self.assertEqual(
+            residuals,
+            [
+                {
+                    "id": "PS-001",
+                    "item": "Named numbers and richer constant evaluation",
+                    "source": "Spec retained residual",
+                    "area": "frontend",
+                    "priority": "blocking-if-needed",
+                },
+                {
+                    "id": "PS-002",
+                    "item": "Fixed-point Rule 5 coverage",
+                    "source": "Spec retained residual",
+                    "area": "analysis",
+                    "priority": "nice-to-have",
+                },
+                {
+                    "id": "PS-026",
+                    "item": "Broader floating semantics",
+                    "source": "Spec retained residual",
+                    "area": "analysis",
+                    "priority": "long-term",
+                },
+            ],
+        )
+
+    def test_parse_summary_counts_extracts_known_priority_rows(self) -> None:
+        self.assertEqual(
+            run_pr101_comprehensive_audit.parse_summary_counts(self.load_fixture_section("summary")),
+            {
+                "blocking-if-needed": 14,
+                "nice-to-have": 3,
+                "long-term": 16,
+                "Total": 33,
+            },
+        )
 
     def test_normalized_gnatprove_summary_hash_ignores_percentage_drift(self) -> None:
         first = """tool chatter
