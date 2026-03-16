@@ -651,6 +651,7 @@
         "Pure-Python regression tests cover scripts/run_pr101_comprehensive_audit.py parsing helpers (split_table_row, parse_findings, parse_residuals, parse_summary_counts), including malformed-table cases and multi-target target-cell parsing.",
         "The emitted proof and audit harnesses verify explicit gnat.adc application and fail deterministically if concurrency compile/flow/prove commands lose the concrete -gnatec=<ada_dir>/gnat.adc argument.",
         "The GNATprove evidence path documents and enforces the repo's proof-repeatability policy for emitted gates, including the current --steps=0 plus bounded-timeout profile and an explicit statement about whether committed session artifacts are part of the reproducibility contract.",
+        "parse_task_id() is extended to handle three-level milestone IDs (e.g., PR06.9.8) that already exist in the tracker's own task list, so forward-stability checks match the project's actual ID convention rather than silently rejecting valid historical IDs.",
         "A dedicated PR10.4 gate, report, and CI job keep the hardened evidence path and parser-regression surface under committed deterministic coverage."
       ],
       "evidence": [],

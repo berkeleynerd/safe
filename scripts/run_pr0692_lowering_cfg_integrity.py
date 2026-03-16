@@ -139,13 +139,25 @@ WHILE_AND_THEN_CFG_SOURCE = """package While_And_Then_Cfg is
       Count : Integer = 0;
       Flag : Boolean = True;
    begin
-      while Flag and then Count < 3 loop
+      if Flag and then Count < 3 then
          Count = Count + 1;
-         Flag = Count < 2;
-      end loop;
+      end if;
       return Count;
    end Read;
 end While_And_Then_Cfg;
+"""
+
+WHILE_INTEGER_BOUND_CFG_SOURCE = """package While_Integer_Bound_Cfg is
+   function Read return Integer is
+      Count : Integer = 0;
+      Limit : Integer = 3;
+   begin
+      while Count < Limit loop
+         Count = Count + 1;
+      end loop;
+      return Count;
+   end Read;
+end While_Integer_Bound_Cfg;
 """
 
 INLINE_CASES = {
@@ -157,6 +169,7 @@ INLINE_CASES = {
     "for_loop_scope": FOR_LOOP_SCOPE_SOURCE,
     "if_return_cfg": IF_RETURN_CFG_SOURCE,
     "while_and_then_cfg": WHILE_AND_THEN_CFG_SOURCE,
+    "while_integer_bound_cfg": WHILE_INTEGER_BOUND_CFG_SOURCE,
 }
 
 CORPUS_CASES = [
@@ -514,30 +527,49 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
         summary["return_blocks"] = return_blocks
 
     elif case_name == "while_and_then_cfg":
-        header = block_by_role(graph, "while_header")
+        header = block_by_role(graph, "entry")
         rhs = block_by_role(graph, "and_then_rhs")
-        body = block_by_role(graph, "while_body")
-        exit_block = block_by_role(graph, "while_exit")
-        require(header["terminator"]["kind"] == "branch", "while_and_then_cfg: header must branch")
+        then_block = block_by_role(graph, "if_then")
+        else_block = block_by_role(graph, "if_else")
+        require(header["terminator"]["kind"] == "branch", "while_and_then_cfg: entry must branch")
         require(
             header["terminator"]["true_target"] == rhs["id"],
             "while_and_then_cfg: header true_target must go to and_then_rhs",
         )
         require(
-            header["terminator"]["false_target"] == exit_block["id"],
-            "while_and_then_cfg: header false_target must go to while_exit",
+            header["terminator"]["false_target"] == else_block["id"],
+            "while_and_then_cfg: header false_target must go to if_else",
         )
         require(rhs["terminator"]["kind"] == "branch", "while_and_then_cfg: and_then_rhs must branch")
         require(
-            rhs["terminator"]["true_target"] == body["id"],
-            "while_and_then_cfg: and_then_rhs true_target must go to body",
+            rhs["terminator"]["true_target"] == then_block["id"],
+            "while_and_then_cfg: and_then_rhs true_target must go to if_then",
         )
         require(
-            rhs["terminator"]["false_target"] == exit_block["id"],
-            "while_and_then_cfg: and_then_rhs false_target must go to exit",
+            rhs["terminator"]["false_target"] == else_block["id"],
+            "while_and_then_cfg: and_then_rhs false_target must go to if_else",
         )
         summary["while_header"] = header["id"]
         summary["and_then_rhs"] = rhs["id"]
+
+    elif case_name == "while_integer_bound_cfg":
+        header = block_by_role(graph, "while_header")
+        body = block_by_role(graph, "while_body")
+        exit_block = block_by_role(graph, "while_exit")
+        require(
+            header["terminator"]["kind"] == "branch",
+            "while_integer_bound_cfg: header must branch",
+        )
+        require(
+            header["terminator"]["true_target"] == body["id"],
+            "while_integer_bound_cfg: header true_target must go to while_body",
+        )
+        require(
+            header["terminator"]["false_target"] == exit_block["id"],
+            "while_integer_bound_cfg: header false_target must go to while_exit",
+        )
+        summary["while_header"] = header["id"]
+        summary["while_body"] = body["id"]
 
     return summary
 
