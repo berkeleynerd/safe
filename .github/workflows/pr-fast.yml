@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FROZEN_SHA: "468cf72332724b04b7c193b4d2a3b02f1584125d"
-
 jobs:
   execution-guard:
     name: Execution Guard
