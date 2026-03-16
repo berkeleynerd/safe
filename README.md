@@ -26,17 +26,20 @@ that still live at the proposal/detail stage rather than in gate-backed CI.
 | ~~PR10.1~~ | `done` | Audit and residual normalization |
 | ~~PR10.2~~ | `done` | Rule 5 proof closure |
 | ~~PR10.3~~ | `done` | Ownership proof expansion |
-| PR10.4 | `planned` | Evidence, parser, and report hardening |
+| ~~PR10.4~~ | `done` | Evidence, parser, report hardening |
 | PR10.5 | `planned` | Emitter maintenance hardening |
 | PR10.6 | `planned` | Remaining sequential proof corpus |
 | *PR11.1* | `planned` | Build wrapper, editor grammar, Rosetta |
 | *PR11.2* | `planned` | Strings/chars and case statements |
 | *PR11.3* | `planned` | Discriminants and constraints |
+| *PR11.3a* | `planned` | Checkpoint 1 proof closure |
 | *PR11.4* | `planned` | `returns` and `else if` |
 | *PR11.5* | `planned` | Optional semicolons and `var` |
 | *PR11.6* | `planned` | `pragma Strict` and whitespace blocks |
 | *PR11.7* | `planned` | Reference-surface experiments |
 | *PR11.8* | `planned` | Numeric model |
+| *PR11.8a* | `planned` | Numeric proof checkpoint |
+| *PR11.8b* | `planned` | Concurrency proof expansion |
 | *PR11.9* | `planned` | Artifact contract stabilization |
 | *PR11.10* | `planned` | Monomorphic library layer |
 | *PR11.11* | `planned` | Restricted generics |

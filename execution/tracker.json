@@ -699,7 +699,7 @@
       "acceptance": [
         "A one-command `safe build <file.safe>` wrapper, static VSCode grammar, and disposable diagnostics shim exist as explicitly non-frozen tooling surfaces for language evaluation.",
         "PR11.1 creates and validates a starter Rosetta/sample corpus consisting of fibonacci.safe, gcd.safe, factorial.safe, collatz_bounded.safe, bubble_sort.safe, binary_search.safe, bounded_stack.safe, and producer_consumer.safe; linked_list_reverse.safe and prime_sieve_pipeline.safe remain candidate expansions, while trapezoidal_rule.safe and newton_sqrt_bounded.safe remain deferred to later numeric work.",
-        "None of the PR11.1 starter-corpus candidates depend on PR11.2 string/case support, and PR11.1 remains a `safec check` -> `safec emit --ada-out-dir` -> `gprbuild` compile milestone rather than emitted-proof expansion."
+        "None of the PR11.1 starter-corpus candidates depend on PR11.2 string/case support, and PR11.1 remains a `safec check` -> `safec emit --ada-out-dir` -> `gprbuild` compile milestone rather than emitted-proof expansion; proof re-enters later via PR11.3a, PR11.8a, and the parallel PR11.8b concurrency track."
       ],
       "evidence": [],
       "blockers": [],
@@ -734,10 +734,24 @@
       "unblock_condition": ""
     },
     {
+      "id": "PR11.3a",
+      "title": "Proof checkpoint 1 for parser and discriminant expansion",
+      "status": "planned",
+      "depends_on": ["PR11.3"],
+      "acceptance": [
+        "The emitted sequential fixtures newly admitted by PR11.2 and PR11.3 are explicitly enumerated as a non-shrinkable proof checkpoint corpus rather than being left as open proof debt.",
+        "That checkpoint corpus passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence, and any previously proved sequential fixtures affected by parser or discriminant emission changes are revalidated in the same checkpoint.",
+        "Any deallocation-ordering semantics (`PS-029`) required by the admitted discriminant corpus are resolved or explicitly bounded before PR11.3a claims proof closure."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
       "id": "PR11.4",
       "title": "Signature and Control-Flow Syntax",
       "status": "planned",
-      "depends_on": ["PR11.3"],
+      "depends_on": ["PR11.3a"],
       "acceptance": [
         "The `returns` and `else if` spellings are supported with an explicit coexistence or migration rule for legacy forms.",
         "The existing test corpus and Rosetta/sample corpus have a mechanical migration strategy for the new forms.",
@@ -804,10 +818,38 @@
       "unblock_condition": ""
     },
     {
+      "id": "PR11.8a",
+      "title": "Proof checkpoint 2 for numeric-model revalidation",
+      "status": "planned",
+      "depends_on": ["PR11.8", "PR11.3a"],
+      "acceptance": [
+        "The fixtures added or materially changed by PR11.8 are explicitly enumerated as a non-shrinkable numeric proof checkpoint corpus.",
+        "That checkpoint corpus, plus the previously proved numeric-sensitive emitted corpus, passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence.",
+        "Fixed-point Rule 5 (`PS-002`) and broader floating-point semantics (`PS-026`) are either still explicitly deferred or version-targeted; PR11.8a does not silently expand proof claims beyond the admitted numeric surface."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR11.8b",
+      "title": "Concurrency proof expansion",
+      "status": "planned",
+      "depends_on": ["PR10.5", "PR10.6"],
+      "acceptance": [
+        "The currently accepted emitted concurrency subset beyond the frozen PR10 representatives and the already-proved supplemental hardening fixture is explicitly enumerated as a non-shrinkable proof corpus: channel_ceiling_priority.safe, exclusive_variable.safe, fifo_ordering.safe, multi_task_channel.safe, select_delay_local_scope.safe, select_priority.safe, task_global_owner.safe, task_priority_delay.safe, and try_ops.safe.",
+        "That bounded concurrency corpus passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence, without restating spec-excluded fixtures as proof debt.",
+        "Tracker/docs surfaces keep source-level select semantics (`PS-007`), I/O seam wrapper obligations (`PS-019`), and Jorvik/Ravenscar runtime obligations (`PS-031`) explicitly open even as emitted concurrency proof coverage expands."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
       "id": "PR11.9",
       "title": "Artifact Contract Stabilization",
       "status": "planned",
-      "depends_on": ["PR11.8"],
+      "depends_on": ["PR11.8a", "PR11.8b"],
       "acceptance": [
         "Compatibility policy and version-bump rules are documented for diagnostics-v0, safei-v1, and mir-v2.",
         "The milestone resolves `PS-021` by defining what is additive-only versus breaking for the machine-facing artifacts.",
