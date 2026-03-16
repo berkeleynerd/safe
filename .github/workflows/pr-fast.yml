@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-jobs:
-  execution-guard:
-    name: Execution Guard
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
