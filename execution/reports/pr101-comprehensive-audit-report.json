@@ -7,7 +7,7 @@
     "post_pr10_scope": "52d74391fcb697b6cc620bbeb8ed8aaff90f6d5689f99c9f093da972d9f55237",
     "readme": "9fbfd8653a3766b7cdcc74d641acdc406ba24983ab15016bfbc9b4376c141d50",
     "tracker": "212977d00159e316c76c46dcc051e892e4c6487b9e9eb4a8fec85ea32384d81d",
-    "workflow": "c920e58da6a73035ae41154ec1833d1fe16b0271a8ec3018adabd7f7e062cc9e"
+    "workflow": "a134475f5b74c5f4a40f051cdce6a439eadef7bd8fe1ef89a1bec6523da965c9"
   },
   "audited_surfaces": [
     "spec/TBD consistency",
@@ -324,8 +324,8 @@
       "title": "Remaining sequential emitted proof-corpus expansion beyond ownership"
     }
   ],
-  "repeat_sha256": "07da26213b5a35e49fa5ec129e87d5d4e1623ece2ea9bb2d24552f04befebaaa",
-  "report_sha256": "07da26213b5a35e49fa5ec129e87d5d4e1623ece2ea9bb2d24552f04befebaaa",
+  "repeat_sha256": "87f4e23a520fe6c2288bfd0ff3c114041df073c9bad2fbcfc1fcbc7b66d46a7f",
+  "report_sha256": "87f4e23a520fe6c2288bfd0ff3c114041df073c9bad2fbcfc1fcbc7b66d46a7f",
   "retained_post_pr10_residuals": [
     {
       "area": "resolver",

@@ -1,0 +1,44 @@
+name: PR Fast Checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FROZEN_SHA: "468cf72332724b04b7c193b4d2a3b02f1584125d"
+
+jobs:
+  execution-guard:
+    name: Execution Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Validate execution tracker and repo facts
+        run: python3 scripts/validate_execution_state.py
+
+  lint-safe-syntax:
+    name: Lint Safe Surface Syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Lint .safe test files
+        run: |
+          chmod +x scripts/lint_safe_syntax.sh
+          scripts/lint_safe_syntax.sh

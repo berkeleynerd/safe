@@ -99,6 +99,15 @@ class RunLocalPrePushTests(unittest.TestCase):
             ),
         )
 
+    def test_gate_scripts_for_branch_maps_pr11_family_branch(self) -> None:
+        self.assertEqual(
+            gate_scripts_for_branch("codex/pr111-language-eval-harness"),
+            (
+                "scripts/run_frontend_smoke.py",
+                "scripts/run_pr101_comprehensive_audit.py",
+            ),
+        )
+
     def test_build_steps_skips_unmapped_non_pr08_branch(self) -> None:
         self.assertEqual(
             build_steps(

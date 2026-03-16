@@ -68,6 +68,11 @@ PRIMARY_GATE_SCRIPTS = {
     ),
 }
 
+PR11_FAMILY_GATE_SCRIPTS = (
+    "scripts/run_frontend_smoke.py",
+    "scripts/run_pr101_comprehensive_audit.py",
+)
+
 
 def current_branch(*, git: str, env: dict[str, str]) -> str:
     result = run(
@@ -85,6 +90,8 @@ def gate_scripts_for_branch(branch: str) -> tuple[str, ...]:
     for prefix, scripts in PRIMARY_GATE_SCRIPTS.items():
         if branch == prefix or branch.startswith(prefix + "-"):
             return scripts
+    if branch.startswith("codex/pr11"):
+        return PR11_FAMILY_GATE_SCRIPTS
     if branch.startswith("codex/pr08") or branch.startswith("codex/pr09") or branch.startswith("codex/pr10"):
         raise RuntimeError(
             f"{branch}: no local pre-push plan is defined yet; update scripts/run_local_pre_push.py"
