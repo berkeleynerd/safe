@@ -52,6 +52,11 @@ PRIMARY_GATE_SCRIPTS = {
         "scripts/run_pr101_comprehensive_audit.py",
     ),
     "codex/pr101": ("scripts/run_pr101_comprehensive_audit.py",),
+    "codex/pr102": (
+        "scripts/run_pr102_rule5_boundary_closure.py",
+        "scripts/run_pr10_contract_baseline.py",
+        "scripts/run_pr101_comprehensive_audit.py",
+    ),
 }
 
 

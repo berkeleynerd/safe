@@ -469,6 +469,14 @@ package body Safe_Frontend.Mir_Analyze is
       Var_Types  : Type_Maps.Map;
       Type_Env   : Type_Maps.Map;
       Functions  : Function_Maps.Map) return Float_Interval;
+   function While_Variant_Derivable
+     (Condition : GM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Functions : Function_Maps.Map) return Boolean;
+   function While_Loop_Variant_Diagnostic
+     (Condition : GM.Expr_Access;
+      Span      : FT.Source_Span) return MD.Diagnostic;
    procedure Check_Float_Narrowing
      (Expr           : GM.Expr_Access;
       Interval_Value : Float_Interval;
@@ -2952,13 +2960,75 @@ package body Safe_Frontend.Mir_Analyze is
       declare
          Diag : MD.Diagnostic := Null_Diagnostic;
       begin
-         Diag.Reason := FT.To_UString ("fp_overflow_at_narrowing");
-         Diag.Message := FT.To_UString ("unsupported floating expression " & GM.Image (Expr.Kind));
+         Diag.Reason := FT.To_UString ("fp_unsupported_expression_at_narrowing");
+         Diag.Message := FT.To_UString ("unsupported floating expression " & GM.Image (Expr.Kind) & " at narrowing");
          Diag.Span := Expr.Span;
          Raise_Diag (Diag);
       end;
       return Float_Interval_For (Resolve_Type ("Long_Float", Type_Env));
    end Eval_Float_Expr;
+
+   function While_Variant_Derivable
+     (Condition : GM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Functions : Function_Maps.Map) return Boolean
+   is
+   begin
+      if Condition = null or else Condition.Kind /= GM.Expr_Binary then
+         return False;
+      end if;
+
+      if UString_Value (Condition.Operator) = "!=" then
+         return
+           (Condition.Left /= null
+            and then Condition.Left.Kind /= GM.Expr_Null
+            and then Condition.Right /= null
+            and then Condition.Right.Kind = GM.Expr_Null
+            and then Flatten_Name (Condition.Left)'Length > 0)
+           or else
+           (Condition.Right /= null
+            and then Condition.Right.Kind /= GM.Expr_Null
+            and then Condition.Left /= null
+            and then Condition.Left.Kind = GM.Expr_Null
+            and then Flatten_Name (Condition.Right)'Length > 0);
+      elsif UString_Value (Condition.Operator) in "<" | "<=" then
+         if Condition.Left /= null
+           and then Condition.Right /= null
+           and then Condition.Left.Kind = GM.Expr_Ident
+           and then Condition.Right.Kind = GM.Expr_Ident
+         then
+            return
+              Is_Integer_Type (Expr_Type (Condition.Left, Var_Types, Type_Env, Functions))
+              and then
+              Is_Integer_Type (Expr_Type (Condition.Right, Var_Types, Type_Env, Functions));
+         end if;
+      end if;
+
+      return False;
+   end While_Variant_Derivable;
+
+   function While_Loop_Variant_Diagnostic
+     (Condition : GM.Expr_Access;
+      Span      : FT.Source_Span) return MD.Diagnostic
+   is
+      Result : MD.Diagnostic := Null_Diagnostic;
+      Focus  : constant FT.Source_Span :=
+        (if Condition = null then Span else Highlight_Span (Condition));
+   begin
+      Result.Reason := FT.To_UString ("loop_variant_not_derivable");
+      Result.Message := FT.To_UString ("current proof surface cannot derive a supported Loop_Variant from this while condition");
+      Result.Span := Focus;
+      Result.Has_Highlight_Span := True;
+      Result.Highlight_Span := Focus;
+      Result.Notes.Append
+        (FT.To_UString
+           ("supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions."));
+      Result.Notes.Append
+        (FT.To_UString
+           ("rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant."));
+      return Result;
+   end While_Loop_Variant_Diagnostic;
 
    procedure Check_Float_Narrowing
      (Expr           : GM.Expr_Access;
@@ -5465,20 +5535,38 @@ package body Safe_Frontend.Mir_Analyze is
                      Enqueue_Target (UString_Value (Block.Terminator.Target), Current);
                   end if;
                when GM.Terminator_Branch =>
-                  declare
-                     True_State  : State := Refine_Condition (Current, Block.Terminator.Condition, True, Var_Types, Type_Env);
-                     False_State : State := Refine_Condition (Current, Block.Terminator.Condition, False, Var_Types, Type_Env);
-                  begin
-                     if UString_Value (Block.Role) = "for_header"
-                       and then Block.Has_Loop_Info
-                       and then Block.Loop_Var /= FT.To_UString ("")
-                       and then Var_Types.Contains (UString_Value (Block.Loop_Var))
-                     then
-                        True_State.Ranges.Include (UString_Value (Block.Loop_Var), Range_Interval (Var_Types.Element (UString_Value (Block.Loop_Var))));
-                     end if;
-                     Enqueue_Target (UString_Value (Block.Terminator.True_Target), True_State);
-                     Enqueue_Target (UString_Value (Block.Terminator.False_Target), False_State);
-                  end;
+                  if UString_Value (Block.Role) = "while_header"
+                    and then not While_Variant_Derivable
+                      (Block.Terminator.Condition,
+                       Var_Types,
+                       Type_Env,
+                       Functions)
+                  then
+                     declare
+                        Diag : constant MD.Diagnostic :=
+                          While_Loop_Variant_Diagnostic
+                            (Block.Terminator.Condition,
+                             Block.Terminator.Span);
+                     begin
+                        Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
+                        Enqueue_Target (UString_Value (Block.Terminator.False_Target), Current);
+                     end;
+                  else
+                     declare
+                        True_State  : State := Refine_Condition (Current, Block.Terminator.Condition, True, Var_Types, Type_Env);
+                        False_State : State := Refine_Condition (Current, Block.Terminator.Condition, False, Var_Types, Type_Env);
+                     begin
+                        if UString_Value (Block.Role) = "for_header"
+                          and then Block.Has_Loop_Info
+                          and then Block.Loop_Var /= FT.To_UString ("")
+                          and then Var_Types.Contains (UString_Value (Block.Loop_Var))
+                        then
+                           True_State.Ranges.Include (UString_Value (Block.Loop_Var), Range_Interval (Var_Types.Element (UString_Value (Block.Loop_Var))));
+                        end if;
+                        Enqueue_Target (UString_Value (Block.Terminator.True_Target), True_State);
+                        Enqueue_Target (UString_Value (Block.Terminator.False_Target), False_State);
+                     end;
+                  end if;
                when GM.Terminator_Select =>
                   if not Block.Terminator.Arms.Is_Empty then
                      for Index in Block.Terminator.Arms.First_Index .. Block.Terminator.Arms.Last_Index loop

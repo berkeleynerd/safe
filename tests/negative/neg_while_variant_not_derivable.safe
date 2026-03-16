@@ -1,0 +1,22 @@
+-- Test: neg_while_variant_not_derivable
+-- Description: Convergence-style while loop without a derivable Loop_Variant.
+--   The current emitted proof surface only accepts structural null traversal
+--   and simple integer-bound while conditions for automatic Loop_Variant
+--   emission. A floating-point convergence condition does not fit either form.
+-- Expected: REJECT loop_variant_not_derivable
+
+package While_Variant_Not_Derivable is
+
+   type Fraction is digits 6 range 0.0 .. 1.0;
+
+   function Converge (Start : Fraction;
+                      Goal  : Fraction) return Fraction is
+      Value : Fraction = Start;
+   begin
+      while Value < Goal loop
+         Value = Fraction ((Long_Float (Value) + Long_Float (Goal)) / 2.0);
+      end loop;
+      return Value;
+   end Converge;
+
+end While_Variant_Not_Derivable;

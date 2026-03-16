@@ -390,6 +390,81 @@
         },
         "golden": "tests/diagnostics_golden/diag_result_mutated.txt",
         "source": "tests/negative/neg_result_mutated.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule5_div_zero.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule5_div_zero.safe:19:46: error: floating divisor is not provably nonzero\n  |\n  | 19 |       return Measurement (Long_Float (Value) / Long_Float (Scale));\n  |    |                                                ^~~~~~~~~~~~~~~~~~\n  |\n  note: division by a value that may be 0.0 can produce infinity or NaN.\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_rule5_div_zero.txt",
+        "source": "tests/negative/neg_rule5_div_zero.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule5_infinity.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule5_infinity.safe:19:14: error: floating expression may be infinite at narrowing\n  |\n  | 19 |       return Bounded_Float (Big / Small);  -- ERROR: result may be infinity\n  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_rule5_infinity.txt",
+        "source": "tests/negative/neg_rule5_infinity.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule5_overflow.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule5_overflow.safe:19:14: error: floating expression is not provably within target range\n  |\n  | 19 |       return Small_Float (Long_Float (A) * Long_Float (B));\n  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_rule5_overflow.txt",
+        "source": "tests/negative/neg_rule5_overflow.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_rule5_uninitialized.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_rule5_uninitialized.safe:19:14: error: floating expression is not provably initialized at narrowing\n  |\n  | 19 |       return Bounded (X);  -- ERROR: X is uninitialized, may be NaN/infinity\n  |    |              ^~~~~~~~~~~\n  |\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_rule5_uninitialized.txt",
+        "source": "tests/negative/neg_rule5_uninitialized.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "tests/negative/neg_while_variant_not_derivable.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 1,
+          "stderr": "neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot derive a supported Loop_Variant from this while condition\n  |\n  | 16 |       while Value < Goal loop\n  |    |             ^~~~~~~~~~~~\n  |\n  note: supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions.\n  note: rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant.\n",
+          "stdout": ""
+        },
+        "golden": "tests/diagnostics_golden/diag_loop_variant_not_derivable.txt",
+        "source": "tests/negative/neg_while_variant_not_derivable.safe"
       }
     ],
     "parity": {
@@ -1807,7 +1882,12 @@
       "tests/negative/neg_rule4_null_deref.safe",
       "tests/negative/neg_rule5_nan.safe",
       "tests/negative/neg_result_unguarded.safe",
-      "tests/negative/neg_result_mutated.safe"
+      "tests/negative/neg_result_mutated.safe",
+      "tests/negative/neg_rule5_div_zero.safe",
+      "tests/negative/neg_rule5_infinity.safe",
+      "tests/negative/neg_rule5_overflow.safe",
+      "tests/negative/neg_rule5_uninitialized.safe",
+      "tests/negative/neg_while_variant_not_derivable.safe"
     ],
     "parity_cases": [
       {
@@ -1873,8 +1953,8 @@
       "oversized_integer_literal.safe"
     ]
   },
-  "repeat_sha256": "972d9632f98d1e73f42cbe844b8b27af6c9ac3bd85027d518641fe15209b06d2",
-  "report_sha256": "972d9632f98d1e73f42cbe844b8b27af6c9ac3bd85027d518641fe15209b06d2",
+  "repeat_sha256": "9c6c28c2d3c43917f0875d470f922318e8a9fc408903c22b3f0c160320b88861",
+  "report_sha256": "9c6c28c2d3c43917f0875d470f922318e8a9fc408903c22b3f0c160320b88861",
   "status": "ok",
   "task": "PR06.9.5"
 }

@@ -14,11 +14,12 @@
       "$TMPDIR/nested_declare_scope.safe",
       "$TMPDIR/for_loop_scope.safe",
       "$TMPDIR/if_return_cfg.safe",
-      "$TMPDIR/while_and_then_cfg.safe"
+      "$TMPDIR/while_and_then_cfg.safe",
+      "$TMPDIR/while_integer_bound_cfg.safe"
     ]
   },
-  "repeat_sha256": "cde053dc5ee311f7a664c779eea5253d890d0720931c2397018635623efb4c89",
-  "report_sha256": "cde053dc5ee311f7a664c779eea5253d890d0720931c2397018635623efb4c89",
+  "repeat_sha256": "3cb3465974fdba7fb3d5ddff0d0ee278acd15919a051c5b1df216bfcc01c74ce",
+  "report_sha256": "3cb3465974fdba7fb3d5ddff0d0ee278acd15919a051c5b1df216bfcc01c74ce",
   "results": {
     "corpus_cases": {
       "tests/positive/ownership_inout.safe": {
@@ -210,7 +211,8 @@
                   "v2",
                   "v3",
                   "v4",
-                  "v5"
+                  "v5",
+                  "v6"
                 ],
                 "parent_scope_id": null
               }
@@ -1014,7 +1016,7 @@
         },
         "case_specific": {
           "and_then_rhs": "bb4",
-          "while_header": "bb1"
+          "while_header": "bb0"
         },
         "check": {
           "command": [
@@ -1085,6 +1087,97 @@
           "returncode": 0,
           "stderr": "",
           "stdout": "validate-mir: OK ($TMPDIR/while_and_then_cfg-emit/out/while_and_then_cfg.mir.json)\n"
+        }
+      },
+      "while_integer_bound_cfg": {
+        "analyze_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "analyze-mir",
+            "--diag-json",
+            "$TMPDIR/while_integer_bound_cfg-emit/out/while_integer_bound_cfg.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "case_specific": {
+          "while_body": "bb2",
+          "while_header": "bb1"
+        },
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "$TMPDIR/while_integer_bound_cfg.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "diagnostics": {
+            "diagnostics": [],
+            "format": "diagnostics-v0"
+          },
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "$TMPDIR/while_integer_bound_cfg.safe",
+            "--out-dir",
+            "$TMPDIR/while_integer_bound_cfg-emit/out",
+            "--interface-dir",
+            "$TMPDIR/while_integer_bound_cfg-emit/iface"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": ""
+        },
+        "integrity": [
+          {
+            "graph": "Read",
+            "patched_dead_blocks": [],
+            "reachable_blocks": [
+              "bb0",
+              "bb1",
+              "bb2",
+              "bb3"
+            ],
+            "scopes": {
+              "scope0": {
+                "entry_block": "bb0",
+                "exit_blocks": [
+                  "bb3"
+                ],
+                "kind": "subprogram",
+                "local_ids": [
+                  "v0",
+                  "v1"
+                ],
+                "parent_scope_id": null
+              }
+            }
+          }
+        ],
+        "source": "$TMPDIR/while_integer_bound_cfg.safe",
+        "validate_mir": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "validate-mir",
+            "$TMPDIR/while_integer_bound_cfg-emit/out/while_integer_bound_cfg.mir.json"
+          ],
+          "cwd": "$REPO_ROOT",
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "validate-mir: OK ($TMPDIR/while_integer_bound_cfg-emit/out/while_integer_bound_cfg.mir.json)\n"
         }
       }
     }

@@ -11,6 +11,17 @@ D27_GOLDEN_CASES = [
     ("tests/negative/neg_rule5_nan.safe", "tests/diagnostics_golden/diag_rule5_nan.txt"),
 ]
 
+PR102_DIAGNOSTIC_GOLDEN_CASES = [
+    ("tests/negative/neg_rule5_div_zero.safe", "tests/diagnostics_golden/diag_rule5_div_zero.txt"),
+    ("tests/negative/neg_rule5_infinity.safe", "tests/diagnostics_golden/diag_rule5_infinity.txt"),
+    ("tests/negative/neg_rule5_overflow.safe", "tests/diagnostics_golden/diag_rule5_overflow.txt"),
+    ("tests/negative/neg_rule5_uninitialized.safe", "tests/diagnostics_golden/diag_rule5_uninitialized.txt"),
+    (
+        "tests/negative/neg_while_variant_not_derivable.safe",
+        "tests/diagnostics_golden/diag_loop_variant_not_derivable.txt",
+    ),
+]
+
 OWNERSHIP_GOLDEN_CASES = [
     ("tests/negative/neg_own_double_move.safe", "tests/diagnostics_golden/diag_double_move.txt"),
     ("tests/negative/neg_own_borrow_conflict.safe", "tests/diagnostics_golden/diag_borrow_conflict.txt"),
@@ -35,7 +46,12 @@ RESULT_GOLDEN_CASES = [
     ("tests/negative/neg_result_mutated.safe", "tests/diagnostics_golden/diag_result_mutated.txt"),
 ]
 
-ALL_DIAGNOSTIC_GOLDEN_CASES = [*OWNERSHIP_GOLDEN_CASES, *D27_GOLDEN_CASES, *RESULT_GOLDEN_CASES]
+ALL_DIAGNOSTIC_GOLDEN_CASES = [
+    *OWNERSHIP_GOLDEN_CASES,
+    *D27_GOLDEN_CASES,
+    *RESULT_GOLDEN_CASES,
+    *PR102_DIAGNOSTIC_GOLDEN_CASES,
+]
 
 PR05_POSITIVE_CASES = [
     "tests/positive/rule1_accumulate.safe",
@@ -122,6 +138,19 @@ PR07_RULE5_NEGATIVE_CASES = [
     "tests/negative/neg_rule5_nan.safe",
     "tests/negative/neg_rule5_overflow.safe",
     "tests/negative/neg_rule5_uninitialized.safe",
+]
+
+PR102_RULE5_POSITIVE_CASES = [
+    *PR07_RULE5_POSITIVE_CASES,
+    "tests/positive/rule5_vector_normalize.safe",
+]
+
+PR102_RULE5_NEGATIVE_CASES = [
+    *PR07_RULE5_NEGATIVE_CASES,
+]
+
+PR102_LOOP_NEGATIVE_CASES = [
+    "tests/negative/neg_while_variant_not_derivable.safe",
 ]
 
 PR07_RESULT_CASES = [

@@ -14,17 +14,19 @@ package Safe_Statistics is
    type Sample_Value is digits 6 range -1000.0 .. 1000.0;
    type Sample_Array is array (Sample_Index) of Sample_Value;
 
-   --  Mean: sum of values divided by count.
-   --  Sum of 100 values each in -1000..1000 is in -100_000..100_000 (finite).
-   --  Division by 100 (nonzero) yields a finite result.
+   --  Mean: online average update with a provably nonzero typed divisor.
+   --  At each step the new mean is an interpolation between the previous
+   --  mean and the new sample, so it stays within -1000..1000.
    function Mean (Data : Sample_Array) return Sample_Value is
-      Sum : Long_Float = 0.0;
+      Running_Mean : Sample_Value = 0.0;
    begin
       for I in Sample_Index loop
-         Sum = Sum + Long_Float (Data (I));
+         Running_Mean = Sample_Value
+           (Long_Float (Running_Mean)
+            + (Long_Float (Data (I)) - Long_Float (Running_Mean))
+              / Long_Float (I));
       end loop;
-      --  Narrowing (return): Sum/100.0 is in -1000..1000, finite.
-      return Sample_Value (Sum / 100.0);
+      return Running_Mean;
    end Mean;
 
    --  Variance: average of squared deviations from the mean.

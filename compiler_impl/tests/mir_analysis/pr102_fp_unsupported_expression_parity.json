@@ -1,0 +1,111 @@
+{
+  "format": "mir-v2",
+  "source_path": "compiler_impl/tests/mir_analysis/pr102_fp_unsupported_expression_parity.safe",
+  "package_name": "FP_Unsupported_Expression_Parity",
+  "types": [
+    {
+      "name": "Bounded_Float",
+      "kind": "float",
+      "digits_text": "6",
+      "float_low_text": "-10.0",
+      "float_high_text": "10.0"
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Bad",
+      "kind": "function",
+      "entry_bb": "bb0",
+      "return_type": {
+        "name": "Bounded_Float",
+        "kind": "float",
+        "digits_text": "6",
+        "float_low_text": "-10.0",
+        "float_high_text": "10.0"
+      },
+      "locals": [],
+      "scopes": [
+        {
+          "id": "scope0",
+          "parent_scope_id": null,
+          "kind": "subprogram",
+          "local_ids": [],
+          "entry_block": "bb0",
+          "exit_blocks": [
+            "bb0"
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "bb0",
+          "active_scope_id": "scope0",
+          "role": "entry",
+          "span": {
+            "start_line": 1,
+            "start_col": 1,
+            "end_line": 1,
+            "end_col": 1
+          },
+          "ops": [],
+          "terminator": {
+            "kind": "return",
+            "span": {
+              "start_line": 1,
+              "start_col": 1,
+              "end_line": 1,
+              "end_col": 1
+            },
+            "ownership_effect": "None",
+            "value": {
+              "tag": "conversion",
+              "span": {
+                "start_line": 1,
+                "start_col": 1,
+                "end_line": 1,
+                "end_col": 1
+              },
+              "type": "Bounded_Float",
+              "target": {
+                "tag": "ident",
+                "name": "Bounded_Float",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                }
+              },
+              "expr": {
+                "tag": "aggregate",
+                "span": {
+                  "start_line": 1,
+                  "start_col": 1,
+                  "end_line": 1,
+                  "end_col": 1
+                },
+                "type": "Long_Float",
+                "fields": [
+                  {
+                    "field": "",
+                    "expr": {
+                      "tag": "real",
+                      "span": {
+                        "start_line": 1,
+                        "start_col": 1,
+                        "end_line": 1,
+                        "end_col": 1
+                      },
+                      "type": "Long_Float",
+                      "text": "1.0"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

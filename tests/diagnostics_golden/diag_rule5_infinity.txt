@@ -1,0 +1,11 @@
+Diagnostics Golden: Rule 5 Infinity
+Source: tests/negative/neg_rule5_infinity.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_rule5_infinity.safe:19:14: error: floating expression may be infinite at narrowing
+  |
+  | 19 |       return Bounded_Float (Big / Small);  -- ERROR: result may be infinity
+  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+  |
+------------------------------------------------------------------------

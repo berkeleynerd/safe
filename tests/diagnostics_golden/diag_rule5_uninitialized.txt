@@ -1,0 +1,11 @@
+Diagnostics Golden: Rule 5 Uninitialized
+Source: tests/negative/neg_rule5_uninitialized.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_rule5_uninitialized.safe:19:14: error: floating expression is not provably initialized at narrowing
+  |
+  | 19 |       return Bounded (X);  -- ERROR: X is uninitialized, may be NaN/infinity
+  |    |              ^~~~~~~~~~~
+  |
+------------------------------------------------------------------------

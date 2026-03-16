@@ -32,6 +32,7 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
@@ -75,7 +76,8 @@
       "scripts/run_pr09b_sequential_semantics.py",
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
-      "scripts/run_pr09_ada_emission_baseline.py"
+      "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr102_rule5_boundary_closure.py"
     ],
     "safe_source_readers": [
       {
@@ -105,6 +107,10 @@
       {
         "category": "fixture metadata extraction via read_expected_reason and synthetic parity source generation",
         "script": "scripts/run_pr083a_public_constants.py"
+      },
+      {
+        "category": "fixture metadata extraction via read_expected_reason and diagnostics golden comparison",
+        "script": "scripts/run_pr102_rule5_boundary_closure.py"
       }
     ],
     "shell_assumption_violations": [],
@@ -123,9 +129,9 @@
   ],
   "referenced_deterministic_reports": {
     "build_reproducibility": {
-      "repeat_sha256": "19bf829fefaab47d1758aed6faf2f84d29c2f26a1926123aac122f503695e8e4",
+      "repeat_sha256": "857c2bc69303c4a3c720116d5c3b3b2c4215e9553d8c3eff3be2d6d8fe85c871",
       "report_path": "execution/reports/pr0699-build-reproducibility-report.json",
-      "report_sha256": "19bf829fefaab47d1758aed6faf2f84d29c2f26a1926123aac122f503695e8e4"
+      "report_sha256": "857c2bc69303c4a3c720116d5c3b3b2c4215e9553d8c3eff3be2d6d8fe85c871"
     },
     "frontend_smoke": {
       "repeat_sha256": "523a8540a6b51e6d632289be814ef8170dc90dac99f2d655ebe9e600014716ad",
@@ -133,13 +139,13 @@
       "report_sha256": "523a8540a6b51e6d632289be814ef8170dc90dac99f2d655ebe9e600014716ad"
     }
   },
-  "repeat_sha256": "8aca71e267bc9e10941a0077654d6429604e35a8af2b62a76d9e8f95f962c7c7",
-  "report_sha256": "8aca71e267bc9e10941a0077654d6429604e35a8af2b62a76d9e8f95f962c7c7",
+  "repeat_sha256": "3a24df4bb2b50f8edcc263583b1840ca7840b10013a3abc7b198553fb997b2d6",
+  "report_sha256": "3a24df4bb2b50f8edcc263583b1840ca7840b10013a3abc7b198553fb997b2d6",
   "reruns": {
     "gate_quality": {
-      "repeat_sha256": "a67f47652fed4f4ca2ec067ea0fcc512386a82de15d4ded7315ed51bb3b72aad",
+      "repeat_sha256": "e268c136823d2511a0bb489a5029086274f2c97ebf2733e69487d56ba0193712",
       "report_path": "execution/reports/pr0697-gate-quality-report.json",
-      "report_sha256": "a67f47652fed4f4ca2ec067ea0fcc512386a82de15d4ded7315ed51bb3b72aad",
+      "report_sha256": "e268c136823d2511a0bb489a5029086274f2c97ebf2733e69487d56ba0193712",
       "run": {
         "command": [
           "python3",
@@ -152,9 +158,9 @@
       }
     },
     "portability_environment": {
-      "repeat_sha256": "ab72a31535c94aec12ef1ddc6a13fde756633c22d5c801612dfc01ab16c9a74a",
+      "repeat_sha256": "ab8d7f8d0364586252a1f5dd01fc407e6bf47d54f98b67e1d7793b99d6ed77df",
       "report_path": "execution/reports/pr06910-portability-environment-report.json",
-      "report_sha256": "ab72a31535c94aec12ef1ddc6a13fde756633c22d5c801612dfc01ab16c9a74a",
+      "report_sha256": "ab8d7f8d0364586252a1f5dd01fc407e6bf47d54f98b67e1d7793b99d6ed77df",
       "run": {
         "command": [
           "python3",
@@ -208,6 +214,6 @@
     "cwd": "$REPO_ROOT",
     "result": "OK",
     "returncode": 0,
-    "tests_ran": 93
+    "tests_ran": 94
   }
 }

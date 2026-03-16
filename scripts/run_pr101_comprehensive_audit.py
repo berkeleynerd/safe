@@ -56,7 +56,14 @@ EXPECTED_PR104_ACCEPTANCE = [
     "Pure-Python regression tests cover scripts/run_pr101_comprehensive_audit.py parsing helpers (split_table_row, parse_findings, parse_residuals, parse_summary_counts), including malformed-table cases and multi-target target-cell parsing.",
     "The emitted proof and audit harnesses verify explicit gnat.adc application and fail deterministically if concurrency compile/flow/prove commands lose the concrete -gnatec=<ada_dir>/gnat.adc argument.",
     "The GNATprove evidence path documents and enforces the repo's proof-repeatability policy for emitted gates, including the current --steps=0 plus bounded-timeout profile and an explicit statement about whether committed session artifacts are part of the reproducibility contract.",
+    "parse_task_id() is extended to handle three-level milestone IDs (e.g., PR06.9.8) that already exist in the tracker's own task list, so forward-stability checks match the project's actual ID convention rather than silently rejecting valid historical IDs.",
+    "Dependent deterministic report rollups are de-cascaded so parent reports do not churn solely because child report hashes changed: freshness checks rerun child gates into comparison artifacts or validate stable path-level invariants, and portability/glue/doc hardening reports avoid repo-wide unittest-count summaries that change for unrelated test additions.",
     "A dedicated PR10.4 gate, report, and CI job keep the hardened evidence path and parser-regression surface under committed deterministic coverage.",
+]
+EXPECTED_PR102_ACCEPTANCE = [
+    "The exact six-fixture PR10.2 Rule 5 positive corpus is tests/positive/rule5_filter.safe, tests/positive/rule5_interpolate.safe, tests/positive/rule5_normalize.safe, tests/positive/rule5_statistics.safe, tests/positive/rule5_temperature.safe, and tests/positive/rule5_vector_normalize.safe; that merged PR07-plus-PR10 set is non-shrinkable and each fixture is frontend-accepted, Ada-emitted, compile-valid, and passes emitted GNATprove flow and prove under the all-proved-only policy.",
+    "The source-level Rule 5 negative contract remains tests/negative/neg_rule5_div_zero.safe -> fp_division_by_zero, tests/negative/neg_rule5_infinity.safe -> infinity_at_narrowing, tests/negative/neg_rule5_nan.safe -> nan_at_narrowing, tests/negative/neg_rule5_overflow.safe -> fp_overflow_at_narrowing, and tests/negative/neg_rule5_uninitialized.safe -> fp_uninitialized_at_narrowing; unsupported float-evaluator shapes use the new fp_unsupported_expression_at_narrowing reason under MIR analysis parity coverage instead of being mislabeled as overflow.",
+    "While loops outside the current derivable Loop_Variant proof surface are rejected during safec check with loop_variant_not_derivable, and a dedicated PR10.2 gate, report, CI job, tracker/docs update, and deterministic diagnostics-golden set capture the resulting Rule 5 plus convergence-loop boundary without weakening the frozen PR10 claim.",
 ]
 ALLOWED_DISPOSITIONS = {
     "fix-in-pr101",
@@ -82,8 +89,9 @@ EXPECTED_AUDIT_SNIPPETS = [
     "`scripts/run_emitted_hardening_regressions.py`",
     "`PR10.2` — Rule 5 proof-boundary closure and loop-termination diagnostics",
     "`PR10.3` — Sequential emitted proof-corpus expansion beyond the frozen PR10 subset",
-    "`PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, and proof-repeatability policy",
+    "`PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, proof-repeatability policy, and deterministic report de-cascading",
     "`PR10.5` — Ada emitter maintenance hardening",
+    "`next_task_id` advances to `PR10.3`",
 ]
 EXPECTED_MATRIX_SNIPPETS = [
     "frontend Silver ownership analysis is the mechanism that prevents use-after-free",
@@ -91,6 +99,9 @@ EXPECTED_MATRIX_SNIPPETS = [
     "ownership_borrow.safe",
     "ownership_early_return.safe",
     "PR10.3",
+    "PR10.2 keeps the frozen PR10 Rule 5 row above intact while closing the broader",
+    "fp_unsupported_expression_at_narrowing",
+    "loop_variant_not_derivable",
     "PS-007",
     "PS-019",
     "PS-031",
@@ -133,6 +144,27 @@ def load_tracker() -> dict[str, Any]:
 
 def require_contains(text: str, snippet: str, label: str) -> None:
     require(snippet in text, f"{label}: expected to contain {snippet!r}")
+
+
+def parse_task_id(value: object) -> tuple[int, int | None] | None:
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"PR(\d+)(?:\.(\d+)(?:\.(\d+))?[A-Za-z0-9]*)?", value)
+    if match is None:
+        return None
+    major = int(match.group(1))
+    minor = int(match.group(2)) if match.group(2) is not None else None
+    return (major, minor)
+
+
+def task_is_at_or_beyond_pr102(value: object) -> bool:
+    if value is None:
+        return True
+    parsed = parse_task_id(value)
+    if parsed is None:
+        return False
+    major, minor = parsed
+    return major > 10 or (major == 10 and minor is not None and minor >= 2)
 
 
 def compact_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -396,10 +428,25 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         task_map["PR10.1"]["evidence"] == EXPECTED_PR101_EVIDENCE,
         "PR10.1 evidence must list the committed audit report",
     )
-    require(tracker.get("next_task_id") == "PR10.2", "next_task_id must advance to PR10.2 after PR10.1")
+    require("PR10.2" in task_map, "tracker must define PR10.2")
+    require(
+        task_map["PR10.2"]["status"] in {"planned", "ready", "in_progress", "done"},
+        "PR10.2 must remain a live tracked follow-on milestone",
+    )
+    require(
+        task_map["PR10.2"]["acceptance"] == EXPECTED_PR102_ACCEPTANCE,
+        "PR10.2 acceptance text must match the committed Rule 5 boundary-closure contract",
+    )
+    require(
+        task_is_at_or_beyond_pr102(tracker.get("next_task_id")),
+        "next_task_id must remain at or beyond PR10.2 after PR10.1",
+    )
     for task_id in PROMOTED_TASKS:
         require(task_id in task_map, f"tracker must define promoted task {task_id}")
-        require(task_map[task_id]["status"] == "planned", f"{task_id} must remain planned")
+        require(
+            task_map[task_id]["status"] in {"planned", "ready", "in_progress", "done"},
+            f"{task_id} must remain a live tracked follow-on milestone",
+        )
         require(task_map[task_id]["depends_on"] == ["PR10.1"], f"{task_id} must depend on PR10.1")
     require(
         task_map["PR10.4"]["acceptance"] == EXPECTED_PR104_ACCEPTANCE,
@@ -409,9 +456,18 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
     rendered_dashboard = run([find_command("python3"), "scripts/render_execution_status.py"], cwd=REPO_ROOT, env=ensure_sdkroot(os.environ.copy()))
     dashboard_text = DASHBOARD_PATH.read_text(encoding="utf-8")
     require(dashboard_text == rendered_dashboard["stdout"], "execution/dashboard.md must match render_execution_status.py")
-    require_contains(dashboard_text, "- **Next task:** `PR10.2`", "execution/dashboard.md")
     require_contains(dashboard_text, "| PR10.1 | done | PR10 | 1 |", "execution/dashboard.md")
-    require_contains(dashboard_text, "| PR10.2 | planned | PR10.1 | 0 |", "execution/dashboard.md")
+    next_task_match = re.search(r"- \*\*Next task:\*\* `([^`]+)`", dashboard_text)
+    require(next_task_match is not None, "execution/dashboard.md must render the next-task line")
+    require(
+        task_is_at_or_beyond_pr102(next_task_match.group(1) if next_task_match is not None else None),
+        "execution/dashboard.md must show a next task at or beyond PR10.2 (or none)",
+    )
+    require(
+        re.search(r"\| PR10\.2 \| (planned|ready|in_progress|done) \| PR10\.1 \| \d+ \|", dashboard_text)
+        is not None,
+        "execution/dashboard.md must contain the tracked PR10.2 row",
+    )
 
     audit_text = AUDIT_DOC_PATH.read_text(encoding="utf-8")
     for snippet in EXPECTED_AUDIT_SNIPPETS:
@@ -505,8 +561,8 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         "each retained post-PR10 residual must be targeted by exactly one retain-in-post-pr10 finding",
     )
     require(
-        promoted_targets == Counter({"PR10.2": 3, "PR10.3": 2, "PR10.4": 1, "PR10.5": 5}),
-        "promoted follow-on findings must match the audited PR10.2/PR10.3/PR10.4/PR10.5 split",
+        promoted_targets == Counter({"PR10.3": 2, "PR10.4": 1, "PR10.5": 5}),
+        "promoted follow-on findings must match the live post-PR10.2 PR10.3/PR10.4/PR10.5 split",
     )
 
     retained_priority_counts = Counter(item["priority"] for item in residuals)

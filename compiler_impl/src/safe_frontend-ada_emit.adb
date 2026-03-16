@@ -159,6 +159,11 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Name     : String) return Boolean;
    function Is_Integer_Type (Info : GM.Type_Descriptor) return Boolean;
+   function Is_Float_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Name     : String) return Boolean;
+   function Is_Float_Type (Info : GM.Type_Descriptor) return Boolean;
    function Is_Access_Type (Info : GM.Type_Descriptor) return Boolean;
    function Is_Owner_Access (Info : GM.Type_Descriptor) return Boolean;
    function Default_Value_Expr (Type_Name : String) return String;
@@ -188,6 +193,11 @@ package body Safe_Frontend.Ada_Emit is
       Local_Context : Boolean := False) return String;
 
    function Render_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Float_Convex_Combination
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Expr     : CM.Expr_Access;
@@ -232,7 +242,8 @@ package body Safe_Frontend.Ada_Emit is
       Statements : CM.Statement_Access_Vectors.Vector;
       State      : in out Emit_State;
       Depth      : Natural;
-      Return_Type : String := "");
+      Return_Type : String := "";
+      In_Loop    : Boolean := False);
    function Statement_Falls_Through
      (Item : CM.Statement_Access) return Boolean;
    function Statements_Fall_Through
@@ -820,6 +831,13 @@ package body Safe_Frontend.Ada_Emit is
       return Kind in "integer" | "subtype";
    end Is_Integer_Type;
 
+   function Is_Float_Type (Info : GM.Type_Descriptor) return Boolean is
+      Kind : constant String := FT.To_String (Info.Kind);
+   begin
+      return Kind = "float"
+        or else (Kind = "subtype" and then FT.To_String (Info.Base) in "Float" | "Long_Float");
+   end Is_Float_Type;
+
    function Is_Integer_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -836,6 +854,28 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       return False;
    end Is_Integer_Type;
+
+   function Is_Float_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Name     : String) return Boolean
+   is
+   begin
+      if Name in "Float" | "Long_Float" then
+         return True;
+      elsif Has_Type (Unit, Document, Name) then
+         declare
+            Info : constant GM.Type_Descriptor := Lookup_Type (Unit, Document, Name);
+         begin
+            if Is_Float_Type (Info) then
+               return True;
+            elsif FT.To_String (Info.Kind) = "subtype" and then Has_Text (Info.Base) then
+               return Is_Float_Type (Unit, Document, FT.To_String (Info.Base));
+            end if;
+         end;
+      end if;
+      return False;
+   end Is_Float_Type;
 
    function Is_Access_Type (Info : GM.Type_Descriptor) return Boolean is
    begin
@@ -998,6 +1038,14 @@ package body Safe_Frontend.Ada_Emit is
               & Name
               & " is digits "
               & FT.To_String (Type_Item.Digits_Text)
+              & (if Type_Item.Has_Float_Low_Text and then Type_Item.Has_Float_High_Text
+                  then
+                    " range "
+                    & FT.To_String (Type_Item.Float_Low_Text)
+                    & " .. "
+                    & FT.To_String (Type_Item.Float_High_Text)
+                  else
+                    "")
               & ";";
          end if;
          return "type " & Name & " is digits 6;";
@@ -1178,6 +1226,18 @@ package body Safe_Frontend.Ada_Emit is
               & Render_Expr (Unit, Document, Expr.Inner, State)
               & ")";
          when CM.Expr_Binary =>
+            if Has_Text (Expr.Type_Name)
+              and then Is_Float_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+            then
+               declare
+                  Convex_Image : constant String :=
+                    Render_Float_Convex_Combination (Unit, Document, Expr, State);
+               begin
+                  if Convex_Image'Length > 0 then
+                     return Convex_Image;
+                  end if;
+               end;
+            end if;
             return
               "("
               & Render_Expr (Unit, Document, Expr.Left, State)
@@ -1205,6 +1265,99 @@ package body Safe_Frontend.Ada_Emit is
 
       return "";
    end Render_Expr;
+
+   function Render_Float_Convex_Combination
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      function Is_Real_One (Item : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Item /= null
+           and then Item.Kind = CM.Expr_Real
+           and then Has_Text (Item.Text)
+           and then FT.To_String (Item.Text) = "1.0";
+      end Is_Real_One;
+
+      function Images_Match (Left, Right : CM.Expr_Access) return Boolean is
+      begin
+         return Left /= null
+           and then Right /= null
+           and then Render_Expr (Unit, Document, Left, State) = Render_Expr (Unit, Document, Right, State);
+      end Images_Match;
+
+      function Complement_Of
+        (Candidate, Weight : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Candidate /= null
+           and then Candidate.Kind = CM.Expr_Binary
+           and then FT.To_String (Candidate.Operator) = "-"
+           and then Is_Real_One (Candidate.Left)
+           and then Images_Match (Candidate.Right, Weight);
+      end Complement_Of;
+
+      function Extract_Product
+        (Term      : CM.Expr_Access;
+         Weight    : out CM.Expr_Access;
+         Component : out CM.Expr_Access) return Boolean
+      is
+      begin
+         if Term = null or else Term.Kind /= CM.Expr_Binary or else FT.To_String (Term.Operator) /= "*" then
+            Weight := null;
+            Component := null;
+            return False;
+         end if;
+
+         Weight := Term.Left;
+         Component := Term.Right;
+         return True;
+      end Extract_Product;
+
+      W1, W2 : CM.Expr_Access := null;
+      V1, V2 : CM.Expr_Access := null;
+   begin
+      if Expr = null
+        or else Expr.Kind /= CM.Expr_Binary
+        or else FT.To_String (Expr.Operator) /= "+"
+      then
+         return "";
+      end if;
+
+      if not Extract_Product (Expr.Left, W1, V1)
+        or else not Extract_Product (Expr.Right, W2, V2)
+      then
+         return "";
+      end if;
+
+      if Complement_Of (W1, W2) then
+         return
+           "("
+           & Render_Expr (Unit, Document, V1, State)
+           & " + ("
+           & Render_Expr (Unit, Document, W2, State)
+           & " * ("
+           & Render_Expr (Unit, Document, V2, State)
+           & " - "
+           & Render_Expr (Unit, Document, V1, State)
+           & ")))";
+      elsif Complement_Of (W2, W1) then
+         return
+           "("
+           & Render_Expr (Unit, Document, V2, State)
+           & " + ("
+           & Render_Expr (Unit, Document, W1, State)
+           & " * ("
+           & Render_Expr (Unit, Document, V1, State)
+           & " - "
+           & Render_Expr (Unit, Document, V2, State)
+           & ")))";
+      end if;
+
+      return "";
+   end Render_Float_Convex_Combination;
 
    function Uses_Wide_Arithmetic
      (Unit     : CM.Resolved_Unit;
@@ -2248,7 +2401,13 @@ package body Safe_Frontend.Ada_Emit is
             end if;
 
             if Cursor /= null then
-               return "Structural => " & CM.Flatten_Name (Cursor);
+               declare
+                  Flattened : constant String := CM.Flatten_Name (Cursor);
+               begin
+                  if Flattened'Length > 0 then
+                     return "Structural => " & Flattened;
+                  end if;
+               end;
             end if;
          end;
       elsif Operator in "<" | "<=" then
@@ -2365,6 +2524,47 @@ package body Safe_Frontend.Ada_Emit is
          Append_Move_Null (Buffer, Unit, Document, State, Stmt.Value, Depth);
       end if;
    end Append_Assignment;
+
+   procedure Append_Float_Loop_Invariant
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      State    : in out Emit_State;
+      Target   : CM.Expr_Access;
+      Depth    : Natural)
+   is
+      pragma Unreferenced (State);
+   begin
+      if Target = null
+        or else Target.Kind /= CM.Expr_Ident
+        or else not Has_Text (Target.Type_Name)
+        or else not Has_Type (Unit, Document, FT.To_String (Target.Type_Name))
+      then
+         return;
+      end if;
+
+      declare
+         Target_Type : constant String := FT.To_String (Target.Type_Name);
+         Target_Info : constant GM.Type_Descriptor := Lookup_Type (Unit, Document, Target_Type);
+      begin
+         if not Is_Float_Type (Unit, Document, Target_Type) then
+            return;
+         end if;
+
+         Append_Line
+           (Buffer,
+            "pragma Loop_Invariant ("
+            & FT.To_String (Target.Name)
+            & " >= "
+            & Render_Type_Name (Target_Info)
+            & "'First and then "
+            & FT.To_String (Target.Name)
+            & " <= "
+            & Render_Type_Name (Target_Info)
+            & "'Last);",
+            Depth);
+      end;
+   end Append_Float_Loop_Invariant;
 
    procedure Append_Return
      (Buffer     : in out SU.Unbounded_String;
@@ -2585,7 +2785,8 @@ package body Safe_Frontend.Ada_Emit is
       Statements : CM.Statement_Access_Vectors.Vector;
       State      : in out Emit_State;
       Depth      : Natural;
-      Return_Type : String := "")
+      Return_Type : String := "";
+      In_Loop    : Boolean := False)
    is
    begin
       for Item of Statements loop
@@ -2609,6 +2810,10 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             when CM.Stmt_Assign =>
                Append_Assignment (Buffer, Unit, Document, State, Item.all, Depth);
+               if In_Loop then
+                  Append_Float_Loop_Invariant
+                    (Buffer, Unit, Document, State, Item.Target, Depth);
+               end if;
             when CM.Stmt_Call =>
                Append_Line
                  (Buffer,
@@ -2641,19 +2846,19 @@ package body Safe_Frontend.Ada_Emit is
                   "if " & Render_Expr (Unit, Document, Item.Condition, State) & " then",
                   Depth);
                Render_Statements
-                 (Buffer, Unit, Document, Item.Then_Stmts, State, Depth + 1, Return_Type);
+                 (Buffer, Unit, Document, Item.Then_Stmts, State, Depth + 1, Return_Type, In_Loop);
                for Part of Item.Elsifs loop
                   Append_Line
                     (Buffer,
                      "elsif " & Render_Expr (Unit, Document, Part.Condition, State) & " then",
                      Depth);
                   Render_Statements
-                    (Buffer, Unit, Document, Part.Statements, State, Depth + 1, Return_Type);
+                    (Buffer, Unit, Document, Part.Statements, State, Depth + 1, Return_Type, In_Loop);
                end loop;
                if Item.Has_Else then
                   Append_Line (Buffer, "else", Depth);
                   Render_Statements
-                    (Buffer, Unit, Document, Item.Else_Stmts, State, Depth + 1, Return_Type);
+                    (Buffer, Unit, Document, Item.Else_Stmts, State, Depth + 1, Return_Type, In_Loop);
                end if;
                Append_Line (Buffer, "end if;", Depth);
             when CM.Stmt_While =>
@@ -2669,7 +2874,7 @@ package body Safe_Frontend.Ada_Emit is
                   end if;
                end;
                Render_Statements
-                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type);
+                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
                Append_Line (Buffer, "end loop;", Depth);
             when CM.Stmt_For =>
                Append_Line
@@ -2681,7 +2886,7 @@ package body Safe_Frontend.Ada_Emit is
                   & " loop",
                   Depth);
                Render_Statements
-                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type);
+                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
                Append_Line (Buffer, "end loop;", Depth);
             when CM.Stmt_Block =>
                declare
@@ -2698,7 +2903,7 @@ package body Safe_Frontend.Ada_Emit is
                   Render_Free_Declarations (Buffer, Item.Declarations, Depth + 1);
                   Append_Line (Buffer, "begin", Depth);
                   Render_Statements
-                    (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type);
+                    (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, In_Loop);
                   if Statements_Fall_Through (Item.Body_Stmts) then
                      Render_Cleanup (Buffer, Item.Declarations, Depth + 1);
                   end if;
@@ -2709,7 +2914,7 @@ package body Safe_Frontend.Ada_Emit is
             when CM.Stmt_Loop =>
                Append_Line (Buffer, "loop", Depth);
                Render_Statements
-                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type);
+                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
                Append_Line (Buffer, "end loop;", Depth);
             when CM.Stmt_Exit =>
                if Item.Condition /= null then

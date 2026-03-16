@@ -13,6 +13,11 @@ It intentionally excludes items that the PR10.1 audit:
 The canonical disposition record is
 [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md).
 
+PR10.2 closes the live accepted Rule 5 narrowing boundary and the
+check-time convergence-loop rejection policy. The remaining floating-point
+residuals here are the still-deferred fixed-point extension in `PS-002` and
+the broader spec-level semantics question in `PS-026`.
+
 ## Legend
 
 | Priority | Meaning |

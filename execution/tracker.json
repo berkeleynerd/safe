@@ -3,15 +3,15 @@
   "updated_at": "2026-03-15T00:00:00Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR10.2",
+  "next_task_id": "PR10.3",
   "repo_facts": {
     "tests": {
       "positive": 48,
-      "negative": 77,
+      "negative": 78,
       "golden": 3,
       "concurrency": 14,
-      "diagnostics_golden": 17,
-      "total": 159
+      "diagnostics_golden": 22,
+      "total": 165
     }
   },
   "tasks": [
@@ -614,14 +614,16 @@
     {
       "id": "PR10.2",
       "title": "Rule 5 proof-boundary closure and loop-termination diagnostics",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR10.1"],
       "acceptance": [
-        "Computed-divisor floating-point cases in the current accepted Rule 5 subset either prove under the emitted GNATprove profile or fail deterministically with named diagnostics and fixtures.",
-        "Overflow-to-infinity and unbounded convergence-loop cases are rejected or constrained by explicit analyzer/emitter policy, with deterministic regression fixtures and documentation.",
-        "A dedicated PR10.2 gate, report, CI job, and matrix/post-PR10 updates capture the resulting Rule 5 proof boundary without weakening the frozen PR10 claim."
+        "The exact six-fixture PR10.2 Rule 5 positive corpus is tests/positive/rule5_filter.safe, tests/positive/rule5_interpolate.safe, tests/positive/rule5_normalize.safe, tests/positive/rule5_statistics.safe, tests/positive/rule5_temperature.safe, and tests/positive/rule5_vector_normalize.safe; that merged PR07-plus-PR10 set is non-shrinkable and each fixture is frontend-accepted, Ada-emitted, compile-valid, and passes emitted GNATprove flow and prove under the all-proved-only policy.",
+        "The source-level Rule 5 negative contract remains tests/negative/neg_rule5_div_zero.safe -> fp_division_by_zero, tests/negative/neg_rule5_infinity.safe -> infinity_at_narrowing, tests/negative/neg_rule5_nan.safe -> nan_at_narrowing, tests/negative/neg_rule5_overflow.safe -> fp_overflow_at_narrowing, and tests/negative/neg_rule5_uninitialized.safe -> fp_uninitialized_at_narrowing; unsupported float-evaluator shapes use the new fp_unsupported_expression_at_narrowing reason under MIR analysis parity coverage instead of being mislabeled as overflow.",
+        "While loops outside the current derivable Loop_Variant proof surface are rejected during safec check with loop_variant_not_derivable, and a dedicated PR10.2 gate, report, CI job, tracker/docs update, and deterministic diagnostics-golden set capture the resulting Rule 5 plus convergence-loop boundary without weakening the frozen PR10 claim."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr102-rule5-boundary-closure-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },
@@ -649,6 +651,8 @@
         "Pure-Python regression tests cover scripts/run_pr101_comprehensive_audit.py parsing helpers (split_table_row, parse_findings, parse_residuals, parse_summary_counts), including malformed-table cases and multi-target target-cell parsing.",
         "The emitted proof and audit harnesses verify explicit gnat.adc application and fail deterministically if concurrency compile/flow/prove commands lose the concrete -gnatec=<ada_dir>/gnat.adc argument.",
         "The GNATprove evidence path documents and enforces the repo's proof-repeatability policy for emitted gates, including the current --steps=0 plus bounded-timeout profile and an explicit statement about whether committed session artifacts are part of the reproducibility contract.",
+        "parse_task_id() is extended to handle three-level milestone IDs (e.g., PR06.9.8) that already exist in the tracker's own task list, so forward-stability checks match the project's actual ID convention rather than silently rejecting valid historical IDs.",
+        "Dependent deterministic report rollups are de-cascaded so parent reports do not churn solely because child report hashes changed: freshness checks rerun child gates into comparison artifacts or validate stable path-level invariants, and portability/glue/doc hardening reports avoid repo-wide unittest-count summaries that change for unrelated test additions.",
         "A dedicated PR10.4 gate, report, and CI job keep the hardened evidence path and parser-regression surface under committed deterministic coverage."
       ],
       "evidence": [],

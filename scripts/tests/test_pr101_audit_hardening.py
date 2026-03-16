@@ -19,18 +19,26 @@ import run_pr101_comprehensive_audit
 class Pr101AuditHardeningTests(unittest.TestCase):
     def test_pr08_baseline_parser_accepts_letter_suffixed_minor_ids(self) -> None:
         self.assertEqual(run_pr08_frontend_baseline.parse_task_id("PR09.1a"), (9, 1))
+        self.assertEqual(run_pr08_frontend_baseline.parse_task_id("PR06.9.8"), (6, 9))
         self.assertTrue(run_pr08_frontend_baseline.next_task_is_at_or_beyond_pr09("PR10.3a"))
         self.assertFalse(run_pr08_frontend_baseline.next_task_is_at_or_beyond_pr09("PR08.4a"))
 
     def test_pr09_baseline_parser_accepts_letter_suffixed_minor_ids(self) -> None:
         self.assertEqual(run_pr09_ada_emission_baseline.parse_task_id("PR10.3a"), (10, 3))
+        self.assertEqual(run_pr09_ada_emission_baseline.parse_task_id("PR06.9.10"), (6, 9))
         self.assertTrue(run_pr09_ada_emission_baseline.next_task_is_at_or_beyond_pr10("PR11.1a"))
         self.assertFalse(run_pr09_ada_emission_baseline.next_task_is_at_or_beyond_pr10("PR09.9a"))
 
     def test_pr10_baseline_parser_accepts_letter_suffixed_minor_ids(self) -> None:
         self.assertEqual(run_pr10_emitted_baseline.parse_task_id("PR10.3a"), (10, 3))
+        self.assertEqual(run_pr10_emitted_baseline.parse_task_id("PR06.9.8"), (6, 9))
         self.assertTrue(run_pr10_emitted_baseline.next_task_is_at_or_beyond_pr10("PR10.11a"))
         self.assertFalse(run_pr10_emitted_baseline.next_task_is_at_or_beyond_pr10("PR09.9a"))
+
+    def test_pr101_audit_parser_accepts_three_level_ids(self) -> None:
+        self.assertEqual(run_pr101_comprehensive_audit.parse_task_id("PR06.9.8"), (6, 9))
+        self.assertEqual(run_pr101_comprehensive_audit.parse_task_id("PR06.9.10"), (6, 9))
+        self.assertEqual(run_pr101_comprehensive_audit.parse_task_id("PR10.3a"), (10, 3))
 
     def test_normalized_gnatprove_summary_hash_ignores_percentage_drift(self) -> None:
         first = """tool chatter

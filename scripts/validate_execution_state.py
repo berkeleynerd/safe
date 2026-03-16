@@ -338,6 +338,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr09b_concurrency_output.py",
     "scripts/run_pr09b_snapshot_refresh.py",
     "scripts/run_pr09_ada_emission_baseline.py",
+    "scripts/run_pr102_rule5_boundary_closure.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
@@ -374,6 +375,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr09b_concurrency_output.py",
     "scripts/run_pr09b_snapshot_refresh.py",
     "scripts/run_pr09_ada_emission_baseline.py",
+    "scripts/run_pr102_rule5_boundary_closure.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
@@ -384,6 +386,7 @@ GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
     "scripts/run_pr082_local_concurrency_analysis.py": "fixture metadata extraction via read_expected_reason",
     "scripts/run_pr083_interface_contracts.py": "fixture metadata extraction via read_expected_reason",
     "scripts/run_pr083a_public_constants.py": "fixture metadata extraction via read_expected_reason and synthetic parity source generation",
+    "scripts/run_pr102_rule5_boundary_closure.py": "fixture metadata extraction via read_expected_reason and diagnostics golden comparison",
 }
 GLUE_SAFETY_DIRECT_SAFE_READ_PATTERNS = [
     r'"[^"\n]*\.safe"\s*\)\.read_text\(',

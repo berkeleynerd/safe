@@ -94,9 +94,37 @@ PR10 proof representatives: `tests/positive/rule2_binary_search.safe`,
 | Other currently emitted concurrency fixtures outside the PR10 corpus | current PR08 concurrency subset beyond the three PR10 proof fixtures | Additional accepted concurrency emission remains outside the selected PR10 proof representatives. Broader proof expansion remains retained as `PS-018`, while runtime timing and scheduling obligations remain `PS-031` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | yes | yes | yes | no | no | Jorvik/Ravenscar runtime behaviour plus runtime timing remain external | yes |
 | I/O seams outside pure emitted packages | runtime wrapper boundaries | Wrapper integration obligations are tracked separately from pure emitted-package proof and remain `PS-019` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | n/a | n/a | n/a | no | no | wrapper/runtime mechanisms and interface contracts | yes |
 
-The Rule 5 row above reflects the frozen PR10 representative only. Broader
-floating-point proof shaping, overflow-to-infinity handling, and
-convergence-loop termination beyond the selected PR10 subset remain tracked in
+## PR10.2 Rule 5 Boundary Closure
+
+PR10.2 keeps the frozen PR10 Rule 5 row above intact while closing the broader
+live accepted Rule 5 positive set under one dedicated gate. That closure set is
+the explicit merge of the historical PR07 Rule 5 positives plus the frozen PR10
+representative:
+
+- `tests/positive/rule5_filter.safe`
+- `tests/positive/rule5_interpolate.safe`
+- `tests/positive/rule5_normalize.safe`
+- `tests/positive/rule5_statistics.safe`
+- `tests/positive/rule5_temperature.safe`
+- `tests/positive/rule5_vector_normalize.safe`
+
+PR10.2 also fixes the analyzer boundary so unsupported float-evaluator shapes
+use `fp_unsupported_expression_at_narrowing` instead of being mislabeled as
+`fp_overflow_at_narrowing`, and it locks the committed source-diagnostic
+contract for:
+
+- `fp_division_by_zero`
+- `infinity_at_narrowing`
+- `nan_at_narrowing`
+- `fp_overflow_at_narrowing`
+- `fp_uninitialized_at_narrowing`
+
+Convergence-style `while` loops outside the emitter's current derivable
+`Loop_Variant` shapes are not accepted as downstream emitted-proof targets.
+They are rejected during `safec check` with `loop_variant_not_derivable`.
+
+Fixed-point Rule 5 support and the broader spec-level floating-point semantics
+question remain open as `PS-002` and `PS-026` in
 [`docs/post_pr10_scope.md`](post_pr10_scope.md).
 
 ## PR10 Assurance Policy

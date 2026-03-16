@@ -1,0 +1,11 @@
+Diagnostics Golden: Rule 5 Overflow
+Source: tests/negative/neg_rule5_overflow.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_rule5_overflow.safe:19:14: error: floating expression is not provably within target range
+  |
+  | 19 |       return Small_Float (Long_Float (A) * Long_Float (B));
+  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  |
+------------------------------------------------------------------------

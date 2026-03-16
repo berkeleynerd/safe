@@ -3,7 +3,7 @@
     "full_mir": {
       "budget_ms": 10000.0,
       "budget_pass": true,
-      "count": 29,
+      "count": 30,
       "largest_sample": {
         "bytes": 11894,
         "lines": 443,
@@ -15,9 +15,9 @@
       "budget_pass": true,
       "count": 32,
       "largest_sample": {
-        "bytes": 1830,
-        "lines": 53,
-        "path": "tests/positive/rule2_binary_search.safe"
+        "bytes": 1902,
+        "lines": 49,
+        "path": "tests/positive/rule5_statistics.safe"
       }
     }
   },
@@ -67,7 +67,7 @@
     ],
     "missing_doc_files": []
   },
-  "repeat_sha256": "a6999c30412a8b5f2e5fc53239a926ae587f3d5dc2f1426b852c134515decca6",
+  "repeat_sha256": "e0d63589dfb7f2f02c72c9cf874dd0ba89be010810eb1e5d56fb9ca0b1825e1e",
   "repeated_scenarios": {
     "analyze_mir": [
       {
@@ -216,7 +216,7 @@
     "check": 5,
     "emit": 3
   },
-  "report_sha256": "a6999c30412a8b5f2e5fc53239a926ae587f3d5dc2f1426b852c134515decca6",
+  "report_sha256": "e0d63589dfb7f2f02c72c9cf874dd0ba89be010810eb1e5d56fb9ca0b1825e1e",
   "status": "ok",
   "task": "PR06.9.12"
 }

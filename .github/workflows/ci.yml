@@ -1257,6 +1257,44 @@ jobs:
         working-directory: .
         run: git diff --exit-code execution/reports/pr101-comprehensive-audit-report.json
 
+  pr102-rule5-boundary-closure:
+    name: PR10.2 Rule 5 Boundary Closure
+    runs-on: ubuntu-latest
+    timeout-minutes: 210
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Install GNATprove
+        working-directory: .
+        run: |
+          alr install gnatprove
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
+      - name: Build compiler frontend
+        working-directory: .
+        run: cd compiler_impl && alr build
+
+      - name: Run PR10.2 Rule 5 boundary-closure gate
+        working-directory: .
+        run: python3 scripts/run_pr102_rule5_boundary_closure.py
+
+      - name: Verify committed PR10.2 evidence is up to date
+        working-directory: .
+        run: git diff --exit-code execution/reports/pr102-rule5-boundary-closure-report.json
+
   spark-verify:
     name: Build & Verify SPARK Companion
     runs-on: ubuntu-latest
