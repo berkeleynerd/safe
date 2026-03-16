@@ -61,12 +61,15 @@
 | PR11.1 | planned | PR10.4, PR10.5, PR10.6 | 0 |
 | PR11.2 | planned | PR11.1 | 0 |
 | PR11.3 | planned | PR11.2 | 0 |
-| PR11.4 | planned | PR11.3 | 0 |
+| PR11.3a | planned | PR11.3 | 0 |
+| PR11.4 | planned | PR11.3a | 0 |
 | PR11.5 | planned | PR11.4 | 0 |
 | PR11.6 | planned | PR11.5 | 0 |
 | PR11.7 | planned | PR11.6 | 0 |
 | PR11.8 | planned | PR11.7 | 0 |
-| PR11.9 | planned | PR11.8 | 0 |
+| PR11.8a | planned | PR11.8, PR11.3a | 0 |
+| PR11.8b | planned | PR10.6 | 0 |
+| PR11.9 | planned | PR11.8a, PR11.8b | 0 |
 | PR11.10 | planned | PR11.9 | 0 |
 | PR11.11 | planned | PR11.10 | 0 |
 
@@ -608,7 +611,7 @@
 - **Acceptance:**
   - A one-command `safe build <file.safe>` wrapper, static VSCode grammar, and disposable diagnostics shim exist as explicitly non-frozen tooling surfaces for language evaluation.
   - PR11.1 creates and validates a starter Rosetta/sample corpus consisting of fibonacci.safe, gcd.safe, factorial.safe, collatz_bounded.safe, bubble_sort.safe, binary_search.safe, bounded_stack.safe, and producer_consumer.safe; linked_list_reverse.safe and prime_sieve_pipeline.safe remain candidate expansions, while trapezoidal_rule.safe and newton_sqrt_bounded.safe remain deferred to later numeric work.
-  - None of the PR11.1 starter-corpus candidates depend on PR11.2 string/case support, and PR11.1 remains a `safec check` -> `safec emit --ada-out-dir` -> `gprbuild` compile milestone rather than emitted-proof expansion.
+  - None of the PR11.1 starter-corpus candidates depend on PR11.2 string/case support, and PR11.1 remains a `safec check` -> `safec emit --ada-out-dir` -> `gprbuild` compile milestone rather than emitted-proof expansion; proof re-enters later via PR11.3a, PR11.8a, and the parallel PR11.8b concurrency track.
 
 ### PR11.2 — Parser Completeness Phase 1
 
@@ -630,10 +633,20 @@
   - Access discriminants, private/limited-view issues, discriminant-constrained dispatch, generic interactions, and ownership-specific discriminant extensions remain explicitly deferred rather than being absorbed into the milestone.
   - A deterministic non-shrinkable `check` -> `emit` -> Ada-compile corpus plus emitted-structure assertions lock the accepted discriminant surface without silently flattening away semantics.
 
-### PR11.4 — Signature and Control-Flow Syntax
+### PR11.3a — Proof checkpoint 1 for parser and discriminant expansion
 
 - **Status:** `planned`
 - **Depends on:** PR11.3
+- **Blockers:** none
+- **Acceptance:**
+  - The emitted sequential fixtures newly admitted by PR11.2 and PR11.3 are explicitly enumerated as a non-shrinkable proof checkpoint corpus rather than being left as open proof debt.
+  - That checkpoint corpus passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence, and any previously proved sequential fixtures affected by parser or discriminant emission changes are revalidated in the same checkpoint.
+  - Any deallocation-ordering semantics (`PS-029`) required by the admitted discriminant corpus are resolved or explicitly bounded before PR11.3a claims proof closure.
+
+### PR11.4 — Signature and Control-Flow Syntax
+
+- **Status:** `planned`
+- **Depends on:** PR11.3a
 - **Blockers:** none
 - **Acceptance:**
   - The `returns` and `else if` spellings are supported with an explicit coexistence or migration rule for legacy forms.
@@ -680,10 +693,30 @@
   - The milestone resolves or explicitly defers `PS-028` and `PS-030` within its own scope without absorbing fixed-point Rule 5 work (`PS-002`) or broader floating-point semantics (`PS-026`).
   - The Rosetta/sample corpus and existing tests are updated for the admitted numeric-model surface.
 
+### PR11.8a — Proof checkpoint 2 for numeric-model revalidation
+
+- **Status:** `planned`
+- **Depends on:** PR11.8, PR11.3a
+- **Blockers:** none
+- **Acceptance:**
+  - The fixtures added or materially changed by PR11.8 are explicitly enumerated as a non-shrinkable numeric proof checkpoint corpus.
+  - That checkpoint corpus, plus the previously proved numeric-sensitive emitted corpus, passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence.
+  - Fixed-point Rule 5 (`PS-002`) and broader floating-point semantics (`PS-026`) are either still explicitly deferred or version-targeted; PR11.8a does not silently expand proof claims beyond the admitted numeric surface.
+
+### PR11.8b — Concurrency proof expansion
+
+- **Status:** `planned`
+- **Depends on:** PR10.6
+- **Blockers:** none
+- **Acceptance:**
+  - The currently accepted emitted concurrency subset beyond the frozen PR10 representatives and the already-proved supplemental hardening fixture is explicitly enumerated as a non-shrinkable proof corpus: channel_ceiling_priority.safe, exclusive_variable.safe, fifo_ordering.safe, multi_task_channel.safe, select_delay_local_scope.safe, select_priority.safe, task_global_owner.safe, task_priority_delay.safe, and try_ops.safe.
+  - That bounded concurrency corpus passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence, without restating spec-excluded fixtures as proof debt.
+  - Tracker/docs surfaces keep source-level select semantics (`PS-007`), I/O seam wrapper obligations (`PS-019`), and Jorvik/Ravenscar runtime obligations (`PS-031`) explicitly open even as emitted concurrency proof coverage expands.
+
 ### PR11.9 — Artifact Contract Stabilization
 
 - **Status:** `planned`
-- **Depends on:** PR11.8
+- **Depends on:** PR11.8a, PR11.8b
 - **Blockers:** none
 - **Acceptance:**
   - Compatibility policy and version-bump rules are documented for diagnostics-v0, safei-v1, and mir-v2.
