@@ -2541,7 +2541,7 @@ package body Safe_Frontend.Ada_Emit is
          Target_Type : constant String := FT.To_String (Target.Type_Name);
          Target_Info : constant GM.Type_Descriptor := Lookup_Type (Unit, Document, Target_Type);
       begin
-         if not Is_Float_Type (Target_Info) then
+         if not Is_Float_Type (Unit, Document, Target_Type) then
             return;
          end if;
 

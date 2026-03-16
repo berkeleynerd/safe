@@ -52,10 +52,20 @@ EXPECTED_RULE5_NEGATIVES = [
     "tests/negative/neg_rule5_uninitialized.safe",
 ]
 EXPECTED_LOOP_NEGATIVE = "tests/negative/neg_while_variant_not_derivable.safe"
-EXPECTED_GOLDENS = [
+EXPECTED_NEGATIVE_GOLDENS = [
     ("tests/negative/neg_rule5_div_zero.safe", "tests/diagnostics_golden/diag_rule5_div_zero.txt"),
     ("tests/negative/neg_rule5_infinity.safe", "tests/diagnostics_golden/diag_rule5_infinity.txt"),
     ("tests/negative/neg_rule5_nan.safe", "tests/diagnostics_golden/diag_rule5_nan.txt"),
+    ("tests/negative/neg_rule5_overflow.safe", "tests/diagnostics_golden/diag_rule5_overflow.txt"),
+    ("tests/negative/neg_rule5_uninitialized.safe", "tests/diagnostics_golden/diag_rule5_uninitialized.txt"),
+    (
+        "tests/negative/neg_while_variant_not_derivable.safe",
+        "tests/diagnostics_golden/diag_loop_variant_not_derivable.txt",
+    ),
+]
+EXPECTED_PR102_GOLDENS = [
+    ("tests/negative/neg_rule5_div_zero.safe", "tests/diagnostics_golden/diag_rule5_div_zero.txt"),
+    ("tests/negative/neg_rule5_infinity.safe", "tests/diagnostics_golden/diag_rule5_infinity.txt"),
     ("tests/negative/neg_rule5_overflow.safe", "tests/diagnostics_golden/diag_rule5_overflow.txt"),
     ("tests/negative/neg_rule5_uninitialized.safe", "tests/diagnostics_golden/diag_rule5_uninitialized.txt"),
     (
@@ -119,17 +129,17 @@ def verify_corpus_contract() -> dict[str, Any]:
         "PR10.2 loop-boundary corpus must remain the exact single-fixture set",
     )
     require(
-        list(PR102_DIAGNOSTIC_GOLDEN_CASES) == EXPECTED_GOLDENS,
+        list(PR102_DIAGNOSTIC_GOLDEN_CASES) == EXPECTED_PR102_GOLDENS,
         "PR10.2 diagnostic goldens must remain the exact committed set",
     )
     golden_map = set(ALL_DIAGNOSTIC_GOLDEN_CASES)
-    for pair in EXPECTED_GOLDENS:
+    for pair in EXPECTED_NEGATIVE_GOLDENS:
         require(pair in golden_map, f"{pair[1]} must be wired into the canonical diagnostics golden map")
     return {
         "rule5_positives": EXPECTED_RULE5_POSITIVES,
         "rule5_negatives": EXPECTED_RULE5_NEGATIVES,
         "loop_negatives": [EXPECTED_LOOP_NEGATIVE],
-        "goldens": [golden for _source, golden in EXPECTED_GOLDENS],
+        "goldens": [golden for _source, golden in EXPECTED_NEGATIVE_GOLDENS],
     }
 
 
@@ -251,7 +261,7 @@ def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
             ],
             "negative_diagnostics": [
                 run_negative_fixture(source_rel, golden_rel, safec=safec, env=env, temp_root=temp_root)
-                for source_rel, golden_rel in EXPECTED_GOLDENS
+                for source_rel, golden_rel in EXPECTED_NEGATIVE_GOLDENS
             ],
             "mir_parity": run_parity_fixture(safec=safec, env=env, temp_root=temp_root),
             "notes": [

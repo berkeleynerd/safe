@@ -14,7 +14,6 @@ D27_GOLDEN_CASES = [
 PR102_DIAGNOSTIC_GOLDEN_CASES = [
     ("tests/negative/neg_rule5_div_zero.safe", "tests/diagnostics_golden/diag_rule5_div_zero.txt"),
     ("tests/negative/neg_rule5_infinity.safe", "tests/diagnostics_golden/diag_rule5_infinity.txt"),
-    ("tests/negative/neg_rule5_nan.safe", "tests/diagnostics_golden/diag_rule5_nan.txt"),
     ("tests/negative/neg_rule5_overflow.safe", "tests/diagnostics_golden/diag_rule5_overflow.txt"),
     ("tests/negative/neg_rule5_uninitialized.safe", "tests/diagnostics_golden/diag_rule5_uninitialized.txt"),
     (
