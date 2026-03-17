@@ -190,7 +190,7 @@ For local milestone work, you can enforce the same serial gate/report-refresh le
 git config core.hooksPath .githooks
 ```
 
-That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_push.py), which maps known `codex/pr08...`, `codex/pr09...`, `codex/pr10...`, and `codex/pr111...` branches to the appropriate milestone gate plus the downstream evidence-refresh chain, then requires `git diff --exit-code` to remain clean. Unknown milestone branches fail closed until the mapping is updated.
+That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_push.py), which maps known `codex/pr08...`, `codex/pr09...`, and `codex/pr10...` branches, plus `codex/pr111...` branches, to the appropriate milestone gate plus the downstream evidence-refresh chain, then requires `git diff --exit-code` to remain clean. Unknown milestone branches fail closed until the mapping is updated.
 
 ---
 
