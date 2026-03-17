@@ -162,6 +162,42 @@ PR103_OWNERSHIP_PROOF_CASES = [
     "tests/positive/ownership_early_return.safe",
 ]
 
+PR106_SEQUENTIAL_PROOF_CASES = [
+    "tests/positive/constant_access_deref_write.safe",
+    "tests/positive/constant_channel_capacity.safe",
+    "tests/positive/constant_discriminant_default.safe",
+    "tests/positive/constant_range_bound.safe",
+    "tests/positive/constant_shadow_mutable.safe",
+    "tests/positive/constant_task_priority.safe",
+    "tests/positive/emitter_surface_proc.safe",
+    "tests/positive/emitter_surface_record.safe",
+    "tests/positive/result_equality_check.safe",
+    "tests/positive/result_guarded_access.safe",
+    "tests/positive/rule1_accumulate.safe",
+    "tests/positive/rule1_conversion.safe",
+    "tests/positive/rule1_return.safe",
+    "tests/positive/rule2_binary_search.safe",
+    "tests/positive/rule2_iteration.safe",
+    "tests/positive/rule2_lookup.safe",
+    "tests/positive/rule2_matrix.safe",
+    "tests/positive/rule2_slice.safe",
+    "tests/positive/rule3_average.safe",
+    "tests/positive/rule3_modulo.safe",
+    "tests/positive/rule3_percent.safe",
+    "tests/positive/rule3_remainder.safe",
+    "tests/positive/rule4_conditional.safe",
+    "tests/positive/rule4_deref.safe",
+    "tests/positive/rule4_factory.safe",
+    "tests/positive/rule4_linked_list.safe",
+    "tests/positive/rule4_optional.safe",
+]
+
+PR106_EXCLUDED_POSITIVE_CONCURRENCY_CASES = [
+    "tests/positive/channel_pingpong.safe",
+    "tests/positive/channel_pipeline.safe",
+    "tests/positive/channel_pipeline_compute.safe",
+]
+
 PR07_RESULT_CASES = [
     "tests/positive/result_guarded_access.safe",
     "tests/negative/neg_result_unguarded.safe",

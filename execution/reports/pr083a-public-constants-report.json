@@ -790,7 +790,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "<10501 chars>"
+        "stdout": "<3931 chars>"
       },
       "ast_constant_nodes": 1,
       "check": {
@@ -820,10 +820,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "3d74519607b8797241f6debeeffa287896e54c31b6340c5e39568e9d2a41270a",
-        "mir": "f933307db94ebceeeb578e26dd479978a0305a543aacdc829c7e334a92c14c89",
-        "safei": "20361fa91b14d85edadef193893bf8894d8f23b17faf811a9a1b192b1b4d23bd",
-        "typed": "56f0b33e91fbca4c00cc6aa15aa300c0776386fd269cb6fd5a8fce939a5c4b80"
+        "ast": "d226b2a8d5271188075b29f1c3b56c97e425559e6574b3a3886f08ab9ee9c067",
+        "mir": "db769efb8b3fd640590a194d4e6c5a5b828ab1911a05d9b3fa6b5dd44f4b5a10",
+        "safei": "3cceee950cbdbc7939678d2572897568ce32b79c7d7172b4ec600f8654b2296a",
+        "typed": "b1d986d8e744f6c4f225dc16783eb48c3860e6de2ea921ea2f54387386d3b86f"
       },
       "mir_constant_locals": 1,
       "source": "tests/positive/constant_task_priority.safe",
@@ -1191,8 +1191,8 @@
       ]
     }
   },
-  "repeat_sha256": "55d652ea29ba4688ddff51fdeef5af1b8887d783eff05f642a9dcb322a9ac61d",
-  "report_sha256": "55d652ea29ba4688ddff51fdeef5af1b8887d783eff05f642a9dcb322a9ac61d",
+  "repeat_sha256": "71ef782ca30b9c4c22269c81d84c1dbb7097fbbfd7dcd4ed51ed364799c52700",
+  "report_sha256": "71ef782ca30b9c4c22269c81d84c1dbb7097fbbfd7dcd4ed51ed364799c52700",
   "source_failures": {
     "imported_missing_static_value": {
       "ast": {

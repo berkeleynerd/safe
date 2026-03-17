@@ -1,8 +1,8 @@
 -- Test: neg_pr09_emitter_discriminant
--- Description: Emitter-only unsupported discriminated record case.
---   The frontend accepts the source, but PR09 Ada emission intentionally
---   rejects discriminated/variant record output until a later slice.
--- Expected: REJECT unsupported_source_construct
+-- Description: Historical PR09a discriminant-surface regression fixture.
+--   The path remains under tests/negative for continuity, but the current
+--   boolean-discriminant subset is now emitted and compile-validated.
+-- Expected: ACCEPT
 
 package PR09_Emitter_Discriminant is
 

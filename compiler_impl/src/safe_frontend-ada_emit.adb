@@ -58,6 +58,7 @@ package body Safe_Frontend.Ada_Emit is
       Action    : Cleanup_Action := Cleanup_Deallocate;
       Name      : FT.UString := FT.To_UString ("");
       Type_Name : FT.UString := FT.To_UString ("");
+      Is_Constant : Boolean := False;
    end record;
 
    package Cleanup_Item_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -121,6 +122,7 @@ package body Safe_Frontend.Ada_Emit is
      (State     : in out Emit_State;
       Name      : String;
       Type_Name : String;
+      Is_Constant : Boolean := False;
       Action    : Cleanup_Action := Cleanup_Deallocate);
    procedure Register_Cleanup_Items
      (State        : in out Emit_State;
@@ -152,6 +154,9 @@ package body Safe_Frontend.Ada_Emit is
       Prefix    : CM.Expr_Access;
       Selector  : String) return Boolean;
    function Is_Aspect_State_Name (Name : String) return Boolean;
+   function Is_Constant_Object_Name
+     (Unit : CM.Resolved_Unit;
+      Name : String) return Boolean;
 
    function Lookup_Type
      (Unit     : CM.Resolved_Unit;
@@ -521,6 +526,7 @@ package body Safe_Frontend.Ada_Emit is
      (State     : in out Emit_State;
       Name      : String;
       Type_Name : String;
+      Is_Constant : Boolean := False;
       Action    : Cleanup_Action := Cleanup_Deallocate) is
    begin
       if State.Cleanup_Stack.Is_Empty then
@@ -533,7 +539,8 @@ package body Safe_Frontend.Ada_Emit is
          Frame.Items.Append
            ((Action    => Action,
              Name      => FT.To_UString (Name),
-             Type_Name => FT.To_UString (Type_Name)));
+             Type_Name => FT.To_UString (Type_Name),
+             Is_Constant => Is_Constant));
          State.Cleanup_Stack.Replace_Element (State.Cleanup_Stack.Last_Index, Frame);
       end;
    end Add_Cleanup_Item;
@@ -548,7 +555,8 @@ package body Safe_Frontend.Ada_Emit is
                Add_Cleanup_Item
                  (State,
                   FT.To_String (Name),
-                  FT.To_String (Decl.Type_Info.Name));
+                  FT.To_String (Decl.Type_Info.Name),
+                  Decl.Is_Constant);
             end loop;
          end if;
       end loop;
@@ -564,7 +572,8 @@ package body Safe_Frontend.Ada_Emit is
                Add_Cleanup_Item
                  (State,
                   FT.To_String (Name),
-                  FT.To_String (Decl.Type_Info.Name));
+                  FT.To_String (Decl.Type_Info.Name),
+                  Decl.Is_Constant);
             end loop;
          end if;
       end loop;
@@ -577,10 +586,28 @@ package body Safe_Frontend.Ada_Emit is
    begin
       case Item.Action is
          when Cleanup_Deallocate =>
-            Append_Line
-              (Buffer,
-               "Free_" & FT.To_String (Item.Type_Name) & " (" & FT.To_String (Item.Name) & ");",
-               Depth);
+            if Item.Is_Constant then
+               Append_Line (Buffer, "declare", Depth);
+               Append_Line
+                 (Buffer,
+                  "Cleanup_Target : "
+                  & FT.To_String (Item.Type_Name)
+                  & " := "
+                  & FT.To_String (Item.Name)
+                  & ";",
+                  Depth + 1);
+               Append_Line (Buffer, "begin", Depth);
+               Append_Line
+                 (Buffer,
+                  "Free_" & FT.To_String (Item.Type_Name) & " (Cleanup_Target);",
+                  Depth + 1);
+               Append_Line (Buffer, "end;", Depth);
+            else
+               Append_Line
+                 (Buffer,
+                  "Free_" & FT.To_String (Item.Type_Name) & " (" & FT.To_String (Item.Name) & ");",
+                  Depth);
+            end if;
          when Cleanup_Reset_Null =>
             Append_Line
               (Buffer,
@@ -875,6 +902,23 @@ package body Safe_Frontend.Ada_Emit is
       return True;
    end Is_Aspect_State_Name;
 
+   function Is_Constant_Object_Name
+     (Unit : CM.Resolved_Unit;
+      Name : String) return Boolean
+   is
+   begin
+      for Decl of Unit.Objects loop
+         if Decl.Is_Constant then
+            for Object_Name of Decl.Names loop
+               if FT.To_String (Object_Name) = Name then
+                  return True;
+               end if;
+            end loop;
+         end if;
+      end loop;
+      return False;
+   end Is_Constant_Object_Name;
+
    function Lookup_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -1141,27 +1185,124 @@ package body Safe_Frontend.Ada_Emit is
            & FT.To_String (Type_Item.Component_Type)
            & ";";
       elsif Kind = "record" then
-         if Type_Item.Has_Discriminant or else not Type_Item.Variant_Fields.Is_Empty then
-            Raise_Unsupported
-              (State,
-               FT.Null_Span,
-               "PR09 emitter does not yet support discriminated or variant record emission");
-         end if;
-         Result := SU.To_Unbounded_String ("type " & Name & " is record" & ASCII.LF);
-         for Field of Type_Item.Fields loop
+         declare
+            function Is_Boolean_Discriminant return Boolean is
+            begin
+               return FT.To_String (Type_Item.Discriminant_Type) = "Boolean";
+            end Is_Boolean_Discriminant;
+
+            function Is_Variant_Field_Name (Field_Name : String) return Boolean is
+            begin
+               for Field of Type_Item.Variant_Fields loop
+                  if FT.To_String (Field.Name) = Field_Name then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            end Is_Variant_Field_Name;
+
+            function Has_Variant_Alternative (When_True : Boolean) return Boolean is
+            begin
+               for Field of Type_Item.Variant_Fields loop
+                  if Field.When_True = When_True then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            end Has_Variant_Alternative;
+
+            procedure Append_Field_Line
+              (Field_Name : String;
+               Field_Type : String;
+               Depth      : Natural) is
+            begin
+               Result :=
+                 Result
+                 & SU.To_Unbounded_String
+                     (Indentation (Depth)
+                      & Field_Name
+                      & " : "
+                      & Field_Type
+                      & ";"
+                      & ASCII.LF);
+            end Append_Field_Line;
+
+            procedure Append_Variant_Alternative (When_True : Boolean) is
+               Choice_Text : constant String := (if When_True then "True" else "False");
+            begin
+               Result :=
+                 Result
+                 & SU.To_Unbounded_String
+                     (Indentation (1) & "when " & Choice_Text & " =>" & ASCII.LF);
+               for Field of Type_Item.Variant_Fields loop
+                  if Field.When_True = When_True then
+                     Append_Field_Line
+                       (FT.To_String (Field.Name),
+                        FT.To_String (Field.Type_Name),
+                        2);
+                  end if;
+               end loop;
+            end Append_Variant_Alternative;
+         begin
+            if Type_Item.Has_Discriminant and then not Is_Boolean_Discriminant then
+               Raise_Unsupported
+                 (State,
+                  FT.Null_Span,
+                  "PR09 emitter only supports the current boolean-discriminant record subset");
+            elsif not Type_Item.Variant_Fields.Is_Empty
+              and then (not Type_Item.Has_Discriminant
+                        or else not Has_Variant_Alternative (True)
+                        or else not Has_Variant_Alternative (False))
+            then
+               Raise_Unsupported
+                 (State,
+                  FT.Null_Span,
+                  "PR09 emitter only supports boolean variant parts with explicit True/False alternatives");
+            end if;
+
+            Result := SU.To_Unbounded_String ("type " & Name);
+            if Type_Item.Has_Discriminant then
+               Result :=
+                 Result
+                 & SU.To_Unbounded_String
+                     (" ("
+                      & FT.To_String (Type_Item.Discriminant_Name)
+                      & " : "
+                      & FT.To_String (Type_Item.Discriminant_Type)
+                      & (if Type_Item.Has_Discriminant_Default
+                         then " := " & (if Type_Item.Discriminant_Default_Bool then "True" else "False")
+                         else "")
+                      & ")");
+            end if;
+            Result := Result & SU.To_Unbounded_String (" is record" & ASCII.LF);
+            for Field of Type_Item.Fields loop
+               if not Is_Variant_Field_Name (FT.To_String (Field.Name)) then
+                  Append_Field_Line
+                    (FT.To_String (Field.Name),
+                     FT.To_String (Field.Type_Name),
+                     1);
+               end if;
+            end loop;
+            if not Type_Item.Variant_Fields.Is_Empty then
+               Result :=
+                 Result
+                 & SU.To_Unbounded_String
+                     (Indentation (1)
+                      & "case "
+                      & FT.To_String (Type_Item.Discriminant_Name)
+                      & " is"
+                      & ASCII.LF);
+               Append_Variant_Alternative (True);
+               Append_Variant_Alternative (False);
+               Result :=
+                 Result
+                 & SU.To_Unbounded_String
+                     (Indentation (1) & "end case;" & ASCII.LF);
+            end if;
             Result :=
-              Result
-              & SU.To_Unbounded_String
-                  (Indentation (1)
-                   & FT.To_String (Field.Name)
-                   & " : "
-                   & FT.To_String (Field.Type_Name)
-                   & ";"
-                   & ASCII.LF);
-         end loop;
-         Result :=
-           Result & SU.To_Unbounded_String ("end record;");
-         return SU.To_String (Result);
+              Result & SU.To_Unbounded_String ("end record;");
+            return SU.To_String (Result);
+         end;
       elsif Kind = "access" then
          return
            "type "
@@ -2169,7 +2310,9 @@ package body Safe_Frontend.Ada_Emit is
       end Add_Unique;
    begin
       for Item of Bronze.Initializes loop
-         if Is_Aspect_State_Name (FT.To_String (Item)) then
+         if Is_Aspect_State_Name (FT.To_String (Item))
+           and then not Is_Constant_Object_Name (Unit, FT.To_String (Item))
+         then
             Add_Unique (FT.To_String (Item));
          end if;
       end loop;
@@ -2310,6 +2453,8 @@ package body Safe_Frontend.Ada_Emit is
       Result : SU.Unbounded_String;
       Allowed_Outputs : FT.UString_Vectors.Vector;
       Allowed_Inputs  : FT.UString_Vectors.Vector;
+      Formal_Input_Params : FT.UString_Vectors.Vector;
+      Read_Param_Inputs : FT.UString_Vectors.Vector;
 
       function Contains
         (Items : FT.UString_Vectors.Vector;
@@ -2342,8 +2487,10 @@ package body Safe_Frontend.Ada_Emit is
             elsif Mode = "in out" then
                Add_Unique (Allowed_Outputs, Name);
                Add_Unique (Allowed_Inputs, Name);
+               Add_Unique (Formal_Input_Params, Name);
             else
                Add_Unique (Allowed_Inputs, Name);
+               Add_Unique (Formal_Input_Params, Name);
             end if;
          end;
       end loop;
@@ -2359,6 +2506,11 @@ package body Safe_Frontend.Ada_Emit is
             Name : constant String :=
               Normalize_Aspect_Name (FT.To_String (Subprogram.Name), FT.To_String (Item));
          begin
+            if Starts_With (FT.To_String (Item), "param:")
+              and then Is_Aspect_State_Name (Name)
+            then
+               Add_Unique (Read_Param_Inputs, Name);
+            end if;
             if not Starts_With (FT.To_String (Item), "param:")
               and then FT.To_String (Item) /= "return"
               and then Is_Aspect_State_Name (Name)
@@ -2482,6 +2634,18 @@ package body Safe_Frontend.Ada_Emit is
                         Add_Unique (Inputs, Name);
                      end if;
                   end;
+               end loop;
+
+               for Input of Read_Param_Inputs loop
+                  if Contains (Allowed_Inputs, FT.To_String (Input)) then
+                     Add_Unique (Inputs, FT.To_String (Input));
+                  end if;
+               end loop;
+
+               for Input of Formal_Input_Params loop
+                  if Contains (Allowed_Inputs, FT.To_String (Input)) then
+                     Add_Unique (Inputs, FT.To_String (Input));
+                  end if;
                end loop;
 
                if Inputs.Is_Empty then
@@ -3526,6 +3690,47 @@ package body Safe_Frontend.Ada_Emit is
       end;
    end Append_Float_Loop_Invariant;
 
+   procedure Append_Integer_Loop_Invariant
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      State    : in out Emit_State;
+      Target   : CM.Expr_Access;
+      Depth    : Natural)
+   is
+   begin
+      if Target = null
+        or else Target.Kind /= CM.Expr_Ident
+        or else not Has_Text (Target.Type_Name)
+        or else not Is_Wide_Name (State, FT.To_String (Target.Name))
+      then
+         return;
+      end if;
+
+      declare
+         Target_Type : constant String := FT.To_String (Target.Type_Name);
+      begin
+         if not Is_Integer_Type (Unit, Document, Target_Type)
+           or else not Is_Builtin_Integer_Name (Target_Type)
+         then
+            return;
+         end if;
+
+         Append_Line
+           (Buffer,
+            "pragma Loop_Invariant ("
+            & FT.To_String (Target.Name)
+            & " >= Safe_Runtime.Wide_Integer ("
+            & Target_Type
+            & "'First) and then "
+            & FT.To_String (Target.Name)
+            & " <= Safe_Runtime.Wide_Integer ("
+            & Target_Type
+            & "'Last));",
+            Depth);
+      end;
+   end Append_Integer_Loop_Invariant;
+
    procedure Append_Return
      (Buffer     : in out SU.Unbounded_String;
       Unit       : CM.Resolved_Unit;
@@ -3706,7 +3911,8 @@ package body Safe_Frontend.Ada_Emit is
                     (Buffer,
                      (Action    => Cleanup_Deallocate,
                       Name      => Name,
-                      Type_Name => Decl.Type_Info.Name),
+                      Type_Name => Decl.Type_Info.Name,
+                      Is_Constant => Decl.Is_Constant),
                      Depth);
                end loop;
             end if;
@@ -3732,7 +3938,8 @@ package body Safe_Frontend.Ada_Emit is
                     (Buffer,
                      (Action    => Cleanup_Deallocate,
                       Name      => Name,
-                      Type_Name => Decl.Type_Info.Name),
+                      Type_Name => Decl.Type_Info.Name,
+                      Is_Constant => Decl.Is_Constant),
                      Depth);
                end loop;
             end if;
@@ -3773,6 +3980,8 @@ package body Safe_Frontend.Ada_Emit is
             when CM.Stmt_Assign =>
                Append_Assignment (Buffer, Unit, Document, State, Item.all, Depth);
                if In_Loop then
+                  Append_Integer_Loop_Invariant
+                    (Buffer, Unit, Document, State, Item.Target, Depth);
                   Append_Float_Loop_Invariant
                     (Buffer, Unit, Document, State, Item.Target, Depth);
                end if;
@@ -4563,6 +4772,8 @@ package body Safe_Frontend.Ada_Emit is
          & Render_Initializes_Aspect (Unit, Bronze)
          & ASCII.LF
          & "is");
+      Append_Line (Spec_Inner, "pragma Elaborate_Body;", 1);
+      Append_Line (Spec_Inner);
 
       for Type_Item of Unit.Types loop
          Append_Line (Spec_Inner, Render_Type_Decl (Type_Item, State), 1);

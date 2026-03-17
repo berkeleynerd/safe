@@ -25,7 +25,7 @@
             "sha256": "9011cb90053d1aed632e5b1646062430ae8bb56d710ce7de080c5fae4b4321f4"
           },
           "sensor_average.ads": {
-            "sha256": "b2c94dfa2474bcfd1f8f238dd54b7cc52993e97720b6ee03570b425ea5d5581a"
+            "sha256": "e37bc1c4f30fb0697db993484decd0db383be3796b790c3c16dace22b858e226"
           }
         },
         "json_and_interface": {
@@ -76,7 +76,7 @@
             "sha256": "9b9eaa853b3e7a262c6ebd4c1410604ff4bbfd02ca443e9cb1d083c577c15a50"
           },
           "accumulator.ads": {
-            "sha256": "58632dbfe3a707c5578e584e282b20404212138a7b720fb797254690304a2f48"
+            "sha256": "e84ef385705a69ffe2198fe28230317edb2dfbc315882220afc802dd631230a8"
           },
           "safe_runtime.ads": {
             "sha256": "1e2fcc19815107411c19daec797fc78f9a1f5357527b26c5611e8b5ab6b76b3a"
@@ -130,7 +130,7 @@
             "sha256": "49a06153e39e6925ff98b8c581155ea9628e7f25c8f42d34bd57bf4644cb53af"
           },
           "safe_parameters.ads": {
-            "sha256": "a3c079a4dbb81674e247fe94aa8a590ca211075ef8e7ee764fec324dc6bb3c6c"
+            "sha256": "fb1c2f3d6771ec0a013de34cd6d49bde034807638ad435295d750975da6a83dc"
           },
           "safe_runtime.ads": {
             "sha256": "1e2fcc19815107411c19daec797fc78f9a1f5357527b26c5611e8b5ab6b76b3a"
@@ -188,7 +188,7 @@
             "sha256": "abf1f37eb7c519c0bdad6c11abddb0231563851180248989c7579b63e729b625"
           },
           "safe_return.ads": {
-            "sha256": "50c600215fa5d7ec9860d624d053c4f9cd8f1d88cc9f4ca5f0f03d67f5390a3d"
+            "sha256": "afb01889c15dec9d44a4e8fb3c3db1ce4c44e907adad0ef616da702e45c80bf9"
           },
           "safe_runtime.ads": {
             "sha256": "1e2fcc19815107411c19daec797fc78f9a1f5357527b26c5611e8b5ab6b76b3a"
@@ -242,7 +242,7 @@
             "sha256": "5831b527801d39cfdb3fb1ef981b104d1022127267c6634a33ab5d6f914eca0b"
           },
           "safe_conversion.ads": {
-            "sha256": "ee72fabd41c16d3a4a17272b124cc96b29c3d8300cb8fcfc1b70f1fda68a0378"
+            "sha256": "bbe2ab279086ac1de83c3696425a70af80eae47b7969343856c36ae053806fef"
           },
           "safe_runtime.ads": {
             "sha256": "1e2fcc19815107411c19daec797fc78f9a1f5357527b26c5611e8b5ab6b76b3a"
@@ -280,6 +280,6 @@
     "PR09a emits compile-valid Ada/SPARK skeleton output on the rule1 subset.",
     "safe_runtime.ads remains byte-identical to companion/templates/safe_runtime.ads."
   ],
-  "repeat_sha256": "de069fc3e412a34db7714a7d0f73490274dd3928ccf97fb536e2e2ffe08db7fd",
-  "report_sha256": "de069fc3e412a34db7714a7d0f73490274dd3928ccf97fb536e2e2ffe08db7fd"
+  "repeat_sha256": "f86f4f6a674973b1f86b858ec4522b402a9e5625a2599942b36412fda6446d67",
+  "report_sha256": "f86f4f6a674973b1f86b858ec4522b402a9e5625a2599942b36412fda6446d67"
 }

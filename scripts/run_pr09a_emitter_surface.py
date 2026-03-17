@@ -37,8 +37,7 @@ SURFACE_FIXTURES = [
     REPO_ROOT / "tests" / "positive" / "emitter_surface_record.safe",
     REPO_ROOT / "tests" / "positive" / "emitter_surface_proc.safe",
 ]
-NEGATIVE_FIXTURE = REPO_ROOT / "tests" / "negative" / "neg_pr09_emitter_discriminant.safe"
-NEGATIVE_ADA_STEM = "pr09_emitter_discriminant"
+DISCRIMINANT_FIXTURE = REPO_ROOT / "tests" / "negative" / "neg_pr09_emitter_discriminant.safe"
 
 
 def seed_file(path: Path, contents: str) -> None:
@@ -93,85 +92,28 @@ def generate_report(*, safec: Path, env: dict[str, str]) -> dict[str, object]:
                 }
             )
 
-        negative_root = temp_root / "negative"
-        for name in ("out", "iface", "ada"):
-            (negative_root / name).mkdir(parents=True, exist_ok=True)
-        negative_result = run_emit(
+        discriminant_root = temp_root / "discriminant"
+        root_a = discriminant_root / "a"
+        root_b = discriminant_root / "b"
+        discriminant_determinism = emit_with_determinism(
             safec=safec,
-            source=NEGATIVE_FIXTURE,
-            out_dir=negative_root / "out",
-            iface_dir=negative_root / "iface",
-            ada_dir=negative_root / "ada",
+            source=DISCRIMINANT_FIXTURE,
+            root_a=root_a,
+            root_b=root_b,
             env=env,
             temp_root=temp_root,
-            expected_returncode=1,
         )
-        require(
-            "PR09 emitter does not yet support discriminated or variant record emission"
-            in negative_result["stderr"],
-            f"{NEGATIVE_FIXTURE}: expected emitter-only unsupported stderr",
-        )
-
-        seeded_negative_root = temp_root / "negative-seeded"
-        seed_file(
-            seeded_negative_root / "out" / f"{NEGATIVE_FIXTURE.stem.lower()}.ast.json",
-            '{"sentinel":"ast"}\n',
-        )
-        seed_file(
-            seeded_negative_root / "out" / f"{NEGATIVE_FIXTURE.stem.lower()}.typed.json",
-            '{"sentinel":"typed"}\n',
-        )
-        seed_file(
-            seeded_negative_root / "out" / f"{NEGATIVE_FIXTURE.stem.lower()}.mir.json",
-            '{"sentinel":"mir"}\n',
-        )
-        seed_file(
-            seeded_negative_root / "iface" / f"{NEGATIVE_FIXTURE.stem.lower()}.safei.json",
-            '{"sentinel":"safei"}\n',
-        )
-        seed_file(
-            seeded_negative_root / "ada" / f"{NEGATIVE_ADA_STEM}.ads",
-            "-- sentinel spec\n",
-        )
-        seed_file(
-            seeded_negative_root / "ada" / f"{NEGATIVE_ADA_STEM}.adb",
-            "-- sentinel body\n",
-        )
-        seed_file(
-            seeded_negative_root / "ada" / "safe_runtime.ads",
-            "-- stale runtime\n",
-        )
-        seed_file(
-            seeded_negative_root / "ada" / "gnat.adc",
-            "-- stale adc\n",
-        )
-        seeded_before = {
-            "out": file_hashes(seeded_negative_root / "out"),
-            "iface": file_hashes(seeded_negative_root / "iface"),
-            "ada": file_hashes(seeded_negative_root / "ada"),
-        }
-        seeded_negative_result = run_emit(
-            safec=safec,
-            source=NEGATIVE_FIXTURE,
-            out_dir=seeded_negative_root / "out",
-            iface_dir=seeded_negative_root / "iface",
-            ada_dir=seeded_negative_root / "ada",
+        ensure_emit_success(source=DISCRIMINANT_FIXTURE, root=root_a)
+        discriminant_compile = compile_emitted_ada(
+            ada_dir=root_a / "ada",
             env=env,
             temp_root=temp_root,
-            expected_returncode=1,
         )
-        require(
-            seeded_before["out"] == file_hashes(seeded_negative_root / "out"),
-            f"{NEGATIVE_FIXTURE}: seeded JSON outputs changed on failed emit",
-        )
-        require(
-            seeded_before["iface"] == file_hashes(seeded_negative_root / "iface"),
-            f"{NEGATIVE_FIXTURE}: seeded interface outputs changed on failed emit",
-        )
-        require(
-            seeded_before["ada"] == file_hashes(seeded_negative_root / "ada"),
-            f"{NEGATIVE_FIXTURE}: seeded Ada outputs changed on failed emit",
-        )
+        discriminant_files = emitted_ada_files(root_a / "ada")
+        require("safe_runtime.ads" not in discriminant_files, f"{DISCRIMINANT_FIXTURE}: boolean-discriminant subset should not need safe_runtime.ads")
+        require("gnat.adc" not in discriminant_files, f"{DISCRIMINANT_FIXTURE}: boolean-discriminant subset should not need gnat.adc")
+        discriminant_body = emitted_body_file(root_a / "ada")
+        discriminant_spec = discriminant_body.with_suffix(".ads")
 
         stale_root = temp_root / "support-preservation"
         for name in ("out", "iface", "ada"):
@@ -201,20 +143,25 @@ def generate_report(*, safec: Path, env: dict[str, str]) -> dict[str, object]:
 
         return {
             "positive_fixtures": positives,
-            "negative_fixture": {
-                "fixture": repo_arg(NEGATIVE_FIXTURE),
-                "result": negative_result,
-                "stderr_first_line": negative_result["stderr"].splitlines()[0],
-                "atomic_outputs": ensure_emit_failure_is_atomic(root=negative_root),
-            },
-            "negative_fixture_seeded_outputs_preserved": {
-                "fixture": repo_arg(NEGATIVE_FIXTURE),
-                "result": seeded_negative_result,
-                "before": seeded_before,
-                "after": {
-                    "out": file_hashes(seeded_negative_root / "out"),
-                    "iface": file_hashes(seeded_negative_root / "iface"),
-                    "ada": file_hashes(seeded_negative_root / "ada"),
+            "boolean_discriminant_fixture": {
+                "fixture": repo_arg(DISCRIMINANT_FIXTURE),
+                "ada_files": discriminant_files,
+                "determinism": discriminant_determinism,
+                "compile": discriminant_compile,
+                "structural_assertions": {
+                    discriminant_spec.name: structural_assertions(
+                        discriminant_spec,
+                        [
+                            "type Result (OK : Boolean := False) is record",
+                            "case OK is",
+                            "when True =>",
+                            "when False =>",
+                        ],
+                    ),
+                    discriminant_body.name: structural_assertions(
+                        discriminant_body,
+                        ["package body PR09_Emitter_Discriminant with SPARK_Mode => On is"],
+                    ),
                 },
             },
             "shared_support_files_preserved": {

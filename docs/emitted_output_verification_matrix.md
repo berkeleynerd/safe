@@ -72,10 +72,10 @@ rejection fixtures for that boundary:
 
 ## Matrix
 
-The following accepted and emitted samples remain in the repository but are not
-PR10 proof representatives: `tests/positive/rule2_binary_search.safe`,
-`tests/positive/rule3_average.safe`, `tests/positive/rule4_linked_list.safe`,
-`tests/positive/rule5_normalize.safe`, and `tests/positive/channel_pipeline.safe`.
+The repository still contains accepted and emitted samples beyond the frozen
+PR10 representative set. PR10.2, PR10.3, and PR10.6 now close the currently
+accepted sequential proof surface, while concurrency residuals such as
+`tests/positive/channel_pipeline.safe` remain outside the proved corpus.
 
 | Feature Class | Representative Fixtures | Coverage Notes | Frontend Accepted | Ada Emitted | Compile Validated | GNATprove Flow | GNATprove Prove | Exception-Backed Obligation | Deferred Beyond PR10 |
 |---------------|-------------------------|----------------|-------------------|-------------|-------------------|----------------|-----------------|-----------------------------|----------------------|
@@ -90,7 +90,7 @@ PR10 proof representatives: `tests/positive/rule2_binary_search.safe`,
 | Concurrency pipeline compute subset | `tests/positive/channel_pipeline_compute.safe` | Three-task channel pipeline with arithmetic in the filter and consumer task bodies. | yes | yes | yes | yes | yes | Jorvik/Ravenscar runtime scheduling remains outside direct GNATprove proof; see `PS-031` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
 | Select-with-delay emitted polling subset | `tests/concurrency/select_with_delay.safe`, `tests/concurrency/select_with_delay_multiarm.safe` | Frozen PR10 coverage proves one receive arm plus one delay arm, and supplemental hardening additionally proves a two-channel-arm success-path variant. Both are proved through the emitted polling-based lowering, not source-level blocking fairness or timing semantics. | yes | yes | yes | yes | yes | Polling-based lowering is proved, while source-level blocking fairness, latency, and timing semantics remain deferred as `PS-007` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | no |
 | Access-typed channel elements and composites containing access-type subcomponents | `tests/concurrency/channel_access_type.safe`, `tests/concurrency/try_send_ownership.safe`, `tests/concurrency/select_ownership_binding.safe`, `tests/negative/neg_channel_access_component.safe` | Spec-excluded by channel element legality. The frontend rejects these declarations before emit, flow, or prove. | no | no | no | no | no | n/a | no |
-| Other currently emitted sequential fixtures outside the PR10 corpus | remaining PR09 and PR08 accepted sequential subset beyond the ownership set above | Additional accepted sequential emission beyond both the frozen PR10 representatives and the completed ownership expansion set remains outside current proved coverage. Further expansion stays under tracked task `PR10.6` in [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md). | yes | yes | yes | no | no | none | yes |
+| Other currently emitted sequential fixtures outside the PR10 corpus | remaining PR09 and PR08 accepted sequential subset beyond the ownership set above | The remaining accepted sequential emission beyond the frozen PR10 representatives, the PR10.2 Rule 5 closure, and the PR10.3 ownership expansion is now proved under the dedicated PR10.6 gate. This row remains as the canonical statement that the broader accepted sequential subset is now frontend-accepted, emitted, compile-valid, and GNATprove-proved. | yes | yes | yes | yes | yes | none | no |
 | Other currently emitted concurrency fixtures outside the PR10 corpus | current PR08 concurrency subset beyond the three PR10 proof fixtures | Additional accepted concurrency emission remains outside the selected PR10 proof representatives. Broader proof expansion remains retained as `PS-018`, while runtime timing and scheduling obligations remain `PS-031` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | yes | yes | yes | no | no | Jorvik/Ravenscar runtime behaviour plus runtime timing remain external | yes |
 | I/O seams outside pure emitted packages | runtime wrapper boundaries | Wrapper integration obligations are tracked separately from pure emitted-package proof and remain `PS-019` in [`docs/post_pr10_scope.md`](post_pr10_scope.md). | n/a | n/a | n/a | no | no | wrapper/runtime mechanisms and interface contracts | yes |
 

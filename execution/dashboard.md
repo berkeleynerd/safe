@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR10.6`
+- **Next task:** `PR11.1`
 - **Updated at:** `2026-03-16T00:00:00Z`
 
 ## Repo Facts
@@ -57,7 +57,7 @@
 | PR10.3 | done | PR10.1 | 1 |
 | PR10.4 | done | PR10.1 | 1 |
 | PR10.5 | done | PR10.1 | 1 |
-| PR10.6 | planned | PR10.3 | 0 |
+| PR10.6 | done | PR10.3 | 1 |
 | PR11.1 | planned | PR10.4, PR10.5, PR10.6 | 0 |
 | PR11.2 | planned | PR11.1 | 0 |
 | PR11.3 | planned | PR11.2 | 0 |
@@ -598,13 +598,16 @@
 
 ### PR10.6 — Remaining sequential emitted proof-corpus expansion beyond ownership
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR10.3
 - **Blockers:** none
 - **Acceptance:**
-  - The remaining accepted sequential emitted subset beyond the frozen PR10 representatives and the completed PR10.3 ownership set is explicitly enumerated and may not be silently shrunk.
-  - That remaining sequential subset passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence.
-  - docs/emitted_output_verification_matrix.md, docs/pr10_refinement_audit.md, and related tracker/docs surfaces distinguish the completed PR10.3 ownership expansion from the still-open PR10.6 sequential remainder.
+  - The PR10.6 sequential proof corpus is the exact 27-fixture set consisting of tests/positive/constant_access_deref_write.safe, tests/positive/constant_channel_capacity.safe, tests/positive/constant_discriminant_default.safe, tests/positive/constant_range_bound.safe, tests/positive/constant_shadow_mutable.safe, tests/positive/constant_task_priority.safe, tests/positive/emitter_surface_proc.safe, tests/positive/emitter_surface_record.safe, tests/positive/result_equality_check.safe, tests/positive/result_guarded_access.safe, tests/positive/rule1_accumulate.safe, tests/positive/rule1_conversion.safe, tests/positive/rule1_return.safe, tests/positive/rule2_binary_search.safe, tests/positive/rule2_iteration.safe, tests/positive/rule2_lookup.safe, tests/positive/rule2_matrix.safe, tests/positive/rule2_slice.safe, tests/positive/rule3_average.safe, tests/positive/rule3_modulo.safe, tests/positive/rule3_percent.safe, tests/positive/rule3_remainder.safe, tests/positive/rule4_conditional.safe, tests/positive/rule4_deref.safe, tests/positive/rule4_factory.safe, tests/positive/rule4_linked_list.safe, and tests/positive/rule4_optional.safe; that set may not be silently shrunk.
+  - The positive-path concurrency fixtures tests/positive/channel_pingpong.safe, tests/positive/channel_pipeline_compute.safe, and tests/positive/channel_pipeline.safe are explicitly excluded from PR10.6 and remain outside this sequential proof corpus.
+  - That exact 27-fixture sequential subset passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence and emitted-structure/source-fragment assertions.
+  - docs/emitted_output_verification_matrix.md, docs/pr10_refinement_audit.md, execution/tracker.json, README.md, and the dedicated PR10.6 gate/CI/local-workflow surfaces distinguish the completed PR10.6 sequential closure from the still-open concurrency/runtime residuals.
+- **Evidence:**
+  - `execution/reports/pr106-sequential-proof-corpus-expansion-report.json`
 
 ### PR11.1 — Language Evaluation Harness
 

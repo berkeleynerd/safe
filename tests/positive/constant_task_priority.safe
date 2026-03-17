@@ -7,13 +7,9 @@ package Constant_Task_Priority is
    Worker_Priority : constant Integer = 5;
 
    task Worker with Priority = Worker_Priority is
-      Counter : Natural = 0;
    begin
       loop
-         Counter = Counter + 1;
-         if Counter > 10 then
-            Counter = 0;
-         end if;
+         null;
       end loop;
    end Worker;
 

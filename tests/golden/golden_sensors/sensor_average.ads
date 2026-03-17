@@ -4,6 +4,8 @@ package Sensor_Average
    with SPARK_Mode => On,
         Initializes => null
 is
+   pragma Elaborate_Body;
+
    type Reading is range 0 .. 1000;
    type Sensor_Count is range 1 .. 10;
    type Readings is array (Sensor_Count) of Reading;

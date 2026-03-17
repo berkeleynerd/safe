@@ -36,6 +36,7 @@
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
       "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
+      "scripts/run_pr106_sequential_proof_corpus_expansion.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
@@ -83,7 +84,8 @@
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
-      "scripts/run_pr105_ada_emitter_maintenance_hardening.py"
+      "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
+      "scripts/run_pr106_sequential_proof_corpus_expansion.py"
     ],
     "safe_source_readers": [
       {
@@ -121,6 +123,10 @@
       {
         "category": "fixture source-fragment checks and emitted structural assertions for the fixed PR10.3 ownership corpus",
         "script": "scripts/run_pr103_sequential_proof_expansion.py"
+      },
+      {
+        "category": "fixture source-fragment checks and emitted structural assertions for the fixed PR10.6 sequential corpus",
+        "script": "scripts/run_pr106_sequential_proof_corpus_expansion.py"
       }
     ],
     "shell_assumption_violations": [],
@@ -169,8 +175,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "33aa12706c75bb2a5a74b44b1d9c900010a8c4d58e00a975c9e4740a487766ed",
-  "report_sha256": "33aa12706c75bb2a5a74b44b1d9c900010a8c4d58e00a975c9e4740a487766ed",
+  "repeat_sha256": "cfc6864858f409c76012bcc81bee685504546ee34933f671b3f790dbbde50064",
+  "report_sha256": "cfc6864858f409c76012bcc81bee685504546ee34933f671b3f790dbbde50064",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

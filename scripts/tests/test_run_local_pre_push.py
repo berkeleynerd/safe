@@ -108,6 +108,15 @@ class RunLocalPrePushTests(unittest.TestCase):
             ),
         )
 
+    def test_gate_scripts_for_branch_maps_known_pr106_branch(self) -> None:
+        self.assertEqual(
+            gate_scripts_for_branch("codex/pr106-sequential-proof-corpus-expansion"),
+            (
+                "scripts/run_pr106_sequential_proof_corpus_expansion.py",
+                "scripts/run_pr101_comprehensive_audit.py",
+            ),
+        )
+
     def test_gate_scripts_for_branch_maps_pr11_family_branch(self) -> None:
         self.assertEqual(
             gate_scripts_for_branch("codex/pr111-language-eval-harness"),

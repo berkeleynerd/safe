@@ -4,6 +4,8 @@ package Ownership_Move
    with SPARK_Mode => On,
         Initializes => null
 is
+   pragma Elaborate_Body;
+
    type Payload is record
    Value : Integer;
 end record;

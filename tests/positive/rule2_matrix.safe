@@ -11,13 +11,14 @@ package Safe_Matrix is
    type Row_Index is range 1 .. 4;
    type Col_Index is range 1 .. 4;
    type Cell is range -1_000_000 .. 1_000_000;
+   type Trace_Total is range -4_000_000 .. 4_000_000;
    type Matrix_4x4 is array (Row_Index, Col_Index) of Cell;
 
    --  Trace: sum of diagonal elements. Both Row and Col indices
    --  range from 1 to 4, so diagonal access M(I, I) is always
    --  within bounds.
-   function Trace (M : Matrix_4x4) return Cell is
-      Sum : Cell = 0;
+   function Trace (M : Matrix_4x4) return Trace_Total is
+      Sum : Trace_Total = 0;
    begin
       for I in Row_Index loop
          --  I is Row_Index (1..4), also valid as Col_Index (1..4).

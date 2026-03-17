@@ -342,6 +342,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr103_sequential_proof_expansion.py",
     "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
     "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
+    "scripts/run_pr106_sequential_proof_corpus_expansion.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
@@ -382,6 +383,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr103_sequential_proof_expansion.py",
     "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
     "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
+    "scripts/run_pr106_sequential_proof_corpus_expansion.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
@@ -394,6 +396,7 @@ GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
     "scripts/run_pr083a_public_constants.py": "fixture metadata extraction via read_expected_reason and synthetic parity source generation",
     "scripts/run_pr102_rule5_boundary_closure.py": "fixture metadata extraction via read_expected_reason and diagnostics golden comparison",
     "scripts/run_pr103_sequential_proof_expansion.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR10.3 ownership corpus",
+    "scripts/run_pr106_sequential_proof_corpus_expansion.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR10.6 sequential corpus",
 }
 GLUE_SAFETY_DIRECT_SAFE_READ_PATTERNS = [
     r'"[^"\n]*\.safe"\s*\)\.read_text\(',

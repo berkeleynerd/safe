@@ -4,6 +4,8 @@ package Pipeline
    with SPARK_Mode => On,
         Initializes => (Raw_Ch, Filtered_Ch, Producer, Filter, Consumer)
 is
+   pragma Elaborate_Body;
+
    type Sample is range 0 .. 10000;
    subtype Raw_Ch_Index is Positive range 1 .. 4;
    subtype Raw_Ch_Count is Natural range 0 .. 4;

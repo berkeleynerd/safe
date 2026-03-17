@@ -72,6 +72,15 @@ EXPECTED_PR105_ACCEPTANCE = [
 EXPECTED_PR105_EVIDENCE = [
     "execution/reports/pr105-ada-emitter-maintenance-hardening-report.json",
 ]
+EXPECTED_PR106_ACCEPTANCE = [
+    "The PR10.6 sequential proof corpus is the exact 27-fixture set consisting of tests/positive/constant_access_deref_write.safe, tests/positive/constant_channel_capacity.safe, tests/positive/constant_discriminant_default.safe, tests/positive/constant_range_bound.safe, tests/positive/constant_shadow_mutable.safe, tests/positive/constant_task_priority.safe, tests/positive/emitter_surface_proc.safe, tests/positive/emitter_surface_record.safe, tests/positive/result_equality_check.safe, tests/positive/result_guarded_access.safe, tests/positive/rule1_accumulate.safe, tests/positive/rule1_conversion.safe, tests/positive/rule1_return.safe, tests/positive/rule2_binary_search.safe, tests/positive/rule2_iteration.safe, tests/positive/rule2_lookup.safe, tests/positive/rule2_matrix.safe, tests/positive/rule2_slice.safe, tests/positive/rule3_average.safe, tests/positive/rule3_modulo.safe, tests/positive/rule3_percent.safe, tests/positive/rule3_remainder.safe, tests/positive/rule4_conditional.safe, tests/positive/rule4_deref.safe, tests/positive/rule4_factory.safe, tests/positive/rule4_linked_list.safe, and tests/positive/rule4_optional.safe; that set may not be silently shrunk.",
+    "The positive-path concurrency fixtures tests/positive/channel_pingpong.safe, tests/positive/channel_pipeline_compute.safe, and tests/positive/channel_pipeline.safe are explicitly excluded from PR10.6 and remain outside this sequential proof corpus.",
+    "That exact 27-fixture sequential subset passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence and emitted-structure/source-fragment assertions.",
+    "docs/emitted_output_verification_matrix.md, docs/pr10_refinement_audit.md, execution/tracker.json, README.md, and the dedicated PR10.6 gate/CI/local-workflow surfaces distinguish the completed PR10.6 sequential closure from the still-open concurrency/runtime residuals.",
+]
+EXPECTED_PR106_EVIDENCE = [
+    "execution/reports/pr106-sequential-proof-corpus-expansion-report.json",
+]
 EXPECTED_PR102_ACCEPTANCE = [
     "The exact six-fixture PR10.2 Rule 5 positive corpus is tests/positive/rule5_filter.safe, tests/positive/rule5_interpolate.safe, tests/positive/rule5_normalize.safe, tests/positive/rule5_statistics.safe, tests/positive/rule5_temperature.safe, and tests/positive/rule5_vector_normalize.safe; that merged PR07-plus-PR10 set is non-shrinkable and each fixture is frontend-accepted, Ada-emitted, compile-valid, and passes emitted GNATprove flow and prove under the all-proved-only policy.",
     "The source-level Rule 5 negative contract remains tests/negative/neg_rule5_div_zero.safe -> fp_division_by_zero, tests/negative/neg_rule5_infinity.safe -> infinity_at_narrowing, tests/negative/neg_rule5_nan.safe -> nan_at_narrowing, tests/negative/neg_rule5_overflow.safe -> fp_overflow_at_narrowing, and tests/negative/neg_rule5_uninitialized.safe -> fp_uninitialized_at_narrowing; unsupported float-evaluator shapes use the new fp_unsupported_expression_at_narrowing reason under MIR analysis parity coverage instead of being mislabeled as overflow.",
@@ -117,8 +126,8 @@ EXPECTED_AUDIT_SNIPPETS = [
     "`PR10.3` — Ownership emitted proof-corpus expansion beyond the frozen PR10 `ownership_move` representative",
     "`PR10.4` — GNATprove evidence and parser hardening, including audit-parser regression tests, explicit `gnat.adc` sentinels, proof-repeatability policy, and deterministic report de-cascading (completed)",
     "`PR10.5` — Ada emitter maintenance hardening (completed)",
-    "`PR10.6` — Remaining sequential emitted proof-corpus expansion beyond the completed ownership set",
-    "`next_task_id` advances to `PR10.6`",
+    "`PR10.6` — Remaining sequential emitted proof-corpus expansion beyond the completed ownership set (completed)",
+    "`next_task_id` advances to `PR11.1`",
 ]
 EXPECTED_MATRIX_SNIPPETS = [
     "frontend Silver ownership analysis is the mechanism that prevents use-after-free",
@@ -160,11 +169,15 @@ EXPECTED_WORKFLOW_SNIPPETS = [
     "pr103-sequential-proof-expansion:",
     "python3 scripts/run_pr103_sequential_proof_expansion.py",
     "git diff --exit-code execution/reports/pr103-sequential-proof-expansion-report.json",
+    "pr106-sequential-proof-corpus-expansion:",
+    "python3 scripts/run_pr106_sequential_proof_corpus_expansion.py",
+    "git diff --exit-code execution/reports/pr106-sequential-proof-corpus-expansion-report.json",
 ]
 EXPECTED_PRE_PUSH_SNIPPETS = [
     "\"scripts/run_pr104_gnatprove_evidence_parser_hardening.py\"",
     "\"scripts/run_pr101_comprehensive_audit.py\"",
     "\"scripts/run_pr103_sequential_proof_expansion.py\"",
+    "\"scripts/run_pr106_sequential_proof_corpus_expansion.py\"",
 ]
 EXPECTED_TUTORIAL_SNIPPETS = [
     "Ada-native `safec` frontend plus emitted-output proof",
@@ -515,6 +528,15 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
     require(
         task_map["PR10.5"]["evidence"] == EXPECTED_PR105_EVIDENCE,
         "PR10.5 evidence must list the committed Ada emitter maintenance-hardening report",
+    )
+    require(
+        task_map["PR10.6"]["acceptance"] == EXPECTED_PR106_ACCEPTANCE,
+        "PR10.6 acceptance text must match the committed sequential proof-corpus closure contract",
+    )
+    require(task_map["PR10.6"]["status"] == "done", "PR10.6 must be marked done")
+    require(
+        task_map["PR10.6"]["evidence"] == EXPECTED_PR106_EVIDENCE,
+        "PR10.6 evidence must list the committed sequential proof-corpus expansion report",
     )
 
     rendered_dashboard = run([find_command("python3"), "scripts/render_execution_status.py"], cwd=REPO_ROOT, env=ensure_sdkroot(os.environ.copy()))
