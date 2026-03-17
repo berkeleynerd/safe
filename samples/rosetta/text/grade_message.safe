@@ -1,0 +1,18 @@
+package Grade_Message is
+
+   function Render (Grade : in Character) return String is
+   begin
+      case Grade is
+         when 'A' then
+            return "excellent";
+         end when;
+         when 'B' then
+            return "good";
+         end when;
+         when others then
+            return "needs work";
+         end when;
+      end case;
+   end Render;
+
+end Grade_Message;

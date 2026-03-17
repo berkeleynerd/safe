@@ -1,0 +1,19 @@
+-- Test: neg_case_on_string
+-- Description: Case on String remains outside PR11.2.
+-- Expected: REJECT unsupported_source_construct
+
+package Neg_Case_On_String is
+
+   function Lookup (Name : in String) return Integer is
+   begin
+      case Name is
+         when "alice" then
+            return 1;
+         end when;
+         when others then
+            return 0;
+         end when;
+      end case;
+   end Lookup;
+
+end Neg_Case_On_String;

@@ -827,11 +827,32 @@ package body Safe_Frontend.Mir_Analyze is
       return Result;
    end Make_Builtin_Float;
 
+   function Make_Builtin_Character return GM.Type_Descriptor is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name := FT.To_UString ("Character");
+      Result.Kind := FT.To_UString ("character");
+      return Result;
+   end Make_Builtin_Character;
+
+   function Make_Builtin_String return GM.Type_Descriptor is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name := FT.To_UString ("String");
+      Result.Kind := FT.To_UString ("array");
+      Result.Has_Component_Type := True;
+      Result.Component_Type := FT.To_UString ("Character");
+      Result.Unconstrained := True;
+      return Result;
+   end Make_Builtin_String;
+
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
       Type_Env.Include ("Integer", Make_Builtin ("Integer", INT64_LOW, INT64_HIGH));
       Type_Env.Include ("Natural", Make_Builtin ("Natural", 0, INT64_HIGH));
       Type_Env.Include ("Boolean", Make_Builtin ("Boolean", 0, 1));
+      Type_Env.Include ("Character", Make_Builtin_Character);
+      Type_Env.Include ("String", Make_Builtin_String);
       Type_Env.Include ("Float", Make_Builtin_Float ("Float"));
       Type_Env.Include ("Long_Float", Make_Builtin_Float ("Long_Float"));
       Type_Env.Include ("Duration", Make_Builtin_Float ("Duration"));
@@ -924,6 +945,8 @@ package body Safe_Frontend.Mir_Analyze is
          return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
       elsif UString_Value (Info.Name) = "Boolean" then
          return (Low => 0, High => 1, Excludes_Zero => False);
+      elsif UString_Value (Info.Name) = "Character" then
+         return (Low => 0, High => 255, Excludes_Zero => False);
       end if;
       return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
    end Range_Interval;
@@ -1284,6 +1307,8 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Expr_Int =>
             return UString_Value (Expr.Text);
          when GM.Expr_Real =>
+            return UString_Value (Expr.Text);
+         when GM.Expr_String | GM.Expr_Char =>
             return UString_Value (Expr.Text);
          when GM.Expr_Bool =>
             if Expr.Bool_Value then
@@ -3239,6 +3264,22 @@ package body Safe_Frontend.Mir_Analyze is
               (Low           => Wide_Integer (Expr.Int_Value),
                High          => Wide_Integer (Expr.Int_Value),
                Excludes_Zero => Expr.Int_Value /= 0);
+         when GM.Expr_Char =>
+            declare
+               Text  : constant String := UString_Value (Expr.Text);
+               Value : Wide_Integer := 0;
+            begin
+               if Text'Length = 3 then
+                  Value := Wide_Integer (Character'Pos (Text (Text'First + 1)));
+                  return
+                    (Low           => Value,
+                     High          => Value,
+                     Excludes_Zero => Value /= 0);
+               end if;
+               return (Low => 0, High => 255, Excludes_Zero => False);
+            end;
+         when GM.Expr_String =>
+            return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
          when GM.Expr_Bool =>
             return
               (Low           => (if Expr.Bool_Value then 1 else 0),

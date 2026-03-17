@@ -157,6 +157,8 @@ package body Safe_Frontend.Check_Parse is
      (State : in out Parser_State) return CM.Expr_Access;
    function Parse_Expression
      (State : in out Parser_State) return CM.Expr_Access;
+   function Parse_Case_Statement
+     (State : in out Parser_State) return CM.Statement_Access;
 
    function Parse_Package_Name
      (State : in out Parser_State) return CM.Expr_Access
@@ -630,6 +632,13 @@ package body Safe_Frontend.Check_Parse is
    function Parse_Statement
      (State : in out Parser_State) return CM.Statement_Access;
 
+   function Case_Choice_Is_Literal
+     (Expr : CM.Expr_Access) return Boolean is
+   begin
+      return Expr /= null
+        and then Expr.Kind in CM.Expr_Int | CM.Expr_Bool | CM.Expr_String | CM.Expr_Char;
+   end Case_Choice_Is_Literal;
+
    function Parse_Statement_Sequence
      (State        : in out Parser_State;
       End_Keywords : FT.UString_Vectors.Vector)
@@ -716,6 +725,85 @@ package body Safe_Frontend.Check_Parse is
       Result.Span := CM.Join (Start.Span, Semi.Span);
       return Result;
    end Parse_If_Statement;
+
+   function Parse_Case_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Arm_Ends   : FT.UString_Vectors.Vector;
+      Start      : constant FL.Token := Expect (State, "case");
+      Result     : constant CM.Statement_Access := new CM.Statement;
+      Arm        : CM.Case_Arm;
+      Arm_Start  : FL.Token;
+      Arm_End    : FL.Token;
+      Final_Semi : FL.Token;
+      Saw_Others : Boolean := False;
+   begin
+      Result.Kind := CM.Stmt_Case;
+      Result.Case_Expr := Parse_Expression (State);
+      Require (State, "is");
+
+      Arm_Ends.Append (FT.To_UString ("when"));
+      Arm_Ends.Append (FT.To_UString ("end"));
+
+      loop
+         Arm := (others => <>);
+         Arm_Start := Expect (State, "when");
+
+         if Current_Lower (State) = "others" then
+            Arm.Is_Others := True;
+            Saw_Others := True;
+            Advance (State);
+         else
+            Arm.Choice := Parse_Expression (State);
+            if FT.To_String (Current (State).Lexeme) = "," then
+               Reject_Unsupported
+                 (State,
+                  "multi-choice case arms are outside the current PR11.2 parser-completeness subset");
+            elsif FT.To_String (Current (State).Lexeme) = ".." then
+               Reject_Unsupported
+                 (State,
+                  "range case choices are outside the current PR11.2 parser-completeness subset");
+            elsif not Case_Choice_Is_Literal (Arm.Choice) then
+               Reject_Unsupported
+                 (State,
+                  "case arms currently support exactly one literal choice per arm");
+            end if;
+         end if;
+
+         Require (State, "then");
+         Arm.Statements := Parse_Statement_Sequence (State, Arm_Ends);
+         Require (State, "end");
+         Require (State, "when");
+         Arm_End := Expect (State, ";");
+         Arm.Span := CM.Join (Arm_Start.Span, Arm_End.Span);
+         Result.Case_Arms.Append (Arm);
+
+         exit when Current_Lower (State) = "end";
+         if Saw_Others then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message => "`when others then` must be the final case arm"));
+         end if;
+      end loop;
+
+      if Result.Case_Arms.Is_Empty
+        or else not Result.Case_Arms (Result.Case_Arms.Last_Index).Is_Others
+      then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Current (State).Span,
+               Message => "case statements currently require a final `when others then` arm"));
+      end if;
+
+      Require (State, "end");
+      Require (State, "case");
+      Final_Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Final_Semi.Span);
+      return Result;
+   end Parse_Case_Statement;
 
    function Parse_While_Statement
      (State : in out Parser_State) return CM.Statement_Access
@@ -1040,6 +1128,8 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Exit_Statement (State);
       elsif Lower = "return" then
          return Parse_Return_Statement (State);
+      elsif Lower = "case" then
+         return Parse_Case_Statement (State);
       elsif Lower = "send" then
          return Parse_Send_Statement (State);
       elsif Lower = "receive" then
@@ -1062,7 +1152,7 @@ package body Safe_Frontend.Check_Parse is
             Result.Span := CM.Join (Start.Span, Semi.Span);
             return Result;
          end;
-      elsif Lower in "case" | "raise" | "accept" | "goto" then
+      elsif Lower in "raise" | "accept" | "goto" then
          Reject_Unsupported
            (State,
             "statement form `" & Lower & "` is outside the current PR08.1 concurrency subset");
@@ -1199,10 +1289,18 @@ package body Safe_Frontend.Check_Parse is
          Result.Text := Token.Lexeme;
          Result.Span := Token.Span;
          return Result;
-      elsif Token.Kind = FL.String_Literal or else Token.Kind = FL.Character_Literal then
-         Reject_Unsupported
-           (State,
-            "string and character literals are outside the current PR05/PR06 check subset");
+      elsif Token.Kind = FL.String_Literal then
+         Advance (State);
+         Result.Kind := CM.Expr_String;
+         Result.Text := Token.Lexeme;
+         Result.Span := Token.Span;
+         return Result;
+      elsif Token.Kind = FL.Character_Literal then
+         Advance (State);
+         Result.Kind := CM.Expr_Char;
+         Result.Text := Token.Lexeme;
+         Result.Span := Token.Span;
+         return Result;
       elsif Lower = "new" then
          return Parse_Allocator (State);
       elsif Token.Kind = FL.Identifier or else Token.Kind = FL.Keyword then

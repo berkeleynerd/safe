@@ -481,12 +481,76 @@ delimited block syntax throughout the compilation unit or project.
 | Bare infinite loop | Indented block after `loop` | `loop ... end loop;` |
 | Record definition | Indented block after `record` | `record ... end record;` |
 | If/else if/else blocks | Indented block after condition | `then ... end if;` |
+| Case arms | `when <choice>` + indented block | `when <choice> then ... end when;` |
+| Case statement | `case <expr>` + indented arms | `case <expr> is ... end case;` |
+| Variant part | `case <disc>` + indented arms | `case <disc> is ... end case;` |
 | Return type keyword | `returns` | `return` |
 | Semicolons | Optional (auto-inserted) | Required |
+| Range delimiter | `to` | `..` |
 
 Under `pragma Strict`, whitespace-significant blocks are rejected by the
 compiler. The two styles are mutually exclusive within a compilation unit —
 no mixing.
+
+### Case-arm syntax: `then` replaces `=>`
+
+In default mode, case arms need no delimiter — indentation defines the block:
+
+```
+case op
+   when get
+      var r = Lookup (DB, k)
+      return (true, r)
+   when put
+      Insert (DB, k, v)
+      return (true, "")
+```
+
+In strict mode, `then` replaces Ada's `=>` as the arm delimiter. The `=>`
+symbol is a convention that means "then" — Safe says what it means:
+
+```
+case op is
+   when get then
+      var r = Lookup (DB, k);
+      return (true, r);
+   end when;
+   when put then
+      Insert (DB, k, v);
+      return (true, "");
+   end when;
+end case;
+```
+
+The same applies to variant parts in record declarations:
+
+```
+-- Default mode
+type response (op : operation = get) is record
+   success : boolean
+   case op
+      when get
+         data : string
+      when put
+         null
+
+-- Strict mode
+type Response (Op : Operation = Get) is record
+   Success : Boolean;
+   case Op is
+      when Get then
+         Data : String;
+      end when;
+      when Put then
+         null;
+      end when;
+   end case;
+end record;
+```
+
+The `then` keyword reads naturally after `when`: "when get, then do this."
+It is consistent with `if ... then` under strict mode and eliminates the
+`=>` symbol, which is not self-documenting to non-Ada readers.
 
 ### Granularity
 
@@ -1167,6 +1231,208 @@ type My_Readings is new Safe.Vectors (Element_Type = Sample,
 
 The v0.3 monomorphic API is designed to be a strict subset of what the v0.4
 generic API will provide, so migration is mechanical.
+
+---
+
+# Default Capacity Policy
+
+## Motivation
+
+Go programmers write:
+
+```go
+name := "hello"
+names := []string{}
+names = append(names, name)
+```
+
+No capacity declaration. No bounds. The runtime handles growth. This is what
+makes Go feel effortless for microservice and application development.
+
+Safe's bounded containers and string buffers require explicit capacity:
+
+```
+var name : string_buffer (256) = "hello"
+var names : integer_vector (64)
+append (names, 42)
+```
+
+The capacity parameter is valuable for safety-critical and embedded work
+where every byte of RAM is accounted for. But for the Go developer writing
+a microservice, choosing 256 vs 512 for every string declaration is friction
+that delivers no value on a machine with gigabytes of RAM.
+
+The predefined immutable `string` type (PR11.2) already removes this friction
+for ordinary text parameters, returns, constants, and literals by letting the
+programmer write `string` directly without choosing a buffer capacity. This
+proposal extends the same "casual syntax, explicit bounded containers when
+needed" pattern to the rest of the bounded container family.
+
+## Proposed Change
+
+Every bounded container type and `string_buffer` has a **default capacity**
+that the programmer can omit. The defaults are generous — sized for the
+microservice developer, not the embedded developer:
+
+```
+-- Go-like: no capacity, defaults apply
+const greeting : string = "hello"
+var scores : vector (integer)
+var cache : map (string, string)
+
+-- Explicit: programmer overrides when they care
+var name_buffer : string_buffer (64) = "hello"
+var scores : vector (integer, 128)
+var cache : map (string, string, 512)
+```
+
+Both forms compile. Both are safe. The default-capacity container form uses
+generous limits; the explicit form uses exactly what the programmer specifies.
+
+## Default Values
+
+Targeting the Go microservice developer profile — generous, not minimal:
+
+| Type | Default capacity | Memory per instance | Rationale |
+|------|-----------------|--------------------|-|
+| `string_buffer` | 256 bytes | 256 B | Covers most keys, names, short messages |
+| `vector (T)` | 64 elements | 64 * sizeof(T) | Covers most in-memory collections |
+| `map (K, V)` | 128 entries | 128 * (sizeof(K) + sizeof(V)) | Covers most lookup tables |
+| `set (T)` | 128 elements | 128 * sizeof(T) | Matches map default |
+
+For a program with 100 strings, 20 vectors of integers, and 5 maps of
+string-to-string: ~25KB for strings, ~10KB for vectors, ~130KB for maps.
+Total: ~165KB. A Go program with equivalent data structures uses ~50KB
+of actual data plus 5-10MB of GC runtime. Safe is smaller by two orders
+of magnitude even with "wasteful" defaults.
+
+## Compiler-Configurable Defaults
+
+The defaults are compile-time constants, not language constants. The build
+configuration can override them:
+
+```toml
+# safe.toml (build configuration)
+[defaults]
+string_capacity = 256
+vector_capacity = 64
+map_capacity = 128
+set_capacity = 128
+```
+
+A project targeting embedded hardware overrides with smaller values:
+
+```toml
+[defaults]
+string_capacity = 32
+vector_capacity = 8
+map_capacity = 16
+set_capacity = 16
+```
+
+The granularity question (per-project? per-package? per-type?) is left
+open for now. Per-project via build configuration is the minimum viable
+design. Finer granularity can be added later if real programs need it.
+
+## Interaction with `pragma Strict`
+
+Under `pragma Strict`, default capacity could optionally be **disabled** —
+every container declaration must specify capacity explicitly. This serves
+safety-critical teams where certification requires that every buffer size
+is a deliberate engineering decision, not a default.
+
+```
+pragma Strict;
+
+var name : string                 -- REJECTED: explicit capacity required
+var name : string_buffer (64)     -- OK
+var scores : vector (integer)     -- REJECTED
+var scores : vector (integer, 32) -- OK
+```
+
+Whether `pragma Strict` enforces this is a design decision for the PR11.6
+evaluation. The option is noted here so the interaction is considered.
+
+## How Guards Work with Default Capacity
+
+When a program might exceed the default capacity, the compiler requires
+a guard — the same guards-as-contracts pattern used for all Safe proof
+obligations:
+
+```
+function collect_names () returns vector (string)
+   var names : vector (string)    -- default capacity 64
+   for i in 1 to input_count
+      if names.length >= 64
+         return names              -- guard: capacity reached
+      append (names, next_name ())
+   return names
+```
+
+The compiler proves `append` is safe because the guard ensures
+`names.length < 64` on the path that reaches `append`. The programmer
+writes a natural bounds check; the compiler uses it as proof context.
+
+If the programmer writes no guard and the compiler cannot prove the
+capacity is sufficient, the diagnostic suggests one:
+
+```
+collect.safe:5:7: error: cannot prove names.length < capacity
+  after append on line 6
+  |
+  | 5 |      append (names, next_name ())
+  |   |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  help: add a capacity guard before this call:
+  |
+  | 4 |      if names.length >= 64
+  | 5 |         return names
+  |
+```
+
+## Memory Budget Comparison
+
+For a typical microservice program (100 string variables, 20 vectors of
+integer, 5 maps of string-to-string, most partially filled):
+
+| | Go | Safe (default capacity) | Safe (explicit, tight) |
+|--|---|------------------------|----------------------|
+| String storage | ~10KB data + headers | ~25KB (256B * 100) | ~6KB (64B * 100) |
+| Vector storage | ~5KB data + headers | ~10KB (64 * 8B * 20) | ~2KB (8 * 8B * 20) |
+| Map storage | ~20KB data + headers | ~130KB (128 * 512B * 5) | ~13KB (16 * 512B * 5) |
+| Runtime overhead | 5-10MB (GC, stacks, metadata) | 0 | 0 |
+| **Total** | **~5-10MB** | **~165KB** | **~21KB** |
+
+Default-capacity Safe uses 50-60x less memory than Go. Tight-capacity Safe
+uses 250-500x less. Both have zero runtime overhead.
+
+## What This Closes
+
+The synthetic dynamic base types proposal (`docs/design-synthetic-dynamic-
+base-types.md`) proposed compiler-known magic types with hidden arena
+allocation to achieve the Go-like "just works" experience. This default
+capacity policy achieves the same developer experience without hidden
+allocation: the types are ordinary bounded containers, the capacity is
+just pre-chosen. The synthetic types proposal is superseded.
+
+## Design Rationale
+
+- **Go-first onboarding.** A Go programmer writes `var names : vector
+  (string)` and it works. No capacity decision on day one.
+- **Provably bounded.** Every default-capacity container has a fixed
+  maximum size known at compile time. The compiler can prove bounds,
+  the linker can compute exact stack usage, and certification reviewers
+  can verify memory budgets.
+- **No hidden allocation.** Unlike Go's slices or the synthetic types
+  proposal, there is no heap growth, no arena, no GC. The container is
+  a fixed-size record. What you declare is what you get.
+- **Configurable, not magic.** The defaults are build-configuration
+  constants, not language magic. Teams override them in `safe.toml`.
+  The value is always knowable and auditable.
+- **Graceful upgrade path.** When a programmer hits the default limit,
+  they either add a guard (immediate fix) or specify a larger capacity
+  (deliberate choice). Both are one-line changes. Neither requires
+  redesigning the program.
 
 ---
 
@@ -1969,6 +2235,131 @@ TBD-13's cross-package type views — without committing to full OOP now.
    loop) becomes a single statement instead of a declaration-then-receive
    pair, and the compiler can enforce §97a structurally rather than relying
    solely on flow analysis.
+
+---
+
+# `to` Range Keyword
+
+## Motivation
+
+Safe's current range syntax uses `..` from Ada:
+
+```
+for Step in 2 .. N loop
+```
+
+The `..` operator is a convention inherited from Ada, Pascal, and Rust. Every
+programmer has to learn that `..` means "through." It is not self-documenting
+to a reader encountering the syntax for the first time — a safety auditor,
+domain expert, or regulator reviewing code.
+
+Safe optimizes for reading, not writing. The language already uses full English
+words (`function`, `returns`, `boolean`, `integer`, `constant`, `access`)
+rather than abbreviations or symbols. A range delimiter should follow the same
+principle.
+
+## Proposed Change
+
+Replace `..` with the keyword `to` in range expressions:
+
+```
+for step in 2 to n
+```
+
+The `to` keyword is recognized by the lexer in range position (after `in
+<expr>` in a `for` header, and in type range declarations). It replaces `..`
+as the inclusive-range delimiter throughout the language.
+
+### In `for` loops
+
+```
+-- Current
+for Step in 2 .. N loop
+
+-- Proposed
+for step in 2 to n
+```
+
+### In type declarations
+
+```
+-- Current
+type Count is range 1 .. 12;
+
+-- Proposed
+type count is range 1 to 12
+```
+
+### In array index types
+
+```
+-- Current
+type Index is range 0 .. 255;
+type Buffer is array (Index) of Element;
+
+-- Proposed
+type index is range 0 to 255
+type buffer is array (index) of element
+```
+
+## Parser Impact
+
+Minimal. The lexer adds `to` as a keyword token. The parser replaces the `..`
+token expectation with `to` in range productions. The AST representation is
+unchanged — a range is still (lower_bound, upper_bound, inclusive).
+
+`to` is not a useful identifier name in Safe programs. It does not conflict
+with any existing keyword, operator, or standard library name.
+
+## Emitter Mapping
+
+The emitter produces Ada `..` from the range AST node regardless of whether
+the source used `to`. The Safe-to-Ada mapping is trivial: `2 to n` emits as
+`2 .. N`. No downstream tooling change is needed.
+
+## Readability Comparison
+
+```
+-- Current Safe
+type Cell is range -1_000_000 .. 1_000_000;
+for I in Row_Index loop
+
+-- Proposed Safe
+type cell is range -1_000_000 to 1_000_000
+for i in row_index
+
+-- Ada (what the emitter produces regardless)
+type Cell is range -1_000_000 .. 1_000_000;
+for I in Row_Index loop
+```
+
+The Safe source reads as English. The emitted Ada uses Ada conventions. The
+emitter bridges the gap.
+
+## Design Rationale
+
+- **Reads as a sentence.** `for step in 2 to n` is five English words with
+  unambiguous meaning. `for step in 2 .. n` requires knowing the `..`
+  convention.
+- **Consistent with the language's word-over-symbol philosophy.** Safe uses
+  `and then` not `&&`, `or else` not `||`, `not` not `!`, `access` not `*`.
+  Using `to` instead of `..` follows the same pattern.
+- **Zero ambiguity cost.** The parser knows it's in a range position. `to`
+  cannot be confused with anything else in that context.
+- **Trivial migration.** Mechanical find-and-replace of `..` with `to` in
+  range contexts. No semantic analysis needed for the migration tool.
+
+## Alternatives Considered
+
+1. **Keep `..`** — status quo. Familiar to Ada/Rust/Pascal programmers but
+   opaque to non-programmers reading the code.
+
+2. **`through`** — more explicit than `to` but longer. `1 through 12` reads
+   well; `1 to 12` reads equally well and is shorter.
+
+3. **`..=` (Rust inclusive) vs `..` (Rust exclusive)** — Safe only has
+   inclusive ranges. There is no exclusive-range ambiguity to resolve, so the
+   Rust distinction is unnecessary.
 
 ---
 
@@ -2915,6 +3306,667 @@ The `procedure` keyword. No other language construct is affected.
 
 3. **Use `proc` and `func` abbreviations.** Still two keywords. Does not solve
    the problem.
+
+---
+
+# Predefined Immutable `string` Type
+
+## Motivation
+
+The Go-programmer onboarding story depends on being able to write `string`
+without specifying a capacity. Go's `string` is a built-in type that just
+works. If Safe requires `string_buffer (64)` for every text parameter or return
+value, the first-hour experience fails before the programmer has written their
+first useful function.
+
+## Proposed Change
+
+Introduce `string` as a predefined immutable text type in PR11.2. It lowers
+directly to Ada `String` for the admitted PR11.2 use sites and does not depend
+on the later `string_buffer` library surface.
+
+```
+-- Casual style: built-in immutable text
+function lookup (k : string) returns string
+
+-- Later bounded mutable text (PR11.10)
+function lookup_buffered (k : string_buffer (64)) returns string_buffer (256)
+```
+
+The PR11.2 `string` surface is intentionally narrow: it exists so text literals,
+text-returning helpers, and ordinary `in` parameters feel natural, without
+pulling mutable bounded storage forward.
+
+## What `string` Is
+
+- A predefined immutable text type
+- Lowered to Ada `String` in emitted code
+- Admitted in PR11.2 only for `in` parameters, return types, constant objects,
+  and literal expressions
+- Suitable for code like `function grade_message (letter : character) returns string`
+
+## What `string` Is Not
+
+- Not a type alias to `string_buffer`
+- Not a mutable object type in PR11.2
+- Not admitted in record fields, channel element types, array component types,
+  discriminants, or `out` / `in out` parameters
+- Not a dynamic heap string (no allocation, no GC)
+- Not the future bounded mutable text library surface
+
+## PR11.2 Boundary
+
+PR11.2 does not try to solve the full string story. It intentionally excludes:
+
+- mutable `string` objects
+- string comparison or concatenation
+- string indexing and attributes such as `.Length`
+- `case` on `string`
+- bounded mutable storage concerns such as default capacities
+
+## When Dynamic Strings Are Needed
+
+Dynamic/unbounded strings are a post-PR11.11 concern. They require heap
+allocation and ownership semantics that interact with generics. Separately,
+bounded mutable text storage belongs to the later `string_buffer` library work
+in PR11.10. PR11.2 keeps `string` immutable and narrow so the early parser and
+emitter milestone stays small.
+
+## Emitter Mapping
+
+`string` emits as Ada `String`. `character` emits as Ada `Character`. The later
+`string_buffer` work in PR11.10 remains a distinct bounded mutable-text surface
+rather than being hidden behind the PR11.2 `string` spelling.
+
+---
+
+# Tuple Types and Multiple Returns
+
+## Motivation
+
+Go programmers write:
+
+```go
+func lookup(key string) (bool, string) {
+    ...
+    return true, value
+}
+
+found, data := lookup("host")
+```
+
+This pattern — returning multiple values without defining a custom struct —
+is fundamental to Go's ergonomics. Every Go function that can fail returns
+`(result, error)` or `(result, bool)`.
+
+Safe's current equivalent requires a custom discriminated record:
+
+```
+type lookup_result (found : boolean = false) is record
+   case found is
+      when true =>
+         data : value
+      when false =>
+         null
+```
+
+This is more precise (the compiler proves you never access `data` when
+`found` is false) but it requires defining a named type before writing the
+function. For many programs, especially during exploration and prototyping,
+the ceremony is not worth the precision.
+
+## Proposed Change
+
+Introduce anonymous tuple types and multiple-return syntax:
+
+```
+function Lookup (Table : constant store.Map, k : string) returns (boolean, string)
+   if store.contains (Table, k)
+      return (true, store.element (Table, k))
+   return (false, "")
+```
+
+### Tuple type syntax
+
+`(T1, T2, ...)` in type position creates an anonymous product type.
+
+### Tuple expression syntax
+
+`(expr1, expr2, ...)` in expression position creates a tuple value.
+
+### Destructuring bind
+
+```
+var (found, data) : (boolean, string) = Lookup (DB, "host")
+```
+
+### Tuple field access
+
+Positional: `result.1`, `result.2` (1-indexed).
+
+## Emitter Mapping
+
+The emitter lowers tuples to Ada records with positional field names:
+
+```ada
+type Lookup_Result is record
+   F1 : Boolean;
+   F2 : String_Buffer_256;
+end record;
+```
+
+The Ada type is anonymous (generated name) and invisible to the Safe
+programmer.
+
+## Interaction with Discriminated Records
+
+Tuples and discriminated records solve overlapping problems. The design
+principle is:
+
+- **Tuples** for lightweight, unnamed, positional return values and
+  intermediate groupings. No variant parts. No field names. Copy semantics.
+- **Discriminated records** for named, structured data with variant fields
+  and field-access legality enforced by discriminant values.
+
+Both can be used as function return types. The programmer chooses based on
+whether they need named fields and variant-part enforcement.
+
+## Interaction with Ownership
+
+Tuples containing reference-typed elements follow the same ownership rules
+as records containing reference-typed fields. If a tuple element is an
+access type, the element name is uppercase under the capitalisation
+convention (e.g., the tuple type would need named fields for this case,
+which may push the design toward using a record instead).
+
+For the common case — tuples of value types like `(boolean, string)` or
+`(integer, integer)` — there are no ownership complications.
+
+## Interaction with Channels
+
+Tuples can be channel element types:
+
+```
+channel response_ch : (boolean, string) capacity 16
+send response_ch, (true, "hello")
+```
+
+This enables lightweight message protocols without named record types.
+
+---
+
+# Scoped-Binding `receive`
+
+## Motivation
+
+The §97a null-before-move rule requires that the target of a `receive` into
+an owning access variable must be provably null at the point of the receive.
+In a loop, this means the variable must be declared inside the loop body so
+that each iteration creates a fresh null binding:
+
+```
+-- Conforming (§97c): declaration inside loop
+loop
+   var msg : message_ref
+   receive ch, msg
+   process (msg)
+-- msg deallocated at scope exit each iteration
+
+-- Nonconforming: declaration outside loop
+var msg : message_ref
+loop
+   receive ch, msg    -- second iteration: msg is non-null, rejected
+   process (msg)
+```
+
+The conforming pattern requires the programmer to know that declaration
+placement controls deallocation timing — a concept that does not exist in
+Go, Java, C#, or Python. The nonconforming pattern is what every developer
+from those languages will write first.
+
+The `select` statement already solves this. Its `when` arm declares and
+scopes the variable in one construct (§4.4, paragraph 37):
+
+```
+select
+   when msg : message from ch
+      process (msg)
+```
+
+`msg` is born at the `when`, scoped to the arm, and deallocated at arm
+exit. The programmer cannot write the nonconforming pattern because there
+is no separate declaration to misplace. `receive` has no equivalent.
+
+## Proposed Change
+
+Extend the `receive` statement grammar with an inline declaration form:
+
+```
+receive_statement ::=
+    'receive' channel_name ',' name
+  | 'receive' channel_name ',' defining_identifier ':' subtype_mark
+```
+
+The second form declares the variable at the receive point, scoped to the
+enclosing block. It is syntactic sugar for a declaration followed by a
+receive:
+
+```
+-- Sugar
+receive ch, msg : message_ref
+
+-- Desugars to
+var msg : message_ref
+receive ch, msg
+```
+
+The same extension applies to `try_receive`:
+
+```
+try_receive_statement ::=
+    'try_receive' channel_name ',' name ',' name
+  | 'try_receive' channel_name ',' defining_identifier ':' subtype_mark ',' name
+```
+
+## Owning access types require the scoped form
+
+If the target variable has an owning access type, the compiler **requires**
+the scoped-binding form. The bare form is a compile error:
+
+```
+-- Owning access type: scoped form required
+receive ch, Item : payload_ref     -- OK
+receive ch, Item                   -- REJECTED if Item is owning access
+
+-- Value type: both forms legal
+receive ch, count : integer        -- OK
+receive ch, count                  -- OK (no ownership concern)
+```
+
+This makes §97a compliance automatic for owning types. The programmer never
+encounters a null-before-move diagnostic for `receive` — the syntax does
+not allow the mistake. The bare form remains available for value types
+where scoping has no safety consequence.
+
+The same rule applies to `try_receive`:
+
+```
+-- Owning access type: scoped form required
+try_receive ch, Item : payload_ref, got_item    -- OK
+try_receive ch, Item, got_item                  -- REJECTED if Item is owning access
+```
+
+## Examples
+
+### Basic loop with scoped receive
+
+```
+task consumer with priority = 10, receives data_ch
+   loop
+      receive data_ch, item : payload_ref
+      process (item)
+   -- item deallocated at end of loop body each iteration
+```
+
+The programmer cannot declare `item` outside the loop and accidentally
+create a §97a violation. The declaration is fused to the receive.
+
+### Try-receive with scoped binding
+
+```
+task poller with priority = 5, receives data_ch, sends status_ch
+   loop
+      try_receive data_ch, item : payload_ref, got_item
+      if got_item
+         process (item)
+      else
+         send status_ch, (false, "idle")
+      delay 0.1
+```
+
+`item` is declared at the `try_receive` point. If `got_item` is false,
+`item` is null (no ownership transferred). If true, `item` is non-null
+and scoped to the enclosing block.
+
+### Value types: both forms work
+
+For value types, the scoped binding is a convenience, not a requirement:
+
+```
+-- Both are fine for value types
+receive ch, count : integer
+-- or
+var count : integer
+receive ch, count
+```
+
+The scoped form is preferred for consistency but the bare form is not
+rejected for non-owning types.
+
+## Interaction with `select`
+
+The `select` arm already has scoped binding:
+
+```
+select
+   when msg : message from ch
+      ...
+```
+
+The `receive` scoped binding mirrors this:
+
+```
+receive ch, msg : message
+```
+
+The two constructs use different syntax (`when msg : T from ch` vs
+`receive ch, msg : T`) because they serve different roles — `select`
+multiplexes across channels while `receive` blocks on one. But the
+scoping semantics are identical: the variable is born at the statement
+and dies at the enclosing block's exit.
+
+## What This Does Not Change
+
+- The non-binding `receive ch, name` form is retained for value types.
+  Existing code using value-typed channels is unaffected.
+- The semantics of receive are unchanged — only the declaration point of
+  the target variable moves.
+- No new ownership rules. §97a still applies; the scoped binding makes
+  compliance structural for owning types and leaves it optional for
+  value types.
+
+## Design Rationale
+
+- **Structural safety over diagnostic recovery.** The best error message
+  for a §97a violation is never seeing one. If the syntax makes the
+  violation unrepresentable for owning types, the compiler never needs
+  to explain it.
+- **Mandatory for owning types, optional for value types.** This is the
+  strongest design: the trap is eliminated where it matters (ownership)
+  and the lightweight syntax is preserved where it doesn't (values).
+  Convention-based approaches ("prefer the scoped form") leave the trap
+  available. Safe should make it impossible.
+- **Mirrors `select` arm syntax.** The precedent already exists in the
+  language. Extending it to `receive` is consistent.
+- **Minimal grammar change.** One production added to `receive_statement`
+  and one to `try_receive_statement`. No new keywords, no new concepts.
+- **Go-familiar.** Go's `for msg := range ch` declares and receives in
+  one construct. Safe's `receive ch, msg : T` is the same idea adapted
+  to Safe's channel syntax.
+
+## Alternatives Considered
+
+1. **Keep both forms for all types (convention only).** Weaker — the §97a
+   trap remains representable. Diagnostics catch it, but the syntax could
+   prevent it. Safe should prefer prevention over detection.
+
+2. **Require scoped form for all types.** Too restrictive. Value types
+   have no ownership concern. Forcing `receive ch, count : integer` when
+   `receive ch, count` is safe wastes the programmer's time without
+   improving safety.
+
+3. **Add a `with` block for receive.** A dedicated scoping construct like
+   `with msg : T from ch do ... end`. Heavier than necessary when the
+   inline declaration suffices.
+
+4. **Rely on diagnostics alone.** The compiler can explain §97a violations
+   clearly. But "add a diagnostic for a mistake the syntax could prevent"
+   is weaker than "make the mistake unrepresentable." Diagnostics are the
+   fallback for the bare form on value types; the scoped form eliminates
+   the need for owning types.
+
+---
+
+# Error Handling Convention
+
+## Motivation
+
+Safe has no exception mechanism (D14), no `try`/`catch`, and no stack
+unwinding. When a function detects a problem, it must communicate the failure
+through its return value. When a task detects a problem, it must communicate
+the failure through a channel. The language provides no guidance on how to
+structure either.
+
+Go programmers expect `(T, error)` return pairs. Rust programmers expect
+`Result<T, E>`. Safe currently has nothing — developers invent ad hoc
+patterns using booleans, discriminated records, or untyped status values.
+
+This matters especially for channels. Tasks loop forever and cannot return
+values. Errors generated inside a task must travel through channels, and the
+channel element type must accommodate both success and failure without
+ownership complications.
+
+## Phase 1: Tuples as error pairs (PR11.3)
+
+This is the Go-like phase. When tuples land in PR11.3, the standard error
+convention is `(boolean, T)` — the same structure as Go's `(T, error)` with
+the status in the first position.
+
+### Functions
+
+```
+function Lookup (k : string) returns (boolean, string)
+   if not store.contains (DB, k)
+      return (false, "")
+   return (true, store.element (DB, k))
+```
+
+### Callers
+
+```
+var (found, data) : (boolean, string) = Lookup (DB, key)
+if not found
+   return (false, "")
+process (data)
+```
+
+This is the pattern a Go programmer already knows. `found` is the `err !=
+nil` check. The compiler proves `found` is checked before `data` is used,
+via the guards-as-contracts model.
+
+### Channels
+
+```
+channel results : (boolean, string) capacity 16
+
+task worker with priority = 10, receives jobs, sends results
+   loop
+      var job : string
+      receive jobs, job
+      var (ok, data) : (boolean, string) = process_job (job)
+      send results, (ok, data)
+
+task collector with priority = 5, receives results
+   loop
+      var (ok, data) : (boolean, string)
+      receive results, (ok, data)
+      if not ok
+         log_error ("job failed")
+      else
+         store_result (data)
+```
+
+### Limitation
+
+The caller knows the operation failed but not why. `false` carries no
+context. For many programs this is sufficient — Go's `(T, bool)` pattern
+(like `map[key]` returning `(value, ok)`) works the same way.
+
+## Phase 2: Predefined `result` type (PR11.3, after tuples)
+
+For cases where an error message is needed, introduce a predefined `result`
+type:
+
+```
+type result is record
+   ok      : boolean
+   message : string
+```
+
+With predefined constructors:
+
+```
+ok                          -- result where ok = true, message = ""
+fail ("key not found")      -- result where ok = false, message = "key not found"
+```
+
+This is the upgrade path from `(boolean, T)` when bare true/false is not
+enough context. Functions return `(result, T)`:
+
+```
+function Lookup (k : string) returns (result, string)
+   if not store.contains (DB, k)
+      return (fail ("key not found"), "")
+   return (ok, store.element (DB, k))
+```
+
+Channels carry `(result, T)`:
+
+```
+channel results : (result, string) capacity 16
+send results, (fail ("timeout"), "")
+send results, (ok, "localhost")
+```
+
+The `result` type is value-typed, copyable, and contains no access types.
+It serializes cleanly through bounded channels without ownership transfer
+concerns.
+
+A Go programmer learns `(boolean, T)` first — that is what they already
+know. When they need error messages, they upgrade to `(result, T)`. The
+compiler diagnostics and tutorials should teach both, in that order.
+
+## Phase 3: Generic `result (T, E)` type (PR11.11)
+
+After generics land, parameterize the result type:
+
+```
+type result (T, E) is record
+   case ok : boolean
+      when true
+         value : T
+      when false
+         error : E
+```
+
+Destructuring bind works:
+
+```
+var r : result (string, error_code) = Lookup (DB, key)
+if not r.ok
+   handle_error (r.error)
+   return
+use_value (r.value)
+```
+
+Channel element types use the generic form:
+
+```
+channel results : result (string, error_code) capacity 16
+```
+
+The Phase 2 monomorphic `result` is retained as a lightweight alternative
+for cases where only a status message is needed.
+
+## Error Propagation
+
+No propagation operator is proposed. The reasons:
+
+**Guards handle it naturally.** The `if not found` / `return` pattern is
+the same guard-based idiom Safe uses for all proof obligations. The compiler
+proves the error is checked. The programmer decides where the error goes.
+
+**Channel errors are directional.** In Go, `return err` propagates up the
+call stack. In Safe, errors often cross task boundaries via channels. A `?`
+operator that propagates to the caller does not help when the error needs
+to go to a different channel or a supervisor task. The programmer must
+choose the destination.
+
+**Community patterns first.** Let developers use manual error checking and
+develop idioms for retry, fallback, and supervisor notification. If a
+dominant pattern emerges, add propagation syntax later with evidence from
+real programs.
+
+## Channel Error Patterns
+
+### Supervisor
+
+```
+channel error_ch : result capacity 8
+
+task worker with priority = 10, receives jobs, sends results, sends error_ch
+   loop
+      var job : string
+      receive jobs, job
+      var (status, data) : (result, string) = process (job)
+      if not status.ok
+         send error_ch, status
+      else
+         send results, (ok, data)
+
+task supervisor with priority = 15, receives error_ch
+   loop
+      var err : result
+      receive error_ch, err
+      log ("worker error: " ++ err.message)
+```
+
+### Retry
+
+```
+function fetch_with_retry (k : string, max_attempts : integer) returns (result, string)
+   var attempt : integer = 0
+   while attempt < max_attempts
+      var (status, data) : (result, string) = Lookup (DB, k)
+      if status.ok
+         return (ok, data)
+      attempt = attempt + 1
+   return (fail ("max retries exceeded"), "")
+```
+
+## Design Rationale
+
+- **Value-typed errors.** The `result` type contains no access types. It is
+  always copyable. This is essential for channels — errors must serialize
+  through bounded channels without ownership transfer.
+- **Boolean discriminant.** Two states cover the majority of error handling.
+  Richer taxonomies use the `message` field or (post-generics) a
+  parameterized error type.
+- **No `error` interface.** Go's `error` works because Go has interfaces.
+  Safe does not (D18). A concrete `result` type is simpler and sufficient.
+- **Compatible with guards-as-contracts.** `if not status.ok` is a proof
+  obligation the compiler discharges. After the guard, the compiler knows
+  the result is ok and can prove downstream code is safe.
+- **Go-first learning path.** `(boolean, T)` is what Go programmers already
+  know. `(result, T)` is the upgrade when they need error messages. Neither
+  requires learning new concepts — just new types.
+
+## Interaction with Other Proposals
+
+| Proposal | Interaction |
+|----------|------------|
+| Tuples (PR11.3) | `(boolean, T)` and `(result, T)` are the standard error return types |
+| Predefined immutable `string` type (PR11.2) | `result.message` uses the builtin immutable `string` type |
+| Channel direction constraints (PR11.5) | Error channels appear in `sends` clauses |
+| Restricted generics (PR11.11) | `result (T, E)` replaces the monomorphic `result` |
+| Capitalisation (PR11.7) | `result` is lowercase — value type, not a reference |
+
+## Alternatives Considered
+
+1. **Exceptions (D14 reversed).** Rejected. Stack unwinding is incompatible
+   with static analysis and channel-based concurrency where errors must
+   cross task boundaries explicitly.
+
+2. **Monadic chaining (`.and_then`, `.map_err`).** Requires higher-order
+   functions or method syntax. Deferred to post-generics.
+
+3. **Panic / abort.** Non-recoverable termination for impossible states.
+   Not proposed here but could complement `result`. Needs interaction
+   design with the task model.
+
+4. **Propagation operator (`?`).** Deferred. Manual checking with guards
+   integrates with the proof model. If verbosity becomes a demonstrated
+   problem in the Rosetta corpus, revisit with evidence.
 
 ---
 

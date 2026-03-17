@@ -1,0 +1,34 @@
+-- Test: pr112_discrete_case
+-- Description: Boolean and integer case statements plus direct string returns.
+-- Expected: ACCEPT
+
+package PR112_Discrete_Case is
+
+   function Flag_Value (Flag : in Boolean) return Integer is
+   begin
+      case Flag is
+         when True then
+            return 1;
+         end when;
+         when others then
+            return 0;
+         end when;
+      end case;
+   end Flag_Value;
+
+   function Opcode_Name (Opcode : in Integer) return String is
+   begin
+      case Opcode is
+         when 0 then
+            return "nop";
+         end when;
+         when 1 then
+            return "load";
+         end when;
+         when others then
+            return "unknown";
+         end when;
+      end case;
+   end Opcode_Name;
+
+end PR112_Discrete_Case;

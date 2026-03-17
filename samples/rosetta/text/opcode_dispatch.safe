@@ -1,0 +1,18 @@
+package Opcode_Dispatch is
+
+   function Render (Opcode : in Integer) return String is
+   begin
+      case Opcode is
+         when 0 then
+            return "nop";
+         end when;
+         when 1 then
+            return "load";
+         end when;
+         when others then
+            return "unknown";
+         end when;
+      end case;
+   end Render;
+
+end Opcode_Dispatch;

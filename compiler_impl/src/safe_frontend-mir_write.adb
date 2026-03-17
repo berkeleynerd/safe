@@ -208,6 +208,8 @@ package body Safe_Frontend.Mir_Write is
             Items.Append ("""value"":" & Long_Long_Integer'Image (Expr.Int_Value));
          when GM.Expr_Real =>
             Items.Append ("""text"":" & JS.Quote (Expr.Text));
+         when GM.Expr_String | GM.Expr_Char =>
+            Items.Append ("""text"":" & JS.Quote (Expr.Text));
          when GM.Expr_Bool =>
             Items.Append ("""value"":" & JS.Bool_Literal (Expr.Bool_Value));
          when GM.Expr_Null =>

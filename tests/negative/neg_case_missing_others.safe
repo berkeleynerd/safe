@@ -1,0 +1,16 @@
+-- Test: neg_case_missing_others
+-- Description: Every PR11.2 case statement requires a final others arm.
+-- Expected: REJECT source_frontend_error
+
+package Neg_Case_Missing_Others is
+
+   function Classify (Value : in Integer) return Integer is
+   begin
+      case Value is
+         when 1 then
+            return 1;
+         end when;
+      end case;
+   end Classify;
+
+end Neg_Case_Missing_Others;

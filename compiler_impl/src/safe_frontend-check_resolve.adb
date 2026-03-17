@@ -192,11 +192,32 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Make_Float_Builtin;
 
+   function Make_Character_Builtin return GM.Type_Descriptor is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name := FT.To_UString ("Character");
+      Result.Kind := FT.To_UString ("character");
+      return Result;
+   end Make_Character_Builtin;
+
+   function Make_String_Builtin return GM.Type_Descriptor is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name := FT.To_UString ("String");
+      Result.Kind := FT.To_UString ("array");
+      Result.Has_Component_Type := True;
+      Result.Component_Type := FT.To_UString ("Character");
+      Result.Unconstrained := True;
+      return Result;
+   end Make_String_Builtin;
+
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
       Put_Type (Type_Env, "Integer", Make_Builtin ("Integer", -(2 ** 63), (2 ** 63) - 1));
       Put_Type (Type_Env, "Natural", Make_Builtin ("Natural", 0, (2 ** 63) - 1));
       Put_Type (Type_Env, "Boolean", Make_Builtin ("Boolean", 0, 1));
+      Put_Type (Type_Env, "Character", Make_Character_Builtin);
+      Put_Type (Type_Env, "String", Make_String_Builtin);
       Put_Type (Type_Env, "Float", Make_Float_Builtin ("Float"));
       Put_Type (Type_Env, "Long_Float", Make_Float_Builtin ("Long_Float"));
       Put_Type (Type_Env, "Duration", Make_Float_Builtin ("Duration"));
@@ -217,6 +238,16 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return Make_Builtin ("Boolean", 0, 1);
    end Default_Boolean;
+
+   function Default_Character return GM.Type_Descriptor is
+   begin
+      return Make_Character_Builtin;
+   end Default_Character;
+
+   function Default_String return GM.Type_Descriptor is
+   begin
+      return Make_String_Builtin;
+   end Default_String;
 
    function Default_Float return GM.Type_Descriptor is
    begin
@@ -250,19 +281,34 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor
    is
       Result : GM.Type_Descriptor := Info;
-      Name   : String := UString_Value (Result.Name);
    begin
       while Result.Has_Base and then Has_Type (Type_Env, UString_Value (Result.Base)) loop
          Result := Get_Type (Type_Env, UString_Value (Result.Base));
-         Name := UString_Value (Result.Name);
-         exit when Name = "";
+         exit when UString_Value (Result.Name) = "";
       end loop;
       return Result;
    end Base_Type;
 
    function Is_Integerish
      (Info     : GM.Type_Descriptor;
+     Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Character_Type
+     (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_String_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Discrete_Case_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Case_Choice_Compatible
+     (Scrutinee : GM.Type_Descriptor;
+      Choice    : GM.Type_Descriptor;
+      Type_Env  : Type_Maps.Map) return Boolean;
 
    function Equivalent_Type
      (Left     : GM.Type_Descriptor;
@@ -298,6 +344,20 @@ package body Safe_Frontend.Check_Resolve is
       return UString_Value (Base_Type (Info, Type_Env).Name) = "Boolean";
    end Is_Boolean_Type;
 
+   function Is_Character_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return UString_Value (Base_Type (Info, Type_Env).Name) = "Character";
+   end Is_Character_Type;
+
+   function Is_String_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return UString_Value (Base_Type (Info, Type_Env).Name) = "String";
+   end Is_String_Type;
+
    function Is_Duration_Compatible
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
@@ -318,6 +378,33 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return Kind in "integer" | "subtype";
    end Is_Integerish;
+
+   function Is_Discrete_Case_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return Is_Boolean_Type (Info, Type_Env)
+        or else Is_Character_Type (Info, Type_Env)
+        or else (Is_Integerish (Info, Type_Env) and then not Is_Boolean_Type (Info, Type_Env));
+   end Is_Discrete_Case_Type;
+
+   function Case_Choice_Compatible
+     (Scrutinee : GM.Type_Descriptor;
+      Choice    : GM.Type_Descriptor;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      if Is_Boolean_Type (Scrutinee, Type_Env) then
+         return Is_Boolean_Type (Choice, Type_Env);
+      elsif Is_Character_Type (Scrutinee, Type_Env) then
+         return Is_Character_Type (Choice, Type_Env);
+      end if;
+
+      return Is_Integerish (Scrutinee, Type_Env)
+        and then not Is_Boolean_Type (Scrutinee, Type_Env)
+        and then Is_Integerish (Choice, Type_Env)
+        and then not Is_Boolean_Type (Choice, Type_Env)
+        and then not Is_Character_Type (Choice, Type_Env);
+   end Case_Choice_Compatible;
 
    function Is_Definite_Type
      (Info     : GM.Type_Descriptor;
@@ -413,7 +500,8 @@ package body Safe_Frontend.Check_Resolve is
 
    function Is_Builtin_Name (Name : String) return Boolean is
    begin
-      return Name in "Integer" | "Natural" | "Boolean" | "Float" | "Long_Float" | "Duration";
+      return Name in
+        "Integer" | "Natural" | "Boolean" | "Character" | "String" | "Float" | "Long_Float" | "Duration";
    end Is_Builtin_Name;
 
    function Qualify_Name
@@ -512,7 +600,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       case Expr.Kind is
-         when CM.Expr_Int | CM.Expr_Real =>
+         when CM.Expr_Int | CM.Expr_Real | CM.Expr_String | CM.Expr_Char =>
             if UString_Value (Expr.Text)'Length > 0 then
                return UString_Value (Expr.Text);
             end if;
@@ -767,6 +855,10 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       case Expr.Kind is
+         when CM.Expr_String =>
+            return Default_String;
+         when CM.Expr_Char =>
+            return Default_Character;
          when CM.Expr_Real =>
             if UString_Value (Expr.Type_Name)'Length > 0
               and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
@@ -1051,6 +1143,101 @@ package body Safe_Frontend.Check_Resolve is
       return Set_Type (Result, Expr_Type (Result, Var_Types, Functions, Type_Env));
    end Normalize_Expr;
 
+   procedure Validate_Pr112_Expr_Boundaries
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Path      : String)
+   is
+      Prefix_Type : GM.Type_Descriptor;
+      Left_Type   : GM.Type_Descriptor;
+      Right_Type  : GM.Type_Descriptor;
+   begin
+      if Expr = null then
+         return;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Select =>
+            Validate_Pr112_Expr_Boundaries (Expr.Prefix, Var_Types, Functions, Type_Env, Path);
+            Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env);
+            if UString_Value (Expr.Selector) in "First" | "Last" | "Length" | "Access"
+              and then Is_String_Type (Prefix_Type, Type_Env)
+            then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "string attributes are outside the current PR11.2 text subset"));
+            end if;
+         when CM.Expr_Resolved_Index =>
+            Validate_Pr112_Expr_Boundaries (Expr.Prefix, Var_Types, Functions, Type_Env, Path);
+            if Is_String_Type (Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env), Type_Env) then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "string indexing is outside the current PR11.2 text subset"));
+            end if;
+            for Item of Expr.Args loop
+               Validate_Pr112_Expr_Boundaries (Item, Var_Types, Functions, Type_Env, Path);
+            end loop;
+         when CM.Expr_Call =>
+            Validate_Pr112_Expr_Boundaries (Expr.Callee, Var_Types, Functions, Type_Env, Path);
+            for Item of Expr.Args loop
+               Validate_Pr112_Expr_Boundaries (Item, Var_Types, Functions, Type_Env, Path);
+            end loop;
+         when CM.Expr_Conversion =>
+            Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
+         when CM.Expr_Allocator =>
+            Validate_Pr112_Expr_Boundaries (Expr.Value, Var_Types, Functions, Type_Env, Path);
+         when CM.Expr_Aggregate =>
+            for Item of Expr.Fields loop
+               Validate_Pr112_Expr_Boundaries (Item.Expr, Var_Types, Functions, Type_Env, Path);
+            end loop;
+         when CM.Expr_Annotated =>
+            Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
+         when CM.Expr_Unary =>
+            Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
+            if Is_String_Type (Expr_Type (Expr.Inner, Var_Types, Functions, Type_Env), Type_Env) then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "string operators are outside the current PR11.2 text subset"));
+            end if;
+         when CM.Expr_Binary =>
+            Validate_Pr112_Expr_Boundaries (Expr.Left, Var_Types, Functions, Type_Env, Path);
+            Validate_Pr112_Expr_Boundaries (Expr.Right, Var_Types, Functions, Type_Env, Path);
+            Left_Type := Expr_Type (Expr.Left, Var_Types, Functions, Type_Env);
+            Right_Type := Expr_Type (Expr.Right, Var_Types, Functions, Type_Env);
+            if Is_String_Type (Left_Type, Type_Env) or else Is_String_Type (Right_Type, Type_Env) then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "string comparison and concatenation are outside the current PR11.2 text subset"));
+            end if;
+         when others =>
+            null;
+      end case;
+   end Validate_Pr112_Expr_Boundaries;
+
+   function Normalize_Expr_Checked
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Path      : String) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access :=
+        Normalize_Expr (Expr, Var_Types, Functions, Type_Env);
+   begin
+      Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
+      return Result;
+   end Normalize_Expr_Checked;
+
    function Is_Assignable_Target (Expr : CM.Expr_Access) return Boolean is
    begin
       if Expr = null then
@@ -1077,6 +1264,22 @@ package body Safe_Frontend.Check_Resolve is
       end if;
       return Resolve_Type_Spec (Decl.Decl_Type, Type_Env, Path);
    end Resolve_Decl_Type;
+
+   procedure Reject_Unsupported_String_Use
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Path     : String;
+      Span     : FT.Source_Span;
+      Message  : String) is
+   begin
+      if Is_String_Type (Info, Type_Env) then
+         Raise_Diag
+           (CM.Unsupported_Source_Construct
+              (Path    => Path,
+               Span    => Span,
+               Message => Message));
+      end if;
+   end Reject_Unsupported_String_Use;
 
    function Normalize_Procedure_Call
      (Expr      : CM.Expr_Access;
@@ -1198,9 +1401,26 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       Result.Type_Info := Resolve_Decl_Type (Decl, Type_Env, Path);
+      if Is_String_Type (Result.Type_Info, Type_Env) then
+         if not Decl.Is_Constant then
+            Raise_Diag
+              (CM.Unsupported_Source_Construct
+                 (Path    => Path,
+                  Span    => Decl.Decl_Type.Span,
+                  Message => "mutable objects of type String are outside the current PR11.2 text subset"));
+         elsif not Decl.Has_Initializer then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Decl.Span,
+                  Message => "constant String declarations require initializers"));
+         end if;
+      end if;
       Result.Is_Constant := Decl.Is_Constant;
       if Decl.Has_Initializer and then Decl.Initializer /= null then
-         Result.Initializer := Normalize_Expr (Decl.Initializer, Var_Types, Functions, Type_Env);
+         Result.Initializer :=
+           Normalize_Expr_Checked
+             (Decl.Initializer, Var_Types, Functions, Type_Env, Path);
       end if;
       return Result;
    end Normalize_Object_Decl;
@@ -1360,7 +1580,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Decl := Normalize_Object_Decl (Stmt.Decl, Var_Types, Functions, Type_Env, Path);
 
          when CM.Stmt_Assign =>
-            Result.Target := Normalize_Expr (Stmt.Target, Var_Types, Functions, Type_Env);
+            Result.Target := Normalize_Expr_Checked (Stmt.Target, Var_Types, Functions, Type_Env, Path);
             if not Is_Assignable_Target (Result.Target) then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -1374,15 +1594,16 @@ package body Safe_Frontend.Check_Resolve is
                Local_Constants,
                Path,
                "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
-            Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+            Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
 
          when CM.Stmt_Return =>
             if Stmt.Value /= null then
-               Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+               Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
             end if;
 
          when CM.Stmt_If =>
-            Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
+            Result.Condition :=
+              Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
             Result.Then_Stmts :=
               Normalize_Statement_List
                 (Stmt.Then_Stmts,
@@ -1399,7 +1620,7 @@ package body Safe_Frontend.Check_Resolve is
                   New_Part : CM.Elsif_Part := Part;
                begin
                   New_Part.Condition :=
-                    Normalize_Expr (Part.Condition, Var_Types, Functions, Type_Env);
+                    Normalize_Expr_Checked (Part.Condition, Var_Types, Functions, Type_Env, Path);
                   New_Part.Statements :=
                     Normalize_Statement_List
                       (Part.Statements,
@@ -1427,7 +1648,8 @@ package body Safe_Frontend.Check_Resolve is
             end if;
 
          when CM.Stmt_While =>
-            Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
+            Result.Condition :=
+              Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
             Result.Body_Stmts :=
               Normalize_Statement_List
                 (Stmt.Body_Stmts,
@@ -1453,21 +1675,25 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Exit =>
             if Stmt.Condition /= null then
-               Result.Condition := Normalize_Expr (Stmt.Condition, Var_Types, Functions, Type_Env);
+               Result.Condition :=
+                 Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
             end if;
 
          when CM.Stmt_For =>
             Result.Loop_Range := Stmt.Loop_Range;
             if Stmt.Loop_Range.Kind = CM.Range_Explicit then
                Result.Loop_Range.Low_Expr :=
-                 Normalize_Expr (Stmt.Loop_Range.Low_Expr, Var_Types, Functions, Type_Env);
+                 Normalize_Expr_Checked
+                   (Stmt.Loop_Range.Low_Expr, Var_Types, Functions, Type_Env, Path);
                Result.Loop_Range.High_Expr :=
-                 Normalize_Expr (Stmt.Loop_Range.High_Expr, Var_Types, Functions, Type_Env);
+                 Normalize_Expr_Checked
+                   (Stmt.Loop_Range.High_Expr, Var_Types, Functions, Type_Env, Path);
                Loop_Type.Name := FT.To_UString ("Integer");
                Loop_Type.Kind := FT.To_UString ("integer");
             else
                Result.Loop_Range.Name_Expr :=
-                 Normalize_Expr (Stmt.Loop_Range.Name_Expr, Var_Types, Functions, Type_Env);
+                 Normalize_Expr_Checked
+                   (Stmt.Loop_Range.Name_Expr, Var_Types, Functions, Type_Env, Path);
                Loop_Type :=
                  Resolve_Type (Flatten_Name (Stmt.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
             end if;
@@ -1517,14 +1743,14 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_Call =>
             Result.Call :=
               Normalize_Procedure_Call
-                (Normalize_Expr (Stmt.Call, Var_Types, Functions, Type_Env),
+                (Normalize_Expr_Checked (Stmt.Call, Var_Types, Functions, Type_Env, Path),
                  Functions,
                  Path);
 
          when CM.Stmt_Send | CM.Stmt_Try_Send =>
             Result.Channel_Name :=
-              Normalize_Expr (Stmt.Channel_Name, Var_Types, Functions, Type_Env);
-            Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+              Normalize_Expr_Checked (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Path);
+            Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
             Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
             if not Compatible_Type
               (Expr_Type (Result.Value, Var_Types, Functions, Type_Env),
@@ -1539,7 +1765,7 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             if Stmt.Kind = CM.Stmt_Try_Send then
                Result.Success_Var :=
-                 Normalize_Expr (Stmt.Success_Var, Var_Types, Functions, Type_Env);
+                 Normalize_Expr_Checked (Stmt.Success_Var, Var_Types, Functions, Type_Env, Path);
                if not Is_Assignable_Target (Result.Success_Var) then
                   Raise_Diag
                     (CM.Source_Frontend_Error
@@ -1565,8 +1791,8 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
             Result.Channel_Name :=
-              Normalize_Expr (Stmt.Channel_Name, Var_Types, Functions, Type_Env);
-            Result.Target := Normalize_Expr (Stmt.Target, Var_Types, Functions, Type_Env);
+              Normalize_Expr_Checked (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Path);
+            Result.Target := Normalize_Expr_Checked (Stmt.Target, Var_Types, Functions, Type_Env, Path);
             if not Is_Assignable_Target (Result.Target) then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -1591,7 +1817,7 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             if Stmt.Kind = CM.Stmt_Try_Receive then
                Result.Success_Var :=
-                 Normalize_Expr (Stmt.Success_Var, Var_Types, Functions, Type_Env);
+                 Normalize_Expr_Checked (Stmt.Success_Var, Var_Types, Functions, Type_Env, Path);
                if not Is_Assignable_Target (Result.Success_Var) then
                   Raise_Diag
                     (CM.Source_Frontend_Error
@@ -1616,7 +1842,7 @@ package body Safe_Frontend.Check_Resolve is
             end if;
 
          when CM.Stmt_Delay =>
-            Result.Value := Normalize_Expr (Stmt.Value, Var_Types, Functions, Type_Env);
+            Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
             if not Is_Duration_Compatible
               (Expr_Type (Result.Value, Var_Types, Functions, Type_Env), Type_Env)
             then
@@ -1626,6 +1852,61 @@ package body Safe_Frontend.Check_Resolve is
                      Span    => Result.Value.Span,
                      Message => "relative delay expression must be duration-compatible"));
             end if;
+
+         when CM.Stmt_Case =>
+            declare
+               Scrutinee_Type : GM.Type_Descriptor;
+            begin
+               Result.Case_Expr :=
+                 Normalize_Expr_Checked (Stmt.Case_Expr, Var_Types, Functions, Type_Env, Path);
+               Scrutinee_Type :=
+                 Expr_Type (Result.Case_Expr, Var_Types, Functions, Type_Env);
+               if not Is_Discrete_Case_Type (Scrutinee_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Result.Case_Expr.Span,
+                        Message =>
+                          "PR11.2 case expressions are limited to Boolean, integer, and Character"));
+               end if;
+
+               Result.Case_Arms.Clear;
+               for Arm of Stmt.Case_Arms loop
+                  declare
+                     New_Arm     : CM.Case_Arm := Arm;
+                     Choice_Type : GM.Type_Descriptor;
+                  begin
+                     if Arm.Is_Others then
+                        New_Arm.Choice := null;
+                     else
+                        New_Arm.Choice :=
+                          Normalize_Expr_Checked (Arm.Choice, Var_Types, Functions, Type_Env, Path);
+                        Choice_Type :=
+                          Expr_Type (New_Arm.Choice, Var_Types, Functions, Type_Env);
+                        if not Case_Choice_Compatible (Scrutinee_Type, Choice_Type, Type_Env) then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => New_Arm.Choice.Span,
+                                 Message =>
+                                   "case arm choice type does not match case expression type"));
+                        end if;
+                     end if;
+
+                     New_Arm.Statements :=
+                       Normalize_Statement_List
+                         (Arm.Statements,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Channel_Env,
+                          Imported_Objects,
+                          Local_Constants,
+                          Path);
+                     Result.Case_Arms.Append (New_Arm);
+                  end;
+               end loop;
+            end;
 
          when CM.Stmt_Select =>
             declare
@@ -1642,11 +1923,12 @@ package body Safe_Frontend.Check_Resolve is
                         when CM.Select_Arm_Channel =>
                            Channel_Arms := Channel_Arms + 1;
                            New_Arm.Channel_Data.Channel_Name :=
-                             Normalize_Expr
+                             Normalize_Expr_Checked
                                (Arm.Channel_Data.Channel_Name,
                                 Var_Types,
                                 Functions,
-                                Type_Env);
+                                Type_Env,
+                                Path);
                            Channel_Type :=
                              Channel_Element_Type
                                (New_Arm.Channel_Data.Channel_Name,
@@ -1686,11 +1968,12 @@ package body Safe_Frontend.Check_Resolve is
                         when CM.Select_Arm_Delay =>
                            Delay_Arms := Delay_Arms + 1;
                            New_Arm.Delay_Data.Duration_Expr :=
-                             Normalize_Expr
+                             Normalize_Expr_Checked
                                (Arm.Delay_Data.Duration_Expr,
                                 Var_Types,
                                 Functions,
-                                Type_Env);
+                                Type_Env,
+                                Path);
                            if not Is_Duration_Compatible
                              (Expr_Type
                                 (New_Arm.Delay_Data.Duration_Expr,
@@ -1792,8 +2075,18 @@ package body Safe_Frontend.Check_Resolve is
                end if;
             end loop;
             Result.Has_Component_Type := True;
-            Result.Component_Type :=
-              Resolve_Type_Spec (Decl.Component_Type, Type_Env, Path).Name;
+            declare
+               Component_Type : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec (Decl.Component_Type, Type_Env, Path);
+            begin
+               Reject_Unsupported_String_Use
+                 (Component_Type,
+                  Type_Env,
+                  Path,
+                  Decl.Component_Type.Span,
+                  "array component types of String are outside the current PR11.2 text subset");
+               Result.Component_Type := Component_Type.Name;
+            end;
             Result.Unconstrained := Decl.Kind = CM.Type_Decl_Unconstrained_Array;
          when CM.Type_Decl_Record =>
             Result.Kind := FT.To_UString ("record");
@@ -1811,7 +2104,18 @@ package body Safe_Frontend.Check_Resolve is
             for Field_Decl of Decl.Components loop
                for Name of Field_Decl.Names loop
                   Item.Name := Name;
-                  Item.Type_Name := Resolve_Type_Spec (Field_Decl.Field_Type, Type_Env, Path).Name;
+                  declare
+                     Field_Type : constant GM.Type_Descriptor :=
+                       Resolve_Type_Spec (Field_Decl.Field_Type, Type_Env, Path);
+                  begin
+                     Reject_Unsupported_String_Use
+                       (Field_Type,
+                        Type_Env,
+                        Path,
+                        Field_Decl.Field_Type.Span,
+                        "record fields of type String are outside the current PR11.2 text subset");
+                     Item.Type_Name := Field_Type.Name;
+                  end;
                   Result.Fields.Append (Item);
                end loop;
             end loop;
@@ -1820,7 +2124,18 @@ package body Safe_Frontend.Check_Resolve is
                   for Field_Decl of Alternative.Components loop
                      for Name of Field_Decl.Names loop
                         Item.Name := Name;
-                        Item.Type_Name := Resolve_Type_Spec (Field_Decl.Field_Type, Type_Env, Path).Name;
+                        declare
+                           Field_Type : constant GM.Type_Descriptor :=
+                             Resolve_Type_Spec (Field_Decl.Field_Type, Type_Env, Path);
+                        begin
+                           Reject_Unsupported_String_Use
+                             (Field_Type,
+                              Type_Env,
+                              Path,
+                              Field_Decl.Field_Type.Span,
+                              "record fields of type String are outside the current PR11.2 text subset");
+                           Item.Type_Name := Field_Type.Name;
+                        end;
                         Result.Fields.Append (Item);
                         declare
                            Variant_Field : GM.Variant_Field;
@@ -1875,6 +2190,15 @@ package body Safe_Frontend.Check_Resolve is
             Param_Type : constant GM.Type_Descriptor :=
               Resolve_Type_Spec (Param.Param_Type, Type_Env, Path);
          begin
+            if Is_String_Type (Param_Type, Type_Env)
+              and then UString_Value (Param.Mode) in "out" | "in out"
+            then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Param.Param_Type.Span,
+                     Message => "string parameters currently support mode `in` only"));
+            end if;
             for Name of Param.Names loop
                Symbol.Name := Name;
                Symbol.Kind := FT.To_UString ("param");
@@ -1902,6 +2226,13 @@ package body Safe_Frontend.Check_Resolve is
       Type_Info : constant GM.Type_Descriptor :=
         Resolve_Type_Spec (Decl.Element_Type, Type_Env, Path);
    begin
+      Reject_Unsupported_String_Use
+        (Type_Info,
+         Type_Env,
+         Path,
+         Decl.Element_Type.Span,
+         "channel element types of String are outside the current PR11.2 text subset");
+
       if not Is_Definite_Type (Type_Info, Type_Env) then
          Raise_Diag
            (CM.Source_Frontend_Error
@@ -1974,6 +2305,11 @@ package body Safe_Frontend.Check_Resolve is
                   Validate_Task_Nontermination
                     (Stmt.Else_Stmts, Path, Task_Name, Loop_Depth);
                end if;
+            when CM.Stmt_Case =>
+               for Arm of Stmt.Case_Arms loop
+                  Validate_Task_Nontermination
+                    (Arm.Statements, Path, Task_Name, Loop_Depth);
+               end loop;
             when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
                Validate_Task_Nontermination
                  (Stmt.Body_Stmts, Path, Task_Name, Loop_Depth + 1);
@@ -2206,33 +2542,32 @@ package body Safe_Frontend.Check_Resolve is
                end;
             when CM.Item_Object_Decl =>
                declare
-                  Decl_Type    : constant GM.Type_Descriptor :=
-                    Resolve_Decl_Type (Item.Obj_Data, Package_Vars, UString_Value (Unit.Path));
+                  Normalized   : constant CM.Object_Decl :=
+                    Normalize_Object_Decl
+                      (Item.Obj_Data,
+                       Package_Vars,
+                       Functions,
+                       Type_Env,
+                       UString_Value (Unit.Path));
                   Local_Decl   : CM.Resolved_Object_Decl;
                   Static_Value : CM.Static_Value;
                begin
-                  Local_Decl.Names := Item.Obj_Data.Names;
-                  Local_Decl.Type_Info := Decl_Type;
-                  Local_Decl.Is_Constant := Item.Obj_Data.Is_Constant;
-                  Local_Decl.Has_Initializer := Item.Obj_Data.Has_Initializer;
-                  Local_Decl.Span := Item.Obj_Data.Span;
-                  Local_Decl.Initializer := null;
-                  if Item.Obj_Data.Has_Initializer and then Item.Obj_Data.Initializer /= null then
-                     Local_Decl.Initializer :=
-                       Normalize_Expr
-                         (Item.Obj_Data.Initializer,
-                          Package_Vars,
-                          Functions,
-                          Type_Env);
-                     if Item.Obj_Data.Is_Constant
+                  Local_Decl.Names := Normalized.Names;
+                  Local_Decl.Type_Info := Normalized.Type_Info;
+                  Local_Decl.Is_Constant := Normalized.Is_Constant;
+                  Local_Decl.Has_Initializer := Normalized.Has_Initializer;
+                  Local_Decl.Span := Normalized.Span;
+                  Local_Decl.Initializer := Normalized.Initializer;
+                  if Local_Decl.Has_Initializer and then Local_Decl.Initializer /= null then
+                     if Local_Decl.Is_Constant
                        and then Try_Static_Value (Local_Decl.Initializer, Const_Env, Static_Value)
                      then
                         Local_Decl.Static_Info := Static_Value;
                      end if;
                   end if;
                   Result.Objects.Append (Local_Decl);
-                  for Name of Item.Obj_Data.Names loop
-                     Put_Type (Package_Vars, UString_Value (Name), Decl_Type);
+                  for Name of Normalized.Names loop
+                     Put_Type (Package_Vars, UString_Value (Name), Normalized.Type_Info);
                      if Local_Decl.Is_Constant
                        and then Local_Decl.Static_Info.Kind /= CM.Static_Value_None
                      then
@@ -2254,11 +2589,12 @@ package body Safe_Frontend.Check_Resolve is
                     and then Item.Task_Data.Priority /= null
                   then
                      Priority_Expr :=
-                       Normalize_Expr
+                       Normalize_Expr_Checked
                          (Item.Task_Data.Priority,
                           Package_Vars,
                           Functions,
-                          Type_Env);
+                          Type_Env,
+                          UString_Value (Unit.Path));
                      Priority_Type := Expr_Type (Priority_Expr, Package_Vars, Functions, Type_Env);
                      if not Is_Integerish (Priority_Type, Type_Env) then
                         Raise_Diag
@@ -2310,7 +2646,6 @@ package body Safe_Frontend.Check_Resolve is
                Subprogram   : CM.Resolved_Subprogram;
                Visible      : Type_Maps.Map := Package_Vars;
                Visible_Constants : Type_Maps.Map;
-               Decl_Type    : GM.Type_Descriptor;
                Local_Decl   : CM.Resolved_Object_Decl;
             begin
                Subprogram.Name := Info.Name;
@@ -2338,25 +2673,30 @@ package body Safe_Frontend.Check_Resolve is
                end loop;
 
                for Decl of Item.Subp_Data.Declarations loop
-                  Decl_Type := Resolve_Decl_Type (Decl, Visible, UString_Value (Unit.Path));
-                  Local_Decl.Names := Decl.Names;
-                  Local_Decl.Type_Info := Decl_Type;
-                  Local_Decl.Is_Constant := Decl.Is_Constant;
-                  Local_Decl.Has_Initializer := Decl.Has_Initializer;
-                  Local_Decl.Span := Decl.Span;
-                  Local_Decl.Initializer := null;
-                  if Decl.Has_Initializer and then Decl.Initializer /= null then
-                     Local_Decl.Initializer :=
-                       Normalize_Expr (Decl.Initializer, Visible, Functions, Type_Env);
-                  end if;
+                  declare
+                     Normalized : constant CM.Object_Decl :=
+                       Normalize_Object_Decl
+                         (Decl,
+                          Visible,
+                          Functions,
+                          Type_Env,
+                          UString_Value (Unit.Path));
+                  begin
+                     Local_Decl.Names := Normalized.Names;
+                     Local_Decl.Type_Info := Normalized.Type_Info;
+                     Local_Decl.Is_Constant := Normalized.Is_Constant;
+                     Local_Decl.Has_Initializer := Normalized.Has_Initializer;
+                     Local_Decl.Span := Normalized.Span;
+                     Local_Decl.Initializer := Normalized.Initializer;
+                  end;
                   Subprogram.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
-                     Put_Type (Visible, UString_Value (Name), Decl_Type);
+                     Put_Type (Visible, UString_Value (Name), Local_Decl.Type_Info);
                      Update_Constant_Visibility
                        (Visible_Constants,
                         UString_Value (Name),
-                        Decl_Type,
-                        Decl.Is_Constant);
+                        Local_Decl.Type_Info,
+                        Local_Decl.Is_Constant);
                   end loop;
                end loop;
 
@@ -2378,7 +2718,6 @@ package body Safe_Frontend.Check_Resolve is
                Visible        : Type_Maps.Map := Package_Vars;
                Visible_Constants : Type_Maps.Map;
                Task_Item      : CM.Resolved_Task;
-               Decl_Type      : GM.Type_Descriptor;
                Local_Decl     : CM.Resolved_Object_Decl;
                Task_Index     : Natural := Natural (Result.Tasks.Length) + 1;
             begin
@@ -2415,25 +2754,30 @@ package body Safe_Frontend.Check_Resolve is
                end loop;
 
                for Decl of Item.Task_Data.Declarations loop
-                  Decl_Type := Resolve_Decl_Type (Decl, Visible, UString_Value (Unit.Path));
-                  Local_Decl.Names := Decl.Names;
-                  Local_Decl.Type_Info := Decl_Type;
-                  Local_Decl.Is_Constant := Decl.Is_Constant;
-                  Local_Decl.Has_Initializer := Decl.Has_Initializer;
-                  Local_Decl.Span := Decl.Span;
-                  Local_Decl.Initializer := null;
-                  if Decl.Has_Initializer and then Decl.Initializer /= null then
-                     Local_Decl.Initializer :=
-                       Normalize_Expr (Decl.Initializer, Visible, Functions, Type_Env);
-                  end if;
+                  declare
+                     Normalized : constant CM.Object_Decl :=
+                       Normalize_Object_Decl
+                         (Decl,
+                          Visible,
+                          Functions,
+                          Type_Env,
+                          UString_Value (Unit.Path));
+                  begin
+                     Local_Decl.Names := Normalized.Names;
+                     Local_Decl.Type_Info := Normalized.Type_Info;
+                     Local_Decl.Is_Constant := Normalized.Is_Constant;
+                     Local_Decl.Has_Initializer := Normalized.Has_Initializer;
+                     Local_Decl.Span := Normalized.Span;
+                     Local_Decl.Initializer := Normalized.Initializer;
+                  end;
                   Task_Item.Declarations.Append (Local_Decl);
                   for Name of Decl.Names loop
-                     Put_Type (Visible, UString_Value (Name), Decl_Type);
+                     Put_Type (Visible, UString_Value (Name), Local_Decl.Type_Info);
                      Update_Constant_Visibility
                        (Visible_Constants,
                         UString_Value (Name),
-                        Decl_Type,
-                        Decl.Is_Constant);
+                        Local_Decl.Type_Info,
+                        Local_Decl.Is_Constant);
                   end loop;
                end loop;
 

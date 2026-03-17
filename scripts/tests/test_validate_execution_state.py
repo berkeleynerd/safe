@@ -58,8 +58,10 @@ class ValidateExecutionStateTests(unittest.TestCase):
         self.assertIn("scripts/safe_lsp.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn("scripts/run_rosetta_corpus.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn("scripts/run_pr111_language_evaluation_harness.py", GLUE_SAFETY_AUDITED_SCRIPTS)
+        self.assertIn("scripts/run_pr112_parser_completeness_phase1.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn("scripts/run_rosetta_corpus.py", GLUE_SAFETY_REPORT_SCRIPTS)
         self.assertIn("scripts/run_pr111_language_evaluation_harness.py", GLUE_SAFETY_REPORT_SCRIPTS)
+        self.assertIn("scripts/run_pr112_parser_completeness_phase1.py", GLUE_SAFETY_REPORT_SCRIPTS)
 
     def test_report_sync_report_accepts_matching_child_reports(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

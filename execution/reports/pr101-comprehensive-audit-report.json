@@ -2,12 +2,12 @@
   "artifact_hashes": {
     "audit_doc": "fc4edf3f450f82ed744cb28283cfbce58f07320be1ca48fba90889c343d75832",
     "compiler_readme": "05188ccfcaf9e0c14a02927b175159b64bc8d3c26016eaef18a51d5f61581ecc",
-    "dashboard": "01a8ac015a797eeefe6be0ba341468252d1c488b0f319e76dbaa938105413036",
+    "dashboard": "1c7fdb8c95d2172a78555463ace3180812ec78f38d4dfc0ead79dfad95383818",
     "matrix": "6fc15e53cef6f36c7e89d2afaaa23b2304821772023f310ed3ea20dfe1cd1fa0",
     "post_pr10_scope": "52d74391fcb697b6cc620bbeb8ed8aaff90f6d5689f99c9f093da972d9f55237",
-    "readme": "bc67f8de22dcb1d3dcef6ad5246584f0f19e8c4d764f9af8ac27704989e9faa1",
-    "tracker": "4764302e5d393906ae3da84f22cf0c076e5c6152f833b75495a3ae266de2f037",
-    "workflow": "3f8d2e30e9917a7a54d1f587e4a724efa98ee55d8d2290a9bfd8637d77750605"
+    "readme": "7ee08665fcbc99c04c27633e257bc3eae657794c91b52f61f68212e219b6f649",
+    "tracker": "39bf98a8dd162aeb72582f91c3ca802ee708d4b3872d1adabab51aee709d321b",
+    "workflow": "e8f3fe51c3112883ef6f95d42f1c67a3900beb6e74cdc2e5a1d778f93f34067d"
   },
   "audited_surfaces": [
     "spec/TBD consistency",
@@ -95,7 +95,7 @@
     "python_gates": [
       {
         "deterministic": true,
-        "report_sha256": "625210ab721d0390edd9efe32ef6a343833328d40b4b33ecadf3dd1aa7b9f1fd",
+        "report_sha256": "ef26a32fd4aae234321568e67d39790bf0622e11dffc868c09c3bd9aa8801635",
         "result": {
           "command": [
             "python3",
@@ -110,7 +110,7 @@
       },
       {
         "deterministic": true,
-        "report_sha256": "4ca5cf9f36c2e561de8169702c5fc400f39823a7a773e77d976b87734aed4e1a",
+        "report_sha256": "9316e248a64e931bb101ca880d5804c2395294fce5c82e9a1db0831f040f6220",
         "result": {
           "command": [
             "python3",
@@ -125,7 +125,7 @@
       },
       {
         "deterministic": true,
-        "report_sha256": "7cce638b9371a59ab54c1b07866cae7c3a3f02230e47ca519d1ce810ff04a1a5",
+        "report_sha256": "7e6cd6c09c86a5eff0a465327390bcca114aa5ee6b31054dc448cf3c06aa9a6a",
         "result": {
           "command": [
             "python3",
@@ -325,8 +325,8 @@
       "title": "Remaining sequential emitted proof-corpus expansion beyond ownership"
     }
   ],
-  "repeat_sha256": "401bb50179cc5c8c25752b1c3fdf5ba686dfa56a7b7f1a451ae13865883e5fe4",
-  "report_sha256": "401bb50179cc5c8c25752b1c3fdf5ba686dfa56a7b7f1a451ae13865883e5fe4",
+  "repeat_sha256": "479111c29bbe2232d2b06b23725136b3115c57bf81a12a85dea175ed284ee2d1",
+  "report_sha256": "479111c29bbe2232d2b06b23725136b3115c57bf81a12a85dea175ed284ee2d1",
   "retained_post_pr10_residuals": [
     {
       "area": "resolver",
@@ -496,7 +496,7 @@
   ],
   "task": "PR10.1",
   "tracker": {
-    "next_task_id": "PR11.2",
+    "next_task_id": "PR11.3",
     "pr101_evidence": [
       "execution/reports/pr101-comprehensive-audit-report.json"
     ],

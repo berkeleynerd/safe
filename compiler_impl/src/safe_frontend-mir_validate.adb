@@ -231,7 +231,8 @@ package body Safe_Frontend.Mir_Validate is
       Require (Value.Kind /= GM.Expr_Unknown, Where & ": unsupported expression");
 
       case Value.Kind is
-         when GM.Expr_Int | GM.Expr_Real | GM.Expr_Bool | GM.Expr_Null =>
+         when GM.Expr_Int | GM.Expr_Real | GM.Expr_String | GM.Expr_Char
+            | GM.Expr_Bool | GM.Expr_Null =>
             null;
          when GM.Expr_Ident =>
             Require (Has_Text (Value.Name), Where & ": missing identifier name");

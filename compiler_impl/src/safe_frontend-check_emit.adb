@@ -781,6 +781,24 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
+         when CM.Expr_String =>
+            return
+              "{""node_type"":""Primary"",""kind"":""Literal"",""value"":{""node_type"":""StringLiteral"",""text"":"
+              & JS.Quote (Expr.Text)
+              & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "},""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
+         when CM.Expr_Char =>
+            return
+              "{""node_type"":""Primary"",""kind"":""Literal"",""value"":{""node_type"":""CharacterLiteral"",""text"":"
+              & JS.Quote (Expr.Text)
+              & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "},""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
          when CM.Expr_Allocator =>
             return
               "{""node_type"":""Primary"",""kind"":""Allocator"",""value"":"
@@ -1254,6 +1272,59 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
+         when CM.Stmt_Case =>
+            declare
+               Alts : String_Vectors.Vector;
+            begin
+               if not Parsed.Case_Arms.Is_Empty then
+                  for Index in Parsed.Case_Arms.First_Index .. Parsed.Case_Arms.Last_Index loop
+                     declare
+                        Parsed_Arm : constant CM.Case_Arm := Parsed.Case_Arms (Index);
+                        Resolved_Arm : constant CM.Case_Arm :=
+                          (if not Resolved_Expr.Case_Arms.Is_Empty
+                              and then Index in Resolved_Expr.Case_Arms.First_Index .. Resolved_Expr.Case_Arms.Last_Index
+                           then Resolved_Expr.Case_Arms (Index)
+                           else Parsed_Arm);
+                        Choices : constant String :=
+                          (if Parsed_Arm.Is_Others
+                           then
+                             "{""node_type"":""DiscreteChoiceList"",""choices"":[{""node_type"":""DiscreteChoice"",""kind"":""Others"",""value"":null,""span"":"
+                             & JS.Span_Object (Parsed_Arm.Span)
+                             & "}],""span"":"
+                             & JS.Span_Object (Parsed_Arm.Span)
+                             & "}"
+                           else
+                             "{""node_type"":""DiscreteChoiceList"",""choices"":[{""node_type"":""DiscreteChoice"",""kind"":""ChoiceExpression"",""value"":"
+                             & Expression_Node (Resolved_Arm.Choice)
+                             & ",""span"":"
+                             & JS.Span_Object (Parsed_Arm.Span)
+                             & "}],""span"":"
+                             & JS.Span_Object (Parsed_Arm.Span)
+                             & "}");
+                     begin
+                        Alts.Append
+                          ("{""node_type"":""CaseStatementAlternative"",""choices"":"
+                           & Choices
+                           & ",""statements"":"
+                           & Sequence_Node
+                               (Parsed_Arm.Statements,
+                                Resolved_Arm.Statements,
+                                Parsed_Arm.Span)
+                           & ",""span"":"
+                           & JS.Span_Object (Parsed_Arm.Span)
+                           & "}");
+                     end;
+                  end loop;
+               end if;
+               return
+                 "{""node_type"":""CaseStatement"",""expression"":"
+                 & Expression_Node (Resolved_Expr.Case_Expr)
+                 & ",""alternatives"":"
+                 & Json_List (Alts)
+                 & ",""span"":"
+                 & JS.Span_Object (Parsed.Span)
+                 & "}";
+            end;
          when CM.Stmt_While =>
             return
               "{""node_type"":""LoopStatement"",""loop_name"":null,""iteration_scheme"":{""node_type"":""IterationScheme"",""kind"":""While"",""condition"":"

@@ -1378,6 +1378,14 @@ package body Safe_Frontend.Ada_Emit is
               (State,
                Expr.Span,
                "real literal missing source text");
+         when CM.Expr_String | CM.Expr_Char =>
+            if Has_Text (Expr.Text) then
+               return FT.To_String (Expr.Text);
+            end if;
+            Raise_Unsupported
+              (State,
+               Expr.Span,
+               "text literal missing source text");
          when CM.Expr_Bool =>
             return (if Expr.Bool_Value then "True" else "False");
          when CM.Expr_Null =>
@@ -1870,6 +1878,11 @@ package body Safe_Frontend.Ada_Emit is
                      Collect_Wide_Locals_From_Statements
                        (Unit, Document, State, Local_Names, Item.Else_Stmts);
                   end if;
+               when CM.Stmt_Case =>
+                  for Arm of Item.Case_Arms loop
+                     Collect_Wide_Locals_From_Statements
+                       (Unit, Document, State, Local_Names, Arm.Statements);
+                  end loop;
                when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
                   Collect_Wide_Locals_From_Statements
                     (Unit, Document, State, Local_Names, Item.Body_Stmts);
@@ -2791,6 +2804,8 @@ package body Safe_Frontend.Ada_Emit is
               and then Left.Int_Value = Right.Int_Value;
          when CM.Expr_Real =>
             return FT.To_String (Left.Text) = FT.To_String (Right.Text);
+         when CM.Expr_String | CM.Expr_Char =>
+            return FT.To_String (Left.Text) = FT.To_String (Right.Text);
          when CM.Expr_Bool =>
             return Left.Bool_Value = Right.Bool_Value;
          when CM.Expr_Null =>
@@ -2896,7 +2911,8 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       case Expr.Kind is
-         when CM.Expr_Int | CM.Expr_Real | CM.Expr_Bool | CM.Expr_Null | CM.Expr_Ident =>
+         when CM.Expr_Int | CM.Expr_Real | CM.Expr_String | CM.Expr_Char
+            | CM.Expr_Bool | CM.Expr_Null | CM.Expr_Ident =>
             return Render_Expr (Unit, Document, Expr, State);
          when CM.Expr_Select =>
             declare
@@ -3223,6 +3239,7 @@ package body Safe_Frontend.Ada_Emit is
                      end if;
                   end;
                when CM.Stmt_If
+                  | CM.Stmt_Case
                   | CM.Stmt_While
                   | CM.Stmt_For
                   | CM.Stmt_Loop
@@ -3347,6 +3364,13 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             end loop;
             return Item.Has_Else and then Statements_Contain_Exit (Item.Else_Stmts);
+         when CM.Stmt_Case =>
+            for Arm of Item.Case_Arms loop
+               if Statements_Contain_Exit (Arm.Statements) then
+                  return True;
+               end if;
+            end loop;
+            return False;
          when CM.Stmt_Block | CM.Stmt_Loop | CM.Stmt_While | CM.Stmt_For =>
             return Statements_Contain_Exit (Item.Body_Stmts);
          when others =>
@@ -3390,6 +3414,13 @@ package body Safe_Frontend.Ada_Emit is
                return True;
             end if;
             return Statements_Fall_Through (Item.Else_Stmts);
+         when CM.Stmt_Case =>
+            for Arm of Item.Case_Arms loop
+               if Statements_Fall_Through (Arm.Statements) then
+                  return True;
+               end if;
+            end loop;
+            return False;
          when CM.Stmt_Block =>
             return Statements_Fall_Through (Item.Body_Stmts);
          when CM.Stmt_Loop =>
@@ -4032,6 +4063,29 @@ package body Safe_Frontend.Ada_Emit is
                     (Buffer, Unit, Document, Item.Else_Stmts, State, Depth + 1, Return_Type, In_Loop);
                end if;
                Append_Line (Buffer, "end if;", Depth);
+            when CM.Stmt_Case =>
+               Append_Line
+                 (Buffer,
+                  "case " & Render_Expr (Unit, Document, Item.Case_Expr, State) & " is",
+                  Depth);
+               for Arm of Item.Case_Arms loop
+                  Append_Line
+                    (Buffer,
+                     (if Arm.Is_Others
+                      then "when others =>"
+                      else "when " & Render_Expr (Unit, Document, Arm.Choice, State) & " =>"),
+                     Depth + 1);
+                  Render_Statements
+                    (Buffer,
+                     Unit,
+                     Document,
+                     Arm.Statements,
+                     State,
+                     Depth + 2,
+                     Return_Type,
+                     In_Loop);
+               end loop;
+               Append_Line (Buffer, "end case;", Depth);
             when CM.Stmt_While =>
                Append_Line
                  (Buffer,

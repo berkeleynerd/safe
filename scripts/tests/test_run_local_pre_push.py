@@ -131,11 +131,11 @@ class RunLocalPrePushTests(unittest.TestCase):
             ),
         )
 
-    def test_gate_scripts_for_branch_keeps_generic_pr11_family_fallback(self) -> None:
+    def test_gate_scripts_for_branch_maps_pr112_branch(self) -> None:
         self.assertEqual(
             gate_scripts_for_branch("codex/pr112-parser-completeness"),
             (
-                "scripts/run_frontend_smoke.py",
+                "scripts/run_pr112_parser_completeness_phase1.py",
                 "scripts/run_pr101_comprehensive_audit.py",
             ),
         )
@@ -175,6 +175,21 @@ class RunLocalPrePushTests(unittest.TestCase):
             include_diff=False,
         )
         labels = [step.label for step in steps]
+        self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
+
+    def test_build_steps_include_stateful_baseline_scripts_for_pr112(self) -> None:
+        steps = build_steps(
+            branch="codex/pr112-parser-completeness",
+            python="python3",
+            alr="alr",
+            git="git",
+            include_diff=False,
+        )
+        labels = [step.label for step in steps]
+        self.assertIn("Run run_pr112_parser_completeness_phase1.py", labels)
+        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
+        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
+        self.assertIn("Run run_pr10_emitted_baseline.py", labels)
         self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
 
     def test_build_steps_skips_unmapped_non_pr08_branch(self) -> None:

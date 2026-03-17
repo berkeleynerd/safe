@@ -14,6 +14,8 @@ package Safe_Frontend.Check_Model is
      (Expr_Unknown,
       Expr_Int,
       Expr_Real,
+      Expr_String,
+      Expr_Char,
       Expr_Bool,
       Expr_Null,
       Expr_Ident,
@@ -230,6 +232,17 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Elsif_Part);
 
+   type Case_Arm is record
+      Is_Others  : Boolean := False;
+      Choice     : Expr_Access := null;
+      Statements : Statement_Access_Vectors.Vector;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Case_Arm_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Case_Arm);
+
    type Select_Arm_Kind is
      (Select_Arm_Unknown,
       Select_Arm_Channel,
@@ -272,6 +285,7 @@ package Safe_Frontend.Check_Model is
       Stmt_Call,
       Stmt_Return,
       Stmt_If,
+      Stmt_Case,
       Stmt_While,
       Stmt_For,
       Stmt_Block,
@@ -292,12 +306,14 @@ package Safe_Frontend.Check_Model is
       Value         : Expr_Access := null;
       Call          : Expr_Access := null;
       Condition     : Expr_Access := null;
+      Case_Expr     : Expr_Access := null;
       Channel_Name  : Expr_Access := null;
       Success_Var   : Expr_Access := null;
       Then_Stmts    : Statement_Access_Vectors.Vector;
       Elsifs        : Elsif_Part_Vectors.Vector;
       Has_Else      : Boolean := False;
       Else_Stmts    : Statement_Access_Vectors.Vector;
+      Case_Arms     : Case_Arm_Vectors.Vector;
       Loop_Var      : FT.UString := FT.To_UString ("");
       Loop_Range    : Discrete_Range;
       Body_Stmts    : Statement_Access_Vectors.Vector;

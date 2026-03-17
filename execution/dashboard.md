@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR11.2`
+- **Next task:** `PR11.3`
 - **Updated at:** `2026-03-17T00:00:00Z`
 
 ## Repo Facts
 
-- `tests/positive`: 49
-- `tests/negative`: 77
+- `tests/positive`: 51
+- `tests/negative`: 86
 - `tests/golden`: 3
 - `tests/concurrency`: 14
 - `tests/diagnostics_golden`: 22
-- **Total test corpus entries:** 165
+- **Total test corpus entries:** 176
 
 ## Task Ledger
 
@@ -59,7 +59,7 @@
 | PR10.5 | done | PR10.1 | 1 |
 | PR10.6 | done | PR10.3 | 1 |
 | PR11.1 | done | PR10.4, PR10.5, PR10.6 | 1 |
-| PR11.2 | planned | PR11.1 | 0 |
+| PR11.2 | done | PR11.1 | 1 |
 | PR11.3 | planned | PR11.2 | 0 |
 | PR11.3a | planned | PR11.3 | 0 |
 | PR11.4 | planned | PR11.3a | 0 |
@@ -623,13 +623,15 @@
 
 ### PR11.2 — Parser Completeness Phase 1
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR11.1
 - **Blockers:** none
 - **Acceptance:**
   - The parser is extended for string/character literals and case statements without absorbing richer constant-evaluation work (`PS-001`) or named-number support (`PS-010`).
   - Resolver/emitter support and positive/negative tests are added for the accepted string/character and case-statement surface.
   - The Rosetta/sample corpus grows with programs unlocked by strings/chars and case statements after the PR11.1 starter set lands.
+- **Evidence:**
+  - `execution/reports/pr112-parser-completeness-phase1-report.json`
 
 ### PR11.3 — Discriminated Types and Constraints
 

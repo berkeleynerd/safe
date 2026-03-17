@@ -20,6 +20,8 @@ package Safe_Frontend.Mir_Model is
      (Expr_Unknown,
       Expr_Int,
       Expr_Real,
+      Expr_String,
+      Expr_Char,
       Expr_Bool,
       Expr_Null,
       Expr_Ident,

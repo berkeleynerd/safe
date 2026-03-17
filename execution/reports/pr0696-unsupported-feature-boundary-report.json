@@ -171,8 +171,8 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "2d9a169a2dd9c04d7d65dd9c856510afd047eaca37dcb79d4d40c75007a00fa2",
-  "report_sha256": "2d9a169a2dd9c04d7d65dd9c856510afd047eaca37dcb79d4d40c75007a00fa2",
+  "repeat_sha256": "522e7627946ab3e979c3089bb59fb33bf09fa1c105ca1bde1bc7584685134ee9",
+  "report_sha256": "522e7627946ab3e979c3089bb59fb33bf09fa1c105ca1bde1bc7584685134ee9",
   "status": "ok",
   "task": "PR06.9.6",
   "unsupported_cases": [
@@ -619,22 +619,22 @@
         "command": [
           "compiler_impl/bin/safec",
           "ast",
-          "$TMPDIR/string_literal.safe"
+          "tests/negative/neg_string_equality.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "string_literal.safe:2:22: error: string and character literals are outside the current PR05/PR06 check subset\n  |\n  | 2 |    Value : Integer = \"x\";\n  |   |                      ^~~\n  |\n",
+        "stderr": "neg_string_equality.safe:9:14: error: string comparison and concatenation are outside the current PR11.2 text subset\n  |\n  | 9 |       return Left == Right;\n  |   |              ^~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check": {
         "command": [
           "compiler_impl/bin/safec",
           "check",
-          "$TMPDIR/string_literal.safe"
+          "tests/negative/neg_string_equality.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "string_literal.safe:2:22: error: string and character literals are outside the current PR05/PR06 check subset\n  |\n  | 2 |    Value : Integer = \"x\";\n  |   |                      ^~~\n  |\n",
+        "stderr": "neg_string_equality.safe:9:14: error: string comparison and concatenation are outside the current PR11.2 text subset\n  |\n  | 9 |       return Left == Right;\n  |   |              ^~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "check_diag_json": {
@@ -642,25 +642,25 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "$TMPDIR/string_literal.safe"
+          "tests/negative/neg_string_equality.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"string and character literals are outside the current PR05/PR06 check subset\",\"path\":\"$TMPDIR/string_literal.safe\",\"span\":{\"start_line\":2,\"start_col\":22,\"end_line\":2,\"end_col\":24},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"unsupported_source_construct\",\"message\":\"string comparison and concatenation are outside the current PR11.2 text subset\",\"path\":\"tests/negative/neg_string_equality.safe\",\"span\":{\"start_line\":9,\"start_col\":14,\"end_line\":9,\"end_col\":26},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
       },
       "diagnostics": [
         {
           "highlight_span": null,
-          "message": "string and character literals are outside the current PR05/PR06 check subset",
+          "message": "string comparison and concatenation are outside the current PR11.2 text subset",
           "notes": [],
-          "path": "$TMPDIR/string_literal.safe",
+          "path": "tests/negative/neg_string_equality.safe",
           "reason": "unsupported_source_construct",
           "span": {
-            "end_col": 24,
-            "end_line": 2,
-            "start_col": 22,
-            "start_line": 2
+            "end_col": 26,
+            "end_line": 9,
+            "start_col": 14,
+            "start_line": 9
           },
           "suggestions": []
         }
@@ -669,23 +669,23 @@
         "command": [
           "compiler_impl/bin/safec",
           "emit",
-          "$TMPDIR/string_literal.safe",
+          "tests/negative/neg_string_equality.safe",
           "--out-dir",
-          "$TMPDIR/string_literal-out",
+          "$TMPDIR/neg_string_equality-out",
           "--interface-dir",
-          "$TMPDIR/string_literal-iface"
+          "$TMPDIR/neg_string_equality-iface"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "string_literal.safe:2:22: error: string and character literals are outside the current PR05/PR06 check subset\n  |\n  | 2 |    Value : Integer = \"x\";\n  |   |                      ^~~\n  |\n",
+        "stderr": "neg_string_equality.safe:9:14: error: string comparison and concatenation are outside the current PR11.2 text subset\n  |\n  | 9 |       return Left == Right;\n  |   |              ^~~~~~~~~~~~~\n  |\n",
         "stdout": ""
       },
       "emit_artifacts": {
         "iface_files": [],
         "out_files": []
       },
-      "name": "string_literal.safe",
-      "source": "$TMPDIR/string_literal.safe"
+      "name": "string_equality",
+      "source": "tests/negative/neg_string_equality.safe"
     },
     {
       "ast": {

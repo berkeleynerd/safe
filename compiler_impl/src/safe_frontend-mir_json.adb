@@ -406,6 +406,16 @@ package body Safe_Frontend.Mir_Json is
          if Has_Field (Value, "text") and then Get (Value, "text").Kind = JSON_String_Type then
             Result.Text := FT.To_UString (Get (Value, "text"));
          end if;
+      elsif FT.To_String (Tag) = "string" then
+         Result.Kind := GM.Expr_String;
+         if Has_Field (Value, "text") and then Get (Value, "text").Kind = JSON_String_Type then
+            Result.Text := FT.To_UString (Get (Value, "text"));
+         end if;
+      elsif FT.To_String (Tag) = "char" then
+         Result.Kind := GM.Expr_Char;
+         if Has_Field (Value, "text") and then Get (Value, "text").Kind = JSON_String_Type then
+            Result.Text := FT.To_UString (Get (Value, "text"));
+         end if;
       elsif FT.To_String (Tag) = "bool"
         or else
           (FT.To_String (Tag) = "literal"

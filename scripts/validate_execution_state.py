@@ -373,6 +373,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/safe_lsp.py",
     "scripts/run_rosetta_corpus.py",
     "scripts/run_pr111_language_evaluation_harness.py",
+    "scripts/run_pr112_parser_completeness_phase1.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
@@ -416,6 +417,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr106_sequential_proof_corpus_expansion.py",
     "scripts/run_rosetta_corpus.py",
     "scripts/run_pr111_language_evaluation_harness.py",
+    "scripts/run_pr112_parser_completeness_phase1.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {

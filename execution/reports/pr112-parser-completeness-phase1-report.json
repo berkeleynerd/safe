@@ -1,0 +1,335 @@
+{
+  "deterministic": true,
+  "negative_boundaries": [
+    {
+      "message": "mutable objects of type String are outside the current PR11.2 text subset",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_string_mutable_object.safe",
+      "span": {
+        "end_col": 16,
+        "end_line": 7,
+        "start_col": 11,
+        "start_line": 7
+      }
+    },
+    {
+      "message": "string parameters currently support mode `in` only",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_string_out_param.safe",
+      "span": {
+        "end_col": 40,
+        "end_line": 7,
+        "start_col": 35,
+        "start_line": 7
+      }
+    },
+    {
+      "message": "record fields of type String are outside the current PR11.2 text subset",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_string_field.safe",
+      "span": {
+        "end_col": 19,
+        "end_line": 8,
+        "start_col": 14,
+        "start_line": 8
+      }
+    },
+    {
+      "message": "channel element types of String are outside the current PR11.2 text subset",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_string_channel.safe",
+      "span": {
+        "end_col": 27,
+        "end_line": 7,
+        "start_col": 22,
+        "start_line": 7
+      }
+    },
+    {
+      "message": "string comparison and concatenation are outside the current PR11.2 text subset",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_string_equality.safe",
+      "span": {
+        "end_col": 26,
+        "end_line": 9,
+        "start_col": 14,
+        "start_line": 9
+      }
+    },
+    {
+      "message": "PR11.2 case expressions are limited to Boolean, integer, and Character",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_case_on_string.safe",
+      "span": {
+        "end_col": 15,
+        "end_line": 9,
+        "start_col": 12,
+        "start_line": 9
+      }
+    },
+    {
+      "message": "range case choices are outside the current PR11.2 parser-completeness subset",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_case_range_choice.safe",
+      "span": {
+        "end_col": 18,
+        "end_line": 10,
+        "start_col": 17,
+        "start_line": 10
+      }
+    },
+    {
+      "message": "multi-choice case arms are outside the current PR11.2 parser-completeness subset",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_case_multi_choice.safe",
+      "span": {
+        "end_col": 16,
+        "end_line": 10,
+        "start_col": 16,
+        "start_line": 10
+      }
+    },
+    {
+      "message": "case statements currently require a final `when others then` arm",
+      "reason": "source_frontend_error",
+      "source": "tests/negative/neg_case_missing_others.safe",
+      "span": {
+        "end_col": 9,
+        "end_line": 13,
+        "start_col": 7,
+        "start_line": 13
+      }
+    }
+  ],
+  "positive_fixtures": [
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/pr112_character_case.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/pr112_character_case/ada/build.gpr",
+          "pr112_character_case.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/pr112_character_case.safe",
+          "--out-dir",
+          "$TMPDIR/pr112_character_case/out",
+          "--interface-dir",
+          "$TMPDIR/pr112_character_case/iface",
+          "--ada-out-dir",
+          "$TMPDIR/pr112_character_case/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "observed_mir_tags": [
+        "binary",
+        "char",
+        "ident",
+        "string"
+      ],
+      "source": "tests/positive/pr112_character_case.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/pr112_character_case/out/pr112_character_case.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/pr112_discrete_case.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/pr112_discrete_case/ada/build.gpr",
+          "pr112_discrete_case.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/pr112_discrete_case.safe",
+          "--out-dir",
+          "$TMPDIR/pr112_discrete_case/out",
+          "--interface-dir",
+          "$TMPDIR/pr112_discrete_case/iface",
+          "--ada-out-dir",
+          "$TMPDIR/pr112_discrete_case/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "observed_mir_tags": [
+        "binary",
+        "bool",
+        "ident",
+        "int",
+        "string"
+      ],
+      "source": "tests/positive/pr112_discrete_case.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/pr112_discrete_case/out/pr112_discrete_case.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    }
+  ],
+  "repeat_sha256": "3d332284f3f7b250283f874db7742d729a366e76c9c31138c3fc9a8994a6278d",
+  "report_sha256": "3d332284f3f7b250283f874db7742d729a366e76c9c31138c3fc9a8994a6278d",
+  "rosetta_text_samples": [
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "samples/rosetta/text/grade_message.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/grade_message/ada/build.gpr",
+          "grade_message.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "samples/rosetta/text/grade_message.safe",
+          "--out-dir",
+          "$TMPDIR/grade_message/out",
+          "--interface-dir",
+          "$TMPDIR/grade_message/iface",
+          "--ada-out-dir",
+          "$TMPDIR/grade_message/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "observed_mir_tags": [
+        "binary",
+        "char",
+        "ident",
+        "string"
+      ],
+      "source": "samples/rosetta/text/grade_message.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/grade_message/out/grade_message.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "samples/rosetta/text/opcode_dispatch.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/opcode_dispatch/ada/build.gpr",
+          "opcode_dispatch.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "samples/rosetta/text/opcode_dispatch.safe",
+          "--out-dir",
+          "$TMPDIR/opcode_dispatch/out",
+          "--interface-dir",
+          "$TMPDIR/opcode_dispatch/iface",
+          "--ada-out-dir",
+          "$TMPDIR/opcode_dispatch/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "observed_mir_tags": [
+        "binary",
+        "ident",
+        "int",
+        "string"
+      ],
+      "source": "samples/rosetta/text/opcode_dispatch.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/opcode_dispatch/out/opcode_dispatch.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    }
+  ]
+}

@@ -56,6 +56,12 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr112("PR12.1"))
         self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr112("PR11.1"))
 
+    def test_pr101_audit_next_task_guard_accepts_pr113_and_beyond(self) -> None:
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr113("PR11.3"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr113("PR11.3a"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr113("PR12.1"))
+        self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr113("PR11.2"))
+
     def test_pr101_audit_tracks_pr111_acceptance_and_evidence(self) -> None:
         self.assertEqual(
             run_pr101_comprehensive_audit.EXPECTED_PR111_EVIDENCE,
@@ -65,6 +71,17 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertIn(
             "safe build <file.safe>",
             run_pr101_comprehensive_audit.EXPECTED_PR111_ACCEPTANCE[0],
+        )
+
+    def test_pr101_audit_tracks_pr112_acceptance_and_evidence(self) -> None:
+        self.assertEqual(
+            run_pr101_comprehensive_audit.EXPECTED_PR112_EVIDENCE,
+            ["execution/reports/pr112-parser-completeness-phase1-report.json"],
+        )
+        self.assertEqual(len(run_pr101_comprehensive_audit.EXPECTED_PR112_ACCEPTANCE), 3)
+        self.assertIn(
+            "string/character literals and case statements",
+            run_pr101_comprehensive_audit.EXPECTED_PR112_ACCEPTANCE[0],
         )
 
     def test_split_table_row_rejects_non_data_rows(self) -> None:

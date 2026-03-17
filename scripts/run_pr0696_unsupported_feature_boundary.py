@@ -112,8 +112,8 @@ UNSUPPORTED_CASES = [
         "expected_reason": "unsupported_source_construct",
     },
     {
-        "name": "string_literal.safe",
-        "text": 'package String_Literal is\n   Value : Integer = "x";\nend String_Literal;\n',
+        "name": "string_equality",
+        "source": REPO_ROOT / "tests" / "negative" / "neg_string_equality.safe",
         "expected_reason": "unsupported_source_construct",
     },
     {
