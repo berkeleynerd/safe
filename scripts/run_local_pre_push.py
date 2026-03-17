@@ -24,6 +24,7 @@ class Step:
 
 
 FOLLOWUP_SCRIPTS = (
+    "scripts/run_pr09_ada_emission_baseline.py",
     "scripts/run_pr0694_output_contract_stability.py",
     "scripts/run_pr0697_gate_quality.py",
     "scripts/run_pr0699_build_reproducibility.py",
