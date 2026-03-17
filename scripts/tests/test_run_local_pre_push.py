@@ -140,7 +140,7 @@ class RunLocalPrePushTests(unittest.TestCase):
             ),
         )
 
-    def test_build_steps_include_stateful_baseline_chain_for_pr111(self) -> None:
+    def test_build_steps_include_stateful_baseline_scripts_for_pr111(self) -> None:
         steps = build_steps(
             branch="codex/pr111-language-eval-harness",
             python="python3",

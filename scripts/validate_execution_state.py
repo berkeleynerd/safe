@@ -657,6 +657,9 @@ def report_sync_report(
         except json.JSONDecodeError as exc:
             invalid_reports.append(f"{umbrella_rel}: invalid JSON ({exc.msg})")
             continue
+        if not isinstance(umbrella_payload, dict):
+            invalid_reports.append(f"{umbrella_rel}: report root must be an object")
+            continue
 
         umbrella_expected_sha = finalized_report_sha(umbrella_payload)
         if (
@@ -702,6 +705,9 @@ def report_sync_report(
                 child_payload = json.loads(child_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as exc:
                 invalid_reports.append(f"{child_rel}: invalid JSON ({exc.msg})")
+                continue
+            if not isinstance(child_payload, dict):
+                invalid_reports.append(f"{child_rel}: report root must be an object")
                 continue
 
             child_expected_sha = finalized_report_sha(child_payload)

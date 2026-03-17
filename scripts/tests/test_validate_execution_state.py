@@ -120,6 +120,58 @@ class ValidateExecutionStateTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check_report_sync(repo_root=repo_root, report_specs=report_specs)
 
+    def test_report_sync_report_rejects_non_object_umbrella_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            umbrella_path = repo_root / "execution" / "reports" / "umbrella.json"
+            umbrella_path.parent.mkdir(parents=True, exist_ok=True)
+            umbrella_path.write_text("[]\n", encoding="utf-8")
+            report_specs = {
+                "execution/reports/umbrella.json": {
+                    "entry_list_key": "slice_reports",
+                    "entry_id_key": "script",
+                    "entry_sha_key": "report_sha256",
+                    "children": {},
+                }
+            }
+            report = report_sync_report(repo_root=repo_root, report_specs=report_specs)
+            self.assertEqual(
+                report["invalid_reports"],
+                ["execution/reports/umbrella.json: report root must be an object"],
+            )
+
+    def test_report_sync_report_rejects_non_object_child_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            child_path = repo_root / "execution" / "reports" / "child.json"
+            child_path.parent.mkdir(parents=True, exist_ok=True)
+            child_path.write_text("[]\n", encoding="utf-8")
+            umbrella_path = repo_root / "execution" / "reports" / "umbrella.json"
+            self._write_finalized_report(
+                umbrella_path,
+                {
+                    "slice_reports": [
+                        {
+                            "script": "scripts/run_child.py",
+                            "report_sha256": "0" * 64,
+                        }
+                    ]
+                },
+            )
+            report_specs = {
+                "execution/reports/umbrella.json": {
+                    "entry_list_key": "slice_reports",
+                    "entry_id_key": "script",
+                    "entry_sha_key": "report_sha256",
+                    "children": {"scripts/run_child.py": "execution/reports/child.json"},
+                }
+            }
+            report = report_sync_report(repo_root=repo_root, report_specs=report_specs)
+            self.assertEqual(
+                report["invalid_reports"],
+                ["execution/reports/child.json: report root must be an object"],
+            )
+
     def test_check_dependencies_rejects_cycles(self) -> None:
         tasks = [
             {"id": "A", "depends_on": ["B"]},
