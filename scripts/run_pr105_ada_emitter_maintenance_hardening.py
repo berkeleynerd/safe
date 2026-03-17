@@ -106,6 +106,36 @@ end Repeated_Target_Post;
         ],
         "forbidden_fragments": [],
     },
+    {
+        "id": "call_aggregate_target",
+        "source": """package Call_Aggregate_Target_Post is
+
+   type Payload is record
+      X : Integer;
+   end record;
+
+   type Holder is record
+      Chosen : Integer;
+   end record;
+
+   function Take (Item : Holder) return Integer is
+   begin
+      return Item.Chosen;
+   end Take;
+
+   procedure Touch (Ref : access Payload) is
+   begin
+      Ref.all.X = Take ((Chosen = Ref.all.X));
+   end Touch;
+
+end Call_Aggregate_Target_Post;
+""",
+        "required_spec_fragments": [
+            "pragma Unevaluated_Use_Of_Old (Allow);",
+            "Post => Ref.all.X = Take ((Chosen => Ref.all.X'Old));",
+        ],
+        "forbidden_fragments": [],
+    },
 ]
 
 SUBTYPE_CASES: list[dict[str, object]] = [
@@ -113,8 +143,7 @@ SUBTYPE_CASES: list[dict[str, object]] = [
         "id": "integer_subtype_lowering",
         "source": """package Integer_Subtype_Hardening is
 
-   type Count is range 0 .. 100;
-   subtype Small_Count is Count;
+   subtype Small_Count is Integer;
 
    procedure Bump (Value : in out Small_Count) is
    begin
@@ -133,8 +162,7 @@ end Integer_Subtype_Hardening;
         "id": "float_subtype_no_integer_lowering",
         "source": """package Float_Subtype_Hardening is
 
-   type Component is digits 6 range 0.0 .. 100.0;
-   subtype Half_Component is Component;
+   subtype Half_Component is Float;
    type Box is record
       X : Half_Component;
    end record;

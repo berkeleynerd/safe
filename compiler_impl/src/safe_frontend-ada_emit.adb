@@ -899,6 +899,18 @@ package body Safe_Frontend.Ada_Emit is
       return (others => <>);
    end Lookup_Type;
 
+   function Is_Builtin_Integer_Name (Name : String) return Boolean is
+   begin
+      return Name in "Integer" | "Natural" | "Positive"
+        | "Long_Long_Integer" | "Long_Long_Long_Integer"
+        | "Safe_Runtime.Wide_Integer";
+   end Is_Builtin_Integer_Name;
+
+   function Is_Builtin_Float_Name (Name : String) return Boolean is
+   begin
+      return Name in "Float" | "Long_Float";
+   end Is_Builtin_Float_Name;
+
    function Base_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -929,14 +941,15 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean
    is
-      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      Kind : constant String := FT.To_String (Base.Kind);
-      Name : constant String := FT.To_String (Base.Name);
+      Base            : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind            : constant String := FT.To_String (Base.Kind);
+      Name            : constant String := FT.To_String (Base.Name);
+      Unresolved_Base : constant String :=
+        (if Kind = "subtype" and then Base.Has_Base then FT.To_String (Base.Base) else "");
    begin
       return Kind = "integer"
-        or else Name in "Integer" | "Natural" | "Positive"
-        | "Long_Long_Integer" | "Long_Long_Long_Integer"
-        | "Safe_Runtime.Wide_Integer";
+        or else Is_Builtin_Integer_Name (Name)
+        or else Is_Builtin_Integer_Name (Unresolved_Base);
    end Is_Integer_Type;
 
    function Is_Float_Type
@@ -944,12 +957,15 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean
    is
-      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      Kind : constant String := FT.To_String (Base.Kind);
-      Name : constant String := FT.To_String (Base.Name);
+      Base            : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind            : constant String := FT.To_String (Base.Kind);
+      Name            : constant String := FT.To_String (Base.Name);
+      Unresolved_Base : constant String :=
+        (if Kind = "subtype" and then Base.Has_Base then FT.To_String (Base.Base) else "");
    begin
       return Kind = "float"
-        or else Name in "Float" | "Long_Float";
+        or else Is_Builtin_Float_Name (Name)
+        or else Is_Builtin_Float_Name (Unresolved_Base);
    end Is_Float_Type;
 
    function Is_Integer_Type
@@ -958,10 +974,7 @@ package body Safe_Frontend.Ada_Emit is
       Name     : String) return Boolean
    is
    begin
-      if Name in "Integer" | "Natural" | "Positive"
-        | "Long_Long_Integer" | "Long_Long_Long_Integer"
-        | "Safe_Runtime.Wide_Integer"
-      then
+      if Is_Builtin_Integer_Name (Name) then
          return True;
       elsif Has_Type (Unit, Document, Name) then
          return Is_Integer_Type (Unit, Document, Lookup_Type (Unit, Document, Name));
@@ -975,7 +988,7 @@ package body Safe_Frontend.Ada_Emit is
       Name     : String) return Boolean
    is
    begin
-      if Name in "Float" | "Long_Float" then
+      if Is_Builtin_Float_Name (Name) then
          return True;
       elsif Has_Type (Unit, Document, Name) then
          return Is_Float_Type (Unit, Document, Lookup_Type (Unit, Document, Name));
@@ -1098,7 +1111,12 @@ package body Safe_Frontend.Ada_Emit is
            & Trim_Image (Type_Item.High)
            & ";";
       elsif Kind = "subtype" then
-         if Type_Item.Has_Low and then Type_Item.Has_High then
+         if Is_Builtin_Integer_Name (FT.To_String (Type_Item.Base))
+           or else Is_Builtin_Float_Name (FT.To_String (Type_Item.Base))
+         then
+            return
+              "subtype " & Name & " is " & FT.To_String (Type_Item.Base) & ";";
+         elsif Type_Item.Has_Low and then Type_Item.Has_High then
             return
               "subtype "
               & Name
@@ -2776,6 +2794,132 @@ package body Safe_Frontend.Ada_Emit is
               & Render_Expr_With_Target_Substitution
                   (Unit, Document, Expr.Inner, Target, Replacement, State, Supported)
               & ")";
+         when CM.Expr_Subtype_Indication =>
+            if Has_Text (Expr.Type_Name) then
+               return Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name));
+            end if;
+            Supported := False;
+            return "";
+         when CM.Expr_Call =>
+            declare
+               Callee_Image : SU.Unbounded_String;
+            begin
+               if Expr.Callee /= null
+                 and then Expr.Callee.Kind = CM.Expr_Select
+                 and then FT.To_String (Expr.Callee.Selector) = "Access"
+                 and then Expr.Callee.Prefix /= null
+                 and then Has_Text (Expr.Callee.Prefix.Type_Name)
+                 and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
+                 and then Is_Access_Type
+                   (Lookup_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name)))
+               then
+                  Callee_Image :=
+                    SU.To_Unbounded_String
+                      (Render_Expr_With_Target_Substitution
+                         (Unit,
+                          Document,
+                          Expr.Callee.Prefix,
+                          Target,
+                          Replacement,
+                          State,
+                          Supported));
+               elsif Expr.Callee /= null
+                 and then Expr.Callee.Kind = CM.Expr_Select
+                 and then Is_Attribute_Selector (FT.To_String (Expr.Callee.Selector))
+                 and then not
+                   (Expr.Callee.Prefix /= null
+                    and then Expr.Callee.Prefix.Kind = CM.Expr_Select
+                    and then FT.To_String (Expr.Callee.Prefix.Selector) = "all")
+                 and then not
+                   Selector_Is_Record_Field
+                     (Unit,
+                      Document,
+                      Expr.Callee.Prefix,
+                      FT.To_String (Expr.Callee.Selector))
+               then
+                  Callee_Image :=
+                    SU.To_Unbounded_String
+                      (Render_Expr_With_Target_Substitution
+                         (Unit,
+                          Document,
+                          Expr.Callee.Prefix,
+                          Target,
+                          Replacement,
+                          State,
+                          Supported)
+                       & "'"
+                       & FT.To_String (Expr.Callee.Selector));
+               else
+                  Callee_Image :=
+                    SU.To_Unbounded_String
+                      (Render_Expr_With_Target_Substitution
+                         (Unit,
+                          Document,
+                          Expr.Callee,
+                          Target,
+                          Replacement,
+                          State,
+                          Supported));
+               end if;
+
+               if not Supported then
+                  return "";
+               elsif Expr.Args.Is_Empty then
+                  return SU.To_String (Callee_Image);
+               end if;
+
+               Result := Callee_Image & SU.To_Unbounded_String (" (");
+            end;
+            for Index in Expr.Args.First_Index .. Expr.Args.Last_Index loop
+               if Index /= Expr.Args.First_Index then
+                  Result := Result & SU.To_Unbounded_String (", ");
+               end if;
+               Result :=
+                 Result
+                 & SU.To_Unbounded_String
+                     (Render_Expr_With_Target_Substitution
+                        (Unit,
+                         Document,
+                         Expr.Args (Index),
+                         Target,
+                         Replacement,
+                         State,
+                         Supported));
+               if not Supported then
+                  return "";
+               end if;
+            end loop;
+            Result := Result & SU.To_Unbounded_String (")");
+            return SU.To_String (Result);
+         when CM.Expr_Aggregate =>
+            Result := SU.To_Unbounded_String ("(");
+            for Index in Expr.Fields.First_Index .. Expr.Fields.Last_Index loop
+               declare
+                  Field : constant CM.Aggregate_Field := Expr.Fields (Index);
+               begin
+                  if Index /= Expr.Fields.First_Index then
+                     Result := Result & SU.To_Unbounded_String (", ");
+                  end if;
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        (FT.To_String (Field.Field_Name)
+                         & " => "
+                         & Render_Expr_With_Target_Substitution
+                             (Unit,
+                              Document,
+                              Field.Expr,
+                              Target,
+                              Replacement,
+                              State,
+                              Supported));
+                  if not Supported then
+                     return "";
+                  end if;
+               end;
+            end loop;
+            Result := Result & SU.To_Unbounded_String (")");
+            return SU.To_String (Result);
          when CM.Expr_Annotated =>
             declare
                Target_Image : constant String :=

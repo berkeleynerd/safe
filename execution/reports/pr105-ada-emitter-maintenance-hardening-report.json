@@ -74,6 +74,30 @@
           "Post => Ref.all.X = (Ref.all.X'Old + Ref.all.X'Old);"
         ]
       }
+    },
+    {
+      "case": "call_aggregate_target",
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/call_aggregate_target/ada/build.gpr",
+          "call_aggregate_target_post.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "spec_assertions": {
+        "forbidden": [],
+        "required": [
+          "pragma Unevaluated_Use_Of_Old (Allow);",
+          "Post => Ref.all.X = Take ((Chosen => Ref.all.X'Old));"
+        ]
+      }
     }
   ],
   "deterministic": true,
@@ -676,8 +700,8 @@
       ]
     }
   },
-  "repeat_sha256": "8a00a179961dbf3d0d4b99e2c8841c8046d87b335caea1b2bde252c188320dbb",
-  "report_sha256": "8a00a179961dbf3d0d4b99e2c8841c8046d87b335caea1b2bde252c188320dbb",
+  "repeat_sha256": "9336c9131bafd04a3386163de82eba02e036b61bc0538f4a9fed27ae037fd80c",
+  "report_sha256": "9336c9131bafd04a3386163de82eba02e036b61bc0538f4a9fed27ae037fd80c",
   "status": "ok",
   "subtype_classification_regressions": [
     {
