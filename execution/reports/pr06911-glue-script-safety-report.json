@@ -42,6 +42,7 @@
       "scripts/safe_lsp.py",
       "scripts/run_rosetta_corpus.py",
       "scripts/run_pr111_language_evaluation_harness.py",
+      "scripts/run_pr112_parser_completeness_phase1.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
@@ -92,7 +93,8 @@
       "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
       "scripts/run_pr106_sequential_proof_corpus_expansion.py",
       "scripts/run_rosetta_corpus.py",
-      "scripts/run_pr111_language_evaluation_harness.py"
+      "scripts/run_pr111_language_evaluation_harness.py",
+      "scripts/run_pr112_parser_completeness_phase1.py"
     ],
     "safe_source_readers": [
       {
@@ -182,8 +184,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "4d290127e43be828a424ccbb9101a3fb3781d6bc3e81569d3ca3cdb07a588132",
-  "report_sha256": "4d290127e43be828a424ccbb9101a3fb3781d6bc3e81569d3ca3cdb07a588132",
+  "repeat_sha256": "57d9029182a2c3b37bbf5db59edf5db9eb362710f6746f014f23bec39ba0c6e5",
+  "report_sha256": "57d9029182a2c3b37bbf5db59edf5db9eb362710f6746f014f23bec39ba0c6e5",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

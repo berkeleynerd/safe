@@ -9,6 +9,9 @@
       "include": "#strings"
     },
     {
+      "include": "#characters"
+    },
+    {
       "include": "#keywords"
     },
     {
@@ -48,11 +51,19 @@
         }
       ]
     },
+    "characters": {
+      "patterns": [
+        {
+          "name": "constant.character.safe",
+          "match": "'(?:''|[^'])'"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.safe",
-          "match": "\\b(package|is|begin|end|if|elsif|else|then|loop|while|for|return|record|type|range|access|procedure|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|null|and|or|not|mod|rem)\\b"
+          "match": "\\b(package|is|begin|end|if|elsif|else|then|loop|while|for|return|record|type|range|access|procedure|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|null|and|or|not|mod|rem|case|when|others)\\b"
         },
         {
           "name": "storage.modifier.safe",
@@ -72,7 +83,7 @@
       "patterns": [
         {
           "name": "support.type.builtin.safe",
-          "match": "\\b(Boolean|Integer|Natural)\\b"
+          "match": "\\b(Boolean|Integer|Natural|Character|String)\\b"
         }
       ]
     },

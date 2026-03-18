@@ -148,6 +148,14 @@ class Pr111LanguageEvalTests(unittest.TestCase):
         self.assertEqual(package_payload["main"], "./extension.js")
         self.assertEqual(package_payload["contributes"]["languages"][0]["id"], "safe")
         self.assertEqual(grammar_payload["scopeName"], "source.safe")
+        keyword_matchers = grammar_payload["repository"]["keywords"]["patterns"]
+        type_matchers = grammar_payload["repository"]["types"]["patterns"]
+        character_matchers = grammar_payload["repository"]["characters"]["patterns"]
+        self.assertIn("case", keyword_matchers[0]["match"])
+        self.assertIn("others", keyword_matchers[0]["match"])
+        self.assertIn("Character", type_matchers[0]["match"])
+        self.assertIn("String", type_matchers[0]["match"])
+        self.assertEqual(character_matchers[0]["name"], "constant.character.safe")
         self.assertEqual(config_payload["comments"]["lineComment"], "--")
 
 

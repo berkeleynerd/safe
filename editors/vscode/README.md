@@ -8,7 +8,7 @@ This is the minimal PR11.1 editor surface for Safe.
 
 Important boundary:
 
-- Quote-based string scopes in the grammar are editor-only highlighting, not a statement that PR11.2 string syntax has landed in the compiler.
+- The grammar statically highlights the current PR11.2 string/character/case surface, but it is still editor-only tokenization rather than semantic analysis.
 - This extension is intentionally disposable and may be replaced by a real post-v1.0 language server.
 
 ## Local Development Install

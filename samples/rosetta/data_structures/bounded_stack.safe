@@ -30,33 +30,43 @@ package Bounded_Stack is
 
    procedure Pop (S : in out Stack; Value : out Item) is
    begin
-      if S.Size == 1 then
-         Value = S.Data (1);
-         S.Size = 0;
-      elsif S.Size == 2 then
-         Value = S.Data (2);
-         S.Size = 1;
-      elsif S.Size == 3 then
-         Value = S.Data (3);
-         S.Size = 2;
-      elsif S.Size == 4 then
-         Value = S.Data (4);
-         S.Size = 3;
-      elsif S.Size == 5 then
-         Value = S.Data (5);
-         S.Size = 4;
-      elsif S.Size == 6 then
-         Value = S.Data (6);
-         S.Size = 5;
-      elsif S.Size == 7 then
-         Value = S.Data (7);
-         S.Size = 6;
-      elsif S.Size == 8 then
-         Value = S.Data (8);
-         S.Size = S.Size - 1;
-      else
-         Value = 0;
-      end if;
+      case S.Size is
+         when 1 then
+            Value = S.Data (1);
+            S.Size = 0;
+         end when;
+         when 2 then
+            Value = S.Data (2);
+            S.Size = 1;
+         end when;
+         when 3 then
+            Value = S.Data (3);
+            S.Size = 2;
+         end when;
+         when 4 then
+            Value = S.Data (4);
+            S.Size = 3;
+         end when;
+         when 5 then
+            Value = S.Data (5);
+            S.Size = 4;
+         end when;
+         when 6 then
+            Value = S.Data (6);
+            S.Size = 5;
+         end when;
+         when 7 then
+            Value = S.Data (7);
+            S.Size = 6;
+         end when;
+         when 8 then
+            Value = S.Data (8);
+            S.Size = 7;
+         end when;
+         when others then
+            Value = 0;
+         end when;
+      end case;
    end Pop;
 
 end Bounded_Stack;
