@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -14,8 +13,8 @@ from _lib.harness_common import (
     ensure_sdkroot,
     finalize_deterministic_report,
     find_command,
+    reference_committed_report,
     require,
-    rerun_report_gate_and_compare,
     run,
     write_report,
 )
@@ -126,68 +125,30 @@ def main() -> int:
     clarity_report = documentation_architecture_clarity_report()
     check_documentation_architecture_clarity()
 
-    bootstrap_report = finalize_deterministic_report(
-        lambda: {
-            "task": "PR06.9.13",
-            "status": "bootstrap",
-            "documentation_architecture_clarity": clarity_report,
-            "reruns": {},
-            "monitored_paths": [display_path(path, repo_root=REPO_ROOT) for path in MONITORED_PATHS],
-        },
-        label="PR06.9.13 documentation and architecture clarity bootstrap",
+    runtime_boundary = reference_committed_report(
+        script=RUNTIME_BOUNDARY_SCRIPT,
+        committed_report_path=RUNTIME_BOUNDARY_REPORT,
     )
-    write_report(args.report, bootstrap_report)
-
-    with tempfile.TemporaryDirectory(prefix="pr06913-doc-clarity-") as temp_root_str:
-        temp_root = Path(temp_root_str)
-        runtime_boundary = rerun_report_gate_and_compare(
-            python=python,
-            script=RUNTIME_BOUNDARY_SCRIPT,
-            committed_report_path=RUNTIME_BOUNDARY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        legacy_cleanup = rerun_report_gate_and_compare(
-            python=python,
-            script=LEGACY_CLEANUP_SCRIPT,
-            committed_report_path=LEGACY_CLEANUP_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        portability_environment = rerun_report_gate_and_compare(
-            python=python,
-            script=PORTABILITY_SCRIPT,
-            committed_report_path=PORTABILITY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        gate_quality = rerun_report_gate_and_compare(
-            python=python,
-            script=GATE_QUALITY_SCRIPT,
-            committed_report_path=GATE_QUALITY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        glue_script_safety = rerun_report_gate_and_compare(
-            python=python,
-            script=GLUE_SAFETY_SCRIPT,
-            committed_report_path=GLUE_SAFETY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        performance_scale_sanity = rerun_report_gate_and_compare(
-            python=python,
-            script=SCALE_SANITY_SCRIPT,
-            committed_report_path=SCALE_SANITY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
+    legacy_cleanup = reference_committed_report(
+        script=LEGACY_CLEANUP_SCRIPT,
+        committed_report_path=LEGACY_CLEANUP_REPORT,
+    )
+    portability_environment = reference_committed_report(
+        script=PORTABILITY_SCRIPT,
+        committed_report_path=PORTABILITY_REPORT,
+    )
+    gate_quality = reference_committed_report(
+        script=GATE_QUALITY_SCRIPT,
+        committed_report_path=GATE_QUALITY_REPORT,
+    )
+    glue_script_safety = reference_committed_report(
+        script=GLUE_SAFETY_SCRIPT,
+        committed_report_path=GLUE_SAFETY_REPORT,
+    )
+    performance_scale_sanity = reference_committed_report(
+        script=SCALE_SANITY_SCRIPT,
+        committed_report_path=SCALE_SANITY_REPORT,
+    )
 
     validate_execution_state_run = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
 

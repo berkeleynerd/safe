@@ -52,7 +52,7 @@ class RunLocalPrePushTests(unittest.TestCase):
         self.assertEqual(labels[-1], "Require clean tracked tree after local gates")
         self.assertEqual(
             steps[0].argv,
-            ("alr", "exec", "--", "gprbuild", "-P", "safec.gpr", "-j1", "-p"),
+            ("alr", "build", "--", "-j1", "-p"),
         )
 
     def test_build_steps_include_pr084_chain_and_pr09_followup(self) -> None:

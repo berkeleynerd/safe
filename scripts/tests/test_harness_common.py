@@ -64,7 +64,7 @@ class HarnessCommonTests(unittest.TestCase):
     def test_compiler_build_argv_uses_serial_gprbuild(self) -> None:
         self.assertEqual(
             hc.compiler_build_argv("alr"),
-            ["alr", "exec", "--", "gprbuild", "-P", "safec.gpr", "-j1", "-p"],
+            ["alr", "build", "--", "-j1", "-p"],
         )
 
     def test_run_enforces_return_code_and_captures_stdout_file(self) -> None:
@@ -205,6 +205,25 @@ class HarnessCommonTests(unittest.TestCase):
             self.assertEqual(metadata["committed_report_path"], str(report_path))
             self.assertTrue(metadata["matches_committed_report"])
             self.assertEqual(metadata["rerun"]["returncode"], 0)
+
+    def test_reference_committed_report_returns_stable_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            report_path = temp_root / "sample-report.json"
+            report = hc.finalize_deterministic_report(
+                lambda: {"task": "sample", "status": "ok"},
+                label="sample report",
+            )
+            hc.write_report(report_path, report)
+
+            metadata = hc.reference_committed_report(
+                script=temp_root / "sample_gate.py",
+                committed_report_path=report_path,
+            )
+
+            self.assertEqual(metadata["script"], str(temp_root / "sample_gate.py"))
+            self.assertEqual(metadata["committed_report_path"], str(report_path))
+            self.assertTrue(metadata["matches_committed_report"])
 
     def test_ensure_sdkroot_respects_existing_value(self) -> None:
         env = {"SDKROOT": "/tmp/sdk"}

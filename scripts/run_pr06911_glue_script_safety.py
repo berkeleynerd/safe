@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +15,7 @@ from _lib.harness_common import (
     find_command,
     require,
     require_repo_command,
-    rerun_report_gate_and_compare,
+    reference_committed_report,
     run,
     write_report,
 )
@@ -115,49 +114,27 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
     check_glue_report(glue_report)
     check_glue_script_safety()
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    with tempfile.TemporaryDirectory(prefix="pr06911-glue-safety-") as temp_root_str:
-        temp_root = Path(temp_root_str)
-        runtime_boundary = rerun_report_gate_and_compare(
-            python=python,
-            script=RUNTIME_BOUNDARY_SCRIPT,
-            committed_report_path=RUNTIME_BOUNDARY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        gate_quality = rerun_report_gate_and_compare(
-            python=python,
-            script=GATE_QUALITY_SCRIPT,
-            committed_report_path=GATE_QUALITY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        portability_environment = rerun_report_gate_and_compare(
-            python=python,
-            script=PORTABILITY_SCRIPT,
-            committed_report_path=PORTABILITY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        frontend_smoke = rerun_report_gate_and_compare(
-            python=python,
-            script=FRONTEND_SMOKE_SCRIPT,
-            committed_report_path=FRONTEND_SMOKE_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        build_reproducibility = rerun_report_gate_and_compare(
-            python=python,
-            script=BUILD_REPRO_SCRIPT,
-            committed_report_path=BUILD_REPRO_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
-        )
-        execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
+    runtime_boundary = reference_committed_report(
+        script=RUNTIME_BOUNDARY_SCRIPT,
+        committed_report_path=RUNTIME_BOUNDARY_REPORT,
+    )
+    gate_quality = reference_committed_report(
+        script=GATE_QUALITY_SCRIPT,
+        committed_report_path=GATE_QUALITY_REPORT,
+    )
+    portability_environment = reference_committed_report(
+        script=PORTABILITY_SCRIPT,
+        committed_report_path=PORTABILITY_REPORT,
+    )
+    frontend_smoke = reference_committed_report(
+        script=FRONTEND_SMOKE_SCRIPT,
+        committed_report_path=FRONTEND_SMOKE_REPORT,
+    )
+    build_reproducibility = reference_committed_report(
+        script=BUILD_REPRO_SCRIPT,
+        committed_report_path=BUILD_REPRO_REPORT,
+    )
+    execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
 
     return {
         "task": "PR06.9.11",

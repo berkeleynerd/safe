@@ -156,80 +156,30 @@
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
       "matches_committed_report": true,
-      "rerun": {
-        "command": [
-          "python3",
-          "scripts/run_pr0699_build_reproducibility.py",
-          "--report",
-          "$TMPDIR/pr0699-build-reproducibility-report.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
       "script": "scripts/run_pr0699_build_reproducibility.py"
     },
     "frontend_smoke": {
       "committed_report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
       "matches_committed_report": true,
-      "rerun": {
-        "command": [
-          "python3",
-          "scripts/run_frontend_smoke.py",
-          "--report",
-          "$TMPDIR/pr00-pr04-frontend-smoke.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "57d9029182a2c3b37bbf5db59edf5db9eb362710f6746f014f23bec39ba0c6e5",
-  "report_sha256": "57d9029182a2c3b37bbf5db59edf5db9eb362710f6746f014f23bec39ba0c6e5",
+  "repeat_sha256": "625ee60441d8ca29764a2a27ef905ec7080c4f3fca4d53700ae76674bad95615",
+  "report_sha256": "625ee60441d8ca29764a2a27ef905ec7080c4f3fca4d53700ae76674bad95615",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",
       "matches_committed_report": true,
-      "rerun": {
-        "command": [
-          "python3",
-          "scripts/run_pr0697_gate_quality.py",
-          "--report",
-          "$TMPDIR/pr0697-gate-quality-report.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
       "script": "scripts/run_pr0697_gate_quality.py"
     },
     "portability_environment": {
       "committed_report_path": "execution/reports/pr06910-portability-environment-report.json",
       "matches_committed_report": true,
-      "rerun": {
-        "command": [
-          "python3",
-          "scripts/run_pr06910_portability_environment.py",
-          "--report",
-          "$TMPDIR/pr06910-portability-environment-report.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
       "script": "scripts/run_pr06910_portability_environment.py"
     },
     "runtime_boundary": {
       "committed_report_path": "execution/reports/pr0693-runtime-boundary-report.json",
       "matches_committed_report": true,
-      "rerun": {
-        "command": [
-          "python3",
-          "scripts/run_pr0693_runtime_boundary.py",
-          "--report",
-          "$TMPDIR/pr0693-runtime-boundary-report.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
       "script": "scripts/run_pr0693_runtime_boundary.py"
     },
     "validate_execution_state": {

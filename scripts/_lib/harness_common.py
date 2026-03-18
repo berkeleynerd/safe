@@ -70,9 +70,9 @@ def require_repo_command(path: Path, name: str) -> Path:
 
 
 def compiler_build_argv(alr: str) -> list[str]:
-    # Serial gprbuild avoids occasional corrupt dependency archives seen with
-    # fully parallel clean frontend builds on macOS.
-    return [alr, "exec", "--", "gprbuild", "-P", "safec.gpr", "-j1", "-p"]
+    # Keep Alire's workspace/config generation, but force gprbuild itself to
+    # run serially to avoid occasional corrupt dependency archives on macOS.
+    return [alr, "build", "--", "-j1", "-p"]
 
 
 def run(
@@ -337,6 +337,34 @@ def rerun_report_gate_and_compare(
             "cwd": result["cwd"],
             "returncode": result["returncode"],
         },
+        "matches_committed_report": True,
+    }
+
+
+def reference_committed_report(
+    *,
+    script: Path,
+    committed_report_path: Path,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    require(committed_report_path.exists(), f"missing committed report: {committed_report_path}")
+    committed_text = committed_report_path.read_text(encoding="utf-8")
+    committed_payload = json.loads(committed_text)
+    require(
+        isinstance(committed_payload, dict),
+        f"{display_path(committed_report_path, repo_root=repo_root)}: report root must be an object",
+    )
+    require(
+        committed_payload.get("deterministic") is True,
+        f"{display_path(committed_report_path, repo_root=repo_root)}: expected deterministic committed report",
+    )
+    require(
+        committed_payload.get("report_sha256") == committed_payload.get("repeat_sha256"),
+        f"{display_path(committed_report_path, repo_root=repo_root)}: committed report hashes must match",
+    )
+    return {
+        "script": display_path(script, repo_root=repo_root),
+        "committed_report_path": display_path(committed_report_path, repo_root=repo_root),
         "matches_committed_report": True,
     }
 
