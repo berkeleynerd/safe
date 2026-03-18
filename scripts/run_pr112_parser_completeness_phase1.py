@@ -42,7 +42,7 @@ POSITIVE_CASES = (
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_discrete_case.safe",
         "mir_tags": ("string",),
-        "ada_snippets": ("case Flag is", "case Opcode is", 'return "unknown";'),
+        "ada_snippets": ("case Flag is", "case Opcode is", "when (-1) =>", 'return "unknown";'),
     },
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_string_param.safe",
@@ -82,6 +82,11 @@ NEGATIVE_CASES = (
         "message": "string comparison and concatenation are outside the current PR11.2 text subset",
     },
     {
+        "source": REPO_ROOT / "tests" / "negative" / "neg_string_initializer_type.safe",
+        "reason": "source_frontend_error",
+        "message": "object initializer type does not match declared type",
+    },
+    {
         "source": REPO_ROOT / "tests" / "negative" / "neg_string_index.safe",
         "reason": "unsupported_source_construct",
         "message": "string indexing is outside the current PR11.2 text subset",
@@ -107,6 +112,11 @@ NEGATIVE_CASES = (
         "message": "range case choices are outside the current PR11.2 parser-completeness subset",
     },
     {
+        "source": REPO_ROOT / "tests" / "negative" / "neg_case_string_choice.safe",
+        "reason": "unsupported_source_construct",
+        "message": "case arms currently support exactly one Boolean, integer, or Character literal choice per arm",
+    },
+    {
         "source": REPO_ROOT / "tests" / "negative" / "neg_case_multi_choice.safe",
         "reason": "unsupported_source_construct",
         "message": "multi-choice case arms are outside the current PR11.2 parser-completeness subset",
@@ -115,6 +125,16 @@ NEGATIVE_CASES = (
         "source": REPO_ROOT / "tests" / "negative" / "neg_case_missing_others.safe",
         "reason": "source_frontend_error",
         "message": "case statements currently require a final `when others then` arm",
+    },
+    {
+        "source": REPO_ROOT / "tests" / "negative" / "neg_string_return_type.safe",
+        "reason": "type_check_failure",
+        "message": "return expression type does not match function result type",
+    },
+    {
+        "source": REPO_ROOT / "tests" / "negative" / "neg_character_return_type.safe",
+        "reason": "type_check_failure",
+        "message": "return expression type does not match function result type",
     },
 )
 

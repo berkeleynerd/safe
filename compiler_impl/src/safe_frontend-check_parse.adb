@@ -635,8 +635,16 @@ package body Safe_Frontend.Check_Parse is
    function Case_Choice_Is_Literal
      (Expr : CM.Expr_Access) return Boolean is
    begin
-      return Expr /= null
-        and then Expr.Kind in CM.Expr_Int | CM.Expr_Bool | CM.Expr_String | CM.Expr_Char;
+      if Expr = null then
+         return False;
+      elsif Expr.Kind in CM.Expr_Int | CM.Expr_Bool | CM.Expr_Char then
+         return True;
+      elsif Expr.Kind = CM.Expr_Unary and then Expr.Inner /= null then
+         return (FT.To_String (Expr.Operator) = "+"
+                 or else FT.To_String (Expr.Operator) = "-")
+           and then Expr.Inner.Kind = CM.Expr_Int;
+      end if;
+      return False;
    end Case_Choice_Is_Literal;
 
    function Parse_Statement_Sequence
@@ -766,7 +774,7 @@ package body Safe_Frontend.Check_Parse is
             elsif not Case_Choice_Is_Literal (Arm.Choice) then
                Reject_Unsupported
                  (State,
-                  "case arms currently support exactly one literal choice per arm");
+                  "case arms currently support exactly one Boolean, integer, or Character literal choice per arm");
             end if;
          end if;
 

@@ -1,0 +1,19 @@
+-- Test: neg_case_string_choice
+-- Description: String literals are not admitted as PR11.2 case-arm choices.
+-- Expected: REJECT unsupported_source_construct
+
+package Neg_Case_String_Choice is
+
+   function Opcode_Name (Opcode : in Integer) return String is
+   begin
+      case Opcode is
+         when "reset" then
+            return "bad";
+         end when;
+         when others then
+            return "ok";
+         end when;
+      end case;
+   end Opcode_Name;
+
+end Neg_Case_String_Choice;

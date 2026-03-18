@@ -57,6 +57,17 @@
       }
     },
     {
+      "message": "object initializer type does not match declared type",
+      "reason": "source_frontend_error",
+      "source": "tests/negative/neg_string_initializer_type.safe",
+      "span": {
+        "end_col": 29,
+        "end_line": 7,
+        "start_col": 29,
+        "start_line": 7
+      }
+    },
+    {
       "message": "string indexing is outside the current PR11.2 text subset",
       "reason": "unsupported_source_construct",
       "source": "tests/negative/neg_string_index.safe",
@@ -112,6 +123,17 @@
       }
     },
     {
+      "message": "case arms currently support exactly one Boolean, integer, or Character literal choice per arm",
+      "reason": "unsupported_source_construct",
+      "source": "tests/negative/neg_case_string_choice.safe",
+      "span": {
+        "end_col": 26,
+        "end_line": 10,
+        "start_col": 23,
+        "start_line": 10
+      }
+    },
+    {
       "message": "multi-choice case arms are outside the current PR11.2 parser-completeness subset",
       "reason": "unsupported_source_construct",
       "source": "tests/negative/neg_case_multi_choice.safe",
@@ -131,6 +153,28 @@
         "end_line": 13,
         "start_col": 7,
         "start_line": 13
+      }
+    },
+    {
+      "message": "return expression type does not match function result type",
+      "reason": "type_check_failure",
+      "source": "tests/negative/neg_string_return_type.safe",
+      "span": {
+        "end_col": 14,
+        "end_line": 9,
+        "start_col": 14,
+        "start_line": 9
+      }
+    },
+    {
+      "message": "return expression type does not match function result type",
+      "reason": "type_check_failure",
+      "source": "tests/negative/neg_character_return_type.safe",
+      "span": {
+        "end_col": 16,
+        "end_line": 9,
+        "start_col": 14,
+        "start_line": 9
       }
     }
   ],
@@ -235,7 +279,8 @@
         "bool",
         "ident",
         "int",
-        "string"
+        "string",
+        "unary"
       ],
       "source": "tests/positive/pr112_discrete_case.safe",
       "validate_mir": {
@@ -304,8 +349,8 @@
       }
     }
   ],
-  "repeat_sha256": "6a307a9e182f94febe38fe894c316fd26facf90ee63a3063a3fab215d1fcc17f",
-  "report_sha256": "6a307a9e182f94febe38fe894c316fd26facf90ee63a3063a3fab215d1fcc17f",
+  "repeat_sha256": "641a356d0826020e93e7ed210e09dcdfd19b6a92fd2d50a3a6e161db2194aa68",
+  "report_sha256": "641a356d0826020e93e7ed210e09dcdfd19b6a92fd2d50a3a6e161db2194aa68",
   "rosetta_text_samples": [
     {
       "check": {

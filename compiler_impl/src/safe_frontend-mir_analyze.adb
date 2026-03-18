@@ -4999,6 +4999,28 @@ package body Safe_Frontend.Mir_Analyze is
             return Diag;
          end if;
          return Null_Diagnostic;
+      elsif UString_Value (Return_Type.Name) = "Boolean"
+        or else UString_Value (Return_Type.Name) = "Character"
+        or else UString_Value (Return_Type.Name) = "String"
+      then
+         declare
+            Actual_Type : constant GM.Type_Descriptor :=
+              Expr_Type (Expr, Var_Types, Type_Env, Functions);
+         begin
+            if UString_Value (Actual_Type.Name) /= UString_Value (Return_Type.Name) then
+               Diag.Reason := FT.To_UString ("type_check_failure");
+               Diag.Message := FT.To_UString ("return expression type does not match function result type");
+               Diag.Span := Expr.Span;
+               Diag.Has_Highlight_Span := True;
+               Diag.Highlight_Span := Expr.Span;
+               Diag.Notes.Append
+                 (FT.To_UString ("expected result type '" & UString_Value (Return_Type.Name) & "'"));
+               Diag.Notes.Append
+                 (FT.To_UString ("expression has type '" & UString_Value (Actual_Type.Name) & "'"));
+               return Diag;
+            end if;
+         end;
+         return Null_Diagnostic;
       end if;
 
       Interval_Value :=

@@ -1,0 +1,9 @@
+-- Test: neg_string_initializer_type
+-- Description: Constant String declarations still require String-compatible initializers.
+-- Expected: REJECT source_frontend_error
+
+package Neg_String_Initializer_Type is
+
+   Name : constant String = 1;
+
+end Neg_String_Initializer_Type;

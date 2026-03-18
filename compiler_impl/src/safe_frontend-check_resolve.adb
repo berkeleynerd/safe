@@ -1380,6 +1380,18 @@ package body Safe_Frontend.Check_Resolve is
          Result.Initializer :=
            Normalize_Expr_Checked
              (Decl.Initializer, Var_Types, Functions, Type_Env, Path);
+         if Is_String_Type (Result.Type_Info, Type_Env)
+           and then not Compatible_Type
+             (Expr_Type (Result.Initializer, Var_Types, Functions, Type_Env),
+              Result.Type_Info,
+              Type_Env)
+         then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Result.Initializer.Span,
+                  Message => "object initializer type does not match declared type"));
+         end if;
       end if;
       return Result;
    end Normalize_Object_Decl;

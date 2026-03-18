@@ -1285,6 +1285,12 @@ package body Safe_Frontend.Check_Emit is
                               and then Index in Resolved_Expr.Case_Arms.First_Index .. Resolved_Expr.Case_Arms.Last_Index
                            then Resolved_Expr.Case_Arms (Index)
                            else Parsed_Arm);
+                        Choice_Span : constant FT.Source_Span :=
+                          (if Resolved_Arm.Choice /= null
+                           then Resolved_Arm.Choice.Span
+                           elsif Parsed_Arm.Choice /= null
+                           then Parsed_Arm.Choice.Span
+                           else Parsed_Arm.Span);
                         Choices : constant String :=
                           (if Parsed_Arm.Is_Others
                            then
@@ -1297,7 +1303,7 @@ package body Safe_Frontend.Check_Emit is
                              "{""node_type"":""DiscreteChoiceList"",""choices"":[{""node_type"":""DiscreteChoice"",""kind"":""ChoiceExpression"",""value"":"
                              & Expression_Node (Resolved_Arm.Choice)
                              & ",""span"":"
-                             & JS.Span_Object (Parsed_Arm.Span)
+                             & JS.Span_Object (Choice_Span)
                              & "}],""span"":"
                              & JS.Span_Object (Parsed_Arm.Span)
                              & "}");

@@ -11,8 +11,8 @@
     "stderr": "",
     "stdout": "usage:\n  safe build <file.safe>\n  safe check <safec check args...>\n  safe emit  <safec emit args...>\n"
   },
-  "repeat_sha256": "f963f4253853d2e798ff8b67032d1b3ffef13ba97b392bff341b0c5652bf1af3",
-  "report_sha256": "f963f4253853d2e798ff8b67032d1b3ffef13ba97b392bff341b0c5652bf1af3",
+  "repeat_sha256": "869c1b0cac9da4cb13a0d8050d1d33edc88edb74050a719ac42272a2b57f3508",
+  "report_sha256": "869c1b0cac9da4cb13a0d8050d1d33edc88edb74050a719ac42272a2b57f3508",
   "rosetta_corpus": {
     "fixtures": [
       {
@@ -378,8 +378,8 @@
     "language-configuration.json": "7b2a62bcc38be1d78644fa0a0183054f8aa3738b42788e9b8fe72a9f874ce442",
     "package.json": "062e15a8b1a0c85c46b3de1a8b63827c590b320d896b2a87ffa99c076b778f77",
     "safe": "bc71af54d16cc67ffa174d9666515b154366893275f90cf831559649e09edd0a",
-    "safe.tmLanguage.json": "ab5f529dedf2694c7b503c364bb87aeb68b08a1ad04d7efcf9864171d8a0385a",
+    "safe.tmLanguage.json": "c2c46412fb8615faf2666b80bf1ab812c27a7abb414314a895759f91abf4a495",
     "safe_lsp.py": "6fe6db51b5f9934c19a799c3abf924fc8845a968fa8d3d3da3e393b321846e30",
-    "samples/rosetta/README.md": "57dcd68b8cd9d86673a42bd174c9396710a3dfce55adc42287ba079641644050"
+    "samples/rosetta/README.md": "c4301f811090838ec97ee63f7ec2a1bb34f594e5582c086a731452ddf3829d07"
   }
 }

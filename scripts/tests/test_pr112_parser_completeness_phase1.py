@@ -23,9 +23,13 @@ class Pr112ParserCompletenessPhase1Tests(unittest.TestCase):
         }
 
         self.assertIn("pr112_string_param.safe", positive_sources)
+        self.assertIn("neg_string_initializer_type.safe", negative_sources)
         self.assertIn("neg_string_index.safe", negative_sources)
         self.assertIn("neg_string_attribute.safe", negative_sources)
         self.assertIn("neg_string_array_component.safe", negative_sources)
+        self.assertIn("neg_case_string_choice.safe", negative_sources)
+        self.assertIn("neg_string_return_type.safe", negative_sources)
+        self.assertIn("neg_character_return_type.safe", negative_sources)
 
     def test_generate_report_includes_task_and_status_envelope(self) -> None:
         positive_side_effect = [

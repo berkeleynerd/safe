@@ -19,6 +19,9 @@ package PR112_Discrete_Case is
    function Opcode_Name (Opcode : in Integer) return String is
    begin
       case Opcode is
+         when -1 then
+            return "reset";
+         end when;
          when 0 then
             return "nop";
          end when;
