@@ -3222,8 +3222,6 @@ package body Safe_Frontend.Mir_Analyze is
                end if;
                return (Low => 0, High => 255, Excludes_Zero => False);
             end;
-         when GM.Expr_String =>
-            return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
          when GM.Expr_Bool =>
             return
               (Low           => (if Expr.Bool_Value then 1 else 0),
@@ -4437,6 +4435,8 @@ package body Safe_Frontend.Mir_Analyze is
             elsif Target_Name /= "" then
                Current.Float_Facts.Include (Target_Name, Float_Value);
             end if;
+            return Null_Diagnostic;
+         elsif UString_Value (Target_Type.Name) = "String" then
             return Null_Diagnostic;
          elsif Lower (UString_Value (Target_Type.Kind)) = "record" then
             return Null_Diagnostic;

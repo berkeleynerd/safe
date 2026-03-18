@@ -23,6 +23,7 @@ class Pr112ParserCompletenessPhase1Tests(unittest.TestCase):
         }
 
         self.assertIn("pr112_string_param.safe", positive_sources)
+        self.assertIn("pr112_case_scrutinee_once.safe", positive_sources)
         self.assertIn("neg_string_initializer_type.safe", negative_sources)
         self.assertIn("neg_string_index.safe", negative_sources)
         self.assertIn("neg_string_attribute.safe", negative_sources)

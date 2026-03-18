@@ -1375,51 +1375,119 @@ package body Safe_Frontend.Check_Lower is
 
          when CM.Stmt_Case =>
             declare
+               Case_Type      : constant GM.Type_Descriptor :=
+                 Expr_Type (Stmt.Case_Expr, Visible_Types, Type_Env);
+               Scope_Id       : constant String :=
+                 "scope" & Trimmed (Natural (Work.Scopes.Length));
+               Temp_Name      : constant String :=
+                 "__safe_case_expr_" & Trimmed (Natural (Work.Locals.Length));
+               Scope          : GM.Scope_Entry := New_Scope (Scope_Id, Current_Scope_Id, "case");
+               Temp_Local_Id  : constant FT.UString :=
+                 Append_Local
+                   (Work.Locals,
+                    Temp_Name,
+                    "local",
+                    "in",
+                    Case_Type,
+                    Stmt.Case_Expr.Span,
+                    Scope_Id,
+                    Is_Constant => True);
+               Entry_Id       : constant FT.UString :=
+                 New_Block (Work, Stmt.Span, "case_entry", Scope_Id);
                Join_Id        : constant FT.UString :=
                  New_Block (Work, Stmt.Span, "case_join", Current_Scope_Id);
-               Current_Check  : FT.UString := Current_Id;
+               Current_Check  : FT.UString := Entry_Id;
                Arm_End        : FT.UString;
                Reached        : Boolean := False;
+               Case_Types     : Type_Maps.Map := Visible_Types;
                Others_Arm     : constant CM.Case_Arm :=
                  Stmt.Case_Arms (Stmt.Case_Arms.Last_Index);
+               Scope_Op       : GM.Op_Entry;
+               Temp_Target    : constant CM.Expr_Access :=
+                 Ident_Expr
+                   (Temp_Name,
+                    Stmt.Case_Expr.Span,
+                    UString_Value (Case_Type.Name));
+               procedure Close_Case_Scope
+                 (Block_Id : FT.UString;
+                  Span     : FT.Source_Span) is
+               begin
+                  Scope_Op := (others => <>);
+                  Scope_Op.Kind := GM.Op_Scope_Exit;
+                  Scope_Op.Span := Span;
+                  Scope_Op.Scope_Id := FT.To_UString (Scope_Id);
+                  Scope_Op.Locals.Append (FT.To_UString (Temp_Name));
+                  Add_Op (Work, UString_Value (Block_Id), Scope_Op);
+                  Register_Scope_Exit (Work, Scope_Id, UString_Value (Block_Id));
+               end Close_Case_Scope;
             begin
+               Scope.Local_Ids.Append (Temp_Local_Id);
+               Register_Scope (Work, Scope);
+               Register_Scope_Entry (Work, Scope_Id, UString_Value (Entry_Id));
+
+               Terminator := (others => <>);
+               Terminator.Kind := GM.Terminator_Jump;
+               Terminator.Span := Stmt.Span;
+               Terminator.Target := Entry_Id;
+               Set_Terminator (Work, UString_Value (Current_Id), Terminator);
+
+               Case_Types.Include (Temp_Name, Case_Type);
+
+               Scope_Op := (others => <>);
+               Scope_Op.Kind := GM.Op_Scope_Enter;
+               Scope_Op.Span := Stmt.Span;
+               Scope_Op.Scope_Id := FT.To_UString (Scope_Id);
+               Scope_Op.Locals.Append (FT.To_UString (Temp_Name));
+               Add_Op (Work, UString_Value (Entry_Id), Scope_Op);
+
+               Assign_Op := (others => <>);
+               Assign_Op.Kind := GM.Op_Assign;
+               Assign_Op.Span := Stmt.Case_Expr.Span;
+               Assign_Op.Target := Lower_Target (Temp_Target, Case_Types, Type_Env);
+               Assign_Op.Value := Lower_Expr (Stmt.Case_Expr, Visible_Types, Type_Env);
+               Assign_Op.Type_Name := Case_Type.Name;
+               Assign_Op.Ownership_Effect := GM.Ownership_None;
+               Assign_Op.Declaration_Init := True;
+               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+
                if Stmt.Case_Arms.Length > 1 then
                   for Index in Stmt.Case_Arms.First_Index .. Stmt.Case_Arms.Last_Index - 1 loop
                      declare
                         Arm      : constant CM.Case_Arm := Stmt.Case_Arms (Index);
                         True_Id  : constant FT.UString :=
-                          New_Block (Work, Arm.Span, "case_arm", Current_Scope_Id);
+                          New_Block (Work, Arm.Span, "case_arm", Scope_Id);
                         False_Id : constant FT.UString :=
                           (if Index = Stmt.Case_Arms.Last_Index - 1
-                           then New_Block (Work, Others_Arm.Span, "case_others", Current_Scope_Id)
-                           else New_Block (Work, Arm.Span, "case_next", Current_Scope_Id));
+                           then New_Block (Work, Others_Arm.Span, "case_others", Scope_Id)
+                           else New_Block (Work, Arm.Span, "case_next", Scope_Id));
                         Cond_Expr : constant CM.Expr_Access :=
-                          Binary_Expr ("==", Stmt.Case_Expr, Arm.Choice, Arm.Span);
+                          Binary_Expr ("==", Temp_Target, Arm.Choice, Arm.Span);
                      begin
                         Lower_Branch_Condition
                           (Work,
                            UString_Value (Current_Check),
                            Cond_Expr,
-                           Visible_Types,
+                           Case_Types,
                            Type_Env,
                            UString_Value (True_Id),
                            UString_Value (False_Id),
-                           Current_Scope_Id);
+                           Scope_Id);
 
                         Arm_End :=
                           Lower_Statement_List
                             (Work,
                              True_Id,
                              Arm.Statements,
-                             Visible_Types,
+                             Case_Types,
                              Type_Env,
-                             Current_Scope_Id,
+                             Scope_Id,
                              Functions,
                              Loop_Exit_Target);
 
                         if Has_Block (Arm_End)
                           and then not Block_Terminated (Work, UString_Value (Arm_End))
                         then
+                           Close_Case_Scope (Arm_End, Arm.Span);
                            Terminator := (others => <>);
                            Terminator.Kind := GM.Terminator_Jump;
                            Terminator.Span := Arm.Span;
@@ -1438,15 +1506,16 @@ package body Safe_Frontend.Check_Lower is
                    (Work,
                     Current_Check,
                     Others_Arm.Statements,
-                    Visible_Types,
+                    Case_Types,
                     Type_Env,
-                    Current_Scope_Id,
+                    Scope_Id,
                     Functions,
                     Loop_Exit_Target);
 
                if Has_Block (Arm_End)
                  and then not Block_Terminated (Work, UString_Value (Arm_End))
                then
+                  Close_Case_Scope (Arm_End, Others_Arm.Span);
                   Terminator := (others => <>);
                   Terminator.Kind := GM.Terminator_Jump;
                   Terminator.Span := Others_Arm.Span;
@@ -2113,6 +2182,7 @@ package body Safe_Frontend.Check_Lower is
       end if;
 
       Finalize_Unknown_Terminators (Work, UString_Value (Result.Entry_BB));
+      Result.Locals := Work.Locals;
       Result.Scopes := Work.Scopes;
       Result.Blocks := Work.Blocks;
       return Result;
@@ -2279,6 +2349,7 @@ package body Safe_Frontend.Check_Lower is
       end if;
 
       Finalize_Unknown_Terminators (Work, UString_Value (Result.Entry_BB));
+      Result.Locals := Work.Locals;
       Result.Scopes := Work.Scopes;
       Result.Blocks := Work.Blocks;
       return Result;

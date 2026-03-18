@@ -218,6 +218,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
+      "observed_call_counts": {},
       "observed_mir_tags": [
         "binary",
         "char",
@@ -274,6 +275,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
+      "observed_call_counts": {},
       "observed_mir_tags": [
         "binary",
         "bool",
@@ -332,6 +334,9 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
+      "observed_call_counts": {
+        "Echo": 1
+      },
       "observed_mir_tags": [
         "call",
         "ident",
@@ -347,10 +352,70 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       }
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/pr112_case_scrutinee_once.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/pr112_case_scrutinee_once/ada/build.gpr",
+          "pr112_case_scrutinee_once.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/pr112_case_scrutinee_once.safe",
+          "--out-dir",
+          "$TMPDIR/pr112_case_scrutinee_once/out",
+          "--interface-dir",
+          "$TMPDIR/pr112_case_scrutinee_once/iface",
+          "--ada-out-dir",
+          "$TMPDIR/pr112_case_scrutinee_once/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "observed_call_counts": {
+        "Read_Opcode": 1
+      },
+      "observed_mir_tags": [
+        "binary",
+        "call",
+        "ident",
+        "int",
+        "string"
+      ],
+      "source": "tests/positive/pr112_case_scrutinee_once.safe",
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/pr112_case_scrutinee_once/out/pr112_case_scrutinee_once.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
     }
   ],
-  "repeat_sha256": "641a356d0826020e93e7ed210e09dcdfd19b6a92fd2d50a3a6e161db2194aa68",
-  "report_sha256": "641a356d0826020e93e7ed210e09dcdfd19b6a92fd2d50a3a6e161db2194aa68",
+  "repeat_sha256": "28bc462f87be80442afe6d7b2de7059c46bd7c697e7163915d03aa203f0105ef",
+  "report_sha256": "28bc462f87be80442afe6d7b2de7059c46bd7c697e7163915d03aa203f0105ef",
   "rosetta_text_samples": [
     {
       "check": {
@@ -391,6 +456,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
+      "observed_call_counts": {},
       "observed_mir_tags": [
         "binary",
         "char",
@@ -447,6 +513,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
+      "observed_call_counts": {},
       "observed_mir_tags": [
         "binary",
         "ident",

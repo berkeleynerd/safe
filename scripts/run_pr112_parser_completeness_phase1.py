@@ -53,6 +53,12 @@ POSITIVE_CASES = (
             "return Name;",
         ),
     },
+    {
+        "source": REPO_ROOT / "tests" / "positive" / "pr112_case_scrutinee_once.safe",
+        "mir_tags": ("string",),
+        "ada_snippets": ("case Read_Opcode is", 'return "two";'),
+        "call_counts": {"Read_Opcode": 1},
+    },
 )
 
 NEGATIVE_CASES = (
@@ -162,6 +168,27 @@ def collect_expr_tags(payload: Any) -> set[str]:
     return tags
 
 
+def collect_call_counts(payload: Any) -> dict[str, int]:
+    counts: dict[str, int] = {}
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            if value.get("tag") == "call":
+                callee = value.get("callee")
+                if isinstance(callee, dict):
+                    name = callee.get("name")
+                    if isinstance(name, str) and name:
+                        counts[name] = counts.get(name, 0) + 1
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    walk(payload)
+    return counts
+
+
 def run_positive_case(
     *,
     safec: Path,
@@ -170,6 +197,7 @@ def run_positive_case(
     temp_root: Path,
     expected_tags: tuple[str, ...],
     expected_ada_snippets: tuple[str, ...],
+    expected_call_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     root = temp_root / source.stem
     out_dir = root / "out"
@@ -212,8 +240,15 @@ def run_positive_case(
 
     mir_payload = json.loads(paths["mir"].read_text(encoding="utf-8"))
     observed_tags = collect_expr_tags(mir_payload)
+    observed_call_counts = collect_call_counts(mir_payload)
     for tag in expected_tags:
         require(tag in observed_tags, f"{source.name}: MIR output is missing tag {tag!r}")
+    if expected_call_counts:
+        for name, count in expected_call_counts.items():
+            require(
+                observed_call_counts.get(name, 0) == count,
+                f"{source.name}: expected {count} MIR call(s) to {name}, found {observed_call_counts.get(name, 0)}",
+            )
 
     ada_text = emitted_body_file(ada_dir).read_text(encoding="utf-8")
     for snippet in expected_ada_snippets:
@@ -238,6 +273,7 @@ def run_positive_case(
         },
         "compile": compile_result,
         "observed_mir_tags": sorted(observed_tags),
+        "observed_call_counts": observed_call_counts,
     }
 
 
@@ -287,6 +323,7 @@ def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
                     temp_root=temp_root,
                     expected_tags=case["mir_tags"],
                     expected_ada_snippets=case["ada_snippets"],
+                    expected_call_counts=case.get("call_counts"),
                 )
                 for case in POSITIVE_CASES
             ],
