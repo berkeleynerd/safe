@@ -27,15 +27,15 @@
   "deterministic_outputs": {
     "tests/positive/rule2_binary_search.safe": {
       "iface/rule2_binary_search.safei.json": "a753db875f3b59b41c67f4dd6d7a25d6f36233bc2a671b3822153a227e1a08c0",
-      "out/rule2_binary_search.ast.json": "4c53dd178ec7512ab1387eef6dc285cfac8832ffae332a937ec84d90cb7dc090",
+      "out/rule2_binary_search.ast.json": "25809bc903c602e22aa9db5d9402877146212de092836cc01b425c03c8e53d8b",
       "out/rule2_binary_search.mir.json": "e0ca8a091c213e394472f65c47fcc27feda25189f86ec75cf9245d8c8e57c52b",
-      "out/rule2_binary_search.typed.json": "aa7411dbfe6b4b6a7265b168a6f9e45c22d7a25ea0190257498b3be622a6cdc1"
+      "out/rule2_binary_search.typed.json": "05ff1ee18dbcca950d454096a46d608928f8d096015a9069d6441efca4b0868b"
     },
     "tests/positive/rule4_conditional.safe": {
-      "iface/rule4_conditional.safei.json": "1dba7cf85ab721c7a9433467c506a13a437446bedae77adb2e05101825b6311d",
-      "out/rule4_conditional.ast.json": "cd54561c1b3d879fe0c459ef335a9393c69d8a3c3d20806b7a0db3323526d15d",
-      "out/rule4_conditional.mir.json": "98dc1a21eb7b4a607479ae2136f98c3a4b81776b04ce2b95ad56f6eb8295eb5b",
-      "out/rule4_conditional.typed.json": "4372302c47a711b2dd123bfdc77be18456befe5de563b5e64428bc91657d976a"
+      "iface/rule4_conditional.safei.json": "97fb8717af3aca720e32c2afb05f3a1164dc59416372b05f7bd6c25b1d64ac26",
+      "out/rule4_conditional.ast.json": "9b86872e5b9d39938ccfb97508d6ad51ed66a008a586ba6fbd140a2c6e5a5bcc",
+      "out/rule4_conditional.mir.json": "fff760474163dc64116398669bdd402654071802f2068ca1e1d0e125b8c2a1dd",
+      "out/rule4_conditional.typed.json": "eb40fd6c02e59d81db1e45d8bcb2f5fc85c9b507fb3969da0478509c3164a0e7"
     }
   },
   "emit_no_python": {
@@ -658,9 +658,9 @@
         },
         "hashes": {
           "iface/rule2_binary_search.safei.json": "a753db875f3b59b41c67f4dd6d7a25d6f36233bc2a671b3822153a227e1a08c0",
-          "out/rule2_binary_search.ast.json": "4c53dd178ec7512ab1387eef6dc285cfac8832ffae332a937ec84d90cb7dc090",
+          "out/rule2_binary_search.ast.json": "25809bc903c602e22aa9db5d9402877146212de092836cc01b425c03c8e53d8b",
           "out/rule2_binary_search.mir.json": "e0ca8a091c213e394472f65c47fcc27feda25189f86ec75cf9245d8c8e57c52b",
-          "out/rule2_binary_search.typed.json": "aa7411dbfe6b4b6a7265b168a6f9e45c22d7a25ea0190257498b3be622a6cdc1"
+          "out/rule2_binary_search.typed.json": "05ff1ee18dbcca950d454096a46d608928f8d096015a9069d6441efca4b0868b"
         },
         "mir_analysis": {
           "command": [
@@ -759,10 +759,10 @@
           "stdout": ""
         },
         "hashes": {
-          "iface/rule4_conditional.safei.json": "1dba7cf85ab721c7a9433467c506a13a437446bedae77adb2e05101825b6311d",
-          "out/rule4_conditional.ast.json": "cd54561c1b3d879fe0c459ef335a9393c69d8a3c3d20806b7a0db3323526d15d",
-          "out/rule4_conditional.mir.json": "98dc1a21eb7b4a607479ae2136f98c3a4b81776b04ce2b95ad56f6eb8295eb5b",
-          "out/rule4_conditional.typed.json": "4372302c47a711b2dd123bfdc77be18456befe5de563b5e64428bc91657d976a"
+          "iface/rule4_conditional.safei.json": "97fb8717af3aca720e32c2afb05f3a1164dc59416372b05f7bd6c25b1d64ac26",
+          "out/rule4_conditional.ast.json": "9b86872e5b9d39938ccfb97508d6ad51ed66a008a586ba6fbd140a2c6e5a5bcc",
+          "out/rule4_conditional.mir.json": "fff760474163dc64116398669bdd402654071802f2068ca1e1d0e125b8c2a1dd",
+          "out/rule4_conditional.typed.json": "eb40fd6c02e59d81db1e45d8bcb2f5fc85c9b507fb3969da0478509c3164a0e7"
         },
         "mir_analysis": {
           "command": [
@@ -821,8 +821,8 @@
       "python3.11": "$TMPDIR/python-mask/python3.11"
     }
   },
-  "repeat_sha256": "10ed963f87b0ca5e254eb9a98a3bed1fb6199a0923d4fddadee4c515014269e9",
-  "report_sha256": "10ed963f87b0ca5e254eb9a98a3bed1fb6199a0923d4fddadee4c515014269e9",
+  "repeat_sha256": "d23d1efa8d5d045dc85a954b161e68583a186affa043479e40b9d47c2e7a068b",
+  "report_sha256": "d23d1efa8d5d045dc85a954b161e68583a186affa043479e40b9d47c2e7a068b",
   "runtime_rule": {
     "banned_tokens_absent": [
       "Run_Backend",
