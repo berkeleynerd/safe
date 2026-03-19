@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -30,6 +31,18 @@ class GateManifestTests(unittest.TestCase):
         for node in NODES:
             if node.report_path is not None:
                 self.assertTrue(node.report_path.exists(), node.report_path)
+
+    def test_manifest_covers_done_tracker_evidence_reports(self) -> None:
+        tracker = json.loads((SCRIPTS_DIR.parent / "execution" / "tracker.json").read_text(encoding="utf-8"))
+        tracker_reports = {
+            SCRIPTS_DIR.parent / evidence
+            for task in tracker["tasks"]
+            if task.get("status") == "done"
+            for evidence in task.get("evidence", [])
+            if evidence.endswith(".json")
+        }
+        manifest_reports = {node.report_path for node in NODES if node.report_path is not None}
+        self.assertEqual(set(), tracker_reports - manifest_reports)
 
     def test_branch_resolution_pr10(self) -> None:
         self.assertEqual(
