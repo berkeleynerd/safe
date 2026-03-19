@@ -8,18 +8,18 @@
 
 package Dynamic_Index_Test is
 
-   type Idx is range 1 .. 50;
+   type Idx is range 1 to 50;
    type Table is array (Idx) of Integer;
 
    --  Compute_Index: returns some value; the compiler cannot determine range.
-   function Compute_Index (Seed : Integer) return Integer is
+   function Compute_Index (Seed : Integer) returns Integer is
    begin
       return Seed * 7 + 3;
    end Compute_Index;
 
    --  Lookup_Dynamic: uses the result of Compute_Index as array index.
    --  The result of Compute_Index is not provably in 1..50.
-   function Lookup_Dynamic (T : Table; Seed : Integer) return Integer is
+   function Lookup_Dynamic (T : Table; Seed : Integer) returns Integer is
    begin
       return T (Idx (Compute_Index (Seed)));  -- ERROR: not provably in 1..50
    end Lookup_Dynamic;

@@ -4,12 +4,12 @@
 
 package PR112_Case_Scrutinee_Once is
 
-   function Read_Opcode return Integer is
+   function Read_Opcode returns Integer is
    begin
       return 2;
    end Read_Opcode;
 
-   function Label return String is
+   function Label returns String is
    begin
       case Read_Opcode () is
          when 1 then

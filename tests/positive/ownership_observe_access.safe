@@ -11,7 +11,7 @@ package Ownership_Observe_Access is
 
    type Config_Ptr is access Config;
 
-   procedure Read_With_Local_Observer is
+   function Read_With_Local_Observer is
       Owner    : Config_Ptr = new ((Rate = 100) as Config);
       Observer : access constant Config = Owner.Access;
       Rate     : Natural;

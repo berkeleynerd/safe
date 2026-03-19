@@ -4,7 +4,7 @@
 
 package Neg_Case_String_Choice is
 
-   function Opcode_Name (Opcode : in Integer) return String is
+   function Opcode_Name (Opcode : in Integer) returns String is
    begin
       case Opcode is
          when "reset" then

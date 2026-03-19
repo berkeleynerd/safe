@@ -5,16 +5,16 @@
 
 package Ownership_Return is
 
-   type Payload is range 0 .. 100;
+   type Payload is range 0 to 100;
    type Payload_Ptr is access Payload;
 
-   function Build return Payload_Ptr is
+   function Build returns Payload_Ptr is
       Source : Payload_Ptr = new (42 as Payload);
    begin
       return Source;
    end Build;
 
-   procedure Use_Return is
+   function Use_Return is
       Target : Payload_Ptr = null;
    begin
       Target = Build ();

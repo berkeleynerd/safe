@@ -18,7 +18,7 @@ package Ownership_Borrow is
 
    --  Modify_Via_Borrow: borrows the designated object via anonymous
    --  access parameter. The lender (P) is frozen during this call.
-   procedure Modify_Via_Borrow (Ref : access Data) is
+   function Modify_Via_Borrow (Ref : access Data) is
    begin
       --  Ref is an anonymous access (borrow). Safe to dereference
       --  because the lender provides a non-null owned value.
@@ -28,7 +28,7 @@ package Ownership_Borrow is
 
    --  Use_Borrow: creates an owned pointer, borrows it for mutation,
    --  then continues using it after the borrow scope ends.
-   procedure Use_Borrow is
+   function Use_Borrow is
       Owner : Data_Ptr = new ((X = 10, Y = 20) as Data);
    begin
       --  Borrow: Owner is frozen during the call.

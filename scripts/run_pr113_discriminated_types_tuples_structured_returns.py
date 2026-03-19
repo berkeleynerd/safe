@@ -69,7 +69,7 @@ POSITIVE_CASES = (
             '"variant_fields":[',
             '"is_others":true',
         ),
-        "safei_snippets": ("function Read_Alpha (P: Packet) return Integer",),
+        "safei_snippets": ("function Read_Alpha", "returns Integer"),
         "ada_snippets": (
             "case Kind is",
             "when 'A' =>",

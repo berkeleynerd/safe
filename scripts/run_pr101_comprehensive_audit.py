@@ -113,6 +113,14 @@ EXPECTED_PR113A_ACCEPTANCE = [
 EXPECTED_PR113A_EVIDENCE = [
     "execution/reports/pr113a-proof-checkpoint1-report.json",
 ]
+EXPECTED_PR114_ACCEPTANCE = [
+    "PR11.4 is a deliberate cutover rather than a coexistence milestone: legacy `procedure`, signature `return`, `elsif`, and `..` spellings are removed from the admitted Safe source surface once the milestone lands.",
+    "The full PR11.4 quartet lands together: all callables use `function`, result-bearing signatures use `returns`, conditional chains use `else if`, and source-level inclusive ranges use `to`, while typing/MIR/safei/emitted Ada semantics remain stable for already-supported programs.",
+    "The `.safe` corpus, Rosetta samples, docs/examples, VSCode grammar/docs, and a dedicated deterministic PR11.4 gate are migrated together, with explicit negative coverage that locks rejection of each removed legacy spelling.",
+]
+EXPECTED_PR114_EVIDENCE = [
+    "execution/reports/pr114-signature-control-flow-syntax-report.json",
+]
 EXPECTED_PR102_ACCEPTANCE = [
     "The exact six-fixture PR10.2 Rule 5 positive corpus is tests/positive/rule5_filter.safe, tests/positive/rule5_interpolate.safe, tests/positive/rule5_normalize.safe, tests/positive/rule5_statistics.safe, tests/positive/rule5_temperature.safe, and tests/positive/rule5_vector_normalize.safe; that merged PR07-plus-PR10 set is non-shrinkable and each fixture is frontend-accepted, Ada-emitted, compile-valid, and passes emitted GNATprove flow and prove under the all-proved-only policy.",
     "The source-level Rule 5 negative contract remains tests/negative/neg_rule5_div_zero.safe -> fp_division_by_zero, tests/negative/neg_rule5_infinity.safe -> infinity_at_narrowing, tests/negative/neg_rule5_nan.safe -> nan_at_narrowing, tests/negative/neg_rule5_overflow.safe -> fp_overflow_at_narrowing, and tests/negative/neg_rule5_uninitialized.safe -> fp_uninitialized_at_narrowing; unsupported float-evaluator shapes use the new fp_unsupported_expression_at_narrowing reason under MIR analysis parity coverage instead of being mislabeled as overflow.",
@@ -219,6 +227,9 @@ EXPECTED_WORKFLOW_SNIPPETS = [
     "pr113a-proof-checkpoint1:",
     "python3 scripts/run_pr113a_proof_checkpoint1.py",
     "git diff --exit-code execution/reports/pr113a-proof-checkpoint1-report.json",
+    "pr114-signature-control-flow-syntax:",
+    "python3 scripts/run_pr114_signature_control_flow_syntax.py",
+    "git diff --exit-code execution/reports/pr114-signature-control-flow-syntax-report.json",
 ]
 EXPECTED_PRE_PUSH_SNIPPETS = [
     "\"scripts/run_pr09_ada_emission_baseline.py\"",
@@ -230,6 +241,7 @@ EXPECTED_PRE_PUSH_SNIPPETS = [
     "\"scripts/run_pr112_parser_completeness_phase1.py\"",
     "\"scripts/run_pr113_discriminated_types_tuples_structured_returns.py\"",
     "\"scripts/run_pr113a_proof_checkpoint1.py\"",
+    "\"scripts/run_pr114_signature_control_flow_syntax.py\"",
 ]
 EXPECTED_TUTORIAL_SNIPPETS = [
     "Ada-native `safec` frontend plus emitted-output proof",
@@ -310,6 +322,16 @@ def task_is_at_or_beyond_pr114(value: object) -> bool:
         return False
     major, minor = parsed
     return major > 11 or (major == 11 and minor is not None and minor >= 4)
+
+
+def task_is_at_or_beyond_pr115(value: object) -> bool:
+    if value is None:
+        return True
+    parsed = parse_task_id(value)
+    if parsed is None:
+        return False
+    major, minor = parsed
+    return major > 11 or (major == 11 and minor is not None and minor >= 5)
 
 
 def compact_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -662,6 +684,24 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         task_is_at_or_beyond_pr114(tracker.get("next_task_id")),
         "next_task_id must remain at or beyond PR11.4 after PR11.3a",
     )
+    require("PR11.4" in task_map, "tracker must define PR11.4")
+    require(task_map["PR11.4"]["depends_on"] == ["PR11.3a"], "PR11.4 must depend on PR11.3a")
+    require(
+        task_map["PR11.4"]["acceptance"] == EXPECTED_PR114_ACCEPTANCE,
+        "PR11.4 acceptance text must match the committed syntax cutover contract",
+    )
+    require(
+        task_map["PR11.4"]["status"] == "done",
+        "PR11.4 must be marked done",
+    )
+    require(
+        task_map["PR11.4"]["evidence"] == EXPECTED_PR114_EVIDENCE,
+        "PR11.4 evidence must list the committed syntax-cutover report",
+    )
+    require(
+        task_is_at_or_beyond_pr115(tracker.get("next_task_id")),
+        "next_task_id must remain at or beyond PR11.5 after PR11.4",
+    )
     for task_id in PROMOTED_TASKS:
         require(task_id in task_map, f"tracker must define promoted task {task_id}")
         require(
@@ -708,8 +748,8 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
     next_task_match = re.search(r"- \*\*Next task:\*\* `([^`]+)`", dashboard_text)
     require(next_task_match is not None, "execution/dashboard.md must render the next-task line")
     require(
-        task_is_at_or_beyond_pr114(next_task_match.group(1) if next_task_match is not None else None),
-        "execution/dashboard.md must show a next task at or beyond PR11.4 (or none)",
+        task_is_at_or_beyond_pr115(next_task_match.group(1) if next_task_match is not None else None),
+        "execution/dashboard.md must show a next task at or beyond PR11.5 (or none)",
     )
     require(
         re.search(r"\| PR10\.4 \| done \| PR10\.1 \| \d+ \|", dashboard_text)

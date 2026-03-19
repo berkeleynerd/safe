@@ -4,7 +4,7 @@
 
 package PR112_Discrete_Case is
 
-   function Flag_Value (Flag : in Boolean) return Integer is
+   function Flag_Value (Flag : in Boolean) returns Integer is
    begin
       case Flag is
          when True then
@@ -16,7 +16,7 @@ package PR112_Discrete_Case is
       end case;
    end Flag_Value;
 
-   function Opcode_Name (Opcode : in Integer) return String is
+   function Opcode_Name (Opcode : in Integer) returns String is
    begin
       case Opcode is
          when -1 then

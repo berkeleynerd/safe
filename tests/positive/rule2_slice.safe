@@ -8,8 +8,8 @@
 
 package Safe_Slice is
 
-   type Index is range 1 .. 100;
-   type Element is range 0 .. 255;
+   type Index is range 1 to 100;
+   type Element is range 0 to 255;
    type Buffer is array (Index) of Element;
 
    --  Last_In_Subrange: walks the selected subrange and retains the last seen element.
@@ -17,11 +17,11 @@ package Safe_Slice is
    --  every array access within the loop is provably in bounds.
    function Last_In_Subrange (Buf : Buffer;
                               First : Index;
-                              Last  : Index) return Element is
+                              Last  : Index) returns Element is
       Current : Element = 0;
    begin
       if First <= Last then
-         for I in First .. Last loop
+         for I in First to Last loop
             --  I is in First..Last, both of type Index (1..100).
             --  Provably within Buffer's bounds.
             Current = Buf (I);

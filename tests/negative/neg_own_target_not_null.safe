@@ -11,7 +11,7 @@ package Move_Target_Not_Null_Test is
 
    type Payload_Ptr is access Payload;
 
-   procedure Bad_Move is
+   function Bad_Move is
       Source : Payload_Ptr = new ((Value = 1) as Payload);
       Target : Payload_Ptr = new ((Value = 2) as Payload);
    begin

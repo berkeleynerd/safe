@@ -242,6 +242,7 @@
       "semantic_proof": {
         "data_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Data",
@@ -372,6 +373,7 @@
       "semantic_proof": {
         "owner_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Owner",
@@ -396,6 +398,7 @@
         },
         "ref_local": {
           "id": "v1",
+          "is_constant": false,
           "kind": "param",
           "mode": "in",
           "name": "Ref",
@@ -534,6 +537,7 @@
       "semantic_proof": {
         "current_local": {
           "id": "v0",
+          "is_constant": false,
           "kind": "global",
           "mode": "in",
           "name": "Current",
@@ -591,8 +595,8 @@
       }
     }
   },
-  "repeat_sha256": "21a1067f1d204a610a7bd604f5f845fed8de5bfc6b8f8d749077eb1861b99da8",
-  "report_sha256": "21a1067f1d204a610a7bd604f5f845fed8de5bfc6b8f8d749077eb1861b99da8",
+  "repeat_sha256": "14e9741417c4af51dca4945744e2527df265c5836c938020d1fbb028f0633e35",
+  "report_sha256": "14e9741417c4af51dca4945744e2527df265c5836c938020d1fbb028f0633e35",
   "scope": {
     "analyzer_fixture_pairs": [
       {

@@ -7,8 +7,8 @@
 
    package Zero_Div_Test is
 
-   type Value is range -100 .. 100;
-   function Divide (A, B : Value) return Value is
+   type Value is range -100 to 100;
+   function Divide (A, B : Value) returns Value is
    begin
 
       return A / B;  -- ERROR: B may be zero

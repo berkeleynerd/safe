@@ -8,17 +8,17 @@
 
 package Safe_Return is
 
-   type Bounded is range -500 .. 500;
-   type Small is range -10 .. 10;
+   type Bounded is range -500 to 500;
+   type Small is range -10 to 10;
 
    --  Signum: returns -1, 0, or 1 depending on sign.
    --  Every return path yields a value in -10..10.
-   function Signum (V : Bounded) return Small is
+   function Signum (V : Bounded) returns Small is
    begin
       if V > 0 then
          --  Narrowing point (return): 1 is in -10..10.
          return 1;
-      elsif V < 0 then
+      else if V < 0 then
          --  Narrowing point (return): -1 is in -10..10.
          return -1;
       else
@@ -29,7 +29,7 @@ package Safe_Return is
 
    --  Bounded_Add: adds two Small values. The sum of two values
    --  each in -10..10 is in -20..20, which fits in Bounded.
-   function Bounded_Add (A, B : Small) return Bounded is
+   function Bounded_Add (A, B : Small) returns Bounded is
    begin
       --  Narrowing point (return): A + B is in -20..20, within -500..500.
       return Bounded (A) + Bounded (B);

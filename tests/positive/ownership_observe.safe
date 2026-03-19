@@ -17,20 +17,20 @@ package Ownership_Observe is
 
    --  Read_Rate: observes the config through a constant access parameter.
    --  The observer does not mutate the designated object.
-   function Read_Rate (Ref : access constant Config) return Natural is
+   function Read_Rate (Ref : access constant Config) returns Natural is
    begin
       return Ref.all.Rate;
    end Read_Rate;
 
    --  Read_Limit: another observer on the same object.
-   function Read_Limit (Ref : access constant Config) return Natural is
+   function Read_Limit (Ref : access constant Config) returns Natural is
    begin
       return Ref.all.Limit;
    end Read_Limit;
 
    --  Use_Observe: creates an owned config, then observes it twice.
    --  Multiple observations of the same owned object are safe.
-   procedure Use_Observe is
+   function Use_Observe is
       Owner : Config_Ptr = new ((Rate = 100, Limit = 500) as Config);
       R     : Natural;
       L     : Natural;

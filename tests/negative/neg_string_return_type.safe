@@ -4,7 +4,7 @@
 
 package Neg_String_Return_Type is
 
-   function Broken return String is
+   function Broken returns String is
    begin
       return 1;
    end Broken;

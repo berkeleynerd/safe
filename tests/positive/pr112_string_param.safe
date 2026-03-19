@@ -4,12 +4,12 @@
 
 package PR112_String_Param is
 
-   function Echo (Name : in String) return String is
+   function Echo (Name : in String) returns String is
    begin
       return Name;
    end Echo;
 
-   function Greeting return String is
+   function Greeting returns String is
    begin
       return Echo ("hello");
    end Greeting;

@@ -7,12 +7,12 @@
 
 package Maybe_Null_Test is
 
-   type Value is range 0 .. 100;
+   type Value is range 0 to 100;
    type Value_Ptr is access Value;
 
    --  Conditional_Deref: only assigns P on one branch.
    --  After the if, P may still be null.
-   function Conditional_Deref (Flag : Boolean) return Value is
+   function Conditional_Deref (Flag : Boolean) returns Value is
       P : Value_Ptr = null;
    begin
       if Flag then

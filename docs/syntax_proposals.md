@@ -333,6 +333,9 @@ rule.
 
 # `returns` Keyword
 
+Status: implemented in PR11.4 as a cutover. `returns` is the only accepted
+signature-result spelling; legacy signature `return` is rejected.
+
 ## Motivation
 
 In the current syntax, function signatures use `return` for both the
@@ -2260,6 +2263,9 @@ TBD-13's cross-package type views — without committing to full OOP now.
 
 # `to` Range Keyword
 
+Status: implemented in PR11.4 as a cutover. `to` is the only accepted
+source-level inclusive-range spelling; legacy `..` is rejected in Safe source.
+
 ## Motivation
 
 Safe's current range syntax uses `..` from Ada:
@@ -2511,6 +2517,9 @@ reinforcing the "explicit everything" philosophy of strict mode.
 ---
 
 # `else if` Keyword
+
+Status: implemented in PR11.4 as a cutover. `else if` is the only accepted
+conditional-chain spelling; legacy `elsif` is rejected.
 
 ## Motivation
 
@@ -3221,6 +3230,9 @@ visibility signaling.
 ---
 
 # Unified Function Type
+
+Status: implemented in PR11.4 as a cutover. All Safe callables now use
+`function`; legacy `procedure` is rejected.
 
 ## Motivation
 

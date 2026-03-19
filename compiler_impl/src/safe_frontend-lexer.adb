@@ -58,11 +58,12 @@ package body Safe_Frontend.Lexer is
           | "raise" | "range" | "record" | "rem" | "renames"
           | "requeue" | "return" | "reverse" | "select" | "separate"
           | "some" | "subtype" | "synchronized" | "tagged" | "task"
-          | "terminate" | "then" | "type" | "until" | "use"
+          | "terminate" | "then" | "to" | "type" | "until" | "use"
           | "when" | "while" | "with" | "xor"
           --  Safe additional reserved words (spec §8.15)
           | "public" | "channel" | "send" | "receive"
-          | "try_send" | "try_receive" | "capacity" | "from";
+          | "try_send" | "try_receive" | "capacity" | "from"
+          | "returns";
    end Is_Keyword;
 
    function Make_Span

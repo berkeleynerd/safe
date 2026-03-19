@@ -9,17 +9,17 @@
 
 package Accumulator is
 
-   type Small_Int is range 0 .. 100;
-   type Index is range 1 .. 20;
+   type Small_Int is range 0 to 100;
+   type Index is range 1 to 20;
    type Values is array (Index) of Small_Int;
 
    --  Total_Range: The accumulated sum of up to 20 values each in 0..100
    --  is at most 2000. We declare a type to hold that.
-   type Total_Range is range 0 .. 2000;
+   type Total_Range is range 0 to 2000;
 
    --  Accumulate: sum all elements of the array.
    --  Loop invariant ensures Sum stays in 0 .. I * 100.
-   function Accumulate (Data : Values) return Total_Range is
+   function Accumulate (Data : Values) returns Total_Range is
       Sum : Total_Range = 0;
    begin
       for I in Index loop

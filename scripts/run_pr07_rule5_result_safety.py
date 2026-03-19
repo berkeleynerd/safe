@@ -57,7 +57,7 @@ INLINE_NEGATIVE_CASES = [
         "expected_reason": "discriminant_check_not_established",
         "source": """package Result_Wrong_Boolean_Flag is
 
-   type Error_Code is range 0 .. 255;
+   type Error_Code is range 0 to 255;
 
    type Parse_Result (OK : Boolean = False) is record
       Ready : Boolean;
@@ -67,7 +67,7 @@ INLINE_NEGATIVE_CASES = [
       end case;
    end record;
 
-   function Unsafe return Integer is
+   function Unsafe returns Integer is
       R : Parse_Result = (OK = True, Ready = True, Value = 7);
    begin
       if R.Ready then
@@ -85,9 +85,9 @@ end Result_Wrong_Boolean_Flag;
         "expected_reason": "fp_overflow_at_narrowing",
         "source": """package Rule5_Conversion_Narrowing is
 
-   type Narrow is digits 6 range -1.0 .. 1.0;
+   type Narrow is digits 6 range -1.0 to 1.0;
 
-   function Bad return Long_Float is
+   function Bad returns Long_Float is
       X : Long_Float = 2.0;
    begin
       return Narrow (X);
@@ -101,9 +101,9 @@ end Rule5_Conversion_Narrowing;
         "expected_reason": "fp_overflow_at_narrowing",
         "source": """package Rule5_Annotation_Narrowing is
 
-   type Narrow is digits 6 range -1.0 .. 1.0;
+   type Narrow is digits 6 range -1.0 to 1.0;
 
-   function Bad return Long_Float is
+   function Bad returns Long_Float is
       X : Long_Float = 2.0;
    begin
       return (X as Narrow);
@@ -117,7 +117,7 @@ end Rule5_Annotation_Narrowing;
         "expected_reason": "discriminant_check_not_established",
         "source": """package Result_Partial_Guard_Join is
 
-   type Error_Code is range 0 .. 255;
+   type Error_Code is range 0 to 255;
 
    type Parse_Result (OK : Boolean = False) is record
       case OK is
@@ -126,7 +126,7 @@ end Rule5_Annotation_Narrowing;
       end case;
    end record;
 
-   function Try_Parse (Input : Integer) return Parse_Result is
+   function Try_Parse (Input : Integer) returns Parse_Result is
    begin
       if Input >= 0 then
          return (OK = True, Value = Input);
@@ -135,7 +135,7 @@ end Rule5_Annotation_Narrowing;
       end if;
    end Try_Parse;
 
-   function Unsafe (Input : Integer; Guard : Boolean) return Integer is
+   function Unsafe (Input : Integer; Guard : Boolean) returns Integer is
       R : Parse_Result = Try_Parse (Input);
    begin
       if Guard then

@@ -32,11 +32,11 @@ DEFAULT_REPORT = (
 )
 
 PACKAGE_GLOBAL_OWNER_SOURCE = """package Package_Global_Owner is
-   type Value is range 0 .. 10;
+   type Value is range 0 to 10;
    type Value_Ptr is access all Value;
    Owner : Value_Ptr = new (1 as Value);
 
-   function Read return Value is
+   function Read returns Value is
    begin
       return Owner.all;
    end Read;
@@ -52,12 +52,12 @@ PACKAGE_GLOBAL_OBSERVE_SOURCE = """package Package_Global_Observe is
 
    Owner : Config_Ptr = new ((Rate = 100) as Config);
 
-   function Read_Config (Ref : access constant Config) return Integer is
+   function Read_Config (Ref : access constant Config) returns Integer is
    begin
       return Ref.all.Rate;
    end Read_Config;
 
-   function Read return Integer is
+   function Read returns Integer is
    begin
       return Read_Config (Owner.Access);
    end Read;
@@ -72,7 +72,7 @@ PACKAGE_GLOBAL_RECORD_SOURCE = """package Package_Global_Record is
 
    Current : Config = (Rate = 1, Limit = 2);
 
-   function Read return Natural is
+   function Read returns Natural is
    begin
       return Current.Rate;
    end Read;
@@ -80,12 +80,12 @@ end Package_Global_Record;
 """
 
 PACKAGE_GLOBAL_ARRAY_SOURCE = """package Package_Global_Array is
-   type Index is range 1 .. 4;
-   type Element is range 0 .. 20;
+   type Index is range 1 to 4;
+   type Element is range 0 to 20;
    type Table is array (Index) of Element;
    Data : Table;
 
-   function Read return Element is
+   function Read returns Element is
    begin
       Data (Index.First) = 5;
       return Data (Index.First);
@@ -94,7 +94,7 @@ end Package_Global_Array;
 """
 
 NESTED_DECLARE_SCOPE_SOURCE = """package Nested_Declare_Scope is
-   function Read return Integer is
+   function Read returns Integer is
       Total : Integer = 1;
    begin
       declare
@@ -110,10 +110,10 @@ end Nested_Declare_Scope;
 """
 
 FOR_LOOP_SCOPE_SOURCE = """package For_Loop_Scope is
-   function Read return Integer is
+   function Read returns Integer is
       Total : Integer = 0;
    begin
-      for I in 1 .. 3 loop
+      for I in 1 to 3 loop
          Total = Total + I;
       end loop;
       return Total;
@@ -122,7 +122,7 @@ end For_Loop_Scope;
 """
 
 IF_RETURN_CFG_SOURCE = """package If_Return_Cfg is
-   function Pick (Flag : Boolean) return Integer is
+   function Pick (Flag : Boolean) returns Integer is
       Value : Integer = 2;
    begin
       if Flag then
@@ -135,7 +135,7 @@ end If_Return_Cfg;
 """
 
 WHILE_AND_THEN_CFG_SOURCE = """package While_And_Then_Cfg is
-   function Read return Integer is
+   function Read returns Integer is
       Count : Integer = 0;
       Flag : Boolean = True;
    begin
@@ -148,7 +148,7 @@ end While_And_Then_Cfg;
 """
 
 WHILE_INTEGER_BOUND_CFG_SOURCE = """package While_Integer_Bound_Cfg is
-   function Read return Integer is
+   function Read returns Integer is
       Count : Integer = 0;
       Limit : Integer = 3;
    begin

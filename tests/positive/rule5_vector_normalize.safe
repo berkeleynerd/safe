@@ -9,15 +9,15 @@
 
 package Safe_Vector_Normalize is
 
-   type Component is digits 6 range 0.0 .. 100.0;
-   type Positive_Count is range 1 .. 4;
+   type Component is digits 6 range 0.0 to 100.0;
+   type Positive_Count is range 1 to 4;
    type Vector3 is record
       X : Component;
       Y : Component;
       Z : Component;
    end record;
 
-   function Normalize_X (Input : Vector3) return Float is
+   function Normalize_X (Input : Vector3) returns Float is
       Divisor : Positive_Count = 1;
    begin
       if Input.X > 0.0 then

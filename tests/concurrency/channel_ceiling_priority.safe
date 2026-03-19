@@ -6,11 +6,11 @@
 
 package Channel_Ceiling_Priority is
 
-   type Message is range 0 .. 1_000;
+   type Message is range 0 to 1_000;
 
    channel Data_Ch : Message capacity 2;
 
-   procedure Push (Value : Message) is
+   function Push (Value : Message) is
    begin
       send Data_Ch, Value;
    end Push;

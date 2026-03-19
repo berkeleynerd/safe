@@ -30,16 +30,16 @@
         },
         "json_and_interface": {
           "rule1_averaging.ast.json": {
-            "sha256": "4b574eaa6a04f21e5e63e5b172b0f9c38eae1d6aafa83c3007cd6627182eccec"
+            "sha256": "7ba568081ad2d576fb92ffc3de3a554839e6d45291d1a4b1745915c210ac931d"
           },
           "rule1_averaging.mir.json": {
             "sha256": "16bd00adfd0777b7649aa3003744b4f3e1236fcf7e6f428155d3e715518acec6"
           },
           "rule1_averaging.safei.json": {
-            "sha256": "79da78203aaefe19279824118c38f4a6443cbbec24b9af69b2ff494f8fe87ddb"
+            "sha256": "4388d1d6a9b075172a7f51a6fe9f36de391c8d2cafb6dd8ec8ef49e025e847a0"
           },
           "rule1_averaging.typed.json": {
-            "sha256": "6dc0be2990a6e8f4c79522732e7de9cdb56b7f336aa170f502d58654034233d1"
+            "sha256": "4a950ae0097ef37002c393b50e019245c9601ae6280bfb43b46da576ae5eb314"
           }
         }
       },
@@ -84,16 +84,16 @@
         },
         "json_and_interface": {
           "rule1_accumulate.ast.json": {
-            "sha256": "e1d1e4b8fc43b1f7d10a3f20c56df585c5e07eac6781af2506a3e541ffedc6e0"
+            "sha256": "3767ff4506b5e868b64646317dbc70d8561770dae33dbff30a1922fbc3f03de5"
           },
           "rule1_accumulate.mir.json": {
             "sha256": "2d5aa84aa18fd5eec01836cac154facb96b55b0500b82e27ee22aeedba0ac1b1"
           },
           "rule1_accumulate.safei.json": {
-            "sha256": "c68258bd525b1ddc5683359b1926282f3b2ea25e201a3e12eb8a70e8988aaa3e"
+            "sha256": "b91298bde2f1fc13088ad5b1ad65e9953c81047b7a03a17c39da748afa858532"
           },
           "rule1_accumulate.typed.json": {
-            "sha256": "241ab2c2beb194a5ec6f17b0195941b25460fb5cea386f6b68fee8c3fac7c09f"
+            "sha256": "e90d5765acbf2675f8de84f25a861d4a1e5f6d271febd2eefc6df85f1ea7d0a7"
           }
         }
       },
@@ -138,16 +138,16 @@
         },
         "json_and_interface": {
           "rule1_parameter.ast.json": {
-            "sha256": "5dc1698639bb4945fd58344a92380b7119a2b62f5a4e846fd76fb3706e17cf61"
+            "sha256": "959ceb32ff4b366d9c10a35fda09655c1f643f04e20ba65118d7f3fd86a91875"
           },
           "rule1_parameter.mir.json": {
-            "sha256": "ca17d0ffaec6d582f7cc37e5ab956d22f9c985401d87f48cde523a9e7f32ef0e"
+            "sha256": "577033aae2e6f142cd9afa1237814eff329ae5ecd8e4ef50a0187a902446180a"
           },
           "rule1_parameter.safei.json": {
-            "sha256": "4db04369b263d9a265b6192624e450bc01e624474952c048712b51f5b8010834"
+            "sha256": "c4778364e0eacd9f8a711686001bf61f43162eb16f33d2e0b6039b2c3d1c992c"
           },
           "rule1_parameter.typed.json": {
-            "sha256": "a1dd8bb1fa9c5b9d468bafa4e3c57ddaf81ae1afad49a81566cec706b3a6be99"
+            "sha256": "b573e28a9da33c65c8c090f362fd2120099f4562d498387539b7d892d6385a30"
           }
         }
       },
@@ -196,16 +196,16 @@
         },
         "json_and_interface": {
           "rule1_return.ast.json": {
-            "sha256": "7b936600d49f8049afad033806e110134c8b241939c31a62fd70e237922b3b78"
+            "sha256": "3a76be2e64fe1e4375b9f7eac4c87f221aa88bb7986ec496ef3bbf69d283795c"
           },
           "rule1_return.mir.json": {
-            "sha256": "eb1c20e763d0fd1b5f802718f03e0e51d515f602b8b9cb63fe5c86493b0487d6"
+            "sha256": "2b5aa0e03d6a55861a726700c5279a85e283222efccb8d26d4fb66adc9de15e5"
           },
           "rule1_return.safei.json": {
-            "sha256": "014cd7a2b58b7a753ebc949336f46c8c2d9d8de37189fba9d711d1c59f136065"
+            "sha256": "771f9c828b07614bf0a7feb103a0aa68f76155a3957012c1370201052838af97"
           },
           "rule1_return.typed.json": {
-            "sha256": "6faad2eee032643386f4df60467be0524dc3e9376b12c9e0f404bc61c0c4a19d"
+            "sha256": "204e4b35a001f916eefd7d54eab5e644a9e8ee8dc137ddc5c3b71723c008baf9"
           }
         }
       },
@@ -250,16 +250,16 @@
         },
         "json_and_interface": {
           "rule1_conversion.ast.json": {
-            "sha256": "fbf804b369dbbdffc008cc6b319ccaf05ee0b78cc3dd93f67c21fa0b8a03e48e"
+            "sha256": "d54ac7eccdb447a38ed5802c715d6e9e677cd56904ee30ed5e7170d60bfb5017"
           },
           "rule1_conversion.mir.json": {
-            "sha256": "e3ceccb17a6b15a51f8aeb7c4df4a7edd112b92d29fd419557834dc0039a33eb"
+            "sha256": "e6849d30827e9bb59cdd57bad86d11c994da244e19deff9ba1912c3aa2fb835a"
           },
           "rule1_conversion.safei.json": {
-            "sha256": "964878a6570b3435f2c1a6e9d0002462e4125efbe660d466ab7c0388a2a5cfad"
+            "sha256": "4b5ec51bacd4b7682d951f30acdbdc00c4d46b090d0f6d6ba836ff7c80449bc0"
           },
           "rule1_conversion.typed.json": {
-            "sha256": "a12b46d9c0c0de5085d4345ae1aaa0b98e3d93c64d50846771ebabb1d3d95715"
+            "sha256": "191fd7e760d217e15486a7a7b84b45f914ad1e2eb000407178e66e896d64ebbc"
           }
         }
       },
@@ -280,6 +280,6 @@
     "PR09a emits compile-valid Ada/SPARK skeleton output on the rule1 subset.",
     "safe_runtime.ads remains byte-identical to companion/templates/safe_runtime.ads."
   ],
-  "repeat_sha256": "f86f4f6a674973b1f86b858ec4522b402a9e5625a2599942b36412fda6446d67",
-  "report_sha256": "f86f4f6a674973b1f86b858ec4522b402a9e5625a2599942b36412fda6446d67"
+  "repeat_sha256": "86eab2f8fd0069689169920eb352fce31c14a87637dfe402db63fd425651508f",
+  "report_sha256": "86eab2f8fd0069689169920eb352fce31c14a87637dfe402db63fd425651508f"
 }

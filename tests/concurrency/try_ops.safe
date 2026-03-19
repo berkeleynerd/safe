@@ -9,7 +9,7 @@
 
 package Try_Ops is
 
-   type Item is range 0 .. 100;
+   type Item is range 0 to 100;
 
    channel Data_Ch : Item capacity 2;
 

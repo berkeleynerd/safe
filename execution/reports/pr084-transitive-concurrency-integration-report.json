@@ -493,10 +493,10 @@
           "typed": "out/client_imported_borrow_observe.typed.json"
         },
         "hashes": {
-          "ast": "0f2934f6963f4a669522cc25a00848ef6b559c3219439ec9819ffec1a9a65a22",
-          "mir": "85347ce96b9019d3c2108bf29add1bfabe10e1dd3b9746d6e17c3b00e560c66c",
-          "safei": "6e268c9a33cbed651b13e010701abaeda5ae6ddd62af05f43a5cca19f7055abb",
-          "typed": "eb6951fee958b357000d79fcecb076fdfc73546184d13d57820f71f79fccd678"
+          "ast": "ffd20d881cbadfa2ed6d432940b58f9eb9b33e531520ed1944e1da18dcef56be",
+          "mir": "1fe904e4ef7077b5dc64647e2cc374ed43256c12be9b0558843770108fe9e77f",
+          "safei": "05c9cc74c1bdf41d2c38168060f042c22c44c80695da44b38280cdbcf2949a66",
+          "typed": "0d9798396afa3d7ed71ab41ec7146eaee9dad7e08a675eec816cf0e6a68bffdf"
         },
         "mir_payload": {
           "channels": [],
@@ -515,16 +515,16 @@
                 "writes": []
               },
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Provider_Imported_Call_Ownership.Bump",
               "params": [
                 {
                   "mode": "in",
                   "name": "Ref",
                   "span": {
-                    "end_col": 46,
+                    "end_col": 45,
                     "end_line": 9,
-                    "start_col": 27,
+                    "start_col": 26,
                     "start_line": 9
                   },
                   "type": {
@@ -541,7 +541,7 @@
               ],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Bump (Ref: access Payload)",
+              "signature": "function Bump (Ref: access Payload)",
               "span": {
                 "end_col": 12,
                 "end_line": 12,
@@ -603,7 +603,7 @@
                 "low": -9223372036854775808,
                 "name": "Integer"
               },
-              "signature": "function Read_Value (Ref: access Payload) return Integer",
+              "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
                 "end_col": 18,
                 "end_line": 17,
@@ -623,16 +623,16 @@
                 "writes": []
               },
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Provider_Imported_Call_Ownership.Consume",
               "params": [
                 {
                   "mode": "in out",
                   "name": "Ref",
                   "span": {
-                    "end_col": 53,
+                    "end_col": 52,
                     "end_line": 19,
-                    "start_col": 30,
+                    "start_col": 29,
                     "start_line": 19
                   },
                   "type": {
@@ -649,7 +649,7 @@
               ],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Consume (Ref: Payload_Ptr)",
+              "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
                 "end_col": 15,
                 "end_line": 22,
@@ -991,7 +991,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [
                 {
                   "id": "v0",
@@ -1096,9 +1096,9 @@
           "effect_summaries": [],
           "executables": [
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Run",
-              "signature": "procedure Run ()",
+              "signature": "function Run ()",
               "span": {
                 "end_col": 11,
                 "end_line": 13,
@@ -1234,7 +1234,7 @@
         },
         "hashes": {
           "ast": "33bcaecf9eb887cf5ce5f94608518b1c068d7f88b6ba2999c8ee9d557369fcbe",
-          "mir": "bb0afebe437b51923c6564dabb31855b76201bcce3640f758fe4a1d3a4a6e42b",
+          "mir": "952d46120e077eb24789aa48c6711be7a5f88fbb1977f72d688d7fb915296605",
           "safei": "37d02ccbcda7e49ed3dc8c3648997b570d36a8a20ad1f952a0e3e1681af3cd93",
           "typed": "9383dda199d81afc4caad81d76c9856662eed0747d9ac490cc02d3c16e5baa6c"
         },
@@ -1273,12 +1273,12 @@
                 "writes": []
               },
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Provider_Transitive_Channel.Push",
               "params": [],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Push ()",
+              "signature": "function Push ()",
               "span": {
                 "end_col": 12,
                 "end_line": 25,
@@ -1619,7 +1619,7 @@
         },
         "hashes": {
           "ast": "a7ecc37474f0f41897a4cadeb6da294f450af4f44d199cad2fa1d249a16ba760",
-          "mir": "70315bb7ebcd556dc2d48569e0f2e7579bcb5efbe4bf74c0c487d51d2fb0f54b",
+          "mir": "5b51207c491d3cd8840a2ff4b35383bcfe28a6b9e0f428d3d765c19f94ae5e2b",
           "safei": "0bd4b68e211c7dd83f80d928822dfce618311a77c9de513aa9187e088730ac7c",
           "typed": "bc308b15662c0b875da887d64246afadcbcc4fbef9bad98cd2e0874568fee063"
         },
@@ -1658,12 +1658,12 @@
                 "writes": []
               },
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Provider_Transitive_Channel.Push",
               "params": [],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Push ()",
+              "signature": "function Push ()",
               "span": {
                 "end_col": 12,
                 "end_line": 25,
@@ -2010,7 +2010,7 @@
         },
         "hashes": {
           "ast": "c85c6a2312ccbe4e48d61990f79f32063294cbd7b36993ccfd6edd0e4fcb3351",
-          "mir": "1d59a590e21fdd7a129addaec739b448d4fda2c22e1089bcc4a45f36213c4087",
+          "mir": "f6424b2a09bdec969dd9acc78a7c801d47b83b0ceb2d83439d27e83e7a2ad3ff",
           "safei": "75b8bdda3ed577f26496a036764d8e9f4eb8ae89e0d6f153c0cc5a909e731a41",
           "typed": "7077d6c4706edd79ed14c7c13e4949318262d877d667ce3b26e6b2aec397540e"
         },
@@ -2044,12 +2044,12 @@
                 ]
               },
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Provider_Transitive_Global.Touch",
               "params": [],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Touch ()",
+              "signature": "function Touch ()",
               "span": {
                 "end_col": 13,
                 "end_line": 13,
@@ -2482,10 +2482,10 @@
           "typed": "out/provider_imported_call_ownership.typed.json"
         },
         "hashes": {
-          "ast": "824bc2d8b6e83c26f41228f501f4173d0dee7cdfb77cd03dd92fba81e47f8d58",
-          "mir": "6fcaee777e05551d78446a509007d30092d24ebd9ef62b9cbcbc4a20cdf2794f",
-          "safei": "08729dbeb4372b9e4f08139ec1b7afd2258c1ec0356923141cdd70ba20a13d93",
-          "typed": "35719cc51f39e2dec7270689e148b1a67ed81337bdc3f3a9fc96cfbb0dcda566"
+          "ast": "dae6b218de2dfe5faefd779ab19daad5c87afb12d64243417c4c62890e802d99",
+          "mir": "099950e5c8f0f240246fffce59959251f67644b981e405af8e63f185cf2919c0",
+          "safei": "9fac2b4228400dcc7caed6c824720057921c5de129918116ac71d4787fc3b559",
+          "typed": "7536b6709fc1f59fb755a56b85c8dda6688999b5eec1b41d42e3895d8eeb1e38"
         },
         "mir_payload": {
           "channels": [],
@@ -2621,7 +2621,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [
                 {
                   "id": "v0",
@@ -2632,9 +2632,9 @@
                   "ownership_role": "Borrow",
                   "scope_id": "scope0",
                   "span": {
-                    "end_col": 46,
+                    "end_col": 45,
                     "end_line": 9,
-                    "start_col": 27,
+                    "start_col": 26,
                     "start_line": 9
                   },
                   "type": {
@@ -2814,7 +2814,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [
                 {
                   "id": "v0",
@@ -2825,9 +2825,9 @@
                   "ownership_role": "Owner",
                   "scope_id": "scope0",
                   "span": {
-                    "end_col": 53,
+                    "end_col": 52,
                     "end_line": 19,
-                    "start_col": 30,
+                    "start_col": 29,
                     "start_line": 19
                   },
                   "type": {
@@ -2893,17 +2893,17 @@
             {
               "channels": [],
               "name": "Bump",
-              "signature": "procedure Bump (Ref: access Payload)"
+              "signature": "function Bump (Ref: access Payload)"
             },
             {
               "channels": [],
               "name": "Read_Value",
-              "signature": "function Read_Value (Ref: access Payload) return Integer"
+              "signature": "function Read_Value (Ref: access Payload) returns Integer"
             },
             {
               "channels": [],
               "name": "Consume",
-              "signature": "procedure Consume (Ref: Payload_Ptr)"
+              "signature": "function Consume (Ref: Payload_Ptr)"
             }
           ],
           "channels": [],
@@ -2917,7 +2917,7 @@
               "name": "Bump",
               "outputs": [],
               "reads": [],
-              "signature": "procedure Bump (Ref: access Payload)",
+              "signature": "function Bump (Ref: access Payload)",
               "writes": []
             },
             {
@@ -2937,7 +2937,7 @@
                 "return"
               ],
               "reads": [],
-              "signature": "function Read_Value (Ref: access Payload) return Integer",
+              "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "writes": []
             },
             {
@@ -2946,15 +2946,15 @@
               "name": "Consume",
               "outputs": [],
               "reads": [],
-              "signature": "procedure Consume (Ref: Payload_Ptr)",
+              "signature": "function Consume (Ref: Payload_Ptr)",
               "writes": []
             }
           ],
           "executables": [
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Bump",
-              "signature": "procedure Bump (Ref: access Payload)",
+              "signature": "function Bump (Ref: access Payload)",
               "span": {
                 "end_col": 12,
                 "end_line": 12,
@@ -2965,7 +2965,7 @@
             {
               "kind": "function",
               "name": "Read_Value",
-              "signature": "function Read_Value (Ref: access Payload) return Integer",
+              "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
                 "end_col": 18,
                 "end_line": 17,
@@ -2974,9 +2974,9 @@
               }
             },
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Consume",
-              "signature": "procedure Consume (Ref: Payload_Ptr)",
+              "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
                 "end_col": 15,
                 "end_line": 22,
@@ -3014,7 +3014,7 @@
             {
               "kind": "SubprogramBody",
               "name": "Bump",
-              "signature": "procedure Bump (Ref: access Payload)",
+              "signature": "function Bump (Ref: access Payload)",
               "span": {
                 "end_col": 12,
                 "end_line": 12,
@@ -3025,7 +3025,7 @@
             {
               "kind": "SubprogramBody",
               "name": "Read_Value",
-              "signature": "function Read_Value (Ref: access Payload) return Integer",
+              "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
                 "end_col": 18,
                 "end_line": 17,
@@ -3036,7 +3036,7 @@
             {
               "kind": "SubprogramBody",
               "name": "Consume",
-              "signature": "procedure Consume (Ref: Payload_Ptr)",
+              "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
                 "end_col": 15,
                 "end_line": 22,
@@ -3048,16 +3048,16 @@
           "subprograms": [
             {
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Bump",
               "params": [
                 {
                   "mode": "in",
                   "name": "Ref",
                   "span": {
-                    "end_col": 46,
+                    "end_col": 45,
                     "end_line": 9,
-                    "start_col": 27,
+                    "start_col": 26,
                     "start_line": 9
                   },
                   "type": {
@@ -3074,7 +3074,7 @@
               ],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Bump (Ref: access Payload)",
+              "signature": "function Bump (Ref: access Payload)",
               "span": {
                 "end_col": 12,
                 "end_line": 12,
@@ -3115,7 +3115,7 @@
                 "low": -9223372036854775808,
                 "name": "Integer"
               },
-              "signature": "function Read_Value (Ref: access Payload) return Integer",
+              "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
                 "end_col": 18,
                 "end_line": 17,
@@ -3125,16 +3125,16 @@
             },
             {
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Consume",
               "params": [
                 {
                   "mode": "in out",
                   "name": "Ref",
                   "span": {
-                    "end_col": 53,
+                    "end_col": 52,
                     "end_line": 19,
-                    "start_col": 30,
+                    "start_col": 29,
                     "start_line": 19
                   },
                   "type": {
@@ -3151,7 +3151,7 @@
               ],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Consume (Ref: Payload_Ptr)",
+              "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
                 "end_col": 15,
                 "end_line": 22,
@@ -3252,10 +3252,10 @@
           "typed": "out/provider_transitive_channel.typed.json"
         },
         "hashes": {
-          "ast": "9c6a9dfa7f2cc67fb92074e3ab03f1128d8928bf2f170aa4fb0a8ab336945c2e",
-          "mir": "751c4dde6b2e406ef3fc9e518dde657d1139971cd38b89fcc4390e887e6615a6",
-          "safei": "00d5d8fe116ab574673ab7c225d8bf4e6890b3944c6e02606ed5e88088ffa285",
-          "typed": "37f72512339fe153bc44dcf9f395d76e71780c54507695ef437a08eb89c54504"
+          "ast": "ea372849e37fcb2c5ee2c699f26764033d39fad40ead811c564daf56c1a85bc8",
+          "mir": "5f0362c295542c0eaae44e418c4992b74ea7d079aad8f1c9c6eddd21a0df47ca",
+          "safei": "0a1d04fbff261de5ba07223ff6486a05310fd927fb6928b12008315d5d74ad51",
+          "typed": "0cec913b45b8dcc74cb7117f717b298e4e6584190b46ffcadeabf270c5ace85d"
         },
         "mir_payload": {
           "channels": [
@@ -3341,7 +3341,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [],
               "name": "Push_Internal",
               "return_type": null,
@@ -3432,7 +3432,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [],
               "name": "Push",
               "return_type": null,
@@ -3741,7 +3741,7 @@
                 "Data_Ch"
               ],
               "name": "Push",
-              "signature": "procedure Push ()"
+              "signature": "function Push ()"
             }
           ],
           "channels": [
@@ -3772,15 +3772,15 @@
               "name": "Push",
               "outputs": [],
               "reads": [],
-              "signature": "procedure Push ()",
+              "signature": "function Push ()",
               "writes": []
             }
           ],
           "executables": [
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Push_Internal",
-              "signature": "procedure Push_Internal ()",
+              "signature": "function Push_Internal ()",
               "span": {
                 "end_col": 21,
                 "end_line": 20,
@@ -3789,9 +3789,9 @@
               }
             },
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Push",
-              "signature": "procedure Push ()",
+              "signature": "function Push ()",
               "span": {
                 "end_col": 12,
                 "end_line": 25,
@@ -3829,7 +3829,7 @@
             {
               "kind": "SubprogramBody",
               "name": "Push",
-              "signature": "procedure Push ()",
+              "signature": "function Push ()",
               "span": {
                 "end_col": 12,
                 "end_line": 25,
@@ -3841,12 +3841,12 @@
           "subprograms": [
             {
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Push",
               "params": [],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Push ()",
+              "signature": "function Push ()",
               "span": {
                 "end_col": 12,
                 "end_line": 25,
@@ -3936,10 +3936,10 @@
           "typed": "out/provider_transitive_global.typed.json"
         },
         "hashes": {
-          "ast": "450c72fb775a10e0d628fa31c1a0a1cd4dc776012f375926264818d8f7b5b147",
-          "mir": "9f2240778112998521baa2797635469be2a804935d273fa23d1704d8f59ecbc0",
-          "safei": "62fe686a9dc22b7d29d9991487c02ca9833a830c66b27cac77f419c8b593f574",
-          "typed": "76f39ea492df3a46f81b4b2fe6dda2b2d43e9c83bdd55050c5416f6d88b0d7a0"
+          "ast": "94a47490233bec7eacc7b70d390ab42f477bfc55f5aa309bffb794ef31891c52",
+          "mir": "338f1d012828348536c2002add58b2317d4055fe5220dc713361751f4c7df2a7",
+          "safei": "4cf4e7cbb404263a5e18459e69b11bc91077b48b38ca76773b1d3bf1616371ad",
+          "typed": "4c0cc67223f4eb78b1fe24f2d81c9252c39371b1b62b7501bb765625473aed29"
         },
         "mir_payload": {
           "channels": [],
@@ -4066,7 +4066,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [
                 {
                   "id": "v0",
@@ -4216,7 +4216,7 @@
                 }
               ],
               "entry_bb": "bb0",
-              "kind": "procedure",
+              "kind": "function",
               "locals": [
                 {
                   "id": "v0",
@@ -4273,7 +4273,7 @@
             {
               "channels": [],
               "name": "Touch",
-              "signature": "procedure Touch ()"
+              "signature": "function Touch ()"
             }
           ],
           "channels": [],
@@ -4298,7 +4298,7 @@
               "reads": [
                 "Shared"
               ],
-              "signature": "procedure Touch ()",
+              "signature": "function Touch ()",
               "writes": [
                 "Shared"
               ]
@@ -4306,9 +4306,9 @@
           ],
           "executables": [
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Touch_Internal",
-              "signature": "procedure Touch_Internal ()",
+              "signature": "function Touch_Internal ()",
               "span": {
                 "end_col": 22,
                 "end_line": 8,
@@ -4317,9 +4317,9 @@
               }
             },
             {
-              "kind": "procedure",
+              "kind": "function",
               "name": "Touch",
-              "signature": "procedure Touch ()",
+              "signature": "function Touch ()",
               "span": {
                 "end_col": 13,
                 "end_line": 13,
@@ -4335,7 +4335,7 @@
             {
               "kind": "SubprogramBody",
               "name": "Touch",
-              "signature": "procedure Touch ()",
+              "signature": "function Touch ()",
               "span": {
                 "end_col": 13,
                 "end_line": 13,
@@ -4347,12 +4347,12 @@
           "subprograms": [
             {
               "has_return_type": false,
-              "kind": "procedure",
+              "kind": "function",
               "name": "Touch",
               "params": [],
               "return_is_access_def": false,
               "return_type": null,
-              "signature": "procedure Touch ()",
+              "signature": "function Touch ()",
               "span": {
                 "end_col": 13,
                 "end_line": 13,
@@ -4412,8 +4412,8 @@
       }
     }
   },
-  "repeat_sha256": "8a98a9b3423caea0a3853582dec00a93d8f49582c1d6686184ade4cf3126f10a",
-  "report_sha256": "8a98a9b3423caea0a3853582dec00a93d8f49582c1d6686184ade4cf3126f10a",
+  "repeat_sha256": "cec94b560af15766e0ebe8dfe384f191d9c4e55197e31647c51c6f94d8181ef6",
+  "report_sha256": "cec94b560af15766e0ebe8dfe384f191d9c4e55197e31647c51c6f94d8181ef6",
   "synthetic_parity": {
     "imported_inout_parity": {
       "analyze_mir": {

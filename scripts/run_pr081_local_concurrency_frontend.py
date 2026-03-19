@@ -87,7 +87,7 @@ ANALYSIS_REGRESSION_CASES = [
         "text": (
             "package Send_Division_By_Zero is\n"
             "\n"
-            "   type Message is range 0 .. 100;\n"
+            "   type Message is range 0 to 100;\n"
             "\n"
             "   channel Data_Ch : Message capacity 1;\n"
             "\n"
@@ -108,7 +108,7 @@ ANALYSIS_REGRESSION_CASES = [
         "text": (
             "package Select_Arm_Division_By_Zero is\n"
             "\n"
-            "   type Message is range 0 .. 100;\n"
+            "   type Message is range 0 to 100;\n"
             "\n"
             "   channel Data_Ch : Message capacity 1;\n"
             "\n"
@@ -136,7 +136,7 @@ ANALYSIS_REGRESSION_CASES = [
         "text": (
             "package Select_Delay_Division_By_Zero is\n"
             "\n"
-            "   type Message is range 0 .. 100;\n"
+            "   type Message is range 0 to 100;\n"
             "\n"
             "   channel Data_Ch : Message capacity 1;\n"
             "\n"

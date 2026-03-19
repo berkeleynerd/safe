@@ -2,6 +2,6 @@ with Provider_Constant_Unsupported;
 
 package Client_Constant_Missing_Value is
 
-   type Index is range 0 .. Provider_Constant_Unsupported.Limit;
+   type Index is range 0 to Provider_Constant_Unsupported.Limit;
 
 end Client_Constant_Missing_Value;

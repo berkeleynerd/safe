@@ -1,8 +1,8 @@
 package Bounded_Stack is
 
-   type Slot is range 1 .. 8;
-   type Depth is range 0 .. 8;
-   type Item is range 0 .. 255;
+   type Slot is range 1 to 8;
+   type Depth is range 0 to 8;
+   type Item is range 0 to 255;
    type Storage is array (Slot) of Item;
 
    type Stack is record
@@ -10,7 +10,7 @@ package Bounded_Stack is
       Size : Depth;
    end record;
 
-   procedure Reset (S : out Stack) is
+   function Reset (S : out Stack) is
    begin
       S.Size = 0;
       for I in Slot loop
@@ -18,7 +18,7 @@ package Bounded_Stack is
       end loop;
    end Reset;
 
-   procedure Push (S : in out Stack; Value : Item) is
+   function Push (S : in out Stack; Value : Item) is
       Next_Size : Depth = S.Size;
    begin
       if S.Size < Depth.Last then
@@ -28,7 +28,7 @@ package Bounded_Stack is
       end if;
    end Push;
 
-   procedure Pop (S : in out Stack; Value : out Item) is
+   function Pop (S : in out Stack; Value : out Item) is
    begin
       case S.Size is
          when 1 then

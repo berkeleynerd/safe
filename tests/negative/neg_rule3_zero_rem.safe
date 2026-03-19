@@ -7,10 +7,10 @@
 
 package Zero_Rem_Test is
 
-   type Signed is range -50 .. 50;
+   type Signed is range -50 to 50;
 
    --  Remainder_Unsafe: computes A rem B, but B may be zero.
-   function Remainder_Unsafe (A, B : Signed) return Signed is
+   function Remainder_Unsafe (A, B : Signed) returns Signed is
    begin
       return A rem B;  -- ERROR: B may be zero
    end Remainder_Unsafe;

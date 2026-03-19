@@ -606,7 +606,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
                     "",
                     "package Tmp_Imported_Inout is",
                     "",
-                    "   procedure Run is",
+                    "   function Run is",
                     "      Owner : Provider_Imported_Call_Ownership.Payload_Ptr =",
                     "        new ((Value = 5) as Provider_Imported_Call_Ownership.Payload);",
                     "   begin",

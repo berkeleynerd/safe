@@ -2,7 +2,7 @@ with Provider_Imported_Call_Ownership;
 
 package Client_Imported_Borrow_Observe is
 
-   procedure Run is
+   function Run is
       Owner : Provider_Imported_Call_Ownership.Payload_Ptr =
         new ((Value = 5) as Provider_Imported_Call_Ownership.Payload);
       Seen  : Integer;

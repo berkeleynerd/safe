@@ -6,9 +6,9 @@
 
 package Emitter_Surface_Proc is
 
-   type Small is range 0 .. 5;
+   type Small is range 0 to 5;
 
-   procedure Copy (Input : Small; Output : out Small) is
+   function Copy (Input : Small; Output : out Small) is
       Local : Small = Input;
    begin
       Output = Local;

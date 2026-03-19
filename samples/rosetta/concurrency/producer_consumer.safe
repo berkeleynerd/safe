@@ -1,6 +1,6 @@
 package Producer_Consumer is
 
-   type Message is range 0 .. 1000;
+   type Message is range 0 to 1000;
 
    channel Data_Ch : Message capacity 1;
    Result : Message = 0;

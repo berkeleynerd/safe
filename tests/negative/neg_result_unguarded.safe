@@ -8,7 +8,7 @@
 
 package Neg_Result_Unguarded is
 
-   type Error_Code is range 0 .. 255;
+   type Error_Code is range 0 to 255;
 
    type Parse_Result (OK : Boolean = False) is record
       case OK is
@@ -17,7 +17,7 @@ package Neg_Result_Unguarded is
       end case;
    end record;
 
-   function Try_Parse (Input : Integer) return Parse_Result is
+   function Try_Parse (Input : Integer) returns Parse_Result is
    begin
       if Input >= 0 then
          return (OK = True, Value = Input);
@@ -28,7 +28,7 @@ package Neg_Result_Unguarded is
 
    --  NONCONFORMING: accesses R.Value without establishing R.OK = True.
    --  The discriminant check cannot be discharged statically.
-   function Unsafe_Access (Input : Integer) return Integer is
+   function Unsafe_Access (Input : Integer) returns Integer is
       R : Parse_Result = Try_Parse (Input);
    begin
       return R.Value;  -- REJECTED: R.OK not established

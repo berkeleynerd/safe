@@ -7,6 +7,8 @@ package body Safe_Frontend.Check_Parse is
 
    use type CM.Expr_Access;
    use type CM.Expr_Kind;
+   use type CM.Statement_Access;
+   use type CM.Statement_Kind;
    use type CM.Type_Spec_Kind;
    use type FL.Token_Kind;
    use type FT.UString;
@@ -117,6 +119,51 @@ package body Safe_Frontend.Check_Parse is
    begin
       Ignore := Expect (State, Lexeme);
    end Require;
+
+   procedure Reject_Legacy_Keyword
+     (State       : Parser_State;
+      Legacy      : String;
+      Replacement : String;
+      Context     : String) is
+   begin
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => Path_String (State),
+            Span    => Current (State).Span,
+            Message =>
+              "legacy `" & Legacy & "` is not allowed in " & Context
+              & "; use `" & Replacement & "`"));
+   end Reject_Legacy_Keyword;
+
+   procedure Require_Returns_Keyword (State : in out Parser_State) is
+   begin
+      if Match (State, "returns") then
+         return;
+      elsif Current_Lower (State) = "return" then
+         Reject_Legacy_Keyword
+           (State,
+            Legacy      => "return",
+            Replacement => "returns",
+            Context     => "subprogram signatures");
+      else
+         Require (State, "returns");
+      end if;
+   end Require_Returns_Keyword;
+
+   procedure Require_Range_Keyword (State : in out Parser_State) is
+   begin
+      if Match (State, "to") then
+         return;
+      elsif FT.To_String (Current (State).Lexeme) = ".." then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Current (State).Span,
+               Message => "legacy `..` is not allowed in source ranges; use `to`"));
+      else
+         Require (State, "to");
+      end if;
+   end Require_Range_Keyword;
 
    function Expect_Identifier
      (State : in out Parser_State) return FL.Token
@@ -494,6 +541,12 @@ package body Safe_Frontend.Check_Parse is
                              (State,
                               "multi-choice variant alternatives are outside the current PR11.3 subset");
                         elsif FT.To_String (Current (State).Lexeme) = ".." then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path_String (State),
+                                 Span    => Current (State).Span,
+                                 Message => "legacy `..` is not allowed in source ranges; use `to`"));
+                        elsif Current_Lower (State) = "to" then
                            Reject_Unsupported
                              (State,
                               "range variant alternatives are outside the current PR11.3 subset");
@@ -575,7 +628,7 @@ package body Safe_Frontend.Check_Parse is
          if Current_Lower (State) = "range" then
             Advance (State);
             Item.Low_Expr := Parse_Expression (State);
-            Require (State, "..");
+            Require_Range_Keyword (State);
             Item.High_Expr := Parse_Expression (State);
             Item.Kind := CM.Type_Decl_Integer;
             Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
@@ -584,7 +637,7 @@ package body Safe_Frontend.Check_Parse is
             Item.Digits_Expr := Parse_Expression (State);
             Require (State, "range");
             Item.Low_Expr := Parse_Expression (State);
-            Require (State, "..");
+            Require_Range_Keyword (State);
             Item.High_Expr := Parse_Expression (State);
             Item.Kind := CM.Type_Decl_Float;
             Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
@@ -672,7 +725,13 @@ package body Safe_Frontend.Check_Parse is
       Result : CM.Subprogram_Spec;
       Close  : FT.Source_Span := Start.Span;
    begin
-      if Current_Lower (State) not in "function" | "procedure" then
+      if Current_Lower (State) = "procedure" then
+         Reject_Legacy_Keyword
+           (State,
+            Legacy      => "procedure",
+            Replacement => "function",
+            Context     => "subprogram declarations");
+      elsif Current_Lower (State) /= "function" then
          Raise_Diag
            (CM.Source_Frontend_Error
               (Path    => Path_String (State),
@@ -680,7 +739,7 @@ package body Safe_Frontend.Check_Parse is
                Message => "expected subprogram declaration"));
       end if;
 
-      Result.Kind := Current (State).Lexeme;
+      Result.Kind := FT.To_UString ("function");
       Advance (State);
       Name := Expect_Identifier (State);
       Result.Name := Name.Lexeme;
@@ -695,8 +754,8 @@ package body Safe_Frontend.Check_Parse is
          Close := Name.Span;
       end if;
 
-      if FT.Lowercase (FT.To_String (Result.Kind)) = "function" then
-         Require (State, "return");
+      if Current_Lower (State) in "returns" | "return" then
+         Require_Returns_Keyword (State);
          Result.Has_Return_Type := True;
          Result.Return_Type := Parse_Return_Type (State);
          Result.Return_Is_Access_Def :=
@@ -893,6 +952,39 @@ package body Safe_Frontend.Check_Parse is
       Result      : constant CM.Statement_Access := new CM.Statement;
       Elsif_Part  : CM.Elsif_Part;
       Semi        : FL.Token;
+
+      procedure Collapse_Wrapped_Else_If is
+         Wrapped : constant CM.Statement_Access :=
+           (if Result.Else_Stmts.Is_Empty
+            then null
+            else Result.Else_Stmts (Result.Else_Stmts.First_Index));
+      begin
+         if not Result.Has_Else
+           or else Natural (Result.Else_Stmts.Length) /= 1
+           or else Wrapped = null
+           or else Wrapped.Kind /= CM.Stmt_If
+         then
+            return;
+         end if;
+
+         Elsif_Part := (others => <>);
+         Elsif_Part.Condition := Wrapped.Condition;
+         Elsif_Part.Statements := Wrapped.Then_Stmts;
+         Elsif_Part.Span := Wrapped.Span;
+         Result.Elsifs.Append (Elsif_Part);
+         if not Wrapped.Elsifs.Is_Empty then
+            for Item of Wrapped.Elsifs loop
+               Result.Elsifs.Append (Item);
+            end loop;
+         end if;
+
+         Result.Has_Else := Wrapped.Has_Else;
+         if Wrapped.Has_Else then
+            Result.Else_Stmts := Wrapped.Else_Stmts;
+         else
+            Result.Else_Stmts.Clear;
+         end if;
+      end Collapse_Wrapped_Else_If;
    begin
       Result.Kind := CM.Stmt_If;
       Result.Condition := Parse_Expression (State);
@@ -902,8 +994,20 @@ package body Safe_Frontend.Check_Parse is
       Ends.Append (FT.To_UString ("end"));
       Result.Then_Stmts := Parse_Statement_Sequence (State, Ends);
 
-      while Current_Lower (State) = "elsif" loop
+      if Current_Lower (State) = "elsif" then
+         Reject_Legacy_Keyword
+           (State,
+            Legacy      => "elsif",
+            Replacement => "else if",
+            Context     => "conditional chains");
+      end if;
+
+      while Current_Lower (State) = "else"
+        and then FT.Lowercase (FT.To_String (Next (State).Lexeme)) = "if"
+        and then Current (State).Span.Start_Pos.Line = Next (State).Span.Start_Pos.Line
+      loop
          Advance (State);
+         Require (State, "if");
          Elsif_Part.Condition := Parse_Expression (State);
          Require (State, "then");
          Elsif_Part.Statements := Parse_Statement_Sequence (State, Ends);
@@ -913,6 +1017,13 @@ package body Safe_Frontend.Check_Parse is
               (Elsif_Part.Condition.Span,
                Elsif_Part.Statements (Elsif_Part.Statements.Last_Index).Span));
          Result.Elsifs.Append (Elsif_Part);
+         if Current_Lower (State) = "elsif" then
+            Reject_Legacy_Keyword
+              (State,
+               Legacy      => "elsif",
+               Replacement => "else if",
+               Context     => "conditional chains");
+         end if;
       end loop;
 
       if Current_Lower (State) = "else" then
@@ -921,6 +1032,7 @@ package body Safe_Frontend.Check_Parse is
          Ends.Clear;
          Ends.Append (FT.To_UString ("end"));
          Result.Else_Stmts := Parse_Statement_Sequence (State, Ends);
+         Collapse_Wrapped_Else_If;
       end if;
 
       Require (State, "end");
@@ -964,6 +1076,12 @@ package body Safe_Frontend.Check_Parse is
                  (State,
                   "multi-choice case arms are outside the current PR11.2 parser-completeness subset");
             elsif FT.To_String (Current (State).Lexeme) = ".." then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Current (State).Span,
+                     Message => "legacy `..` is not allowed in source ranges; use `to`"));
+            elsif Current_Lower (State) = "to" then
                Reject_Unsupported
                  (State,
                   "range case choices are outside the current PR11.2 parser-completeness subset");
@@ -1042,7 +1160,8 @@ package body Safe_Frontend.Check_Parse is
       Require (State, "in");
       Result.Loop_Range.Span := Current (State).Span;
       Result.Loop_Range.Name_Expr := Parse_Expression (State);
-      if Match (State, "..") then
+      if Current_Lower (State) = "to" or else FT.To_String (Current (State).Lexeme) = ".." then
+         Require_Range_Keyword (State);
          Result.Loop_Range.Kind := CM.Range_Explicit;
          Result.Loop_Range.Low_Expr := Result.Loop_Range.Name_Expr;
          Result.Loop_Range.High_Expr := Parse_Expression (State);

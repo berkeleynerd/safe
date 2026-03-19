@@ -8,13 +8,13 @@
 
 package Safe_Parameters is
 
-   type Percentage is range 0 .. 100;
-   type Angle is range 0 .. 359;
-   type Wide_Int is range -10_000 .. 10_000;
+   type Percentage is range 0 to 100;
+   type Angle is range 0 to 359;
+   type Wide_Int is range -10_000 to 10_000;
 
    --  Apply_Percentage: accepts a percentage value. Caller must
    --  ensure the actual parameter is in 0..100.
-   procedure Apply_Percentage (P : Percentage; Base : Wide_Int;
+   function Apply_Percentage (P : Percentage; Base : Wide_Int;
                                Result : out Wide_Int) is
    begin
       --  Wide arithmetic: Base * P is at most 10_000 * 100 = 1_000_000,
@@ -24,13 +24,13 @@ package Safe_Parameters is
 
    --  Compute_Scaled: demonstrates safe parameter passing by
    --  first validating, then calling Apply_Percentage.
-   procedure Compute_Scaled (Raw : Wide_Int; Output : out Wide_Int) is
+   function Compute_Scaled (Raw : Wide_Int; Output : out Wide_Int) is
       Pct : Percentage;
    begin
       --  Clamp Raw to 0..100 before passing as Percentage.
       if Raw < 0 then
          Pct = 0;
-      elsif Raw > 100 then
+      else if Raw > 100 then
          Pct = 100;
       else
          --  Narrowing point (parameter): Raw is in 0..100.

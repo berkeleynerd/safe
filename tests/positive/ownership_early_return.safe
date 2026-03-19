@@ -14,7 +14,7 @@ package Ownership_Early_Return is
 
    type Payload_Ptr is access Payload;
 
-   function Read_And_Exit return Integer is
+   function Read_And_Exit returns Integer is
       Outer : Payload_Ptr = new ((Value = 7) as Payload);
    begin
       declare

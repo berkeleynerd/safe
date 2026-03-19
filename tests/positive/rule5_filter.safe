@@ -8,8 +8,8 @@
 
 package Low_Pass_Filter is
 
-   type Signal is digits 6 range -100.0 .. 100.0;
-   type Alpha_Range is digits 6 range 0.01 .. 0.99;
+   type Signal is digits 6 range -100.0 to 100.0;
+   type Alpha_Range is digits 6 range 0.01 to 0.99;
 
    type Filter_State is record
       Output : Signal;
@@ -18,7 +18,7 @@ package Low_Pass_Filter is
 
    --  Init_Filter: create a filter with initial output and coefficient.
    function Init_Filter (Initial : Signal;
-                         Coeff   : Alpha_Range) return Filter_State is
+                         Coeff   : Alpha_Range) returns Filter_State is
    begin
       return ((Output = Initial, Alpha = Coeff) as Filter_State);
    end Init_Filter;
@@ -27,7 +27,7 @@ package Low_Pass_Filter is
    --  Alpha in 0.01..0.99, input in -100..100, output in -100..100.
    --  Weighted sum of two values each in -100..100 is in -100..100 (convex).
    --  No NaN or infinity possible with bounded finite inputs.
-   procedure Update (State : in out Filter_State;
+   function Update (State : in out Filter_State;
                      Input : Signal) is
       A : Long_Float;
       Result : Long_Float;

@@ -7,12 +7,12 @@
 
 package Safe_Percent is
 
-   type Percentage is range 0 .. 100;
-   type Count is range 0 .. 1_000_000;
+   type Percentage is range 0 to 100;
+   type Count is range 0 to 1_000_000;
 
    --  Compute_Percentage: calculates (Part * 100) / Total.
    --  Guards against zero Total before dividing.
-   function Compute_Percentage (Part, Total : Count) return Percentage is
+   function Compute_Percentage (Part, Total : Count) returns Percentage is
    begin
       if Total > 0 and then Part <= Total then
          --  Total is provably nonzero by the guard.

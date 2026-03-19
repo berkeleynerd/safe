@@ -6,9 +6,9 @@
 
 package Null_Deref_Test is
 
-   type Value is range 0 .. 1000;
+   type Value is range 0 to 1000;
    type Value_Ptr is access Value;
-   function Read_Unsafe (P : Value_Ptr) return Value is
+   function Read_Unsafe (P : Value_Ptr) returns Value is
    begin
 
       return P.all;  -- ERROR: P may be null

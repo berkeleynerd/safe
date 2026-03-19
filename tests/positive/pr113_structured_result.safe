@@ -4,12 +4,12 @@
 
 package PR113_Structured_Result is
 
-   function Reject (Msg : in String) return result is
+   function Reject (Msg : in String) returns result is
    begin
       return fail (Msg);
    end Reject;
 
-   function Parse (Input : in Integer) return (result, Integer) is
+   function Parse (Input : in Integer) returns (result, Integer) is
    begin
       if Input >= 0 then
          return (ok (), Input);
@@ -17,7 +17,7 @@ package PR113_Structured_Result is
       return (Reject ("negative"), 0);
    end Parse;
 
-   function Legacy (Input : in Integer) return (Boolean, Integer) is
+   function Legacy (Input : in Integer) returns (Boolean, Integer) is
    begin
       if Input >= 0 then
          return (True, Input);

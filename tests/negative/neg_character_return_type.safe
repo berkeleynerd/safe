@@ -4,7 +4,7 @@
 
 package Neg_Character_Return_Type is
 
-   function Broken return Character is
+   function Broken returns Character is
    begin
       return 999;
    end Broken;

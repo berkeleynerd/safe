@@ -5,7 +5,7 @@
 
 package Channel_Indefinite_Test is
 
-   type Index is range 1 .. 8;
+   type Index is range 1 to 8;
    type Buffer is array (Index range <>) of Integer;
 
    channel Data_Ch : Buffer capacity 1;

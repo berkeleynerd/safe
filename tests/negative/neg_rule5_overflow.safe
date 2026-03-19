@@ -9,12 +9,12 @@
 
 package FP_Overflow_Test is
 
-   type Small_Float is digits 6 range -1000.0 .. 1000.0;
+   type Small_Float is digits 6 range -1000.0 to 1000.0;
 
    --  Multiply: multiplies two Small_Float values.
    --  500.0 * 500.0 = 250_000.0, which exceeds 1000.0.
    --  The result cannot be narrowed to Small_Float.
-   function Multiply (A, B : Small_Float) return Small_Float is
+   function Multiply (A, B : Small_Float) returns Small_Float is
    begin
       return Small_Float (Long_Float (A) * Long_Float (B));
       -- ERROR: product may exceed target range -1000..1000

@@ -7,13 +7,13 @@
 
 package Safe_Remainder is
 
-   type Signed_Value is range -10_000 .. 10_000;
-   type Positive_Mod is range 1 .. 100;
+   type Signed_Value is range -10_000 to 10_000;
+   type Positive_Mod is range 1 to 100;
 
    --  Compute_Remainder: remainder with a positive modulus.
    --  The divisor is of type Positive_Mod (1..100), provably nonzero.
    function Compute_Remainder (V : Signed_Value;
-                               M : Positive_Mod) return Signed_Value is
+                               M : Positive_Mod) returns Signed_Value is
    begin
       --  M is provably nonzero (range 1..100).
       return V rem Signed_Value (M);
@@ -21,7 +21,7 @@ package Safe_Remainder is
 
    --  Is_Even: checks whether a value is even using rem 2.
    --  The literal 2 is provably nonzero.
-   function Is_Even (V : Signed_Value) return Boolean is
+   function Is_Even (V : Signed_Value) returns Boolean is
    begin
       return (V rem 2) == 0;
    end Is_Even;

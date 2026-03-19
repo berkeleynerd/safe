@@ -7,10 +7,10 @@
 
 package Variable_Div_Test is
 
-   type Value is range 0 .. 1000;
+   type Value is range 0 to 1000;
 
    --  Ratio: computes A / (B - C), but B - C may be zero when B = C.
-   function Ratio (A, B, C : Value) return Integer is
+   function Ratio (A, B, C : Value) returns Integer is
    begin
       return Integer (A) / (Integer (B) - Integer (C));  -- ERROR: B - C may be zero
    end Ratio;

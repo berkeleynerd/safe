@@ -5,10 +5,10 @@
 
 package Move_Source_Maybe_Null_Test is
 
-   type Payload is range 0 .. 10;
+   type Payload is range 0 to 10;
    type Payload_Ptr is access Payload;
 
-   procedure Bad_Move is
+   function Bad_Move is
       Source : Payload_Ptr = null;
       Target : Payload_Ptr = null;
    begin

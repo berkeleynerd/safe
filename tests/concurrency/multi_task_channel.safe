@@ -10,7 +10,7 @@
 
 package Multi_Task_Channel is
 
-   type Event_Code is range 0 .. 10_000;
+   type Event_Code is range 0 to 10_000;
 
    channel Event_Ch : Event_Code capacity 8;
 

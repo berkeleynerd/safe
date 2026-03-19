@@ -1,10 +1,10 @@
 package Gcd is
 
-   type Input_Value is range 1 .. 10_000;
-   type Working_Value is range 0 .. 10_000;
-   type Iteration is range 1 .. 32;
+   type Input_Value is range 1 to 10_000;
+   type Working_Value is range 0 to 10_000;
+   type Iteration is range 1 to 32;
 
-   function Compute (Left : Input_Value; Right : Input_Value) return Working_Value is
+   function Compute (Left : Input_Value; Right : Input_Value) returns Working_Value is
       A : Working_Value = Working_Value (Left);
       B : Working_Value = Working_Value (Right);
       T : Working_Value = 0;

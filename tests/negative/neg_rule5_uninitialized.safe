@@ -8,12 +8,12 @@
 
 package FP_Uninit_Test is
 
-   type Bounded is digits 6 range -100.0 .. 100.0;
+   type Bounded is digits 6 range -100.0 to 100.0;
 
    --  Use_Uninit: declares X without initialization, then narrows.
    --  X may hold NaN, infinity, or any value. Not provably finite
    --  or within -100..100.
-   function Use_Uninit return Bounded is
+   function Use_Uninit returns Bounded is
       X : Long_Float;
    begin
       return Bounded (X);  -- ERROR: X is uninitialized, may be NaN/infinity

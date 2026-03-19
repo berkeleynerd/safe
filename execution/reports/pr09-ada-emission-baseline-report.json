@@ -6,8 +6,8 @@
     "frontend_baseline": "docs/frontend_architecture_baseline.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "e5d4e55383ece39d02f54d307d4ff77aa6a801acab57425ad8850d135359c381",
-  "report_sha256": "e5d4e55383ece39d02f54d307d4ff77aa6a801acab57425ad8850d135359c381",
+  "repeat_sha256": "e6fdf929d4d89443fff95885a98a132295b98d6331ab7023462f6889e41b19b4",
+  "report_sha256": "e6fdf929d4d89443fff95885a98a132295b98d6331ab7023462f6889e41b19b4",
   "retired_snapshots_absent": [
     "tests/golden/golden_sensors.ada",
     "tests/golden/golden_ownership.ada",
@@ -16,19 +16,19 @@
   "slice_reports": [
     {
       "deterministic": true,
-      "report_sha256": "079c6f027f046e04ba5045bf98b9c2be08840b575ceff33f9b4fa9c7a029ec4f",
+      "report_sha256": "0aabacdef155312756997977cd2ff98c5c6637404ab19d528a4138c34e4b8c5d",
       "script": "scripts/run_pr09a_emitter_surface.py",
       "stdout": "pr09a emitter surface: OK ($TMPDIR/run_pr09a_emitter_surface.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "f86f4f6a674973b1f86b858ec4522b402a9e5625a2599942b36412fda6446d67",
+      "report_sha256": "86eab2f8fd0069689169920eb352fce31c14a87637dfe402db63fd425651508f",
       "script": "scripts/run_pr09a_emitter_mvp.py",
       "stdout": "pr09a emitter MVP: OK ($TMPDIR/run_pr09a_emitter_mvp.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "8ade63b9e6c3e5d796d1820d6636579de81b3b47aae5ea3b41e12a95765a0226",
+      "report_sha256": "06bfd91a14d815f9da942fcbc829ef948b696d0a72a2fa6a0807747ec6b85a4b",
       "script": "scripts/run_pr09b_sequential_semantics.py",
       "stdout": "pr09b sequential semantics: OK ($TMPDIR/run_pr09b_sequential_semantics.json)\n"
     },
@@ -46,7 +46,7 @@
     }
   ],
   "tracker": {
-    "next_task_id": "PR11.4",
+    "next_task_id": "PR11.5",
     "pr09_evidence": [
       "execution/reports/pr09a-emitter-surface-report.json",
       "execution/reports/pr09a-emitter-mvp-report.json",

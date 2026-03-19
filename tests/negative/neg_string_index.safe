@@ -4,7 +4,7 @@
 
 package Neg_String_Index is
 
-   function First_Letter (Name : in String) return Character is
+   function First_Letter (Name : in String) returns Character is
    begin
       return Name (1);
    end First_Letter;

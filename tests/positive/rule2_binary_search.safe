@@ -8,14 +8,14 @@
 
 package Binary_Search is
 
-   type Index is range 1 .. 256;
-   type Element is range 0 .. 10_000;
+   type Index is range 1 to 256;
+   type Element is range 0 to 10_000;
    type Sorted_Array is array (Index) of Element;
 
    --  Search: reports whether Key is found and, when found, the index.
    --  Lo and Hi are always valid indices (type Index = 1..256).
    --  Mid = Lo + (Hi - Lo) / 2 is in Lo..Hi, hence in 1..256.
-   procedure Search (Arr : Sorted_Array;
+   function Search (Arr : Sorted_Array;
                      Key : Element;
                      Found : out Boolean;
                      Found_At : out Index) is
@@ -36,7 +36,7 @@ package Binary_Search is
             Found_At = Mid;
             Found = True;
             return;
-         elsif Arr (Mid) < Key then
+         else if Arr (Mid) < Key then
             if Mid == Index.Last then
                return;
             end if;

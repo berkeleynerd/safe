@@ -4,7 +4,7 @@
 
 package Neg_Case_On_String is
 
-   function Lookup (Name : in String) return Integer is
+   function Lookup (Name : in String) returns Integer is
    begin
       case Name is
          when 'a' then

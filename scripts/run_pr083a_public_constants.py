@@ -638,9 +638,9 @@ def temp_source_text_for_parity(source: Path) -> str:
     if source == NEG_WRITE_INDEX:
         return (
             "package Neg_Write_To_Constant_Index is\n\n"
-            "   type Index is range 1 .. 3;\n"
+            "   type Index is range 1 to 3;\n"
             "   type Buffer is array (Index) of Integer;\n\n"
-            "   procedure Run is\n"
+            "   function Run is\n"
             "      Data : Buffer;\n"
             "   begin\n"
             "      Data (1) = 1;\n"

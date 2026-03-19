@@ -5,7 +5,7 @@
 
 package Channel_Access_Type is
 
-   type Payload_Value is range 0 .. 1;
+   type Payload_Value is range 0 to 1;
 
    type Payload is record
       Value : Payload_Value;

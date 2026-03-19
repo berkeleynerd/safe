@@ -44,7 +44,7 @@ POSTCONDITION_CASES: list[dict[str, object]] = [
       X_Copy : Integer;
    end record;
 
-   procedure Touch (Ref : access Payload) is
+   function Touch (Ref : access Payload) is
    begin
       Ref.all.X = Ref.all.X_Copy + Ref.all.X;
    end Touch;
@@ -72,7 +72,7 @@ end Similar_Name_Post;
       Inner_Field : Inner;
    end record;
 
-   procedure Touch (Ref : access Outer) is
+   function Touch (Ref : access Outer) is
    begin
       Ref.all.Inner_Field.Value = Ref.all.Inner_Field.Value + 1;
    end Touch;
@@ -93,7 +93,7 @@ end Nested_Target_Post;
       X : Integer;
    end record;
 
-   procedure Touch (Ref : access Payload) is
+   function Touch (Ref : access Payload) is
    begin
       Ref.all.X = Ref.all.X + Ref.all.X;
    end Touch;
@@ -118,12 +118,12 @@ end Repeated_Target_Post;
       Chosen : Integer;
    end record;
 
-   function Take (Item : Holder) return Integer is
+   function Take (Item : Holder) returns Integer is
    begin
       return Item.Chosen;
    end Take;
 
-   procedure Touch (Ref : access Payload) is
+   function Touch (Ref : access Payload) is
    begin
       Ref.all.X = Take ((Chosen = Ref.all.X));
    end Touch;
@@ -145,7 +145,7 @@ SUBTYPE_CASES: list[dict[str, object]] = [
 
    subtype Small_Count is Integer;
 
-   procedure Bump (Value : in out Small_Count) is
+   function Bump (Value : in out Small_Count) is
    begin
       Value = Value + 1;
    end Bump;
@@ -167,7 +167,7 @@ end Integer_Subtype_Hardening;
       X : Half_Component;
    end record;
 
-   function Capture (Input : Box) return Half_Component is
+   function Capture (Input : Box) returns Half_Component is
       Value : Half_Component = Input.X;
    begin
       return Value;

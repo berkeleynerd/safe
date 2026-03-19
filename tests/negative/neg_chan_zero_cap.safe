@@ -6,7 +6,7 @@
 
 package Zero_Cap_Test is
 
-   type Msg is range 0 .. 255;
+   type Msg is range 0 to 255;
 
    --  Zero_Ch: capacity 0 violates the requirement that capacity >= 1.
    channel Zero_Ch : Msg capacity 0;  -- ERROR: capacity must be >= 1

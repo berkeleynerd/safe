@@ -9,7 +9,7 @@
 
 package Neg_Result_Mutated is
 
-   type Error_Code is range 0 .. 255;
+   type Error_Code is range 0 to 255;
 
    type Parse_Result (OK : Boolean = False) is record
       case OK is
@@ -18,7 +18,7 @@ package Neg_Result_Mutated is
       end case;
    end record;
 
-   function Try_Parse (Input : Integer) return Parse_Result is
+   function Try_Parse (Input : Integer) returns Parse_Result is
    begin
       if Input >= 0 then
          return (OK = True, Value = Input);
@@ -31,7 +31,7 @@ package Neg_Result_Mutated is
    --  the assignment R = Try_Parse(Other) invalidates the fact.
    --  Accessing R.Value after mutation is rejected.
    function Unsafe_After_Mutation (First : Integer;
-                                   Second : Integer) return Integer is
+                                   Second : Integer) returns Integer is
       R : Parse_Result = Try_Parse (First);
    begin
       if R.OK then

@@ -9,8 +9,8 @@
 
 package Select_Priority is
 
-   type Command is range 0 .. 10;
-   type Status is range 0 .. 255;
+   type Command is range 0 to 10;
+   type Status is range 0 to 255;
 
    channel High_Ch : Command capacity 2;
    channel Low_Ch  : Status capacity 2;

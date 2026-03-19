@@ -1,6 +1,6 @@
 package Opcode_Dispatch is
 
-   function Render (Opcode : in Integer) return String is
+   function Render (Opcode : in Integer) returns String is
    begin
       case Opcode is
          when 0 then

@@ -40,23 +40,23 @@ EMIT_SAMPLES = [REPO_ROOT / path for path in REPRESENTATIVE_EMIT_SAMPLES]
 NEGATIVE_EMIT_SAMPLE = REPO_ROOT / "tests" / "negative" / "neg_rule1_overflow.safe"
 AST_VALIDATOR = REPO_ROOT / "scripts" / "validate_ast_output.py"
 PACKAGE_GLOBAL_SOURCE = """package Package_Global_Owner is
-   type Value is range 0 .. 10;
+   type Value is range 0 to 10;
    type Value_Ptr is access all Value;
    Owner : Value_Ptr = new (1 as Value);
 
-   function Read return Value is
+   function Read returns Value is
    begin
       return Owner.all;
    end Read;
 end Package_Global_Owner;
 """
 PACKAGE_GLOBAL_ARRAY_SOURCE = """package Package_Global_Array is
-   type Index is range 1 .. 4;
-   type Element is range 0 .. 20;
+   type Index is range 1 to 4;
+   type Element is range 0 to 20;
    type Table is array (Index) of Element;
    Data : Table;
 
-   function Read return Element is
+   function Read returns Element is
    begin
       Data (Index.First) = 5;
       return Data (Index.First);
@@ -71,7 +71,7 @@ PACKAGE_GLOBAL_RECORD_SOURCE = """package Package_Global_Record is
 
    Current : Config = (Rate = 1, Limit = 2);
 
-   function Read return Natural is
+   function Read returns Natural is
    begin
       return Current.Rate;
    end Read;
@@ -86,12 +86,12 @@ PACKAGE_GLOBAL_OBSERVE_SOURCE = """package Package_Global_Observe is
 
    Owner : Config_Ptr = new ((Rate = 100) as Config);
 
-   function Read_Config (Ref : access constant Config) return Integer is
+   function Read_Config (Ref : access constant Config) returns Integer is
    begin
       return Ref.all.Rate;
    end Read_Config;
 
-   function Read return Integer is
+   function Read returns Integer is
    begin
       return Read_Config (Owner.Access);
    end Read;

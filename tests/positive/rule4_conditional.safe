@@ -7,12 +7,12 @@
 
 package Safe_Conditional is
 
-   type Config_Value is range 0 .. 1000;
+   type Config_Value is range 0 to 1000;
    type Config_Ptr is access Config_Value;
 
    --  Max_Of_Two: returns the maximum of two optional values.
    --  Each pointer is null-checked before dereference.
-   function Max_Of_Two (A, B : Config_Ptr) return Config_Value is
+   function Max_Of_Two (A, B : Config_Ptr) returns Config_Value is
    begin
       if A != null and then B != null then
          --  Both A and B are provably not null.
@@ -21,14 +21,16 @@ package Safe_Conditional is
          else
             return B.all;
          end if;
-      elsif A != null then
+      else
+      if A != null then
          --  A is provably not null.
          return A.all;
-      elsif B != null then
+      else if B != null then
          --  B is provably not null.
          return B.all;
       else
          return 0;
+      end if;
       end if;
    end Max_Of_Two;
 

@@ -20,7 +20,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "coverage_note": "Access-typed constant initialization still lowers to explicit dereference writes plus explicit cleanup support.",
         "source_fragments": [
             "package Constant_Access_Deref_Write is",
-            "procedure Mutate_Through_Constant_Access",
+            "function Mutate_Through_Constant_Access",
         ],
         "spec_fragments": [
             "type Payload_Ptr is access Payload;",
@@ -80,7 +80,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "coverage_note": "Shadowed mutable locals stay distinct from outer constants in the emitted Ada body.",
         "source_fragments": [
             "package Constant_Shadow_Mutable is",
-            "procedure Update_Local",
+            "function Update_Local",
         ],
         "spec_fragments": [
             "Value : constant Integer := 1;",
@@ -117,7 +117,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "coverage_note": "Procedure-only emission stays support-file-light and preserves explicit dependency contracts.",
         "source_fragments": [
             "package Emitter_Surface_Proc is",
-            "procedure Copy",
+            "function Copy",
         ],
         "spec_fragments": [
             "Depends => (Output => Input);",
@@ -232,7 +232,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "rule2",
         "coverage_note": "Index-safe midpoint search remains explicit through loop variants, midpoint asserts, and bounded index conversions.",
         "source_fragments": [
-            "procedure Search",
+            "function Search",
             "type Sorted_Array",
         ],
         "body_fragments": [
@@ -248,7 +248,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "coverage_note": "Whole-range iteration over bounded indices remains direct and safe in the emitted loops.",
         "source_fragments": [
             "function Find_Max",
-            "procedure Zero_All",
+            "function Zero_All",
         ],
         "body_fragments": [
             "for I in Slot loop",
@@ -276,7 +276,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "coverage_note": "Matrix trace and transpose keep bounded multidimensional indexing and explicit transposition assignments.",
         "source_fragments": [
             "function Trace",
-            "procedure Transpose",
+            "function Transpose",
         ],
         "body_fragments": [
             "Sum := (Safe_Runtime.Wide_Integer (Sum) + Safe_Runtime.Wide_Integer (M (I, Col_Index (I))));",
@@ -373,7 +373,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "coverage_note": "Not-null access parameters still lower to direct dereference reads and writes without extra null-guard noise.",
         "source_fragments": [
             "type Data_Ptr is not null access Data;",
-            "procedure Write_Value",
+            "function Write_Value",
         ],
         "spec_fragments": [
             "type Data_Ptr is not null access Data;",

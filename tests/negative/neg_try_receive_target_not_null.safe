@@ -12,7 +12,7 @@ package Neg_Try_Receive_Target_Not_Null is
 
    channel Data_Ch : Payload_Ptr capacity 1;
 
-   procedure Run is
+   function Run is
       Target  : Payload_Ptr = new ((Value = 2) as Payload);
       Success : Boolean = False;
    begin

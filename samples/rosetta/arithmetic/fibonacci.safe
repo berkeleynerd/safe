@@ -1,9 +1,9 @@
 package Fibonacci is
 
-   type Count is range 1 .. 12;
-   type Value is range 0 .. 10_000;
+   type Count is range 1 to 12;
+   type Value is range 0 to 10_000;
 
-   function Nth (N : Count) return Value is
+   function Nth (N : Count) returns Value is
       Previous : Value = 0;
       Current  : Value = 1;
       Next     : Value = 0;
@@ -12,7 +12,7 @@ package Fibonacci is
          return 0;
       end if;
 
-      for Step in 2 .. N loop
+      for Step in 2 to N loop
          Next = Previous + Current;
          Previous = Current;
          Current = Next;

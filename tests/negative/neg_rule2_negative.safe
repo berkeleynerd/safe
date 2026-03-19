@@ -7,7 +7,7 @@
 
 package Negative_Index_Test is
 
-   type Nat_Index is range 0 .. 15;
+   type Nat_Index is range 0 to 15;
    type Buffer is array (Nat_Index) of Integer;
 
    --  Access_Offset: accesses Arr(Base - Offset).
@@ -15,7 +15,7 @@ package Negative_Index_Test is
    --  is below the array's lower bound of 0.
    function Access_Offset (Arr : Buffer;
                            Base : Nat_Index;
-                           Offset : Natural) return Integer is
+                           Offset : Natural) returns Integer is
    begin
       return Arr (Nat_Index (Integer (Base) - Offset));  -- ERROR: may be negative
    end Access_Offset;

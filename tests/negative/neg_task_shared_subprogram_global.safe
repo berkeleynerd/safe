@@ -5,16 +5,16 @@
 
 package Neg_Task_Shared_Subprogram_Global is
 
-   type Counter is range 0 .. 100;
+   type Counter is range 0 to 100;
 
    Shared : Counter = 0;
 
-   procedure Helper is
+   function Helper is
    begin
       Shared = Shared + 1;
    end Helper;
 
-   procedure Wrapper is
+   function Wrapper is
    begin
       Helper;
    end Wrapper;

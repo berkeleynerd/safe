@@ -1,11 +1,11 @@
 package Bubble_Sort is
 
-   type Index is range 1 .. 8;
-   type Pass_Index is range 1 .. 7;
-   type Element is range 0 .. 1000;
+   type Index is range 1 to 8;
+   type Pass_Index is range 1 to 7;
+   type Element is range 0 to 1000;
    type Values is array (Index) of Element;
 
-   procedure Sort (Data : in out Values) is
+   function Sort (Data : in out Values) is
       Temp : Element;
    begin
       for Pass in Pass_Index loop

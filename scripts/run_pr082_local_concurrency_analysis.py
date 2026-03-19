@@ -92,7 +92,7 @@ SEQUENTIAL_POSITIVE_TEMP_CASES = [
             "\n"
             "   type Payload_Ptr is not null access Payload;\n"
             "\n"
-            "   procedure Run is\n"
+            "   function Run is\n"
             "      Owner : Payload_Ptr = new ((Value = 1) as Payload);\n"
             "   begin\n"
             "      Owner.all.Value = Owner.all.Value + 1;\n"

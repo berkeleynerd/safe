@@ -8,7 +8,7 @@ with Remote_Package;
 
 package Qualified_Channel_Reference_Test is
 
-   type Message is range 0 .. 100;
+   type Message is range 0 to 100;
 
    task Worker is
    begin

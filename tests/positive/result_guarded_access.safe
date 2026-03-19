@@ -8,7 +8,7 @@
 
 package Result_Guarded_Access is
 
-   type Error_Code is range 0 .. 255;
+   type Error_Code is range 0 to 255;
 
    type Parse_Result (OK : Boolean = False) is record
       case OK is
@@ -17,7 +17,7 @@ package Result_Guarded_Access is
       end case;
    end record;
 
-   function Try_Parse (Input : Integer) return Parse_Result is
+   function Try_Parse (Input : Integer) returns Parse_Result is
    begin
       if Input >= 0 then
          return (OK = True, Value = Input);
@@ -29,7 +29,7 @@ package Result_Guarded_Access is
    --  Get_Or_Default: guarded access to variant fields.
    --  The branch on R.OK establishes the discriminant in each arm.
    function Get_Or_Default (Input : Integer;
-                            Default : Integer) return Integer is
+                            Default : Integer) returns Integer is
       R : Parse_Result = Try_Parse (Input);
    begin
       if R.OK then

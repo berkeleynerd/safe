@@ -7,12 +7,12 @@
 
 package Safe_Modulo is
 
-   type Angle is range 0 .. 359;
-   type Wide_Angle is range 0 .. 10_000;
+   type Angle is range 0 to 359;
+   type Wide_Angle is range 0 to 10_000;
 
    --  Normalize_Angle: wraps an angle to 0..359 using mod 360.
    --  The literal 360 is provably nonzero.
-   function Normalize_Angle (Raw : Wide_Angle) return Angle is
+   function Normalize_Angle (Raw : Wide_Angle) returns Angle is
    begin
       --  360 is a nonzero literal. Provably nonzero.
       return Angle (Raw mod 360);
@@ -20,10 +20,10 @@ package Safe_Modulo is
 
    --  Ring_Index: maps a counter to a circular buffer position.
    --  Buffer_Size is constrained to 1..256.
-   type Buffer_Size is range 1 .. 256;
+   type Buffer_Size is range 1 to 256;
 
    function Ring_Index (Counter : Natural;
-                        Size    : Buffer_Size) return Natural is
+                        Size    : Buffer_Size) returns Natural is
    begin
       --  Size is of type Buffer_Size (1..256), provably nonzero.
       return Counter mod Natural (Size);

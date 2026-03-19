@@ -29,7 +29,7 @@ SELECTED_EMITTED_CORPUS: list[dict[str, Any]] = [
         "feature": "Rule 1 wide arithmetic subset",
         "matrix_note": "Loop-carried wide arithmetic with an explicit narrowing return, plus validated narrowing before cross-subprogram parameter passing.",
         "source_fragments": [
-            "function Average (Data : Readings) return Reading is",
+            "function Average (Data : Readings) returns Reading is",
             "for I in Sensor_Count loop",
             "Sum = Sum + Data (I);",
             "return Sum / 10;",
@@ -44,7 +44,7 @@ SELECTED_EMITTED_CORPUS: list[dict[str, Any]] = [
         "source_fragments": [
             "function Search (Arr : Sorted_Array;",
             "type Search_Result is record",
-            "Key : Element) return Search_Result is",
+            "Key : Element) returns Search_Result is",
             "while Lo <= Hi loop",
             "Mid = Lo + (Hi - Lo) / 2;",
             "return ((Found = True, Found_At = Mid) as Search_Result);",
@@ -58,7 +58,7 @@ SELECTED_EMITTED_CORPUS: list[dict[str, Any]] = [
         "feature": "Rule 3 division-safety subset",
         "matrix_note": "Typed nonzero divisor plus guarded variable-divisor division.",
         "source_fragments": [
-            "type Positive_Divisor is range 1 .. 1000;",
+            "type Positive_Divisor is range 1 to 1000;",
             "return Dividend / Result_Value (Divisor);",
             "if B != 0 then",
             "return A / B;",
@@ -71,7 +71,7 @@ SELECTED_EMITTED_CORPUS: list[dict[str, Any]] = [
         "feature": "Rule 1 wide arithmetic subset",
         "matrix_note": "Loop-carried wide arithmetic with an explicit narrowing return, plus validated narrowing before cross-subprogram parameter passing.",
         "source_fragments": [
-            "procedure Apply_Percentage (P : Percentage; Base : Wide_Int;",
+            "function Apply_Percentage (P : Percentage; Base : Wide_Int;",
             "Result = Wide_Int ((Wide_Int (Base) * Wide_Int (P)) / 100);",
             "Pct = Percentage (Raw);",
             "Apply_Percentage (Pct, 5000, Output);",
@@ -97,7 +97,7 @@ SELECTED_EMITTED_CORPUS: list[dict[str, Any]] = [
         "feature": "Rule 4 observer-traversal subset",
         "matrix_note": "Null-guarded linked-list prefix accumulation with dereference plus bounded count and total arithmetic.",
         "source_fragments": [
-            "function Summarize_Prefix (Head : Node_Ptr) return Total_Value is",
+            "function Summarize_Prefix (Head : Node_Ptr) returns Total_Value is",
             "Count = Count + 1;",
             "Total = Total + Total_Value (Head.all.Value);",
             "Second : access constant Node = Head.all.Next.Access;",
@@ -112,9 +112,9 @@ SELECTED_EMITTED_CORPUS: list[dict[str, Any]] = [
         "matrix_note": "Three-field floating-point record computation with a branch-computed positive divisor derived from all components and a returned normalized component.",
         "source_fragments": [
             "type Vector3 is record",
-            "type Component is digits 6 range 0.0 .. 100.0;",
-            "type Positive_Count is range 1 .. 4;",
-            "function Normalize_X (Input : Vector3) return Float is",
+            "type Component is digits 6 range 0.0 to 100.0;",
+            "type Positive_Count is range 1 to 4;",
+            "function Normalize_X (Input : Vector3) returns Float is",
             "if Input.X > 0.0 then",
             "if Input.Y > 0.0 then",
             "if Input.Z > 0.0 then",

@@ -1,6 +1,6 @@
 package Provider_Channel is
 
-   public type Message is range 0 .. 10;
+   public type Message is range 0 to 10;
    public channel Data_Ch : Message capacity 4;
 
 end Provider_Channel;

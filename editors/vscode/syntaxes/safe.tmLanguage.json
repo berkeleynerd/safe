@@ -69,7 +69,7 @@
       "patterns": [
         {
           "name": "keyword.control.safe",
-          "match": "\\b(package|is|begin|end|if|elsif|else|then|loop|while|for|return|record|type|range|access|procedure|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|null|and|or|not|mod|rem|case|when|others)\\b"
+          "match": "\\b(package|is|begin|end|if|else|then|loop|while|for|return|returns|record|type|range|to|access|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|null|and|or|not|mod|rem|case|when|others)\\b"
         },
         {
           "name": "storage.modifier.safe",

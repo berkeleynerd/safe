@@ -199,7 +199,7 @@
             "param:Value"
           ],
           "is_task": false,
-          "kind": "procedure",
+          "kind": "function",
           "name": "Push",
           "outputs": [],
           "priority": 0,
@@ -257,7 +257,7 @@
             "global:Shared"
           ],
           "is_task": false,
-          "kind": "procedure",
+          "kind": "function",
           "name": "Bump",
           "outputs": [
             "global:Shared"
@@ -1570,8 +1570,8 @@
       }
     }
   ],
-  "repeat_sha256": "74a55aa2b367626ce434293fa872e361bfe1d7880ee384ff5b9f2f0851197399",
-  "report_sha256": "74a55aa2b367626ce434293fa872e361bfe1d7880ee384ff5b9f2f0851197399",
+  "repeat_sha256": "8b0ddfba0defa269b9b66175431633e6f97ae981cfcbc9f33d152e7e06e4ddbe",
+  "report_sha256": "8b0ddfba0defa269b9b66175431633e6f97ae981cfcbc9f33d152e7e06e4ddbe",
   "sequential_positive_regression_cases": [
     {
       "check": {

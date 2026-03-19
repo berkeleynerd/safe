@@ -7,7 +7,7 @@ package PR112_Character_Case is
    Marker : constant Character = 'A';
    Fallback : constant String = "needs work";
 
-   function Grade_Message (Grade : in Character) return String is
+   function Grade_Message (Grade : in Character) returns String is
    begin
       case Grade is
          when 'A' then

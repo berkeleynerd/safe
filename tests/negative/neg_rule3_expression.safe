@@ -7,10 +7,10 @@
 
 package Expression_Div_Test is
 
-   type Value is range -100 .. 100;
+   type Value is range -100 to 100;
 
    --  Compute: divides by X^2 - Y^2 which is zero when |X| = |Y|.
-   function Compute (N : Value; X, Y : Value) return Integer is
+   function Compute (N : Value; X, Y : Value) returns Integer is
       Denom : Integer;
    begin
       Denom = Integer (X) * Integer (X) - Integer (Y) * Integer (Y);

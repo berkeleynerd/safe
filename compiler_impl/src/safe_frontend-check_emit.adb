@@ -1655,7 +1655,7 @@ package body Safe_Frontend.Check_Emit is
    function Signature_For (Subprogram : CM.Resolved_Subprogram) return String is
       Result : US.Unbounded_String := US.Null_Unbounded_String;
    begin
-      US.Append (Result, FT.To_String (Subprogram.Kind));
+      US.Append (Result, "function");
       US.Append (Result, " ");
       US.Append (Result, FT.To_String (Subprogram.Name));
       US.Append (Result, " (");
@@ -1674,10 +1674,8 @@ package body Safe_Frontend.Check_Emit is
          end loop;
       end if;
       US.Append (Result, ")");
-      if FT.Lowercase (FT.To_String (Subprogram.Kind)) = "function"
-        and then Subprogram.Has_Return_Type
-      then
-         US.Append (Result, " return ");
+      if Subprogram.Has_Return_Type then
+         US.Append (Result, " returns ");
          US.Append (Result, FT.To_String (Subprogram.Return_Type.Name));
       end if;
       return US.To_String (Result);
@@ -1709,7 +1707,7 @@ package body Safe_Frontend.Check_Emit is
          end loop;
       end if;
 
-      if FT.Lowercase (FT.To_String (Parsed.Spec.Kind)) = "function" then
+      if Parsed.Spec.Has_Return_Type then
          return
            "{""node_type"":""SubprogramBody"",""is_public"":"
            & JS.Bool_Literal (Parsed.Is_Public)

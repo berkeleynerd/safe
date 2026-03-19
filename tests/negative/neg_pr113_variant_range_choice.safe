@@ -2,7 +2,7 @@ package Neg_PR113_Variant_Range_Choice is
    type Packet (Count : Integer = 0) is
       record
          case Count is
-            when 0 .. 3 then
+            when 0 to 3 then
                Value : Integer;
          end case;
       end record;

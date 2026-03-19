@@ -8,7 +8,7 @@ package Constant_Shadow_Mutable is
 
    Value : constant Integer = 1;
 
-   procedure Update_Local is
+   function Update_Local is
    begin
       declare
          Value : Integer = 0;

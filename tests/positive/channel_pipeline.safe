@@ -12,7 +12,7 @@
 
 package Pipeline is
 
-   type Sample is range 0 .. 10_000;
+   type Sample is range 0 to 10_000;
 
    --  Channels connecting the three stages.
    channel Raw_Ch      : Sample capacity 4;

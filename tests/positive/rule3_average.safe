@@ -7,10 +7,10 @@
 
 package Safe_Average is
 
-   type Measurement is range 0 .. 10_000;
+   type Measurement is range 0 to 10_000;
 
    --  Compute_Average: divide by a fixed nonzero literal.
-   function Compute_Average (Total : Measurement) return Measurement is
+   function Compute_Average (Total : Measurement) returns Measurement is
    begin
       return Measurement (Total / 2);
    end Compute_Average;

@@ -636,7 +636,7 @@
         "coverage_note": "Access-typed constant initialization still lowers to explicit dereference writes plus explicit cleanup support.",
         "source_fragments": [
           "package Constant_Access_Deref_Write is",
-          "procedure Mutate_Through_Constant_Access"
+          "function Mutate_Through_Constant_Access"
         ],
         "spec_fragments": [
           "type Payload_Ptr is access Payload;"
@@ -3071,7 +3071,7 @@
         "coverage_note": "Shadowed mutable locals stay distinct from outer constants in the emitted Ada body.",
         "source_fragments": [
           "package Constant_Shadow_Mutable is",
-          "procedure Update_Local"
+          "function Update_Local"
         ],
         "spec_fragments": [
           "Value : constant Integer := 1;"
@@ -4295,7 +4295,7 @@
         "coverage_note": "Procedure-only emission stays support-file-light and preserves explicit dependency contracts.",
         "source_fragments": [
           "package Emitter_Surface_Proc is",
-          "procedure Copy"
+          "function Copy"
         ],
         "spec_fragments": [
           "Depends => (Output => Input);"
@@ -8548,7 +8548,7 @@
         "body_regexes": [],
         "coverage_note": "Index-safe midpoint search remains explicit through loop variants, midpoint asserts, and bounded index conversions.",
         "source_fragments": [
-          "procedure Search",
+          "function Search",
           "type Sorted_Array"
         ],
         "spec_fragments": [],
@@ -9155,7 +9155,7 @@
         "coverage_note": "Whole-range iteration over bounded indices remains direct and safe in the emitted loops.",
         "source_fragments": [
           "function Find_Max",
-          "procedure Zero_All"
+          "function Zero_All"
         ],
         "spec_fragments": [],
         "spec_regexes": []
@@ -10368,7 +10368,7 @@
         "coverage_note": "Matrix trace and transpose keep bounded multidimensional indexing and explicit transposition assignments.",
         "source_fragments": [
           "function Trace",
-          "procedure Transpose"
+          "function Transpose"
         ],
         "spec_fragments": [],
         "spec_regexes": []
@@ -14607,7 +14607,7 @@
         "coverage_note": "Not-null access parameters still lower to direct dereference reads and writes without extra null-guard noise.",
         "source_fragments": [
           "type Data_Ptr is not null access Data;",
-          "procedure Write_Value"
+          "function Write_Value"
         ],
         "spec_fragments": [
           "type Data_Ptr is not null access Data;"
@@ -16433,8 +16433,8 @@
       }
     }
   ],
-  "repeat_sha256": "5fde51d96635c319d17fd49a16537b52e0a4d52c51edac571407bc5798bc1f0d",
-  "report_sha256": "5fde51d96635c319d17fd49a16537b52e0a4d52c51edac571407bc5798bc1f0d",
+  "repeat_sha256": "8a184351c26abf5fd60ef39ee66aa2fc490d35b956356c3874d1f8d960b0539b",
+  "report_sha256": "8a184351c26abf5fd60ef39ee66aa2fc490d35b956356c3874d1f8d960b0539b",
   "status": "ok",
   "task": "PR10.6"
 }

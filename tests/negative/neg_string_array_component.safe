@@ -4,7 +4,7 @@
 
 package Neg_String_Array_Component is
 
-   type Slot is range 1 .. 4;
+   type Slot is range 1 to 4;
    type Name_Table is array (Slot) of String;
 
 end Neg_String_Array_Component;

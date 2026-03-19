@@ -12,7 +12,7 @@ package Neg_Try_Send_Reassign_Without_Check is
 
    channel Data_Ch : Payload_Ptr capacity 1;
 
-   procedure Run is
+   function Run is
       Source  : Payload_Ptr = new ((Value = 1) as Payload);
       Success : Boolean = False;
    begin

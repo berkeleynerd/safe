@@ -1582,6 +1582,38 @@ jobs:
         working-directory: .
         run: git diff --exit-code execution/reports/pr113a-proof-checkpoint1-report.json
 
+  pr114-signature-control-flow-syntax:
+    name: PR11.4 Signature and Control-Flow Syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Build compiler frontend
+        working-directory: .
+        run: cd compiler_impl && alr build
+
+      - name: Run PR11.4 signature/control-flow syntax gate
+        working-directory: .
+        run: python3 scripts/run_pr114_signature_control_flow_syntax.py
+
+      - name: Verify committed PR11.4 evidence is up to date
+        working-directory: .
+        run: git diff --exit-code execution/reports/pr114-signature-control-flow-syntax-report.json
+
   spark-verify:
     name: Build & Verify SPARK Companion
     runs-on: ubuntu-latest

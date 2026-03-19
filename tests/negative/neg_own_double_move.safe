@@ -8,11 +8,11 @@
 
 package Double_Move_Test is
 
-   type Payload is range 0 .. 100;
+   type Payload is range 0 to 100;
    type Payload_Ptr is access Payload;
 
    --  Double_Move: moves Source twice.
-   procedure Double_Move is
+   function Double_Move is
       Source  : Payload_Ptr = new (42 as Payload);
       Target1 : Payload_Ptr = null;
       Target2 : Payload_Ptr = null;

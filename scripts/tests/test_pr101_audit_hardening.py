@@ -77,6 +77,13 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr114("PR11.3a"))
         self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr114("PR11.3"))
 
+    def test_pr101_audit_next_task_guard_accepts_pr115_and_beyond(self) -> None:
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr115("PR11.5"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr115("PR11.5a"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr115("PR12.1"))
+        self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr115("PR11.4"))
+        self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr115("PR11.3a"))
+
     def test_pr101_audit_tracks_pr111_acceptance_and_evidence(self) -> None:
         self.assertEqual(
             run_pr101_comprehensive_audit.EXPECTED_PR111_EVIDENCE,
@@ -117,6 +124,15 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertEqual(
             run_pr101_comprehensive_audit.EXPECTED_PR113A_EVIDENCE,
             ["execution/reports/pr113a-proof-checkpoint1-report.json"],
+        )
+        self.assertEqual(
+            run_pr101_comprehensive_audit.EXPECTED_PR114_EVIDENCE,
+            ["execution/reports/pr114-signature-control-flow-syntax-report.json"],
+        )
+        self.assertEqual(len(run_pr101_comprehensive_audit.EXPECTED_PR114_ACCEPTANCE), 3)
+        self.assertIn(
+            "legacy `procedure`, signature `return`, `elsif`, and `..` spellings are removed",
+            run_pr101_comprehensive_audit.EXPECTED_PR114_ACCEPTANCE[0],
         )
 
     def test_split_table_row_rejects_non_data_rows(self) -> None:

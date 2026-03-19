@@ -8,19 +8,19 @@
 
 package Safe_Divide is
 
-   type Positive_Divisor is range 1 .. 1000;
-   type Result_Value is range -10_000 .. 10_000;
+   type Positive_Divisor is range 1 to 1000;
+   type Result_Value is range -10_000 to 10_000;
 
    --  Safe_Div: the divisor type excludes zero by its range 1..1000.
    function Safe_Div (Dividend : Result_Value;
-                      Divisor  : Positive_Divisor) return Result_Value is
+                      Divisor  : Positive_Divisor) returns Result_Value is
    begin
       --  Divisor is of type Positive_Divisor (1..1000), provably nonzero.
       return Dividend / Result_Value (Divisor);
    end Safe_Div;
 
    --  Guarded_Div: uses a runtime check to ensure nonzero.
-   function Guarded_Div (A, B : Result_Value) return Result_Value is
+   function Guarded_Div (A, B : Result_Value) returns Result_Value is
    begin
       if B != 0 then
          --  B is provably nonzero by the guard.

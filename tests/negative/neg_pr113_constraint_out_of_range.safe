@@ -1,5 +1,5 @@
 package Neg_PR113_Constraint_Out_Of_Range is
-   type Small is range 0 .. 3;
+   type Small is range 0 to 3;
    type Packet (Count : Small = 0) is
       record
          Value : Integer;

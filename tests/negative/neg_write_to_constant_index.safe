@@ -4,10 +4,10 @@
 
 package Neg_Write_To_Constant_Index is
 
-   type Index is range 1 .. 3;
+   type Index is range 1 to 3;
    type Buffer is array (Index) of Integer;
 
-   function Make_Buffer return Buffer is
+   function Make_Buffer returns Buffer is
       Result : Buffer;
    begin
       for I in Index loop
@@ -16,7 +16,7 @@ package Neg_Write_To_Constant_Index is
       return Result;
    end Make_Buffer;
 
-   procedure Run is
+   function Run is
       Data : constant Buffer = Make_Buffer;
    begin
       Data (1) = 0;

@@ -17,9 +17,9 @@
       "reason": "unsupported_source_construct",
       "source": "tests/negative/neg_string_out_param.safe",
       "span": {
-        "end_col": 40,
+        "end_col": 39,
         "end_line": 7,
-        "start_col": 35,
+        "start_col": 34,
         "start_line": 7
       }
     },
@@ -414,8 +414,8 @@
       }
     }
   ],
-  "repeat_sha256": "28bc462f87be80442afe6d7b2de7059c46bd7c697e7163915d03aa203f0105ef",
-  "report_sha256": "28bc462f87be80442afe6d7b2de7059c46bd7c697e7163915d03aa203f0105ef",
+  "repeat_sha256": "8695de0ed605a70b0d71e7e674521b4714fcac8f19d641ace47f379b98bd5014",
+  "report_sha256": "8695de0ed605a70b0d71e7e674521b4714fcac8f19d641ace47f379b98bd5014",
   "rosetta_text_samples": [
     {
       "check": {

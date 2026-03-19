@@ -4,7 +4,7 @@
 
 package Neg_Write_To_Constant_Assign is
 
-   procedure Run is
+   function Run is
       Limit : constant Integer = 1;
    begin
       Limit = 2;

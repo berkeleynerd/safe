@@ -104,6 +104,14 @@ PRIMARY_GATE_SCRIPTS = {
         "scripts/run_pr113a_proof_checkpoint1.py",
         "scripts/run_pr101_comprehensive_audit.py",
     ),
+    "codex/pr114": (
+        "scripts/run_pr111_language_evaluation_harness.py",
+        "scripts/run_pr112_parser_completeness_phase1.py",
+        "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
+        "scripts/run_pr113a_proof_checkpoint1.py",
+        "scripts/run_pr114_signature_control_flow_syntax.py",
+        "scripts/run_pr101_comprehensive_audit.py",
+    ),
 }
 
 PR11_FAMILY_GATE_SCRIPTS = (
@@ -157,10 +165,26 @@ def build_steps(
     compiler_build = tuple(compiler_build_argv(alr))
     steps: list[Step] = [Step("Build compiler", compiler_build, COMPILER_ROOT)]
     seen_scripts: set[str] = set()
+    insert_stateful_rebuild = is_pr10_or_later_branch(branch)
+    stateful_rebuild_inserted = False
 
     def append_script(script: str) -> None:
+        nonlocal stateful_rebuild_inserted
         if script in seen_scripts:
             return
+        if (
+            insert_stateful_rebuild
+            and not stateful_rebuild_inserted
+            and script in STATEFUL_BASELINE_SCRIPTS
+        ):
+            steps.append(
+                Step(
+                    "Rebuild compiler before stateful baselines",
+                    compiler_build,
+                    COMPILER_ROOT,
+                )
+            )
+            stateful_rebuild_inserted = True
         seen_scripts.add(script)
         steps.append(Step(f"Run {Path(script).name}", (python, script), REPO_ROOT))
 

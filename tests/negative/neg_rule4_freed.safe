@@ -8,14 +8,14 @@
 
 package Freed_Test is
 
-   type Data is range 0 .. 100;
+   type Data is range 0 to 100;
    type Data_Ptr is access Data;
 
    --  Escape_Reference: the borrow outlives the lender.
    --  Inner declares an owning pointer, borrows it to Outer_Ref,
    --  then the owning pointer goes out of scope (deallocated).
    --  Outer_Ref now dangles.
-   function Escape_Reference return Integer is
+   function Escape_Reference returns Integer is
       Outer_Ref : access Data;
    begin
       declare

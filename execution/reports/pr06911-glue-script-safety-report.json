@@ -45,6 +45,7 @@
       "scripts/run_pr112_parser_completeness_phase1.py",
       "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
       "scripts/run_pr113a_proof_checkpoint1.py",
+      "scripts/run_pr114_signature_control_flow_syntax.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
@@ -98,7 +99,8 @@
       "scripts/run_pr111_language_evaluation_harness.py",
       "scripts/run_pr112_parser_completeness_phase1.py",
       "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
-      "scripts/run_pr113a_proof_checkpoint1.py"
+      "scripts/run_pr113a_proof_checkpoint1.py",
+      "scripts/run_pr114_signature_control_flow_syntax.py"
     ],
     "safe_source_readers": [
       {
@@ -144,6 +146,10 @@
       {
         "category": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.3a sequential checkpoint corpus",
         "script": "scripts/run_pr113a_proof_checkpoint1.py"
+      },
+      {
+        "category": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.4 syntax cutover corpus",
+        "script": "scripts/run_pr114_signature_control_flow_syntax.py"
       }
     ],
     "shell_assumption_violations": [],
@@ -172,8 +178,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "b35a348503785bcbca428ec4ecb669d307a2ff06144bbc3d68c8b503e8d3ad6f",
-  "report_sha256": "b35a348503785bcbca428ec4ecb669d307a2ff06144bbc3d68c8b503e8d3ad6f",
+  "repeat_sha256": "f426c138609932d8bc22968fdf71436398bdc0fadc2e62d035c4d07e2271f1fc",
+  "report_sha256": "f426c138609932d8bc22968fdf71436398bdc0fadc2e62d035c4d07e2271f1fc",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

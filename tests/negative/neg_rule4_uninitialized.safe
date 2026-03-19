@@ -14,7 +14,7 @@ package Uninitialized_Test is
    type Rec_Ptr is access Rec;
 
    --  Read_Uninitialized: declares P (default null), then dereferences.
-   function Read_Uninitialized return Integer is
+   function Read_Uninitialized returns Integer is
       P : Rec_Ptr;
    begin
       --  P is null (default for access types).

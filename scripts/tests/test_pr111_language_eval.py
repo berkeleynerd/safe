@@ -155,6 +155,10 @@ class Pr111LanguageEvalTests(unittest.TestCase):
         character_matchers = grammar_payload["repository"]["characters"]["patterns"]
         self.assertIn("case", keyword_matchers[0]["match"])
         self.assertIn("others", keyword_matchers[0]["match"])
+        self.assertIn("returns", keyword_matchers[0]["match"])
+        self.assertIn("to", keyword_matchers[0]["match"])
+        self.assertNotIn("procedure", keyword_matchers[0]["match"])
+        self.assertNotIn("elsif", keyword_matchers[0]["match"])
         self.assertIn("Character", type_matchers[0]["match"])
         self.assertIn("String", type_matchers[0]["match"])
         self.assertIn("result", type_matchers[0]["match"])

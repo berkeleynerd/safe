@@ -1748,20 +1748,18 @@ package body Safe_Frontend.Check_Resolve is
            (CM.Source_Frontend_Error
               (Path    => Path,
                Span    => FT.Null_Span,
-               Message => "expected assignment or procedure call"));
+               Message => "expected assignment or call to a no-result function"));
       elsif Expr.Kind = CM.Expr_Call then
          Name := FT.To_UString (Flatten_Name (Expr.Callee));
          if Has_Function (Functions, UString_Value (Name))
-           and then UString_Value
-             (Get_Function (Functions, UString_Value (Name)).Kind) = "procedure"
+           and then not Get_Function (Functions, UString_Value (Name)).Has_Return_Type
          then
             return Expr;
          end if;
       elsif Expr.Kind = CM.Expr_Ident or else Expr.Kind = CM.Expr_Select then
          Name := FT.To_UString (Flatten_Name (Expr));
          if Has_Function (Functions, UString_Value (Name))
-           and then UString_Value
-             (Get_Function (Functions, UString_Value (Name)).Kind) = "procedure"
+           and then not Get_Function (Functions, UString_Value (Name)).Has_Return_Type
          then
             Result := new CM.Expr_Node'(Expr.all);
             Result.Kind := CM.Expr_Call;
@@ -1776,7 +1774,7 @@ package body Safe_Frontend.Check_Resolve is
         (CM.Source_Frontend_Error
            (Path    => Path,
             Span    => Expr.Span,
-            Message => "expected assignment or procedure call"));
+            Message => "expected assignment or call to a no-result function"));
       return Expr;
    end Normalize_Procedure_Call;
 

@@ -81,7 +81,7 @@ UNSUPPORTED_CASES = [
         "name": "fixed_point.safe",
         "text": (
             "package Fixed_Point is\n"
-            "   type Money is delta 0.01 range -100.00 .. 100.00;\n"
+            "   type Money is delta 0.01 range -100.00 to 100.00;\n"
             "end Fixed_Point;\n"
         ),
         "expected_reason": "unsupported_source_construct",

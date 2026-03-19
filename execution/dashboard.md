@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR11.4`
-- **Updated at:** `2026-03-18T00:00:00Z`
+- **Next task:** `PR11.5`
+- **Updated at:** `2026-03-19T00:00:00Z`
 
 ## Repo Facts
 
 - `tests/positive`: 58
-- `tests/negative`: 106
+- `tests/negative`: 110
 - `tests/golden`: 3
 - `tests/concurrency`: 14
 - `tests/diagnostics_golden`: 22
-- **Total test corpus entries:** 203
+- **Total test corpus entries:** 207
 
 ## Task Ledger
 
@@ -62,7 +62,7 @@
 | PR11.2 | done | PR11.1 | 1 |
 | PR11.3 | done | PR11.2 | 1 |
 | PR11.3a | done | PR11.3 | 1 |
-| PR11.4 | planned | PR11.3a | 0 |
+| PR11.4 | done | PR11.3a | 1 |
 | PR11.5 | planned | PR11.4 | 0 |
 | PR11.6 | planned | PR11.5 | 0 |
 | PR11.7 | planned | PR11.6 | 0 |
@@ -657,15 +657,17 @@
 - **Evidence:**
   - `execution/reports/pr113a-proof-checkpoint1-report.json`
 
-### PR11.4 — Signature and Control-Flow Syntax
+### PR11.4 — Full Syntax Cutover for Signatures, Branches, and Ranges
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR11.3a
 - **Blockers:** none
 - **Acceptance:**
-  - The `returns` and `else if` spellings are supported with an explicit coexistence or migration rule for legacy forms.
-  - The existing test corpus and Rosetta/sample corpus have a mechanical migration strategy for the new forms.
-  - A deterministic acceptance corpus shows the feature is surface-only and does not perturb typing, MIR, or emission for already-supported programs.
+  - PR11.4 is a deliberate cutover rather than a coexistence milestone: legacy `procedure`, signature `return`, `elsif`, and `..` spellings are removed from the admitted Safe source surface once the milestone lands.
+  - The full PR11.4 quartet lands together: all callables use `function`, result-bearing signatures use `returns`, conditional chains use `else if`, and source-level inclusive ranges use `to`, while typing/MIR/safei/emitted Ada semantics remain stable for already-supported programs.
+  - The `.safe` corpus, Rosetta samples, docs/examples, VSCode grammar/docs, and a dedicated deterministic PR11.4 gate are migrated together, with explicit negative coverage that locks rejection of each removed legacy spelling.
+- **Evidence:**
+  - `execution/reports/pr114-signature-control-flow-syntax-report.json`
 
 ### PR11.5 — Statement Ergonomics
 

@@ -6,11 +6,11 @@
 
 package Task_Global_Owner is
 
-   type Counter is range 0 .. 100;
+   type Counter is range 0 to 100;
 
    Shared : Counter = 0;
 
-   procedure Bump is
+   function Bump is
    begin
       Shared = Shared + 1;
    end Bump;

@@ -6,19 +6,19 @@
 
 package Safe_Deref is
 
-   type Data is range 0 .. 1000;
+   type Data is range 0 to 1000;
    type Data_Ptr is not null access Data;
 
    --  Read_Value: dereferences a not-null pointer.
    --  The access subtype Data_Ptr excludes null by declaration.
-   function Read_Value (P : Data_Ptr) return Data is
+   function Read_Value (P : Data_Ptr) returns Data is
    begin
       --  P is of type Data_Ptr (not null access). Provably not null.
       return P.all;
    end Read_Value;
 
    --  Write_Value: writes through a not-null pointer.
-   procedure Write_Value (P : Data_Ptr; V : Data) is
+   function Write_Value (P : Data_Ptr; V : Data) is
    begin
       --  P is provably not null.
       P.all = V;

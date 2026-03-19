@@ -1,11 +1,11 @@
 package Collatz_Bounded is
 
-   type Seed_Value is range 1 .. 64;
-   type Working_Value is range 1 .. 4096;
-   type Step_Count is range 0 .. 64;
-   type Iteration is range 1 .. 64;
+   type Seed_Value is range 1 to 64;
+   type Working_Value is range 1 to 4096;
+   type Step_Count is range 0 to 64;
+   type Iteration is range 1 to 64;
 
-   function Steps (Seed : Seed_Value) return Step_Count is
+   function Steps (Seed : Seed_Value) returns Step_Count is
       Current : Working_Value = Working_Value (Seed);
       Total   : Step_Count = 0;
    begin

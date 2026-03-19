@@ -12,8 +12,8 @@
 
 package Channel_Pipeline_Compute is
 
-   type Sample is range 0 .. 100;
-   type Running_Total is range 0 .. 1000;
+   type Sample is range 0 to 100;
+   type Running_Total is range 0 to 1000;
 
    channel Raw_Ch      : Sample capacity 2;
    channel Filtered_Ch : Sample capacity 2;

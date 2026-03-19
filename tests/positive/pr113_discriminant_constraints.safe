@@ -17,7 +17,7 @@ package PR113_Discriminant_Constraints is
    Named : Packet (Active = True, Kind = Default_Kind, Count = Default_Count) = (Value = 3);
 
    function Take (Item : in Packet (Active = True, Kind = Default_Kind, Count = Default_Count))
-      return Packet (Active = True, Kind = Default_Kind, Count = Default_Count) is
+      returns Packet (Active = True, Kind = Default_Kind, Count = Default_Count) is
       Limit : constant Integer = Default_Count;
       Local : Packet (Active = True, Kind = Default_Kind, Count = Limit) = Item;
    begin

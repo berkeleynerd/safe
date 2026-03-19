@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-18T00:00:00Z",
+  "updated_at": "2026-03-19T00:00:00Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR11.4",
+  "next_task_id": "PR11.5",
   "repo_facts": {
     "tests": {
       "positive": 58,
-      "negative": 106,
+      "negative": 110,
       "golden": 3,
       "concurrency": 14,
       "diagnostics_golden": 22,
-      "total": 203
+      "total": 207
     }
   },
   "tasks": [
@@ -763,15 +763,17 @@
     },
     {
       "id": "PR11.4",
-      "title": "Signature and Control-Flow Syntax",
-      "status": "planned",
+      "title": "Full Syntax Cutover for Signatures, Branches, and Ranges",
+      "status": "done",
       "depends_on": ["PR11.3a"],
       "acceptance": [
-        "The `returns` and `else if` spellings are supported with an explicit coexistence or migration rule for legacy forms.",
-        "The existing test corpus and Rosetta/sample corpus have a mechanical migration strategy for the new forms.",
-        "A deterministic acceptance corpus shows the feature is surface-only and does not perturb typing, MIR, or emission for already-supported programs."
+        "PR11.4 is a deliberate cutover rather than a coexistence milestone: legacy `procedure`, signature `return`, `elsif`, and `..` spellings are removed from the admitted Safe source surface once the milestone lands.",
+        "The full PR11.4 quartet lands together: all callables use `function`, result-bearing signatures use `returns`, conditional chains use `else if`, and source-level inclusive ranges use `to`, while typing/MIR/safei/emitted Ada semantics remain stable for already-supported programs.",
+        "The `.safe` corpus, Rosetta samples, docs/examples, VSCode grammar/docs, and a dedicated deterministic PR11.4 gate are migrated together, with explicit negative coverage that locks rejection of each removed legacy spelling."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/reports/pr114-signature-control-flow-syntax-report.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

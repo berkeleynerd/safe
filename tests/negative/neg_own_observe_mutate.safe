@@ -14,7 +14,7 @@ package Observe_Mutate_Test is
    type Config_Ptr is access Config;
 
    --  Mutate_Through_Observer: attempts to write via a constant access.
-   procedure Mutate_Through_Observer is
+   function Mutate_Through_Observer is
       Owner    : Config_Ptr = new ((Rate = 100) as Config);
       Observer : access constant Config = Owner.Access;  -- observe
    begin

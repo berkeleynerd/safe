@@ -11,7 +11,7 @@ package Observe_Move_Test is
 
    type Config_Ptr is access Config;
 
-   procedure Move_While_Observed is
+   function Move_While_Observed is
       Owner    : Config_Ptr = new ((Rate = 100) as Config);
       Target   : Config_Ptr = null;
       Observer : access constant Config = Owner.Access;

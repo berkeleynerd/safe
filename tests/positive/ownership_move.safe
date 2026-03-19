@@ -18,7 +18,7 @@ package Ownership_Move is
 
    --  Transfer: moves ownership from Source to Target.
    --  After the move, Source is null and only Target is used.
-   procedure Transfer is
+   function Transfer is
       Source : Payload_Ptr = new ((Value = 42) as Payload);
       Target : Payload_Ptr = null;
    begin

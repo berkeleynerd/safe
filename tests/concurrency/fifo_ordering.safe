@@ -10,7 +10,7 @@
 
 package FIFO_Ordering is
 
-   type Sequence_Number is range 0 .. 999;
+   type Sequence_Number is range 0 to 999;
 
    channel Seq_Ch : Sequence_Number capacity 8;
 

@@ -4,7 +4,7 @@
 
 package Neg_String_Out_Param is
 
-   procedure Set_Name (Name : out String) is
+   function Set_Name (Name : out String) is
    begin
       null;
    end Set_Name;

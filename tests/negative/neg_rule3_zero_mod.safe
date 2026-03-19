@@ -7,10 +7,10 @@
 
 package Zero_Mod_Test is
 
-   type Counter is range 0 .. 255;
+   type Counter is range 0 to 255;
 
    --  Wrap: computes Counter mod N, but N may be zero.
-   function Wrap (C : Counter; N : Counter) return Counter is
+   function Wrap (C : Counter; N : Counter) returns Counter is
    begin
       return C mod N;  -- ERROR: N may be zero
    end Wrap;

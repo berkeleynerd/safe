@@ -74,6 +74,12 @@ class ValidateExecutionStateTests(unittest.TestCase):
         self.assertIn("scripts/run_pr113a_proof_checkpoint1.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn("scripts/run_pr113a_proof_checkpoint1.py", GLUE_SAFETY_REPORT_SCRIPTS)
         self.assertIn("scripts/run_pr113a_proof_checkpoint1.py", GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS)
+        self.assertIn("scripts/run_pr114_signature_control_flow_syntax.py", GLUE_SAFETY_AUDITED_SCRIPTS)
+        self.assertIn("scripts/run_pr114_signature_control_flow_syntax.py", GLUE_SAFETY_REPORT_SCRIPTS)
+        self.assertIn(
+            "scripts/run_pr114_signature_control_flow_syntax.py",
+            GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS,
+        )
 
     def test_report_sync_report_accepts_matching_child_reports(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

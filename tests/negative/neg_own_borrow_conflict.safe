@@ -15,7 +15,7 @@ package Borrow_Conflict_Test is
 
    --  Modify_Both: borrows Owner to Ref, then tries to read Owner
    --  while the borrow is still active.
-   procedure Modify_Both is
+   function Modify_Both is
       Owner : Data_Ptr = new ((Value = 10) as Data);
       Ref   : access Data = Owner;  -- borrow begins
       V     : Integer;

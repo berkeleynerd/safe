@@ -333,6 +333,8 @@ package body Safe_Frontend.Ada_Emit is
      (Unit       : CM.Resolved_Unit;
       Document   : GM.Mir_Document;
       Params     : CM.Symbol_Vectors.Vector) return String;
+   function Render_Ada_Subprogram_Keyword
+     (Subprogram : CM.Resolved_Subprogram) return String;
    function Render_Subprogram_Return
      (Subprogram : CM.Resolved_Subprogram) return String;
    function Render_Initializes_Aspect
@@ -2846,6 +2848,15 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       return "";
    end Render_Subprogram_Return;
+
+   function Render_Ada_Subprogram_Keyword
+     (Subprogram : CM.Resolved_Subprogram) return String is
+   begin
+      if Subprogram.Has_Return_Type then
+         return "function";
+      end if;
+      return "procedure";
+   end Render_Ada_Subprogram_Keyword;
 
    function Alias_Declarations
      (Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
@@ -5483,7 +5494,7 @@ package body Safe_Frontend.Ada_Emit is
       Register_Cleanup_Items (State, Outer_Declarations);
       Append_Line
         (Buffer,
-         FT.To_String (Subprogram.Kind)
+         Render_Ada_Subprogram_Keyword (Subprogram)
          & " "
          & FT.To_String (Subprogram.Name)
          & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
@@ -5646,7 +5657,7 @@ package body Safe_Frontend.Ada_Emit is
          for Subprogram of Unit.Subprograms loop
             Append_Line
               (Spec_Inner,
-               FT.To_String (Subprogram.Kind)
+               Render_Ada_Subprogram_Keyword (Subprogram)
                & " "
                & FT.To_String (Subprogram.Name)
                & Render_Subprogram_Params (Unit, Document, Subprogram.Params)

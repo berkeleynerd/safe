@@ -4,7 +4,7 @@
 
 package Neg_String_Attribute is
 
-   function Measure (Name : in String) return Integer is
+   function Measure (Name : in String) returns Integer is
    begin
       return Name.Length;
    end Measure;

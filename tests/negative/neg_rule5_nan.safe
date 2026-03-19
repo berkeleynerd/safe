@@ -9,11 +9,11 @@
 
 package NaN_Test is
 
-   type Temp is digits 6 range -100.0 .. 100.0;
+   type Temp is digits 6 range -100.0 to 100.0;
 
    --  Produce_NaN: 0.0 / 0.0 is NaN. Assigning to Temp is a narrowing
    --  point where NaN is not allowed.
-   function Produce_NaN return Temp is
+   function Produce_NaN returns Temp is
       X : Long_Float = 0.0;
       Y : Long_Float = 0.0;
    begin

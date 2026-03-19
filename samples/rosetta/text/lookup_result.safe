@@ -1,6 +1,6 @@
 package Lookup_Result is
 
-   function Lookup_Name (Opcode : in Integer) return (result, Integer) is
+   function Lookup_Name (Opcode : in Integer) returns (result, Integer) is
    begin
       case Opcode is
          when 1 then

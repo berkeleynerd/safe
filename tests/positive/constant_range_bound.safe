@@ -6,6 +6,6 @@ package Constant_Range_Bound is
 
    Max_Count : constant Integer = 4;
 
-   type Index is range 0 .. Max_Count;
+   type Index is range 0 to Max_Count;
 
 end Constant_Range_Bound;

@@ -16,7 +16,7 @@ package PR113_Variant_Guard is
 
    Sample : Packet ('A') = (Alpha = 1);
 
-   function Read_Alpha (P : in Packet) return Integer is
+   function Read_Alpha (P : in Packet) returns Integer is
    begin
       if P.Kind == 'A' then
          return P.Alpha;
@@ -24,7 +24,7 @@ package PR113_Variant_Guard is
       return 0;
    end Read_Alpha;
 
-   function Read_Alpha_With_Case (P : in Packet) return Integer is
+   function Read_Alpha_With_Case (P : in Packet) returns Integer is
    begin
       case P.Kind is
          when 'A' then

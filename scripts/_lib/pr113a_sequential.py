@@ -17,7 +17,7 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "pr112",
         "coverage_note": "Character/string literals and strict case statements stay emitted as direct Ada Character/String and Ada case syntax.",
         "source_fragments": [
-            "function Grade_Message (Grade : in Character) return String is",
+            "function Grade_Message (Grade : in Character) returns String is",
             "when 'A' then",
             "return Fallback;",
         ],
@@ -34,8 +34,8 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "pr112",
         "coverage_note": "Boolean and integer case statements remain direct emitted-Ada case constructs with string returns.",
         "source_fragments": [
-            "function Flag_Value (Flag : in Boolean) return Integer is",
-            "function Opcode_Name (Opcode : in Integer) return String is",
+            "function Flag_Value (Flag : in Boolean) returns Integer is",
+            "function Opcode_Name (Opcode : in Integer) returns String is",
             "when -1 then",
         ],
         "body_fragments": [
@@ -50,7 +50,7 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "pr112",
         "coverage_note": "The admitted in-mode String parameter path stays accepted through emitted Ada and proof.",
         "source_fragments": [
-            "function Echo (Name : in String) return String is",
+            "function Echo (Name : in String) returns String is",
             "return Echo (\"hello\");",
         ],
         "spec_fragments": [
@@ -67,7 +67,7 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "pr112",
         "coverage_note": "The emitted case path for a call-valued scrutinee remains proof-valid after the MIR single-evaluation fix.",
         "source_fragments": [
-            "function Read_Opcode return Integer is",
+            "function Read_Opcode returns Integer is",
             "case Read_Opcode () is",
         ],
         "body_fragments": [
@@ -95,7 +95,7 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "pr113",
         "coverage_note": "Tuple returns, destructuring, and positional field access stay visible in emitted tuple records and destructure lowering.",
         "source_fragments": [
-            "function Lookup (Flag : in Boolean) return (Boolean, Integer) is",
+            "function Lookup (Flag : in Boolean) returns (Boolean, Integer) is",
             "(Found, Value) : (Boolean, Integer) = Lookup (True);",
             "return Direct.2;",
         ],
@@ -114,9 +114,9 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "pr113",
         "coverage_note": "Builtin result plus tuple structured returns remain explicit in emitted Ada while keeping fail(String) unbounded through Ada.Strings.Unbounded storage.",
         "source_fragments": [
-            "function Reject (Msg : in String) return result is",
+            "function Reject (Msg : in String) returns result is",
             "return fail (Msg);",
-            "function Parse (Input : in Integer) return (result, Integer) is",
+            "function Parse (Input : in Integer) returns (result, Integer) is",
             "return (ok (), Input);",
             "return (Reject (\"negative\"), 0);",
         ],
@@ -172,7 +172,7 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         "family": "revalidation",
         "coverage_note": "Existing equality/inequality lowering remains proof-clean after tuple/result parser and emitter expansion.",
         "source_fragments": [
-            "function Is_OK (S : Status) return Boolean is",
+            "function Is_OK (S : Status) returns Boolean is",
             "return S == 0;",
             "return S != 0;",
         ],

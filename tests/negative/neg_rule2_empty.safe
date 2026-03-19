@@ -8,13 +8,13 @@
 
 package Empty_Array_Test is
 
-   type Element is range 0 .. 255;
-   type Index is range 1 .. 100;
+   type Element is range 0 to 255;
+   type Index is range 1 to 100;
    type Flex_Array is array (Index range <>) of Element;
 
    --  First_Element: attempts to access the first element.
    --  If Arr is empty (Arr.Length = 0), there is no element at index 1.
-   function First_Element (Arr : Flex_Array) return Element is
+   function First_Element (Arr : Flex_Array) returns Element is
    begin
       return Arr (1);  -- ERROR: Arr may be empty
    end First_Element;

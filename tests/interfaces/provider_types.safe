@@ -1,10 +1,10 @@
 package Provider_Types is
 
-   public type Count is range 0 .. 100;
+   public type Count is range 0 to 100;
    public type Handle;
    public subtype Small_Count is Count;
 
-   public function Next (Value : Count) return Count is
+   public function Next (Value : Count) returns Count is
    begin
       return Value;
    end Next;

@@ -4,10 +4,10 @@
 
 package Neg_Case_Range_Choice is
 
-   function Classify (Value : in Integer) return Integer is
+   function Classify (Value : in Integer) returns Integer is
    begin
       case Value is
-         when 1 .. 3 then
+         when 1 to 3 then
             return 1;
          end when;
          when others then

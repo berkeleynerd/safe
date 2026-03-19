@@ -7,14 +7,14 @@
 
 package Safe_Iteration is
 
-   type Slot is range 0 .. 15;
-   type Value is range 0 .. 1000;
+   type Slot is range 0 to 15;
+   type Value is range 0 to 1000;
    type Register_Bank is array (Slot) of Value;
 
    --  Find_Max: iterates over all slots to find the maximum value.
    --  The loop variable I has type Slot (0..15), matching the
    --  array index bounds exactly.
-   function Find_Max (Bank : Register_Bank) return Value is
+   function Find_Max (Bank : Register_Bank) returns Value is
       Max_Val : Value = Bank (0);
    begin
       for I in Slot loop
@@ -27,7 +27,7 @@ package Safe_Iteration is
    end Find_Max;
 
    --  Zero_All: sets every element to zero.
-   procedure Zero_All (Bank : out Register_Bank) is
+   function Zero_All (Bank : out Register_Bank) is
    begin
       for I in Slot loop
          Bank (I) = 0;

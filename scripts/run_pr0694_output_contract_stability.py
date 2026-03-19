@@ -37,10 +37,10 @@ CORPUS_SAMPLES = [
     REPO_ROOT / "tests" / "positive" / "ownership_inout.safe",
 ]
 PUBLIC_INTERFACE_SOURCE = """package Public_Interface is
-   public type Counter is range 0 .. 10;
+   public type Counter is range 0 to 10;
    public Seed : Counter = 1;
 
-   public function Identity (Value : Counter) return Counter is
+   public function Identity (Value : Counter) returns Counter is
    begin
       return Value;
    end Identity;

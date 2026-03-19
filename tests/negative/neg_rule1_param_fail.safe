@@ -8,17 +8,17 @@
 
 package Param_Fail is
 
-   type Percentage is range 0 .. 100;
-   type Wide_Int is range -10_000 .. 10_000;
+   type Percentage is range 0 to 100;
+   type Wide_Int is range -10_000 to 10_000;
 
-   procedure Use_Percent (P : Percentage) is
+   function Use_Percent (P : Percentage) is
    begin
       null;
    end Use_Percent;
 
    --  Pass_Unchecked: passes a Wide_Int to a Percentage parameter
    --  without verifying the value is in 0..100.
-   procedure Pass_Unchecked (V : Wide_Int) is
+   function Pass_Unchecked (V : Wide_Int) is
    begin
       Use_Percent (Percentage (V));  -- ERROR: V may not be in 0..100
    end Pass_Unchecked;

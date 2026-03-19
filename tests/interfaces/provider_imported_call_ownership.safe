@@ -6,17 +6,17 @@ package Provider_Imported_Call_Ownership is
 
    public type Payload_Ptr is access Payload;
 
-   public procedure Bump (Ref : access Payload) is
+   public function Bump (Ref : access Payload) is
    begin
       Ref.all.Value = Ref.all.Value + 1;
    end Bump;
 
-   public function Read_Value (Ref : access constant Payload) return Integer is
+   public function Read_Value (Ref : access constant Payload) returns Integer is
    begin
       return Ref.all.Value;
    end Read_Value;
 
-   public procedure Consume (Ref : in out Payload_Ptr) is
+   public function Consume (Ref : in out Payload_Ptr) is
    begin
       null;
    end Consume;

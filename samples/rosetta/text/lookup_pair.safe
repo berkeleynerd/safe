@@ -1,6 +1,6 @@
 package Lookup_Pair is
 
-   function Find_Code (Opcode : in Integer) return (Boolean, Integer) is
+   function Find_Code (Opcode : in Integer) returns (Boolean, Integer) is
    begin
       case Opcode is
          when 1 then

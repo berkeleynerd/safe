@@ -14,7 +14,7 @@ package Moved_Deref_Test is
    type Data_Ptr is access Data;
 
    --  Use_After_Move: dereferences Source after it has been moved to Target.
-   procedure Use_After_Move is
+   function Use_After_Move is
       Source : Data_Ptr = new ((Value = 42) as Data);
       Target : Data_Ptr = null;
       V      : Integer;

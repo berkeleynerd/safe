@@ -8,9 +8,9 @@
 
 package OOB_Test is
 
-   type Slot is range 0 .. 7;
+   type Slot is range 0 to 7;
    type Data is array (Slot) of Integer;
-   function Access_With_Integer (Arr : Data; Idx : Integer) return Integer is
+   function Access_With_Integer (Arr : Data; Idx : Integer) returns Integer is
    begin
       return Arr (Slot (Idx));  -- ERROR: Idx may not be in 0..7
    end Access_With_Integer;

@@ -4,7 +4,7 @@
 
 package PR113_Tuple_Destructure is
 
-   function Lookup (Flag : in Boolean) return (Boolean, Integer) is
+   function Lookup (Flag : in Boolean) returns (Boolean, Integer) is
    begin
       if Flag then
          return (True, 7);
@@ -12,7 +12,7 @@ package PR113_Tuple_Destructure is
       return (False, 0);
    end Lookup;
 
-   function Read_Second return Integer is
+   function Read_Second returns Integer is
       Direct : (Boolean, Integer) = Lookup (False);
    begin
       (Found, Value) : (Boolean, Integer) = Lookup (True);

@@ -4,7 +4,7 @@
 
 package Neg_String_Equality is
 
-   function Same (Left : in String; Right : in String) return Boolean is
+   function Same (Left : in String; Right : in String) returns Boolean is
    begin
       return Left == Right;
    end Same;

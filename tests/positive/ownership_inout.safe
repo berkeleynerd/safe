@@ -11,12 +11,12 @@ package Ownership_Inout is
 
    type Payload_Ptr is access Payload;
 
-   procedure Consume (Ref : in out Payload_Ptr) is
+   function Consume (Ref : in out Payload_Ptr) is
    begin
       null;
    end Consume;
 
-   procedure Use_Inout is
+   function Use_Inout is
       Owner : Payload_Ptr = new ((Value = 5) as Payload);
    begin
       Consume (Owner);

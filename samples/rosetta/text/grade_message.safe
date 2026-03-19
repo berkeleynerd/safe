@@ -1,6 +1,6 @@
 package Grade_Message is
 
-   function Render (Grade : in Character) return String is
+   function Render (Grade : in Character) returns String is
    begin
       case Grade is
          when 'A' then

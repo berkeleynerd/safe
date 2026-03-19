@@ -7,14 +7,14 @@
 
 package Result_Equality_Check is
 
-   type Status is range 0 .. 255;
+   type Status is range 0 to 255;
 
-   function Is_OK (S : Status) return Boolean is
+   function Is_OK (S : Status) returns Boolean is
    begin
       return S == 0;
    end Is_OK;
 
-   function Is_Error (S : Status) return Boolean is
+   function Is_Error (S : Status) returns Boolean is
    begin
       return S != 0;
    end Is_Error;

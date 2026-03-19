@@ -11,7 +11,7 @@ package Anonymous_Reassign_Test is
 
    type Data_Ptr is access Data;
 
-   procedure Reassign_Borrow is
+   function Reassign_Borrow is
       Owner : Data_Ptr = new ((Value = 1) as Data);
       Other : Data_Ptr = new ((Value = 2) as Data);
       Ref   : access Data = Owner;
