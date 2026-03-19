@@ -27,7 +27,7 @@
         "CI contains a uniquely named execution-guard job."
       ],
       "evidence": [
-        "execution/reports/pr00-pr04-verification.md",
+        "execution/reports/execution-state-validation-report.json",
         "execution/sessions/20260306-1148-pr00-pr04.md"
       ],
       "blockers": [],

@@ -376,8 +376,17 @@ def execute_pipeline(
     return pipeline_context
 
 
-def verify_pipeline(*, authority: str, python: str, git: str, alr: str, env: dict[str, str]) -> int:
-    initial_snapshot = tracked_diff_snapshot(git=git, env=env)
+def verify_pipeline(
+    *,
+    authority: str,
+    python: str,
+    git: str,
+    alr: str,
+    env: dict[str, str],
+    initial_snapshot: str | None = None,
+) -> int:
+    if initial_snapshot is None:
+        initial_snapshot = tracked_diff_snapshot(git=git, env=env)
     with tempfile.TemporaryDirectory(prefix="gate-pipeline-verify-") as temp_root_str:
         temp_root = Path(temp_root_str)
         execute_pipeline(
@@ -468,7 +477,14 @@ def ratchet_pipeline(*, authority: str, python: str, git: str, alr: str, env: di
 
         promote_stage(stage_root)
 
-    return verify_pipeline(authority=authority, python=python, git=git, alr=alr, env=env)
+    return verify_pipeline(
+        authority=authority,
+        python=python,
+        git=git,
+        alr=alr,
+        env=env,
+        initial_snapshot=tracked_diff_snapshot(git=git, env=env),
+    )
 
 
 def main() -> int:

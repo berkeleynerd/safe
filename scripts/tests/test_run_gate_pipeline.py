@@ -192,7 +192,7 @@ class RunGatePipelineTests(unittest.TestCase):
         with mock.patch.object(
             run_gate_pipeline,
             "tracked_diff_snapshot",
-            side_effect=[" M docs/vision.md\n", ""],
+            side_effect=[" M docs/vision.md\n", "", ""],
         ), mock.patch.object(run_gate_pipeline, "execute_pipeline", return_value={}) as execute_pipeline, mock.patch.object(
             run_gate_pipeline,
             "promote_stage",
@@ -211,6 +211,10 @@ class RunGatePipelineTests(unittest.TestCase):
         self.assertEqual(execute_pipeline.call_count, 2)
         promote_stage.assert_called_once()
         verify_pipeline.assert_called_once()
+        self.assertEqual(
+            verify_pipeline.call_args.kwargs["initial_snapshot"],
+            "",
+        )
 
     def test_ratchet_aborts_before_promotion_when_stage_verify_fails(self) -> None:
         with mock.patch.object(
@@ -238,6 +242,26 @@ class RunGatePipelineTests(unittest.TestCase):
         self.assertEqual(execute_pipeline.call_count, 2)
         promote_stage.assert_not_called()
         verify_pipeline.assert_not_called()
+
+    def test_verify_uses_explicit_initial_snapshot(self) -> None:
+        with mock.patch.object(run_gate_pipeline, "NODES", ()), mock.patch.object(
+            run_gate_pipeline,
+            "tracked_diff_snapshot",
+            return_value=" M execution/reports/example.json\n",
+        ) as tracked_diff_snapshot:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    run_gate_pipeline.verify_pipeline(
+                        authority="local",
+                        python="python3",
+                        git="git",
+                        alr="alr",
+                        env={},
+                        initial_snapshot=" M execution/reports/example.json\n",
+                    ),
+                    0,
+                )
+        tracked_diff_snapshot.assert_called_once_with(git="git", env={})
 
 
 if __name__ == "__main__":

@@ -86,7 +86,7 @@
   - scripts/validate_execution_state.py passes schema, dependency, evidence, frozen-SHA, and test-distribution checks.
   - CI contains a uniquely named execution-guard job.
 - **Evidence:**
-  - `execution/reports/pr00-pr04-verification.md`
+  - `execution/reports/execution-state-validation-report.json`
   - `execution/sessions/20260306-1148-pr00-pr04.md`
 
 ### PR01 — compiler_impl workspace, safec CLI, and harness entrypoint
