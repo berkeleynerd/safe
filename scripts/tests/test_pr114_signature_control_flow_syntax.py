@@ -77,6 +77,21 @@ class Pr114SignatureControlFlowSyntaxTests(unittest.TestCase):
             len(run_pr114_signature_control_flow_syntax.negative_cases()),
         )
 
+    def test_no_result_callable_case_checks_ast_shape(self) -> None:
+        emitter_surface_proc = next(
+            case
+            for case in run_pr114_signature_control_flow_syntax.positive_cases()
+            if case["source"].name == "emitter_surface_proc.safe"
+        )
+        self.assertEqual(
+            tuple(emitter_surface_proc["ast_snippets"]),
+            ('"node_type":"ProcedureSpecification"',),
+        )
+        self.assertEqual(
+            tuple(emitter_surface_proc["ast_absent_snippets"]),
+            ('"node_type":"FunctionSpecification"',),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -493,7 +493,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "<8924 chars>"
+        "stdout": "<8771 chars>"
       },
       "ast_constant_nodes": 1,
       "check": {
@@ -523,10 +523,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "0ea8522aeb0cee5c58009868ee682e5a373ba18b6bf29ebc71c95a2b9344e3dc",
+        "ast": "65163f3410a1773556f66b5be6aab4efb66e9c8dddf00990d7029c153da4b1f4",
         "mir": "a2b5fd44c9c8692389179c9e6f4a82133a0197d311c89e7276d0fbbec2ef1f06",
         "safei": "431342a547174fbefea441dc8b909d33dbefea722bdf0d6584cd9d787463bb8c",
-        "typed": "748fcfda041cb11f4bba999cc47e2fb8f7749711d762d20946d7c158064b7565"
+        "typed": "a50f39819b9fb4d47fb601e2d2a1cabff8f7317d614a175bbcca733e933ba34f"
       },
       "mir_constant_locals": 1,
       "source": "tests/positive/constant_access_deref_write.safe",
@@ -597,7 +597,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "<5936 chars>"
+        "stdout": "<5783 chars>"
       },
       "ast_constant_nodes": 1,
       "check": {
@@ -627,10 +627,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "883933a5ec403aa70be09295a25b104c0cab2076b2dd218895ead665e3c303a8",
+        "ast": "6c2458fd067631ac10a284843a2a0902467335f8af78dae31045dd6f6d7b8ed6",
         "mir": "9fa0a8124c4ad0d5bc517b91e93dc435f1bba98c72bea545d7e0c39e7866346d",
         "safei": "b25f5f8b1f72c325638072f2a2281f7cb511b899303c82f0340cc652014bd186",
-        "typed": "89dfbae1acb4e44ce3621c90031674317b02710d9cec52f15812d85db1df33e2"
+        "typed": "17a5f9e54ac5b8b50f2e5e2e7572cc2cb848430b639e3a14af7932f286d5871a"
       },
       "mir_constant_locals": 1,
       "source": "tests/positive/constant_shadow_mutable.safe",
@@ -1191,8 +1191,8 @@
       ]
     }
   },
-  "repeat_sha256": "98e4c1e27eee911fa5757d0befbc60a165bd15059c76e2b94963ad2051bf0ae1",
-  "report_sha256": "98e4c1e27eee911fa5757d0befbc60a165bd15059c76e2b94963ad2051bf0ae1",
+  "repeat_sha256": "d6fdfefd4c0e2de7e7a18955be8a1f3822e2a8c1623e7b063419652652d8b570",
+  "report_sha256": "d6fdfefd4c0e2de7e7a18955be8a1f3822e2a8c1623e7b063419652652d8b570",
   "source_failures": {
     "imported_missing_static_value": {
       "ast": {

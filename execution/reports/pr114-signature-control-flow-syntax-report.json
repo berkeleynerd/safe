@@ -111,6 +111,9 @@
         "procedure Copy",
         "Output := Local;"
       ],
+      "ast_snippets": [
+        "\"node_type\":\"ProcedureSpecification\""
+      ],
       "check": {
         "command": [
           "compiler_impl/bin/safec",
@@ -176,6 +179,9 @@
       "ada_snippets": [
         "function Echo(Name : String) return String is",
         "return Echo (\"hello\");"
+      ],
+      "ast_snippets": [
+        "\"node_type\":\"FunctionSpecification\""
       ],
       "check": {
         "command": [
@@ -244,6 +250,7 @@
         "elsif (A /= null) then",
         "elsif (B /= null) then"
       ],
+      "ast_snippets": [],
       "check": {
         "command": [
           "compiler_impl/bin/safec",
@@ -311,6 +318,7 @@
         "type Index is range 1 .. 100;",
         "for I in First .. Last loop"
       ],
+      "ast_snippets": [],
       "check": {
         "command": [
           "compiler_impl/bin/safec",
@@ -378,6 +386,7 @@
         "type Packet (Active : Boolean := True; Kind : Character := 'A'; Count : Integer := 0) is record",
         "subtype Safe_constraint_Packet_Active_true_Kind_A_Count_2 is Packet (Active => True, Kind => 'A', Count => 2);"
       ],
+      "ast_snippets": [],
       "check": {
         "command": [
           "compiler_impl/bin/safec",
@@ -445,8 +454,8 @@
       }
     }
   ],
-  "repeat_sha256": "fd5663923dd9b6875255112f1bd7fe7d2069c9a206afd63c2fe2ae3fead8eabb",
-  "report_sha256": "fd5663923dd9b6875255112f1bd7fe7d2069c9a206afd63c2fe2ae3fead8eabb",
+  "repeat_sha256": "5751794250253bd480d01ef91cff4760bf54a3a8c514650ed5c9665ec5b6f0d7",
+  "report_sha256": "5751794250253bd480d01ef91cff4760bf54a3a8c514650ed5c9665ec5b6f0d7",
   "status": "ok",
   "task": "PR11.4"
 }

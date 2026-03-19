@@ -295,7 +295,7 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
         ],
         "body_fragments": [
             "if (First <= Last) then",
-            "for I in First to Last loop",
+            "for I in First .. Last loop",
             "Current := Buf (I);",
             "return Current;",
         ],

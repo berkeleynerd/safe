@@ -1707,7 +1707,7 @@ package body Safe_Frontend.Check_Emit is
          end loop;
       end if;
 
-      if FT.Lowercase (FT.To_String (Parsed.Spec.Kind)) = "function" then
+      if Parsed.Spec.Has_Return_Type then
          return
            "{""node_type"":""SubprogramBody"",""is_public"":"
            & JS.Bool_Literal (Parsed.Is_Public)

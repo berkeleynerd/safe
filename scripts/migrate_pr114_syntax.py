@@ -17,11 +17,53 @@ DECLARATION_START_RE = re.compile(r"^\s*(?:public\s+)?(function|procedure)\b")
 PROCEDURE_DECL_RE = re.compile(r"^(\s*(?:public\s+)?)procedure\b")
 
 
-def split_comment(line: str) -> tuple[str, str]:
-    marker = line.find("--")
-    if marker < 0:
-        return line, ""
-    return line[:marker], line[marker:]
+def split_segments(line: str) -> list[tuple[str, str]]:
+    segments: list[tuple[str, str]] = []
+    index = 0
+    length = len(line)
+
+    while index < length:
+        if line.startswith("--", index):
+            segments.append(("comment", line[index:]))
+            break
+
+        char = line[index]
+        if char == '"':
+            end_index = index + 1
+            while end_index < length:
+                if line[end_index] == '"':
+                    if end_index + 1 < length and line[end_index + 1] == '"':
+                        end_index += 2
+                        continue
+                    end_index += 1
+                    break
+                end_index += 1
+            segments.append(("string", line[index:end_index]))
+            index = end_index
+            continue
+
+        if char == "'":
+            end_index = index + 1
+            while end_index < length:
+                if line[end_index] == "'":
+                    end_index += 1
+                    break
+                end_index += 1
+            segments.append(("char", line[index:end_index]))
+            index = end_index
+            continue
+
+        end_index = index
+        while (
+            end_index < length
+            and not line.startswith("--", end_index)
+            and line[end_index] not in "\"'"
+        ):
+            end_index += 1
+        segments.append(("code", line[index:end_index]))
+        index = end_index
+
+    return segments
 
 
 def rewrite_safe_source(text: str) -> str:
@@ -31,40 +73,51 @@ def rewrite_safe_source(text: str) -> str:
     rewritten: list[str] = []
 
     for line in lines:
-        code, comment = split_comment(line)
-        stripped = code.lstrip()
-
-        if DECLARATION_START_RE.match(code):
+        segments = split_segments(line)
+        visible_code = "".join(text for kind, text in segments if kind == "code")
+        if DECLARATION_START_RE.match(visible_code):
             inside_signature = True
             paren_depth = 0
 
-        if PROCEDURE_DECL_RE.match(code):
-            code = PROCEDURE_DECL_RE.sub(r"\1function", code, count=1)
+        has_returns = "returns" in visible_code
+        replaced_return = False
+        first_code = True
+        updated_segments: list[str] = []
 
-        if inside_signature and "returns" not in code and re.search(r"\breturn\b", code):
-            code = re.sub(r"\breturn\b", "returns", code, count=1)
+        for kind, segment in segments:
+            if kind != "code":
+                updated_segments.append(segment)
+                continue
 
-        code = re.sub(r"\belsif\b", "else if", code)
-        code = re.sub(r"\s*\.\.\s*", " to ", code)
+            updated = segment
+            if first_code:
+                updated = PROCEDURE_DECL_RE.sub(r"\1function", updated, count=1)
+                first_code = False
 
+            if inside_signature and not has_returns and not replaced_return:
+                if re.search(r"\breturn\b", updated):
+                    updated = re.sub(r"\breturn\b", "returns", updated, count=1)
+                    replaced_return = True
+
+            updated = re.sub(r"\belsif\b", "else if", updated)
+            updated = re.sub(r"\s*\.\.\s*", " to ", updated)
+            updated_segments.append(updated)
+
+        rewritten_line = "".join(updated_segments)
+        rewritten.append(rewritten_line)
+
+        visible_rewritten = "".join(
+            segment for kind, segment in split_segments(rewritten_line) if kind == "code"
+        )
         if inside_signature:
-            paren_depth += code.count("(") - code.count(")")
-            if paren_depth <= 0 and (re.search(r"\bis\b", code) or code.rstrip().endswith(";")):
+            paren_depth += visible_rewritten.count("(") - visible_rewritten.count(")")
+            if paren_depth <= 0 and (
+                re.search(r"\bis\b", visible_rewritten) or visible_rewritten.rstrip().endswith(";")
+            ):
                 inside_signature = False
                 paren_depth = 0
 
-        rewritten.append(code + comment)
-
     return "".join(rewritten)
-
-
-def rewrite_path(path: Path) -> bool:
-    original = path.read_text(encoding="utf-8")
-    updated = rewrite_safe_source(original)
-    if updated == original:
-        return False
-    path.write_text(updated, encoding="utf-8")
-    return True
 
 
 def iter_safe_paths(roots: list[Path]) -> list[Path]:

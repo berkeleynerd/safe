@@ -21,7 +21,8 @@ package Safe_Conditional is
          else
             return B.all;
          end if;
-      else if A != null then
+      else
+      if A != null then
          --  A is provably not null.
          return A.all;
       else if B != null then
@@ -29,6 +30,7 @@ package Safe_Conditional is
          return B.all;
       else
          return 0;
+      end if;
       end if;
    end Max_Of_Two;
 

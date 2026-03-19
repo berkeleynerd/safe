@@ -73,6 +73,8 @@ def run_positive_case(
     env: dict[str, str],
     temp_root: Path,
     expected_source_fragments: tuple[str, ...],
+    expected_ast_snippets: tuple[str, ...],
+    expected_ast_absent_snippets: tuple[str, ...],
     expected_typed_snippets: tuple[str, ...],
     expected_mir_snippets: tuple[str, ...],
     expected_safei_snippets: tuple[str, ...],
@@ -120,12 +122,17 @@ def run_positive_case(
     )
 
     typed_text = paths["typed"].read_text(encoding="utf-8")
+    ast_text = paths["ast"].read_text(encoding="utf-8")
     mir_text = paths["mir"].read_text(encoding="utf-8")
     safei_text = paths["safei"].read_text(encoding="utf-8")
     ada_text = emitted_spec_file(ada_dir).read_text(encoding="utf-8") + "\n" + emitted_body_file(
         ada_dir
     ).read_text(encoding="utf-8")
 
+    for snippet in expected_ast_snippets:
+        require(snippet in ast_text, f"{source.name}: AST output is missing {snippet!r}")
+    for snippet in expected_ast_absent_snippets:
+        require(snippet not in ast_text, f"{source.name}: AST output still contains {snippet!r}")
     for snippet in expected_typed_snippets:
         require(snippet in typed_text, f"{source.name}: typed output is missing {snippet!r}")
     for snippet in expected_mir_snippets:
@@ -158,6 +165,7 @@ def run_positive_case(
             "cwd": compile_result["cwd"],
             "returncode": compile_result["returncode"],
         },
+        "ast_snippets": list(expected_ast_snippets),
         "typed_snippets": list(expected_typed_snippets),
         "mir_snippets": list(expected_mir_snippets),
         "safei_snippets": list(expected_safei_snippets),
@@ -218,6 +226,8 @@ def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
                     env=env,
                     temp_root=temp_root,
                     expected_source_fragments=tuple(normalized_source_fragments(case)),
+                    expected_ast_snippets=tuple(case.get("ast_snippets", ())),
+                    expected_ast_absent_snippets=tuple(case.get("ast_absent_snippets", ())),
                     expected_typed_snippets=tuple(case["typed_snippets"]),
                     expected_mir_snippets=tuple(case["mir_snippets"]),
                     expected_safei_snippets=tuple(case["safei_snippets"]),

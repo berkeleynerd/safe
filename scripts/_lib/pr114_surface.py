@@ -16,6 +16,8 @@ PR114_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source_fragments": (
             "function Copy (Input : Small; Output : out Small) is",
         ),
+        "ast_snippets": ('"node_type":"ProcedureSpecification"',),
+        "ast_absent_snippets": ('"node_type":"FunctionSpecification"',),
         "typed_snippets": ('"name":"Copy"',),
         "mir_snippets": ('"name":"Copy"',),
         "safei_snippets": ("function Copy",),
@@ -30,6 +32,7 @@ PR114_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source_fragments": (
             "function Echo (Name : in String) returns String is",
         ),
+        "ast_snippets": ('"node_type":"FunctionSpecification"',),
         "typed_snippets": ('"identifier":"String"',),
         "mir_snippets": ('"tag":"string"',),
         "safei_snippets": ("function Echo", "returns String"),

@@ -66,6 +66,19 @@ class MigratePr114SyntaxTests(unittest.TestCase):
         self.assertIn("public function Read_Value", rewritten)
         self.assertIn("returns Integer is", rewritten)
 
+    def test_rewrite_safe_source_preserves_literals_and_comments(self) -> None:
+        original = (
+            "function Describe returns String is\n"
+            "begin\n"
+            "   -- elsif and 1 .. 3 are documentation only\n"
+            "   return \"elsif ..\";\n"
+            "end Describe;\n"
+        )
+        rewritten = migrate_pr114_syntax.rewrite_safe_source(original)
+        self.assertIn('-- elsif and 1 .. 3 are documentation only', rewritten)
+        self.assertIn('return "elsif ..";', rewritten)
+        self.assertIn("function Describe returns String is", rewritten)
+
 
 if __name__ == "__main__":
     unittest.main()
