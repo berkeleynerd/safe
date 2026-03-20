@@ -99,7 +99,7 @@
         "alr"
       ],
       "gnatprove_versions": [
-        "GNATprove 15.1"
+        "FSF 15.0"
       ],
       "gprbuild_versions": [
         "GPRBUILD 25.0.1"

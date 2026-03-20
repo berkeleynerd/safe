@@ -23,6 +23,17 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Install GNATprove
+        run: |
+          alr install gnatprove=14.1.1
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
       - name: Validate execution tracker and repo facts
         run: python3 scripts/validate_execution_state.py --authority ci
 

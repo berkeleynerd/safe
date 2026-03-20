@@ -112,9 +112,9 @@
     "environment",
     "portability"
   ],
-  "policy_sha256": "7e1c53c70104d1567e915022e7c5b134bffab65f407fb28589231c787ef5cba0",
-  "repeat_sha256": "b785d284d030082cd8d89da7f11cdb17204a1eaae6af3409416bc064a21ebe78",
-  "report_sha256": "b785d284d030082cd8d89da7f11cdb17204a1eaae6af3409416bc064a21ebe78",
+  "policy_sha256": "2346bc9329b5a583c1323b92d2fac912afc19f09ffa3d077ccb258ef910e6280",
+  "repeat_sha256": "dd1b03f1ad6f11c95a577ea6b83a8fa57a97c6d947299435307ccaa895f38389",
+  "report_sha256": "dd1b03f1ad6f11c95a577ea6b83a8fa57a97c6d947299435307ccaa895f38389",
   "reruns": {
     "ast_emit_no_python": {
       "committed_report_path": "execution/reports/pr068-ada-ast-emit-no-python-report.json",

@@ -256,6 +256,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--generated-root", type=Path)
+    parser.add_argument("--authority", choices=("local", "ci"), default="local")
     args = parser.parse_args()
 
     python = find_command("python3")
@@ -291,7 +292,11 @@ def main() -> int:
     write_report(args.report, report)
 
     if generated_root is None:
-        run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
+        run(
+            [python, str(VALIDATE_EXECUTION_STATE), "--authority", args.authority],
+            cwd=REPO_ROOT,
+            env=env,
+        )
         final_dirty = current_dirty_report_paths(paths=report_paths, env=env)
     else:
         final_dirty = []

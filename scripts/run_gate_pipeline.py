@@ -297,7 +297,7 @@ def run_node(
     argv = [python, str(node.script), *node.argv]
     temp_root = write_generated_root
 
-    if node.script is not None and node.script.name == "validate_execution_state.py":
+    if node.supports_authority:
         argv.extend(["--authority", authority])
 
     if node.supports_pipeline_input:

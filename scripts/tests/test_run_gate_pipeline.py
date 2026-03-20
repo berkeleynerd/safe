@@ -259,6 +259,41 @@ class RunGatePipelineTests(unittest.TestCase):
                     )
             run_node.assert_called_once()
 
+    def test_run_node_passes_authority_to_supporting_nodes(self) -> None:
+        node = Node(
+            id="sample_gate",
+            kind=NodeKind.GATE,
+            script=Path("/tmp/run_sample_gate.py"),
+            supports_authority=True,
+        )
+        with mock.patch.object(
+            run_gate_pipeline,
+            "run",
+            return_value={
+                "command": [],
+                "cwd": "$REPO_ROOT",
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+            },
+        ) as run_mock:
+            result, payload, generated_path = run_gate_pipeline.run_node(
+                node,
+                python="python3",
+                authority="ci",
+                env={},
+                read_generated_root=None,
+                write_generated_root=None,
+                pipeline_context={},
+            )
+        self.assertEqual(result["returncode"], 0)
+        self.assertIsNone(payload)
+        self.assertIsNone(generated_path)
+        self.assertEqual(
+            run_mock.call_args.args[0],
+            ["python3", "/tmp/run_sample_gate.py", "--authority", "ci"],
+        )
+
     def test_verify_local_reuse_rejects_ci_proof_report_missing_three_way_sections(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             expected_path = Path(temp_dir) / "expected.json"

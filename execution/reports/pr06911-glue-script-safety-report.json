@@ -64,7 +64,7 @@
     "policy_sections_used": [
       "glue_safety"
     ],
-    "policy_sha256": "7e1c53c70104d1567e915022e7c5b134bffab65f407fb28589231c787ef5cba0",
+    "policy_sha256": "2346bc9329b5a583c1323b92d2fac912afc19f09ffa3d077ccb258ef910e6280",
     "report_helper_violations": [],
     "report_scripts": [
       "scripts/run_frontend_smoke.py",
@@ -175,7 +175,7 @@
   "policy_sections_used": [
     "glue_safety"
   ],
-  "policy_sha256": "7e1c53c70104d1567e915022e7c5b134bffab65f407fb28589231c787ef5cba0",
+  "policy_sha256": "2346bc9329b5a583c1323b92d2fac912afc19f09ffa3d077ccb258ef910e6280",
   "referenced_deterministic_reports": {
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
@@ -188,8 +188,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "e1be158a933ad41a7765e8465ff14270ef0bda4bcc2a84402c1b6055703d912d",
-  "report_sha256": "e1be158a933ad41a7765e8465ff14270ef0bda4bcc2a84402c1b6055703d912d",
+  "repeat_sha256": "4f5c1f4f38f18308332a908ad52eef507346da1c31a9e06a14b9e789edee89d4",
+  "report_sha256": "4f5c1f4f38f18308332a908ad52eef507346da1c31a9e06a14b9e789edee89d4",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

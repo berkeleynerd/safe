@@ -41,6 +41,18 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Alire
+        uses: alire-project/setup-alire@b607671067a8ca5d7b7f4a12dadb4dc009cd2cc7 # v3
+        with:
+          version: 2.1.0
+          toolchain: gnat_native gprbuild
+
+      - name: Install GNATprove
+        working-directory: .
+        run: |
+          alr install gnatprove=14.1.1
+          echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
+
       - name: Validate execution tracker and repo facts
         working-directory: .
         run: python3 scripts/validate_execution_state.py --authority ci
@@ -516,7 +528,7 @@ jobs:
 
       - name: Run PR06.9.9 build and reproducibility hardening
         working-directory: .
-        run: python3 scripts/run_pr0699_build_reproducibility.py
+        run: python3 scripts/run_pr0699_build_reproducibility.py --authority ci
 
   pr06910-portability-environment:
     name: PR06.9.10 Portability and Environment Assumptions
@@ -1091,7 +1103,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1129,7 +1141,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1167,7 +1179,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1205,7 +1217,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1243,7 +1255,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1281,7 +1293,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1319,7 +1331,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1357,7 +1369,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1395,7 +1407,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1433,7 +1445,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1567,7 +1579,7 @@ jobs:
       - name: Install GNATprove
         working-directory: .
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Build compiler frontend
@@ -1636,7 +1648,7 @@ jobs:
 
       - name: Initialize Alire workspace and install GNATprove
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Verify tools
@@ -1770,7 +1782,7 @@ jobs:
 
       - name: Initialize Alire workspace and install GNATprove
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Record toolchain version for cache key

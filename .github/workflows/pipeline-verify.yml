@@ -35,7 +35,7 @@ jobs:
 
       - name: Install GNATprove
         run: |
-          alr install gnatprove
+          alr install gnatprove=14.1.1
           echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"
 
       - name: Run canonical gate pipeline verify

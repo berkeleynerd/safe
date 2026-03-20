@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import io
 import sys
+import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
@@ -53,6 +57,68 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
         self.assertEqual(
             canonical["stdout"],
             "frontend smoke: OK (execution/reports/pr00-pr04-frontend-smoke.json)\n",
+        )
+
+    def test_main_passes_authority_to_execution_state_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report_path = Path(temp_dir) / "pr0699-report.json"
+            run_calls: list[list[str]] = []
+
+            def fake_run(argv: list[str], **_kwargs: object) -> dict[str, object]:
+                run_calls.append(list(argv))
+                return {
+                    "command": list(argv),
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                    "stdout": "",
+                    "stderr": "",
+                }
+
+            with mock.patch.object(
+                sys,
+                "argv",
+                [
+                    "run_pr0699_build_reproducibility.py",
+                    "--report",
+                    str(report_path),
+                    "--authority",
+                    "ci",
+                ],
+            ), mock.patch.object(
+                run_pr0699_build_reproducibility,
+                "find_command",
+                side_effect=lambda name, *alts: name,
+            ), mock.patch.object(
+                run_pr0699_build_reproducibility,
+                "ensure_sdkroot",
+                side_effect=lambda env: env,
+            ), mock.patch.object(
+                run_pr0699_build_reproducibility,
+                "finalize_deterministic_report",
+                return_value={},
+            ), mock.patch.object(
+                run_pr0699_build_reproducibility,
+                "write_report",
+            ), mock.patch.object(
+                run_pr0699_build_reproducibility,
+                "current_dirty_report_paths",
+                side_effect=[[], []],
+            ), mock.patch.object(
+                run_pr0699_build_reproducibility,
+                "run",
+                side_effect=fake_run,
+            ):
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(run_pr0699_build_reproducibility.main(), 0)
+
+        self.assertIn(
+            [
+                "python3",
+                str(run_pr0699_build_reproducibility.VALIDATE_EXECUTION_STATE),
+                "--authority",
+                "ci",
+            ],
+            run_calls,
         )
 
 

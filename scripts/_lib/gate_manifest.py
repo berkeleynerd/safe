@@ -33,6 +33,7 @@ class Node:
     depends_on: tuple[str, ...] = ()
     supports_pipeline_input: bool = False
     supports_generated_root: bool = False
+    supports_authority: bool = False
     argv: tuple[str, ...] = ()
     determinism_class: DeterminismClass = DeterminismClass.BYTE_EXACT
     clean_profile: str | None = None
@@ -59,6 +60,7 @@ NODES: tuple[Node, ...] = (
         id=VALIDATE_EXECUTION_STATE_PREFLIGHT,
         kind=NodeKind.VALIDATION,
         script=_script("validate_execution_state.py"),
+        supports_authority=True,
         argv=("--phase", "preflight"),
     ),
     Node(
@@ -354,6 +356,7 @@ NODES: tuple[Node, ...] = (
         kind=NodeKind.GATE,
         script=_script("run_pr0699_build_reproducibility.py"),
         report_path=_report("pr0699-build-reproducibility-report.json"),
+        supports_authority=True,
         depends_on=(BUILD_POST_REPRO,),
     ),
     Node(
@@ -513,6 +516,7 @@ NODES: tuple[Node, ...] = (
         script=_script("validate_execution_state.py"),
         report_path=_report("execution-state-validation-report.json"),
         depends_on=("pr06913_documentation_architecture_clarity",),
+        supports_authority=True,
         supports_generated_root=True,
         argv=("--phase", "final"),
     ),
