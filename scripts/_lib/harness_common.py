@@ -501,6 +501,7 @@ def reference_committed_report(
 @contextmanager
 def managed_scratch_root(*, scratch_root: Path | None, prefix: str):
     if scratch_root is not None:
+        shutil.rmtree(scratch_root, ignore_errors=True)
         scratch_root.mkdir(parents=True, exist_ok=True)
         yield scratch_root
         return

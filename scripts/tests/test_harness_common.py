@@ -156,6 +156,18 @@ class HarnessCommonTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             hc.finalize_deterministic_report(generator, label="drift")
 
+    def test_managed_scratch_root_clears_supplied_root_between_uses(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            scratch_root = Path(temp_dir) / "scratch"
+            scratch_root.mkdir()
+            (scratch_root / "stale.txt").write_text("stale\n", encoding="utf-8")
+            with hc.managed_scratch_root(scratch_root=scratch_root, prefix="unused-") as managed:
+                self.assertEqual(managed, scratch_root)
+                self.assertFalse((managed / "stale.txt").exists())
+                (managed / "fresh.txt").write_text("fresh\n", encoding="utf-8")
+            with hc.managed_scratch_root(scratch_root=scratch_root, prefix="unused-") as managed:
+                self.assertFalse((managed / "fresh.txt").exists())
+
     def test_rerun_report_gate_and_compare_returns_stable_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
