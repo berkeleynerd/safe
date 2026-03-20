@@ -36,6 +36,7 @@ from validate_execution_state import (
     legacy_frontend_cleanup_report,
     performance_scale_sanity_report,
     report_sync_report,
+    resolve_tool_command,
     run_final_phase,
     run_preflight_phase,
     runtime_boundary_report,
@@ -1359,6 +1360,18 @@ class ValidateExecutionStateTests(unittest.TestCase):
         self.assertIn("ratchet-owned generated outputs must be clean before preflight", str(exc.exception))
         self.assertIn(" M execution/dashboard.md", str(exc.exception))
         self.assertIn(" M execution/reports/pr10-emitted-baseline-report.json", str(exc.exception))
+
+    def test_resolve_tool_command_prefers_pinned_alire_toolchain_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            home = Path(temp_dir)
+            pinned = home / ".local" / "share" / "alire" / "toolchains" / "gnat_native_15.1.2_deadbeef" / "bin" / "gnat"
+            pinned.parent.mkdir(parents=True, exist_ok=True)
+            pinned.write_text("", encoding="utf-8")
+            with mock.patch("validate_execution_state.Path.home", return_value=home), mock.patch(
+                "validate_execution_state.find_command",
+                return_value="gnat",
+            ):
+                self.assertEqual(resolve_tool_command(authority="ci", name="gnat"), str(pinned))
 
     def test_run_final_phase_resolves_generated_root_and_embeds_policy_metadata(self) -> None:
         tracker = {"tasks": []}

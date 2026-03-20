@@ -39,9 +39,9 @@ def _normalize_profile_arg(arg: str) -> str:
         return "-gnatec=<ada_dir>/gnat.adc"
     if arg.startswith("$TMPDIR/") and arg.endswith(".json"):
         return "$REPORT"
-    if arg.endswith("build.gpr"):
-        return "build.gpr"
     candidate = Path(arg)
+    if candidate.suffix == ".gpr":
+        return candidate.name
     if candidate.suffix in {".adb", ".ads", ".py"}:
         return candidate.name
     return arg
@@ -75,11 +75,7 @@ def command_profile(command: list[str]) -> dict[str, Any]:
             profile["warnings"] = _switch_value(tool_args, "--warnings")
             profile["checks_as_errors"] = _switch_value(tool_args, "--checks-as-errors")
             profile["explicit_gnatec"] = any(arg.startswith("-gnatec=") for arg in tool_args)
-            extras = [
-                _normalize_profile_arg(arg)
-                for arg in tool_args
-                if not _known_gnatprove_arg(arg)
-            ]
+            extras = _gnatprove_extra_args(tool_args)
             if extras:
                 profile["extra_args"] = extras
             return profile
@@ -132,8 +128,23 @@ def _known_gnatprove_arg(arg: str) -> bool:
         or arg.startswith("--warnings=")
         or arg.startswith("--checks-as-errors=")
         or arg.startswith("-gnatec=")
-        or arg == "build.gpr"
     )
+
+
+def _gnatprove_extra_args(argv: list[str]) -> list[str]:
+    extras: list[str] = []
+    skip_next = False
+    for arg in argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "-P":
+            skip_next = True
+            continue
+        if _known_gnatprove_arg(arg):
+            continue
+        extras.append(_normalize_profile_arg(arg))
+    return extras
 
 
 def count_only_summary(summary: dict[str, Any]) -> dict[str, Any]:

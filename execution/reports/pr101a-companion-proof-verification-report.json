@@ -32,9 +32,6 @@
       "command_profile": {
         "checks_as_errors": null,
         "explicit_gnatec": false,
-        "extra_args": [
-          "companion.gpr"
-        ],
         "level": null,
         "mode": "flow",
         "program": "alr",
@@ -53,9 +50,6 @@
       "command_profile": {
         "checks_as_errors": "on",
         "explicit_gnatec": false,
-        "extra_args": [
-          "companion.gpr"
-        ],
         "level": "2",
         "mode": "prove",
         "program": "alr",
@@ -132,8 +126,8 @@
       "cwd": "$REPO_ROOT/companion/gen"
     }
   },
-  "repeat_sha256": "58f122a8187a9c128a99a97e55d03b79ebdce45e452d1f4ee18101d62ba02087",
-  "report_sha256": "58f122a8187a9c128a99a97e55d03b79ebdce45e452d1f4ee18101d62ba02087",
+  "repeat_sha256": "55a8952139d7595cc08bd25eec7493a328dc871fc8dd36665c35a34a4165c6e5",
+  "report_sha256": "55a8952139d7595cc08bd25eec7493a328dc871fc8dd36665c35a34a4165c6e5",
   "semantic_floor": {
     "assumptions_extracted_sha256": "04becc81d8705c62493fe616c44b417475ec5273432b5a7723bfcd128eecdcc2",
     "build_returncode": 0,

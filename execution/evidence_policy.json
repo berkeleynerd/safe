@@ -99,13 +99,13 @@
         "alr"
       ],
       "gnat_versions": [
-        "GNAT 15.0.1"
+        "GNAT 15.1.0"
       ],
       "gnatprove_versions": [
         "FSF 15.0"
       ],
       "gprbuild_versions": [
-        "GPRBUILD 25.0.1"
+        "GPRBUILD 25.0.0"
       ],
       "python_versions": [
         "3.11"

@@ -141,7 +141,7 @@ class ProofReportHelperTests(unittest.TestCase):
                 "--",
                 "gnatprove",
                 "-P",
-                "build.gpr",
+                "/tmp/work/companion.gpr",
                 "--mode=prove",
                 "--level=2",
                 "--prover=cvc5,z3,altergo",
@@ -156,7 +156,7 @@ class ProofReportHelperTests(unittest.TestCase):
         )
         self.assertEqual(profile["program"], "alr")
         self.assertEqual(profile["tool"], "gnatprove")
-        self.assertEqual(profile["project"], "build.gpr")
+        self.assertEqual(profile["project"], "companion.gpr")
         self.assertEqual(profile["mode"], "prove")
         self.assertEqual(profile["provers"], ["cvc5", "z3", "altergo"])
         self.assertEqual(profile["timeout"], "120")

@@ -93,7 +93,7 @@ def ensure_deterministic_env(
         "TZ": "UTC",
     }
     for key, value in policy_required.items():
-        updated.setdefault(key, value)
+        updated[key] = value
     return updated
 
 

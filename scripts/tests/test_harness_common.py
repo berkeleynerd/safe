@@ -67,6 +67,19 @@ class HarnessCommonTests(unittest.TestCase):
             ["alr", "build", "--", "-j1", "-p"],
         )
 
+    def test_ensure_deterministic_env_overrides_conflicting_values(self) -> None:
+        env = {
+            "PYTHONHASHSEED": "123",
+            "LC_ALL": "en_US.UTF-8",
+            "TZ": "America/New_York",
+            "KEEP": "yes",
+        }
+        updated = hc.ensure_deterministic_env(env)
+        self.assertEqual(updated["PYTHONHASHSEED"], "0")
+        self.assertEqual(updated["LC_ALL"], "C.UTF-8")
+        self.assertEqual(updated["TZ"], "UTC")
+        self.assertEqual(updated["KEEP"], "yes")
+
     def test_run_enforces_return_code_and_captures_stdout_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)

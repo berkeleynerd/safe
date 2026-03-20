@@ -562,6 +562,29 @@ def tool_first_line(argv: list[str], *, env: dict[str, str]) -> str:
     return line
 
 
+def resolve_tool_command(*, authority: str, name: str) -> str:
+    toolchain_pins = ENVIRONMENT_POLICY[authority].get("toolchain_pins", {})
+    toolchain_root = Path.home() / ".local" / "share" / "alire" / "toolchains"
+    if name == "gnat":
+        pin = toolchain_pins.get("gnat_native")
+        if pin:
+            matches = sorted(toolchain_root.glob(f"gnat_native_{pin}_*/bin/gnat"))
+            if matches:
+                return str(matches[0])
+    elif name == "gprbuild":
+        pin = toolchain_pins.get("gprbuild")
+        if pin:
+            matches = sorted(toolchain_root.glob(f"gprbuild_{pin}_*/bin/gprbuild"))
+            if matches:
+                return str(matches[0])
+    elif name == "gnatprove":
+        fallback = Path.home() / ".alire" / "bin" / "gnatprove"
+        if fallback.exists():
+            return str(fallback)
+        return find_command(name, fallback=fallback)
+    return find_command(name)
+
+
 def normalized_python_version() -> str:
     return f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -579,19 +602,25 @@ def check_environment_preconditions(*, authority: str, env: dict[str, str]) -> d
         fail(f"python {python_version} not permitted for authority {authority}: {python_versions}")
 
     gnat_versions = ENVIRONMENT_POLICY[authority]["gnat_versions"]
-    gnat_version = tool_first_line([find_command("gnat"), "--version"], env=env)
+    gnat_version = tool_first_line([resolve_tool_command(authority=authority, name="gnat"), "--version"], env=env)
     if not any(gnat_version.startswith(prefix) for prefix in gnat_versions):
         fail(f"gnat version {gnat_version!r} not permitted for authority {authority}: {gnat_versions}")
 
     gnatprove_versions = ENVIRONMENT_POLICY[authority]["gnatprove_versions"]
-    gnatprove_version = tool_first_line([find_command("gnatprove"), "--version"], env=env)
+    gnatprove_version = tool_first_line(
+        [resolve_tool_command(authority=authority, name="gnatprove"), "--version"],
+        env=env,
+    )
     if not any(gnatprove_version.startswith(prefix) for prefix in gnatprove_versions):
         fail(
             f"gnatprove version {gnatprove_version!r} not permitted for authority {authority}: {gnatprove_versions}"
         )
 
     gprbuild_versions = ENVIRONMENT_POLICY[authority]["gprbuild_versions"]
-    gprbuild_version = tool_first_line([find_command("gprbuild"), "--version"], env=env)
+    gprbuild_version = tool_first_line(
+        [resolve_tool_command(authority=authority, name="gprbuild"), "--version"],
+        env=env,
+    )
     if not any(gprbuild_version.startswith(prefix) for prefix in gprbuild_versions):
         fail(
             f"gprbuild version {gprbuild_version!r} not permitted for authority {authority}: {gprbuild_versions}"

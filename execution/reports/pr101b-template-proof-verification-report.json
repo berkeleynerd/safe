@@ -32,9 +32,6 @@
       "command_profile": {
         "checks_as_errors": null,
         "explicit_gnatec": false,
-        "extra_args": [
-          "templates.gpr"
-        ],
         "level": null,
         "mode": "flow",
         "program": "alr",
@@ -53,9 +50,6 @@
       "command_profile": {
         "checks_as_errors": "on",
         "explicit_gnatec": false,
-        "extra_args": [
-          "templates.gpr"
-        ],
         "level": "2",
         "mode": "prove",
         "program": "alr",
@@ -132,8 +126,8 @@
       "cwd": "$REPO_ROOT/companion/templates"
     }
   },
-  "repeat_sha256": "88a3083cb007e69825050f1b323de5c93846969f9ae3ad2e9221768b721d42d8",
-  "report_sha256": "88a3083cb007e69825050f1b323de5c93846969f9ae3ad2e9221768b721d42d8",
+  "repeat_sha256": "5495a2d8855a20862d336309ef71a7db05c6b5f8c65c6812f1bf957a0842102e",
+  "report_sha256": "5495a2d8855a20862d336309ef71a7db05c6b5f8c65c6812f1bf957a0842102e",
   "semantic_floor": {
     "assumptions_extracted_sha256": "3ad85b666e769c09dc50ae6d5078b539a7a3feb164cefb3de6d781789dd442ff",
     "build_returncode": 0,
