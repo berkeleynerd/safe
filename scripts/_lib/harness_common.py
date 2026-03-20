@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable
 
@@ -495,6 +496,16 @@ def reference_committed_report(
         "committed_report_path": display_path(committed_report_path, repo_root=repo_root),
         "matches_committed_report": True,
     }
+
+
+@contextmanager
+def managed_scratch_root(*, scratch_root: Path | None, prefix: str):
+    if scratch_root is not None:
+        scratch_root.mkdir(parents=True, exist_ok=True)
+        yield scratch_root
+        return
+    with tempfile.TemporaryDirectory(prefix=prefix) as temp_root_str:
+        yield Path(temp_root_str)
 
 
 def load_pipeline_input(path: Path | None) -> dict[str, Any]:

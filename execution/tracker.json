@@ -606,6 +606,8 @@
         "docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json."
       ],
       "evidence": [
+        "execution/reports/pr101a-companion-proof-verification-report.json",
+        "execution/reports/pr101b-template-proof-verification-report.json",
         "execution/reports/pr101-comprehensive-audit-report.json"
       ],
       "blockers": [],

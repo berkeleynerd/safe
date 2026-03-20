@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +21,7 @@ from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
+    managed_scratch_root,
     normalize_source_text,
     require,
     write_report,
@@ -179,11 +179,10 @@ def run_fixture(item: dict[str, Any], *, env: dict[str, str], temp_root: Path) -
     }
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     require_safec()
     corpus = sequential_proof_corpus()
-    with tempfile.TemporaryDirectory(prefix="pr106-sequential-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr106-sequential-") as temp_root:
         fixtures = [run_fixture(item, env=env, temp_root=temp_root) for item in corpus]
     semantic_floor, canonical_fixtures, machine_fixtures = split_proof_fixtures(fixtures)
     return build_three_way_report(
@@ -205,11 +204,12 @@ def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(env=env),
+        lambda: generate_report(env=env, scratch_root=args.scratch_root),
         label="PR10.6 sequential proof-corpus expansion",
     )
     write_report(args.report, report)

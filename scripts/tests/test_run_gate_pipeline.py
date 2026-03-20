@@ -64,15 +64,9 @@ class RunGatePipelineTests(unittest.TestCase):
             "task": "PR10.1",
             "semantic_floor": {
                 "baseline_gate_hashes": baseline_gate_hashes,
-                "companion_verify": {
-                    "assumptions_extracted_sha256": "5" * 64,
-                    "prove_golden_sha256": "6" * 64,
-                    "gnatprove_summary_sha256": "7" * 64,
-                },
-                "templates_verify": {
-                    "assumptions_extracted_sha256": "8" * 64,
-                    "prove_golden_sha256": "9" * 64,
-                    "gnatprove_summary_sha256": "a" * 64,
+                "child_report_hashes": {
+                    "pr101a_companion_proof_verification": "5" * 64,
+                    "pr101b_template_proof_verification": "6" * 64,
                 },
             },
             "canonical_proof_detail": {},
@@ -80,6 +74,28 @@ class RunGatePipelineTests(unittest.TestCase):
             "deterministic": True,
             "report_sha256": "b" * 64,
             "repeat_sha256": "b" * 64,
+        }
+
+    @staticmethod
+    def _pr101_child_payload(*, report_sha: str = "5" * 64) -> dict[str, object]:
+        return {
+            "task": "PR10.1",
+            "verification": "companion",
+            "semantic_floor": {
+                "build_returncode": 0,
+                "flow_returncode": 0,
+                "prove_returncode": 0,
+                "extract_assumptions_returncode": 0,
+                "diff_assumptions_returncode": 0,
+                "assumptions_extracted_sha256": "1" * 64,
+                "prove_golden_sha256": "2" * 64,
+                "gnatprove_summary_sha256": "3" * 64,
+            },
+            "canonical_proof_detail": {},
+            "machine_sensitive": {},
+            "deterministic": True,
+            "report_sha256": report_sha,
+            "repeat_sha256": report_sha,
         }
 
     @classmethod
@@ -294,6 +310,46 @@ class RunGatePipelineTests(unittest.TestCase):
             ["python3", "/tmp/run_sample_gate.py", "--authority", "ci"],
         )
 
+    def test_run_node_passes_scratch_root_to_supporting_nodes(self) -> None:
+        node = Node(
+            id="sample_gate",
+            kind=NodeKind.GATE,
+            script=Path("/tmp/run_sample_gate.py"),
+            supports_scratch_root=True,
+        )
+        with tempfile.TemporaryDirectory() as temp_dir, mock.patch.object(
+            run_gate_pipeline,
+            "run",
+            return_value={
+                "command": [],
+                "cwd": "$REPO_ROOT",
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+            },
+        ) as run_mock:
+            result, payload, generated_path = run_gate_pipeline.run_node(
+                node,
+                python="python3",
+                authority="local",
+                env={},
+                read_generated_root=None,
+                write_generated_root=Path(temp_dir),
+                pipeline_context={},
+            )
+        self.assertEqual(result["returncode"], 0)
+        self.assertIsNone(payload)
+        self.assertIsNone(generated_path)
+        self.assertEqual(
+            run_mock.call_args.args[0],
+            [
+                "python3",
+                "/tmp/run_sample_gate.py",
+                "--scratch-root",
+                str(Path(temp_dir) / "scratch" / "sample_gate"),
+            ],
+        )
+
     def test_verify_local_reuse_rejects_ci_proof_report_missing_three_way_sections(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             expected_path = Path(temp_dir) / "expected.json"
@@ -358,6 +414,8 @@ class RunGatePipelineTests(unittest.TestCase):
                     "pr09_ada_emission_baseline",
                     "pr10_emitted_baseline",
                     "emitted_hardening_regressions",
+                    "pr101a_companion_proof_verification",
+                    "pr101b_template_proof_verification",
                     "pr101_comprehensive_audit",
                 )
             }
@@ -365,6 +423,14 @@ class RunGatePipelineTests(unittest.TestCase):
             self._write_report(report_paths["pr09_ada_emission_baseline"], self._report_payload("pr09"))
             self._write_report(report_paths["pr10_emitted_baseline"], self._report_payload("pr10"))
             self._write_report(report_paths["emitted_hardening_regressions"], self._report_payload("hard"))
+            self._write_report(
+                report_paths["pr101a_companion_proof_verification"],
+                self._pr101_child_payload(report_sha="5" * 64),
+            )
+            self._write_report(
+                report_paths["pr101b_template_proof_verification"],
+                self._pr101_child_payload(report_sha="6" * 64),
+            )
             self._write_report(
                 report_paths["pr101_comprehensive_audit"],
                 self._pr101_payload(
@@ -401,6 +467,20 @@ class RunGatePipelineTests(unittest.TestCase):
                     kind=NodeKind.GATE,
                     script=Path("/tmp/run_emitted_hardening_regressions.py"),
                     report_path=report_paths["emitted_hardening_regressions"],
+                ),
+                Node(
+                    id="pr101a_companion_proof_verification",
+                    kind=NodeKind.GATE,
+                    script=Path("/tmp/run_pr101a_companion_proof_verification.py"),
+                    report_path=report_paths["pr101a_companion_proof_verification"],
+                    determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+                ),
+                Node(
+                    id="pr101b_template_proof_verification",
+                    kind=NodeKind.GATE,
+                    script=Path("/tmp/run_pr101b_template_proof_verification.py"),
+                    report_path=report_paths["pr101b_template_proof_verification"],
+                    determinism_class=DeterminismClass.CI_AUTHORITATIVE,
                 ),
                 Node(
                     id="pr101_comprehensive_audit",

@@ -150,6 +150,7 @@
     },
     "audited_scripts": [
       "safe",
+      "scripts/_lib/pr101_verification.py",
       "scripts/_lib/gate_manifest.py",
       "scripts/run_frontend_smoke.py",
       "scripts/run_pr05_d27_harness.py",
@@ -181,6 +182,9 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
@@ -236,6 +240,9 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
@@ -301,7 +308,9 @@
       "scripts/run_pr083_interface_contracts.py",
       "scripts/run_pr083a_public_constants.py",
       "scripts/_lib/pr09_emit.py",
+      "scripts/_lib/pr101_verification.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_local_pre_push.py"
     ],
     "tempdir_scripts": [
@@ -316,7 +325,8 @@
       "scripts/run_pr09b_sequential_semantics.py",
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
-      "scripts/run_pr09_ada_emission_baseline.py"
+      "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101_comprehensive_audit.py"
     ]
   },
   "schema_version": "evidence-policy-v1"

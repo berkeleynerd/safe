@@ -27,13 +27,11 @@ from _lib.harness_common import (
     resolve_generated_path,
     run,
     sha256_file,
-    sha256_text,
     write_report,
 )
-from _lib.pr09_emit import REPO_ROOT, alr_command
+from _lib.pr09_emit import REPO_ROOT
+from _lib.pr101_verification import verification_report_reference
 from _lib.proof_report import (
-    PR101_ANCHOR_GROUPS,
-    PR101_ANCHOR_KEYS,
     build_three_way_report,
     split_command_result,
 )
@@ -69,8 +67,21 @@ EXPECTED_PR101_ACCEPTANCE = [
     "docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json.",
 ]
 EXPECTED_PR101_EVIDENCE = [
+    "execution/reports/pr101a-companion-proof-verification-report.json",
+    "execution/reports/pr101b-template-proof-verification-report.json",
     "execution/reports/pr101-comprehensive-audit-report.json",
 ]
+VERIFICATION_REPORT_SPECS = {
+    "pr101a_companion_proof_verification": {
+        "script": REPO_ROOT / "scripts" / "run_pr101a_companion_proof_verification.py",
+        "report": REPO_ROOT / "execution" / "reports" / "pr101a-companion-proof-verification-report.json",
+    },
+    "pr101b_template_proof_verification": {
+        "script": REPO_ROOT / "scripts" / "run_pr101b_template_proof_verification.py",
+        "report": REPO_ROOT / "execution" / "reports" / "pr101b-template-proof-verification-report.json",
+    },
+}
+VERIFICATION_REPORT_ORDER = tuple(VERIFICATION_REPORT_SPECS)
 EXPECTED_PR104_ACCEPTANCE = [
     "Pure-Python regression tests cover scripts/run_pr101_comprehensive_audit.py parsing helpers (split_table_row, parse_findings, parse_residuals, parse_summary_counts), including malformed-table cases and multi-target target-cell parsing.",
     "The emitted proof and audit harnesses verify explicit gnat.adc application and fail deterministically if concurrency compile/flow/prove commands lose the concrete -gnatec=<ada_dir>/gnat.adc argument.",
@@ -364,34 +375,6 @@ def split_table_row(line: str) -> list[str] | None:
     return cells
 
 
-def normalized_assumptions_hash(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    normalized = re.sub(r"^# Generated: .*\n", "", text, flags=re.MULTILINE)
-    return sha256_text(normalized)
-
-
-def normalized_gnatprove_summary_hash(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    match = re.search(r"^Summary of SPARK.*?^Total.*$", text, flags=re.MULTILINE | re.DOTALL)
-    require(match is not None, f"{display_path(path, repo_root=REPO_ROOT)}: missing GNATprove summary block")
-    normalized = re.sub(r"\([^)]*\)", "(normalized)", match.group(0))
-    return sha256_text(normalized)
-
-
-def snapshot_text(path: Path) -> str | None:
-    if not path.exists():
-        return None
-    return path.read_text(encoding="utf-8")
-
-
-def restore_text(path: Path, original: str | None) -> None:
-    if original is None:
-        if path.exists():
-            path.unlink()
-        return
-    path.write_text(original, encoding="utf-8")
-
-
 def parse_findings(text: str) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     for line in text.splitlines():
@@ -463,130 +446,43 @@ def run_python_gate(*, python: str, script: Path, env: dict[str, str], temp_root
     }
 
 
-def run_companion_verify(*, env: dict[str, str]) -> dict[str, Any]:
-    bash = find_command("bash")
-    alr = alr_command()
-    companion_root = REPO_ROOT / "companion" / "gen"
-
-    assumptions_path = REPO_ROOT / "companion" / "assumptions_extracted.txt"
-    original_assumptions = snapshot_text(assumptions_path)
-    build = run([alr, "build"], cwd=companion_root, env=env)
-    flow = run(
-        [alr, "exec", "--", "gnatprove", "-P", "companion.gpr", "--mode=flow", "--report=all", "--warnings=error"],
-        cwd=companion_root,
-        env=env,
+def load_verification_report_reference(
+    *,
+    node_id: str,
+    generated_root: Path | None = None,
+) -> dict[str, Any]:
+    spec = VERIFICATION_REPORT_SPECS[node_id]
+    report_path = resolve_generated_path(
+        spec["report"],
+        generated_root=generated_root,
+        policy=EVIDENCE_POLICY,
+        repo_root=REPO_ROOT,
     )
-    prove = run(
-        [
-            alr,
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "companion.gpr",
-            "--mode=prove",
-            "--level=2",
-            "--prover=cvc5,z3,altergo",
-            "--steps=0",
-            "--timeout=120",
-            "--report=all",
-            "--warnings=error",
-            "--checks-as-errors=on",
-        ],
-        cwd=companion_root,
-        env=env,
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    require(payload.get("deterministic") is True, f"{display_path(report_path, repo_root=REPO_ROOT)} must be deterministic")
+    require(
+        payload.get("report_sha256") == payload.get("repeat_sha256"),
+        f"{display_path(report_path, repo_root=REPO_ROOT)} report hashes must match",
     )
-    try:
-        extract = run([bash, "scripts/extract_assumptions.sh"], cwd=REPO_ROOT, env=env)
-        extracted_hash = normalized_assumptions_hash(assumptions_path)
-        diff = run([bash, "scripts/diff_assumptions.sh"], cwd=REPO_ROOT, env=env)
-    finally:
-        restore_text(assumptions_path, original_assumptions)
-    prove_golden_hash = sha256_file(REPO_ROOT / "companion" / "gen" / "prove_golden.txt")
-    gnatprove_summary_hash = normalized_gnatprove_summary_hash(
-        REPO_ROOT / "companion" / "gen" / "obj" / "gnatprove" / "gnatprove.out"
+    return verification_report_reference(
+        node_id=node_id,
+        script=display_path(spec["script"], repo_root=REPO_ROOT),
+        report_sha256=payload["report_sha256"],
+        deterministic=payload["deterministic"],
     )
-    return {
-        "build": compact_result(build),
-        "flow": compact_result(flow),
-        "prove": compact_result(prove),
-        "extract_assumptions": compact_result(extract),
-        "diff_assumptions": compact_result(diff),
-        "assumptions_extracted_sha256": extracted_hash,
-        "prove_golden_sha256": prove_golden_hash,
-        "gnatprove_summary_sha256": gnatprove_summary_hash,
-    }
 
 
-def run_templates_verify(*, env: dict[str, str]) -> dict[str, Any]:
-    bash = find_command("bash")
-    alr = alr_command()
-    templates_root = REPO_ROOT / "companion" / "templates"
-
-    assumptions_path = REPO_ROOT / "companion" / "assumptions_extracted.txt"
-    original_assumptions = snapshot_text(assumptions_path)
-    build = run([alr, "build"], cwd=templates_root, env=env)
-    flow = run(
-        [alr, "exec", "--", "gnatprove", "-P", "templates.gpr", "--mode=flow", "--report=all", "--warnings=error"],
-        cwd=templates_root,
-        env=env,
-    )
-    prove = run(
-        [
-            alr,
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "templates.gpr",
-            "--mode=prove",
-            "--level=2",
-            "--prover=cvc5,z3,altergo",
-            "--steps=0",
-            "--timeout=120",
-            "--report=all",
-            "--warnings=error",
-            "--checks-as-errors=on",
-        ],
-        cwd=templates_root,
-        env=env,
-    )
-    extract_env = env.copy()
-    extract_env["PROVE_OUT"] = "companion/templates/obj/gnatprove"
-    diff_env = env.copy()
-    diff_env["PROVE_GOLDEN"] = "companion/templates/prove_golden.txt"
-    diff_env["PROVE_OUT"] = "companion/templates/obj/gnatprove/gnatprove.out"
-    try:
-        extract = run([bash, "scripts/extract_assumptions.sh"], cwd=REPO_ROOT, env=extract_env)
-        extracted_hash = normalized_assumptions_hash(assumptions_path)
-        diff = run([bash, "scripts/diff_assumptions.sh"], cwd=REPO_ROOT, env=diff_env)
-    finally:
-        restore_text(assumptions_path, original_assumptions)
-    prove_golden_hash = sha256_file(REPO_ROOT / "companion" / "templates" / "prove_golden.txt")
-    gnatprove_summary_hash = normalized_gnatprove_summary_hash(
-        REPO_ROOT / "companion" / "templates" / "obj" / "gnatprove" / "gnatprove.out"
-    )
-    return {
-        "build": compact_result(build),
-        "flow": compact_result(flow),
-        "prove": compact_result(prove),
-        "extract_assumptions": compact_result(extract),
-        "diff_assumptions": compact_result(diff),
-        "assumptions_extracted_sha256": extracted_hash,
-        "prove_golden_sha256": prove_golden_hash,
-        "gnatprove_summary_sha256": gnatprove_summary_hash,
-    }
-
-
-def run_baseline_truth(*, env: dict[str, str]) -> dict[str, Any]:
+def run_baseline_truth(*, env: dict[str, str], generated_root: Path | None = None) -> dict[str, Any]:
     python = find_command("python3")
     with tempfile.TemporaryDirectory(prefix="pr101-audit-") as temp_root_str:
         temp_root = Path(temp_root_str)
         gates = [run_python_gate(python=python, script=script, env=env, temp_root=temp_root) for script in BASELINE_SCRIPTS]
         return {
             "python_gates": gates,
-            "companion_verify": run_companion_verify(env=env),
-            "templates_verify": run_templates_verify(env=env),
+            "verification_reports": [
+                load_verification_report_reference(node_id=node_id, generated_root=generated_root)
+                for node_id in VERIFICATION_REPORT_ORDER
+            ],
         }
 
 
@@ -621,10 +517,21 @@ def pipeline_baseline_truth(*, env: dict[str, Any], pipeline_input: dict[str, An
             }
         )
 
+    verification_reports: list[dict[str, Any]] = []
+    for node_id in VERIFICATION_REPORT_ORDER:
+        payload = require_pipeline_report(pipeline_input, node_id=node_id)
+        verification_reports.append(
+            verification_report_reference(
+                node_id=node_id,
+                script=display_path(VERIFICATION_REPORT_SPECS[node_id]["script"], repo_root=REPO_ROOT),
+                report_sha256=payload["report_sha256"],
+                deterministic=payload["deterministic"],
+            )
+        )
+
     return {
         "python_gates": gates,
-        "companion_verify": run_companion_verify(env=env),
-        "templates_verify": run_templates_verify(env=env),
+        "verification_reports": verification_reports,
     }
 
 
@@ -636,16 +543,18 @@ def baseline_gate_hashes(*, baseline_truth: dict[str, Any]) -> dict[str, str]:
     return hashes
 
 
-def semantic_floor_from_baseline_truth(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
-    floor: dict[str, Any] = {
-        "baseline_gate_hashes": baseline_gate_hashes(baseline_truth=baseline_truth),
+def verification_report_hashes(*, baseline_truth: dict[str, Any]) -> dict[str, str]:
+    return {
+        entry["node_id"]: entry["report_sha256"]
+        for entry in baseline_truth["verification_reports"]
     }
-    for group in PR101_ANCHOR_GROUPS:
-        floor[group] = {
-            key: baseline_truth[group][key]
-            for key in PR101_ANCHOR_KEYS
-        }
-    return floor
+
+
+def semantic_floor_from_baseline_truth(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "baseline_gate_hashes": baseline_gate_hashes(baseline_truth=baseline_truth),
+        "child_report_hashes": verification_report_hashes(baseline_truth=baseline_truth),
+    }
 
 
 def split_python_gate_entry(gate: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -663,16 +572,6 @@ def split_python_gate_entry(gate: dict[str, Any]) -> tuple[dict[str, Any], dict[
     return canonical, machine
 
 
-def split_verification_group(group: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    canonical: dict[str, Any] = {}
-    machine: dict[str, Any] = {}
-    for key in ("build", "flow", "prove", "extract_assumptions", "diff_assumptions"):
-        canonical[key], machine[key] = split_command_result(group[key])
-    for key in PR101_ANCHOR_KEYS:
-        canonical[key] = group[key]
-    return canonical, machine
-
-
 def split_baseline_truth(
     *,
     baseline_truth: dict[str, Any],
@@ -684,18 +583,12 @@ def split_baseline_truth(
         canonical_python.append(canonical_gate)
         machine_python.append(machine_gate)
 
-    companion_canonical, companion_machine = split_verification_group(baseline_truth["companion_verify"])
-    templates_canonical, templates_machine = split_verification_group(baseline_truth["templates_verify"])
-
     canonical = {
         "python_gates": canonical_python,
-        "companion_verify": companion_canonical,
-        "templates_verify": templates_canonical,
+        "verification_reports": baseline_truth["verification_reports"],
     }
     machine = {
         "python_gates": machine_python,
-        "companion_verify": companion_machine,
-        "templates_verify": templates_machine,
     }
     return canonical, machine
 
@@ -868,7 +761,11 @@ def build_report(*, baseline_truth: dict[str, Any], generated_root: Path | None)
         repo_root=REPO_ROOT,
     ).read_text(encoding="utf-8")
     require(dashboard_text == rendered_dashboard["stdout"], "execution/dashboard.md must match render_execution_status.py")
-    require_contains(dashboard_text, "| PR10.1 | done | PR10 | 1 |", "execution/dashboard.md")
+    require_contains(
+        dashboard_text,
+        f"| PR10.1 | done | PR10 | {len(EXPECTED_PR101_EVIDENCE)} |",
+        "execution/dashboard.md",
+    )
     require_contains(dashboard_text, "| PR10.3 | done | PR10.1 | 1 |", "execution/dashboard.md")
     next_task_match = re.search(r"- \*\*Next task:\*\* `([^`]+)`", dashboard_text)
     require(next_task_match is not None, "execution/dashboard.md must render the next-task line")
@@ -1070,7 +967,7 @@ def main() -> int:
     baseline_truth = (
         pipeline_baseline_truth(env=env, pipeline_input=pipeline_input)
         if pipeline_input
-        else run_baseline_truth(env=env)
+        else run_baseline_truth(env=env, generated_root=args.generated_root)
     )
     report = finalize_deterministic_report(
         lambda: build_report(

@@ -74,6 +74,7 @@
     "runtime_source_violations": [],
     "scripts_scanned": [
       "scripts/_lib/pr09_emit.py",
+      "scripts/_lib/pr101_verification.py",
       "scripts/run_local_pre_push.py",
       "scripts/run_pr068_ada_ast_emit_no_python.py",
       "scripts/run_pr06910_portability_environment.py",
@@ -88,6 +89,7 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_sequential_semantics.py",
       "scripts/run_pr09b_snapshot_refresh.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/validate_execution_state.py"
     ],
     "shell_assumption_violations": [],
@@ -112,9 +114,9 @@
     "environment",
     "portability"
   ],
-  "policy_sha256": "2346bc9329b5a583c1323b92d2fac912afc19f09ffa3d077ccb258ef910e6280",
-  "repeat_sha256": "dd1b03f1ad6f11c95a577ea6b83a8fa57a97c6d947299435307ccaa895f38389",
-  "report_sha256": "dd1b03f1ad6f11c95a577ea6b83a8fa57a97c6d947299435307ccaa895f38389",
+  "policy_sha256": "560029f9df52aa792cfaa670f79c7e66bb182b01db0bc25ce21484b0916d98e4",
+  "repeat_sha256": "f19c1e9b814a9fc3a895f20acc78ba904b944e601fb753c88ef66c844c80425b",
+  "report_sha256": "f19c1e9b814a9fc3a895f20acc78ba904b944e601fb753c88ef66c844c80425b",
   "reruns": {
     "ast_emit_no_python": {
       "committed_report_path": "execution/reports/pr068-ada-ast-emit-no-python-report.json",

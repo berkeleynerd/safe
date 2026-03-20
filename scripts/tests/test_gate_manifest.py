@@ -68,6 +68,8 @@ class GateManifestTests(unittest.TestCase):
                 "pr10_emitted_prove",
                 "pr10_emitted_baseline",
                 "emitted_hardening_regressions",
+                "pr101a_companion_proof_verification",
+                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -109,6 +111,8 @@ class GateManifestTests(unittest.TestCase):
                 "pr10_emitted_prove",
                 "pr10_emitted_baseline",
                 "emitted_hardening_regressions",
+                "pr101a_companion_proof_verification",
+                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -154,6 +158,8 @@ class GateManifestTests(unittest.TestCase):
                 "pr10_emitted_prove",
                 "pr10_emitted_baseline",
                 "emitted_hardening_regressions",
+                "pr101a_companion_proof_verification",
+                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -194,6 +200,8 @@ class GateManifestTests(unittest.TestCase):
                 "pr10_emitted_prove",
                 "pr10_emitted_baseline",
                 "emitted_hardening_regressions",
+                "pr101a_companion_proof_verification",
+                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -209,6 +217,20 @@ class GateManifestTests(unittest.TestCase):
                 "pr06913_documentation_architecture_clarity",
             ],
         )
+
+    def test_manifest_assigns_companion_and_template_clean_profiles(self) -> None:
+        nodes = {node.id: node for node in NODES}
+        self.assertEqual(nodes["build_post_repro"].repo_clean_profile, "frontend_build")
+        self.assertEqual(
+            nodes["pr101a_companion_proof_verification"].repo_clean_profile,
+            "companion_gen_proof",
+        )
+        self.assertEqual(
+            nodes["pr101b_template_proof_verification"].repo_clean_profile,
+            "companion_template_proof",
+        )
+        self.assertTrue(nodes["pr09a_emitter_surface"].supports_scratch_root)
+        self.assertEqual(nodes["pr09a_emitter_surface"].scratch_profile, "surface_emit_workspace")
 
 
 if __name__ == "__main__":

@@ -3,11 +3,11 @@
     "artifact_hashes": {
       "audit_doc": "fc4edf3f450f82ed744cb28283cfbce58f07320be1ca48fba90889c343d75832",
       "compiler_readme": "5f5d08fc03066a46d5d0906102fca118b75a49ba5b09dbe143b58e2eeed2fba1",
-      "dashboard": "fcabafc5a3eb2770a7b0abdb9854e87de277d39ff0ef171c27287b5710bc262d",
+      "dashboard": "098bc02d79ef71a927bf09f09f5b6fad6e401535cdc8b92756e29d853e751494",
       "matrix": "9553b32825b2b3d25f153e781708987722e30f9d1edc2ae3e396aec24c4916a1",
       "post_pr10_scope": "52d74391fcb697b6cc620bbeb8ed8aaff90f6d5689f99c9f093da972d9f55237",
       "readme": "73534babc9d154334fee79584911bcfe33eeab4552f61708ed79c0dabff162ad",
-      "tracker": "40a68227fe392ebab17013c930955c0b904944b700c4b851659c4cf06015d6ad",
+      "tracker": "0ec86b67a51599994ed33915f233c30a4651376ae90cd8b26ec89a35e9aaa32f",
       "workflow": "db88092b58ea329fad4d953c8cbc56df106e73f6ebc74f9e65a032e31031bef0"
     },
     "audited_surfaces": [
@@ -21,82 +21,6 @@
       "open review and deferred concerns"
     ],
     "baseline_truth": {
-      "companion_verify": {
-        "assumptions_extracted_sha256": "04becc81d8705c62493fe616c44b417475ec5273432b5a7723bfcd128eecdcc2",
-        "build": {
-          "command_profile": {
-            "args": [
-              "build"
-            ],
-            "program": "alr"
-          },
-          "returncode": 0
-        },
-        "diff_assumptions": {
-          "command_profile": {
-            "args": [
-              "scripts/diff_assumptions.sh"
-            ],
-            "program": "bash"
-          },
-          "returncode": 0
-        },
-        "extract_assumptions": {
-          "command_profile": {
-            "args": [
-              "scripts/extract_assumptions.sh"
-            ],
-            "program": "bash"
-          },
-          "returncode": 0
-        },
-        "flow": {
-          "command_profile": {
-            "checks_as_errors": null,
-            "explicit_gnatec": false,
-            "extra_args": [
-              "companion.gpr"
-            ],
-            "level": null,
-            "mode": "flow",
-            "program": "alr",
-            "project": "companion.gpr",
-            "provers": [],
-            "report": "all",
-            "steps": null,
-            "timeout": null,
-            "tool": "gnatprove",
-            "warnings": "error"
-          },
-          "returncode": 0
-        },
-        "gnatprove_summary_sha256": "460bf10afff01235cd1df5591ac3f6d1a5c79641a5adddc7c2a0b997a5a8a263",
-        "prove": {
-          "command_profile": {
-            "checks_as_errors": "on",
-            "explicit_gnatec": false,
-            "extra_args": [
-              "companion.gpr"
-            ],
-            "level": "2",
-            "mode": "prove",
-            "program": "alr",
-            "project": "companion.gpr",
-            "provers": [
-              "cvc5",
-              "z3",
-              "altergo"
-            ],
-            "report": "all",
-            "steps": "0",
-            "timeout": "120",
-            "tool": "gnatprove",
-            "warnings": "error"
-          },
-          "returncode": 0
-        },
-        "prove_golden_sha256": "cfb2bbf6bef2d0782922f50bccb1c5004bd322a942c38208e3bbf885cb26e0a0"
-      },
       "python_gates": [
         {
           "deterministic": true,
@@ -163,82 +87,20 @@
           "script": "scripts/run_emitted_hardening_regressions.py"
         }
       ],
-      "templates_verify": {
-        "assumptions_extracted_sha256": "3ad85b666e769c09dc50ae6d5078b539a7a3feb164cefb3de6d781789dd442ff",
-        "build": {
-          "command_profile": {
-            "args": [
-              "build"
-            ],
-            "program": "alr"
-          },
-          "returncode": 0
+      "verification_reports": [
+        {
+          "deterministic": true,
+          "node_id": "pr101a_companion_proof_verification",
+          "report_sha256": "58f122a8187a9c128a99a97e55d03b79ebdce45e452d1f4ee18101d62ba02087",
+          "script": "scripts/run_pr101a_companion_proof_verification.py"
         },
-        "diff_assumptions": {
-          "command_profile": {
-            "args": [
-              "scripts/diff_assumptions.sh"
-            ],
-            "program": "bash"
-          },
-          "returncode": 0
-        },
-        "extract_assumptions": {
-          "command_profile": {
-            "args": [
-              "scripts/extract_assumptions.sh"
-            ],
-            "program": "bash"
-          },
-          "returncode": 0
-        },
-        "flow": {
-          "command_profile": {
-            "checks_as_errors": null,
-            "explicit_gnatec": false,
-            "extra_args": [
-              "templates.gpr"
-            ],
-            "level": null,
-            "mode": "flow",
-            "program": "alr",
-            "project": "templates.gpr",
-            "provers": [],
-            "report": "all",
-            "steps": null,
-            "timeout": null,
-            "tool": "gnatprove",
-            "warnings": "error"
-          },
-          "returncode": 0
-        },
-        "gnatprove_summary_sha256": "5377a78e3d65a395344fe559dbb066a6839f64f95a8cc3c89c094e4bb83988de",
-        "prove": {
-          "command_profile": {
-            "checks_as_errors": "on",
-            "explicit_gnatec": false,
-            "extra_args": [
-              "templates.gpr"
-            ],
-            "level": "2",
-            "mode": "prove",
-            "program": "alr",
-            "project": "templates.gpr",
-            "provers": [
-              "cvc5",
-              "z3",
-              "altergo"
-            ],
-            "report": "all",
-            "steps": "0",
-            "timeout": "120",
-            "tool": "gnatprove",
-            "warnings": "error"
-          },
-          "returncode": 0
-        },
-        "prove_golden_sha256": "48fd70f953451f2274faf24399eaca9f318ce551f810b809f95aa175b50f9d7f"
-      }
+        {
+          "deterministic": true,
+          "node_id": "pr101b_template_proof_verification",
+          "report_sha256": "88a3083cb007e69825050f1b323de5c93846969f9ae3ad2e9221768b721d42d8",
+          "script": "scripts/run_pr101b_template_proof_verification.py"
+        }
+      ]
     },
     "closed_removed_residuals": [
       {
@@ -515,6 +377,8 @@
     "tracker": {
       "next_task_id": "PR11.5",
       "pr101_evidence": [
+        "execution/reports/pr101a-companion-proof-verification-report.json",
+        "execution/reports/pr101b-template-proof-verification-report.json",
         "execution/reports/pr101-comprehensive-audit-report.json"
       ],
       "pr101_status": "done",
@@ -547,62 +411,6 @@
   "deterministic": true,
   "machine_sensitive": {
     "baseline_truth": {
-      "companion_verify": {
-        "build": {
-          "command": [
-            "alr",
-            "build"
-          ],
-          "cwd": "$REPO_ROOT/companion/gen"
-        },
-        "diff_assumptions": {
-          "command": [
-            "bash",
-            "scripts/diff_assumptions.sh"
-          ],
-          "cwd": "$REPO_ROOT"
-        },
-        "extract_assumptions": {
-          "command": [
-            "bash",
-            "scripts/extract_assumptions.sh"
-          ],
-          "cwd": "$REPO_ROOT"
-        },
-        "flow": {
-          "command": [
-            "alr",
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "companion.gpr",
-            "--mode=flow",
-            "--report=all",
-            "--warnings=error"
-          ],
-          "cwd": "$REPO_ROOT/companion/gen"
-        },
-        "prove": {
-          "command": [
-            "alr",
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "companion.gpr",
-            "--mode=prove",
-            "--level=2",
-            "--prover=cvc5,z3,altergo",
-            "--steps=0",
-            "--timeout=120",
-            "--report=all",
-            "--warnings=error",
-            "--checks-as-errors=on"
-          ],
-          "cwd": "$REPO_ROOT/companion/gen"
-        }
-      },
       "python_gates": [
         {
           "result": {
@@ -652,67 +460,11 @@
           },
           "script": "scripts/run_emitted_hardening_regressions.py"
         }
-      ],
-      "templates_verify": {
-        "build": {
-          "command": [
-            "alr",
-            "build"
-          ],
-          "cwd": "$REPO_ROOT/companion/templates"
-        },
-        "diff_assumptions": {
-          "command": [
-            "bash",
-            "scripts/diff_assumptions.sh"
-          ],
-          "cwd": "$REPO_ROOT"
-        },
-        "extract_assumptions": {
-          "command": [
-            "bash",
-            "scripts/extract_assumptions.sh"
-          ],
-          "cwd": "$REPO_ROOT"
-        },
-        "flow": {
-          "command": [
-            "alr",
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "templates.gpr",
-            "--mode=flow",
-            "--report=all",
-            "--warnings=error"
-          ],
-          "cwd": "$REPO_ROOT/companion/templates"
-        },
-        "prove": {
-          "command": [
-            "alr",
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "templates.gpr",
-            "--mode=prove",
-            "--level=2",
-            "--prover=cvc5,z3,altergo",
-            "--steps=0",
-            "--timeout=120",
-            "--report=all",
-            "--warnings=error",
-            "--checks-as-errors=on"
-          ],
-          "cwd": "$REPO_ROOT/companion/templates"
-        }
-      }
+      ]
     }
   },
-  "repeat_sha256": "66e996e8b3d8f458434079c3e852cf34c5fbb940c7cdf2d8e913356f540f3146",
-  "report_sha256": "66e996e8b3d8f458434079c3e852cf34c5fbb940c7cdf2d8e913356f540f3146",
+  "repeat_sha256": "38257304c9ebc9a526238cb860ccfa0a6390ea1f10c968bdd612fffda082d0b1",
+  "report_sha256": "38257304c9ebc9a526238cb860ccfa0a6390ea1f10c968bdd612fffda082d0b1",
   "semantic_floor": {
     "baseline_gate_hashes": {
       "emitted_hardening_regressions": "947298fd7b2ba594b81cfe8f9b5f27cfd63d2b6c9acfcd4fe3bf823c6b40b464",
@@ -720,15 +472,9 @@
       "pr09_ada_emission_baseline": "e6fdf929d4d89443fff95885a98a132295b98d6331ab7023462f6889e41b19b4",
       "pr10_emitted_baseline": "0cde7644ccd2647fa258621159a414bc5a2e3c732c6fe795ac4e0ed23e0aa6c8"
     },
-    "companion_verify": {
-      "assumptions_extracted_sha256": "04becc81d8705c62493fe616c44b417475ec5273432b5a7723bfcd128eecdcc2",
-      "gnatprove_summary_sha256": "460bf10afff01235cd1df5591ac3f6d1a5c79641a5adddc7c2a0b997a5a8a263",
-      "prove_golden_sha256": "cfb2bbf6bef2d0782922f50bccb1c5004bd322a942c38208e3bbf885cb26e0a0"
-    },
-    "templates_verify": {
-      "assumptions_extracted_sha256": "3ad85b666e769c09dc50ae6d5078b539a7a3feb164cefb3de6d781789dd442ff",
-      "gnatprove_summary_sha256": "5377a78e3d65a395344fe559dbb066a6839f64f95a8cc3c89c094e4bb83988de",
-      "prove_golden_sha256": "48fd70f953451f2274faf24399eaca9f318ce551f810b809f95aa175b50f9d7f"
+    "child_report_hashes": {
+      "pr101a_companion_proof_verification": "58f122a8187a9c128a99a97e55d03b79ebdce45e452d1f4ee18101d62ba02087",
+      "pr101b_template_proof_verification": "88a3083cb007e69825050f1b323de5c93846969f9ae3ad2e9221768b721d42d8"
     }
   },
   "task": "PR10.1"

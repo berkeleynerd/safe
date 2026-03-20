@@ -19,6 +19,7 @@ import run_pr06910_portability_environment
 import run_pr06911_glue_script_safety
 import run_pr06913_documentation_architecture_clarity
 import run_pr101_comprehensive_audit
+from _lib.pr101_verification import normalized_gnatprove_summary_hash
 
 
 class Pr101AuditHardeningTests(unittest.TestCase):
@@ -263,26 +264,20 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                     "deterministic": True,
                 },
             ],
-            "companion_verify": {
-                "build": {"command": ["alr"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "flow": {"command": ["alr"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "prove": {"command": ["alr"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "extract_assumptions": {"command": ["bash"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "diff_assumptions": {"command": ["bash"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "assumptions_extracted_sha256": "5" * 64,
-                "prove_golden_sha256": "6" * 64,
-                "gnatprove_summary_sha256": "7" * 64,
-            },
-            "templates_verify": {
-                "build": {"command": ["alr"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "flow": {"command": ["alr"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "prove": {"command": ["alr"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "extract_assumptions": {"command": ["bash"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "diff_assumptions": {"command": ["bash"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                "assumptions_extracted_sha256": "8" * 64,
-                "prove_golden_sha256": "9" * 64,
-                "gnatprove_summary_sha256": "a" * 64,
-            },
+            "verification_reports": [
+                {
+                    "node_id": "pr101a_companion_proof_verification",
+                    "script": "scripts/run_pr101a_companion_proof_verification.py",
+                    "report_sha256": "5" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "node_id": "pr101b_template_proof_verification",
+                    "script": "scripts/run_pr101b_template_proof_verification.py",
+                    "report_sha256": "6" * 64,
+                    "deterministic": True,
+                },
+            ],
         }
         self.assertEqual(
             run_pr101_comprehensive_audit.semantic_floor_from_baseline_truth(baseline_truth=baseline_truth),
@@ -293,15 +288,9 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                     "pr10_emitted_baseline": "3" * 64,
                     "emitted_hardening_regressions": "4" * 64,
                 },
-                "companion_verify": {
-                    "assumptions_extracted_sha256": "5" * 64,
-                    "prove_golden_sha256": "6" * 64,
-                    "gnatprove_summary_sha256": "7" * 64,
-                },
-                "templates_verify": {
-                    "assumptions_extracted_sha256": "8" * 64,
-                    "prove_golden_sha256": "9" * 64,
-                    "gnatprove_summary_sha256": "a" * 64,
+                "child_report_hashes": {
+                    "pr101a_companion_proof_verification": "5" * 64,
+                    "pr101b_template_proof_verification": "6" * 64,
                 },
             },
         )
@@ -322,36 +311,20 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                     "deterministic": True,
                 }
             ],
-            "companion_verify": {
-                key: {
-                    "command": ["tool", key],
-                    "cwd": "$REPO_ROOT",
-                    "returncode": 0,
-                    "stdout": "",
-                    "stderr": "",
-                }
-                for key in ("build", "flow", "prove", "extract_assumptions", "diff_assumptions")
-            }
-            | {
-                "assumptions_extracted_sha256": "2" * 64,
-                "prove_golden_sha256": "3" * 64,
-                "gnatprove_summary_sha256": "4" * 64,
-            },
-            "templates_verify": {
-                key: {
-                    "command": ["tool", key],
-                    "cwd": "$REPO_ROOT",
-                    "returncode": 0,
-                    "stdout": "",
-                    "stderr": "",
-                }
-                for key in ("build", "flow", "prove", "extract_assumptions", "diff_assumptions")
-            }
-            | {
-                "assumptions_extracted_sha256": "5" * 64,
-                "prove_golden_sha256": "6" * 64,
-                "gnatprove_summary_sha256": "7" * 64,
-            },
+            "verification_reports": [
+                {
+                    "node_id": "pr101a_companion_proof_verification",
+                    "script": "scripts/run_pr101a_companion_proof_verification.py",
+                    "report_sha256": "2" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "node_id": "pr101b_template_proof_verification",
+                    "script": "scripts/run_pr101b_template_proof_verification.py",
+                    "report_sha256": "3" * 64,
+                    "deterministic": True,
+                },
+            ],
         }
         canonical, machine = run_pr101_comprehensive_audit.split_baseline_truth(
             baseline_truth=baseline_truth
@@ -363,11 +336,8 @@ class Pr101AuditHardeningTests(unittest.TestCase):
             machine["python_gates"][0]["result"]["command"],
             ["python3", "scripts/run_pr08_frontend_baseline.py", "--report", "$TMPDIR/pr08.json"],
         )
-        self.assertEqual(
-            canonical["companion_verify"]["prove_golden_sha256"],
-            "3" * 64,
-        )
-        self.assertEqual(machine["templates_verify"]["build"]["command"], ["tool", "build"])
+        self.assertEqual(canonical["verification_reports"][0]["report_sha256"], "2" * 64)
+        self.assertNotIn("verification_reports", machine)
 
     def test_pr06910_pipeline_rerun_reuses_cached_result(self) -> None:
         rerun = run_pr06910_portability_environment.pipeline_rerun(
@@ -462,80 +432,81 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertNotIn("validate_execution_state", final_report["reruns"])
 
     def test_pr101_pipeline_baseline_truth_uses_cached_python_gates_only(self) -> None:
-        with mock.patch.object(
-            run_pr101_comprehensive_audit,
-            "run_companion_verify",
-            return_value={"build": {"returncode": 0}},
-        ), mock.patch.object(
-            run_pr101_comprehensive_audit,
-            "run_templates_verify",
-            return_value={"build": {"returncode": 0}},
-        ):
-            baseline_truth = run_pr101_comprehensive_audit.pipeline_baseline_truth(
-                env={},
-                pipeline_input={
-                    "pr08_frontend_baseline": {
-                        "result": {
-                            "command": [
-                                "python3",
-                                "scripts/run_pr08_frontend_baseline.py",
-                                "--pipeline-input",
-                                "$TMPDIR/pipeline-input.json",
-                                "--report",
-                                "$TMPDIR/pr08_frontend_baseline.json",
-                            ],
-                            "cwd": "$REPO_ROOT",
-                            "returncode": 0,
-                        },
-                        "report": {"report_sha256": "1" * 64, "deterministic": True},
+        baseline_truth = run_pr101_comprehensive_audit.pipeline_baseline_truth(
+            env={},
+            pipeline_input={
+                "pr08_frontend_baseline": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr08_frontend_baseline.py",
+                            "--pipeline-input",
+                            "$TMPDIR/pipeline-input.json",
+                            "--report",
+                            "$TMPDIR/pr08_frontend_baseline.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
                     },
-                    "pr09_ada_emission_baseline": {
-                        "result": {
-                            "command": [
-                                "python3",
-                                "scripts/run_pr09_ada_emission_baseline.py",
-                                "--pipeline-input",
-                                "$TMPDIR/pipeline-input.json",
-                                "--report",
-                                "$TMPDIR/pr09_ada_emission_baseline.json",
-                            ],
-                            "cwd": "$REPO_ROOT",
-                            "returncode": 0,
-                        },
-                        "report": {"report_sha256": "2" * 64, "deterministic": True},
-                    },
-                    "pr10_emitted_baseline": {
-                        "result": {
-                            "command": [
-                                "python3",
-                                "scripts/run_pr10_emitted_baseline.py",
-                                "--pipeline-input",
-                                "$TMPDIR/pipeline-input.json",
-                                "--report",
-                                "$TMPDIR/pr10_emitted_baseline.json",
-                            ],
-                            "cwd": "$REPO_ROOT",
-                            "returncode": 0,
-                        },
-                        "report": {"report_sha256": "3" * 64, "deterministic": True},
-                    },
-                    "emitted_hardening_regressions": {
-                        "result": {
-                            "command": [
-                                "python3",
-                                "scripts/run_emitted_hardening_regressions.py",
-                                "--report",
-                                "$TMPDIR/emitted_hardening_regressions.json",
-                            ],
-                            "cwd": "$REPO_ROOT",
-                            "returncode": 0,
-                        },
-                        "report": {"report_sha256": "4" * 64, "deterministic": True},
-                    },
+                    "report": {"report_sha256": "1" * 64, "deterministic": True},
                 },
-            )
+                "pr09_ada_emission_baseline": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr09_ada_emission_baseline.py",
+                            "--pipeline-input",
+                            "$TMPDIR/pipeline-input.json",
+                            "--report",
+                            "$TMPDIR/pr09_ada_emission_baseline.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "2" * 64, "deterministic": True},
+                },
+                "pr10_emitted_baseline": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr10_emitted_baseline.py",
+                            "--pipeline-input",
+                            "$TMPDIR/pipeline-input.json",
+                            "--report",
+                            "$TMPDIR/pr10_emitted_baseline.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "3" * 64, "deterministic": True},
+                },
+                "emitted_hardening_regressions": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_emitted_hardening_regressions.py",
+                            "--report",
+                            "$TMPDIR/emitted_hardening_regressions.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "4" * 64, "deterministic": True},
+                },
+                "pr101a_companion_proof_verification": {
+                    "report": {"report_sha256": "5" * 64, "deterministic": True},
+                },
+                "pr101b_template_proof_verification": {
+                    "report": {"report_sha256": "6" * 64, "deterministic": True},
+                },
+            },
+        )
         self.assertEqual(len(baseline_truth["python_gates"]), 4)
-        self.assertNotIn("execution_state_validation", baseline_truth)
+        self.assertEqual(len(baseline_truth["verification_reports"]), 2)
+        self.assertEqual(
+            baseline_truth["verification_reports"][0]["node_id"],
+            "pr101a_companion_proof_verification",
+        )
         self.assertEqual(
             baseline_truth["python_gates"][0]["result"]["command"],
             [
@@ -636,8 +607,8 @@ Total                            64    29 (46%)                     34 (52%)    
             first_path.write_text(first, encoding="utf-8")
             second_path.write_text(second, encoding="utf-8")
             self.assertEqual(
-                run_pr101_comprehensive_audit.normalized_gnatprove_summary_hash(first_path),
-                run_pr101_comprehensive_audit.normalized_gnatprove_summary_hash(second_path),
+                normalized_gnatprove_summary_hash(first_path),
+                normalized_gnatprove_summary_hash(second_path),
             )
 
     def test_normalized_gnatprove_summary_hash_requires_summary_block(self) -> None:
@@ -645,7 +616,7 @@ Total                            64    29 (46%)                     34 (52%)    
             output_path = Path(temp_dir) / "missing.out"
             output_path.write_text("no summary here\n", encoding="utf-8")
             with self.assertRaises(RuntimeError):
-                run_pr101_comprehensive_audit.normalized_gnatprove_summary_hash(output_path)
+                normalized_gnatprove_summary_hash(output_path)
 
 
 if __name__ == "__main__":

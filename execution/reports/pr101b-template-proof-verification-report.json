@@ -1,0 +1,149 @@
+{
+  "canonical_proof_detail": {
+    "assumptions_extracted_sha256": "3ad85b666e769c09dc50ae6d5078b539a7a3feb164cefb3de6d781789dd442ff",
+    "build": {
+      "command_profile": {
+        "args": [
+          "build"
+        ],
+        "program": "alr"
+      },
+      "returncode": 0
+    },
+    "diff_assumptions": {
+      "command_profile": {
+        "args": [
+          "scripts/diff_assumptions.sh"
+        ],
+        "program": "bash"
+      },
+      "returncode": 0
+    },
+    "extract_assumptions": {
+      "command_profile": {
+        "args": [
+          "scripts/extract_assumptions.sh"
+        ],
+        "program": "bash"
+      },
+      "returncode": 0
+    },
+    "flow": {
+      "command_profile": {
+        "checks_as_errors": null,
+        "explicit_gnatec": false,
+        "extra_args": [
+          "templates.gpr"
+        ],
+        "level": null,
+        "mode": "flow",
+        "program": "alr",
+        "project": "templates.gpr",
+        "provers": [],
+        "report": "all",
+        "steps": null,
+        "timeout": null,
+        "tool": "gnatprove",
+        "warnings": "error"
+      },
+      "returncode": 0
+    },
+    "gnatprove_summary_sha256": "5377a78e3d65a395344fe559dbb066a6839f64f95a8cc3c89c094e4bb83988de",
+    "prove": {
+      "command_profile": {
+        "checks_as_errors": "on",
+        "explicit_gnatec": false,
+        "extra_args": [
+          "templates.gpr"
+        ],
+        "level": "2",
+        "mode": "prove",
+        "program": "alr",
+        "project": "templates.gpr",
+        "provers": [
+          "cvc5",
+          "z3",
+          "altergo"
+        ],
+        "report": "all",
+        "steps": "0",
+        "timeout": "120",
+        "tool": "gnatprove",
+        "warnings": "error"
+      },
+      "returncode": 0
+    },
+    "prove_golden_sha256": "48fd70f953451f2274faf24399eaca9f318ce551f810b809f95aa175b50f9d7f"
+  },
+  "deterministic": true,
+  "machine_sensitive": {
+    "build": {
+      "command": [
+        "alr",
+        "build"
+      ],
+      "cwd": "$REPO_ROOT/companion/templates"
+    },
+    "diff_assumptions": {
+      "command": [
+        "bash",
+        "scripts/diff_assumptions.sh"
+      ],
+      "cwd": "$REPO_ROOT"
+    },
+    "extract_assumptions": {
+      "command": [
+        "bash",
+        "scripts/extract_assumptions.sh"
+      ],
+      "cwd": "$REPO_ROOT"
+    },
+    "flow": {
+      "command": [
+        "alr",
+        "exec",
+        "--",
+        "gnatprove",
+        "-P",
+        "templates.gpr",
+        "--mode=flow",
+        "--report=all",
+        "--warnings=error"
+      ],
+      "cwd": "$REPO_ROOT/companion/templates"
+    },
+    "prove": {
+      "command": [
+        "alr",
+        "exec",
+        "--",
+        "gnatprove",
+        "-P",
+        "templates.gpr",
+        "--mode=prove",
+        "--level=2",
+        "--prover=cvc5,z3,altergo",
+        "--steps=0",
+        "--timeout=120",
+        "--report=all",
+        "--warnings=error",
+        "--checks-as-errors=on"
+      ],
+      "cwd": "$REPO_ROOT/companion/templates"
+    }
+  },
+  "repeat_sha256": "88a3083cb007e69825050f1b323de5c93846969f9ae3ad2e9221768b721d42d8",
+  "report_sha256": "88a3083cb007e69825050f1b323de5c93846969f9ae3ad2e9221768b721d42d8",
+  "semantic_floor": {
+    "assumptions_extracted_sha256": "3ad85b666e769c09dc50ae6d5078b539a7a3feb164cefb3de6d781789dd442ff",
+    "build_returncode": 0,
+    "diff_assumptions_returncode": 0,
+    "extract_assumptions_returncode": 0,
+    "flow_returncode": 0,
+    "gnatprove_summary_sha256": "5377a78e3d65a395344fe559dbb066a6839f64f95a8cc3c89c094e4bb83988de",
+    "prove_golden_sha256": "48fd70f953451f2274faf24399eaca9f318ce551f810b809f95aa175b50f9d7f",
+    "prove_returncode": 0
+  },
+  "task": "PR10.1",
+  "verification": "templates"
+}

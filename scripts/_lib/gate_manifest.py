@@ -33,10 +33,12 @@ class Node:
     depends_on: tuple[str, ...] = ()
     supports_pipeline_input: bool = False
     supports_generated_root: bool = False
+    supports_scratch_root: bool = False
     supports_authority: bool = False
     argv: tuple[str, ...] = ()
     determinism_class: DeterminismClass = DeterminismClass.BYTE_EXACT
-    clean_profile: str | None = None
+    repo_clean_profile: str | None = None
+    scratch_profile: str | None = None
     child_order: tuple[str, ...] = ()
 
 
@@ -67,7 +69,7 @@ NODES: tuple[Node, ...] = (
         id=BUILD_INITIAL,
         kind=NodeKind.BUILD,
         depends_on=(VALIDATE_EXECUTION_STATE_PREFLIGHT,),
-        clean_profile="frontend_build",
+        repo_clean_profile="frontend_build",
     ),
     Node(
         id="pr102_rule5_boundary_closure",
@@ -76,6 +78,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr102-rule5-boundary-closure-report.json"),
         depends_on=(BUILD_INITIAL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr103_sequential_proof_expansion",
@@ -84,6 +88,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr103-sequential-proof-expansion-report.json"),
         depends_on=(BUILD_INITIAL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr104_gnatprove_evidence",
@@ -92,6 +98,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr104-gnatprove-evidence-parser-hardening-report.json"),
         depends_on=(BUILD_INITIAL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr105_ada_emitter_maintenance",
@@ -107,6 +115,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr106-sequential-proof-corpus-expansion-report.json"),
         depends_on=(BUILD_INITIAL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr111_language_eval",
@@ -121,6 +131,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr112_parser_completeness_phase1.py"),
         report_path=_report("pr112-parser-completeness-phase1-report.json"),
         depends_on=("pr111_language_eval",),
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr113_discriminated_types",
@@ -128,6 +140,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr113_discriminated_types_tuples_structured_returns.py"),
         report_path=_report("pr113-discriminated-types-tuples-structured-returns-report.json"),
         depends_on=("pr112_parser_completeness",),
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr113a_proof_checkpoint",
@@ -136,6 +150,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr113a-proof-checkpoint1-report.json"),
         depends_on=("pr113_discriminated_types",),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr114_signature_control_flow",
@@ -143,6 +159,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr114_signature_control_flow_syntax.py"),
         report_path=_report("pr114-signature-control-flow-syntax-report.json"),
         depends_on=("pr113a_proof_checkpoint",),
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id=BUILD_STATEFUL,
@@ -206,6 +224,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr09a_emitter_surface.py"),
         report_path=_report("pr09a-emitter-surface-report.json"),
         depends_on=(BUILD_STATEFUL,),
+        supports_scratch_root=True,
+        scratch_profile="surface_emit_workspace",
     ),
     Node(
         id="pr09a_emitter_mvp",
@@ -213,6 +233,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr09a_emitter_mvp.py"),
         report_path=_report("pr09a-emitter-mvp-report.json"),
         depends_on=(BUILD_STATEFUL,),
+        supports_scratch_root=True,
+        scratch_profile="paired_fixture_forest",
     ),
     Node(
         id="pr09b_sequential_semantics",
@@ -220,6 +242,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr09b_sequential_semantics.py"),
         report_path=_report("pr09b-sequential-semantics-report.json"),
         depends_on=(BUILD_STATEFUL,),
+        supports_scratch_root=True,
+        scratch_profile="paired_fixture_forest",
     ),
     Node(
         id="pr09b_concurrency_output",
@@ -227,6 +251,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr09b_concurrency_output.py"),
         report_path=_report("pr09b-concurrency-output-report.json"),
         depends_on=(BUILD_STATEFUL,),
+        supports_scratch_root=True,
+        scratch_profile="paired_fixture_forest",
     ),
     Node(
         id="pr09b_snapshot_refresh",
@@ -234,6 +260,8 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr09b_snapshot_refresh.py"),
         report_path=_report("pr09b-snapshot-refresh-report.json"),
         depends_on=(BUILD_STATEFUL,),
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr09_ada_emission_baseline",
@@ -272,6 +300,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr10-emitted-flow-report.json"),
         depends_on=(BUILD_STATEFUL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr10_emitted_prove",
@@ -280,6 +310,8 @@ NODES: tuple[Node, ...] = (
         report_path=_report("pr10-emitted-prove-report.json"),
         depends_on=(BUILD_STATEFUL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
     ),
     Node(
         id="pr10_emitted_baseline",
@@ -307,6 +339,26 @@ NODES: tuple[Node, ...] = (
         report_path=_report("emitted-hardening-regressions-report.json"),
         depends_on=(BUILD_STATEFUL,),
         determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        supports_scratch_root=True,
+        scratch_profile="fixture_forest",
+    ),
+    Node(
+        id="pr101a_companion_proof_verification",
+        kind=NodeKind.GATE,
+        script=_script("run_pr101a_companion_proof_verification.py"),
+        report_path=_report("pr101a-companion-proof-verification-report.json"),
+        depends_on=(VALIDATE_EXECUTION_STATE_PREFLIGHT,),
+        determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        repo_clean_profile="companion_gen_proof",
+    ),
+    Node(
+        id="pr101b_template_proof_verification",
+        kind=NodeKind.GATE,
+        script=_script("run_pr101b_template_proof_verification.py"),
+        report_path=_report("pr101b-template-proof-verification-report.json"),
+        depends_on=(VALIDATE_EXECUTION_STATE_PREFLIGHT,),
+        determinism_class=DeterminismClass.CI_AUTHORITATIVE,
+        repo_clean_profile="companion_template_proof",
     ),
     Node(
         id="pr101_comprehensive_audit",
@@ -320,6 +372,8 @@ NODES: tuple[Node, ...] = (
             "pr09_ada_emission_baseline",
             "pr10_emitted_baseline",
             "emitted_hardening_regressions",
+            "pr101a_companion_proof_verification",
+            "pr101b_template_proof_verification",
         ),
         supports_pipeline_input=True,
         supports_generated_root=True,
@@ -329,6 +383,8 @@ NODES: tuple[Node, ...] = (
             "pr09_ada_emission_baseline",
             "pr10_emitted_baseline",
             "emitted_hardening_regressions",
+            "pr101a_companion_proof_verification",
+            "pr101b_template_proof_verification",
         ),
     ),
     Node(
@@ -349,7 +405,7 @@ NODES: tuple[Node, ...] = (
         id=BUILD_POST_REPRO,
         kind=NodeKind.BUILD,
         depends_on=("pr0697_gate_quality",),
-        clean_profile="post_repro_build",
+        repo_clean_profile="frontend_build",
     ),
     Node(
         id="pr0699_build_reproducibility",

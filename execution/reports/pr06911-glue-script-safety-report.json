@@ -3,6 +3,7 @@
   "glue_script_safety": {
     "audited_scripts": [
       "safe",
+      "scripts/_lib/pr101_verification.py",
       "scripts/_lib/gate_manifest.py",
       "scripts/run_frontend_smoke.py",
       "scripts/run_pr05_d27_harness.py",
@@ -34,6 +35,9 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
@@ -64,7 +68,7 @@
     "policy_sections_used": [
       "glue_safety"
     ],
-    "policy_sha256": "2346bc9329b5a583c1323b92d2fac912afc19f09ffa3d077ccb258ef910e6280",
+    "policy_sha256": "560029f9df52aa792cfaa670f79c7e66bb182b01db0bc25ce21484b0916d98e4",
     "report_helper_violations": [],
     "report_scripts": [
       "scripts/run_frontend_smoke.py",
@@ -96,6 +100,9 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
@@ -175,7 +182,7 @@
   "policy_sections_used": [
     "glue_safety"
   ],
-  "policy_sha256": "2346bc9329b5a583c1323b92d2fac912afc19f09ffa3d077ccb258ef910e6280",
+  "policy_sha256": "560029f9df52aa792cfaa670f79c7e66bb182b01db0bc25ce21484b0916d98e4",
   "referenced_deterministic_reports": {
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
@@ -188,8 +195,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "4f5c1f4f38f18308332a908ad52eef507346da1c31a9e06a14b9e789edee89d4",
-  "report_sha256": "4f5c1f4f38f18308332a908ad52eef507346da1c31a9e06a14b9e789edee89d4",
+  "repeat_sha256": "9f0a717d658f3aa2dcb2c773705d883724ef998e3464bd7ff0df9d50a8241757",
+  "report_sha256": "9f0a717d658f3aa2dcb2c773705d883724ef998e3464bd7ff0df9d50a8241757",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

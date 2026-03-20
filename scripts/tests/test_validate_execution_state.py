@@ -18,6 +18,7 @@ from validate_execution_state import (
     GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS,
     GLUE_SAFETY_AUDITED_SCRIPTS,
     GLUE_SAFETY_REPORT_SCRIPTS,
+    check_pr101_report_sync,
     check_report_sync,
     check_dependencies,
     check_documentation_architecture_clarity,
@@ -80,6 +81,13 @@ class ValidateExecutionStateTests(unittest.TestCase):
         self.assertIn("scripts/run_pr113a_proof_checkpoint1.py", GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS)
         self.assertIn("scripts/run_pr114_signature_control_flow_syntax.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn("scripts/run_pr114_signature_control_flow_syntax.py", GLUE_SAFETY_REPORT_SCRIPTS)
+        self.assertIn("scripts/_lib/pr101_verification.py", GLUE_SAFETY_AUDITED_SCRIPTS)
+        self.assertIn("scripts/run_pr101a_companion_proof_verification.py", GLUE_SAFETY_AUDITED_SCRIPTS)
+        self.assertIn("scripts/run_pr101a_companion_proof_verification.py", GLUE_SAFETY_REPORT_SCRIPTS)
+        self.assertIn("scripts/run_pr101b_template_proof_verification.py", GLUE_SAFETY_AUDITED_SCRIPTS)
+        self.assertIn("scripts/run_pr101b_template_proof_verification.py", GLUE_SAFETY_REPORT_SCRIPTS)
+        self.assertIn("scripts/run_pr101_comprehensive_audit.py", GLUE_SAFETY_AUDITED_SCRIPTS)
+        self.assertIn("scripts/run_pr101_comprehensive_audit.py", GLUE_SAFETY_REPORT_SCRIPTS)
         self.assertIn("scripts/_lib/gate_manifest.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn("scripts/run_gate_pipeline.py", GLUE_SAFETY_AUDITED_SCRIPTS)
         self.assertIn(
@@ -145,6 +153,74 @@ class ValidateExecutionStateTests(unittest.TestCase):
             self.assertEqual(len(report["child_report_sha_mismatches"]), 1)
             with self.assertRaises(ValueError):
                 check_report_sync(repo_root=repo_root, report_specs=report_specs)
+
+    def test_check_pr101_report_sync_accepts_matching_child_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            report_root = repo_root / "execution" / "reports"
+            baseline_reports = {
+                "pr08_frontend_baseline": "pr08-frontend-baseline-report.json",
+                "pr09_ada_emission_baseline": "pr09-ada-emission-baseline-report.json",
+                "pr10_emitted_baseline": "pr10-emitted-baseline-report.json",
+                "emitted_hardening_regressions": "emitted-hardening-regressions-report.json",
+            }
+            baseline_hashes = {
+                node_id: self._write_finalized_report(report_root / filename, {"status": node_id})
+                for node_id, filename in baseline_reports.items()
+            }
+            child_hashes = {
+                "pr101a_companion_proof_verification": self._write_finalized_report(
+                    report_root / "pr101a-companion-proof-verification-report.json",
+                    {
+                        "task": "PR10.1",
+                        "verification": "companion",
+                        "semantic_floor": {
+                            "build_returncode": 0,
+                            "flow_returncode": 0,
+                            "prove_returncode": 0,
+                            "extract_assumptions_returncode": 0,
+                            "diff_assumptions_returncode": 0,
+                            "assumptions_extracted_sha256": "1" * 64,
+                            "prove_golden_sha256": "2" * 64,
+                            "gnatprove_summary_sha256": "3" * 64,
+                        },
+                        "canonical_proof_detail": {},
+                        "machine_sensitive": {},
+                    },
+                ),
+                "pr101b_template_proof_verification": self._write_finalized_report(
+                    report_root / "pr101b-template-proof-verification-report.json",
+                    {
+                        "task": "PR10.1",
+                        "verification": "templates",
+                        "semantic_floor": {
+                            "build_returncode": 0,
+                            "flow_returncode": 0,
+                            "prove_returncode": 0,
+                            "extract_assumptions_returncode": 0,
+                            "diff_assumptions_returncode": 0,
+                            "assumptions_extracted_sha256": "4" * 64,
+                            "prove_golden_sha256": "5" * 64,
+                            "gnatprove_summary_sha256": "6" * 64,
+                        },
+                        "canonical_proof_detail": {},
+                        "machine_sensitive": {},
+                    },
+                ),
+            }
+            self._write_finalized_report(
+                report_root / "pr101-comprehensive-audit-report.json",
+                {
+                    "task": "PR10.1",
+                    "semantic_floor": {
+                        "baseline_gate_hashes": baseline_hashes,
+                        "child_report_hashes": child_hashes,
+                    },
+                    "canonical_proof_detail": {},
+                    "machine_sensitive": {},
+                },
+            )
+            check_pr101_report_sync(repo_root=repo_root)
 
     def test_report_sync_report_rejects_non_object_umbrella_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -588,6 +664,47 @@ class ValidateExecutionStateTests(unittest.TestCase):
                 tempdir_scripts=("scripts/runtime_gate.py",),
                 path_lookup_scripts=("scripts/runtime_gate.py",),
             )
+
+    def test_environment_assumptions_report_accepts_managed_scratch_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            docs_dir = repo_root / "docs"
+            docs_dir.mkdir()
+            (docs_dir / "policy.md").write_text(
+                "Ubuntu/Linux CI and local macOS\n"
+                "Windows is explicitly unsupported\n"
+                "PATH-based command discovery\n"
+                "deterministic TemporaryDirectory prefixes\n"
+                "shell-free\n",
+                encoding="utf-8",
+            )
+            scripts_dir = repo_root / "scripts"
+            scripts_dir.mkdir()
+            (scripts_dir / "runtime_gate.py").write_text(
+                "from _lib.platform_assumptions import MASKED_PYTHON_INTERPRETERS\n"
+                "from _lib.harness_common import managed_scratch_root\n"
+                "with managed_scratch_root(scratch_root=None, prefix='ok-'):\n"
+                "    pass\n"
+                "find_command('python3')\n",
+                encoding="utf-8",
+            )
+            report = environment_assumptions_report(
+                repo_root=repo_root,
+                doc_requirements={
+                    "docs/policy.md": [
+                        "Ubuntu/Linux CI and local macOS",
+                        "Windows is explicitly unsupported",
+                        "PATH-based command discovery",
+                        "deterministic TemporaryDirectory prefixes",
+                        "shell-free",
+                    ]
+                },
+                runtime_source_globs=(),
+                module_requirements={"scripts/runtime_gate.py": ["MASKED_PYTHON_INTERPRETERS"]},
+                tempdir_scripts=("scripts/runtime_gate.py",),
+                path_lookup_scripts=("scripts/runtime_gate.py",),
+            )
+            self.assertFalse(report["tempdir_convention_violations"])
 
     def test_glue_script_safety_report_accepts_valid_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1257,6 +1374,8 @@ class ValidateExecutionStateTests(unittest.TestCase):
             ) as check_evidence_reproducibility, mock.patch(
                 "validate_execution_state.check_report_sync"
             ) as check_report_sync, mock.patch(
+                "validate_execution_state.check_pr101_report_sync"
+            ) as check_pr101_report_sync, mock.patch(
                 "validate_execution_state.check_runtime_boundary"
             ), mock.patch(
                 "validate_execution_state.check_environment_assumptions"
@@ -1285,6 +1404,7 @@ class ValidateExecutionStateTests(unittest.TestCase):
             ignored_evidence=("execution/reports/execution-state-validation-report.json",),
         )
         check_report_sync.assert_called_once_with(generated_root=generated_root)
+        check_pr101_report_sync.assert_called_once_with(generated_root=generated_root)
         self.assertEqual(report["phase"], "final")
         self.assertEqual(report["authority"], "ci")
         self.assertIsNone(report["generated_root"])

@@ -6,13 +6,13 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
+    managed_scratch_root,
     read_diag_json,
     require,
     run,
@@ -243,10 +243,9 @@ def split_rejected_fixture(fixture: dict[str, object]) -> tuple[dict[str, object
     return canonical, machine
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, object]:
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, object]:
     safec = require_safec()
-    with tempfile.TemporaryDirectory(prefix="emitted-hardening-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="emitted-hardening-") as temp_root:
         ownership = ownership_early_return_regression(env=env, temp_root=temp_root)
         supplemental_proof_fixtures = [
             supplemental_proof_fixture(source=fixture, env=env, temp_root=temp_root)
@@ -292,11 +291,12 @@ def generate_report(*, env: dict[str, str]) -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(env=env),
+        lambda: generate_report(env=env, scratch_root=args.scratch_root),
         label="emitted hardening regressions",
     )
     write_report(args.report, report)

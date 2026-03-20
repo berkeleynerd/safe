@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +23,7 @@ from _lib.harness_common import (
     ensure_sdkroot,
     extract_expected_block,
     finalize_deterministic_report,
+    managed_scratch_root,
     normalize_text,
     read_diag_json,
     read_expected_reason,
@@ -286,10 +286,9 @@ def split_parity_fixture(fixture: dict[str, Any]) -> tuple[dict[str, Any], dict[
     return canonical, machine
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     safec = require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    with tempfile.TemporaryDirectory(prefix="pr102-rule5-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr102-rule5-") as temp_root:
         positive_fixtures = [
             run_positive_fixture(REPO_ROOT / source_rel, env=env, temp_root=temp_root)
             for source_rel in EXPECTED_RULE5_POSITIVES
@@ -335,11 +334,12 @@ def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(env=env),
+        lambda: generate_report(env=env, scratch_root=args.scratch_root),
         label="PR10.2 Rule 5 boundary closure",
     )
     write_report(args.report, report)

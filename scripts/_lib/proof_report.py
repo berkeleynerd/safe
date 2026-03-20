@@ -16,6 +16,10 @@ PR101_BASELINE_GATE_IDS = (
     "pr10_emitted_baseline",
     "emitted_hardening_regressions",
 )
+PR101_CHILD_REPORT_IDS = (
+    "pr101a_companion_proof_verification",
+    "pr101b_template_proof_verification",
+)
 PR101_ANCHOR_GROUPS = ("companion_verify", "templates_verify")
 PR101_ANCHOR_KEYS = (
     "assumptions_extracted_sha256",
@@ -292,11 +296,30 @@ def validate_pr101_semantic_floor(payload: dict[str, Any], *, pipeline_context: 
             baseline_gate_hashes[node_id] == expected,
             f"PR101 semantic_floor {node_id} hash mismatch",
         )
-    for group in PR101_ANCHOR_GROUPS:
-        anchors = floor.get(group)
-        require(isinstance(anchors, dict), f"PR101 semantic_floor missing {group}")
-        for key in PR101_ANCHOR_KEYS:
-            require(
-                isinstance(anchors.get(key), str) and SHA256_PATTERN.fullmatch(anchors[key]) is not None,
-                f"PR101 semantic_floor {group}.{key} must be a sha256",
-            )
+    child_report_hashes = floor.get("child_report_hashes")
+    require(isinstance(child_report_hashes, dict), "PR101 semantic_floor.child_report_hashes missing")
+    for node_id in PR101_CHILD_REPORT_IDS:
+        require(node_id in child_report_hashes, f"PR101 semantic_floor missing {node_id}")
+        expected = pipeline_context[node_id]["report"]["report_sha256"]
+        require(
+            child_report_hashes[node_id] == expected,
+            f"PR101 semantic_floor {node_id} hash mismatch",
+        )
+
+
+def validate_pr101_child_semantic_floor(payload: dict[str, Any]) -> None:
+    validate_three_way_sections(payload)
+    floor = payload["semantic_floor"]
+    for key in (
+        "build_returncode",
+        "flow_returncode",
+        "prove_returncode",
+        "extract_assumptions_returncode",
+        "diff_assumptions_returncode",
+    ):
+        require(floor.get(key) == 0, f"{key} must be zero")
+    for key in PR101_ANCHOR_KEYS:
+        require(
+            isinstance(floor.get(key), str) and SHA256_PATTERN.fullmatch(floor[key]) is not None,
+            f"{key} must be a sha256",
+        )

@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +16,7 @@ from _lib.harness_common import (
     ensure_sdkroot,
     finalize_deterministic_report,
     find_command,
+    managed_scratch_root,
     require,
     require_repo_command,
     run,
@@ -222,10 +222,9 @@ def verify_decascaded_reports() -> dict[str, Any]:
     }
 
 
-def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(*, python: str, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    with tempfile.TemporaryDirectory(prefix="pr104-evidence-hardening-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr104-evidence-hardening-") as temp_root:
         parser_regressions = verify_parser_tests(python=python, env=env, temp_root=temp_root)
         emitted_concurrency_evidence = verify_concurrency_evidence(env=env, temp_root=temp_root)
         gnatprove_profile_doc = verify_proof_profile_doc()
@@ -265,12 +264,13 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     python = find_command("python3")
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(python=python, env=env),
+        lambda: generate_report(python=python, env=env, scratch_root=args.scratch_root),
         label="PR10.4 GNATprove evidence and parser hardening",
     )
     write_report(args.report, report)

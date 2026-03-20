@@ -35,7 +35,11 @@ from _lib.harness_common import (
     resolve_generated_path,
     run,
 )
-from _lib.proof_report import validate_pr101_semantic_floor, validate_semantic_floor
+from _lib.proof_report import (
+    validate_pr101_child_semantic_floor,
+    validate_pr101_semantic_floor,
+    validate_semantic_floor,
+)
 from render_execution_status import load_tracker, render_dashboard
 
 
@@ -57,6 +61,12 @@ PROOF_SEMANTIC_FLOOR_NODE_IDS = frozenset(
         "pr106_sequential_proof_corpus",
         "pr113a_proof_checkpoint",
         "emitted_hardening_regressions",
+    }
+)
+PR101_CHILD_NODE_IDS = frozenset(
+    {
+        "pr101a_companion_proof_verification",
+        "pr101b_template_proof_verification",
     }
 )
 
@@ -169,7 +179,7 @@ def prepare_generated_root(root: Path) -> None:
     dashboard_path.write_text(render_dashboard(load_tracker()), encoding="utf-8")
 
 
-def clean_profile(profile: str | None) -> None:
+def clean_repo_profile(profile: str | None) -> None:
     if profile is None:
         return
     if profile == "frontend_build":
@@ -179,9 +189,10 @@ def clean_profile(profile: str | None) -> None:
         if safec.exists():
             safec.unlink()
         return
-    if profile == "post_repro_build":
-        clean_profile("frontend_build")
+    if profile == "companion_gen_proof":
         shutil.rmtree(REPO_ROOT / "companion" / "gen" / "obj", ignore_errors=True)
+        return
+    if profile == "companion_template_proof":
         shutil.rmtree(REPO_ROOT / "companion" / "templates" / "obj", ignore_errors=True)
         return
     raise RuntimeError(f"unknown clean profile: {profile}")
@@ -275,8 +286,21 @@ def validate_local_reused_authoritative_report(
     if node.id in PROOF_SEMANTIC_FLOOR_NODE_IDS:
         validate_semantic_floor(payload)
         return
+    if node.id in PR101_CHILD_NODE_IDS:
+        validate_pr101_child_semantic_floor(payload)
+        return
     if node.id == "pr101_comprehensive_audit":
         validate_pr101_semantic_floor(payload, pipeline_context=pipeline_context)
+
+
+def node_scratch_root(*, node: Node, write_generated_root: Path | None) -> Path | None:
+    if not node.supports_scratch_root:
+        return None
+    require(write_generated_root is not None, f"{node.id}: write root required for scratch root")
+    scratch_root = write_generated_root / "scratch" / node.id
+    shutil.rmtree(scratch_root, ignore_errors=True)
+    scratch_root.parent.mkdir(parents=True, exist_ok=True)
+    return scratch_root
 
 
 def write_pipeline_input(path: Path, payload: dict[str, Any]) -> None:
@@ -308,6 +332,10 @@ def run_node(
 
     if node.supports_generated_root and read_generated_root is not None:
         argv.extend(["--generated-root", str(read_generated_root)])
+
+    scratch_root = node_scratch_root(node=node, write_generated_root=write_generated_root)
+    if scratch_root is not None:
+        argv.extend(["--scratch-root", str(scratch_root)])
 
     report_path: Path | None = None
     if node.report_path is not None:
@@ -350,7 +378,7 @@ def execute_pipeline(
     for node in NODES:
         print(f"[gate-pipeline] running: {node.id}")
         if node.kind is NodeKind.BUILD:
-            clean_profile(node.clean_profile)
+            clean_repo_profile(node.repo_clean_profile)
             run(compiler_build_argv(alr), cwd=COMPILER_ROOT, env=env)
             continue
 
@@ -369,6 +397,7 @@ def execute_pipeline(
                 pipeline_context=pipeline_context,
             )
         else:
+            clean_repo_profile(node.repo_clean_profile)
             result, payload, generated_report_path = run_node(
                 node,
                 python=python,
