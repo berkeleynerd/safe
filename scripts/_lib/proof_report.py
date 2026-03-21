@@ -307,7 +307,7 @@ def validate_pr101_semantic_floor(payload: dict[str, Any], *, pipeline_context: 
     require(isinstance(baseline_gate_hashes, dict), "PR101 semantic_floor.baseline_gate_hashes missing")
     for node_id in PR101_BASELINE_GATE_IDS:
         require(node_id in baseline_gate_hashes, f"PR101 semantic_floor missing {node_id}")
-        expected = pipeline_context[node_id]["report"]["report_sha256"]
+        expected = _pipeline_report_sha256(pipeline_context, node_id=node_id)
         require(
             baseline_gate_hashes[node_id] == expected,
             f"PR101 semantic_floor {node_id} hash mismatch",
@@ -316,7 +316,7 @@ def validate_pr101_semantic_floor(payload: dict[str, Any], *, pipeline_context: 
     require(isinstance(child_report_hashes, dict), "PR101 semantic_floor.child_report_hashes missing")
     for node_id in PR101_CHILD_REPORT_IDS:
         require(node_id in child_report_hashes, f"PR101 semantic_floor missing {node_id}")
-        expected = pipeline_context[node_id]["report"]["report_sha256"]
+        expected = _pipeline_report_sha256(pipeline_context, node_id=node_id)
         require(
             child_report_hashes[node_id] == expected,
             f"PR101 semantic_floor {node_id} hash mismatch",
@@ -339,3 +339,17 @@ def validate_pr101_child_semantic_floor(payload: dict[str, Any]) -> None:
             isinstance(floor.get(key), str) and SHA256_PATTERN.fullmatch(floor[key]) is not None,
             f"{key} must be a sha256",
         )
+
+
+def _pipeline_report_sha256(pipeline_context: dict[str, Any], *, node_id: str) -> str:
+    require(node_id in pipeline_context, f"PR101 pipeline_context missing {node_id}")
+    entry = pipeline_context[node_id]
+    require(isinstance(entry, dict), f"PR101 pipeline_context {node_id} entry must be a dict")
+    report = entry.get("report")
+    require(isinstance(report, dict), f"PR101 pipeline_context {node_id} missing report payload")
+    report_sha256 = report.get("report_sha256")
+    require(
+        isinstance(report_sha256, str) and SHA256_PATTERN.fullmatch(report_sha256) is not None,
+        f"PR101 pipeline_context {node_id} missing report_sha256",
+    )
+    return report_sha256

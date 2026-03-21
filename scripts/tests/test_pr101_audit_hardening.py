@@ -141,6 +141,29 @@ class Pr101AuditHardeningTests(unittest.TestCase):
             run_pr101_comprehensive_audit.EXPECTED_PR114_ACCEPTANCE[0],
         )
 
+    def test_pr101_audit_workflow_contract_tracks_single_pipeline_ci_path(self) -> None:
+        self.assertEqual(
+            run_pr101_comprehensive_audit.EXPECTED_CI_WORKFLOW_SNIPPETS,
+            [
+                "execution-guard:",
+                "python3 scripts/validate_execution_state.py --authority ci",
+                "lint-safe-syntax:",
+                "scripts/lint_safe_syntax.sh",
+                "spark-verify:",
+                "Build & Verify SPARK Companion",
+                "templates-verify:",
+                "Build & Verify Emission Templates",
+            ],
+        )
+        self.assertEqual(
+            run_pr101_comprehensive_audit.EXPECTED_PIPELINE_VERIFY_WORKFLOW_SNIPPETS,
+            [
+                "pipeline-verify:",
+                "Run canonical gate pipeline verify",
+                "python3 scripts/run_gate_pipeline.py verify --authority ci",
+            ],
+        )
+
     def test_pr08_pipeline_subgates_reuse_cached_results(self) -> None:
         results = run_pr08_frontend_baseline.pipeline_subgates(
             pipeline_input={

@@ -2,13 +2,14 @@
   "canonical_proof_detail": {
     "artifact_hashes": {
       "audit_doc": "fc4edf3f450f82ed744cb28283cfbce58f07320be1ca48fba90889c343d75832",
+      "ci_workflow": "c42abdb6acacb3634d9183ee17b1c6acf4ac39f1ae7b959052f5a57b94fc2855",
       "compiler_readme": "5f5d08fc03066a46d5d0906102fca118b75a49ba5b09dbe143b58e2eeed2fba1",
       "dashboard": "098bc02d79ef71a927bf09f09f5b6fad6e401535cdc8b92756e29d853e751494",
       "matrix": "9553b32825b2b3d25f153e781708987722e30f9d1edc2ae3e396aec24c4916a1",
+      "pipeline_verify_workflow": "079cc700a2f64b195963b8531229622557557aa3d9aa7f6762b786bef00a59d1",
       "post_pr10_scope": "52d74391fcb697b6cc620bbeb8ed8aaff90f6d5689f99c9f093da972d9f55237",
       "readme": "06ff5ea8e7c74f53b87758fc1a707374d4d3d7352a4b7cd2ab0d992ece7d414d",
-      "tracker": "0ec86b67a51599994ed33915f233c30a4651376ae90cd8b26ec89a35e9aaa32f",
-      "workflow": "f45a4836dcfe266b5ec39e830f87b14c72cd6d5423ad744e69b3187b977e9700"
+      "tracker": "0ec86b67a51599994ed33915f233c30a4651376ae90cd8b26ec89a35e9aaa32f"
     },
     "audited_surfaces": [
       "spec/TBD consistency",
@@ -27,10 +28,7 @@
           "report_sha256": "f32fa20c1175cf09812b97d406ab45a27e6413c11db99e95ac8d5aa1baa62aca",
           "result": {
             "command_profile": {
-              "args": [
-                "--report",
-                "$REPORT"
-              ],
+              "args": [],
               "program": "python3",
               "script": "scripts/run_pr08_frontend_baseline.py"
             },
@@ -43,10 +41,7 @@
           "report_sha256": "e6fdf929d4d89443fff95885a98a132295b98d6331ab7023462f6889e41b19b4",
           "result": {
             "command_profile": {
-              "args": [
-                "--report",
-                "$REPORT"
-              ],
+              "args": [],
               "program": "python3",
               "script": "scripts/run_pr09_ada_emission_baseline.py"
             },
@@ -59,10 +54,7 @@
           "report_sha256": "cb034f3ea9e5624534384b8993dac5fbd412c741026d849aa5c970a11e7a8bd0",
           "result": {
             "command_profile": {
-              "args": [
-                "--report",
-                "$REPORT"
-              ],
+              "args": [],
               "program": "python3",
               "script": "scripts/run_pr10_emitted_baseline.py"
             },
@@ -75,10 +67,7 @@
           "report_sha256": "3f84ff42577ca0a50269aa187e2549f33bf901bdc1d25e9554a4e1c64e666657",
           "result": {
             "command_profile": {
-              "args": [
-                "--report",
-                "$REPORT"
-              ],
+              "args": [],
               "program": "python3",
               "script": "scripts/run_emitted_hardening_regressions.py"
             },
@@ -416,9 +405,7 @@
           "result": {
             "command": [
               "python3",
-              "scripts/run_pr08_frontend_baseline.py",
-              "--report",
-              "$TMPDIR/run_pr08_frontend_baseline.json"
+              "scripts/run_pr08_frontend_baseline.py"
             ],
             "cwd": "$REPO_ROOT"
           },
@@ -428,9 +415,7 @@
           "result": {
             "command": [
               "python3",
-              "scripts/run_pr09_ada_emission_baseline.py",
-              "--report",
-              "$TMPDIR/run_pr09_ada_emission_baseline.json"
+              "scripts/run_pr09_ada_emission_baseline.py"
             ],
             "cwd": "$REPO_ROOT"
           },
@@ -440,9 +425,7 @@
           "result": {
             "command": [
               "python3",
-              "scripts/run_pr10_emitted_baseline.py",
-              "--report",
-              "$TMPDIR/run_pr10_emitted_baseline.json"
+              "scripts/run_pr10_emitted_baseline.py"
             ],
             "cwd": "$REPO_ROOT"
           },
@@ -452,9 +435,7 @@
           "result": {
             "command": [
               "python3",
-              "scripts/run_emitted_hardening_regressions.py",
-              "--report",
-              "$TMPDIR/run_emitted_hardening_regressions.json"
+              "scripts/run_emitted_hardening_regressions.py"
             ],
             "cwd": "$REPO_ROOT"
           },
@@ -463,8 +444,8 @@
       ]
     }
   },
-  "repeat_sha256": "01570dffa17cfa63753c956355dcca401b8d30a63e73de409154565b9c3de254",
-  "report_sha256": "01570dffa17cfa63753c956355dcca401b8d30a63e73de409154565b9c3de254",
+  "repeat_sha256": "7a09cce16b20849fa04d74ff0696e9e7d93b7d41e3c38c772b0b862ca376f60c",
+  "report_sha256": "7a09cce16b20849fa04d74ff0696e9e7d93b7d41e3c38c772b0b862ca376f60c",
   "semantic_floor": {
     "baseline_gate_hashes": {
       "emitted_hardening_regressions": "3f84ff42577ca0a50269aa187e2549f33bf901bdc1d25e9554a4e1c64e666657",

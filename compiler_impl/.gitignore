@@ -3,6 +3,8 @@
 /alire/
 /config/
 /b__*
+/b~*.adb
+/b~*.ads
 /*.ali
 /*.o
 /*.stderr

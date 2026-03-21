@@ -45,6 +45,7 @@ DASHBOARD_PATH = REPO_ROOT / "execution" / "dashboard.md"
 README_PATH = REPO_ROOT / "README.md"
 COMPILER_README_PATH = REPO_ROOT / "compiler_impl" / "README.md"
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+PIPELINE_VERIFY_WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "pipeline-verify.yml"
 MATRIX_PATH = REPO_ROOT / "docs" / "emitted_output_verification_matrix.md"
 POST_PR10_SCOPE_PATH = REPO_ROOT / "docs" / "post_pr10_scope.md"
 AUDIT_DOC_PATH = REPO_ROOT / "docs" / "pr10_refinement_audit.md"
@@ -239,34 +240,20 @@ EXPECTED_COMPILER_README_SNIPPETS = [
     "later tracked milestones may exist",
     "execution/reports/pr101-comprehensive-audit-report.json",
 ]
-EXPECTED_WORKFLOW_SNIPPETS = [
-    "pr101-comprehensive-audit:",
-    "python3 scripts/run_pr101_comprehensive_audit.py --authority ci",
-    "git diff --exit-code execution/reports/pr101-comprehensive-audit-report.json",
-    "pr104-gnatprove-evidence-parser-hardening:",
-    "python3 scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
-    "git diff --exit-code execution/reports/pr104-gnatprove-evidence-parser-hardening-report.json",
-    "pr103-sequential-proof-expansion:",
-    "python3 scripts/run_pr103_sequential_proof_expansion.py",
-    "git diff --exit-code execution/reports/pr103-sequential-proof-expansion-report.json",
-    "pr106-sequential-proof-corpus-expansion:",
-    "python3 scripts/run_pr106_sequential_proof_corpus_expansion.py",
-    "git diff --exit-code execution/reports/pr106-sequential-proof-corpus-expansion-report.json",
-    "pr111-language-evaluation-harness:",
-    "python3 scripts/run_pr111_language_evaluation_harness.py",
-    "git diff --exit-code execution/reports/pr111-language-evaluation-harness-report.json",
-    "pr112-parser-completeness-phase1:",
-    "python3 scripts/run_pr112_parser_completeness_phase1.py",
-    "git diff --exit-code execution/reports/pr112-parser-completeness-phase1-report.json",
-    "pr113-discriminated-types-tuples-structured-returns:",
-    "python3 scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
-    "git diff --exit-code execution/reports/pr113-discriminated-types-tuples-structured-returns-report.json",
-    "pr113a-proof-checkpoint1:",
-    "python3 scripts/run_pr113a_proof_checkpoint1.py",
-    "git diff --exit-code execution/reports/pr113a-proof-checkpoint1-report.json",
-    "pr114-signature-control-flow-syntax:",
-    "python3 scripts/run_pr114_signature_control_flow_syntax.py",
-    "git diff --exit-code execution/reports/pr114-signature-control-flow-syntax-report.json",
+EXPECTED_CI_WORKFLOW_SNIPPETS = [
+    "execution-guard:",
+    "python3 scripts/validate_execution_state.py --authority ci",
+    "lint-safe-syntax:",
+    "scripts/lint_safe_syntax.sh",
+    "spark-verify:",
+    "Build & Verify SPARK Companion",
+    "templates-verify:",
+    "Build & Verify Emission Templates",
+]
+EXPECTED_PIPELINE_VERIFY_WORKFLOW_SNIPPETS = [
+    "pipeline-verify:",
+    "Run canonical gate pipeline verify",
+    "python3 scripts/run_gate_pipeline.py verify --authority ci",
 ]
 EXPECTED_PRE_PUSH_SNIPPETS = [
     "\"scripts/run_pr09_ada_emission_baseline.py\"",
@@ -896,8 +883,16 @@ def build_report(*, baseline_truth: dict[str, Any], generated_root: Path | None)
         require_contains(compiler_readme_text, snippet, "compiler_impl/README.md")
 
     workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
-    for snippet in EXPECTED_WORKFLOW_SNIPPETS:
+    for snippet in EXPECTED_CI_WORKFLOW_SNIPPETS:
         require_contains(workflow_text, snippet, ".github/workflows/ci.yml")
+
+    pipeline_verify_workflow_text = PIPELINE_VERIFY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    for snippet in EXPECTED_PIPELINE_VERIFY_WORKFLOW_SNIPPETS:
+        require_contains(
+            pipeline_verify_workflow_text,
+            snippet,
+            ".github/workflows/pipeline-verify.yml",
+        )
 
     pre_push_text = (REPO_ROOT / "scripts" / "run_local_pre_push.py").read_text(encoding="utf-8")
     for snippet in EXPECTED_PRE_PUSH_SNIPPETS:
@@ -966,7 +961,8 @@ def build_report(*, baseline_truth: dict[str, Any], generated_root: Path | None)
         "dashboard": sha256_file(DASHBOARD_PATH),
         "readme": sha256_file(README_PATH),
         "compiler_readme": sha256_file(COMPILER_README_PATH),
-        "workflow": sha256_file(WORKFLOW_PATH),
+        "ci_workflow": sha256_file(WORKFLOW_PATH),
+        "pipeline_verify_workflow": sha256_file(PIPELINE_VERIFY_WORKFLOW_PATH),
     }
     semantic_floor = semantic_floor_from_baseline_truth(baseline_truth=baseline_truth)
     canonical_baseline_truth, machine_baseline_truth = split_baseline_truth(baseline_truth=baseline_truth)

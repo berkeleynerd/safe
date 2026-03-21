@@ -270,6 +270,34 @@ class ProofReportHelperTests(unittest.TestCase):
             validate_pr101_semantic_floor(payload, pipeline_context=pipeline_context)
         self.assertIn("pr101b_template_proof_verification hash mismatch", str(exc.exception))
 
+    def test_validate_pr101_semantic_floor_requires_pipeline_context_report_hashes(self) -> None:
+        payload = {
+            "semantic_floor": {
+                "baseline_gate_hashes": {
+                    "pr08_frontend_baseline": "1" * 64,
+                    "pr09_ada_emission_baseline": "2" * 64,
+                    "pr10_emitted_baseline": "3" * 64,
+                    "emitted_hardening_regressions": "4" * 64,
+                },
+                "child_report_hashes": {
+                    "pr101a_companion_proof_verification": "5" * 64,
+                    "pr101b_template_proof_verification": "6" * 64,
+                },
+            },
+            "canonical_proof_detail": {},
+            "machine_sensitive": {},
+        }
+        pipeline_context = {
+            "pr08_frontend_baseline": {"report": {"report_sha256": "1" * 64}},
+            "pr09_ada_emission_baseline": {"report": {"report_sha256": "2" * 64}},
+            "pr10_emitted_baseline": {"report": {"report_sha256": "3" * 64}},
+            "emitted_hardening_regressions": {"report": {"report_sha256": "4" * 64}},
+            "pr101a_companion_proof_verification": {"report": {"report_sha256": "5" * 64}},
+        }
+        with self.assertRaises(RuntimeError) as exc:
+            validate_pr101_semantic_floor(payload, pipeline_context=pipeline_context)
+        self.assertIn("PR101 pipeline_context missing pr101b_template_proof_verification", str(exc.exception))
+
     def test_validate_pr101_child_semantic_floor_checks_anchor_hashes(self) -> None:
         payload = {
             "semantic_floor": {
