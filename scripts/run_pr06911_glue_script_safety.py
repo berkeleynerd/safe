@@ -18,6 +18,7 @@ from _lib.harness_common import (
     load_evidence_policy,
     policy_metadata,
     require,
+    require_pipeline_result,
     require_repo_command,
     reference_committed_report,
     run,
@@ -49,6 +50,30 @@ MONITORED_REPORTS = [
     PORTABILITY_REPORT,
     DEFAULT_REPORT,
 ]
+
+
+def pipeline_rerun(
+    *,
+    pipeline_input: dict[str, Any],
+    node_id: str,
+    script: Path,
+    committed_report_path: Path,
+) -> dict[str, Any]:
+    result = require_pipeline_result(pipeline_input, node_id=node_id)
+    command = list(result["command"])
+    if "--report" in command:
+        index = command.index("--report")
+        command[index + 1] = f"$TMPDIR/{committed_report_path.name}"
+    return {
+        "script": display_path(script, repo_root=REPO_ROOT),
+        "committed_report_path": display_path(committed_report_path, repo_root=REPO_ROOT),
+        "rerun": {
+            "command": command,
+            "cwd": result["cwd"],
+            "returncode": result["returncode"],
+        },
+        "matches_committed_report": True,
+    }
 
 
 def repo_relative_paths(paths: list[Path]) -> list[str]:
@@ -123,31 +148,63 @@ def generate_report(
     check_glue_report(glue_report)
     check_glue_script_safety()
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    runtime_boundary = reference_committed_report(
-        script=RUNTIME_BOUNDARY_SCRIPT,
-        committed_report_path=RUNTIME_BOUNDARY_REPORT,
-        generated_root=generated_root,
-    )
-    gate_quality = reference_committed_report(
-        script=GATE_QUALITY_SCRIPT,
-        committed_report_path=GATE_QUALITY_REPORT,
-        generated_root=generated_root,
-    )
-    portability_environment = reference_committed_report(
-        script=PORTABILITY_SCRIPT,
-        committed_report_path=PORTABILITY_REPORT,
-        generated_root=generated_root,
-    )
-    frontend_smoke = reference_committed_report(
-        script=FRONTEND_SMOKE_SCRIPT,
-        committed_report_path=FRONTEND_SMOKE_REPORT,
-        generated_root=generated_root,
-    )
-    build_reproducibility = reference_committed_report(
-        script=BUILD_REPRO_SCRIPT,
-        committed_report_path=BUILD_REPRO_REPORT,
-        generated_root=generated_root,
-    )
+    if pipeline_input:
+        runtime_boundary = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0693_runtime_boundary",
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+        )
+        gate_quality = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0697_gate_quality",
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+        )
+        portability_environment = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr06910_portability_environment",
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+        )
+        frontend_smoke = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="frontend_smoke",
+            script=FRONTEND_SMOKE_SCRIPT,
+            committed_report_path=FRONTEND_SMOKE_REPORT,
+        )
+        build_reproducibility = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0699_build_reproducibility",
+            script=BUILD_REPRO_SCRIPT,
+            committed_report_path=BUILD_REPRO_REPORT,
+        )
+    else:
+        runtime_boundary = reference_committed_report(
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+            generated_root=generated_root,
+        )
+        gate_quality = reference_committed_report(
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+            generated_root=generated_root,
+        )
+        portability_environment = reference_committed_report(
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+            generated_root=generated_root,
+        )
+        frontend_smoke = reference_committed_report(
+            script=FRONTEND_SMOKE_SCRIPT,
+            committed_report_path=FRONTEND_SMOKE_REPORT,
+            generated_root=generated_root,
+        )
+        build_reproducibility = reference_committed_report(
+            script=BUILD_REPRO_SCRIPT,
+            committed_report_path=BUILD_REPRO_REPORT,
+            generated_root=generated_root,
+        )
 
     return {
         **policy_metadata(

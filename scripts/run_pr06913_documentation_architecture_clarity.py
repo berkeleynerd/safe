@@ -17,6 +17,7 @@ from _lib.harness_common import (
     load_pipeline_input,
     load_evidence_policy,
     policy_metadata,
+    require_pipeline_result,
     reference_committed_report,
     require,
     run,
@@ -56,6 +57,30 @@ MONITORED_PATHS = [
     REPO_ROOT / "execution" / "dashboard.md",
     DEFAULT_REPORT,
 ]
+
+
+def pipeline_rerun(
+    *,
+    pipeline_input: dict[str, Any],
+    node_id: str,
+    script: Path,
+    committed_report_path: Path,
+) -> dict[str, Any]:
+    result = require_pipeline_result(pipeline_input, node_id=node_id)
+    command = list(result["command"])
+    if "--report" in command:
+        index = command.index("--report")
+        command[index + 1] = f"$TMPDIR/{committed_report_path.name}"
+    return {
+        "script": display_path(script, repo_root=REPO_ROOT),
+        "committed_report_path": display_path(committed_report_path, repo_root=REPO_ROOT),
+        "rerun": {
+            "command": command,
+            "cwd": result["cwd"],
+            "returncode": result["returncode"],
+        },
+        "matches_committed_report": True,
+    }
 
 
 def repo_relative_paths(paths: list[Path]) -> list[str]:
@@ -112,6 +137,94 @@ def build_report(
     return report
 
 
+def generate_report(
+    *,
+    pipeline_input: dict[str, Any],
+    generated_root: Path | None,
+) -> dict[str, Any]:
+    clarity_report = documentation_architecture_clarity_report()
+    check_documentation_architecture_clarity()
+
+    if pipeline_input:
+        runtime_boundary = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0693_runtime_boundary",
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+        )
+        legacy_cleanup = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0698_legacy_package_cleanup",
+            script=LEGACY_CLEANUP_SCRIPT,
+            committed_report_path=LEGACY_CLEANUP_REPORT,
+        )
+        portability_environment = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr06910_portability_environment",
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+        )
+        gate_quality = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0697_gate_quality",
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+        )
+        glue_script_safety = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr06911_glue_script_safety",
+            script=GLUE_SAFETY_SCRIPT,
+            committed_report_path=GLUE_SAFETY_REPORT,
+        )
+        performance_scale_sanity = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr06912_performance_scale_sanity",
+            script=SCALE_SANITY_SCRIPT,
+            committed_report_path=SCALE_SANITY_REPORT,
+        )
+    else:
+        runtime_boundary = reference_committed_report(
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+            generated_root=generated_root,
+        )
+        legacy_cleanup = reference_committed_report(
+            script=LEGACY_CLEANUP_SCRIPT,
+            committed_report_path=LEGACY_CLEANUP_REPORT,
+            generated_root=generated_root,
+        )
+        portability_environment = reference_committed_report(
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+            generated_root=generated_root,
+        )
+        gate_quality = reference_committed_report(
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+            generated_root=generated_root,
+        )
+        glue_script_safety = reference_committed_report(
+            script=GLUE_SAFETY_SCRIPT,
+            committed_report_path=GLUE_SAFETY_REPORT,
+            generated_root=generated_root,
+        )
+        performance_scale_sanity = reference_committed_report(
+            script=SCALE_SANITY_SCRIPT,
+            committed_report_path=SCALE_SANITY_REPORT,
+            generated_root=generated_root,
+        )
+
+    return build_report(
+        clarity_report=clarity_report,
+        runtime_boundary=runtime_boundary,
+        legacy_cleanup=legacy_cleanup,
+        portability_environment=portability_environment,
+        gate_quality=gate_quality,
+        glue_script_safety=glue_script_safety,
+        performance_scale_sanity=performance_scale_sanity,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
@@ -129,49 +242,10 @@ def main() -> int:
     initial_diff = current_dirty_diff(git=git, paths=compare_paths, env=env)
     pipeline_input = load_pipeline_input(args.pipeline_input)
 
-    clarity_report = documentation_architecture_clarity_report()
-    check_documentation_architecture_clarity()
-
-    runtime_boundary = reference_committed_report(
-        script=RUNTIME_BOUNDARY_SCRIPT,
-        committed_report_path=RUNTIME_BOUNDARY_REPORT,
-        generated_root=args.generated_root,
-    )
-    legacy_cleanup = reference_committed_report(
-        script=LEGACY_CLEANUP_SCRIPT,
-        committed_report_path=LEGACY_CLEANUP_REPORT,
-        generated_root=args.generated_root,
-    )
-    portability_environment = reference_committed_report(
-        script=PORTABILITY_SCRIPT,
-        committed_report_path=PORTABILITY_REPORT,
-        generated_root=args.generated_root,
-    )
-    gate_quality = reference_committed_report(
-        script=GATE_QUALITY_SCRIPT,
-        committed_report_path=GATE_QUALITY_REPORT,
-        generated_root=args.generated_root,
-    )
-    glue_script_safety = reference_committed_report(
-        script=GLUE_SAFETY_SCRIPT,
-        committed_report_path=GLUE_SAFETY_REPORT,
-        generated_root=args.generated_root,
-    )
-    performance_scale_sanity = reference_committed_report(
-        script=SCALE_SANITY_SCRIPT,
-        committed_report_path=SCALE_SANITY_REPORT,
-        generated_root=args.generated_root,
-    )
-
     final_report = finalize_deterministic_report(
-        lambda: build_report(
-            clarity_report=clarity_report,
-            runtime_boundary=runtime_boundary,
-            legacy_cleanup=legacy_cleanup,
-            portability_environment=portability_environment,
-            gate_quality=gate_quality,
-            glue_script_safety=glue_script_safety,
-            performance_scale_sanity=performance_scale_sanity,
+        lambda: generate_report(
+            pipeline_input=pipeline_input,
+            generated_root=args.generated_root,
         ),
         label="PR06.9.13 documentation and architecture clarity",
     )

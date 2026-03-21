@@ -510,6 +510,117 @@ class Pr101AuditHardeningTests(unittest.TestCase):
             )
         self.assertNotIn("validate_execution_state", report["reruns"])
 
+    def test_pr06911_pipeline_input_reuses_cached_results(self) -> None:
+        pipeline_input = {
+            "pr0693_runtime_boundary": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0693_runtime_boundary.py",
+                        "--report",
+                        "$TMPDIR/pr0693_runtime_boundary.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0697_gate_quality": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0697_gate_quality.py",
+                        "--report",
+                        "$TMPDIR/pr0697_gate_quality.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06910_portability_environment": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06910_portability_environment.py",
+                        "--report",
+                        "$TMPDIR/pr06910_portability_environment.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "frontend_smoke": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_frontend_smoke.py",
+                        "--report",
+                        "$TMPDIR/pr00-pr04-frontend-smoke.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0699_build_reproducibility": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0699_build_reproducibility.py",
+                        "--report",
+                        "$TMPDIR/pr0699_build_reproducibility.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+        }
+        with mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "glue_script_safety_report",
+            return_value={
+                "subprocess_import_violations": [],
+                "subprocess_call_violations": [],
+                "shell_assumption_violations": [],
+                "tempdir_violations": [],
+                "report_helper_violations": [],
+                "command_lookup_violations": [],
+                "unauthorized_safe_source_readers": [],
+            },
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "check_glue_script_safety",
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "require_repo_command",
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "reference_committed_report",
+            side_effect=AssertionError("pipeline input path should be used"),
+        ):
+            report = run_pr06911_glue_script_safety.generate_report(
+                python="python3",
+                env={},
+                pipeline_input=pipeline_input,
+                generated_root=None,
+            )
+        self.assertEqual(
+            report["reruns"]["runtime_boundary"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0693_runtime_boundary.py",
+                "--report",
+                "$TMPDIR/pr0693-runtime-boundary-report.json",
+            ],
+        )
+        self.assertEqual(
+            report["referenced_deterministic_reports"]["build_reproducibility"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0699_build_reproducibility.py",
+                "--report",
+                "$TMPDIR/pr0699-build-reproducibility-report.json",
+            ],
+        )
+
     def test_pr06913_does_not_embed_inline_validate_execution_state(self) -> None:
         with mock.patch.object(
             run_pr06913_documentation_architecture_clarity,
@@ -533,6 +644,116 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                 performance_scale_sanity={"matches_committed_report": True},
             )
         self.assertNotIn("validate_execution_state", final_report["reruns"])
+
+    def test_pr06913_pipeline_input_reuses_cached_results(self) -> None:
+        pipeline_input = {
+            "pr0693_runtime_boundary": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0693_runtime_boundary.py",
+                        "--report",
+                        "$TMPDIR/pr0693_runtime_boundary.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0698_legacy_package_cleanup": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0698_legacy_package_cleanup.py",
+                        "--report",
+                        "$TMPDIR/pr0698_legacy_package_cleanup.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06910_portability_environment": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06910_portability_environment.py",
+                        "--report",
+                        "$TMPDIR/pr06910_portability_environment.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0697_gate_quality": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0697_gate_quality.py",
+                        "--report",
+                        "$TMPDIR/pr0697_gate_quality.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06911_glue_script_safety": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06911_glue_script_safety.py",
+                        "--report",
+                        "$TMPDIR/pr06911_glue_script_safety.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06912_performance_scale_sanity": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06912_performance_scale_sanity.py",
+                        "--report",
+                        "$TMPDIR/pr06912_performance_scale_sanity.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+        }
+        with mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "documentation_architecture_clarity_report",
+            return_value={},
+        ), mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "check_documentation_architecture_clarity",
+        ), mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "reference_committed_report",
+            side_effect=AssertionError("pipeline input path should be used"),
+        ):
+            report = run_pr06913_documentation_architecture_clarity.generate_report(
+                pipeline_input=pipeline_input,
+                generated_root=None,
+            )
+        self.assertEqual(
+            report["reruns"]["runtime_boundary"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0693_runtime_boundary.py",
+                "--report",
+                "$TMPDIR/pr0693-runtime-boundary-report.json",
+            ],
+        )
+        self.assertEqual(
+            report["reruns"]["glue_script_safety"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr06911_glue_script_safety.py",
+                "--report",
+                "$TMPDIR/pr06911-glue-script-safety-report.json",
+            ],
+        )
 
     def test_pr101_pipeline_baseline_truth_uses_cached_python_gates_only(self) -> None:
         baseline_truth = run_pr101_comprehensive_audit.pipeline_baseline_truth(
