@@ -162,8 +162,8 @@ def stable_mir_text(text: str) -> str:
     return MIR_VOID_KIND_RE.sub(r'"kind":"procedure"\g<middle>', text)
 
 
-def stable_emitted_artifact_size(path: Path) -> int:
-    text = normalize_text(path.read_text(encoding="utf-8"), repo_root=REPO_ROOT)
+def stable_emitted_artifact_size(path: Path, *, temp_root: Path | None = None) -> int:
+    text = normalize_text(path.read_text(encoding="utf-8"), temp_root=temp_root, repo_root=REPO_ROOT)
     if path.name.endswith(".typed.json") or path.name.endswith(".safei.json"):
         return len(stable_typed_or_safei_text(text).encode("utf-8"))
     if path.name.endswith(".mir.json"):
@@ -276,10 +276,10 @@ def measure_emit_scenarios(*, safec: Path, env: dict[str, str]) -> tuple[list[di
                     f"emit file set drift for {sample.name}: expected {sorted(expected_files)}, got {sorted(observed_files)}",
                 )
                 current_sizes = {
-                    "ast": stable_emitted_artifact_size(paths["ast"]),
-                    "typed": stable_emitted_artifact_size(paths["typed"]),
-                    "mir": stable_emitted_artifact_size(paths["mir"]),
-                    "safei": stable_emitted_artifact_size(paths["safei"]),
+                    "ast": stable_emitted_artifact_size(paths["ast"], temp_root=temp_root),
+                    "typed": stable_emitted_artifact_size(paths["typed"], temp_root=temp_root),
+                    "mir": stable_emitted_artifact_size(paths["mir"], temp_root=temp_root),
+                    "safei": stable_emitted_artifact_size(paths["safei"], temp_root=temp_root),
                 }
                 if not artifact_sizes:
                     artifact_sizes = current_sizes

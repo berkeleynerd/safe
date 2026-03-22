@@ -107,7 +107,11 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
             ), mock.patch.object(
                 run_pr0699_build_reproducibility,
                 "run_build_reproducibility",
-            ) as rebuild_mock:
+            ) as rebuild_mock, mock.patch.object(
+                run_pr0699_build_reproducibility.time,
+                "monotonic",
+                side_effect=[10.0, 10.2],
+            ):
                 stdout = io.StringIO()
                 with redirect_stdout(stdout):
                     reused, binary_hash = run_pr0699_build_reproducibility.resolve_build_reproducibility(
@@ -125,7 +129,7 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
         self.assertEqual(binary_hash, "same-hash")
         self.assertEqual(
             stdout.getvalue(),
-            "[pr0699] binary hash unchanged, skipping reproducibility rebuild\n",
+            "[pr0699] binary hash unchanged, skipping reproducibility rebuild (0.2s hash check)\n",
         )
 
     def test_resolve_build_reproducibility_falls_back_when_hash_mismatches(self) -> None:
@@ -225,7 +229,11 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
         with mock.patch.object(
             run_pr0699_build_reproducibility,
             "run_gate_script",
-        ) as gate_mock, redirect_stdout(stdout):
+        ) as gate_mock, mock.patch.object(
+            run_pr0699_build_reproducibility.time,
+            "monotonic",
+            side_effect=[20.0, 20.1],
+        ), redirect_stdout(stdout):
             result = run_pr0699_build_reproducibility.resolve_gate_quality_result(
                 python="python3",
                 generated_root=None,
@@ -245,7 +253,7 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
         self.assertEqual(result, prior_gate_quality)
         self.assertEqual(
             stdout.getvalue(),
-            "[pr0699] gate_quality inputs unchanged, reusing cached result\n",
+            "[pr0699] gate_quality inputs unchanged, reusing cached result (0.1s hash check)\n",
         )
 
     def test_generate_report_runs_child_gates_after_binary_skip(self) -> None:
@@ -714,6 +722,10 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
         with mock.patch.object(
             run_pr0699_build_reproducibility,
             "run_gate_script",
+        ), mock.patch.object(
+            run_pr0699_build_reproducibility.time,
+            "monotonic",
+            side_effect=[30.0, 30.1],
         ), redirect_stdout(stdout):
             run_pr0699_build_reproducibility.resolve_gate_quality_result(
                 python="python3",
@@ -732,7 +744,7 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
 
         self.assertEqual(
             stdout.getvalue(),
-            "[pr0699] gate_quality inputs unchanged, reusing cached result\n",
+            "[pr0699] gate_quality inputs unchanged, reusing cached result (0.1s hash check)\n",
         )
 
     def test_main_passes_authority_to_execution_state_validation(self) -> None:

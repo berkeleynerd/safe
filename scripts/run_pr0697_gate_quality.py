@@ -113,21 +113,28 @@ VALID_CONTRACT_CASES = [
 ]
 
 UNITTEST_SUCCESS_RE = re.compile(
-    r"^(?P<dots>\.+)\n-+\nRan (?P<count>\d+) tests in <elapsed>\n\nOK\n$"
+    r"^(?P<dots>\.+)\n-+\nRan (?P<count>\d+) test(?:s)? in <elapsed>\n\nOK\n$"
 )
-UNITTEST_COUNT_RE = re.compile(r"Ran (?P<count>\d+) tests in <elapsed>")
+UNITTEST_COUNT_RE = re.compile(r"Ran (?P<count>\d+) test(?:s)? in <elapsed>")
 
 
 def canonical_unittest_success_output(*, count: int) -> str:
+    test_word = "test" if count == 1 else "tests"
     return (
         "." * count
         + "\n----------------------------------------------------------------------\n"
-        + f"Ran {count} tests in <elapsed>\n\nOK\n"
+        + f"Ran {count} {test_word} in <elapsed>\n\nOK\n"
     )
 
 
 def normalize_unittest_output(text: str) -> str:
-    normalized = re.sub(r"Ran (\d+) tests in [0-9.]+s", r"Ran \1 tests in <elapsed>", text)
+    normalized = re.sub(
+        r"Ran (\d+) test(?:s)? in [0-9.]+s",
+        lambda match: (
+            f"Ran {match.group(1)} {'test' if match.group(1) == '1' else 'tests'} in <elapsed>"
+        ),
+        text,
+    )
     match = UNITTEST_SUCCESS_RE.fullmatch(normalized)
     if match is not None:
         return canonical_unittest_success_output(count=int(match.group("count")))

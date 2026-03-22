@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,10 @@ LEGACY_CLEANUP_SCRIPT = REPO_ROOT / "scripts" / "run_pr0698_legacy_package_clean
 LEGACY_CLEANUP_REPORT = REPO_ROOT / "execution" / "reports" / "pr0698-legacy-package-cleanup-report.json"
 VALIDATE_EXECUTION_STATE = REPO_ROOT / "scripts" / "validate_execution_state.py"
 GATE_QUALITY_CHILD_NAME = "gate_quality"
+
+
+def format_elapsed(seconds: float) -> str:
+    return f"{seconds:.1f}s"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -166,6 +171,7 @@ def resolve_build_reproducibility(
     prior_report: dict[str, Any] | None,
     env: dict[str, str],
 ) -> tuple[dict[str, Any], str]:
+    hash_check_started = time.monotonic()
     if safec.exists():
         current_binary_sha256 = stable_binary_sha256(safec)
         if prior_report is not None:
@@ -176,9 +182,15 @@ def resolve_build_reproducibility(
                 and isinstance(prior_build_reproducibility, dict)
                 and current_binary_sha256 == prior_binary_sha256
             ):
-                print("[pr0699] binary hash unchanged, skipping reproducibility rebuild")
+                print(
+                    "[pr0699] binary hash unchanged, skipping reproducibility rebuild "
+                    f"({format_elapsed(time.monotonic() - hash_check_started)} hash check)"
+                )
                 return prior_build_reproducibility, current_binary_sha256
-    return run_build_reproducibility(alr=alr, safec=safec, env=env)
+    rebuild_started = time.monotonic()
+    rebuild_result = run_build_reproducibility(alr=alr, safec=safec, env=env)
+    print(f"[pr0699] full reproducibility rebuild ({format_elapsed(time.monotonic() - rebuild_started)})")
+    return rebuild_result
 
 
 def sha256_text(text: str) -> str:
@@ -226,6 +238,7 @@ def resolve_gate_quality_result(
     prior_report: dict[str, Any] | None,
     gate_quality_input_hash: str | None,
 ) -> dict[str, Any]:
+    hash_check_started = time.monotonic()
     if prior_report is not None and gate_quality_input_hash is not None:
         prior_hashes = prior_report.get("child_gate_input_hashes")
         prior_delegated_reports = prior_report.get("delegated_reports")
@@ -233,7 +246,10 @@ def resolve_gate_quality_result(
             prior_hash = prior_hashes.get(GATE_QUALITY_CHILD_NAME)
             prior_gate_quality = prior_delegated_reports.get(GATE_QUALITY_CHILD_NAME)
             if prior_hash == gate_quality_input_hash and isinstance(prior_gate_quality, dict):
-                print("[pr0699] gate_quality inputs unchanged, reusing cached result")
+                print(
+                    "[pr0699] gate_quality inputs unchanged, reusing cached result "
+                    f"({format_elapsed(time.monotonic() - hash_check_started)} hash check)"
+                )
                 return prior_gate_quality
     return run_gate_script(
         python=python,

@@ -9,6 +9,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +74,44 @@ PR101_CHILD_NODE_IDS = frozenset(
 )
 NODES_BY_ID = {node.id: node for node in NODES}
 NODE_INDEX_BY_ID = {node.id: index for index, node in enumerate(NODES)}
+_RATCHET_NODE_TIMINGS: dict[str, float] | None = None
+
+
+def format_elapsed(seconds: float) -> str:
+    return f"{seconds:.1f}s"
+
+
+def print_gate_pipeline(message: str) -> None:
+    print(f"[gate-pipeline] {message}", flush=True)
+
+
+def reset_ratchet_node_timings() -> None:
+    global _RATCHET_NODE_TIMINGS
+    _RATCHET_NODE_TIMINGS = {}
+
+
+def clear_ratchet_node_timings() -> None:
+    global _RATCHET_NODE_TIMINGS
+    _RATCHET_NODE_TIMINGS = None
+
+
+def record_ratchet_node_timing(node_id: str, elapsed: float) -> None:
+    if _RATCHET_NODE_TIMINGS is None:
+        return
+    previous = _RATCHET_NODE_TIMINGS.get(node_id)
+    if previous is None or elapsed > previous:
+        _RATCHET_NODE_TIMINGS[node_id] = elapsed
+
+
+def print_ratchet_timing_summary(*, total_elapsed: float, success: bool) -> None:
+    if success:
+        print_gate_pipeline(f"ratchet complete ({format_elapsed(total_elapsed)})")
+    if _RATCHET_NODE_TIMINGS:
+        print_gate_pipeline("slowest nodes:")
+        slowest = sorted(_RATCHET_NODE_TIMINGS.items(), key=lambda item: (-item[1], item[0]))[:5]
+        for index, (node_id, elapsed) in enumerate(slowest, start=1):
+            print_gate_pipeline(f"  {index}. {node_id:<30} {format_elapsed(elapsed)}")
+    print_gate_pipeline(f"total wall time: {format_elapsed(total_elapsed)}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -147,10 +186,10 @@ def diff_context(*, expected: str, actual: str, label: str) -> str:
 
 
 def print_phase(phase: str, *, detail: str | None = None) -> None:
-    message = f"[gate-pipeline] phase: {phase}"
+    message = f"phase: {phase}"
     if detail:
         message += f" ({detail})"
-    print(message, flush=True)
+    print_gate_pipeline(message)
 
 
 def print_plan(branch: str) -> int:
@@ -551,10 +590,21 @@ def execute_pipeline(
         rerun_preflight=preflight_generated_output_baseline_file is not None,
     ):
         node = NODES[node_index]
-        print(f"[gate-pipeline] running: {node.id}")
+        node_started = time.monotonic()
+        print_gate_pipeline(f"running: {node.id}")
         if node.kind is NodeKind.BUILD:
-            clean_repo_profile(node.repo_clean_profile)
+            if node.repo_clean_profile is not None:
+                clean_started = time.monotonic()
+                clean_repo_profile(node.repo_clean_profile)
+                print_gate_pipeline(
+                    f"clean profile: {node.repo_clean_profile} ({format_elapsed(time.monotonic() - clean_started)})"
+                )
+            build_started = time.monotonic()
             run(compiler_build_argv(alr), cwd=COMPILER_ROOT, env=env)
+            print_gate_pipeline(f"build: {node.id} ({format_elapsed(time.monotonic() - build_started)})")
+            node_elapsed = time.monotonic() - node_started
+            print_gate_pipeline(f"completed: {node.id} ({format_elapsed(node_elapsed)})")
+            record_ratchet_node_timing(node.id, node_elapsed)
             continue
 
         if authority == "local" and node.determinism_class is DeterminismClass.CI_AUTHORITATIVE:
@@ -612,6 +662,9 @@ def execute_pipeline(
                 pipeline_context_entry=pipeline_context_entry,
                 dependency_hashes=dependency_report_hashes(node=node, pipeline_context=pipeline_context),
             )
+        node_elapsed = time.monotonic() - node_started
+        print_gate_pipeline(f"completed: {node.id} ({format_elapsed(node_elapsed)})")
+        record_ratchet_node_timing(node.id, node_elapsed)
 
     final_snapshot = tracked_diff_snapshot(git=git, env=env)
     require(final_snapshot == initial_snapshot, "gate pipeline changed tracked files during execution")
@@ -627,6 +680,7 @@ def verify_pipeline(
     env: dict[str, str],
     initial_snapshot: str | None = None,
 ) -> int:
+    verify_started = time.monotonic()
     if initial_snapshot is None:
         initial_snapshot = tracked_diff_snapshot(git=git, env=env)
     with tempfile.TemporaryDirectory(prefix="gate-pipeline-verify-") as temp_root_str:
@@ -643,7 +697,8 @@ def verify_pipeline(
             compare_to_committed=True,
             initial_snapshot=initial_snapshot,
         )
-    print(f"[gate-pipeline] verified ({authority})")
+    print_gate_pipeline(f"verify complete ({format_elapsed(time.monotonic() - verify_started)})")
+    print_gate_pipeline(f"verified ({authority})")
     return 0
 
 
@@ -699,6 +754,14 @@ def final_rerun_pipeline(
 ) -> int:
     changed_nodes = changed_report_nodes(generated_root=stage_root)
     promoted_dashboard_changed = dashboard_changed(generated_root=stage_root)
+    start_index = final_rerun_start_index(
+        changed_nodes=changed_nodes,
+        dashboard_changed_flag=promoted_dashboard_changed,
+    )
+
+    print_gate_pipeline(
+        f"frontier computation: starting at {NODES[start_index].id} (index {start_index})"
+    )
 
     print_phase(
         "promote staged outputs",
@@ -713,25 +776,30 @@ def final_rerun_pipeline(
             )
         ),
     )
+    promotion_started = time.monotonic()
     promote_stage(stage_root)
+    print_gate_pipeline(f"promotion complete ({format_elapsed(time.monotonic() - promotion_started)})")
 
     promoted_snapshot = tracked_diff_snapshot(git=git, env=env)
     promoted_generated_snapshot = tracked_diff_snapshot(git=git, env=env, paths=ratchet_owned_paths())
     baseline_path = final_verify_root / "generated-output-baseline.txt"
     write_generated_output_baseline_file(baseline_path, snapshot=promoted_generated_snapshot)
 
-    start_index = final_rerun_start_index(
-        changed_nodes=changed_nodes,
-        dashboard_changed_flag=promoted_dashboard_changed,
-    )
+    checkpoint_started = time.monotonic()
     seed_pipeline_context = load_seed_pipeline_context(
         checkpoint_root=stage_verify_root / "checkpoints",
         start_index=start_index,
+    )
+    print_gate_pipeline(
+        "checkpoint seeding: loaded "
+        f"{len(seed_pipeline_context)} prefix entries ({format_elapsed(time.monotonic() - checkpoint_started)})"
     )
     print_phase(
         "final rerun",
         detail=f"start node: {NODES[start_index].id}",
     )
+    rerun_indices = execution_indices(start_index=start_index, rerun_preflight=True)
+    rerun_started = time.monotonic()
     execute_pipeline(
         authority=authority,
         python=python,
@@ -748,64 +816,90 @@ def final_rerun_pipeline(
         checkpoint_root=final_verify_root / "checkpoints",
         preflight_generated_output_baseline_file=baseline_path,
     )
-    print(f"[gate-pipeline] verified ({authority})")
+    rerun_elapsed = time.monotonic() - rerun_started
+    print_gate_pipeline(f"final rerun complete ({format_elapsed(rerun_elapsed)})")
+    print_gate_pipeline(
+        f"final rerun: {len(rerun_indices)} nodes executed, "
+        f"{len(NODES) - len(set(rerun_indices))} nodes skipped ({format_elapsed(rerun_elapsed)})"
+    )
+    print_gate_pipeline(f"verified ({authority})")
     return 0
 
 
 def ratchet_pipeline(*, authority: str, python: str, git: str, alr: str, env: dict[str, str]) -> int:
-    initial_snapshot = tracked_diff_snapshot(git=git, env=env)
-    generated_snapshot = tracked_diff_snapshot(git=git, env=env, paths=ratchet_owned_paths())
-    require(
-        generated_snapshot == "",
-        "ratchet requires a clean generated-output working tree; either accept ratchet artifact "
-        "and commit the current ratchet-owned diffs, or restore ratchet baseline before retrying",
-    )
+    ratchet_started = time.monotonic()
+    success = False
+    reset_ratchet_node_timings()
+    try:
+        initial_snapshot = tracked_diff_snapshot(git=git, env=env)
+        generated_snapshot = tracked_diff_snapshot(git=git, env=env, paths=ratchet_owned_paths())
+        require(
+            generated_snapshot == "",
+            "ratchet requires a clean generated-output working tree; either accept ratchet artifact "
+            "and commit the current ratchet-owned diffs, or restore ratchet baseline before retrying",
+        )
 
-    with tempfile.TemporaryDirectory(prefix="gate-pipeline-stage-") as stage_root_str:
-        stage_root = Path(stage_root_str)
-        with tempfile.TemporaryDirectory(prefix="gate-pipeline-stage-verify-") as verify_root_str, tempfile.TemporaryDirectory(
-            prefix="gate-pipeline-final-verify-"
-        ) as final_verify_root_str:
-            verify_root = Path(verify_root_str)
-            final_verify_root = Path(final_verify_root_str)
-            print_phase("stage generation")
-            execute_pipeline(
-                authority=authority,
-                python=python,
-                env=env,
-                alr=alr,
-                git=git,
-                read_generated_root=stage_root,
-                write_generated_root=stage_root,
-                compare_root=None,
-                compare_to_committed=False,
-                initial_snapshot=initial_snapshot,
-                checkpoint_root=stage_root / "checkpoints",
-            )
-            print_phase("stage verify")
-            execute_pipeline(
-                authority=authority,
-                python=python,
-                env=env,
-                alr=alr,
-                git=git,
-                read_generated_root=stage_root,
-                write_generated_root=verify_root,
-                compare_root=stage_root,
-                compare_to_committed=False,
-                initial_snapshot=initial_snapshot,
-                checkpoint_root=verify_root / "checkpoints",
-            )
-            return final_rerun_pipeline(
-                authority=authority,
-                python=python,
-                git=git,
-                alr=alr,
-                env=env,
-                stage_root=stage_root,
-                stage_verify_root=verify_root,
-                final_verify_root=final_verify_root,
-            )
+        with tempfile.TemporaryDirectory(prefix="gate-pipeline-stage-") as stage_root_str:
+            stage_root = Path(stage_root_str)
+            with tempfile.TemporaryDirectory(prefix="gate-pipeline-stage-verify-") as verify_root_str, tempfile.TemporaryDirectory(
+                prefix="gate-pipeline-final-verify-"
+            ) as final_verify_root_str:
+                verify_root = Path(verify_root_str)
+                final_verify_root = Path(final_verify_root_str)
+                print_phase("stage generation")
+                stage_generation_started = time.monotonic()
+                execute_pipeline(
+                    authority=authority,
+                    python=python,
+                    env=env,
+                    alr=alr,
+                    git=git,
+                    read_generated_root=stage_root,
+                    write_generated_root=stage_root,
+                    compare_root=None,
+                    compare_to_committed=False,
+                    initial_snapshot=initial_snapshot,
+                    checkpoint_root=stage_root / "checkpoints",
+                )
+                print_gate_pipeline(
+                    f"stage generation complete ({format_elapsed(time.monotonic() - stage_generation_started)})"
+                )
+                print_phase("stage verify")
+                stage_verify_started = time.monotonic()
+                execute_pipeline(
+                    authority=authority,
+                    python=python,
+                    env=env,
+                    alr=alr,
+                    git=git,
+                    read_generated_root=stage_root,
+                    write_generated_root=verify_root,
+                    compare_root=stage_root,
+                    compare_to_committed=False,
+                    initial_snapshot=initial_snapshot,
+                    checkpoint_root=verify_root / "checkpoints",
+                )
+                print_gate_pipeline(
+                    f"stage verification complete ({format_elapsed(time.monotonic() - stage_verify_started)})"
+                )
+                result = final_rerun_pipeline(
+                    authority=authority,
+                    python=python,
+                    git=git,
+                    alr=alr,
+                    env=env,
+                    stage_root=stage_root,
+                    stage_verify_root=verify_root,
+                    final_verify_root=final_verify_root,
+                )
+                success = True
+                return result
+    finally:
+        print_ratchet_timing_summary(
+            total_elapsed=time.monotonic() - ratchet_started,
+            success=success,
+        )
+        clear_ratchet_node_timings()
 
 
 def main() -> int:

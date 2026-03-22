@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -66,6 +67,37 @@ class Pr06912PerformanceScaleSanityTests(unittest.TestCase):
             '"signature":"function Mean (Data: Sample_Array) return Sample_Value"',
             run_pr06912_performance_scale_sanity.stable_typed_or_safei_text(safei_text),
         )
+
+    def test_stable_emitted_artifact_size_normalizes_temp_root_paths(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="pr06912-size-") as temp_root_str:
+            temp_root = Path(temp_root_str)
+            first = temp_root / "slot-a" / "sample.mir.json"
+            second = temp_root / "slot-b" / "sample.mir.json"
+            first.parent.mkdir(parents=True, exist_ok=True)
+            second.parent.mkdir(parents=True, exist_ok=True)
+            first.write_text(
+                '{"source_path":"'
+                + str(temp_root / "slot-a" / "sample.safe")
+                + '","kind":"function","entry_bb":"bb0","span":{"start_line":1,"start_col":1,"end_line":1,"end_col":1},"return_type":null}',
+                encoding="utf-8",
+            )
+            second.write_text(
+                '{"source_path":"'
+                + str(temp_root / "slot-b" / "sample.safe")
+                + '","kind":"function","entry_bb":"bb0","span":{"start_line":1,"start_col":1,"end_line":1,"end_col":1},"return_type":null}',
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                run_pr06912_performance_scale_sanity.stable_emitted_artifact_size(
+                    first,
+                    temp_root=temp_root,
+                ),
+                run_pr06912_performance_scale_sanity.stable_emitted_artifact_size(
+                    second,
+                    temp_root=temp_root,
+                ),
+            )
 
 
 if __name__ == "__main__":

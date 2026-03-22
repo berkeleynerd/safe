@@ -266,8 +266,8 @@
       }
     }
   ],
-  "repeat_sha256": "18216db11c5f5f0052b5114fb53bed015d0eb4b8080f5348428b69f7336223e0",
-  "report_sha256": "18216db11c5f5f0052b5114fb53bed015d0eb4b8080f5348428b69f7336223e0",
+  "repeat_sha256": "2ceb1cdf8d90a489fd00c0897420eb04779f12917e13ec8f8111bc6ef9a006fd",
+  "report_sha256": "2ceb1cdf8d90a489fd00c0897420eb04779f12917e13ec8f8111bc6ef9a006fd",
   "status": "ok",
   "task": "PR06.9.7",
   "unit_tests": {
@@ -323,10 +323,10 @@
       "scripts.tests.test_validate_execution_state",
       "scripts.tests.test_validate_output_contracts"
     ],
-    "observed_count": 260,
+    "observed_count": 263,
     "returncode": 0,
-    "stderr": "....................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 260 tests in <elapsed>\n\nOK\n",
-    "stdout": "[pr0699] gate_quality inputs unchanged, reusing cached result\n[pr0699] gate_quality inputs unchanged, reusing cached result\n"
+    "stderr": ".......................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 263 tests in <elapsed>\n\nOK\n",
+    "stdout": "[pr0699] gate_quality inputs unchanged, reusing cached result (0.0s hash check)\n[pr0699] gate_quality inputs unchanged, reusing cached result (0.0s hash check)\n[pr0699] full reproducibility rebuild (0.0s)\n[pr0699] full reproducibility rebuild (0.0s)\n[pr0699] full reproducibility rebuild (0.0s)\n[pr0699] full reproducibility rebuild (0.0s)\n[gate-pipeline] total wall time: 0.0s\n"
   },
   "valid_output_contracts": [
     {
