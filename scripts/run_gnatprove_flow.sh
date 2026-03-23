@@ -16,7 +16,8 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKSPACE_DIR="${REPO_ROOT}/companion/gen"
 GPR_FILE="${WORKSPACE_DIR}/companion.gpr"
 ALR_BIN="${ALR_BIN:-alr}"
-GNATPROVE_BIN="${GNATPROVE_BIN:-$HOME/.alire/bin/gnatprove}"
+GNATPROVE_BIN="${GNATPROVE_BIN:-gnatprove}"
+GNATPROVE_FALLBACK="${HOME}/.alire/bin/gnatprove"
 
 if [[ ! -f "${GPR_FILE}" ]]; then
     echo "ERROR: Project file not found: ${GPR_FILE}"
@@ -26,6 +27,7 @@ fi
 resolve_command() {
     local configured="$1"
     local label="$2"
+    local fallback="${3:-}"
 
     if [[ "${configured}" == */* ]]; then
         if [[ -x "${configured}" ]]; then
@@ -38,6 +40,10 @@ resolve_command() {
 
     local resolved
     resolved="$(command -v "${configured}" || true)"
+    if [[ -z "${resolved}" && -n "${fallback}" && -x "${fallback}" ]]; then
+        printf '%s\n' "${fallback}"
+        return 0
+    fi
     if [[ -z "${resolved}" ]]; then
         echo "ERROR: ${label} not found on PATH: ${configured}" >&2
         exit 1
@@ -46,7 +52,7 @@ resolve_command() {
 }
 
 ALR_BIN="$(resolve_command "${ALR_BIN}" "alr")"
-GNATPROVE_BIN="$(resolve_command "${GNATPROVE_BIN}" "gnatprove")"
+GNATPROVE_BIN="$(resolve_command "${GNATPROVE_BIN}" "gnatprove" "${GNATPROVE_FALLBACK}")"
 
 echo "================================================================"
 echo "  GNATprove Flow Analysis (Bronze Gate)"
