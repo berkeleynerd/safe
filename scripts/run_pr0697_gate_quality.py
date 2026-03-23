@@ -147,7 +147,14 @@ def extract_observed_test_count(*, stdout: str, stderr: str) -> int:
         match = UNITTEST_COUNT_RE.search(text)
         if match is not None:
             return int(match.group("count"))
-    raise RuntimeError("unable to determine observed unittest count from PR06.9.7 output")
+    stderr_excerpt = stderr[:200]
+    stdout_excerpt = stdout[:200]
+    raise RuntimeError(
+        "unable to determine observed unittest count: "
+        f"no match for pattern {UNITTEST_COUNT_RE.pattern!r} found in stderr or stdout. "
+        f"stderr length={len(stderr)}, stdout length={len(stdout)}. "
+        f"stderr excerpt={stderr_excerpt!r}, stdout excerpt={stdout_excerpt!r}"
+    )
 
 
 def run_unittest_suite(python: str) -> dict[str, Any]:

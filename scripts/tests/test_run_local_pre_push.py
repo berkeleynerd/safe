@@ -74,6 +74,7 @@ class RunLocalPrePushTests(unittest.TestCase):
             git="git",
             alr="alr",
             env={},
+            branch="codex/pr114-signature-control-flow-syntax",
         )
         run_command.assert_called_once()
         self.assertEqual(run_command.call_args.args[0], ["git", "diff", "--exit-code"])
@@ -113,6 +114,7 @@ class RunLocalPrePushTests(unittest.TestCase):
             git="git",
             alr="alr",
             env={},
+            branch="codex/pr114-signature-control-flow-syntax",
         )
         run_command.assert_not_called()
 
@@ -142,10 +144,18 @@ class RunLocalPrePushTests(unittest.TestCase):
             run_local_pre_push,
             "verify_pipeline",
             return_value=0,
-        ):
+        ) as verify_pipeline:
             with redirect_stdout(io.StringIO()):
                 self.assertEqual(run_local_pre_push.main(), 0)
         current_branch.assert_called_once()
+        verify_pipeline.assert_called_once_with(
+            authority="local",
+            python="python3",
+            git="git",
+            alr="alr",
+            env={},
+            branch="codex/pr114-signature-control-flow-syntax",
+        )
 
     def test_main_noops_when_branch_has_no_enforced_plan(self) -> None:
         args = argparse.Namespace(branch="codex/misc-cleanup", dry_run=False, skip_diff=False)

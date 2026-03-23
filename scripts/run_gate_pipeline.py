@@ -600,16 +600,27 @@ def execute_pipeline(
     seed_pipeline_context: dict[str, Any] | None = None,
     checkpoint_root: Path | None = None,
     preflight_generated_output_baseline_file: Path | None = None,
+    nodes: tuple[Node, ...] | None = None,
 ) -> dict[str, Any]:
+    active_nodes = NODES if nodes is None else nodes
     pipeline_context: dict[str, Any] = dict(seed_pipeline_context or {})
     if write_generated_root is not None:
         prepare_generated_root(write_generated_root)
 
-    for node_index in execution_indices(
-        start_index=start_index,
-        rerun_preflight=preflight_generated_output_baseline_file is not None,
-    ):
-        node = NODES[node_index]
+    if nodes is None:
+        node_indices = execution_indices(
+            start_index=start_index,
+            rerun_preflight=preflight_generated_output_baseline_file is not None,
+        )
+    else:
+        require(
+            preflight_generated_output_baseline_file is None,
+            "branch-scoped execute_pipeline does not support rerun preflight",
+        )
+        node_indices = list(range(start_index, len(active_nodes)))
+
+    for node_index in node_indices:
+        node = active_nodes[node_index]
         node_started = time.monotonic()
         print_gate_pipeline(f"running: {node.id}")
         if node.kind is NodeKind.BUILD:
@@ -699,10 +710,14 @@ def verify_pipeline(
     alr: str,
     env: dict[str, str],
     initial_snapshot: str | None = None,
+    branch: str | None = None,
 ) -> int:
     verify_started = time.monotonic()
     if initial_snapshot is None:
         initial_snapshot = tracked_diff_snapshot(git=git, env=env)
+    nodes = tuple(resolve_branch(branch)) if branch is not None else None
+    if branch is not None:
+        require(nodes, f"no pipeline plan is defined for branch {branch}")
     with tempfile.TemporaryDirectory(prefix="gate-pipeline-verify-") as temp_root_str:
         temp_root = Path(temp_root_str)
         execute_pipeline(
@@ -716,6 +731,7 @@ def verify_pipeline(
             compare_root=None,
             compare_to_committed=True,
             initial_snapshot=initial_snapshot,
+            nodes=nodes,
         )
     print_gate_pipeline(f"verify complete ({format_elapsed(time.monotonic() - verify_started)})")
     print_gate_pipeline(f"verified ({authority})")

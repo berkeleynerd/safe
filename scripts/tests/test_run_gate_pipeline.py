@@ -225,6 +225,29 @@ class RunGatePipelineTests(unittest.TestCase):
                     )
         self.assertIn("gate pipeline changed tracked files during execution", str(exc.exception))
 
+    def test_verify_uses_branch_scoped_nodes_when_branch_is_provided(self) -> None:
+        branch_nodes = (
+            Node(id="validate_execution_state_preflight", kind=NodeKind.GATE, script=Path("/tmp/preflight.py")),
+        )
+        with mock.patch.object(run_gate_pipeline, "resolve_branch", return_value=list(branch_nodes)), mock.patch.object(
+            run_gate_pipeline,
+            "tracked_diff_snapshot",
+            return_value="",
+        ), mock.patch.object(run_gate_pipeline, "execute_pipeline", return_value={}) as execute_pipeline:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    run_gate_pipeline.verify_pipeline(
+                        authority="local",
+                        python="python3",
+                        git="git",
+                        alr="alr",
+                        env={},
+                        branch="codex/pr114-signature-control-flow-syntax",
+                    ),
+                    0,
+                )
+        self.assertEqual(execute_pipeline.call_args.kwargs["nodes"], branch_nodes)
+
     def test_verify_local_reuses_ci_authoritative_report_without_running_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             expected_path = Path(temp_dir) / "expected.json"

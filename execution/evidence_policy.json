@@ -108,7 +108,7 @@
         "GPRBUILD 25.0.0"
       ],
       "python_versions": [
-        "3.11"
+        "3.12"
       ],
       "toolchain_pins": {
         "gnat_native": "15.1.2",

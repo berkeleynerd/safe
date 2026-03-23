@@ -86,6 +86,19 @@ class Pr0697GateQualityTests(unittest.TestCase):
         )
         self.assertEqual(observed_count, 1)
 
+    def test_extract_observed_test_count_error_is_generic_and_informative(self) -> None:
+        with self.assertRaises(RuntimeError) as exc:
+            run_pr0697_gate_quality.extract_observed_test_count(stdout="stdout sample", stderr="stderr sample")
+        message = str(exc.exception)
+        self.assertIn("unable to determine observed unittest count", message)
+        self.assertIn("no match for pattern", message)
+        self.assertIn("test(?:s)? in <elapsed>", message)
+        self.assertIn("stderr length=13", message)
+        self.assertIn("stdout length=13", message)
+        self.assertIn("stderr excerpt='stderr sample'", message)
+        self.assertIn("stdout excerpt='stdout sample'", message)
+        self.assertNotIn("PR06.9.7", message)
+
 
 if __name__ == "__main__":
     unittest.main()

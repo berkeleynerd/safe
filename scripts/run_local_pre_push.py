@@ -63,7 +63,7 @@ def main() -> int:
         print("[pre-push] no enforced local gate chain for this branch")
         return 0
 
-    verify_pipeline(authority="local", python=python, git=git, alr=alr, env=env)
+    verify_pipeline(authority="local", python=python, git=git, alr=alr, env=env, branch=branch)
     if not args.skip_diff:
         run([git, "diff", "--exit-code"], cwd=REPO_ROOT, env=env)
     print("[pre-push] local gate chain passed")
