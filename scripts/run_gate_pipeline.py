@@ -413,7 +413,7 @@ def report_compare_text(
         payload = json.loads(report_text)
         normalized = {key: value for key, value in payload.items() if key != "machine_sensitive"}
         return json.dumps(normalized, indent=2, sort_keys=True) + "\n"
-    if authority == "local" and node.determinism_class is DeterminismClass.LOCAL_HOST_SENSITIVE:
+    if node.determinism_class is DeterminismClass.LOCAL_HOST_SENSITIVE:
         payload = json.loads(report_text)
         normalized = {
             key: value for key, value in payload.items() if key not in LOCAL_HOST_SENSITIVE_REPORT_KEYS

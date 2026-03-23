@@ -498,6 +498,65 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
             {run_pr0699_build_reproducibility.GATE_QUALITY_CHILD_NAME: "prior-hash"},
         )
 
+    def test_compute_gate_quality_input_hash_is_independent_of_binary_hash(self) -> None:
+        gate_quality_script = Path("/tmp/run_pr0697_gate_quality.py")
+        output_validator = Path("/tmp/validate_output_contracts.py")
+        fixture_file = Path("/tmp/fixture.safe")
+        digests = {
+            gate_quality_script: "script-hash",
+            output_validator: "validator-hash",
+            fixture_file: "fixture-hash",
+        }
+
+        def fake_sha256_file(path: Path) -> str:
+            return digests[path]
+
+        with mock.patch.object(
+            run_pr0699_build_reproducibility,
+            "GATE_QUALITY_SCRIPT",
+            gate_quality_script,
+        ), mock.patch.object(
+            run_pr0699_build_reproducibility,
+            "sha256_file",
+            side_effect=fake_sha256_file,
+        ), mock.patch.object(
+            run_pr0699_build_reproducibility,
+            "module_file_path",
+            side_effect=lambda module_name: Path(f"/tmp/{module_name}.py"),
+        ), mock.patch.object(
+            run_pr0699_build_reproducibility,
+            "gate_quality_fixture_files",
+            return_value=[fixture_file],
+        ), mock.patch.dict(
+            "sys.modules",
+            {
+                "run_pr0697_gate_quality": mock.Mock(
+                    EXPECTED_TEST_MODULES=("scripts.tests.test_alpha", "scripts.tests.test_beta"),
+                    OUTPUT_CONTRACT_FIXTURES=Path("/tmp/fixtures"),
+                    OUTPUT_VALIDATOR=output_validator,
+                )
+            },
+        ):
+            digests[Path("/tmp/scripts.tests.test_alpha.py")] = "alpha-hash"
+            digests[Path("/tmp/scripts.tests.test_beta.py")] = "beta-hash"
+            self.assertEqual(
+                run_pr0699_build_reproducibility.compute_gate_quality_input_hash(),
+                run_pr0699_build_reproducibility.sha256_text(
+                    "".join(
+                        [
+                            "script-hash",
+                            run_pr0699_build_reproducibility.sha256_text(
+                                "scripts.tests.test_alpha\nscripts.tests.test_beta"
+                            ),
+                            "alpha-hash",
+                            "beta-hash",
+                            "validator-hash",
+                            "fixture-hash",
+                        ]
+                    )
+                ),
+            )
+
     def test_generate_report_runs_child_gates_after_binary_skip(self) -> None:
         frontend_smoke = {
             "run": {"returncode": 0},
@@ -925,7 +984,7 @@ class Pr0699BuildReproducibilityTests(unittest.TestCase):
                 env={},
             )
 
-        hash_mock.assert_called_once_with(safec_binary_sha256="new-binary-hash")
+        hash_mock.assert_called_once_with()
         self.assertEqual(gate_mock.call_count, 3)
         self.assertEqual(
             report["child_gate_input_hashes"],

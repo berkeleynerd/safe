@@ -375,6 +375,31 @@ class RunGatePipelineTests(unittest.TestCase):
         self.assertNotIn("report_sha256", normalized_payload)
         self.assertNotIn("repeat_sha256", normalized_payload)
 
+    def test_report_compare_text_normalizes_host_sensitive_fields_for_ci(self) -> None:
+        node = Node(
+            id="pr0699_build_reproducibility",
+            kind=NodeKind.GATE,
+            report_path=Path("/tmp/pr0699.json"),
+            determinism_class=DeterminismClass.LOCAL_HOST_SENSITIVE,
+        )
+        payload = self._local_host_sensitive_payload(
+            safec_binary_sha256="a" * 64,
+            gate_quality_hash="b" * 64,
+            report_sha256="c" * 64,
+        )
+
+        normalized = run_gate_pipeline.report_compare_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            node=node,
+            authority="ci",
+        )
+
+        normalized_payload = json.loads(normalized)
+        self.assertNotIn("safec_binary_sha256", normalized_payload)
+        self.assertNotIn("child_gate_input_hashes", normalized_payload)
+        self.assertNotIn("report_sha256", normalized_payload)
+        self.assertNotIn("repeat_sha256", normalized_payload)
+
     def test_verify_local_accepts_local_host_sensitive_report_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             expected_path = Path(temp_dir) / "expected.json"
@@ -720,6 +745,42 @@ class RunGatePipelineTests(unittest.TestCase):
                 changed = run_gate_pipeline.changed_report_nodes(
                     generated_root=stage_root,
                     authority="local",
+                )
+        self.assertEqual(changed, [])
+
+    def test_changed_report_nodes_ignores_host_sensitive_only_drift_for_ci(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            stage_root = root / "stage"
+            stage_root.mkdir()
+            committed_path = root / "pr0699.json"
+            stage_path = stage_root / committed_path.name
+            self._write_report(
+                committed_path,
+                self._local_host_sensitive_payload(
+                    safec_binary_sha256="1" * 64,
+                    gate_quality_hash="2" * 64,
+                    report_sha256="3" * 64,
+                ),
+            )
+            self._write_report(
+                stage_path,
+                self._local_host_sensitive_payload(
+                    safec_binary_sha256="4" * 64,
+                    gate_quality_hash="5" * 64,
+                    report_sha256="6" * 64,
+                ),
+            )
+            node = Node(
+                id="pr0699_build_reproducibility",
+                kind=NodeKind.GATE,
+                report_path=committed_path,
+                determinism_class=DeterminismClass.LOCAL_HOST_SENSITIVE,
+            )
+            with mock.patch.object(run_gate_pipeline, "NODES", (node,)):
+                changed = run_gate_pipeline.changed_report_nodes(
+                    generated_root=stage_root,
+                    authority="ci",
                 )
         self.assertEqual(changed, [])
 

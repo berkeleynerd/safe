@@ -287,7 +287,7 @@ def gate_quality_fixture_files(fixtures_root: Path) -> list[Path]:
     )
 
 
-def compute_gate_quality_input_hash(*, safec_binary_sha256: str) -> str | None:
+def compute_gate_quality_input_hash() -> str | None:
     try:
         from run_pr0697_gate_quality import EXPECTED_TEST_MODULES, OUTPUT_CONTRACT_FIXTURES, OUTPUT_VALIDATOR
     except ImportError:
@@ -295,7 +295,6 @@ def compute_gate_quality_input_hash(*, safec_binary_sha256: str) -> str | None:
 
     try:
         digests = [
-            safec_binary_sha256,
             sha256_file(GATE_QUALITY_SCRIPT),
             sha256_text("\n".join(EXPECTED_TEST_MODULES)),
         ]
@@ -482,9 +481,7 @@ def generate_report(
         verbose=verbose,
     )
     require_repo_command(safec, "safec")
-    gate_quality_input_hash = compute_gate_quality_input_hash(
-        safec_binary_sha256=safec_binary_sha256
-    )
+    gate_quality_input_hash = compute_gate_quality_input_hash()
     report_safec_binary_sha256 = canonical_safec_binary_sha256(
         authority=authority,
         prior_report=prior_report,
