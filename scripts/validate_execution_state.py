@@ -6,15 +6,29 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Set
 
-from _lib.harness_common import serialize_report, sha256_text
+from _lib.harness_common import (
+    display_path,
+    ensure_deterministic_env,
+    evidence_policy_sha256,
+    finalize_deterministic_report,
+    find_command,
+    load_evidence_policy,
+    policy_metadata,
+    require,
+    resolve_generated_path,
+    run,
+    serialize_report,
+    sha256_text,
+    write_report,
+)
 from _lib.platform_assumptions import (
     DOCUMENTED_PYTHON_FORMS,
-    MACOS_SDK_DISCOVERY_FORMS,
     MASKED_PYTHON_INTERPRETERS,
     PATH_LOOKUP_POLICY_TEXT,
     SHELL_POLICY_TEXT,
@@ -157,6 +171,14 @@ REPORT_SYNC_SPECS = {
         },
     },
 }
+PR101_CHILD_REPORTS = {
+    "pr08_frontend_baseline": "execution/reports/pr08-frontend-baseline-report.json",
+    "pr09_ada_emission_baseline": "execution/reports/pr09-ada-emission-baseline-report.json",
+    "pr10_emitted_baseline": "execution/reports/pr10-emitted-baseline-report.json",
+    "emitted_hardening_regressions": "execution/reports/emitted-hardening-regressions-report.json",
+    "pr101a_companion_proof_verification": "execution/reports/pr101a-companion-proof-verification-report.json",
+    "pr101b_template_proof_verification": "execution/reports/pr101b-template-proof-verification-report.json",
+}
 PERFORMANCE_DOC_REQUIREMENTS = {
     "docs/frontend_scale_limits.md": [
         "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern",
@@ -274,7 +296,6 @@ ENVIRONMENT_DOC_REQUIREMENTS = {
         PATH_LOOKUP_POLICY_TEXT,
         TEMPDIR_POLICY_TEXT,
         SHELL_POLICY_TEXT,
-        *MACOS_SDK_DISCOVERY_FORMS,
         *DOCUMENTED_PYTHON_FORMS,
     ],
     "release/frontend_runtime_decision.md": [
@@ -283,13 +304,7 @@ ENVIRONMENT_DOC_REQUIREMENTS = {
         PATH_LOOKUP_POLICY_TEXT,
         TEMPDIR_POLICY_TEXT,
         SHELL_POLICY_TEXT,
-        *MACOS_SDK_DISCOVERY_FORMS,
         *DOCUMENTED_PYTHON_FORMS,
-    ],
-    "docs/macos_alire_toolchain_repair.md": [
-        "developer recovery procedure",
-        "not a compiler runtime dependency",
-        *MACOS_SDK_DISCOVERY_FORMS,
     ],
 }
 PORTABILITY_MODULE_REQUIREMENTS = {
@@ -334,6 +349,7 @@ PORTABILITY_PATH_LOOKUP_SCRIPTS = [
 ]
 GLUE_SAFETY_AUDITED_SCRIPTS = [
     "safe",
+    "scripts/_lib/gate_manifest.py",
     "scripts/run_frontend_smoke.py",
     "scripts/run_pr05_d27_harness.py",
     "scripts/run_pr06_ownership_harness.py",
@@ -377,6 +393,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
     "scripts/run_pr113a_proof_checkpoint1.py",
     "scripts/run_pr114_signature_control_flow_syntax.py",
+    "scripts/run_gate_pipeline.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
     "scripts/validate_ast_output.py",
@@ -456,10 +473,235 @@ PLATFORM_ASSUMPTIONS_IMPORT_PATTERN = (
     r"^\s*(?:from\s+_lib\.platform_assumptions\s+import\b|import\s+_lib\.platform_assumptions\b)"
 )
 MARKDOWN_LINK_PATTERN = re.compile(r"!?\[[^\]]+\]\(([^)]+)\)")
+EVIDENCE_POLICY = load_evidence_policy()
+EVIDENCE_POLICY_SHA256 = evidence_policy_sha256(EVIDENCE_POLICY)
+GENERATED_OUTPUTS_POLICY = EVIDENCE_POLICY["generated_outputs"]
+DOCUMENTATION_POLICY = EVIDENCE_POLICY["documentation_architecture"]
+PORTABILITY_POLICY = EVIDENCE_POLICY["portability"]
+GLUE_SAFETY_POLICY = EVIDENCE_POLICY["glue_safety"]
+ENVIRONMENT_POLICY = EVIDENCE_POLICY["environment"]
+EXECUTION_STATE_REPORT_PATH = REPO_ROOT / GENERATED_OUTPUTS_POLICY["reports_root"] / "execution-state-validation-report.json"
+EXECUTION_STATE_EVIDENCE = str(EXECUTION_STATE_REPORT_PATH.relative_to(REPO_ROOT))
+
+# Runtime values are policy-backed even though the historical literal defaults
+# remain above for audit readability and diff review.
+DOCUMENTATION_ARCHITECTURE_DOC_REQUIREMENTS = DOCUMENTATION_POLICY["doc_requirements"]
+DOCUMENTATION_ARCHITECTURE_REQUIRED_LINKS = DOCUMENTATION_POLICY["required_links"]
+DOCUMENTATION_ARCHITECTURE_STALE_MARKERS = DOCUMENTATION_POLICY["stale_markers"]
+PORTABILITY_MODULE_REQUIREMENTS = PORTABILITY_POLICY["module_requirements"]
+ENVIRONMENT_DOC_REQUIREMENTS = PORTABILITY_POLICY["doc_requirements"]
+PORTABILITY_TEMPDIR_SCRIPTS = PORTABILITY_POLICY["tempdir_scripts"]
+PORTABILITY_PATH_LOOKUP_SCRIPTS = PORTABILITY_POLICY["path_lookup_scripts"]
+GLUE_SAFETY_AUDITED_SCRIPTS = GLUE_SAFETY_POLICY["audited_scripts"]
+GLUE_SAFETY_REPORT_SCRIPTS = GLUE_SAFETY_POLICY["report_scripts"]
+GLUE_SAFETY_PATH_COMMANDS = tuple(GLUE_SAFETY_POLICY["path_commands"])
+GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = GLUE_SAFETY_POLICY["allowed_safe_source_readers"]
 
 
 def fail(message: str) -> None:
     raise ValueError(message)
+
+
+def generated_repo_path(path: Path, *, generated_root: Path | None) -> Path:
+    return resolve_generated_path(
+        path,
+        generated_root=generated_root,
+        policy=EVIDENCE_POLICY,
+        repo_root=REPO_ROOT,
+    )
+
+
+def policy_fields(*, sections: list[str]) -> dict[str, Any]:
+    return policy_metadata(policy_sha256=EVIDENCE_POLICY_SHA256, sections=sections)
+
+
+def normalize_generated_output_snapshot(text: str) -> str:
+    lines = [line for line in text.splitlines() if line]
+    lines.sort()
+    if not lines:
+        return ""
+    return "\n".join(lines) + "\n"
+
+
+def check_generated_output_cleanliness(
+    *,
+    env: dict[str, str],
+    expected_snapshot: str = "",
+) -> None:
+    git = find_command("git")
+    reports_root = Path(GENERATED_OUTPUTS_POLICY["reports_root"])
+    dashboard = Path(GENERATED_OUTPUTS_POLICY["dashboard"])
+    result = run(
+        [
+            git,
+            "status",
+            "--porcelain",
+            "--untracked-files=no",
+            "--",
+            str(reports_root),
+            str(dashboard),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+    )
+    actual_snapshot = normalize_generated_output_snapshot(result["stdout"])
+    expected_snapshot = normalize_generated_output_snapshot(expected_snapshot)
+    if actual_snapshot != expected_snapshot:
+        if expected_snapshot == "":
+            actual_lines = actual_snapshot.splitlines()
+            require(actual_lines, "expected dirty generated-output snapshot when preflight baseline is clean")
+            fail(
+                "ratchet-owned generated outputs must be clean before preflight:\n"
+                + "\n".join(actual_lines)
+                + "\nRecovery: accept ratchet artifact and commit the generated diffs, or restore "
+                "ratchet baseline before rerunning preflight."
+            )
+        fail(
+            "ratchet-owned generated outputs changed relative to the preflight baseline:\n"
+            f"expected:\n{expected_snapshot or '<clean>'}\n"
+            f"actual:\n{actual_snapshot or '<clean>'}"
+        )
+
+
+def read_generated_output_baseline(*, path: Path | None) -> str:
+    if path is None:
+        return ""
+    if not path.exists():
+        fail(
+            "--generated-output-baseline-file does not exist: "
+            f"{display_path(path, repo_root=REPO_ROOT)}"
+        )
+    return normalize_generated_output_snapshot(path.read_text(encoding="utf-8"))
+
+
+def run_preflight_phase(
+    *,
+    tracker: Dict[str, Any],
+    authority: str,
+    env: dict[str, str],
+    generated_output_baseline_file: Path | None = None,
+) -> dict[str, Any]:
+    expected_snapshot = read_generated_output_baseline(path=generated_output_baseline_file)
+    check_tracker_schema(tracker)
+    tasks = tracker["tasks"]
+    check_status_rules(tracker, tasks)
+    check_dependencies(tasks)
+    meta_sha = check_frozen_sha(tracker)
+    check_documented_sha(meta_sha)
+    check_test_distribution(tracker)
+    check_generated_output_cleanliness(env=env, expected_snapshot=expected_snapshot)
+    return {
+        "task": "execution-state",
+        "phase": "preflight",
+        "status": "ok",
+        "preconditions": check_environment_preconditions(authority=authority, env=env),
+        **policy_fields(sections=["environment"]),
+    }
+
+
+def require_sorted_strings(values: Sequence[str], *, label: str) -> None:
+    if list(values) != sorted(values):
+        fail(f"{label} must be sorted by repo-relative path")
+
+
+def tool_first_line(argv: list[str], *, env: dict[str, str]) -> str:
+    result = run(argv, cwd=REPO_ROOT, env=env)
+    line = result["stdout"].splitlines()[0].strip() if result["stdout"].splitlines() else ""
+    if not line:
+        fail(f"unable to determine tool version from {' '.join(argv)}")
+    return line
+
+
+def resolve_tool_command(*, authority: str, name: str) -> str:
+    toolchain_pins = ENVIRONMENT_POLICY[authority].get("toolchain_pins", {})
+    toolchain_root = Path.home() / ".local" / "share" / "alire" / "toolchains"
+    if name == "gnat":
+        pin = toolchain_pins.get("gnat_native")
+        if pin:
+            matches = sorted(toolchain_root.glob(f"gnat_native_{pin}_*/bin/gnat"))
+            if matches:
+                return str(matches[0])
+    elif name == "gprbuild":
+        pin = toolchain_pins.get("gprbuild")
+        if pin:
+            matches = sorted(toolchain_root.glob(f"gprbuild_{pin}_*/bin/gprbuild"))
+            if matches:
+                return str(matches[0])
+    elif name == "gnatprove":
+        fallback = Path.home() / ".alire" / "bin" / "gnatprove"
+        if fallback.exists():
+            return str(fallback)
+        return find_command(name, fallback=fallback)
+    return find_command(name)
+
+
+def normalized_python_version() -> str:
+    return f"{sys.version_info.major}.{sys.version_info.minor}"
+
+
+def check_environment_preconditions(*, authority: str, env: dict[str, str]) -> dict[str, Any]:
+    required_env = ENVIRONMENT_POLICY["required_env"]
+    env_violations: list[str] = []
+    for key, value in required_env.items():
+        if env.get(key) != value:
+            env_violations.append(f"{key}={env.get(key)!r} expected {value!r}")
+
+    python_versions = ENVIRONMENT_POLICY[authority]["python_versions"]
+    python_version = normalized_python_version()
+    if python_version not in python_versions:
+        fail(f"python {python_version} not permitted for authority {authority}: {python_versions}")
+
+    gnat_versions = ENVIRONMENT_POLICY[authority]["gnat_versions"]
+    gnat_version = tool_first_line([resolve_tool_command(authority=authority, name="gnat"), "--version"], env=env)
+    if not any(gnat_version.startswith(prefix) for prefix in gnat_versions):
+        fail(f"gnat version {gnat_version!r} not permitted for authority {authority}: {gnat_versions}")
+
+    gnatprove_versions = ENVIRONMENT_POLICY[authority]["gnatprove_versions"]
+    gnatprove_version = tool_first_line(
+        [resolve_tool_command(authority=authority, name="gnatprove"), "--version"],
+        env=env,
+    )
+    if not any(gnatprove_version.startswith(prefix) for prefix in gnatprove_versions):
+        fail(
+            f"gnatprove version {gnatprove_version!r} not permitted for authority {authority}: {gnatprove_versions}"
+        )
+
+    gprbuild_versions = ENVIRONMENT_POLICY[authority]["gprbuild_versions"]
+    gprbuild_version = tool_first_line(
+        [resolve_tool_command(authority=authority, name="gprbuild"), "--version"],
+        env=env,
+    )
+    if not any(gprbuild_version.startswith(prefix) for prefix in gprbuild_versions):
+        fail(
+            f"gprbuild version {gprbuild_version!r} not permitted for authority {authority}: {gprbuild_versions}"
+        )
+
+    alr_candidates = ENVIRONMENT_POLICY[authority]["alr_paths"]
+    alr_path = ""
+    for candidate in alr_candidates:
+        expanded = Path(candidate.replace("~", str(Path.home())))
+        try:
+            alr_path = find_command(expanded.name if candidate == "alr" else str(expanded), fallback=expanded)
+            break
+        except FileNotFoundError:
+            continue
+    if not alr_path:
+        fail(f"alr not found for authority {authority}: {alr_candidates}")
+
+    if env_violations:
+        fail(f"deterministic environment violations: {env_violations}")
+
+    return {
+        **policy_fields(sections=["environment"]),
+        "authority": authority,
+        "required_env": required_env,
+        "python_version": python_version,
+        "gnat_version": gnat_version,
+        "gnatprove_version": gnatprove_version,
+        "gprbuild_version": gprbuild_version,
+        "alr_path": alr_path,
+        "toolchain_pins": dict(ENVIRONMENT_POLICY[authority].get("toolchain_pins", {})),
+    }
 
 
 def _call_name(node: ast.AST) -> str | None:
@@ -497,6 +739,68 @@ def _safe_source_binding_name(
             if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str) and first_arg.value.endswith(".safe"):
                 return first_arg.value
     return None
+
+
+def _unwrap_str_call(node: ast.AST) -> ast.AST:
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "str"
+        and len(node.args) == 1
+        and not node.keywords
+    ):
+        return node.args[0]
+    return node
+
+
+def _repo_local_command_for_expr(
+    node: ast.AST,
+    *,
+    command_bindings: Dict[str, Set[str]],
+) -> str | None:
+    candidate = _unwrap_str_call(node)
+    if isinstance(candidate, ast.Name):
+        for command, bindings in command_bindings.items():
+            if candidate.id in bindings:
+                return command
+        return None
+    try:
+        candidate_text = ast.unparse(candidate)
+    except Exception:
+        return None
+    for command, patterns in GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS.items():
+        if any(re.search(pattern, candidate_text) for pattern in patterns):
+            return command
+    return None
+
+
+def _require_repo_command_info(
+    node: ast.AST,
+    *,
+    command_bindings: Dict[str, Set[str]],
+) -> tuple[str | None, str | None]:
+    if not isinstance(node, ast.Call) or _call_name(node.func) != "require_repo_command" or len(node.args) < 2:
+        return (None, None)
+
+    command_name: str | None = None
+    command_literal = node.args[1]
+    if isinstance(command_literal, ast.Constant) and isinstance(command_literal.value, str):
+        if command_literal.value in GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS:
+            command_name = command_literal.value
+
+    resolved_from_expr = _repo_local_command_for_expr(node.args[0], command_bindings=command_bindings)
+    if command_name is None:
+        command_name = resolved_from_expr
+    elif resolved_from_expr is not None and resolved_from_expr != command_name:
+        return (None, None)
+
+    if command_name is None:
+        return (None, None)
+
+    candidate = _unwrap_str_call(node.args[0])
+    if isinstance(candidate, ast.Name):
+        return (command_name, candidate.id)
+    return (command_name, None)
 
 
 def _local_markdown_links(text: str) -> list[str]:
@@ -630,9 +934,9 @@ def check_test_distribution(tracker: Dict[str, Any], *, tests_root: Path = REPO_
         fail(f"test distribution mismatch: expected {expected}, actual {actual}")
 
 
-def check_dashboard_freshness(tracker: Dict[str, Any]) -> None:
+def check_dashboard_freshness(tracker: Dict[str, Any], *, generated_root: Path | None = None) -> None:
     rendered = render_dashboard(tracker)
-    existing = DASHBOARD_PATH.read_text(encoding="utf-8")
+    existing = generated_repo_path(DASHBOARD_PATH, generated_root=generated_root).read_text(encoding="utf-8")
     if rendered != existing:
         fail("execution/dashboard.md is stale; run scripts/render_execution_status.py --write")
 
@@ -645,6 +949,7 @@ def finalized_report_sha(payload: Dict[str, Any]) -> str:
 def report_sync_report(
     *,
     repo_root: Path = REPO_ROOT,
+    generated_root: Path | None = None,
     report_specs: Dict[str, Dict[str, Any]] = REPORT_SYNC_SPECS,
 ) -> Dict[str, Any]:
     umbrella_reports = sorted(report_specs)
@@ -658,7 +963,7 @@ def report_sync_report(
 
     for umbrella_rel in umbrella_reports:
         spec = report_specs[umbrella_rel]
-        umbrella_path = repo_root / umbrella_rel
+        umbrella_path = generated_repo_path(repo_root / umbrella_rel, generated_root=generated_root)
         if not umbrella_path.exists():
             missing_files.append(umbrella_rel)
             continue
@@ -707,7 +1012,7 @@ def report_sync_report(
                 continue
             child_rel = expected_children[entry_id]
             child_reports_checked.add(child_rel)
-            child_path = repo_root / child_rel
+            child_path = generated_repo_path(repo_root / child_rel, generated_root=generated_root)
             if not child_path.exists():
                 missing_files.append(child_rel)
                 continue
@@ -753,9 +1058,10 @@ def report_sync_report(
 def check_report_sync(
     *,
     repo_root: Path = REPO_ROOT,
+    generated_root: Path | None = None,
     report_specs: Dict[str, Dict[str, Any]] = REPORT_SYNC_SPECS,
 ) -> None:
-    report = report_sync_report(repo_root=repo_root, report_specs=report_specs)
+    report = report_sync_report(repo_root=repo_root, generated_root=generated_root, report_specs=report_specs)
     if report["missing_files"]:
         fail(f"missing synchronized reports: {report['missing_files']}")
     if report["invalid_reports"]:
@@ -768,6 +1074,50 @@ def check_report_sync(
         fail(f"umbrella reports contain unexpected child entries: {report['unexpected_entries']}")
     if report["child_report_sha_mismatches"]:
         fail(f"umbrella reports reference stale child report hashes: {report['child_report_sha_mismatches']}")
+
+
+def check_pr101_report_sync(
+    *,
+    repo_root: Path = REPO_ROOT,
+    generated_root: Path | None = None,
+) -> None:
+    pr101_rel = "execution/reports/pr101-comprehensive-audit-report.json"
+    pr101_path = generated_repo_path(repo_root / pr101_rel, generated_root=generated_root)
+    payload = json.loads(pr101_path.read_text(encoding="utf-8"))
+    require(isinstance(payload, dict), f"{pr101_rel}: report root must be an object")
+    expected_sha = finalized_report_sha(payload)
+    if (
+        payload.get("deterministic") is not True
+        or payload.get("report_sha256") != expected_sha
+        or payload.get("repeat_sha256") != expected_sha
+    ):
+        fail(f"{pr101_rel}: expected report_sha256/repeat_sha256 {expected_sha}")
+
+    floor = payload.get("semantic_floor")
+    require(isinstance(floor, dict), f"{pr101_rel}: semantic_floor must be an object")
+    baseline_gate_hashes = floor.get("baseline_gate_hashes")
+    require(isinstance(baseline_gate_hashes, dict), f"{pr101_rel}: missing semantic_floor.baseline_gate_hashes")
+    child_report_hashes = floor.get("child_report_hashes")
+    require(isinstance(child_report_hashes, dict), f"{pr101_rel}: missing semantic_floor.child_report_hashes")
+
+    for node_id, child_rel in PR101_CHILD_REPORTS.items():
+        child_path = generated_repo_path(repo_root / child_rel, generated_root=generated_root)
+        child_payload = json.loads(child_path.read_text(encoding="utf-8"))
+        require(isinstance(child_payload, dict), f"{child_rel}: report root must be an object")
+        child_sha = finalized_report_sha(child_payload)
+        if (
+            child_payload.get("deterministic") is not True
+            or child_payload.get("report_sha256") != child_sha
+            or child_payload.get("repeat_sha256") != child_sha
+        ):
+            fail(f"{child_rel}: expected report_sha256/repeat_sha256 {child_sha}")
+
+        if node_id.startswith("pr101"):
+            recorded = child_report_hashes.get(node_id)
+            require(recorded == child_sha, f"{pr101_rel}: {node_id} hash mismatch")
+        else:
+            recorded = baseline_gate_hashes.get(node_id)
+            require(recorded == child_sha, f"{pr101_rel}: {node_id} hash mismatch")
 
 
 def find_nested_key_paths(value: Any, key: str, prefix: str = "") -> List[str]:
@@ -789,7 +1139,9 @@ def evidence_reproducibility_report(
     *,
     tracker: Dict[str, Any],
     repo_root: Path = REPO_ROOT,
+    generated_root: Path | None = None,
     forbidden_markers: Sequence[str] = EVIDENCE_FORBIDDEN_MARKERS,
+    ignored_evidence: Sequence[str] = (),
 ) -> Dict[str, Any]:
     evidence_files: List[str] = []
     missing_files: List[str] = []
@@ -797,16 +1149,17 @@ def evidence_reproducibility_report(
     tool_version_fields: List[str] = []
     marker_violations: List[str] = []
     seen: Set[str] = set()
+    ignored = set(ignored_evidence)
 
     for task in tracker.get("tasks", []):
         if task.get("status") != "done":
             continue
         for evidence in task.get("evidence", []):
-            if not evidence.endswith(".json") or evidence in seen:
+            if not evidence.endswith(".json") or evidence in seen or evidence in ignored:
                 continue
             seen.add(evidence)
             evidence_files.append(evidence)
-            path = repo_root / evidence
+            path = generated_repo_path(repo_root / evidence, generated_root=generated_root)
             if not path.exists():
                 missing_files.append(evidence)
                 continue
@@ -837,8 +1190,15 @@ def check_evidence_reproducibility(
     tracker: Dict[str, Any],
     *,
     repo_root: Path = REPO_ROOT,
+    generated_root: Path | None = None,
+    ignored_evidence: Sequence[str] = (),
 ) -> None:
-    report = evidence_reproducibility_report(tracker=tracker, repo_root=repo_root)
+    report = evidence_reproducibility_report(
+        tracker=tracker,
+        repo_root=repo_root,
+        generated_root=generated_root,
+        ignored_evidence=ignored_evidence,
+    )
     if report["missing_files"]:
         fail(f"missing evidence files: {report['missing_files']}")
     if report["noncanonical_files"]:
@@ -1045,7 +1405,7 @@ def environment_assumptions_report(
             tempdir_convention_violations.append(f"{relative_path}:missing")
             continue
         text = path.read_text(encoding="utf-8")
-        if "TemporaryDirectory(prefix=" not in text:
+        if "TemporaryDirectory(prefix=" not in text and "managed_scratch_root(" not in text:
             tempdir_convention_violations.append(relative_path)
 
     path_lookup_violations: List[str] = []
@@ -1168,6 +1528,7 @@ def performance_scale_sanity_report(
             if marker not in text:
                 doc_policy_violations.append(f"{relative_path}:{marker}")
     return {
+        **policy_fields(sections=["environment", "portability"]),
         "docs_scanned": docs_scanned,
         "missing_doc_files": missing_doc_files,
         "doc_policy_violations": doc_policy_violations,
@@ -1240,6 +1601,7 @@ def documentation_architecture_clarity_report(
                 unresolved_local_links.append(f"{relative_path}:{target}")
 
     return {
+        **policy_fields(sections=["documentation_architecture"]),
         "docs_scanned": docs_scanned,
         "missing_doc_files": missing_doc_files,
         "doc_policy_violations": doc_policy_violations,
@@ -1308,6 +1670,12 @@ def glue_script_safety_report(
         imported_os_shell_names: Dict[str, str] = {}
         imported_path_names: Set[str] = {"Path"}
         safe_source_bindings: Set[str] = set()
+        repo_local_command_bindings: Dict[str, Set[str]] = {
+            command: set() for command in GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS
+        }
+        validated_repo_local_command_bindings: Dict[str, Set[str]] = {
+            command: set() for command in GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS
+        }
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -1345,11 +1713,23 @@ def glue_script_safety_report(
                             imported_path_names.add(alias.asname or alias.name)
             elif isinstance(node, ast.Assign):
                 bound_name = _safe_source_binding_name(node.value, imported_path_names=imported_path_names)
-                if bound_name is None:
-                    continue
                 for target in node.targets:
                     if isinstance(target, ast.Name):
-                        safe_source_bindings.add(target.id)
+                        if bound_name is not None:
+                            safe_source_bindings.add(target.id)
+                        repo_local_command = _repo_local_command_for_expr(
+                            node.value,
+                            command_bindings=repo_local_command_bindings,
+                        )
+                        if repo_local_command is not None:
+                            repo_local_command_bindings[repo_local_command].add(target.id)
+                        required_command, _ = _require_repo_command_info(
+                            node.value,
+                            command_bindings=repo_local_command_bindings,
+                        )
+                        if required_command is not None:
+                            repo_local_command_bindings[required_command].add(target.id)
+                            validated_repo_local_command_bindings[required_command].add(target.id)
 
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
@@ -1435,6 +1815,24 @@ def glue_script_safety_report(
                         command = head.value
                         if command in path_commands and f'find_command("{command}")' not in text and f"find_command('{command}')" not in text:
                             command_lookup_violations.append(f"{relative_path}:{command}")
+                    repo_local_command = _repo_local_command_for_expr(
+                        head,
+                        command_bindings=repo_local_command_bindings,
+                    )
+                    if repo_local_command is not None:
+                        candidate = _unwrap_str_call(head)
+                        if not (
+                            isinstance(candidate, ast.Name)
+                            and candidate.id in validated_repo_local_command_bindings[repo_local_command]
+                        ):
+                            command_lookup_violations.append(f"{relative_path}:{repo_local_command}")
+
+            required_command, required_name = _require_repo_command_info(
+                node,
+                command_bindings=repo_local_command_bindings,
+            )
+            if required_command is not None and required_name is not None:
+                validated_repo_local_command_bindings[required_command].add(required_name)
 
             if relative_path not in allowed_safe_source_readers:
                 safe_reader_violation = False
@@ -1478,12 +1876,6 @@ def glue_script_safety_report(
             if not has_write:
                 report_helper_violations.append(f"{relative_path}:write_report")
 
-        for command, patterns in GLUE_SAFETY_REPO_LOCAL_COMMAND_PATTERNS.items():
-            if any(re.search(pattern, text) for pattern in patterns):
-                if "require_repo_command(" not in text:
-                    command_lookup_violations.append(f"{relative_path}:{command}")
-                break
-
         if relative_path in allowed_safe_source_readers:
             safe_source_readers.append(
                 {
@@ -1500,6 +1892,7 @@ def glue_script_safety_report(
             unauthorized_safe_source_readers.append(f"{relative_path}:read_expected_reason")
 
     return {
+        **policy_fields(sections=["glue_safety"]),
         "audited_scripts": list(audited_scripts),
         "report_scripts": list(report_scripts),
         "path_command_policy": list(path_commands),
@@ -1551,29 +1944,144 @@ def check_glue_script_safety(
         )
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tracker", type=Path, default=TRACKER_PATH)
-    args = parser.parse_args()
+POLICY_BACKED_REPORTS = [
+    REPO_ROOT / "execution" / "reports" / "pr06910-portability-environment-report.json",
+    REPO_ROOT / "execution" / "reports" / "pr06911-glue-script-safety-report.json",
+    REPO_ROOT / "execution" / "reports" / "pr06913-documentation-architecture-clarity-report.json",
+]
 
-    tracker = load_tracker(args.tracker)
-    check_tracker_schema(tracker)
-    tasks = tracker["tasks"]
-    check_status_rules(tracker, tasks)
-    check_dependencies(tasks)
+
+def check_policy_anchoring(*, generated_root: Path | None = None) -> list[str]:
+    violations: list[str] = []
+    for path in POLICY_BACKED_REPORTS:
+        resolved = generated_repo_path(path, generated_root=generated_root)
+        if not resolved.exists():
+            violations.append(f"missing {display_path(path, repo_root=REPO_ROOT)}")
+            continue
+        payload = json.loads(resolved.read_text(encoding="utf-8"))
+        if payload.get("policy_sha256") != EVIDENCE_POLICY_SHA256:
+            violations.append(f"{display_path(path, repo_root=REPO_ROOT)}:policy_sha256")
+        if not payload.get("policy_sections_used"):
+            violations.append(f"{display_path(path, repo_root=REPO_ROOT)}:policy_sections_used")
+    return violations
+
+
+def run_final_phase(
+    *,
+    tracker: Dict[str, Any],
+    authority: str,
+    env: dict[str, str],
+    generated_root: Path | None,
+) -> dict[str, Any]:
     meta_sha = check_frozen_sha(tracker)
     check_documented_sha(meta_sha)
-    check_test_distribution(tracker)
-    check_dashboard_freshness(tracker)
-    check_evidence_reproducibility(tracker)
-    check_report_sync()
+    check_dashboard_freshness(tracker, generated_root=generated_root)
+    check_report_sync(generated_root=generated_root)
+    check_pr101_report_sync(generated_root=generated_root)
+    # This report is being generated by the current invocation, so the pipeline
+    # validates it after write-out rather than requiring it to pre-exist here.
+    check_evidence_reproducibility(
+        tracker,
+        generated_root=generated_root,
+        ignored_evidence=(EXECUTION_STATE_EVIDENCE,),
+    )
     check_runtime_boundary()
     check_environment_assumptions()
     check_legacy_frontend_cleanup()
     check_glue_script_safety()
     check_performance_scale_sanity()
     check_documentation_architecture_clarity()
-    print("execution state: OK")
+    policy_violations = check_policy_anchoring(generated_root=generated_root)
+    if policy_violations:
+        fail(f"policy anchoring violations: {policy_violations}")
+    return {
+        "task": "execution-state",
+        "phase": "final",
+        "status": "ok",
+        # Authority selects which environment policy to validate during the
+        # current run, but it is not committed evidence for the final report.
+        # The generated root is transport state for staged verification. The
+        # committed report records logical evidence locations only.
+        "generated_root": None,
+        "dashboard_path": display_path(DASHBOARD_PATH, repo_root=REPO_ROOT),
+        "checks": {
+            "dashboard_fresh": True,
+            "evidence_reproducible": True,
+            "report_sync": True,
+            "runtime_boundary": True,
+            "environment_assumptions": True,
+            "legacy_frontend_cleanup": True,
+            "glue_script_safety": True,
+            "performance_scale_sanity": True,
+            "documentation_architecture_clarity": True,
+            "policy_anchoring": True,
+        },
+        **policy_fields(
+            sections=[
+                "environment",
+                "documentation_architecture",
+                "portability",
+                "glue_safety",
+            ]
+        ),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--tracker", type=Path, default=TRACKER_PATH)
+    parser.add_argument("--phase", choices=("full", "preflight", "final"), default="full")
+    parser.add_argument("--generated-root", type=Path)
+    parser.add_argument("--generated-output-baseline-file", type=Path)
+    parser.add_argument("--report", type=Path, default=EXECUTION_STATE_REPORT_PATH)
+    parser.add_argument("--authority", choices=("local", "ci"), default="local")
+    args = parser.parse_args()
+
+    env = ensure_deterministic_env(os.environ.copy(), required=ENVIRONMENT_POLICY["required_env"])
+    tracker = load_tracker(args.tracker)
+    if args.phase == "final" and args.generated_output_baseline_file is not None:
+        parser.error("--generated-output-baseline-file is only valid for --phase preflight or --phase full")
+    if args.phase == "preflight":
+        run_preflight_phase(
+            tracker=tracker,
+            authority=args.authority,
+            env=env,
+            generated_output_baseline_file=args.generated_output_baseline_file,
+        )
+        print("execution state preflight: OK")
+        return 0
+
+    if args.phase == "final":
+        report = finalize_deterministic_report(
+            lambda: run_final_phase(
+                tracker=tracker,
+                authority=args.authority,
+                env=env,
+                generated_root=args.generated_root,
+            ),
+            label="execution-state final validation",
+        )
+        write_report(args.report, report)
+        print(f"execution state final: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
+        return 0
+
+    run_preflight_phase(
+        tracker=tracker,
+        authority=args.authority,
+        env=env,
+        generated_output_baseline_file=args.generated_output_baseline_file,
+    )
+    report = finalize_deterministic_report(
+        lambda: run_final_phase(
+            tracker=tracker,
+            authority=args.authority,
+            env=env,
+            generated_root=args.generated_root,
+        ),
+        label="execution-state final validation",
+    )
+    write_report(args.report, report)
+    print(f"execution state: OK ({display_path(args.report, repo_root=REPO_ROOT)})")
     return 0
 
 

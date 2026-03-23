@@ -12,11 +12,17 @@ from typing import Any
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
+    evidence_policy_sha256,
     finalize_deterministic_report,
     find_command,
+    load_pipeline_input,
+    load_evidence_policy,
+    policy_metadata,
     require,
+    require_pipeline_result,
     require_repo_command,
     rerun_report_gate_and_compare,
+    reference_committed_report,
     run,
     write_report,
 )
@@ -28,20 +34,33 @@ COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = (
     REPO_ROOT / "execution" / "reports" / "pr06910-portability-environment-report.json"
 )
+EVIDENCE_POLICY = load_evidence_policy()
 
 RUNTIME_BOUNDARY_SCRIPT = REPO_ROOT / "scripts" / "run_pr0693_runtime_boundary.py"
 RUNTIME_BOUNDARY_REPORT = REPO_ROOT / "execution" / "reports" / "pr0693-runtime-boundary-report.json"
 NO_PYTHON_SCRIPT = REPO_ROOT / "scripts" / "run_pr068_ada_ast_emit_no_python.py"
 NO_PYTHON_REPORT = REPO_ROOT / "execution" / "reports" / "pr068-ada-ast-emit-no-python-report.json"
-VALIDATE_EXECUTION_STATE = REPO_ROOT / "scripts" / "validate_execution_state.py"
 MONITORED_PATHS = [
     REPO_ROOT / "compiler_impl" / "README.md",
     REPO_ROOT / "release" / "frontend_runtime_decision.md",
-    REPO_ROOT / "docs" / "macos_alire_toolchain_repair.md",
     RUNTIME_BOUNDARY_REPORT,
     NO_PYTHON_REPORT,
     REPO_ROOT / "execution" / "reports" / "pr06910-portability-environment-report.json",
 ]
+
+
+def pipeline_rerun(
+    *,
+    pipeline_input: dict[str, Any],
+    node_id: str,
+    script: Path,
+    committed_report_path: Path,
+) -> dict[str, Any]:
+    return reference_committed_report(
+        script=script,
+        committed_report_path=committed_report_path,
+        result=require_pipeline_result(pipeline_input, node_id=node_id),
+    )
 
 
 def repo_relative_paths(paths: list[Path]) -> list[str]:
@@ -102,42 +121,60 @@ def check_environment_report(report: dict[str, Any]) -> None:
     )
 
 
-def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(
+    *,
+    python: str,
+    env: dict[str, str],
+    pipeline_input: dict[str, Any],
+    generated_root: Path | None,
+) -> dict[str, Any]:
     environment_report = environment_assumptions_report()
     check_environment_report(environment_report)
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    with tempfile.TemporaryDirectory(prefix="pr06910-portability-") as temp_root_str:
-        temp_root = Path(temp_root_str)
-        runtime_boundary = rerun_report_gate_and_compare(
-            python=python,
+    if pipeline_input:
+        runtime_boundary = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0693_runtime_boundary",
             script=RUNTIME_BOUNDARY_SCRIPT,
             committed_report_path=RUNTIME_BOUNDARY_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
         )
-        no_python = rerun_report_gate_and_compare(
-            python=python,
+        no_python = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr068_ada_ast_emit_no_python",
             script=NO_PYTHON_SCRIPT,
             committed_report_path=NO_PYTHON_REPORT,
-            cwd=REPO_ROOT,
-            env=env,
-            temp_root=temp_root,
         )
-        execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
+    else:
+        with tempfile.TemporaryDirectory(prefix="pr06910-portability-") as temp_root_str:
+            temp_root = Path(temp_root_str)
+            runtime_boundary = rerun_report_gate_and_compare(
+                python=python,
+                script=RUNTIME_BOUNDARY_SCRIPT,
+                committed_report_path=RUNTIME_BOUNDARY_REPORT,
+                cwd=REPO_ROOT,
+                env=env,
+                temp_root=temp_root,
+            )
+            no_python = rerun_report_gate_and_compare(
+                python=python,
+                script=NO_PYTHON_SCRIPT,
+                committed_report_path=NO_PYTHON_REPORT,
+                cwd=REPO_ROOT,
+                env=env,
+                temp_root=temp_root,
+            )
 
     return {
+        **policy_metadata(
+            policy_sha256=evidence_policy_sha256(EVIDENCE_POLICY),
+            sections=["environment", "portability"],
+        ),
         "task": "PR06.9.10",
         "status": "ok",
         "environment_assumptions": environment_report,
         "reruns": {
             "runtime_boundary": runtime_boundary,
             "ast_emit_no_python": no_python,
-            "validate_execution_state": {
-                "command": execution_state["command"],
-                "cwd": execution_state["cwd"],
-                "returncode": execution_state["returncode"],
-            },
         },
         "monitored_paths": [display_path(path, repo_root=REPO_ROOT) for path in MONITORED_PATHS],
     }
@@ -146,6 +183,8 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--pipeline-input", type=Path)
+    parser.add_argument("--generated-root", type=Path)
     args = parser.parse_args()
 
     python = find_command("python3")
@@ -155,9 +194,15 @@ def main() -> int:
     initial_dirty = current_dirty_paths(git=git, paths=monitored_paths, env=env)
     compare_paths = [path for path in monitored_paths if path != args.report]
     initial_diff = current_dirty_diff(git=git, paths=compare_paths, env=env)
+    pipeline_input = load_pipeline_input(args.pipeline_input)
 
     report = finalize_deterministic_report(
-        lambda: generate_report(python=python, env=env),
+        lambda: generate_report(
+            python=python,
+            env=env,
+            pipeline_input=pipeline_input,
+            generated_root=args.generated_root,
+        ),
         label="PR06.9.10 portability and environment assumptions",
     )
     write_report(args.report, report)

@@ -1,0 +1,88 @@
+name: Setup Alire
+description: Install an arch-correct Alire binary, select the pinned toolchain, and install GNATprove.
+
+inputs:
+  alr-version:
+    description: Alire version to install
+    required: false
+    default: "2.1.0"
+  toolchain:
+    description: Toolchain releases to select with `alr toolchain --select`
+    required: false
+    default: "gnat_native=15.2.1 gprbuild=25.0.1"
+  gnatprove-version:
+    description: GNATprove version to install into the default Alire prefix
+    required: false
+    default: "15.1.0"
+
+runs:
+  using: composite
+  steps:
+    - name: Normalize cache key inputs
+      id: cache-key
+      shell: bash
+      run: |
+        set -euo pipefail
+        toolchain_key="$(printf '%s' '${{ inputs.toolchain }}' | sha256sum | cut -d' ' -f1)"
+        echo "toolchain_key=${toolchain_key}" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Alire state
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.config/alire
+          ~/.local/share/alire
+          ~/.alire
+        key: alire-${{ runner.os }}-${{ runner.arch }}-${{ inputs.alr-version }}-${{ inputs.gnatprove-version }}-${{ steps.cache-key.outputs.toolchain_key }}
+        restore-keys: |
+          alire-${{ runner.os }}-${{ runner.arch }}-${{ inputs.alr-version }}-${{ inputs.gnatprove-version }}-
+          alire-${{ runner.os }}-${{ runner.arch }}-${{ inputs.alr-version }}-
+
+    - name: Download Alire
+      id: install-alr
+      shell: bash
+      run: |
+        set -euo pipefail
+        case "$(uname -m)" in
+          aarch64|arm64)
+            asset_arch="aarch64"
+            ;;
+          x86_64|amd64)
+            asset_arch="x86_64"
+            ;;
+          *)
+            echo "unsupported architecture: $(uname -m)" >&2
+            exit 1
+            ;;
+        esac
+
+        archive="${RUNNER_TEMP}/alr-${{ inputs.alr-version }}-${asset_arch}-linux.zip"
+        install_root="${RUNNER_TEMP}/alr-${{ inputs.alr-version }}-${asset_arch}"
+        url="https://github.com/alire-project/alire/releases/download/v${{ inputs.alr-version }}/alr-${{ inputs.alr-version }}-bin-${asset_arch}-linux.zip"
+
+        rm -rf "${install_root}"
+        mkdir -p "${install_root}"
+        curl -fsSL "${url}" -o "${archive}"
+        unzip -q "${archive}" -d "${install_root}"
+
+        alr_path="$(find "${install_root}" -type f -name alr | head -n 1)"
+        if [[ -z "${alr_path}" ]]; then
+          echo "failed to locate alr after unpacking ${url}" >&2
+          exit 1
+        fi
+        chmod +x "${alr_path}"
+        echo "$(dirname "${alr_path}")" >> "$GITHUB_PATH"
+        echo "alr_path=${alr_path}" >> "$GITHUB_OUTPUT"
+
+    - name: Select toolchain and install GNATprove
+      shell: bash
+      run: |
+        set -euo pipefail
+        ALR_PATH='${{ steps.install-alr.outputs.alr_path }}'
+        TOOLCHAIN='${{ inputs.toolchain }}'
+        GNATPROVE_VERSION='${{ inputs.gnatprove-version }}'
+
+        read -r -a toolchain_args <<<"${TOOLCHAIN}"
+        "${ALR_PATH}" toolchain --select "${toolchain_args[@]}" --disable-assistant
+        "${ALR_PATH}" install "gnatprove=${GNATPROVE_VERSION}"
+        echo "${HOME}/.alire/bin" >> "$GITHUB_PATH"

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from _lib.harness_common import (
+    compact_result,
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
@@ -184,15 +185,6 @@ end Float_Subtype_Hardening;
         ],
     },
 ]
-
-
-def compact_result(result: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "command": result["command"],
-        "cwd": result["cwd"],
-        "returncode": result["returncode"],
-    }
-
 
 def require_fragments(text: str, fragments: list[str], *, label: str) -> list[str]:
     for fragment in fragments:

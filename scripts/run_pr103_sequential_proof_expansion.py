@@ -5,20 +5,25 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
 from _lib.gate_expectations import PR103_OWNERSHIP_PROOF_CASES
 from _lib.harness_common import (
+    assert_order,
+    assert_regexes,
+    assert_text_fragments,
+    compact_result,
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
+    managed_scratch_root,
+    normalize_source_text,
     require,
     write_report,
 )
+from _lib.proof_report import build_three_way_report, split_proof_fixtures
 from _lib.pr09_emit import (
     REPO_ROOT,
     compile_emitted_ada,
@@ -33,45 +38,10 @@ from _lib.pr103_sequential import normalized_source_fragments, ownership_proof_c
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr103-sequential-proof-expansion-report.json"
 
-
-def compact_result(result: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "command": result["command"],
-        "cwd": result["cwd"],
-        "returncode": result["returncode"],
-    }
-
-
-def normalize_source_text(text: str) -> str:
-    return " ".join(text.split())
-
-
 def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list[str]:
     normalized = normalize_source_text(path.read_text(encoding="utf-8"))
     for fragment in fragments:
         require(fragment in normalized, f"{display_path(path, repo_root=REPO_ROOT)} missing source fragment: {fragment}")
-    return fragments
-
-
-def assert_text_fragments(*, text: str, fragments: list[str], label: str) -> list[str]:
-    for fragment in fragments:
-        require(fragment in text, f"{label} missing required fragment: {fragment}")
-    return fragments
-
-
-def assert_regexes(*, text: str, patterns: list[str], label: str) -> list[str]:
-    for pattern in patterns:
-        require(re.search(pattern, text, flags=re.MULTILINE) is not None, f"{label} missing required pattern: {pattern}")
-    return patterns
-
-
-def assert_order(*, text: str, fragments: list[str], label: str) -> list[str]:
-    cursor = -1
-    for fragment in fragments:
-        index = text.find(fragment, cursor + 1)
-        require(index >= 0, f"{label} missing ordered fragment: {fragment}")
-        require(index > cursor, f"{label} fragment out of order: {fragment}")
-        cursor = index
     return fragments
 
 
@@ -128,6 +98,14 @@ def run_fixture(item: dict[str, Any], *, env: dict[str, str], temp_root: Path) -
         mode="prove",
     )
     require(
+        flow_result["summary"]["total"]["justified"]["count"] == 0,
+        f"{repo_arg(source)}: flow justified checks must be zero",
+    )
+    require(
+        flow_result["summary"]["total"]["unproved"]["count"] == 0,
+        f"{repo_arg(source)}: flow unproved checks must be zero",
+    )
+    require(
         prove_result["summary"]["total"]["justified"]["count"] == 0,
         f"{repo_arg(source)}: justified checks must be zero",
     )
@@ -160,28 +138,37 @@ def run_fixture(item: dict[str, Any], *, env: dict[str, str], temp_root: Path) -
     }
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     require_safec()
     corpus = ownership_proof_corpus()
-    with tempfile.TemporaryDirectory(prefix="pr103-sequential-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr103-sequential-") as temp_root:
         fixtures = [run_fixture(item, env=env, temp_root=temp_root) for item in corpus]
-    return {
-        "task": "PR10.3",
-        "status": "ok",
-        "corpus_contract": verify_corpus_contract(corpus),
-        "fixtures": fixtures,
-    }
+    semantic_floor, canonical_fixtures, machine_fixtures = split_proof_fixtures(fixtures)
+    return build_three_way_report(
+        identity={
+            "task": "PR10.3",
+            "status": "ok",
+        },
+        semantic_floor=semantic_floor,
+        canonical_proof_detail={
+            "corpus_contract": verify_corpus_contract(corpus),
+            "fixtures": canonical_fixtures,
+        },
+        machine_sensitive={
+            "fixtures": machine_fixtures,
+        },
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(env=env),
+        lambda: generate_report(env=env, scratch_root=args.scratch_root),
         label="PR10.3 ownership proof expansion",
     )
     write_report(args.report, report)

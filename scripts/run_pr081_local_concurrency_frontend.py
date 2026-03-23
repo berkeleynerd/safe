@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import tempfile
@@ -22,6 +21,7 @@ from _lib.harness_common import (
     require,
     require_repo_command,
     run,
+    stable_emitted_artifact_sha256,
     write_report,
 )
 
@@ -211,10 +211,6 @@ def ensure_no_emit_artifacts(out_dir: Path, iface_dir: Path, label: str) -> dict
     require(not out_files, f"{label}: emit unexpectedly wrote output artifacts {out_files}")
     require(not iface_files, f"{label}: emit unexpectedly wrote interface artifacts {iface_files}")
     return {"out_files": out_files, "iface_files": iface_files}
-
-
-def sha256_path(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def graph_by_name(mir_payload: dict[str, Any], name: str) -> dict[str, Any]:
@@ -759,7 +755,12 @@ def run_deterministic_emit(
             temp_root=temp_root,
         )
         paths = emitted_paths(root, sample)
-        hashes.append({name: sha256_path(path) for name, path in paths.items()})
+        hashes.append(
+            {
+                name: stable_emitted_artifact_sha256(path, temp_root=temp_root)
+                for name, path in paths.items()
+            }
+        )
 
     require(hashes[0] == hashes[1], f"{sample.name}: repeated emit drifted")
     return {"sample": repo_arg(sample), "hashes": hashes[0]}

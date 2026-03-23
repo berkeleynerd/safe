@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
@@ -23,6 +22,7 @@ from _lib.harness_common import (
     require,
     require_repo_command,
     run,
+    stable_emitted_artifact_sha256,
     write_report,
 )
 
@@ -59,17 +59,6 @@ def emitted_paths(root: Path, sample: Path) -> dict[str, Path]:
         f"out/{stem}.mir.json": root / "out" / f"{stem}.mir.json",
         f"iface/{stem}.safei.json": root / "iface" / f"{stem}.safei.json",
     }
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(65536)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def run_golden_mode(safec: Path, env: dict[str, str], temp_root: Path) -> list[dict[str, Any]]:
@@ -165,7 +154,7 @@ def run_determinism_checks(safec: Path, env: dict[str, str], temp_root: Path) ->
             left_bytes = left.read_bytes()
             right_bytes = right.read_bytes()
             require(left_bytes == right_bytes, f"non-deterministic emit output for {sample.name}::{relative}")
-            sample_hashes[relative] = sha256(left)
+            sample_hashes[relative] = stable_emitted_artifact_sha256(left, temp_root=temp_root)
         report[str(sample.relative_to(REPO_ROOT))] = sample_hashes
     return report
 

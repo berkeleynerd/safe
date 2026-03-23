@@ -4,21 +4,32 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
 from _lib.harness_common import (
+    canonicalize_serialized_child_result,
     compiler_build_argv,
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
     find_command,
+    frontend_build_input_hash,
+    generated_output_paths,
+    load_pipeline_input,
+    load_evidence_policy,
     require,
+    require_pipeline_report,
+    require_pipeline_result,
     require_repo_command,
+    resolve_generated_path,
     run,
+    sha256_file,
     stable_binary_sha256,
     write_report,
 )
@@ -27,6 +38,8 @@ from _lib.harness_common import (
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr0699-build-reproducibility-report.json"
+EVIDENCE_POLICY = load_evidence_policy()
+REPORTS_ROOT_REL, _ = generated_output_paths(EVIDENCE_POLICY)
 
 FRONTEND_SMOKE_SCRIPT = REPO_ROOT / "scripts" / "run_frontend_smoke.py"
 FRONTEND_SMOKE_REPORT = REPO_ROOT / "execution" / "reports" / "pr00-pr04-frontend-smoke.json"
@@ -35,6 +48,16 @@ GATE_QUALITY_REPORT = REPO_ROOT / "execution" / "reports" / "pr0697-gate-quality
 LEGACY_CLEANUP_SCRIPT = REPO_ROOT / "scripts" / "run_pr0698_legacy_package_cleanup.py"
 LEGACY_CLEANUP_REPORT = REPO_ROOT / "execution" / "reports" / "pr0698-legacy-package-cleanup-report.json"
 VALIDATE_EXECUTION_STATE = REPO_ROOT / "scripts" / "validate_execution_state.py"
+GATE_QUALITY_CHILD_NAME = "gate_quality"
+
+
+def format_elapsed(seconds: float) -> str:
+    return f"{seconds:.1f}s"
+
+
+def log_progress(*, verbose: bool, message: str) -> None:
+    if verbose:
+        print(message)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -90,7 +113,13 @@ def clean_frontend_build_outputs(safec: Path) -> None:
     (COMPILER_ROOT / "alire" / "tmp").mkdir(parents=True, exist_ok=True)
 
 
-def run_build_reproducibility(*, alr: str, safec: Path, env: dict[str, str]) -> dict[str, Any]:
+def run_build_reproducibility(
+    *,
+    alr: str,
+    safec: Path,
+    build_input_hash: str,
+    env: dict[str, str],
+) -> tuple[dict[str, Any], str]:
     clean_frontend_build_outputs(safec)
     first_build = run(compiler_build_argv(alr), cwd=COMPILER_ROOT, env=env)
     require(safec.exists(), f"expected built compiler at {safec}")
@@ -105,12 +134,230 @@ def run_build_reproducibility(*, alr: str, safec: Path, env: dict[str, str]) -> 
         "PR06.9.9 build reproducibility: normalized compiler payload changed between clean rebuilds",
     )
 
+    return (
+        {
+            "command": first_build["command"],
+            "cwd": first_build["cwd"],
+            "returncodes": [first_build["returncode"], second_build["returncode"]],
+            "binary_path": display_path(safec, repo_root=REPO_ROOT),
+            "binary_deterministic": True,
+            "build_input_hash": build_input_hash,
+        },
+        second_binary_sha256,
+    )
+
+
+def infer_generated_root(*, report_path: Path) -> Path | None:
+    if not report_path.is_absolute():
+        return None
+    try:
+        report_path.relative_to(REPO_ROOT)
+        return None
+    except ValueError:
+        pass
+    report_rel = DEFAULT_REPORT.relative_to(REPO_ROOT)
+    if report_path.parts[-len(report_rel.parts):] != report_rel.parts:
+        return None
+    return report_path.parents[len(REPORTS_ROOT_REL.parts)]
+
+
+def load_prior_report(*, generated_root: Path | None) -> dict[str, Any] | None:
+    if generated_root is not None:
+        generated_report_path = resolve_generated_path(
+            DEFAULT_REPORT,
+            generated_root=generated_root,
+            policy=EVIDENCE_POLICY,
+            repo_root=REPO_ROOT,
+        )
+        if generated_report_path.exists():
+            return load_json(generated_report_path)
+    if DEFAULT_REPORT.exists():
+        return load_json(DEFAULT_REPORT)
+    return None
+
+
+def canonical_safec_binary_sha256(
+    *,
+    authority: str,
+    prior_report: dict[str, Any] | None,
+    observed_binary_sha256: str,
+) -> str:
+    if authority == "local" and prior_report is not None:
+        prior_binary_sha256 = prior_report.get("safec_binary_sha256")
+        if isinstance(prior_binary_sha256, str):
+            return prior_binary_sha256
+    return observed_binary_sha256
+
+
+def canonical_child_gate_input_hashes(
+    *,
+    authority: str,
+    prior_report: dict[str, Any] | None,
+    gate_quality_input_hash: str | None,
+) -> dict[str, str | None]:
+    if authority == "local" and prior_report is not None:
+        prior_hashes = prior_report.get("child_gate_input_hashes")
+        if isinstance(prior_hashes, dict):
+            prior_hash = prior_hashes.get(GATE_QUALITY_CHILD_NAME)
+            if prior_hash is None or isinstance(prior_hash, str):
+                return {GATE_QUALITY_CHILD_NAME: prior_hash}
+    return {GATE_QUALITY_CHILD_NAME: gate_quality_input_hash}
+
+
+def resolve_build_reproducibility(
+    *,
+    alr: str,
+    safec: Path,
+    prior_report: dict[str, Any] | None,
+    build_cache: dict[str, Any] | None,
+    env: dict[str, str],
+    verbose: bool = False,
+) -> tuple[dict[str, Any], str]:
+    hash_check_started = time.monotonic()
+    current_build_input_hash = compute_build_input_hash(alr=alr)
+    if safec.exists() and build_cache is not None:
+        cached_build_reproducibility = build_cache.get("build_reproducibility")
+        cached_binary_sha256 = build_cache.get("observed_binary_sha256")
+        if (
+            isinstance(cached_build_reproducibility, dict)
+            and cached_build_reproducibility.get("build_input_hash") == current_build_input_hash
+            and isinstance(cached_binary_sha256, str)
+        ):
+            log_progress(
+                verbose=verbose,
+                message=(
+                    "[pr0699] build inputs unchanged, skipping reproducibility rebuild "
+                    f"({format_elapsed(time.monotonic() - hash_check_started)} hash check)"
+                ),
+            )
+            return cached_build_reproducibility, cached_binary_sha256
+
+    if safec.exists() and prior_report is not None:
+        prior_build_reproducibility = prior_report.get("build_reproducibility")
+        if (
+            isinstance(prior_build_reproducibility, dict)
+            and prior_build_reproducibility.get("build_input_hash") == current_build_input_hash
+            and prior_build_reproducibility.get("binary_deterministic") is True
+        ):
+            current_binary_sha256 = stable_binary_sha256(safec)
+            if build_cache is not None:
+                build_cache["build_reproducibility"] = prior_build_reproducibility
+                build_cache["observed_binary_sha256"] = current_binary_sha256
+            log_progress(
+                verbose=verbose,
+                message=(
+                    "[pr0699] build inputs unchanged, skipping reproducibility rebuild "
+                    f"({format_elapsed(time.monotonic() - hash_check_started)} hash check)"
+                ),
+            )
+            return prior_build_reproducibility, current_binary_sha256
+    rebuild_started = time.monotonic()
+    rebuild_result = run_build_reproducibility(
+        alr=alr,
+        safec=safec,
+        build_input_hash=current_build_input_hash,
+        env=env,
+    )
+    if build_cache is not None:
+        build_cache["build_reproducibility"] = rebuild_result[0]
+        build_cache["observed_binary_sha256"] = rebuild_result[1]
+    log_progress(
+        verbose=verbose,
+        message=f"[pr0699] full reproducibility rebuild ({format_elapsed(time.monotonic() - rebuild_started)})",
+    )
+    return rebuild_result
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def compute_build_input_hash(*, alr: str) -> str:
+    return frontend_build_input_hash(alr=alr)
+
+
+def module_file_path(module_name: str) -> Path:
+    return REPO_ROOT / Path(*module_name.split(".")).with_suffix(".py")
+
+
+def gate_quality_fixture_files(fixtures_root: Path) -> list[Path]:
+    return sorted(
+        [path for path in fixtures_root.rglob("*") if path.is_file()],
+        key=lambda path: str(path.relative_to(REPO_ROOT)),
+    )
+
+
+def compute_gate_quality_input_hash() -> str | None:
+    try:
+        from run_pr0697_gate_quality import EXPECTED_TEST_MODULES, OUTPUT_CONTRACT_FIXTURES, OUTPUT_VALIDATOR
+    except ImportError:
+        return None
+
+    try:
+        digests = [
+            sha256_file(GATE_QUALITY_SCRIPT),
+            sha256_text("\n".join(EXPECTED_TEST_MODULES)),
+        ]
+        for module_name in EXPECTED_TEST_MODULES:
+            digests.append(sha256_file(module_file_path(module_name)))
+        digests.append(sha256_file(OUTPUT_VALIDATOR))
+        for fixture_path in gate_quality_fixture_files(OUTPUT_CONTRACT_FIXTURES):
+            digests.append(sha256_file(fixture_path))
+    except FileNotFoundError:
+        return None
+    return sha256_text("".join(digests))
+
+
+def resolve_gate_quality_result(
+    *,
+    python: str,
+    generated_root: Path | None,
+    env: dict[str, str],
+    prior_report: dict[str, Any] | None,
+    gate_quality_input_hash: str | None,
+    verbose: bool = False,
+) -> dict[str, Any]:
+    hash_check_started = time.monotonic()
+    if prior_report is not None and gate_quality_input_hash is not None:
+        prior_hashes = prior_report.get("child_gate_input_hashes")
+        prior_delegated_reports = prior_report.get("delegated_reports")
+        if isinstance(prior_hashes, dict) and isinstance(prior_delegated_reports, dict):
+            prior_hash = prior_hashes.get(GATE_QUALITY_CHILD_NAME)
+            prior_gate_quality = prior_delegated_reports.get(GATE_QUALITY_CHILD_NAME)
+            if prior_hash == gate_quality_input_hash and isinstance(prior_gate_quality, dict):
+                log_progress(
+                    verbose=verbose,
+                    message=(
+                        "[pr0699] gate_quality inputs unchanged, reusing cached result "
+                        f"({format_elapsed(time.monotonic() - hash_check_started)} hash check)"
+                    ),
+                )
+                return prior_gate_quality
+    return run_gate_script(
+        python=python,
+        script=GATE_QUALITY_SCRIPT,
+        report_path=GATE_QUALITY_REPORT,
+        generated_root=generated_root,
+        env=env,
+    )
+
+
+def canonicalize_generated_gate_result(
+    *,
+    result: dict[str, Any],
+    report_path: Path,
+) -> dict[str, Any]:
+    command = list(result["command"])
+    if "--report" in command:
+        index = command.index("--report")
+        del command[index:index + 2]
+    logical_report_path = display_path(report_path, repo_root=REPO_ROOT)
+    temp_report_path = f"$TMPDIR/{report_path.relative_to(REPO_ROOT)}"
     return {
-        "command": first_build["command"],
-        "cwd": first_build["cwd"],
-        "returncodes": [first_build["returncode"], second_build["returncode"]],
-        "binary_path": display_path(safec, repo_root=REPO_ROOT),
-        "binary_deterministic": True,
+        **result,
+        "command": command,
+        "stdout": result["stdout"].replace(temp_report_path, logical_report_path),
+        "stderr": result["stderr"].replace(temp_report_path, logical_report_path),
     }
 
 
@@ -119,11 +366,27 @@ def run_gate_script(
     python: str,
     script: Path,
     report_path: Path,
+    generated_root: Path | None,
     env: dict[str, str],
 ) -> dict[str, Any]:
-    result = run([python, str(script)], cwd=REPO_ROOT, env=env)
-    require(report_path.exists(), f"expected report at {report_path}")
-    report = load_json(report_path)
+    generated_report_path = resolve_generated_path(
+        report_path,
+        generated_root=generated_root,
+        policy=EVIDENCE_POLICY,
+        repo_root=REPO_ROOT,
+    )
+    if generated_root is None:
+        result = run([python, str(script)], cwd=REPO_ROOT, env=env)
+    else:
+        result = run(
+            [python, str(script), "--report", str(generated_report_path)],
+            cwd=REPO_ROOT,
+            env=env,
+            temp_root=generated_root,
+        )
+        result = canonicalize_generated_gate_result(result=result, report_path=report_path)
+    require(generated_report_path.exists(), f"expected report at {generated_report_path}")
+    report = load_json(generated_report_path)
     require(report.get("deterministic") is True, f"{report_path.name}: expected deterministic report")
     require(
         report.get("report_sha256") == report.get("repeat_sha256"),
@@ -137,44 +400,131 @@ def run_gate_script(
     }
 
 
-def generate_report(*, python: str, alr: str, safec: Path, env: dict[str, str]) -> dict[str, Any]:
-    build_reproducibility = run_build_reproducibility(alr=alr, safec=safec, env=env)
-    require_repo_command(safec, "safec")
+def pipeline_frontend_smoke(*, pipeline_input: dict[str, Any]) -> dict[str, Any]:
+    result = canonicalize_serialized_child_result(
+        require_pipeline_result(pipeline_input, node_id="frontend_smoke"),
+        committed_report_path=FRONTEND_SMOKE_REPORT,
+        repo_root=REPO_ROOT,
+    )
+    report = require_pipeline_report(pipeline_input, node_id="frontend_smoke")
+    require(report.get("deterministic") is True, "frontend smoke pipeline report must be deterministic")
+    require(
+        report.get("report_sha256") == report.get("repeat_sha256"),
+        "frontend smoke pipeline report hashes must match",
+    )
+    return {
+        "run": result,
+        "report_path": display_path(FRONTEND_SMOKE_REPORT, repo_root=REPO_ROOT),
+        "report_sha256": report["report_sha256"],
+        "repeat_sha256": report["repeat_sha256"],
+        "binary_deterministic": True,
+    }
+
+
+def resolve_frontend_smoke_result(
+    *,
+    python: str,
+    generated_root: Path | None,
+    env: dict[str, str],
+    pipeline_input: dict[str, Any],
+    verbose: bool = False,
+) -> dict[str, Any]:
+    if pipeline_input:
+        log_progress(verbose=verbose, message="[pr0699] reusing pipeline frontend_smoke result")
+        return pipeline_frontend_smoke(pipeline_input=pipeline_input)
 
     frontend_smoke = run_gate_script(
         python=python,
         script=FRONTEND_SMOKE_SCRIPT,
         report_path=FRONTEND_SMOKE_REPORT,
+        generated_root=generated_root,
         env=env,
     )
-    frontend_smoke_report = load_json(FRONTEND_SMOKE_REPORT)
+    frontend_smoke_report = load_json(
+        resolve_generated_path(
+            FRONTEND_SMOKE_REPORT,
+            generated_root=generated_root,
+            policy=EVIDENCE_POLICY,
+            repo_root=REPO_ROOT,
+        )
+    )
     require(
         frontend_smoke_report["build"]["binary_deterministic"] is True,
         "frontend smoke report must record a deterministic binary",
     )
+    return {
+        **frontend_smoke,
+        "binary_deterministic": frontend_smoke_report["build"]["binary_deterministic"],
+    }
 
-    gate_quality = run_gate_script(
-        python=python,
-        script=GATE_QUALITY_SCRIPT,
-        report_path=GATE_QUALITY_REPORT,
+
+def generate_report(
+    *,
+    python: str,
+    alr: str,
+    safec: Path,
+    generated_root: Path | None,
+    authority: str = "ci",
+    env: dict[str, str],
+    pipeline_input: dict[str, Any] | None = None,
+    build_cache: dict[str, Any] | None = None,
+    verbose: bool = False,
+) -> dict[str, Any]:
+    pipeline_input = pipeline_input or {}
+    prior_report = load_prior_report(generated_root=generated_root)
+    build_reproducibility, safec_binary_sha256 = resolve_build_reproducibility(
+        alr=alr,
+        safec=safec,
+        prior_report=prior_report,
+        build_cache=build_cache,
         env=env,
+        verbose=verbose,
+    )
+    require_repo_command(safec, "safec")
+    gate_quality_input_hash = compute_gate_quality_input_hash()
+    report_safec_binary_sha256 = canonical_safec_binary_sha256(
+        authority=authority,
+        prior_report=prior_report,
+        observed_binary_sha256=safec_binary_sha256,
+    )
+    report_child_gate_input_hashes = canonical_child_gate_input_hashes(
+        authority=authority,
+        prior_report=prior_report,
+        gate_quality_input_hash=gate_quality_input_hash,
+    )
+
+    frontend_smoke = resolve_frontend_smoke_result(
+        python=python,
+        generated_root=generated_root,
+        env=env,
+        pipeline_input=pipeline_input,
+        verbose=verbose,
+    )
+
+    gate_quality = resolve_gate_quality_result(
+        python=python,
+        generated_root=generated_root,
+        env=env,
+        prior_report=prior_report,
+        gate_quality_input_hash=gate_quality_input_hash,
+        verbose=verbose,
     )
     legacy_cleanup = run_gate_script(
         python=python,
         script=LEGACY_CLEANUP_SCRIPT,
         report_path=LEGACY_CLEANUP_REPORT,
+        generated_root=generated_root,
         env=env,
     )
 
     return {
         "task": "PR06.9.9",
         "status": "ok",
+        "safec_binary_sha256": report_safec_binary_sha256,
+        "child_gate_input_hashes": report_child_gate_input_hashes,
         "build_reproducibility": build_reproducibility,
         "delegated_reports": {
-            "frontend_smoke": {
-                **frontend_smoke,
-                "binary_deterministic": frontend_smoke_report["build"]["binary_deterministic"],
-            },
+            "frontend_smoke": frontend_smoke,
             "gate_quality": gate_quality,
             "legacy_package_cleanup": legacy_cleanup,
         },
@@ -184,30 +534,59 @@ def generate_report(*, python: str, alr: str, safec: Path, env: dict[str, str]) 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--pipeline-input", type=Path)
+    parser.add_argument("--generated-root", type=Path)
+    parser.add_argument("--authority", choices=("local", "ci"), default="local")
+    parser.add_argument("--verbose", action="store_true", help="emit cache/reuse progress logs")
     args = parser.parse_args()
 
     python = find_command("python3")
     alr = find_command("alr", Path.home() / "bin" / "alr")
     env = ensure_sdkroot(os.environ.copy())
     safec = COMPILER_ROOT / "bin" / "safec"
+    generated_root = args.generated_root or infer_generated_root(report_path=args.report)
+    pipeline_input = load_pipeline_input(args.pipeline_input)
     report_paths = [
         FRONTEND_SMOKE_REPORT,
         GATE_QUALITY_REPORT,
         LEGACY_CLEANUP_REPORT,
         args.report,
     ]
-    initial_dirty = current_dirty_report_paths(paths=report_paths, env=env)
-    compare_paths = [path for path in report_paths if path != args.report]
-    initial_diff = current_dirty_report_diff(paths=compare_paths, env=env)
+    if generated_root is None:
+        initial_dirty = current_dirty_report_paths(paths=report_paths, env=env)
+        compare_paths = [path for path in report_paths if path != args.report]
+        initial_diff = current_dirty_report_diff(paths=compare_paths, env=env)
+    else:
+        initial_dirty = []
+        compare_paths = []
+        initial_diff = ""
 
+    build_cache: dict[str, Any] = {}
     report = finalize_deterministic_report(
-        lambda: generate_report(python=python, alr=alr, safec=safec, env=env),
+        lambda: generate_report(
+            python=python,
+            alr=alr,
+            safec=safec,
+            generated_root=generated_root,
+            authority=args.authority,
+            env=env,
+            pipeline_input=pipeline_input,
+            build_cache=build_cache,
+            verbose=args.verbose,
+        ),
         label="PR06.9.9 build reproducibility",
     )
     write_report(args.report, report)
 
-    run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
-    final_dirty = current_dirty_report_paths(paths=report_paths, env=env)
+    if generated_root is None:
+        run(
+            [python, str(VALIDATE_EXECUTION_STATE), "--authority", args.authority],
+            cwd=REPO_ROOT,
+            env=env,
+        )
+        final_dirty = current_dirty_report_paths(paths=report_paths, env=env)
+    else:
+        final_dirty = []
     if initial_dirty:
         final_diff = current_dirty_report_diff(paths=compare_paths, env=env)
         allowed_dirty = set(initial_dirty)
@@ -224,7 +603,7 @@ def main() -> int:
             final_diff == initial_diff,
             "PR06.9.9 evidence diffs changed further from an already-dirty baseline",
         )
-    else:
+    elif generated_root is None:
         relative_paths = repo_relative_report_args(report_paths)
         git = find_command("git")
         run(

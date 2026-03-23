@@ -16,13 +16,14 @@ from _lib.harness_common import (
     ensure_sdkroot,
     finalize_deterministic_report,
     find_command,
+    normalize_text,
     read_diag_json,
     read_expected_reason,
     require,
     require_repo_command,
     run,
-    sha256_file,
     sha256_text,
+    stable_emitted_artifact_sha256,
     write_report,
 )
 
@@ -175,6 +176,7 @@ def validate_emit_outputs(
     typed_payload = load_json(paths["typed"])
     mir_payload = load_json(paths["mir"])
     safei_payload = load_json(paths["safei"])
+    mir_payload["source_path"] = normalize_text(mir_payload["source_path"], temp_root=temp_root)
     output_validate = run(
         [
             python,
@@ -221,7 +223,10 @@ def validate_emit_outputs(
 
     return {
         "files": {key: str(path.relative_to(emit_root)) for key, path in paths.items()},
-        "hashes": {key: sha256_file(path) for key, path in paths.items()},
+        "hashes": {
+            key: stable_emitted_artifact_sha256(path, temp_root=temp_root)
+            for key, path in paths.items()
+        },
         "validators": {
             "ast": compact_result(ast_validate),
             "output_contracts": compact_result(output_validate),

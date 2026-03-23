@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-SUPPORTED_FRONTEND_ENVIRONMENTS = ("linux", "macos")
-UNSUPPORTED_FRONTEND_ENVIRONMENTS = ("windows",)
+SUPPORTED_FRONTEND_ENVIRONMENTS = ("linux",)
+UNSUPPORTED_FRONTEND_ENVIRONMENTS = ("macos", "windows")
 
-SUPPORTED_PLATFORM_POLICY_TEXT = "Ubuntu/Linux CI and local macOS"
-UNSUPPORTED_PLATFORM_POLICY_TEXT = "Windows is explicitly unsupported"
+SUPPORTED_PLATFORM_POLICY_TEXT = "Ubuntu/Linux CI and local Linux"
+UNSUPPORTED_PLATFORM_POLICY_TEXT = "macOS and Windows are explicitly unsupported"
 PATH_LOOKUP_POLICY_TEXT = "PATH-based command discovery"
 TEMPDIR_POLICY_TEXT = "deterministic TemporaryDirectory prefixes"
 SHELL_POLICY_TEXT = "shell-free"
@@ -18,11 +18,6 @@ DOCUMENTED_PYTHON_FORMS = (
     "`python3.11`",
     "`python3.<minor>`",
     "path-qualified Python invocations",
-)
-
-MACOS_SDK_DISCOVERY_FORMS = (
-    "`xcrun --show-sdk-path`",
-    "`SDKROOT`",
 )
 
 STATIC_PYTHON_INVOCATION_PATTERNS = (

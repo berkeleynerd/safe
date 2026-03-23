@@ -1,190 +1,431 @@
 {
-  "deterministic": true,
-  "notes": [
-    "This gate hardens emitted-output regressions beyond the frozen PR10 selected corpus.",
-    "Ownership early-return ordering remains a structural emitted-Ada regression rather than a PR10 prove target.",
-    "Supplemental concurrency fixtures require explicit -gnatec application for compile, flow, and prove.",
-    "Access-typed channel element declarations are now rejected by the frontend and must not emit Ada artifacts."
-  ],
-  "ownership_early_return": {
-    "compile": {
-      "command": [
-        "alr",
-        "exec",
-        "--",
-        "gprbuild",
-        "-c",
-        "-P",
-        "$TMPDIR/ownership_early_return/ada/build.gpr",
-        "ownership_early_return.adb"
-      ],
-      "cwd": "$REPO_ROOT/compiler_impl",
-      "returncode": 0
+  "canonical_proof_detail": {
+    "notes": [
+      "This gate hardens emitted-output regressions beyond the frozen PR10 selected corpus.",
+      "Ownership early-return ordering remains a structural emitted-Ada regression rather than a PR10 prove target.",
+      "Supplemental concurrency fixtures require explicit -gnatec application for compile, flow, and prove.",
+      "Access-typed channel element declarations are now rejected by the frontend and must not emit Ada artifacts."
+    ],
+    "ownership_early_return": {
+      "compile": {
+        "command_profile": {
+          "args": [
+            "-c",
+            "-P",
+            "build.gpr",
+            "ownership_early_return.adb"
+          ],
+          "compile_only": true,
+          "explicit_gnatec": false,
+          "program": "alr",
+          "project": "build.gpr",
+          "tool": "gprbuild"
+        },
+        "returncode": 0
+      },
+      "fixture": "tests/positive/ownership_early_return.safe",
+      "structural_assertions": {
+        "ownership_early_return.adb": [
+          "Return_Value : constant Integer := Outer.all.Value;",
+          "Free_Payload_Ptr (Inner);",
+          "Free_Payload_Ptr (Outer);",
+          "return Return_Value;"
+        ]
+      }
     },
-    "fixture": "tests/positive/ownership_early_return.safe",
-    "structural_assertions": {
-      "ownership_early_return.adb": [
-        "Return_Value : constant Integer := Outer.all.Value;",
-        "Free_Payload_Ptr (Inner);",
-        "Free_Payload_Ptr (Outer);",
-        "return Return_Value;"
-      ]
-    }
+    "rejected_access_channel_fixtures": [
+      {
+        "check": {
+          "command_profile": {
+            "args": [
+              "check",
+              "--diag-json",
+              "tests/concurrency/channel_access_type.safe"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "emit": {
+          "command_profile": {
+            "args": [
+              "emit",
+              "tests/concurrency/channel_access_type.safe",
+              "--out-dir",
+              "$TMPDIR/channel_access_type-reject/out",
+              "--interface-dir",
+              "$TMPDIR/channel_access_type-reject/iface",
+              "--ada-out-dir",
+              "$TMPDIR/channel_access_type-reject/ada"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "first_diagnostic": {
+          "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
+          "path": "tests/concurrency/channel_access_type.safe",
+          "reason": "source_frontend_error"
+        },
+        "fixture": "tests/concurrency/channel_access_type.safe"
+      },
+      {
+        "check": {
+          "command_profile": {
+            "args": [
+              "check",
+              "--diag-json",
+              "tests/negative/neg_channel_access_component.safe"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "emit": {
+          "command_profile": {
+            "args": [
+              "emit",
+              "tests/negative/neg_channel_access_component.safe",
+              "--out-dir",
+              "$TMPDIR/neg_channel_access_component-reject/out",
+              "--interface-dir",
+              "$TMPDIR/neg_channel_access_component-reject/iface",
+              "--ada-out-dir",
+              "$TMPDIR/neg_channel_access_component-reject/ada"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "first_diagnostic": {
+          "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
+          "path": "tests/negative/neg_channel_access_component.safe",
+          "reason": "source_frontend_error"
+        },
+        "fixture": "tests/negative/neg_channel_access_component.safe"
+      },
+      {
+        "check": {
+          "command_profile": {
+            "args": [
+              "check",
+              "--diag-json",
+              "tests/concurrency/try_send_ownership.safe"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "emit": {
+          "command_profile": {
+            "args": [
+              "emit",
+              "tests/concurrency/try_send_ownership.safe",
+              "--out-dir",
+              "$TMPDIR/try_send_ownership-reject/out",
+              "--interface-dir",
+              "$TMPDIR/try_send_ownership-reject/iface",
+              "--ada-out-dir",
+              "$TMPDIR/try_send_ownership-reject/ada"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "first_diagnostic": {
+          "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
+          "path": "tests/concurrency/try_send_ownership.safe",
+          "reason": "source_frontend_error"
+        },
+        "fixture": "tests/concurrency/try_send_ownership.safe"
+      },
+      {
+        "check": {
+          "command_profile": {
+            "args": [
+              "check",
+              "--diag-json",
+              "tests/concurrency/select_ownership_binding.safe"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "emit": {
+          "command_profile": {
+            "args": [
+              "emit",
+              "tests/concurrency/select_ownership_binding.safe",
+              "--out-dir",
+              "$TMPDIR/select_ownership_binding-reject/out",
+              "--interface-dir",
+              "$TMPDIR/select_ownership_binding-reject/iface",
+              "--ada-out-dir",
+              "$TMPDIR/select_ownership_binding-reject/ada"
+            ],
+            "program": "safec"
+          },
+          "returncode": 1
+        },
+        "first_diagnostic": {
+          "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
+          "path": "tests/concurrency/select_ownership_binding.safe",
+          "reason": "source_frontend_error"
+        },
+        "fixture": "tests/concurrency/select_ownership_binding.safe"
+      }
+    ],
+    "supplemental_proof_fixtures": [
+      {
+        "compile": {
+          "command_profile": {
+            "args": [
+              "-c",
+              "-P",
+              "build.gpr",
+              "select_with_delay_multiarm.adb",
+              "-cargs",
+              "-gnatec=<ada_dir>/gnat.adc"
+            ],
+            "compile_only": true,
+            "explicit_gnatec": true,
+            "program": "alr",
+            "project": "build.gpr",
+            "tool": "gprbuild"
+          },
+          "returncode": 0
+        },
+        "fixture": "tests/concurrency/select_with_delay_multiarm.safe",
+        "flow": {
+          "command_profile": {
+            "checks_as_errors": null,
+            "explicit_gnatec": true,
+            "level": null,
+            "mode": "flow",
+            "program": "alr",
+            "project": "build.gpr",
+            "provers": [],
+            "report": "all",
+            "steps": null,
+            "timeout": null,
+            "tool": "gnatprove",
+            "warnings": "error"
+          },
+          "returncode": 0,
+          "summary": {
+            "rows": {
+              "Assertions": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Concurrency": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Data Dependencies": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Flow Dependencies": {
+                "flow": 1,
+                "justified": 0,
+                "provers": 0,
+                "total": 1,
+                "unproved": 0
+              },
+              "Functional Contracts": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Initialization": {
+                "flow": 10,
+                "justified": 0,
+                "provers": 0,
+                "total": 10,
+                "unproved": 0
+              },
+              "LSP Verification": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Non-Aliasing": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Run-time Checks": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Termination": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Total": {
+                "flow": 11,
+                "justified": 0,
+                "provers": 0,
+                "total": 11,
+                "unproved": 0
+              }
+            },
+            "total": {
+              "flow": 11,
+              "justified": 0,
+              "provers": 0,
+              "total": 11,
+              "unproved": 0
+            }
+          }
+        },
+        "prove": {
+          "command_profile": {
+            "checks_as_errors": "on",
+            "explicit_gnatec": true,
+            "level": "2",
+            "mode": "prove",
+            "program": "alr",
+            "project": "build.gpr",
+            "provers": [
+              "cvc5",
+              "z3",
+              "altergo"
+            ],
+            "report": "all",
+            "steps": "0",
+            "timeout": "120",
+            "tool": "gnatprove",
+            "warnings": "error"
+          },
+          "returncode": 0,
+          "summary": {
+            "rows": {
+              "Assertions": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Concurrency": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Data Dependencies": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Flow Dependencies": {
+                "flow": 1,
+                "justified": 0,
+                "provers": 0,
+                "total": 1,
+                "unproved": 0
+              },
+              "Functional Contracts": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Initialization": {
+                "flow": 10,
+                "justified": 0,
+                "provers": 0,
+                "total": 10,
+                "unproved": 0
+              },
+              "LSP Verification": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Non-Aliasing": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Run-time Checks": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 32,
+                "total": 32,
+                "unproved": 0
+              },
+              "Termination": {
+                "flow": 0,
+                "justified": 0,
+                "provers": 0,
+                "total": 0,
+                "unproved": 0
+              },
+              "Total": {
+                "flow": 11,
+                "justified": 0,
+                "provers": 32,
+                "total": 43,
+                "unproved": 0
+              }
+            },
+            "total": {
+              "flow": 11,
+              "justified": 0,
+              "provers": 32,
+              "total": 43,
+              "unproved": 0
+            }
+          }
+        },
+        "structural_assertions": {
+          "select_with_delay_multiarm.adb": [
+            "Select_Polls",
+            "Try_Receive (",
+            "Success := False;"
+          ],
+          "select_with_delay_multiarm.ads": [
+            "Try_Receive ("
+          ]
+        }
+      }
+    ]
   },
-  "rejected_access_channel_fixtures": [
-    {
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/concurrency/channel_access_type.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/concurrency/channel_access_type.safe\",\"span\":{\"start_line\":16,\"start_col\":22,\"end_line\":16,\"end_col\":32},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/concurrency/channel_access_type.safe",
-          "--out-dir",
-          "$TMPDIR/channel_access_type-reject/out",
-          "--interface-dir",
-          "$TMPDIR/channel_access_type-reject/iface",
-          "--ada-out-dir",
-          "$TMPDIR/channel_access_type-reject/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "channel_access_type.safe:16:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 16 |    channel Data_Ch : Payload_Ptr capacity 1;\n  |    |                      ^~~~~~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "first_diagnostic": {
-        "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
-        "path": "tests/concurrency/channel_access_type.safe",
-        "reason": "source_frontend_error"
-      },
-      "fixture": "tests/concurrency/channel_access_type.safe"
-    },
-    {
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/negative/neg_channel_access_component.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/negative/neg_channel_access_component.safe\",\"span\":{\"start_line\":16,\"start_col\":22,\"end_line\":16,\"end_col\":29},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/negative/neg_channel_access_component.safe",
-          "--out-dir",
-          "$TMPDIR/neg_channel_access_component-reject/out",
-          "--interface-dir",
-          "$TMPDIR/neg_channel_access_component-reject/iface",
-          "--ada-out-dir",
-          "$TMPDIR/neg_channel_access_component-reject/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "neg_channel_access_component.safe:16:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 16 |    channel Data_Ch : Envelope capacity 1;\n  |    |                      ^~~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "first_diagnostic": {
-        "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
-        "path": "tests/negative/neg_channel_access_component.safe",
-        "reason": "source_frontend_error"
-      },
-      "fixture": "tests/negative/neg_channel_access_component.safe"
-    },
-    {
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/concurrency/try_send_ownership.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/concurrency/try_send_ownership.safe\",\"span\":{\"start_line\":16,\"start_col\":22,\"end_line\":16,\"end_col\":32},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/concurrency/try_send_ownership.safe",
-          "--out-dir",
-          "$TMPDIR/try_send_ownership-reject/out",
-          "--interface-dir",
-          "$TMPDIR/try_send_ownership-reject/iface",
-          "--ada-out-dir",
-          "$TMPDIR/try_send_ownership-reject/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "try_send_ownership.safe:16:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 16 |    channel Data_Ch : Payload_Ptr capacity 2;\n  |    |                      ^~~~~~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "first_diagnostic": {
-        "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
-        "path": "tests/concurrency/try_send_ownership.safe",
-        "reason": "source_frontend_error"
-      },
-      "fixture": "tests/concurrency/try_send_ownership.safe"
-    },
-    {
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/concurrency/select_ownership_binding.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/concurrency/select_ownership_binding.safe\",\"span\":{\"start_line\":14,\"start_col\":22,\"end_line\":14,\"end_col\":32},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/concurrency/select_ownership_binding.safe",
-          "--out-dir",
-          "$TMPDIR/select_ownership_binding-reject/out",
-          "--interface-dir",
-          "$TMPDIR/select_ownership_binding-reject/iface",
-          "--ada-out-dir",
-          "$TMPDIR/select_ownership_binding-reject/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1,
-        "stderr": "select_ownership_binding.safe:14:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 14 |    channel Data_Ch : Payload_Ptr capacity 1;\n  |    |                      ^~~~~~~~~~~\n  |\n",
-        "stdout": ""
-      },
-      "first_diagnostic": {
-        "message": "channel element type shall not be an access type or a composite type containing an access-type subcomponent",
-        "path": "tests/concurrency/select_ownership_binding.safe",
-        "reason": "source_frontend_error"
-      },
-      "fixture": "tests/concurrency/select_ownership_binding.safe"
-    }
-  ],
-  "repeat_sha256": "d9cd52848fcac8e4584c08442d7ebb5b5723997148a5ee1ad385ce85a500257f",
-  "report_sha256": "d9cd52848fcac8e4584c08442d7ebb5b5723997148a5ee1ad385ce85a500257f",
-  "supplemental_proof_fixtures": [
-    {
+  "deterministic": true,
+  "machine_sensitive": {
+    "ownership_early_return": {
       "compile": {
         "command": [
           "alr",
@@ -193,600 +434,227 @@
           "gprbuild",
           "-c",
           "-P",
-          "$TMPDIR/select_with_delay_multiarm/ada/build.gpr",
-          "select_with_delay_multiarm.adb",
-          "-cargs",
-          "-gnatec=$TMPDIR/select_with_delay_multiarm/ada/gnat.adc"
+          "$TMPDIR/ownership_early_return/ada/build.gpr",
+          "ownership_early_return.adb"
         ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
+        "cwd": "$REPO_ROOT/compiler_impl"
       },
-      "fixture": "tests/concurrency/select_with_delay_multiarm.safe",
-      "flow": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gnatprove",
-          "-P",
-          "$TMPDIR/select_with_delay_multiarm/ada/build.gpr",
-          "--mode=flow",
-          "--report=all",
-          "--warnings=error",
-          "-cargs",
-          "-gnatec=$TMPDIR/select_with_delay_multiarm/ada/gnat.adc"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0,
-        "summary": {
-          "rows": {
-            "Assertions": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Concurrency": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Data Dependencies": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Flow Dependencies": {
-              "flow": {
-                "count": 1,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 1,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Functional Contracts": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Initialization": {
-              "flow": {
-                "count": 10,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 10,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "LSP Verification": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Non-Aliasing": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Run-time Checks": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Termination": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Total": {
-              "flow": {
-                "count": 11,
-                "detail": "100%"
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 11,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            }
-          },
-          "total": {
-            "flow": {
-              "count": 11,
-              "detail": "100%"
-            },
-            "justified": {
-              "count": 0,
-              "detail": ""
-            },
-            "provers": {
-              "count": 0,
-              "detail": ""
-            },
-            "total": {
-              "count": 11,
-              "detail": ""
-            },
-            "unproved": {
-              "count": 0,
-              "detail": ""
-            }
-          }
-        }
+      "fixture": "tests/positive/ownership_early_return.safe"
+    },
+    "rejected_access_channel_fixtures": [
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/concurrency/channel_access_type.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/concurrency/channel_access_type.safe\",\"span\":{\"start_line\":16,\"start_col\":22,\"end_line\":16,\"end_col\":32},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/concurrency/channel_access_type.safe",
+            "--out-dir",
+            "$TMPDIR/channel_access_type-reject/out",
+            "--interface-dir",
+            "$TMPDIR/channel_access_type-reject/iface",
+            "--ada-out-dir",
+            "$TMPDIR/channel_access_type-reject/ada"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stderr": "channel_access_type.safe:16:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 16 |    channel Data_Ch : Payload_Ptr capacity 1;\n  |    |                      ^~~~~~~~~~~\n  |\n"
+        },
+        "fixture": "tests/concurrency/channel_access_type.safe"
       },
-      "prove": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gnatprove",
-          "-P",
-          "$TMPDIR/select_with_delay_multiarm/ada/build.gpr",
-          "--mode=prove",
-          "--level=2",
-          "--prover=cvc5,z3,altergo",
-          "--steps=0",
-          "--timeout=120",
-          "--report=all",
-          "--warnings=error",
-          "--checks-as-errors=on",
-          "-cargs",
-          "-gnatec=$TMPDIR/select_with_delay_multiarm/ada/gnat.adc"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0,
-        "summary": {
-          "rows": {
-            "Assertions": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Concurrency": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Data Dependencies": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Flow Dependencies": {
-              "flow": {
-                "count": 1,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 1,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Functional Contracts": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Initialization": {
-              "flow": {
-                "count": 10,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 10,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "LSP Verification": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Non-Aliasing": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Run-time Checks": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 32,
-                "detail": "CVC5"
-              },
-              "total": {
-                "count": 32,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Termination": {
-              "flow": {
-                "count": 0,
-                "detail": ""
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 0,
-                "detail": ""
-              },
-              "total": {
-                "count": 0,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            },
-            "Total": {
-              "flow": {
-                "count": 11,
-                "detail": "26%"
-              },
-              "justified": {
-                "count": 0,
-                "detail": ""
-              },
-              "provers": {
-                "count": 32,
-                "detail": "74%"
-              },
-              "total": {
-                "count": 43,
-                "detail": ""
-              },
-              "unproved": {
-                "count": 0,
-                "detail": ""
-              }
-            }
-          },
-          "total": {
-            "flow": {
-              "count": 11,
-              "detail": "26%"
-            },
-            "justified": {
-              "count": 0,
-              "detail": ""
-            },
-            "provers": {
-              "count": 32,
-              "detail": "74%"
-            },
-            "total": {
-              "count": 43,
-              "detail": ""
-            },
-            "unproved": {
-              "count": 0,
-              "detail": ""
-            }
-          }
-        }
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/negative/neg_channel_access_component.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/negative/neg_channel_access_component.safe\",\"span\":{\"start_line\":16,\"start_col\":22,\"end_line\":16,\"end_col\":29},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/negative/neg_channel_access_component.safe",
+            "--out-dir",
+            "$TMPDIR/neg_channel_access_component-reject/out",
+            "--interface-dir",
+            "$TMPDIR/neg_channel_access_component-reject/iface",
+            "--ada-out-dir",
+            "$TMPDIR/neg_channel_access_component-reject/ada"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stderr": "neg_channel_access_component.safe:16:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 16 |    channel Data_Ch : Envelope capacity 1;\n  |    |                      ^~~~~~~~\n  |\n"
+        },
+        "fixture": "tests/negative/neg_channel_access_component.safe"
       },
-      "structural_assertions": {
-        "select_with_delay_multiarm.adb": [
-          "Select_Polls",
-          "Try_Receive (",
-          "Success := False;"
-        ],
-        "select_with_delay_multiarm.ads": [
-          "Try_Receive ("
-        ]
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/concurrency/try_send_ownership.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/concurrency/try_send_ownership.safe\",\"span\":{\"start_line\":16,\"start_col\":22,\"end_line\":16,\"end_col\":32},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/concurrency/try_send_ownership.safe",
+            "--out-dir",
+            "$TMPDIR/try_send_ownership-reject/out",
+            "--interface-dir",
+            "$TMPDIR/try_send_ownership-reject/iface",
+            "--ada-out-dir",
+            "$TMPDIR/try_send_ownership-reject/ada"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stderr": "try_send_ownership.safe:16:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 16 |    channel Data_Ch : Payload_Ptr capacity 2;\n  |    |                      ^~~~~~~~~~~\n  |\n"
+        },
+        "fixture": "tests/concurrency/try_send_ownership.safe"
+      },
+      {
+        "check": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "check",
+            "--diag-json",
+            "tests/concurrency/select_ownership_binding.safe"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"channel element type shall not be an access type or a composite type containing an access-type subcomponent\",\"path\":\"tests/concurrency/select_ownership_binding.safe\",\"span\":{\"start_line\":14,\"start_col\":22,\"end_line\":14,\"end_col\":32},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
+        },
+        "emit": {
+          "command": [
+            "compiler_impl/bin/safec",
+            "emit",
+            "tests/concurrency/select_ownership_binding.safe",
+            "--out-dir",
+            "$TMPDIR/select_ownership_binding-reject/out",
+            "--interface-dir",
+            "$TMPDIR/select_ownership_binding-reject/iface",
+            "--ada-out-dir",
+            "$TMPDIR/select_ownership_binding-reject/ada"
+          ],
+          "cwd": "$REPO_ROOT",
+          "stderr": "select_ownership_binding.safe:14:22: error: channel element type shall not be an access type or a composite type containing an access-type subcomponent\n  |\n  | 14 |    channel Data_Ch : Payload_Ptr capacity 1;\n  |    |                      ^~~~~~~~~~~\n  |\n"
+        },
+        "fixture": "tests/concurrency/select_ownership_binding.safe"
       }
-    }
-  ]
+    ],
+    "supplemental_proof_fixtures": [
+      {
+        "compile": {
+          "command": [
+            "alr",
+            "exec",
+            "--",
+            "gprbuild",
+            "-c",
+            "-P",
+            "$TMPDIR/select_with_delay_multiarm/ada/build.gpr",
+            "select_with_delay_multiarm.adb",
+            "-cargs",
+            "-gnatec=$TMPDIR/select_with_delay_multiarm/ada/gnat.adc"
+          ],
+          "cwd": "$REPO_ROOT/compiler_impl"
+        },
+        "fixture": "tests/concurrency/select_with_delay_multiarm.safe",
+        "flow": {
+          "command": [
+            "alr",
+            "exec",
+            "--",
+            "gnatprove",
+            "-P",
+            "$TMPDIR/select_with_delay_multiarm/ada/build.gpr",
+            "--mode=flow",
+            "--report=all",
+            "--warnings=error",
+            "-cargs",
+            "-gnatec=$TMPDIR/select_with_delay_multiarm/ada/gnat.adc"
+          ],
+          "cwd": "$REPO_ROOT/compiler_impl",
+          "summary": {
+            "rows": {
+              "Total": {
+                "flow": "100%"
+              }
+            },
+            "total": {
+              "flow": "100%"
+            }
+          }
+        },
+        "prove": {
+          "command": [
+            "alr",
+            "exec",
+            "--",
+            "gnatprove",
+            "-P",
+            "$TMPDIR/select_with_delay_multiarm/ada/build.gpr",
+            "--mode=prove",
+            "--level=2",
+            "--prover=cvc5,z3,altergo",
+            "--steps=0",
+            "--timeout=120",
+            "--report=all",
+            "--warnings=error",
+            "--checks-as-errors=on",
+            "-cargs",
+            "-gnatec=$TMPDIR/select_with_delay_multiarm/ada/gnat.adc"
+          ],
+          "cwd": "$REPO_ROOT/compiler_impl",
+          "summary": {
+            "rows": {
+              "Run-time Checks": {
+                "provers": "CVC5"
+              },
+              "Total": {
+                "flow": "26%",
+                "provers": "74%"
+              }
+            },
+            "total": {
+              "flow": "26%",
+              "provers": "74%"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "repeat_sha256": "3f84ff42577ca0a50269aa187e2549f33bf901bdc1d25e9554a4e1c64e666657",
+  "report_sha256": "3f84ff42577ca0a50269aa187e2549f33bf901bdc1d25e9554a4e1c64e666657",
+  "semantic_floor": {
+    "fixture_count": 1,
+    "fixtures": [
+      {
+        "compile_returncode": 0,
+        "fixture": "tests/concurrency/select_with_delay_multiarm.safe",
+        "flow_justified": 0,
+        "flow_returncode": 0,
+        "flow_total_checks": 11,
+        "flow_unproved": 0,
+        "prove_justified": 0,
+        "prove_returncode": 0,
+        "prove_total_checks": 43,
+        "prove_unproved": 0
+      }
+    ]
+  }
 }

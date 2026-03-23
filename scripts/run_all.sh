@@ -19,8 +19,34 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GPR_FILE="${REPO_ROOT}/companion/gen/companion.gpr"
+WORKSPACE_DIR="${REPO_ROOT}/companion/gen"
+GPR_FILE="${WORKSPACE_DIR}/companion.gpr"
 FROZEN_SHA="$(cat "${REPO_ROOT}/meta/commit.txt" | tr -d '[:space:]')"
+ALR_BIN="${ALR_BIN:-alr}"
+
+resolve_command() {
+    local configured="$1"
+    local label="$2"
+
+    if [[ "${configured}" == */* ]]; then
+        if [[ -x "${configured}" ]]; then
+            printf '%s\n' "${configured}"
+            return 0
+        fi
+        echo "ERROR: ${label} not executable: ${configured}" >&2
+        exit 1
+    fi
+
+    local resolved
+    resolved="$(command -v "${configured}" || true)"
+    if [[ -z "${resolved}" ]]; then
+        echo "ERROR: ${label} not found on PATH: ${configured}" >&2
+        exit 1
+    fi
+    printf '%s\n' "${resolved}"
+}
+
+ALR_BIN="$(resolve_command "${ALR_BIN}" "alr")"
 
 echo "================================================================"
 echo "  Safe Language Annotated SPARK Companion"
@@ -41,7 +67,7 @@ if [[ ! -f "${GPR_FILE}" ]]; then
 fi
 
 # Ensure object directory exists
-mkdir -p "${REPO_ROOT}/companion/gen/obj"
+mkdir -p "${WORKSPACE_DIR}/obj"
 
 # =======================================================================
 # Step 1: Compile (syntax check and type check via gprbuild)
@@ -52,7 +78,10 @@ echo "  Step 1/5: Compile (gprbuild)"
 echo "================================================================"
 echo ""
 
-if gprbuild -P "${GPR_FILE}" -q 2>&1; then
+if (
+    cd "${WORKSPACE_DIR}"
+    "${ALR_BIN}" exec -- gprbuild -P companion.gpr -q
+) 2>&1; then
     echo ""
     echo "  Step 1: PASSED -- Compilation succeeded."
 else

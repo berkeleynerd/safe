@@ -52,7 +52,7 @@
 | PR08 | done | PR08.4 | 1 |
 | PR09 | done | PR08 | 6 |
 | PR10 | done | PR09 | 4 |
-| PR10.1 | done | PR10 | 1 |
+| PR10.1 | done | PR10 | 3 |
 | PR10.2 | done | PR10.1 | 1 |
 | PR10.3 | done | PR10.1 | 1 |
 | PR10.4 | done | PR10.1 | 1 |
@@ -86,7 +86,7 @@
   - scripts/validate_execution_state.py passes schema, dependency, evidence, frozen-SHA, and test-distribution checks.
   - CI contains a uniquely named execution-guard job.
 - **Evidence:**
-  - `execution/reports/pr00-pr04-verification.md`
+  - `execution/reports/execution-state-validation-report.json`
   - `execution/sessions/20260306-1148-pr00-pr04.md`
 
 ### PR01 — compiler_impl workspace, safec CLI, and harness entrypoint
@@ -541,6 +541,8 @@
   - docs/pr10_refinement_audit.md classifies every current post-PR10 residual and current PR10/post-PR10 claim surface using the required finding schema and allowed dispositions.
   - docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json.
 - **Evidence:**
+  - `execution/reports/pr101a-companion-proof-verification-report.json`
+  - `execution/reports/pr101b-template-proof-verification-report.json`
   - `execution/reports/pr101-comprehensive-audit-report.json`
 
 ### PR10.2 — Rule 5 proof-boundary closure and loop-termination diagnostics

@@ -4,8 +4,7 @@
     "doc_policy_violations": [],
     "docs_scanned": [
       "compiler_impl/README.md",
-      "release/frontend_runtime_decision.md",
-      "docs/macos_alire_toolchain_repair.md"
+      "release/frontend_runtime_decision.md"
     ],
     "masked_python_interpreters": [
       "python",
@@ -74,6 +73,7 @@
     "runtime_source_violations": [],
     "scripts_scanned": [
       "scripts/_lib/pr09_emit.py",
+      "scripts/_lib/pr101_verification.py",
       "scripts/run_local_pre_push.py",
       "scripts/run_pr068_ada_ast_emit_no_python.py",
       "scripts/run_pr06910_portability_environment.py",
@@ -88,28 +88,33 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_sequential_semantics.py",
       "scripts/run_pr09b_snapshot_refresh.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/validate_execution_state.py"
     ],
     "shell_assumption_violations": [],
     "supported_platforms": [
-      "linux",
-      "macos"
+      "linux"
     ],
     "tempdir_convention_violations": [],
     "unsupported_platforms": [
+      "macos",
       "windows"
     ]
   },
   "monitored_paths": [
     "compiler_impl/README.md",
     "release/frontend_runtime_decision.md",
-    "docs/macos_alire_toolchain_repair.md",
     "execution/reports/pr0693-runtime-boundary-report.json",
     "execution/reports/pr068-ada-ast-emit-no-python-report.json",
     "execution/reports/pr06910-portability-environment-report.json"
   ],
-  "repeat_sha256": "e6f4c0da5073976b09a8f4f1a1474ec820c29c4d4a266e6cf00e51ad239124a1",
-  "report_sha256": "e6f4c0da5073976b09a8f4f1a1474ec820c29c4d4a266e6cf00e51ad239124a1",
+  "policy_sections_used": [
+    "environment",
+    "portability"
+  ],
+  "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542",
+  "repeat_sha256": "d5f81742cc7f2cea820d35c0572837e8a680e4965ae5e69630471361c847e76e",
+  "report_sha256": "d5f81742cc7f2cea820d35c0572837e8a680e4965ae5e69630471361c847e76e",
   "reruns": {
     "ast_emit_no_python": {
       "committed_report_path": "execution/reports/pr068-ada-ast-emit-no-python-report.json",
@@ -117,9 +122,7 @@
       "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr068_ada_ast_emit_no_python.py",
-          "--report",
-          "$TMPDIR/pr068-ada-ast-emit-no-python-report.json"
+          "scripts/run_pr068_ada_ast_emit_no_python.py"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
@@ -132,22 +135,12 @@
       "rerun": {
         "command": [
           "python3",
-          "scripts/run_pr0693_runtime_boundary.py",
-          "--report",
-          "$TMPDIR/pr0693-runtime-boundary-report.json"
+          "scripts/run_pr0693_runtime_boundary.py"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
       "script": "scripts/run_pr0693_runtime_boundary.py"
-    },
-    "validate_execution_state": {
-      "command": [
-        "python3",
-        "scripts/validate_execution_state.py"
-      ],
-      "cwd": "$REPO_ROOT",
-      "returncode": 0
     }
   },
   "status": "ok",

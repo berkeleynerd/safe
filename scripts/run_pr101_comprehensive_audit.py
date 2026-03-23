@@ -13,18 +13,30 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from _lib.gate_manifest import DeterminismClass, NODES
 from _lib.harness_common import (
+    canonicalize_serialized_child_result,
+    compact_result,
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
     find_command,
+    load_pipeline_input,
+    load_evidence_policy,
     require,
+    require_pipeline_report,
+    require_pipeline_result,
+    resolve_generated_path,
     run,
     sha256_file,
-    sha256_text,
     write_report,
 )
-from _lib.pr09_emit import REPO_ROOT, alr_command
+from _lib.pr09_emit import REPO_ROOT
+from _lib.pr101_verification import verification_report_reference
+from _lib.proof_report import (
+    build_three_way_report,
+    split_command_result,
+)
 
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr101-comprehensive-audit-report.json"
@@ -33,6 +45,7 @@ DASHBOARD_PATH = REPO_ROOT / "execution" / "dashboard.md"
 README_PATH = REPO_ROOT / "README.md"
 COMPILER_README_PATH = REPO_ROOT / "compiler_impl" / "README.md"
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+PIPELINE_VERIFY_WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "pipeline-verify.yml"
 MATRIX_PATH = REPO_ROOT / "docs" / "emitted_output_verification_matrix.md"
 POST_PR10_SCOPE_PATH = REPO_ROOT / "docs" / "post_pr10_scope.md"
 AUDIT_DOC_PATH = REPO_ROOT / "docs" / "pr10_refinement_audit.md"
@@ -44,14 +57,39 @@ BASELINE_SCRIPTS = [
     REPO_ROOT / "scripts" / "run_pr10_emitted_baseline.py",
     REPO_ROOT / "scripts" / "run_emitted_hardening_regressions.py",
 ]
+PIPELINE_BASELINE_IDS = {
+    "run_pr08_frontend_baseline.py": "pr08_frontend_baseline",
+    "run_pr09_ada_emission_baseline.py": "pr09_ada_emission_baseline",
+    "run_pr10_emitted_baseline.py": "pr10_emitted_baseline",
+    "run_emitted_hardening_regressions.py": "emitted_hardening_regressions",
+}
+BASELINE_NODES = {
+    node.id: node
+    for node in NODES
+    if node.id in set(PIPELINE_BASELINE_IDS.values())
+}
+EVIDENCE_POLICY = load_evidence_policy()
 EXPECTED_PR101_ACCEPTANCE = [
     "Authoritative PR08, PR09, PR10, supplemental hardening, companion/template verification, and execution-state baselines rerun serially and establish the audit truth baseline.",
     "docs/pr10_refinement_audit.md classifies every current post-PR10 residual and current PR10/post-PR10 claim surface using the required finding schema and allowed dispositions.",
     "docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json.",
 ]
 EXPECTED_PR101_EVIDENCE = [
+    "execution/reports/pr101a-companion-proof-verification-report.json",
+    "execution/reports/pr101b-template-proof-verification-report.json",
     "execution/reports/pr101-comprehensive-audit-report.json",
 ]
+VERIFICATION_REPORT_SPECS = {
+    "pr101a_companion_proof_verification": {
+        "script": REPO_ROOT / "scripts" / "run_pr101a_companion_proof_verification.py",
+        "report": REPO_ROOT / "execution" / "reports" / "pr101a-companion-proof-verification-report.json",
+    },
+    "pr101b_template_proof_verification": {
+        "script": REPO_ROOT / "scripts" / "run_pr101b_template_proof_verification.py",
+        "report": REPO_ROOT / "execution" / "reports" / "pr101b-template-proof-verification-report.json",
+    },
+}
+VERIFICATION_REPORT_ORDER = tuple(VERIFICATION_REPORT_SPECS)
 EXPECTED_PR104_ACCEPTANCE = [
     "Pure-Python regression tests cover scripts/run_pr101_comprehensive_audit.py parsing helpers (split_table_row, parse_findings, parse_residuals, parse_summary_counts), including malformed-table cases and multi-target target-cell parsing.",
     "The emitted proof and audit harnesses verify explicit gnat.adc application and fail deterministically if concurrency compile/flow/prove commands lose the concrete -gnatec=<ada_dir>/gnat.adc argument.",
@@ -202,34 +240,20 @@ EXPECTED_COMPILER_README_SNIPPETS = [
     "later tracked milestones may exist",
     "execution/reports/pr101-comprehensive-audit-report.json",
 ]
-EXPECTED_WORKFLOW_SNIPPETS = [
-    "pr101-comprehensive-audit:",
-    "python3 scripts/run_pr101_comprehensive_audit.py",
-    "git diff --exit-code execution/reports/pr101-comprehensive-audit-report.json",
-    "pr104-gnatprove-evidence-parser-hardening:",
-    "python3 scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
-    "git diff --exit-code execution/reports/pr104-gnatprove-evidence-parser-hardening-report.json",
-    "pr103-sequential-proof-expansion:",
-    "python3 scripts/run_pr103_sequential_proof_expansion.py",
-    "git diff --exit-code execution/reports/pr103-sequential-proof-expansion-report.json",
-    "pr106-sequential-proof-corpus-expansion:",
-    "python3 scripts/run_pr106_sequential_proof_corpus_expansion.py",
-    "git diff --exit-code execution/reports/pr106-sequential-proof-corpus-expansion-report.json",
-    "pr111-language-evaluation-harness:",
-    "python3 scripts/run_pr111_language_evaluation_harness.py",
-    "git diff --exit-code execution/reports/pr111-language-evaluation-harness-report.json",
-    "pr112-parser-completeness-phase1:",
-    "python3 scripts/run_pr112_parser_completeness_phase1.py",
-    "git diff --exit-code execution/reports/pr112-parser-completeness-phase1-report.json",
-    "pr113-discriminated-types-tuples-structured-returns:",
-    "python3 scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
-    "git diff --exit-code execution/reports/pr113-discriminated-types-tuples-structured-returns-report.json",
-    "pr113a-proof-checkpoint1:",
-    "python3 scripts/run_pr113a_proof_checkpoint1.py",
-    "git diff --exit-code execution/reports/pr113a-proof-checkpoint1-report.json",
-    "pr114-signature-control-flow-syntax:",
-    "python3 scripts/run_pr114_signature_control_flow_syntax.py",
-    "git diff --exit-code execution/reports/pr114-signature-control-flow-syntax-report.json",
+EXPECTED_CI_WORKFLOW_SNIPPETS = [
+    "execution-guard:",
+    "python3 scripts/validate_execution_state.py --authority ci",
+    "lint-safe-syntax:",
+    "scripts/lint_safe_syntax.sh",
+    "spark-verify:",
+    "Build & Verify SPARK Companion",
+    "templates-verify:",
+    "Build & Verify Emission Templates",
+]
+EXPECTED_PIPELINE_VERIFY_WORKFLOW_SNIPPETS = [
+    "pipeline-verify:",
+    "Run canonical gate pipeline verify",
+    "python3 scripts/run_gate_pipeline.py verify --authority ci",
 ]
 EXPECTED_PRE_PUSH_SNIPPETS = [
     "\"scripts/run_pr09_ada_emission_baseline.py\"",
@@ -333,15 +357,6 @@ def task_is_at_or_beyond_pr115(value: object) -> bool:
     major, minor = parsed
     return major > 11 or (major == 11 and minor is not None and minor >= 5)
 
-
-def compact_result(result: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "command": result["command"],
-        "cwd": result["cwd"],
-        "returncode": result["returncode"],
-    }
-
-
 def split_table_row(line: str) -> list[str] | None:
     stripped = line.strip()
     if not stripped.startswith("|") or not stripped.endswith("|"):
@@ -352,34 +367,6 @@ def split_table_row(line: str) -> list[str] | None:
     if all(re.fullmatch(r"[:\- ]+", cell) for cell in cells):
         return None
     return cells
-
-
-def normalized_assumptions_hash(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    normalized = re.sub(r"^# Generated: .*\n", "", text, flags=re.MULTILINE)
-    return sha256_text(normalized)
-
-
-def normalized_gnatprove_summary_hash(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    match = re.search(r"^Summary of SPARK.*?^Total.*$", text, flags=re.MULTILINE | re.DOTALL)
-    require(match is not None, f"{display_path(path, repo_root=REPO_ROOT)}: missing GNATprove summary block")
-    normalized = re.sub(r"\([^)]*\)", "(normalized)", match.group(0))
-    return sha256_text(normalized)
-
-
-def snapshot_text(path: Path) -> str | None:
-    if not path.exists():
-        return None
-    return path.read_text(encoding="utf-8")
-
-
-def restore_text(path: Path, original: str | None) -> None:
-    if original is None:
-        if path.exists():
-            path.unlink()
-        return
-    path.write_text(original, encoding="utf-8")
 
 
 def parse_findings(text: str) -> list[dict[str, str]]:
@@ -436,10 +423,34 @@ def parse_summary_counts(text: str) -> dict[str, int]:
     return counts
 
 
-def run_python_gate(*, python: str, script: Path, env: dict[str, str], temp_root: Path) -> dict[str, Any]:
+def canonicalize_baseline_gate_result(*, script: Path, result: dict[str, Any]) -> dict[str, Any]:
+    del script
+    return canonicalize_serialized_child_result(result)
+
+
+def local_reused_gate_result(*, python: str, script: Path) -> dict[str, Any]:
+    return {
+        "command": [python, display_path(script, repo_root=REPO_ROOT)],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0,
+    }
+
+
+def run_python_gate(
+    *,
+    python: str,
+    script: Path,
+    env: dict[str, str],
+    temp_root: Path,
+    extra_argv: list[str] | None = None,
+) -> dict[str, Any]:
     report_path = temp_root / f"{script.stem}.json"
+    argv = [python, str(script)]
+    if extra_argv:
+        argv.extend(extra_argv)
+    argv.extend(["--report", str(report_path)])
     result = run(
-        [python, str(script), "--report", str(report_path)],
+        argv,
         cwd=REPO_ROOT,
         env=env,
         temp_root=temp_root,
@@ -447,140 +458,204 @@ def run_python_gate(*, python: str, script: Path, env: dict[str, str], temp_root
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     return {
         "script": display_path(script, repo_root=REPO_ROOT),
-        "result": compact_result(result),
+        "result": compact_result(canonicalize_baseline_gate_result(script=script, result=result)),
         "report_sha256": payload["report_sha256"],
         "deterministic": payload["deterministic"],
     }
 
 
-def run_companion_verify(*, env: dict[str, str]) -> dict[str, Any]:
-    bash = find_command("bash")
-    alr = alr_command()
-    companion_root = REPO_ROOT / "companion" / "gen"
-
-    assumptions_path = REPO_ROOT / "companion" / "assumptions_extracted.txt"
-    original_assumptions = snapshot_text(assumptions_path)
-    build = run([alr, "build"], cwd=companion_root, env=env)
-    flow = run(
-        [alr, "exec", "--", "gnatprove", "-P", "companion.gpr", "--mode=flow", "--report=all", "--warnings=error"],
-        cwd=companion_root,
-        env=env,
+def load_baseline_gate_reference(
+    *,
+    python: str,
+    script: Path,
+    generated_root: Path | None = None,
+) -> dict[str, Any]:
+    node_id = PIPELINE_BASELINE_IDS[script.name]
+    node = BASELINE_NODES[node_id]
+    require(node.report_path is not None, f"{node_id}: report path required")
+    report_path = resolve_generated_path(
+        node.report_path,
+        generated_root=generated_root,
+        policy=EVIDENCE_POLICY,
+        repo_root=REPO_ROOT,
     )
-    prove = run(
-        [
-            alr,
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "companion.gpr",
-            "--mode=prove",
-            "--level=2",
-            "--prover=cvc5,z3,altergo",
-            "--steps=0",
-            "--timeout=120",
-            "--report=all",
-            "--warnings=error",
-            "--checks-as-errors=on",
-        ],
-        cwd=companion_root,
-        env=env,
-    )
-    try:
-        extract = run([bash, "scripts/extract_assumptions.sh"], cwd=REPO_ROOT, env=env)
-        extracted_hash = normalized_assumptions_hash(assumptions_path)
-        diff = run([bash, "scripts/diff_assumptions.sh"], cwd=REPO_ROOT, env=env)
-    finally:
-        restore_text(assumptions_path, original_assumptions)
-    prove_golden_hash = sha256_file(REPO_ROOT / "companion" / "gen" / "prove_golden.txt")
-    gnatprove_summary_hash = normalized_gnatprove_summary_hash(
-        REPO_ROOT / "companion" / "gen" / "obj" / "gnatprove" / "gnatprove.out"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    require(payload.get("deterministic") is True, f"{display_path(report_path, repo_root=REPO_ROOT)} must be deterministic")
+    require(
+        payload.get("report_sha256") == payload.get("repeat_sha256"),
+        f"{display_path(report_path, repo_root=REPO_ROOT)} report hashes must match",
     )
     return {
-        "build": compact_result(build),
-        "flow": compact_result(flow),
-        "prove": compact_result(prove),
-        "extract_assumptions": compact_result(extract),
-        "diff_assumptions": compact_result(diff),
-        "assumptions_extracted_sha256": extracted_hash,
-        "prove_golden_sha256": prove_golden_hash,
-        "gnatprove_summary_sha256": gnatprove_summary_hash,
+        "script": display_path(script, repo_root=REPO_ROOT),
+        "result": local_reused_gate_result(python=python, script=script),
+        "report_sha256": payload["report_sha256"],
+        "deterministic": payload["deterministic"],
     }
 
 
-def run_templates_verify(*, env: dict[str, str]) -> dict[str, Any]:
-    bash = find_command("bash")
-    alr = alr_command()
-    templates_root = REPO_ROOT / "companion" / "templates"
-
-    assumptions_path = REPO_ROOT / "companion" / "assumptions_extracted.txt"
-    original_assumptions = snapshot_text(assumptions_path)
-    build = run([alr, "build"], cwd=templates_root, env=env)
-    flow = run(
-        [alr, "exec", "--", "gnatprove", "-P", "templates.gpr", "--mode=flow", "--report=all", "--warnings=error"],
-        cwd=templates_root,
-        env=env,
+def load_verification_report_reference(
+    *,
+    node_id: str,
+    generated_root: Path | None = None,
+) -> dict[str, Any]:
+    spec = VERIFICATION_REPORT_SPECS[node_id]
+    report_path = resolve_generated_path(
+        spec["report"],
+        generated_root=generated_root,
+        policy=EVIDENCE_POLICY,
+        repo_root=REPO_ROOT,
     )
-    prove = run(
-        [
-            alr,
-            "exec",
-            "--",
-            "gnatprove",
-            "-P",
-            "templates.gpr",
-            "--mode=prove",
-            "--level=2",
-            "--prover=cvc5,z3,altergo",
-            "--steps=0",
-            "--timeout=120",
-            "--report=all",
-            "--warnings=error",
-            "--checks-as-errors=on",
-        ],
-        cwd=templates_root,
-        env=env,
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    require(payload.get("deterministic") is True, f"{display_path(report_path, repo_root=REPO_ROOT)} must be deterministic")
+    require(
+        payload.get("report_sha256") == payload.get("repeat_sha256"),
+        f"{display_path(report_path, repo_root=REPO_ROOT)} report hashes must match",
     )
-    extract_env = env.copy()
-    extract_env["PROVE_OUT"] = "companion/templates/obj/gnatprove"
-    diff_env = env.copy()
-    diff_env["PROVE_GOLDEN"] = "companion/templates/prove_golden.txt"
-    diff_env["PROVE_OUT"] = "companion/templates/obj/gnatprove/gnatprove.out"
-    try:
-        extract = run([bash, "scripts/extract_assumptions.sh"], cwd=REPO_ROOT, env=extract_env)
-        extracted_hash = normalized_assumptions_hash(assumptions_path)
-        diff = run([bash, "scripts/diff_assumptions.sh"], cwd=REPO_ROOT, env=diff_env)
-    finally:
-        restore_text(assumptions_path, original_assumptions)
-    prove_golden_hash = sha256_file(REPO_ROOT / "companion" / "templates" / "prove_golden.txt")
-    gnatprove_summary_hash = normalized_gnatprove_summary_hash(
-        REPO_ROOT / "companion" / "templates" / "obj" / "gnatprove" / "gnatprove.out"
+    return verification_report_reference(
+        node_id=node_id,
+        script=display_path(spec["script"], repo_root=REPO_ROOT),
+        report_sha256=payload["report_sha256"],
+        deterministic=payload["deterministic"],
     )
-    return {
-        "build": compact_result(build),
-        "flow": compact_result(flow),
-        "prove": compact_result(prove),
-        "extract_assumptions": compact_result(extract),
-        "diff_assumptions": compact_result(diff),
-        "assumptions_extracted_sha256": extracted_hash,
-        "prove_golden_sha256": prove_golden_hash,
-        "gnatprove_summary_sha256": gnatprove_summary_hash,
-    }
 
 
-def run_baseline_truth(*, env: dict[str, str]) -> dict[str, Any]:
+def run_baseline_truth(
+    *,
+    env: dict[str, str],
+    authority: str,
+    generated_root: Path | None = None,
+) -> dict[str, Any]:
     python = find_command("python3")
     with tempfile.TemporaryDirectory(prefix="pr101-audit-") as temp_root_str:
         temp_root = Path(temp_root_str)
-        gates = [run_python_gate(python=python, script=script, env=env, temp_root=temp_root) for script in BASELINE_SCRIPTS]
+        gates: list[dict[str, Any]] = []
+        for script in BASELINE_SCRIPTS:
+            node_id = PIPELINE_BASELINE_IDS[script.name]
+            node = BASELINE_NODES[node_id]
+            if authority == "local" and node.determinism_class is DeterminismClass.CI_AUTHORITATIVE:
+                gates.append(
+                    load_baseline_gate_reference(
+                        python=python,
+                        script=script,
+                        generated_root=generated_root,
+                    )
+                )
+                continue
+            extra_argv: list[str] = []
+            if authority and script.name == "run_pr10_emitted_baseline.py":
+                extra_argv.extend(["--authority", authority])
+            if node.supports_generated_root and generated_root is not None:
+                extra_argv.extend(["--generated-root", str(generated_root)])
+            gates.append(
+                run_python_gate(
+                    python=python,
+                    script=script,
+                    env=env,
+                    temp_root=temp_root,
+                    extra_argv=extra_argv,
+                )
+            )
         return {
             "python_gates": gates,
-            "companion_verify": run_companion_verify(env=env),
-            "templates_verify": run_templates_verify(env=env),
+            "verification_reports": [
+                load_verification_report_reference(node_id=node_id, generated_root=generated_root)
+                for node_id in VERIFICATION_REPORT_ORDER
+            ],
         }
 
 
-def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
+def pipeline_baseline_truth(*, env: dict[str, Any], pipeline_input: dict[str, Any]) -> dict[str, Any]:
+    gates: list[dict[str, Any]] = []
+    for script in BASELINE_SCRIPTS:
+        node_id = PIPELINE_BASELINE_IDS[script.name]
+        result = require_pipeline_result(pipeline_input, node_id=node_id)
+        payload = require_pipeline_report(pipeline_input, node_id=node_id)
+        gates.append(
+            {
+                "script": display_path(script, repo_root=REPO_ROOT),
+                "result": compact_result(canonicalize_baseline_gate_result(script=script, result=result)),
+                "report_sha256": payload["report_sha256"],
+                "deterministic": payload["deterministic"],
+            }
+        )
+
+    verification_reports: list[dict[str, Any]] = []
+    for node_id in VERIFICATION_REPORT_ORDER:
+        payload = require_pipeline_report(pipeline_input, node_id=node_id)
+        verification_reports.append(
+            verification_report_reference(
+                node_id=node_id,
+                script=display_path(VERIFICATION_REPORT_SPECS[node_id]["script"], repo_root=REPO_ROOT),
+                report_sha256=payload["report_sha256"],
+                deterministic=payload["deterministic"],
+            )
+        )
+
+    return {
+        "python_gates": gates,
+        "verification_reports": verification_reports,
+    }
+
+
+def baseline_gate_hashes(*, baseline_truth: dict[str, Any]) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for gate in baseline_truth["python_gates"]:
+        node_id = PIPELINE_BASELINE_IDS[Path(gate["script"]).name]
+        hashes[node_id] = gate["report_sha256"]
+    return hashes
+
+
+def verification_report_hashes(*, baseline_truth: dict[str, Any]) -> dict[str, str]:
+    return {
+        entry["node_id"]: entry["report_sha256"]
+        for entry in baseline_truth["verification_reports"]
+    }
+
+
+def semantic_floor_from_baseline_truth(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "baseline_gate_hashes": baseline_gate_hashes(baseline_truth=baseline_truth),
+        "child_report_hashes": verification_report_hashes(baseline_truth=baseline_truth),
+    }
+
+
+def split_python_gate_entry(gate: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    canonical_result, machine_result = split_command_result(gate["result"])
+    canonical = {
+        "script": gate["script"],
+        "result": canonical_result,
+        "report_sha256": gate["report_sha256"],
+        "deterministic": gate["deterministic"],
+    }
+    machine = {
+        "script": gate["script"],
+        "result": machine_result,
+    }
+    return canonical, machine
+
+
+def split_baseline_truth(
+    *,
+    baseline_truth: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    canonical_python: list[dict[str, Any]] = []
+    machine_python: list[dict[str, Any]] = []
+    for gate in baseline_truth["python_gates"]:
+        canonical_gate, machine_gate = split_python_gate_entry(gate)
+        canonical_python.append(canonical_gate)
+        machine_python.append(machine_gate)
+
+    canonical = {
+        "python_gates": canonical_python,
+        "verification_reports": baseline_truth["verification_reports"],
+    }
+    machine = {
+        "python_gates": machine_python,
+    }
+    return canonical, machine
+
+
+def build_report(*, baseline_truth: dict[str, Any], generated_root: Path | None) -> dict[str, Any]:
     tracker = load_tracker()
     task_map = {task["id"]: task for task in tracker["tasks"]}
     require(task_map["PR10"]["status"] == "done", "PR10 must remain marked done")
@@ -741,9 +816,18 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
     )
 
     rendered_dashboard = run([find_command("python3"), "scripts/render_execution_status.py"], cwd=REPO_ROOT, env=ensure_sdkroot(os.environ.copy()))
-    dashboard_text = DASHBOARD_PATH.read_text(encoding="utf-8")
+    dashboard_text = resolve_generated_path(
+        DASHBOARD_PATH,
+        generated_root=generated_root,
+        policy=EVIDENCE_POLICY,
+        repo_root=REPO_ROOT,
+    ).read_text(encoding="utf-8")
     require(dashboard_text == rendered_dashboard["stdout"], "execution/dashboard.md must match render_execution_status.py")
-    require_contains(dashboard_text, "| PR10.1 | done | PR10 | 1 |", "execution/dashboard.md")
+    require_contains(
+        dashboard_text,
+        f"| PR10.1 | done | PR10 | {len(EXPECTED_PR101_EVIDENCE)} |",
+        "execution/dashboard.md",
+    )
     require_contains(dashboard_text, "| PR10.3 | done | PR10.1 | 1 |", "execution/dashboard.md")
     next_task_match = re.search(r"- \*\*Next task:\*\* `([^`]+)`", dashboard_text)
     require(next_task_match is not None, "execution/dashboard.md must render the next-task line")
@@ -799,8 +883,16 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         require_contains(compiler_readme_text, snippet, "compiler_impl/README.md")
 
     workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
-    for snippet in EXPECTED_WORKFLOW_SNIPPETS:
+    for snippet in EXPECTED_CI_WORKFLOW_SNIPPETS:
         require_contains(workflow_text, snippet, ".github/workflows/ci.yml")
+
+    pipeline_verify_workflow_text = PIPELINE_VERIFY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    for snippet in EXPECTED_PIPELINE_VERIFY_WORKFLOW_SNIPPETS:
+        require_contains(
+            pipeline_verify_workflow_text,
+            snippet,
+            ".github/workflows/pipeline-verify.yml",
+        )
 
     pre_push_text = (REPO_ROOT / "scripts" / "run_local_pre_push.py").read_text(encoding="utf-8")
     for snippet in EXPECTED_PRE_PUSH_SNIPPETS:
@@ -869,74 +961,95 @@ def build_report(*, baseline_truth: dict[str, Any]) -> dict[str, Any]:
         "dashboard": sha256_file(DASHBOARD_PATH),
         "readme": sha256_file(README_PATH),
         "compiler_readme": sha256_file(COMPILER_README_PATH),
-        "workflow": sha256_file(WORKFLOW_PATH),
+        "ci_workflow": sha256_file(WORKFLOW_PATH),
+        "pipeline_verify_workflow": sha256_file(PIPELINE_VERIFY_WORKFLOW_PATH),
     }
+    semantic_floor = semantic_floor_from_baseline_truth(baseline_truth=baseline_truth)
+    canonical_baseline_truth, machine_baseline_truth = split_baseline_truth(baseline_truth=baseline_truth)
 
-    return {
-        "task": "PR10.1",
-        "audited_surfaces": [
-            "spec/TBD consistency",
-            "frontend parser/resolver/analyzer supported surface",
-            "emitted Ada/SPARK proof surface",
-            "ownership/concurrency/runtime boundaries",
-            "companion and emission-template verification",
-            "tooling/evidence/report determinism",
-            "traceability and docs",
-            "open review and deferred concerns",
-        ],
-        "baseline_truth": baseline_truth,
-        "finding_counts": {
-            "total": len(findings),
-            "by_area": dict(sorted(area_counts.items())),
-            "by_disposition": dict(sorted(disposition_counts.items())),
-        },
-        "promoted_follow_on_candidates": [
-            {
-                "task": task_id,
-                "title": task_map[task_id]["title"],
-                "finding_ids": promoted_candidates[task_id],
-            }
-            for task_id in PROMOTED_TASKS
-        ],
-        "retained_post_pr10_residuals": [
-            {
-                "id": item["id"],
-                "priority": item["priority"],
-                "area": item["area"],
-            }
-            for item in residuals
-        ],
-        "closed_removed_residuals": closed_removed,
-        "artifact_hashes": artifact_hashes,
-        "tracker": {
-            "next_task_id": tracker["next_task_id"],
-            "pr101_status": task_map["PR10.1"]["status"],
-            "pr101_evidence": task_map["PR10.1"]["evidence"],
-            "pr111_status": task_map["PR11.1"]["status"],
-            "pr111_evidence": task_map["PR11.1"]["evidence"],
-            "promoted_tasks": {
-                task_id: {
-                    "status": task_map[task_id]["status"],
-                    "depends_on": task_map[task_id]["depends_on"],
+    return build_three_way_report(
+        identity={"task": "PR10.1"},
+        semantic_floor=semantic_floor,
+        canonical_proof_detail={
+            "audited_surfaces": [
+                "spec/TBD consistency",
+                "frontend parser/resolver/analyzer supported surface",
+                "emitted Ada/SPARK proof surface",
+                "ownership/concurrency/runtime boundaries",
+                "companion and emission-template verification",
+                "tooling/evidence/report determinism",
+                "traceability and docs",
+                "open review and deferred concerns",
+            ],
+            "baseline_truth": canonical_baseline_truth,
+            "finding_counts": {
+                "total": len(findings),
+                "by_area": dict(sorted(area_counts.items())),
+                "by_disposition": dict(sorted(disposition_counts.items())),
+            },
+            "promoted_follow_on_candidates": [
+                {
+                    "task": task_id,
+                    "title": task_map[task_id]["title"],
+                    "finding_ids": promoted_candidates[task_id],
                 }
                 for task_id in PROMOTED_TASKS
+            ],
+            "retained_post_pr10_residuals": [
+                {
+                    "id": item["id"],
+                    "priority": item["priority"],
+                    "area": item["area"],
+                }
+                for item in residuals
+            ],
+            "closed_removed_residuals": closed_removed,
+            "artifact_hashes": artifact_hashes,
+            "tracker": {
+                "next_task_id": tracker["next_task_id"],
+                "pr101_status": task_map["PR10.1"]["status"],
+                "pr101_evidence": task_map["PR10.1"]["evidence"],
+                "pr111_status": task_map["PR11.1"]["status"],
+                "pr111_evidence": task_map["PR11.1"]["evidence"],
+                "promoted_tasks": {
+                    task_id: {
+                        "status": task_map[task_id]["status"],
+                        "depends_on": task_map[task_id]["depends_on"],
+                    }
+                    for task_id in PROMOTED_TASKS
+                },
             },
         },
-    }
+        machine_sensitive={
+            "baseline_truth": machine_baseline_truth,
+        },
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--pipeline-input", type=Path)
+    parser.add_argument("--generated-root", type=Path)
+    parser.add_argument("--authority", choices=("local", "ci"), default="local")
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
-    baseline_truth = run_baseline_truth(env=env)
-    baseline_truth["execution_state_validation"] = compact_result(
-        run([find_command("python3"), "scripts/validate_execution_state.py"], cwd=REPO_ROOT, env=env)
+    pipeline_input = load_pipeline_input(args.pipeline_input)
+    baseline_truth = (
+        pipeline_baseline_truth(env=env, pipeline_input=pipeline_input)
+        if pipeline_input
+        else run_baseline_truth(
+            env=env,
+            authority=args.authority,
+            generated_root=args.generated_root,
+        )
     )
     report = finalize_deterministic_report(
-        lambda: build_report(baseline_truth=baseline_truth),
+        lambda: build_report(
+            baseline_truth=baseline_truth,
+            generated_root=args.generated_root,
+        ),
         label="PR10.1 comprehensive audit",
     )
     write_report(args.report, report)

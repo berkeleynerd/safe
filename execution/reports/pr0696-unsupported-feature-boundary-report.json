@@ -171,8 +171,8 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "522e7627946ab3e979c3089bb59fb33bf09fa1c105ca1bde1bc7584685134ee9",
-  "report_sha256": "522e7627946ab3e979c3089bb59fb33bf09fa1c105ca1bde1bc7584685134ee9",
+  "repeat_sha256": "d39ed520bb304f9feae5ad35e5dc0639a8856f9a03d333c7caaa4d81bab04721",
+  "report_sha256": "d39ed520bb304f9feae5ad35e5dc0639a8856f9a03d333c7caaa4d81bab04721",
   "status": "ok",
   "task": "PR06.9.6",
   "unsupported_cases": [
@@ -185,7 +185,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "fixed_point.safe:2:18: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 2 |    type Money is delta 0.01 range -100.00 .. 100.00;\n  |   |                  ^~~~~\n  |\n",
+        "stderr": "fixed_point.safe:2:18: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 2 |    type Money is delta 0.01 range -100.00 to 100.00;\n  |   |                  ^~~~~\n  |\n",
         "stdout": ""
       },
       "check": {
@@ -196,7 +196,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "fixed_point.safe:2:18: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 2 |    type Money is delta 0.01 range -100.00 .. 100.00;\n  |   |                  ^~~~~\n  |\n",
+        "stderr": "fixed_point.safe:2:18: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 2 |    type Money is delta 0.01 range -100.00 to 100.00;\n  |   |                  ^~~~~\n  |\n",
         "stdout": ""
       },
       "check_diag_json": {
@@ -239,7 +239,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "fixed_point.safe:2:18: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 2 |    type Money is delta 0.01 range -100.00 .. 100.00;\n  |   |                  ^~~~~\n  |\n",
+        "stderr": "fixed_point.safe:2:18: error: unsupported type definition in current PR05/PR06 check subset\n  |\n  | 2 |    type Money is delta 0.01 range -100.00 to 100.00;\n  |   |                  ^~~~~\n  |\n",
         "stdout": ""
       },
       "emit_artifacts": {

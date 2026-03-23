@@ -6,13 +6,13 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
+    managed_scratch_root,
     require,
     write_report,
 )
@@ -40,9 +40,8 @@ EXPECTED_GNAT_ADC = (
 )
 
 
-def generate_report(*, safec: Path, env: dict[str, str]) -> dict[str, object]:
-    with tempfile.TemporaryDirectory(prefix="pr09b-conc-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+def generate_report(*, safec: Path, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, object]:
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr09b-conc-") as temp_root:
         fixtures: list[dict[str, object]] = []
 
         for fixture in FIXTURES:
@@ -104,12 +103,13 @@ def generate_report(*, safec: Path, env: dict[str, str]) -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     safec = require_safec()
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(safec=safec, env=env),
+        lambda: generate_report(safec=safec, env=env, scratch_root=args.scratch_root),
         label="PR09b concurrency",
     )
     write_report(args.report, report)

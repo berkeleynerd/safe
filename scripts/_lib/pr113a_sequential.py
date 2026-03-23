@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from .gate_expectations import (
     PR113A_EXCLUDED_POSITIVE_CONCURRENCY_CASES,
     PR113A_SEQUENTIAL_PROOF_CASES,
 )
+from .harness_common import normalize_source_text, normalized_source_fragments
 
 
 PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
@@ -20,6 +20,10 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
             "function Grade_Message (Grade : in Character) returns String is",
             "when 'A' then",
             "return Fallback;",
+        ],
+        "spec_fragments": [
+            "function Grade_Message(Grade : Character) return String with Global => null,",
+            "Depends => (Grade_Message'Result => Grade);",
         ],
         "body_fragments": [
             "case Grade is",
@@ -88,6 +92,8 @@ PR113A_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
             "type Packet (Active : Boolean := True; Kind : Character := 'A'; Count : Integer := 0) is record",
             "subtype Safe_constraint_Packet_Active_true_Kind_A_Count_1 is Packet (True, 'A', 1);",
             "subtype Safe_constraint_Packet_Active_true_Kind_A_Count_2 is Packet (Active => True, Kind => 'A', Count => 2);",
+            "function Take(Item : Safe_constraint_Packet_Active_true_Kind_A_Count_2) return Safe_constraint_Packet_Active_true_Kind_A_Count_2 with Global => null,",
+            "Depends => (Take'Result => Item);",
         ],
     },
     {
@@ -216,15 +222,6 @@ def corpus_paths() -> list[str]:
 
 def excluded_positive_concurrency_paths() -> list[str]:
     return list(PR113A_EXCLUDED_POSITIVE_CONCURRENCY_CASES)
-
-
-def normalize_source_text(text: str) -> str:
-    return " ".join(text.split())
-
-
-def normalized_source_fragments(item: dict[str, Any]) -> Sequence[str]:
-    return tuple(normalize_source_text(fragment) for fragment in item["source_fragments"])
-
 
 def verify_expected_lists() -> None:
     fixtures = corpus_paths()

@@ -15,11 +15,12 @@ from _lib.harness_common import (
     ensure_sdkroot,
     finalize_deterministic_report,
     find_command,
+    normalize_text,
     read_diag_json,
     require,
     require_repo_command,
     run,
-    sha256_file,
+    stable_emitted_artifact_sha256,
     write_report,
 )
 
@@ -175,6 +176,7 @@ def validate_emit_outputs(
         temp_root=temp_root,
     )
     mir_payload = load_json(paths["mir"])
+    mir_payload["source_path"] = normalize_text(mir_payload["source_path"], temp_root=temp_root)
     if mir_payload["graphs"]:
         validate_mir = run(
             [str(safec), "validate-mir", str(paths["mir"])],
@@ -204,7 +206,10 @@ def validate_emit_outputs(
             )
             for key, path in paths.items()
         },
-        "hashes": {key: sha256_file(path) for key, path in paths.items()},
+        "hashes": {
+            key: stable_emitted_artifact_sha256(path, temp_root=temp_root)
+            for key, path in paths.items()
+        },
         "validators": {
             "output_contracts": compact_result(output_validate),
             "validate_mir": validate_result,
@@ -701,10 +706,22 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
                 "first": compact_result(first_emit),
                 "second": compact_result(second_emit),
             },
-            "mir_equal": sha256_file(first / "out" / "client_transitive_channel_provider_ceiling.mir.json")
-            == sha256_file(second / "out" / "client_transitive_channel_provider_ceiling.mir.json"),
-            "safei_equal": sha256_file(first_iface / "client_transitive_channel_provider_ceiling.safei.json")
-            == sha256_file(second_iface / "client_transitive_channel_provider_ceiling.safei.json"),
+            "mir_equal": stable_emitted_artifact_sha256(
+                first / "out" / "client_transitive_channel_provider_ceiling.mir.json",
+                temp_root=temp_root,
+            )
+            == stable_emitted_artifact_sha256(
+                second / "out" / "client_transitive_channel_provider_ceiling.mir.json",
+                temp_root=temp_root,
+            ),
+            "safei_equal": stable_emitted_artifact_sha256(
+                first_iface / "client_transitive_channel_provider_ceiling.safei.json",
+                temp_root=temp_root,
+            )
+            == stable_emitted_artifact_sha256(
+                second_iface / "client_transitive_channel_provider_ceiling.safei.json",
+                temp_root=temp_root,
+            ),
         }
         require(determinism["mir_equal"], "PR08.4 MIR determinism drifted")
         require(determinism["safei_equal"], "PR08.4 safei determinism drifted")

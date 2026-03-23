@@ -47,7 +47,8 @@ class Pr111LanguageEvalTests(unittest.TestCase):
         self.assertIn('for Exec_Dir use ".";', text)
         self.assertIn('for Main use ("main.adb");', text)
         self.assertIn('for Default_Switches ("Ada") use ("-gnatec=ada/gnat.adc");', text)
-        self.assertIn('for Default_Switches ("Ada") use ("-Wl,-syslibroot," & Sdk_Root);', text)
+        self.assertNotIn("Sdk_Root := External", text)
+        self.assertNotIn("package Linker is", text)
 
     def test_safe_build_main_text_withs_emitted_unit(self) -> None:
         text = pr111_language_eval.safe_build_main_text("binary_search")

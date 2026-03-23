@@ -1348,16 +1348,16 @@
   },
   "determinism": {
     "tests/positive/rule2_binary_search.safe": {
-      "iface/rule2_binary_search.safei.json": "5afb9dac240a321770bbe5962e8b2f8a79eacb3a72cdf311dc0215c05c1b1a79",
-      "out/rule2_binary_search.ast.json": "193ef7c79a3399e4acc5b5727d33a80fdcde94c9c2bbdb41059ad0417c639727",
-      "out/rule2_binary_search.mir.json": "8ddef2bdf36c26fed45b3f5269f622e6236fc1a48036553c6c2d844214694419",
-      "out/rule2_binary_search.typed.json": "38e3c2b3d157f69eeb5b23dd1c004e3c58e84daa1737fa87722195e11a34cce6"
+      "iface/rule2_binary_search.safei.json": "a753db875f3b59b41c67f4dd6d7a25d6f36233bc2a671b3822153a227e1a08c0",
+      "out/rule2_binary_search.ast.json": "25809bc903c602e22aa9db5d9402877146212de092836cc01b425c03c8e53d8b",
+      "out/rule2_binary_search.mir.json": "45f63688871db9010f2bac85243c4caa22ce1756830ce351538115cf21f34cdb",
+      "out/rule2_binary_search.typed.json": "05ff1ee18dbcca950d454096a46d608928f8d096015a9069d6441efca4b0868b"
     },
     "tests/positive/rule4_conditional.safe": {
-      "iface/rule4_conditional.safei.json": "206b289a0f8ed8a59c8c5b9d124c1f6fadfefdfc72c5a990bc86daa5fcc06ccb",
-      "out/rule4_conditional.ast.json": "e4b8853131f89c517a03fabc6d9aaa99fed975e49f90414b345fd6d0d3e45de2",
-      "out/rule4_conditional.mir.json": "ababf8a8b06686f64f9f6a2259d83ba3e1dab2cf932c4dce9032522fe1043cfa",
-      "out/rule4_conditional.typed.json": "f37c886175b0272949212a30ec0bf1d4109367681adfd3fa764c35840caa5913"
+      "iface/rule4_conditional.safei.json": "97fb8717af3aca720e32c2afb05f3a1164dc59416372b05f7bd6c25b1d64ac26",
+      "out/rule4_conditional.ast.json": "9b86872e5b9d39938ccfb97508d6ad51ed66a008a586ba6fbd140a2c6e5a5bcc",
+      "out/rule4_conditional.mir.json": "bed4f50c8e515edec27a4278ea2ce6a40085f6f4f92c488400c2200e49aab8b9",
+      "out/rule4_conditional.typed.json": "eb40fd6c02e59d81db1e45d8bcb2f5fc85c9b507fb3969da0478509c3164a0e7"
     }
   },
   "deterministic": true,
@@ -1557,6 +1557,6 @@
     }
   ],
   "mode": "all",
-  "repeat_sha256": "5bc00e58baffc05214e63acf8d23a4b3a926d81f2503be2d969538b6c2dfb6ee",
-  "report_sha256": "5bc00e58baffc05214e63acf8d23a4b3a926d81f2503be2d969538b6c2dfb6ee"
+  "repeat_sha256": "dbc1c1de8c67e2e6649129bf46ac203b3e8f1661ad18b04aadd3dbfb669e38f3",
+  "report_sha256": "dbc1c1de8c67e2e6649129bf46ac203b3e8f1661ad18b04aadd3dbfb669e38f3"
 }

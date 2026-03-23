@@ -13,12 +13,46 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GPR_FILE="${REPO_ROOT}/companion/gen/companion.gpr"
+WORKSPACE_DIR="${REPO_ROOT}/companion/gen"
+GPR_FILE="${WORKSPACE_DIR}/companion.gpr"
+ALR_BIN="${ALR_BIN:-alr}"
+GNATPROVE_BIN="${GNATPROVE_BIN:-gnatprove}"
+GNATPROVE_FALLBACK="${HOME}/.alire/bin/gnatprove"
 
 if [[ ! -f "${GPR_FILE}" ]]; then
     echo "ERROR: Project file not found: ${GPR_FILE}"
     exit 1
 fi
+
+resolve_command() {
+    local configured="$1"
+    local label="$2"
+    local fallback="${3:-}"
+
+    if [[ "${configured}" == */* ]]; then
+        if [[ -x "${configured}" ]]; then
+            printf '%s\n' "${configured}"
+            return 0
+        fi
+        echo "ERROR: ${label} not executable: ${configured}" >&2
+        exit 1
+    fi
+
+    local resolved
+    resolved="$(command -v "${configured}" || true)"
+    if [[ -z "${resolved}" && -n "${fallback}" && -x "${fallback}" ]]; then
+        printf '%s\n' "${fallback}"
+        return 0
+    fi
+    if [[ -z "${resolved}" ]]; then
+        echo "ERROR: ${label} not found on PATH: ${configured}" >&2
+        exit 1
+    fi
+    printf '%s\n' "${resolved}"
+}
+
+ALR_BIN="$(resolve_command "${ALR_BIN}" "alr")"
+GNATPROVE_BIN="$(resolve_command "${GNATPROVE_BIN}" "gnatprove" "${GNATPROVE_FALLBACK}")"
 
 echo "================================================================"
 echo "  GNATprove Proof Analysis (Silver Gate)"
@@ -28,21 +62,24 @@ echo "================================================================"
 echo ""
 
 # Clean previous results to ensure a fresh analysis
-gnatprove -P "${GPR_FILE}" --clean 2>/dev/null || true
+(cd "${WORKSPACE_DIR}" && "${ALR_BIN}" exec -- "${GNATPROVE_BIN}" -P companion.gpr --clean) >/dev/null 2>&1 || true
 
-echo "Running: gnatprove -P ${GPR_FILE} --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=120 --report=all --warnings=error --checks-as-errors=on"
+echo "Running: ${ALR_BIN} exec -- ${GNATPROVE_BIN} -P companion.gpr --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=120 --report=all --warnings=error --checks-as-errors=on"
 echo ""
 
-if gnatprove -P "${GPR_FILE}" \
-    --mode=prove \
-    --level=2 \
-    --prover=cvc5,z3,altergo \
-    --steps=0 \
-    --timeout=120 \
-    --report=all \
-    --warnings=error \
-    --checks-as-errors=on \
-    2>&1; then
+if (
+    cd "${WORKSPACE_DIR}"
+    "${ALR_BIN}" exec -- "${GNATPROVE_BIN}" \
+        -P companion.gpr \
+        --mode=prove \
+        --level=2 \
+        --prover=cvc5,z3,altergo \
+        --steps=0 \
+        --timeout=120 \
+        --report=all \
+        --warnings=error \
+        --checks-as-errors=on
+) 2>&1; then
     echo ""
     echo "================================================================"
     echo "  PROOF ANALYSIS: PASSED"

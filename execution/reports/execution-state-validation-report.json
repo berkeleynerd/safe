@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "dashboard_fresh": true,
+    "documentation_architecture_clarity": true,
+    "environment_assumptions": true,
+    "evidence_reproducible": true,
+    "glue_script_safety": true,
+    "legacy_frontend_cleanup": true,
+    "performance_scale_sanity": true,
+    "policy_anchoring": true,
+    "report_sync": true,
+    "runtime_boundary": true
+  },
+  "dashboard_path": "execution/dashboard.md",
+  "deterministic": true,
+  "generated_root": null,
+  "phase": "final",
+  "policy_sections_used": [
+    "environment",
+    "documentation_architecture",
+    "portability",
+    "glue_safety"
+  ],
+  "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542",
+  "repeat_sha256": "17783ffaa635b40cbe5521a70a7b741eb6fec9f28219e80341a83fe4be1a00f4",
+  "report_sha256": "17783ffaa635b40cbe5521a70a7b741eb6fec9f28219e80341a83fe4be1a00f4",
+  "status": "ok",
+  "task": "execution-state"
+}

@@ -1,13 +1,12 @@
-# macOS Alire Toolchain Repair
+# Archived macOS Alire Toolchain Repair
 
-This note is a developer recovery procedure, not a compiler runtime dependency.
-The current frontend supports Ubuntu/Linux CI and local macOS development, and
-the macOS host assumption is that an SDK is discoverable through
-`xcrun --show-sdk-path` or `SDKROOT`.
+This note is archived historical guidance for an unsupported host. It is not a
+compiler runtime dependency, and the current supported build environments are
+Ubuntu/Linux CI and local Linux only.
 
 ## Symptom
 
-`cd compiler_impl && $HOME/bin/alr build` can fail on macOS while rebuilding
+`cd compiler_impl && alr build` can fail on macOS while rebuilding
 dependency C sources with errors such as:
 
 - `fatal error: stdlib.h: No such file or directory`
@@ -40,12 +39,13 @@ xcrun --show-sdk-path
 
 ```sh
 cd "$REPO_ROOT/compiler_impl"
-$HOME/bin/alr build
+alr build
 ```
 
 ## Notes
 
 - This repair is host-local and reversible.
+- It documents an unsupported platform and should not be treated as active repo policy.
 - It is not part of the Safe compiler runtime contract.
 - The preferred long-term fix is to repair or reinstall the Alire/GNAT toolchain
   so its GCC driver resolves the current Command Line Tools SDK layout without a

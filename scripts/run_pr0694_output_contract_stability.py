@@ -21,6 +21,7 @@ from _lib.harness_common import (
     require,
     require_repo_command,
     run,
+    stable_emitted_artifact_sha256,
     write_report,
 )
 
@@ -142,7 +143,7 @@ def run_emit_case(
         left_bytes = left.read_bytes()
         right_bytes = right.read_bytes()
         require(left_bytes == right_bytes, f"{name}: non-deterministic output for {relative}")
-        file_hashes[relative] = sha256(left)
+        file_hashes[relative] = stable_emitted_artifact_sha256(left, temp_root=temp_root)
 
     ast_path = left_paths[f"out/{name}.ast.json"]
     typed_path = left_paths[f"out/{name}.typed.json"]
@@ -267,7 +268,7 @@ def run_emit_case(
 def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="pr0694-contracts-") as temp_root_str:
         temp_root = Path(temp_root_str)
-        inline_root = COMPILER_ROOT / "obj" / "pr0694-output-contract-stability"
+        inline_root = temp_root / "inline-sources"
         inline_root.mkdir(parents=True, exist_ok=True)
         corpus_results: dict[str, Any] = {}
         for sample in CORPUS_SAMPLES:

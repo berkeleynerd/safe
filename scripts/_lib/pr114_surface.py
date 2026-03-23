@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from .harness_common import normalize_source_text, normalized_source_fragments, strip_safe_comments
 from .pr09_emit import REPO_ROOT
 
 
@@ -125,19 +125,3 @@ def corpus_paths() -> list[str]:
 
 def negative_paths() -> list[str]:
     return [str(item["source"].relative_to(REPO_ROOT)) for item in PR114_NEGATIVE_CASES]
-
-
-def strip_safe_comments(text: str) -> str:
-    lines: list[str] = []
-    for line in text.splitlines():
-        marker = line.find("--")
-        lines.append(line if marker < 0 else line[:marker])
-    return "\n".join(lines)
-
-
-def normalize_source_text(text: str) -> str:
-    return " ".join(text.split())
-
-
-def normalized_source_fragments(item: dict[str, Any]) -> Sequence[str]:
-    return tuple(normalize_source_text(fragment) for fragment in item["source_fragments"])

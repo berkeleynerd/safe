@@ -8,7 +8,6 @@ import json
 import os
 import re
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +15,7 @@ from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
+    managed_scratch_root,
     read_diag_json,
     require,
     write_report,
@@ -211,13 +211,12 @@ def run_negative_case(
     }
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     safec = safec_path()
     positives: list[dict[str, Any]] = []
     negatives: list[dict[str, Any]] = []
 
-    with tempfile.TemporaryDirectory(prefix="pr114-cutover-") as temp_dir:
-        temp_root = Path(temp_dir)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr114-cutover-") as temp_root:
         for case in positive_cases():
             positives.append(
                 run_positive_case(
@@ -272,6 +271,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_REPORT,
         help=f"path to write the deterministic report (default: {display_path(DEFAULT_REPORT, repo_root=REPO_ROOT)})",
     )
+    parser.add_argument("--scratch-root", type=Path)
     return parser.parse_args()
 
 
@@ -279,7 +279,7 @@ def main() -> int:
     args = parse_args()
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(env=env),
+        lambda: generate_report(env=env, scratch_root=args.scratch_root),
         label="PR11.4 syntax cutover",
     )
     write_report(args.report, report)

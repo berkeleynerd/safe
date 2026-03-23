@@ -3,6 +3,8 @@
   "glue_script_safety": {
     "audited_scripts": [
       "safe",
+      "scripts/_lib/pr101_verification.py",
+      "scripts/_lib/gate_manifest.py",
       "scripts/run_frontend_smoke.py",
       "scripts/run_pr05_d27_harness.py",
       "scripts/run_pr06_ownership_harness.py",
@@ -33,6 +35,9 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
@@ -46,6 +51,7 @@
       "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
       "scripts/run_pr113a_proof_checkpoint1.py",
       "scripts/run_pr114_signature_control_flow_syntax.py",
+      "scripts/run_gate_pipeline.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
       "scripts/validate_ast_output.py",
@@ -59,6 +65,10 @@
       "alr",
       "git"
     ],
+    "policy_sections_used": [
+      "glue_safety"
+    ],
+    "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542",
     "report_helper_violations": [],
     "report_scripts": [
       "scripts/run_frontend_smoke.py",
@@ -90,6 +100,9 @@
       "scripts/run_pr09b_concurrency_output.py",
       "scripts/run_pr09b_snapshot_refresh.py",
       "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_pr102_rule5_boundary_closure.py",
       "scripts/run_pr103_sequential_proof_expansion.py",
       "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
@@ -166,43 +179,79 @@
     "execution/reports/pr06910-portability-environment-report.json",
     "execution/reports/pr06911-glue-script-safety-report.json"
   ],
+  "policy_sections_used": [
+    "glue_safety"
+  ],
+  "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542",
   "referenced_deterministic_reports": {
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0699_build_reproducibility.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr0699_build_reproducibility.py"
     },
     "frontend_smoke": {
       "committed_report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_frontend_smoke.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "f426c138609932d8bc22968fdf71436398bdc0fadc2e62d035c4d07e2271f1fc",
-  "report_sha256": "f426c138609932d8bc22968fdf71436398bdc0fadc2e62d035c4d07e2271f1fc",
+  "repeat_sha256": "cbd8bddccbb0259eaf2c5ea2f16ed6883b61d66e8cfab31bb44d82d70736be4e",
+  "report_sha256": "cbd8bddccbb0259eaf2c5ea2f16ed6883b61d66e8cfab31bb44d82d70736be4e",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0697_gate_quality.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr0697_gate_quality.py"
     },
     "portability_environment": {
       "committed_report_path": "execution/reports/pr06910-portability-environment-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr06910_portability_environment.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr06910_portability_environment.py"
     },
     "runtime_boundary": {
       "committed_report_path": "execution/reports/pr0693-runtime-boundary-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0693_runtime_boundary.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr0693_runtime_boundary.py"
-    },
-    "validate_execution_state": {
-      "command": [
-        "python3",
-        "scripts/validate_execution_state.py"
-      ],
-      "cwd": "$REPO_ROOT",
-      "returncode": 0
     }
   },
   "status": "ok",

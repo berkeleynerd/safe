@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
@@ -72,20 +73,22 @@ Total                             5          .    5 (CVC5)           .          
     def test_gnatprove_command_adds_gnat_adc_explicitly(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             ada_dir = Path(temp_dir)
-            command = pr10_emit.gnatprove_command(
-                gpr_path=ada_dir / "build.gpr",
-                ada_dir=ada_dir,
-                mode="prove",
-            )
-            self.assertNotIn("-cargs", command)
-            (ada_dir / "gnat.adc").write_text("pragma Profile(Jorvik);\n", encoding="utf-8")
-            command = pr10_emit.gnatprove_command(
-                gpr_path=ada_dir / "build.gpr",
-                ada_dir=ada_dir,
-                mode="flow",
-            )
-            self.assertIn("-cargs", command)
-            self.assertIn(f"-gnatec={ada_dir / 'gnat.adc'}", command)
+            with mock.patch.object(pr10_emit, "find_command", return_value="/tmp/gnatprove"):
+                command = pr10_emit.gnatprove_command(
+                    gpr_path=ada_dir / "build.gpr",
+                    ada_dir=ada_dir,
+                    mode="prove",
+                )
+                self.assertEqual(command[:4], [pr10_emit.alr_command(), "exec", "--", "/tmp/gnatprove"])
+                self.assertNotIn("-cargs", command)
+                (ada_dir / "gnat.adc").write_text("pragma Profile(Jorvik);\n", encoding="utf-8")
+                command = pr10_emit.gnatprove_command(
+                    gpr_path=ada_dir / "build.gpr",
+                    ada_dir=ada_dir,
+                    mode="flow",
+                )
+                self.assertIn("-cargs", command)
+                self.assertIn(f"-gnatec={ada_dir / 'gnat.adc'}", command)
 
     def test_golden_pipeline_uses_in_out_try_receive_without_failure_default(self) -> None:
         spec = (

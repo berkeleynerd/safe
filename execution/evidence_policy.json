@@ -1,0 +1,339 @@
+{
+  "documentation_architecture": {
+    "doc_requirements": {
+      "README.md": [
+        "docs/frontend_architecture_baseline.md",
+        "docs/frontend_scale_limits.md",
+        "compiler_impl/README.md",
+        "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern",
+        "Ada-native `safec lex` / `ast` / `validate-mir` / `analyze-mir` / `check` / `emit`",
+        "Python remains glue/orchestration only around the compiler.",
+        "PR08 is now the supported frontend baseline, and later work continues on that live Ada-native path rather than reviving deleted packages."
+      ],
+      "compiler_impl/README.md": [
+        "../docs/frontend_architecture_baseline.md",
+        "../docs/frontend_scale_limits.md",
+        "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern",
+        "All current user-facing `safec` commands are Ada-native for that supported surface.",
+        "Python remains glue/orchestration only around the compiler.",
+        "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.",
+        "PR08 extends the live `Check_*` + `Mir_*` pipeline, and the current frontend baseline is now PR08."
+      ],
+      "docs/frontend_architecture_baseline.md": [
+        "`safec lex`",
+        "`safec ast`",
+        "`safec validate-mir`",
+        "`safec analyze-mir`",
+        "`safec check`",
+        "`safec emit`",
+        "Python is glue/orchestration only.",
+        "No user-facing `safec` command depends on Python at runtime.",
+        "`Check_*`",
+        "`Mir_*`",
+        "`Lexer`",
+        "`Source`",
+        "`Types`",
+        "`Diagnostics`",
+        "`Json`",
+        "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.",
+        "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern",
+        "PR08 extends the live path rather than reviving deleted legacy packages, and the current supported frontend baseline is now PR08 rather than PR07."
+      ],
+      "docs/frontend_scale_limits.md": [
+        "frontend_architecture_baseline.md",
+        "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern"
+      ],
+      "release/frontend_runtime_decision.md": [
+        "../docs/frontend_architecture_baseline.md",
+        "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern",
+        "Ada-native runtime commands:",
+        "Python is glue/orchestration only.",
+        "The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.",
+        "PR06.9.1 through PR06.9.13 established the hardened pre-PR07 baseline, and PR07 extends that same live path.",
+        "PR08 starts from this cleaned PR07 baseline and must extend the live path rather than revive deleted legacy packages."
+      ]
+    },
+    "required_links": {
+      "README.md": [
+        "docs/frontend_architecture_baseline.md",
+        "docs/frontend_scale_limits.md",
+        "compiler_impl/README.md"
+      ],
+      "compiler_impl/README.md": [
+        "../docs/frontend_architecture_baseline.md",
+        "../docs/frontend_scale_limits.md"
+      ],
+      "docs/frontend_scale_limits.md": [
+        "frontend_architecture_baseline.md"
+      ],
+      "release/frontend_runtime_decision.md": [
+        "../docs/frontend_architecture_baseline.md"
+      ]
+    },
+    "stale_markers": {
+      "README.md": [
+        "PR00–PR06.9.1 sequential frontend landed",
+        "EXEC_SUMMARY.md",
+        "CHANGELOG.md",
+        "PR07 starts from the cleaned PR06.9.x frontend baseline."
+      ],
+      "compiler_impl/README.md": [
+        "through PR06.9.8",
+        "through PR06.9.12",
+        "PR06.8 runtime doctrine:",
+        "PR06.9.3 hardens that boundary",
+        "PR06.9.10 hardens portability assumptions",
+        "PR07 must extend the live `Check_*` + `Mir_*` pipeline."
+      ],
+      "release/frontend_runtime_decision.md": [
+        "PR06.5 and PR06.6 removed the MIR validator and MIR analyzer",
+        "PR06.8 cuts `safec ast` and `safec emit` over",
+        "Before `PR07`, the roadmap now inserts a `PR06.9.1` through `PR06.9.13` stabilization series",
+        "PR07 starts from this cleaned baseline and must extend the live path rather than revive deleted legacy packages."
+      ]
+    }
+  },
+  "environment": {
+    "ci": {
+      "alr_paths": [
+        "alr"
+      ],
+      "gnat_versions": [
+        "GNAT 15.2.0"
+      ],
+      "gnatprove_versions": [
+        "FSF 15.0"
+      ],
+      "gprbuild_versions": [
+        "GPRBUILD 25.0.0"
+      ],
+      "python_versions": [
+        "3.12"
+      ],
+      "toolchain_pins": {
+        "gnat_native": "15.2.1",
+        "gnatprove": "15.1.0",
+        "gprbuild": "25.0.1"
+      }
+    },
+    "local": {
+      "alr_paths": [
+        "alr",
+        "~/bin/alr"
+      ],
+      "gnat_versions": [
+        "GNAT 15.2.0"
+      ],
+      "gnatprove_versions": [
+        "FSF 15.0"
+      ],
+      "gprbuild_versions": [
+        "GPRBUILD 25.0.0"
+      ],
+      "python_versions": [
+        "3.12"
+      ],
+      "toolchain_pins": {
+        "gnat_native": "15.2.1",
+        "gnatprove": "15.1.0",
+        "gprbuild": "25.0.1"
+      }
+    },
+    "required_env": {
+      "LC_ALL": "C.UTF-8",
+      "PYTHONHASHSEED": "0",
+      "TZ": "UTC"
+    }
+  },
+  "generated_outputs": {
+    "dashboard": "execution/dashboard.md",
+    "reports_root": "execution/reports"
+  },
+  "glue_safety": {
+    "allowed_safe_source_readers": {
+      "scripts/run_pr05_d27_harness.py": "fixture metadata extraction via read_expected_reason",
+      "scripts/run_pr0691_semantic_correctness.py": "fixture metadata extraction via read_expected_reason",
+      "scripts/run_pr06_ownership_harness.py": "fixture metadata extraction via read_expected_reason",
+      "scripts/run_pr081_local_concurrency_frontend.py": "fixture metadata extraction via read_expected_reason",
+      "scripts/run_pr082_local_concurrency_analysis.py": "fixture metadata extraction via read_expected_reason",
+      "scripts/run_pr083_interface_contracts.py": "fixture metadata extraction via read_expected_reason",
+      "scripts/run_pr083a_public_constants.py": "fixture metadata extraction via read_expected_reason and synthetic parity source generation",
+      "scripts/run_pr102_rule5_boundary_closure.py": "fixture metadata extraction via read_expected_reason and diagnostics golden comparison",
+      "scripts/run_pr103_sequential_proof_expansion.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR10.3 ownership corpus",
+      "scripts/run_pr106_sequential_proof_corpus_expansion.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR10.6 sequential corpus",
+      "scripts/run_pr113a_proof_checkpoint1.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.3a sequential checkpoint corpus",
+      "scripts/run_pr114_signature_control_flow_syntax.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.4 syntax cutover corpus"
+    },
+    "audited_scripts": [
+      "safe",
+      "scripts/_lib/pr101_verification.py",
+      "scripts/_lib/gate_manifest.py",
+      "scripts/run_frontend_smoke.py",
+      "scripts/run_pr05_d27_harness.py",
+      "scripts/run_pr06_ownership_harness.py",
+      "scripts/run_pr065_ada_mir_validator.py",
+      "scripts/run_pr066_ada_mir_analyzer.py",
+      "scripts/run_pr067_ada_check_cutover.py",
+      "scripts/run_pr068_ada_ast_emit_no_python.py",
+      "scripts/run_pr0691_semantic_correctness.py",
+      "scripts/run_pr0692_lowering_cfg_integrity.py",
+      "scripts/run_pr0693_runtime_boundary.py",
+      "scripts/run_pr0694_output_contract_stability.py",
+      "scripts/run_pr0695_diagnostic_stability.py",
+      "scripts/run_pr0696_unsupported_feature_boundary.py",
+      "scripts/run_pr0697_gate_quality.py",
+      "scripts/run_pr0698_legacy_package_cleanup.py",
+      "scripts/run_pr0699_build_reproducibility.py",
+      "scripts/run_pr06910_portability_environment.py",
+      "scripts/run_pr06911_glue_script_safety.py",
+      "scripts/run_pr06912_performance_scale_sanity.py",
+      "scripts/run_pr081_local_concurrency_frontend.py",
+      "scripts/run_pr082_local_concurrency_analysis.py",
+      "scripts/run_pr083_interface_contracts.py",
+      "scripts/run_pr083a_public_constants.py",
+      "scripts/_lib/pr09_emit.py",
+      "scripts/run_pr09a_emitter_surface.py",
+      "scripts/run_pr09a_emitter_mvp.py",
+      "scripts/run_pr09b_sequential_semantics.py",
+      "scripts/run_pr09b_concurrency_output.py",
+      "scripts/run_pr09b_snapshot_refresh.py",
+      "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
+      "scripts/run_pr102_rule5_boundary_closure.py",
+      "scripts/run_pr103_sequential_proof_expansion.py",
+      "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
+      "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
+      "scripts/run_pr106_sequential_proof_corpus_expansion.py",
+      "scripts/safe_cli.py",
+      "scripts/safe_lsp.py",
+      "scripts/run_rosetta_corpus.py",
+      "scripts/run_pr111_language_evaluation_harness.py",
+      "scripts/run_pr112_parser_completeness_phase1.py",
+      "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
+      "scripts/run_pr113a_proof_checkpoint1.py",
+      "scripts/run_pr114_signature_control_flow_syntax.py",
+      "scripts/run_gate_pipeline.py",
+      "scripts/run_local_pre_push.py",
+      "scripts/validate_execution_state.py",
+      "scripts/validate_ast_output.py",
+      "scripts/validate_output_contracts.py",
+      "scripts/render_execution_status.py"
+    ],
+    "path_commands": [
+      "python3",
+      "alr",
+      "git"
+    ],
+    "report_scripts": [
+      "scripts/run_frontend_smoke.py",
+      "scripts/run_pr05_d27_harness.py",
+      "scripts/run_pr06_ownership_harness.py",
+      "scripts/run_pr065_ada_mir_validator.py",
+      "scripts/run_pr066_ada_mir_analyzer.py",
+      "scripts/run_pr067_ada_check_cutover.py",
+      "scripts/run_pr068_ada_ast_emit_no_python.py",
+      "scripts/run_pr0691_semantic_correctness.py",
+      "scripts/run_pr0692_lowering_cfg_integrity.py",
+      "scripts/run_pr0693_runtime_boundary.py",
+      "scripts/run_pr0694_output_contract_stability.py",
+      "scripts/run_pr0695_diagnostic_stability.py",
+      "scripts/run_pr0696_unsupported_feature_boundary.py",
+      "scripts/run_pr0697_gate_quality.py",
+      "scripts/run_pr0698_legacy_package_cleanup.py",
+      "scripts/run_pr0699_build_reproducibility.py",
+      "scripts/run_pr06910_portability_environment.py",
+      "scripts/run_pr06911_glue_script_safety.py",
+      "scripts/run_pr06912_performance_scale_sanity.py",
+      "scripts/run_pr081_local_concurrency_frontend.py",
+      "scripts/run_pr082_local_concurrency_analysis.py",
+      "scripts/run_pr083_interface_contracts.py",
+      "scripts/run_pr083a_public_constants.py",
+      "scripts/run_pr09a_emitter_surface.py",
+      "scripts/run_pr09a_emitter_mvp.py",
+      "scripts/run_pr09b_sequential_semantics.py",
+      "scripts/run_pr09b_concurrency_output.py",
+      "scripts/run_pr09b_snapshot_refresh.py",
+      "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101a_companion_proof_verification.py",
+      "scripts/run_pr101b_template_proof_verification.py",
+      "scripts/run_pr101_comprehensive_audit.py",
+      "scripts/run_pr102_rule5_boundary_closure.py",
+      "scripts/run_pr103_sequential_proof_expansion.py",
+      "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
+      "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
+      "scripts/run_pr106_sequential_proof_corpus_expansion.py",
+      "scripts/run_rosetta_corpus.py",
+      "scripts/run_pr111_language_evaluation_harness.py",
+      "scripts/run_pr112_parser_completeness_phase1.py",
+      "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
+      "scripts/run_pr113a_proof_checkpoint1.py",
+      "scripts/run_pr114_signature_control_flow_syntax.py"
+    ]
+  },
+  "portability": {
+    "doc_requirements": {
+      "compiler_impl/README.md": [
+        "Supported frontend environments:",
+        "Unsupported frontend environments:",
+        "PATH-based command discovery",
+        "deterministic TemporaryDirectory prefixes",
+        "shell-free glue scripts",
+        "Python glue/orchestration"
+      ],
+      "release/frontend_runtime_decision.md": [
+        "Supported frontend environments:",
+        "Unsupported frontend environments:",
+        "PATH-based command discovery",
+        "deterministic TemporaryDirectory prefixes",
+        "shell-free glue scripts",
+        "Python glue/orchestration"
+      ]
+    },
+    "module_requirements": {
+      "scripts/run_pr068_ada_ast_emit_no_python.py": [
+        "MASKED_PYTHON_INTERPRETERS",
+        "STATIC_PYTHON_INVOCATION_PATTERNS"
+      ],
+      "scripts/run_pr0693_runtime_boundary.py": [
+        "MASKED_PYTHON_INTERPRETERS"
+      ],
+      "scripts/validate_execution_state.py": [
+        "STATIC_PYTHON_INVOCATION_PATTERNS",
+        "SUPPORTED_PLATFORM_POLICY_TEXT",
+        "UNSUPPORTED_PLATFORM_POLICY_TEXT"
+      ]
+    },
+    "path_lookup_scripts": [
+      "scripts/run_pr0693_runtime_boundary.py",
+      "scripts/run_pr068_ada_ast_emit_no_python.py",
+      "scripts/run_pr06910_portability_environment.py",
+      "scripts/run_pr081_local_concurrency_frontend.py",
+      "scripts/run_pr082_local_concurrency_analysis.py",
+      "scripts/run_pr083_interface_contracts.py",
+      "scripts/run_pr083a_public_constants.py",
+      "scripts/_lib/pr09_emit.py",
+      "scripts/_lib/pr101_verification.py",
+      "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101_comprehensive_audit.py",
+      "scripts/run_local_pre_push.py"
+    ],
+    "tempdir_scripts": [
+      "scripts/run_pr0693_runtime_boundary.py",
+      "scripts/run_pr068_ada_ast_emit_no_python.py",
+      "scripts/run_pr081_local_concurrency_frontend.py",
+      "scripts/run_pr082_local_concurrency_analysis.py",
+      "scripts/run_pr083_interface_contracts.py",
+      "scripts/run_pr083a_public_constants.py",
+      "scripts/run_pr09a_emitter_surface.py",
+      "scripts/run_pr09a_emitter_mvp.py",
+      "scripts/run_pr09b_sequential_semantics.py",
+      "scripts/run_pr09b_concurrency_output.py",
+      "scripts/run_pr09b_snapshot_refresh.py",
+      "scripts/run_pr09_ada_emission_baseline.py",
+      "scripts/run_pr101_comprehensive_audit.py"
+    ]
+  },
+  "schema_version": "evidence-policy-v1"
+}

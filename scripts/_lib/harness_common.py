@@ -9,13 +9,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
-DEFAULT_MACOS_SDKROOT = Path("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")
+EVIDENCE_POLICY_PATH = REPO_ROOT / "execution" / "evidence_policy.json"
+FRONTEND_BUILD_INPUT_SUFFIXES = {".adb", ".ads", ".gpr", ".adc"}
+FRONTEND_BUILD_INPUT_FILENAMES = {"alire.toml", "alire.lock"}
 
 
 def normalize_text(text: str, *, temp_root: Path | None = None, repo_root: Path = REPO_ROOT) -> str:
@@ -54,6 +57,73 @@ def normalize_argv(
     return normalized
 
 
+TRANSPORT_ONLY_SWITCHES = (
+    "--report",
+    "--pipeline-input",
+    "--generated-root",
+    "--scratch-root",
+    "--generated-output-baseline-file",
+    "--authority",
+)
+
+
+def transport_switch_value(command: list[str], switch: str) -> str | None:
+    index = 0
+    while index < len(command):
+        item = command[index]
+        if item == switch:
+            if index + 1 < len(command):
+                return command[index + 1]
+            return None
+        if item.startswith(switch + "="):
+            return item.split("=", 1)[1]
+        index += 1
+    return None
+
+
+def strip_transport_only_switches(command: list[str]) -> list[str]:
+    stripped: list[str] = []
+    index = 0
+    while index < len(command):
+        item = command[index]
+        matched = False
+        for switch in TRANSPORT_ONLY_SWITCHES:
+            if item == switch:
+                matched = True
+                index += 2
+                break
+            if item.startswith(switch + "="):
+                matched = True
+                index += 1
+                break
+        if matched:
+            continue
+        stripped.append(item)
+        index += 1
+    return stripped
+
+
+def canonicalize_serialized_child_result(
+    result: dict[str, Any],
+    *,
+    committed_report_path: Path | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    canonical = dict(result)
+    command = canonical.get("command")
+    if isinstance(command, list):
+        original_command = [str(item) for item in command]
+        report_path = transport_switch_value(original_command, "--report")
+        canonical["command"] = strip_transport_only_switches(original_command)
+        if committed_report_path is not None and report_path is not None:
+            stable_report_path = display_path(committed_report_path, repo_root=repo_root)
+            for key in ("stdout", "stderr"):
+                text = canonical.get(key)
+                if isinstance(text, str):
+                    canonical[key] = text.replace(report_path, stable_report_path)
+    return canonical
+
+
 def find_command(name: str, fallback: Path | None = None) -> str:
     found = shutil.which(name)
     if found:
@@ -69,10 +139,63 @@ def require_repo_command(path: Path, name: str) -> Path:
     raise FileNotFoundError(f"required repo-local command not found: {name} at {path}")
 
 
+def require_safec() -> Path:
+    return require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
+
+
 def compiler_build_argv(alr: str) -> list[str]:
-    # Keep Alire's workspace/config generation, but force gprbuild itself to
-    # run serially to avoid occasional corrupt dependency archives on macOS.
-    return [alr, "build", "--", "-j1", "-p"]
+    # Keep Alire's workspace/config generation while deferring actual job-count
+    # selection to gprbuild's default parallelism.
+    return [alr, "build", "--", "-j0", "-p"]
+
+
+def frontend_build_input_files(
+    *,
+    compiler_root: Path = COMPILER_ROOT,
+    repo_root: Path = REPO_ROOT,
+) -> list[Path]:
+    files: list[Path] = []
+    for path in compiler_root.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(compiler_root)
+        if relative.parts[0] in {"bin", "obj"}:
+            continue
+        if path.suffix in FRONTEND_BUILD_INPUT_SUFFIXES or path.name in FRONTEND_BUILD_INPUT_FILENAMES:
+            files.append(path)
+    return sorted(files, key=lambda path: str(path.relative_to(repo_root)))
+
+
+def frontend_build_input_hash(
+    *,
+    alr: str,
+    compiler_root: Path = COMPILER_ROOT,
+    repo_root: Path = REPO_ROOT,
+) -> str:
+    # Key build-proof reuse on source/config inputs and the normalized build
+    # command, not on host-sensitive emitted binary bytes.
+    normalized_command = [Path(alr).name, *compiler_build_argv(alr)[1:]]
+    digests = [sha256_text(json.dumps(normalized_command))]
+    for path in frontend_build_input_files(compiler_root=compiler_root, repo_root=repo_root):
+        relative = str(path.relative_to(repo_root))
+        digests.append(sha256_text(f"{relative}:{sha256_file(path)}"))
+    return sha256_text("".join(digests))
+
+
+def ensure_deterministic_env(
+    env: dict[str, str],
+    *,
+    required: dict[str, str] | None = None,
+) -> dict[str, str]:
+    updated = env.copy()
+    policy_required = required or {
+        "PYTHONHASHSEED": "0",
+        "LC_ALL": "C.UTF-8",
+        "TZ": "UTC",
+    }
+    for key, value in policy_required.items():
+        updated[key] = value
+    return updated
 
 
 def run(
@@ -162,29 +285,7 @@ def ensure_sdkroot(
     *,
     platform_name: str = sys.platform,
     xcrun_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
-    fallback_sdkroot: Path = DEFAULT_MACOS_SDKROOT,
 ) -> dict[str, str]:
-    if platform_name != "darwin" or env.get("SDKROOT"):
-        return env
-    try:
-        xcrun = xcrun_runner(
-            ["xcrun", "--show-sdk-path"],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-    except OSError:
-        xcrun = None
-    if xcrun is not None and xcrun.returncode == 0:
-        discovered = xcrun.stdout.strip()
-        if discovered:
-            updated = env.copy()
-            updated["SDKROOT"] = discovered
-            return updated
-    if fallback_sdkroot.exists():
-        updated = env.copy()
-        updated["SDKROOT"] = str(fallback_sdkroot)
-        return updated
     return env
 
 
@@ -208,6 +309,23 @@ def sha256_file(path: Path) -> str:
                 break
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def stable_emitted_artifact_sha256(
+    path: Path,
+    *,
+    temp_root: Path | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> str:
+    if path.suffix == ".json":
+        return sha256_text(
+            normalize_text(
+                path.read_text(encoding="utf-8"),
+                temp_root=temp_root,
+                repo_root=repo_root,
+            )
+        )
+    return sha256_file(path)
 
 
 def stable_binary_sha256(path: Path) -> str:
@@ -247,11 +365,106 @@ def stable_binary_sha256(path: Path) -> str:
         return sha256_file(projected)
 
 
+def load_evidence_policy(path: Path = EVIDENCE_POLICY_PATH) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    require(isinstance(payload, dict), f"{path}: evidence policy root must be an object")
+    return payload
+
+
+def evidence_policy_sha256(payload: dict[str, Any]) -> str:
+    return sha256_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def policy_metadata(
+    *,
+    policy_sha256: str,
+    sections: list[str],
+) -> dict[str, Any]:
+    return {
+        "policy_sha256": policy_sha256,
+        "policy_sections_used": sections,
+    }
+
+
+def generated_output_paths(policy: dict[str, Any]) -> tuple[Path, Path]:
+    outputs = policy["generated_outputs"]
+    return Path(outputs["reports_root"]), Path(outputs["dashboard"])
+
+
+def resolve_generated_path(
+    path: Path,
+    *,
+    generated_root: Path | None,
+    policy: dict[str, Any],
+    repo_root: Path = REPO_ROOT,
+) -> Path:
+    if generated_root is None:
+        return path
+    try:
+        relative = path.relative_to(repo_root)
+    except ValueError:
+        return path
+    reports_root, dashboard_path = generated_output_paths(policy)
+    if relative == dashboard_path or reports_root in relative.parents:
+        return generated_root / relative
+    return path
+
+
 def display_path(path: Path, *, repo_root: Path = REPO_ROOT) -> str:
     try:
         return str(path.relative_to(repo_root))
     except ValueError:
         return str(path)
+
+
+def normalize_source_text(text: str) -> str:
+    return " ".join(text.split())
+
+
+def normalized_source_fragments(
+    item: dict[str, Any],
+    *,
+    key: str = "source_fragments",
+) -> tuple[str, ...]:
+    return tuple(normalize_source_text(fragment) for fragment in item[key])
+
+
+def assert_text_fragments(*, text: str, fragments: list[str], label: str) -> list[str]:
+    for fragment in fragments:
+        require(fragment in text, f"{label} missing required fragment: {fragment}")
+    return fragments
+
+
+def assert_regexes(*, text: str, patterns: list[str], label: str) -> list[str]:
+    for pattern in patterns:
+        require(re.search(pattern, text, flags=re.MULTILINE) is not None, f"{label} missing required pattern: {pattern}")
+    return patterns
+
+
+def assert_order(*, text: str, fragments: list[str], label: str) -> list[str]:
+    cursor = -1
+    for fragment in fragments:
+        index = text.find(fragment, cursor + 1)
+        require(index >= 0, f"{label} missing ordered fragment: {fragment}")
+        require(index > cursor, f"{label} fragment out of order: {fragment}")
+        cursor = index
+    return fragments
+
+
+def compact_result(result: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "command": result["command"],
+        "cwd": result["cwd"],
+        "returncode": result["returncode"],
+    }
+
+
+def strip_safe_comments(text: str) -> str:
+    lines: list[str] = []
+    for line in text.splitlines():
+        marker = line.find("--")
+        lines.append(line if marker < 0 else line[:marker])
+    return "\n".join(lines)
 
 
 def serialize_report(report: dict[str, Any]) -> str:
@@ -329,44 +542,126 @@ def rerun_report_gate_and_compare(
         f"{display_path(script, repo_root=repo_root)} rerun drifted from committed report "
         f"{display_path(committed_report_path, repo_root=repo_root)}",
     )
-    return {
-        "script": display_path(script, repo_root=repo_root),
-        "committed_report_path": display_path(committed_report_path, repo_root=repo_root),
-        "rerun": {
-            "command": result["command"],
-            "cwd": result["cwd"],
-            "returncode": result["returncode"],
-        },
-        "matches_committed_report": True,
-    }
+    return reference_committed_report(
+        script=script,
+        committed_report_path=committed_report_path,
+        result=result,
+        repo_root=repo_root,
+    )
 
 
 def reference_committed_report(
     *,
     script: Path,
     committed_report_path: Path,
+    generated_root: Path | None = None,
+    result: dict[str, Any] | None = None,
+    python: str | None = None,
+    policy: dict[str, Any] | None = None,
     repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
-    require(committed_report_path.exists(), f"missing committed report: {committed_report_path}")
-    committed_text = committed_report_path.read_text(encoding="utf-8")
+    resolved_report_path = (
+        resolve_generated_path(
+            committed_report_path,
+            generated_root=generated_root,
+            policy=policy or load_evidence_policy(),
+            repo_root=repo_root,
+        )
+        if generated_root is not None
+        else committed_report_path
+    )
+    require(resolved_report_path.exists(), f"missing committed report: {resolved_report_path}")
+    committed_text = resolved_report_path.read_text(encoding="utf-8")
     committed_payload = json.loads(committed_text)
     require(
         isinstance(committed_payload, dict),
-        f"{display_path(committed_report_path, repo_root=repo_root)}: report root must be an object",
+        f"{display_path(resolved_report_path, repo_root=repo_root)}: report root must be an object",
     )
     require(
         committed_payload.get("deterministic") is True,
-        f"{display_path(committed_report_path, repo_root=repo_root)}: expected deterministic committed report",
+        f"{display_path(resolved_report_path, repo_root=repo_root)}: expected deterministic committed report",
     )
     require(
         committed_payload.get("report_sha256") == committed_payload.get("repeat_sha256"),
-        f"{display_path(committed_report_path, repo_root=repo_root)}: committed report hashes must match",
+        f"{display_path(resolved_report_path, repo_root=repo_root)}: committed report hashes must match",
     )
-    return {
+    metadata = {
         "script": display_path(script, repo_root=repo_root),
         "committed_report_path": display_path(committed_report_path, repo_root=repo_root),
         "matches_committed_report": True,
     }
+    if result is None and python is not None:
+        result = {
+            "command": [python, display_path(script, repo_root=repo_root)],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0,
+        }
+    if result is not None:
+        metadata["rerun"] = compact_result(
+            canonicalize_serialized_child_result(
+                result,
+                committed_report_path=committed_report_path,
+                repo_root=repo_root,
+            )
+        )
+    return metadata
+
+
+@contextmanager
+def managed_scratch_root(*, scratch_root: Path | None, prefix: str):
+    if scratch_root is not None:
+        resolved_root = scratch_root.resolve()
+        shared_temp_root = Path(tempfile.gettempdir()).resolve()
+        require(resolved_root != Path(resolved_root.anchor), f"{scratch_root}: scratch root must not be filesystem root")
+        require(resolved_root != REPO_ROOT.resolve(), f"{scratch_root}: scratch root must not be the repository root")
+        require(
+            resolved_root != shared_temp_root,
+            f"{scratch_root}: scratch root must not be the shared temp root",
+        )
+        try:
+            resolved_root.relative_to(shared_temp_root)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"{scratch_root}: scratch root must live under {shared_temp_root}"
+            ) from exc
+        shutil.rmtree(resolved_root, ignore_errors=True)
+        resolved_root.mkdir(parents=True, exist_ok=True)
+        yield resolved_root
+        return
+    with tempfile.TemporaryDirectory(prefix=prefix) as temp_root_str:
+        yield Path(temp_root_str)
+
+
+def load_pipeline_input(path: Path | None) -> dict[str, Any]:
+    if path is None:
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    require(isinstance(payload, dict), f"{path}: pipeline input root must be an object")
+    return payload
+
+
+def require_pipeline_result(
+    pipeline_input: dict[str, Any],
+    *,
+    node_id: str,
+) -> dict[str, Any]:
+    entry = pipeline_input.get(node_id)
+    require(isinstance(entry, dict), f"pipeline input missing node {node_id}")
+    result = entry.get("result")
+    require(isinstance(result, dict), f"pipeline input node {node_id} missing result payload")
+    return result
+
+
+def require_pipeline_report(
+    pipeline_input: dict[str, Any],
+    *,
+    node_id: str,
+) -> dict[str, Any]:
+    entry = pipeline_input.get(node_id)
+    require(isinstance(entry, dict), f"pipeline input missing node {node_id}")
+    report = entry.get("report")
+    require(isinstance(report, dict), f"pipeline input node {node_id} missing report payload")
+    return report
 
 
 def extract_expected_block(path: Path) -> str:

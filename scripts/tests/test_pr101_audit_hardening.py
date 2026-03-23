@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
@@ -14,7 +16,11 @@ if str(SCRIPTS_DIR) not in sys.path:
 import run_pr08_frontend_baseline
 import run_pr09_ada_emission_baseline
 import run_pr10_emitted_baseline
+import run_pr06910_portability_environment
+import run_pr06911_glue_script_safety
+import run_pr06913_documentation_architecture_clarity
 import run_pr101_comprehensive_audit
+from _lib.pr101_verification import normalized_gnatprove_summary_hash
 
 
 class Pr101AuditHardeningTests(unittest.TestCase):
@@ -135,6 +141,812 @@ class Pr101AuditHardeningTests(unittest.TestCase):
             run_pr101_comprehensive_audit.EXPECTED_PR114_ACCEPTANCE[0],
         )
 
+    def test_pr101_audit_workflow_contract_tracks_single_pipeline_ci_path(self) -> None:
+        self.assertEqual(
+            run_pr101_comprehensive_audit.EXPECTED_CI_WORKFLOW_SNIPPETS,
+            [
+                "execution-guard:",
+                "python3 scripts/validate_execution_state.py --authority ci",
+                "lint-safe-syntax:",
+                "scripts/lint_safe_syntax.sh",
+                "spark-verify:",
+                "Build & Verify SPARK Companion",
+                "templates-verify:",
+                "Build & Verify Emission Templates",
+            ],
+        )
+        self.assertEqual(
+            run_pr101_comprehensive_audit.EXPECTED_PIPELINE_VERIFY_WORKFLOW_SNIPPETS,
+            [
+                "pipeline-verify:",
+                "Run canonical gate pipeline verify",
+                "python3 scripts/run_gate_pipeline.py verify --authority ci",
+            ],
+        )
+
+    def test_pr08_pipeline_subgates_reuse_cached_results(self) -> None:
+        results = run_pr08_frontend_baseline.pipeline_subgates(
+            pipeline_input={
+                "pr081_local_concurrency_frontend": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr081_local_concurrency_frontend.py",
+                            "--report",
+                            "$TMPDIR/pr081_local_concurrency_frontend.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                        "stdout": "pr08.1 local concurrency frontend: OK ($TMPDIR/pr081_local_concurrency_frontend.json)\n",
+                        "stderr": "",
+                    }
+                },
+                "pr082_local_concurrency_analysis": {
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "ok", "stderr": ""}
+                },
+                "pr083_interface_contracts": {
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "ok", "stderr": ""}
+                },
+                "pr083a_public_constants": {
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "ok", "stderr": ""}
+                },
+                "pr084_transitive_concurrency": {
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "ok", "stderr": ""}
+                },
+            }
+        )
+        self.assertEqual(len(results), 5)
+        self.assertEqual(results["run_pr081_local_concurrency_frontend.py"]["returncode"], 0)
+        self.assertEqual(
+            results["run_pr081_local_concurrency_frontend.py"]["command"],
+            ["python3", "scripts/run_pr081_local_concurrency_frontend.py"],
+        )
+
+    def test_pr09_pipeline_slice_reports_reuse_cached_stdout_and_hash(self) -> None:
+        results = run_pr09_ada_emission_baseline.build_slice_reports_from_pipeline(
+            pipeline_input={
+                "pr09a_emitter_surface": {
+                    "result": {"stdout": "pr09a emitter surface: OK ($TMPDIR/pr09a_emitter_surface.json)\n"},
+                    "report": {"report_sha256": "1" * 64, "deterministic": True},
+                },
+                "pr09a_emitter_mvp": {
+                    "result": {"stdout": "pr09a emitter MVP: OK ($TMPDIR/pr09a_emitter_mvp.json)\n"},
+                    "report": {"report_sha256": "2" * 64, "deterministic": True},
+                },
+                "pr09b_sequential_semantics": {
+                    "result": {"stdout": "pr09b sequential semantics: OK ($TMPDIR/pr09b_sequential_semantics.json)\n"},
+                    "report": {"report_sha256": "3" * 64, "deterministic": True},
+                },
+                "pr09b_concurrency_output": {
+                    "result": {"stdout": "pr09b concurrency output: OK ($TMPDIR/pr09b_concurrency_output.json)\n"},
+                    "report": {"report_sha256": "4" * 64, "deterministic": True},
+                },
+                "pr09b_snapshot_refresh": {
+                    "result": {"stdout": "pr09b snapshot refresh: OK ($TMPDIR/pr09b_snapshot_refresh.json)\n"},
+                    "report": {"report_sha256": "5" * 64, "deterministic": True},
+                },
+            }
+        )
+        self.assertEqual(
+            results[0]["stdout"],
+            "pr09a emitter surface: OK ($TMPDIR/run_pr09a_emitter_surface.json)\n",
+        )
+        self.assertEqual(results[-1]["report_sha256"], "5" * 64)
+
+    def test_pr10_pipeline_slice_reports_reuse_cached_stdout_and_hash(self) -> None:
+        results = run_pr10_emitted_baseline.build_slice_reports_from_pipeline(
+            pipeline_input={
+                "pr10_contract_baseline": {
+                    "result": {"stdout": "pr10 contract baseline: OK ($TMPDIR/pr10_contract_baseline.json)\n"},
+                    "report": {"report_sha256": "1" * 64, "deterministic": True},
+                },
+                "pr10_emitted_flow": {
+                    "result": {"stdout": "pr10 emitted flow: OK ($TMPDIR/pr10_emitted_flow.json)\n"},
+                    "report": {"report_sha256": "2" * 64, "deterministic": True},
+                },
+                "pr10_emitted_prove": {
+                    "result": {"stdout": "pr10 emitted prove: OK ($TMPDIR/pr10_emitted_prove.json)\n"},
+                    "report": {"report_sha256": "3" * 64, "deterministic": True},
+                },
+            }
+        )
+        self.assertEqual(
+            results[1]["stdout"],
+            "pr10 emitted flow: OK ($TMPDIR/run_pr10_emitted_flow.json)\n",
+        )
+        self.assertEqual(results[2]["deterministic"], True)
+
+    def test_pr10_standalone_local_reuses_ci_authoritative_slice_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            generated_root = Path(temp_dir)
+            report_root = generated_root / "execution" / "reports"
+            report_root.mkdir(parents=True, exist_ok=True)
+            for filename, report_sha in (
+                ("pr10-emitted-flow-report.json", "2" * 64),
+                ("pr10-emitted-prove-report.json", "3" * 64),
+            ):
+                (report_root / filename).write_text(
+                    json.dumps(
+                        {
+                            "deterministic": True,
+                            "report_sha256": report_sha,
+                            "repeat_sha256": report_sha,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+
+            executed: list[str] = []
+
+            def fake_run(argv: list[str], **_kwargs: object) -> dict[str, object]:
+                executed.append(Path(str(argv[1])).name)
+                report_path = Path(str(argv[argv.index("--report") + 1]))
+                report_path.write_text(
+                    json.dumps(
+                        {
+                            "deterministic": True,
+                            "report_sha256": "1" * 64,
+                            "repeat_sha256": "1" * 64,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                return {
+                    "command": ["python3", "scripts/run_pr10_contract_baseline.py", "--report", "$TMPDIR/run_pr10_contract_baseline.json"],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                    "stdout": "pr10 contract baseline: OK ($TMPDIR/run_pr10_contract_baseline.json)\n",
+                    "stderr": "",
+                }
+
+            with mock.patch.object(run_pr10_emitted_baseline, "find_command", return_value="python3"), mock.patch.object(
+                run_pr10_emitted_baseline,
+                "run",
+                side_effect=fake_run,
+            ):
+                results = run_pr10_emitted_baseline.build_slice_reports_standalone(
+                    env={},
+                    authority="local",
+                    generated_root=generated_root,
+                )
+
+        self.assertEqual(executed, ["run_pr10_contract_baseline.py"])
+        self.assertEqual(results[1]["report_sha256"], "2" * 64)
+        self.assertEqual(results[2]["report_sha256"], "3" * 64)
+        self.assertEqual(
+            results[1]["stdout"],
+            "pr10 emitted flow: OK ($TMPDIR/run_pr10_emitted_flow.json)\n",
+        )
+        self.assertEqual(
+            results[2]["stdout"],
+            "pr10 emitted prove: OK ($TMPDIR/run_pr10_emitted_prove.json)\n",
+        )
+
+    def test_pr101_semantic_floor_tracks_baseline_hashes_and_anchor_hashes(self) -> None:
+        baseline_truth = {
+            "python_gates": [
+                {
+                    "script": "scripts/run_pr08_frontend_baseline.py",
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                    "report_sha256": "1" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "script": "scripts/run_pr09_ada_emission_baseline.py",
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                    "report_sha256": "2" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "script": "scripts/run_pr10_emitted_baseline.py",
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                    "report_sha256": "3" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "script": "scripts/run_emitted_hardening_regressions.py",
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                    "report_sha256": "4" * 64,
+                    "deterministic": True,
+                },
+            ],
+            "verification_reports": [
+                {
+                    "node_id": "pr101a_companion_proof_verification",
+                    "script": "scripts/run_pr101a_companion_proof_verification.py",
+                    "report_sha256": "5" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "node_id": "pr101b_template_proof_verification",
+                    "script": "scripts/run_pr101b_template_proof_verification.py",
+                    "report_sha256": "6" * 64,
+                    "deterministic": True,
+                },
+            ],
+        }
+        self.assertEqual(
+            run_pr101_comprehensive_audit.semantic_floor_from_baseline_truth(baseline_truth=baseline_truth),
+            {
+                "baseline_gate_hashes": {
+                    "pr08_frontend_baseline": "1" * 64,
+                    "pr09_ada_emission_baseline": "2" * 64,
+                    "pr10_emitted_baseline": "3" * 64,
+                    "emitted_hardening_regressions": "4" * 64,
+                },
+                "child_report_hashes": {
+                    "pr101a_companion_proof_verification": "5" * 64,
+                    "pr101b_template_proof_verification": "6" * 64,
+                },
+            },
+        )
+
+    def test_pr101_split_baseline_truth_moves_raw_transport_to_machine_sensitive(self) -> None:
+        baseline_truth = {
+            "python_gates": [
+                {
+                    "script": "scripts/run_pr08_frontend_baseline.py",
+                    "result": {
+                        "command": ["python3", "scripts/run_pr08_frontend_baseline.py", "--report", "$TMPDIR/pr08.json"],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                        "stdout": "ok\n",
+                        "stderr": "",
+                    },
+                    "report_sha256": "1" * 64,
+                    "deterministic": True,
+                }
+            ],
+            "verification_reports": [
+                {
+                    "node_id": "pr101a_companion_proof_verification",
+                    "script": "scripts/run_pr101a_companion_proof_verification.py",
+                    "report_sha256": "2" * 64,
+                    "deterministic": True,
+                },
+                {
+                    "node_id": "pr101b_template_proof_verification",
+                    "script": "scripts/run_pr101b_template_proof_verification.py",
+                    "report_sha256": "3" * 64,
+                    "deterministic": True,
+                },
+            ],
+        }
+        canonical, machine = run_pr101_comprehensive_audit.split_baseline_truth(
+            baseline_truth=baseline_truth
+        )
+        self.assertEqual(canonical["python_gates"][0]["result"]["returncode"], 0)
+        self.assertIn("command_profile", canonical["python_gates"][0]["result"])
+        self.assertNotIn("command", canonical["python_gates"][0]["result"])
+        self.assertEqual(
+            machine["python_gates"][0]["result"]["command"],
+            ["python3", "scripts/run_pr08_frontend_baseline.py", "--report", "$TMPDIR/pr08.json"],
+        )
+        self.assertEqual(canonical["verification_reports"][0]["report_sha256"], "2" * 64)
+        self.assertNotIn("verification_reports", machine)
+
+    def test_pr101_canonicalize_baseline_gate_result_strips_transport_flags(self) -> None:
+        canonical = run_pr101_comprehensive_audit.canonicalize_baseline_gate_result(
+            script=Path("scripts/run_pr10_emitted_baseline.py"),
+            result={
+                "command": [
+                    "python3",
+                    "scripts/run_pr10_emitted_baseline.py",
+                    "--authority",
+                    "local",
+                    "--generated-root",
+                    "/tmp/stage",
+                    "--scratch-root",
+                    "/tmp/scratch/node",
+                    "--pipeline-input",
+                    "/tmp/pipeline.json",
+                    "--report",
+                    "/tmp/report.json",
+                ],
+                "cwd": "$REPO_ROOT",
+                "returncode": 0,
+            },
+        )
+        self.assertEqual(
+            canonical["command"],
+            [
+                "python3",
+                "scripts/run_pr10_emitted_baseline.py",
+            ],
+        )
+
+    def test_pr06910_pipeline_rerun_reuses_cached_result(self) -> None:
+        rerun = run_pr06910_portability_environment.pipeline_rerun(
+            pipeline_input={
+                "pr0693_runtime_boundary": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr0693_runtime_boundary.py",
+                            "--generated-root",
+                            "/tmp/stage",
+                            "--report",
+                            "$TMPDIR/pr0693_runtime_boundary.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    }
+                }
+            },
+            node_id="pr0693_runtime_boundary",
+            script=run_pr06910_portability_environment.RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=run_pr06910_portability_environment.RUNTIME_BOUNDARY_REPORT,
+        )
+        self.assertTrue(rerun["matches_committed_report"])
+        self.assertEqual(rerun["rerun"]["returncode"], 0)
+        self.assertEqual(
+            rerun["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0693_runtime_boundary.py",
+            ],
+        )
+
+    def test_pr06911_does_not_embed_inline_validate_execution_state(self) -> None:
+        with mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "glue_script_safety_report",
+            return_value={
+                "subprocess_import_violations": [],
+                "subprocess_call_violations": [],
+                "shell_assumption_violations": [],
+                "tempdir_violations": [],
+                "report_helper_violations": [],
+                "command_lookup_violations": [],
+                "unauthorized_safe_source_readers": [],
+            },
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "check_glue_script_safety",
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "require_repo_command",
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "reference_committed_report",
+            return_value={"matches_committed_report": True},
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "run",
+            side_effect=AssertionError("unexpected subprocess rerun"),
+        ):
+            report = run_pr06911_glue_script_safety.generate_report(
+                python="python3",
+                env={},
+                pipeline_input={},
+                generated_root=None,
+            )
+        self.assertNotIn("validate_execution_state", report["reruns"])
+
+    def test_pr06911_pipeline_input_reuses_cached_results(self) -> None:
+        pipeline_input = {
+            "pr0693_runtime_boundary": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0693_runtime_boundary.py",
+                        "--report",
+                        "$TMPDIR/pr0693_runtime_boundary.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0697_gate_quality": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0697_gate_quality.py",
+                        "--report",
+                        "$TMPDIR/pr0697_gate_quality.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06910_portability_environment": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06910_portability_environment.py",
+                        "--generated-root",
+                        "/tmp/stage",
+                        "--report",
+                        "$TMPDIR/pr06910_portability_environment.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "frontend_smoke": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_frontend_smoke.py",
+                        "--report",
+                        "$TMPDIR/pr00-pr04-frontend-smoke.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0699_build_reproducibility": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0699_build_reproducibility.py",
+                        "--report",
+                        "$TMPDIR/pr0699_build_reproducibility.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+        }
+        with mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "glue_script_safety_report",
+            return_value={
+                "subprocess_import_violations": [],
+                "subprocess_call_violations": [],
+                "shell_assumption_violations": [],
+                "tempdir_violations": [],
+                "report_helper_violations": [],
+                "command_lookup_violations": [],
+                "unauthorized_safe_source_readers": [],
+            },
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "check_glue_script_safety",
+        ), mock.patch.object(
+            run_pr06911_glue_script_safety,
+            "require_repo_command",
+        ):
+            report = run_pr06911_glue_script_safety.generate_report(
+                python="python3",
+                env={},
+                pipeline_input=pipeline_input,
+                generated_root=None,
+            )
+        self.assertEqual(
+            report["reruns"]["runtime_boundary"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0693_runtime_boundary.py",
+            ],
+        )
+        self.assertEqual(
+            report["referenced_deterministic_reports"]["build_reproducibility"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0699_build_reproducibility.py",
+            ],
+        )
+
+    def test_pr06913_does_not_embed_inline_validate_execution_state(self) -> None:
+        with mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "documentation_architecture_clarity_report",
+            return_value={},
+        ), mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "check_documentation_architecture_clarity",
+        ), mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "reference_committed_report",
+            return_value={"matches_committed_report": True},
+        ):
+            final_report = run_pr06913_documentation_architecture_clarity.build_report(
+                clarity_report={},
+                runtime_boundary={"matches_committed_report": True},
+                legacy_cleanup={"matches_committed_report": True},
+                portability_environment={"matches_committed_report": True},
+                gate_quality={"matches_committed_report": True},
+                glue_script_safety={"matches_committed_report": True},
+                performance_scale_sanity={"matches_committed_report": True},
+            )
+        self.assertNotIn("validate_execution_state", final_report["reruns"])
+
+    def test_pr06913_pipeline_input_reuses_cached_results(self) -> None:
+        pipeline_input = {
+            "pr0693_runtime_boundary": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0693_runtime_boundary.py",
+                        "--report",
+                        "$TMPDIR/pr0693_runtime_boundary.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0698_legacy_package_cleanup": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0698_legacy_package_cleanup.py",
+                        "--report",
+                        "$TMPDIR/pr0698_legacy_package_cleanup.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06910_portability_environment": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06910_portability_environment.py",
+                        "--generated-root",
+                        "/tmp/stage",
+                        "--report",
+                        "$TMPDIR/pr06910_portability_environment.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr0697_gate_quality": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr0697_gate_quality.py",
+                        "--report",
+                        "$TMPDIR/pr0697_gate_quality.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06911_glue_script_safety": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06911_glue_script_safety.py",
+                        "--report",
+                        "$TMPDIR/pr06911_glue_script_safety.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+            "pr06912_performance_scale_sanity": {
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_pr06912_performance_scale_sanity.py",
+                        "--report",
+                        "$TMPDIR/pr06912_performance_scale_sanity.json",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                }
+            },
+        }
+        with mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "documentation_architecture_clarity_report",
+            return_value={},
+        ), mock.patch.object(
+            run_pr06913_documentation_architecture_clarity,
+            "check_documentation_architecture_clarity",
+        ):
+            report = run_pr06913_documentation_architecture_clarity.generate_report(
+                python="python3",
+                pipeline_input=pipeline_input,
+                generated_root=None,
+            )
+        self.assertEqual(
+            report["reruns"]["runtime_boundary"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr0693_runtime_boundary.py",
+            ],
+        )
+        self.assertEqual(
+            report["reruns"]["glue_script_safety"]["rerun"]["command"],
+            [
+                "python3",
+                "scripts/run_pr06911_glue_script_safety.py",
+            ],
+        )
+
+    def test_pr101_pipeline_baseline_truth_uses_cached_python_gates_only(self) -> None:
+        baseline_truth = run_pr101_comprehensive_audit.pipeline_baseline_truth(
+            env={},
+            pipeline_input={
+                "pr08_frontend_baseline": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr08_frontend_baseline.py",
+                            "--pipeline-input",
+                            "$TMPDIR/pipeline-input.json",
+                            "--report",
+                            "$TMPDIR/pr08_frontend_baseline.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "1" * 64, "deterministic": True},
+                },
+                "pr09_ada_emission_baseline": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr09_ada_emission_baseline.py",
+                            "--pipeline-input",
+                            "$TMPDIR/pipeline-input.json",
+                            "--report",
+                            "$TMPDIR/pr09_ada_emission_baseline.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "2" * 64, "deterministic": True},
+                },
+                "pr10_emitted_baseline": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_pr10_emitted_baseline.py",
+                            "--pipeline-input",
+                            "$TMPDIR/pipeline-input.json",
+                            "--report",
+                            "$TMPDIR/pr10_emitted_baseline.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "3" * 64, "deterministic": True},
+                },
+                "emitted_hardening_regressions": {
+                    "result": {
+                        "command": [
+                            "python3",
+                            "scripts/run_emitted_hardening_regressions.py",
+                            "--report",
+                            "$TMPDIR/emitted_hardening_regressions.json",
+                        ],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report": {"report_sha256": "4" * 64, "deterministic": True},
+                },
+                "pr101a_companion_proof_verification": {
+                    "report": {"report_sha256": "5" * 64, "deterministic": True},
+                },
+                "pr101b_template_proof_verification": {
+                    "report": {"report_sha256": "6" * 64, "deterministic": True},
+                },
+            },
+        )
+        self.assertEqual(len(baseline_truth["python_gates"]), 4)
+        self.assertEqual(len(baseline_truth["verification_reports"]), 2)
+        self.assertEqual(
+            baseline_truth["verification_reports"][0]["node_id"],
+            "pr101a_companion_proof_verification",
+        )
+        self.assertEqual(
+            baseline_truth["python_gates"][0]["result"]["command"],
+            [
+                "python3",
+                "scripts/run_pr08_frontend_baseline.py",
+            ],
+        )
+
+    def test_pr101_run_baseline_truth_local_reuses_ci_authoritative_baselines(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            generated_root = Path(temp_dir)
+            report_root = generated_root / "execution" / "reports"
+            report_root.mkdir(parents=True, exist_ok=True)
+            emitted_report = report_root / "emitted-hardening-regressions-report.json"
+            emitted_report.write_text(
+                json.dumps(
+                    {
+                        "deterministic": True,
+                        "report_sha256": "4" * 64,
+                        "repeat_sha256": "4" * 64,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            invocations: list[tuple[str, list[str]]] = []
+
+            def fake_run_python_gate(
+                *,
+                python: str,
+                script: Path,
+                env: dict[str, str],
+                temp_root: Path,
+                extra_argv: list[str] | None = None,
+            ) -> dict[str, object]:
+                invocations.append((script.name, list(extra_argv or [])))
+                sha = str(len(invocations)) * 64
+                return {
+                    "script": f"scripts/{script.name}",
+                    "result": {
+                        "command": ["python3", f"scripts/{script.name}"],
+                        "cwd": "$REPO_ROOT",
+                        "returncode": 0,
+                    },
+                    "report_sha256": sha,
+                    "deterministic": True,
+                }
+
+            with mock.patch.object(run_pr101_comprehensive_audit, "find_command", return_value="python3"), mock.patch.object(
+                run_pr101_comprehensive_audit,
+                "run_python_gate",
+                side_effect=fake_run_python_gate,
+            ), mock.patch.object(
+                run_pr101_comprehensive_audit,
+                "load_verification_report_reference",
+                side_effect=[
+                    {
+                        "node_id": "pr101a_companion_proof_verification",
+                        "script": "scripts/run_pr101a_companion_proof_verification.py",
+                        "report_sha256": "5" * 64,
+                        "deterministic": True,
+                    },
+                    {
+                        "node_id": "pr101b_template_proof_verification",
+                        "script": "scripts/run_pr101b_template_proof_verification.py",
+                        "report_sha256": "6" * 64,
+                        "deterministic": True,
+                    },
+                ],
+            ):
+                baseline_truth = run_pr101_comprehensive_audit.run_baseline_truth(
+                    env={},
+                    authority="local",
+                    generated_root=generated_root,
+                )
+
+        self.assertEqual(
+            [script for script, _extra in invocations],
+            [
+                "run_pr08_frontend_baseline.py",
+                "run_pr09_ada_emission_baseline.py",
+                "run_pr10_emitted_baseline.py",
+            ],
+        )
+        self.assertEqual(
+            invocations[-1][1],
+            ["--authority", "local", "--generated-root", str(generated_root)],
+        )
+        self.assertEqual(
+            baseline_truth["python_gates"][-1],
+            {
+                "script": "scripts/run_emitted_hardening_regressions.py",
+                "result": {
+                    "command": [
+                        "python3",
+                        "scripts/run_emitted_hardening_regressions.py",
+                    ],
+                    "cwd": "$REPO_ROOT",
+                    "returncode": 0,
+                },
+                "report_sha256": "4" * 64,
+                "deterministic": True,
+            },
+        )
+
     def test_split_table_row_rejects_non_data_rows(self) -> None:
         self.assertEqual(
             run_pr101_comprehensive_audit.split_table_row("| `PR101-030` | `tooling` |"),
@@ -225,8 +1037,8 @@ Total                            64    29 (46%)                     34 (52%)    
             first_path.write_text(first, encoding="utf-8")
             second_path.write_text(second, encoding="utf-8")
             self.assertEqual(
-                run_pr101_comprehensive_audit.normalized_gnatprove_summary_hash(first_path),
-                run_pr101_comprehensive_audit.normalized_gnatprove_summary_hash(second_path),
+                normalized_gnatprove_summary_hash(first_path),
+                normalized_gnatprove_summary_hash(second_path),
             )
 
     def test_normalized_gnatprove_summary_hash_requires_summary_block(self) -> None:
@@ -234,7 +1046,7 @@ Total                            64    29 (46%)                     34 (52%)    
             output_path = Path(temp_dir) / "missing.out"
             output_path.write_text("no summary here\n", encoding="utf-8")
             with self.assertRaises(RuntimeError):
-                run_pr101_comprehensive_audit.normalized_gnatprove_summary_hash(output_path)
+                normalized_gnatprove_summary_hash(output_path)
 
 
 if __name__ == "__main__":

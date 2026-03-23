@@ -11,6 +11,10 @@
     ],
     "missing_doc_files": [],
     "missing_required_links": [],
+    "policy_sections_used": [
+      "documentation_architecture"
+    ],
+    "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542",
     "stale_boundary_violations": [],
     "unresolved_local_links": []
   },
@@ -24,48 +28,90 @@
     "execution/dashboard.md",
     "execution/reports/pr06913-documentation-architecture-clarity-report.json"
   ],
-  "repeat_sha256": "ac8c002e8662dcc4d7585aaba788d24f02e1ca4aad8b76d08b79b2ffaac5690d",
-  "report_sha256": "ac8c002e8662dcc4d7585aaba788d24f02e1ca4aad8b76d08b79b2ffaac5690d",
+  "policy_sections_used": [
+    "documentation_architecture"
+  ],
+  "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542",
+  "repeat_sha256": "8aaec2be4c41e23c92e5eb22324969d1d6c7c1246943be778830624fb239a576",
+  "report_sha256": "8aaec2be4c41e23c92e5eb22324969d1d6c7c1246943be778830624fb239a576",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0697_gate_quality.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr0697_gate_quality.py"
     },
     "glue_script_safety": {
       "committed_report_path": "execution/reports/pr06911-glue-script-safety-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr06911_glue_script_safety.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr06911_glue_script_safety.py"
     },
     "legacy_package_cleanup": {
       "committed_report_path": "execution/reports/pr0698-legacy-package-cleanup-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0698_legacy_package_cleanup.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr0698_legacy_package_cleanup.py"
     },
     "performance_scale_sanity": {
       "committed_report_path": "execution/reports/pr06912-performance-scale-sanity-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr06912_performance_scale_sanity.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr06912_performance_scale_sanity.py"
     },
     "portability_environment": {
       "committed_report_path": "execution/reports/pr06910-portability-environment-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr06910_portability_environment.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr06910_portability_environment.py"
     },
     "runtime_boundary": {
       "committed_report_path": "execution/reports/pr0693-runtime-boundary-report.json",
       "matches_committed_report": true,
+      "rerun": {
+        "command": [
+          "python3",
+          "scripts/run_pr0693_runtime_boundary.py"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
       "script": "scripts/run_pr0693_runtime_boundary.py"
-    },
-    "validate_execution_state": {
-      "command": [
-        "python3",
-        "scripts/validate_execution_state.py"
-      ],
-      "cwd": "$REPO_ROOT",
-      "returncode": 0,
-      "stderr": "",
-      "stdout": "execution state: OK\n"
     }
   },
   "status": "ok",

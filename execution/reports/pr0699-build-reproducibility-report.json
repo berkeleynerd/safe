@@ -2,11 +2,12 @@
   "build_reproducibility": {
     "binary_deterministic": true,
     "binary_path": "compiler_impl/bin/safec",
+    "build_input_hash": "8d2abd20e81f6509912625fcc5edac89f7ff9b275e414e5cd7951177ecb8305d",
     "command": [
       "alr",
       "build",
       "--",
-      "-j1",
+      "-j0",
       "-p"
     ],
     "cwd": "$REPO_ROOT/compiler_impl",
@@ -15,12 +16,15 @@
       0
     ]
   },
+  "child_gate_input_hashes": {
+    "gate_quality": "20a8b3b9252a18bb7a04925466cf626e56587f9ba0ff8f9180fee269cc764872"
+  },
   "delegated_reports": {
     "frontend_smoke": {
       "binary_deterministic": true,
-      "repeat_sha256": "6d7e32ab4fac43a80faeb82bc8bc2896cba38748f5ad29542dc7a4d24b8c2bc8",
+      "repeat_sha256": "f3a601513db6254430748f371c57ddf50370ba1cb56fe3e5d87f12ba04327e1f",
       "report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
-      "report_sha256": "6d7e32ab4fac43a80faeb82bc8bc2896cba38748f5ad29542dc7a4d24b8c2bc8",
+      "report_sha256": "f3a601513db6254430748f371c57ddf50370ba1cb56fe3e5d87f12ba04327e1f",
       "run": {
         "command": [
           "python3",
@@ -33,9 +37,9 @@
       }
     },
     "gate_quality": {
-      "repeat_sha256": "32c262eed4382897f7f3194d9766eb955f21cc0cebf4344675557b2ee2a55476",
+      "repeat_sha256": "9270b6ddd151a663b6c9cc041291096653194e9b9cadf3fcc5551e2abf5efcd4",
       "report_path": "execution/reports/pr0697-gate-quality-report.json",
-      "report_sha256": "32c262eed4382897f7f3194d9766eb955f21cc0cebf4344675557b2ee2a55476",
+      "report_sha256": "9270b6ddd151a663b6c9cc041291096653194e9b9cadf3fcc5551e2abf5efcd4",
       "run": {
         "command": [
           "python3",
@@ -64,8 +68,9 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "ff3b5c4469d84a09e9b23380cf35422768130185573c439181b4ed4653ed531b",
-  "report_sha256": "ff3b5c4469d84a09e9b23380cf35422768130185573c439181b4ed4653ed531b",
+  "repeat_sha256": "f3622ccdfb18103bd7dfa555604916be972067de5ab0512890a8636c045813ec",
+  "report_sha256": "f3622ccdfb18103bd7dfa555604916be972067de5ab0512890a8636c045813ec",
+  "safec_binary_sha256": "1c3e0ead9f5eff668929d8f36204ccff8cb0008033608fbe106ad5bfd884d0dd",
   "status": "ok",
   "task": "PR06.9.9"
 }

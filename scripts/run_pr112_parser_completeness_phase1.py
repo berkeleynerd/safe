@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +14,7 @@ from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
     finalize_deterministic_report,
+    managed_scratch_root,
     read_diag_json,
     require,
     write_report,
@@ -308,10 +308,9 @@ def run_negative_case(
     }
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     safec = safec_path()
-    with tempfile.TemporaryDirectory(prefix="pr112-phase1-") as temp_root_str:
-        temp_root = Path(temp_root_str)
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr112-phase1-") as temp_root:
         return {
             "task": "PR11.2",
             "status": "ok",
@@ -355,10 +354,11 @@ def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     report = finalize_deterministic_report(
-        lambda: generate_report(env=ensure_sdkroot(os.environ.copy())),
+        lambda: generate_report(env=ensure_sdkroot(os.environ.copy()), scratch_root=args.scratch_root),
         label="PR11.2 parser completeness phase 1",
     )
     write_report(args.report, report)

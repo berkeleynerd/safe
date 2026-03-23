@@ -184,13 +184,35 @@ The frontend matrix now enforces:
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the current workflow definition, [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) for the current compiler boundary, [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) for the current cliff-detection scale policy, and [`docs/emitted_output_verification_matrix.md`](docs/emitted_output_verification_matrix.md) for the canonical emitted-output assurance boundary.
 
-For local milestone work, you can enforce the same serial gate/report-refresh lesson before `git push`:
+For local milestone work, you can enforce the same serial gate verification before `git push`:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_push.py), which maps known `codex/pr08...`, `codex/pr09...`, and `codex/pr10...` branches, plus `codex/pr11...` branches, to the appropriate milestone gate plus the downstream evidence-refresh chain, then requires `git diff --exit-code` to remain clean. Unknown milestone branches fail closed until the mapping is updated.
+That tracked hook runs [`scripts/run_local_pre_push.py`](scripts/run_local_pre_push.py), which maps known `codex/pr08...`, `codex/pr09...`, and `codex/pr10...` branches, plus `codex/pr11...` branches, to the canonical local verify pipeline, then requires `git diff --exit-code` to remain clean. The hook is verify-only; it does not run `ratchet` for you. Unknown milestone branches fail closed until the mapping is updated.
+
+When you intentionally want to advance ratchet-owned generated outputs, use the canonical pipeline commands directly:
+
+```bash
+python3 scripts/run_gate_pipeline.py ratchet --authority local
+python3 scripts/run_gate_pipeline.py verify --authority local
+```
+
+Run `ratchet` to advance the tracked outputs under `execution/reports/` and `execution/dashboard.md`, review and commit any accepted generated diffs, then run `verify` before `git push`.
+
+### Ratchet Recovery
+
+If a prior `ratchet` left generated diffs behind, make an explicit operator choice before starting a fresh `ratchet`:
+
+- `accept ratchet artifact`: review the ratchet-owned generated diffs and commit them.
+- `restore ratchet baseline`: deliberately restore only `execution/reports/` and `execution/dashboard.md` to the committed baseline before retrying.
+
+Example deliberate recovery action for `restore ratchet baseline` only:
+
+```bash
+git restore --source=HEAD --worktree -- execution/reports execution/dashboard.md
+```
 
 ---
 

@@ -11,7 +11,7 @@ permissions:
 jobs:
   execution-guard:
     name: Execution Guard
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 5
 
     steps:
@@ -21,14 +21,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+
+      - name: Install Alire toolchain
+        uses: ./.github/actions/setup-alire
 
       - name: Validate execution tracker and repo facts
-        run: python3 scripts/validate_execution_state.py
+        run: python3 scripts/validate_execution_state.py --authority ci
 
   lint-safe-syntax:
     name: Lint Safe Surface Syntax
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 2
 
     steps:

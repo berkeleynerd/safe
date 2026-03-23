@@ -11,9 +11,14 @@ from typing import Any
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
+    evidence_policy_sha256,
     finalize_deterministic_report,
     find_command,
+    load_pipeline_input,
+    load_evidence_policy,
+    policy_metadata,
     require,
+    require_pipeline_result,
     require_repo_command,
     reference_committed_report,
     run,
@@ -25,6 +30,7 @@ from validate_execution_state import check_glue_script_safety, glue_script_safet
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr06911-glue-script-safety-report.json"
+EVIDENCE_POLICY = load_evidence_policy()
 
 FRONTEND_SMOKE_SCRIPT = REPO_ROOT / "scripts" / "run_frontend_smoke.py"
 FRONTEND_SMOKE_REPORT = REPO_ROOT / "execution" / "reports" / "pr00-pr04-frontend-smoke.json"
@@ -36,8 +42,6 @@ BUILD_REPRO_SCRIPT = REPO_ROOT / "scripts" / "run_pr0699_build_reproducibility.p
 BUILD_REPRO_REPORT = REPO_ROOT / "execution" / "reports" / "pr0699-build-reproducibility-report.json"
 PORTABILITY_SCRIPT = REPO_ROOT / "scripts" / "run_pr06910_portability_environment.py"
 PORTABILITY_REPORT = REPO_ROOT / "execution" / "reports" / "pr06910-portability-environment-report.json"
-VALIDATE_EXECUTION_STATE = REPO_ROOT / "scripts" / "validate_execution_state.py"
-
 MONITORED_REPORTS = [
     FRONTEND_SMOKE_REPORT,
     RUNTIME_BOUNDARY_REPORT,
@@ -46,6 +50,20 @@ MONITORED_REPORTS = [
     PORTABILITY_REPORT,
     DEFAULT_REPORT,
 ]
+
+
+def pipeline_rerun(
+    *,
+    pipeline_input: dict[str, Any],
+    node_id: str,
+    script: Path,
+    committed_report_path: Path,
+) -> dict[str, Any]:
+    return reference_committed_report(
+        script=script,
+        committed_report_path=committed_report_path,
+        result=require_pipeline_result(pipeline_input, node_id=node_id),
+    )
 
 
 def repo_relative_paths(paths: list[Path]) -> list[str]:
@@ -109,34 +127,85 @@ def check_glue_report(report: dict[str, Any]) -> None:
     )
 
 
-def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
+def generate_report(
+    *,
+    python: str,
+    env: dict[str, str],
+    pipeline_input: dict[str, Any],
+    generated_root: Path | None,
+) -> dict[str, Any]:
     glue_report = glue_script_safety_report()
     check_glue_report(glue_report)
     check_glue_script_safety()
     require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    runtime_boundary = reference_committed_report(
-        script=RUNTIME_BOUNDARY_SCRIPT,
-        committed_report_path=RUNTIME_BOUNDARY_REPORT,
-    )
-    gate_quality = reference_committed_report(
-        script=GATE_QUALITY_SCRIPT,
-        committed_report_path=GATE_QUALITY_REPORT,
-    )
-    portability_environment = reference_committed_report(
-        script=PORTABILITY_SCRIPT,
-        committed_report_path=PORTABILITY_REPORT,
-    )
-    frontend_smoke = reference_committed_report(
-        script=FRONTEND_SMOKE_SCRIPT,
-        committed_report_path=FRONTEND_SMOKE_REPORT,
-    )
-    build_reproducibility = reference_committed_report(
-        script=BUILD_REPRO_SCRIPT,
-        committed_report_path=BUILD_REPRO_REPORT,
-    )
-    execution_state = run([python, str(VALIDATE_EXECUTION_STATE)], cwd=REPO_ROOT, env=env)
+    if pipeline_input:
+        runtime_boundary = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0693_runtime_boundary",
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+        )
+        gate_quality = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0697_gate_quality",
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+        )
+        portability_environment = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr06910_portability_environment",
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+        )
+        frontend_smoke = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="frontend_smoke",
+            script=FRONTEND_SMOKE_SCRIPT,
+            committed_report_path=FRONTEND_SMOKE_REPORT,
+        )
+        build_reproducibility = pipeline_rerun(
+            pipeline_input=pipeline_input,
+            node_id="pr0699_build_reproducibility",
+            script=BUILD_REPRO_SCRIPT,
+            committed_report_path=BUILD_REPRO_REPORT,
+        )
+    else:
+        runtime_boundary = reference_committed_report(
+            script=RUNTIME_BOUNDARY_SCRIPT,
+            committed_report_path=RUNTIME_BOUNDARY_REPORT,
+            python=python,
+            generated_root=generated_root,
+        )
+        gate_quality = reference_committed_report(
+            script=GATE_QUALITY_SCRIPT,
+            committed_report_path=GATE_QUALITY_REPORT,
+            python=python,
+            generated_root=generated_root,
+        )
+        portability_environment = reference_committed_report(
+            script=PORTABILITY_SCRIPT,
+            committed_report_path=PORTABILITY_REPORT,
+            python=python,
+            generated_root=generated_root,
+        )
+        frontend_smoke = reference_committed_report(
+            script=FRONTEND_SMOKE_SCRIPT,
+            committed_report_path=FRONTEND_SMOKE_REPORT,
+            python=python,
+            generated_root=generated_root,
+        )
+        build_reproducibility = reference_committed_report(
+            script=BUILD_REPRO_SCRIPT,
+            committed_report_path=BUILD_REPRO_REPORT,
+            python=python,
+            generated_root=generated_root,
+        )
 
     return {
+        **policy_metadata(
+            policy_sha256=evidence_policy_sha256(EVIDENCE_POLICY),
+            sections=["glue_safety"],
+        ),
         "task": "PR06.9.11",
         "status": "ok",
         "glue_script_safety": glue_report,
@@ -144,11 +213,6 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
             "runtime_boundary": runtime_boundary,
             "gate_quality": gate_quality,
             "portability_environment": portability_environment,
-            "validate_execution_state": {
-                "command": execution_state["command"],
-                "cwd": execution_state["cwd"],
-                "returncode": execution_state["returncode"],
-            },
         },
         "referenced_deterministic_reports": {
             "frontend_smoke": frontend_smoke,
@@ -161,6 +225,8 @@ def generate_report(*, python: str, env: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--pipeline-input", type=Path)
+    parser.add_argument("--generated-root", type=Path)
     args = parser.parse_args()
 
     python = find_command("python3")
@@ -170,9 +236,15 @@ def main() -> int:
     initial_dirty = current_dirty_paths(git=git, paths=monitored_paths, env=env)
     compare_paths = [path for path in monitored_paths if path != args.report]
     initial_diff = current_dirty_diff(git=git, paths=compare_paths, env=env)
+    pipeline_input = load_pipeline_input(args.pipeline_input)
 
     report = finalize_deterministic_report(
-        lambda: generate_report(python=python, env=env),
+        lambda: generate_report(
+            python=python,
+            env=env,
+            pipeline_input=pipeline_input,
+            generated_root=args.generated_root,
+        ),
         label="PR06.9.11 glue script safety",
     )
     write_report(args.report, report)

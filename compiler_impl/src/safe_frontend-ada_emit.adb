@@ -2311,6 +2311,192 @@ package body Safe_Frontend.Ada_Emit is
       end case;
    end Uses_Wide_Value;
 
+   function Is_Explicit_Float_Narrowing
+     (Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      Target_Type : String;
+      Expr        : CM.Expr_Access) return Boolean
+   is
+   begin
+      return Target_Type'Length > 0
+        and then Is_Float_Type (Unit, Document, Target_Type)
+        and then not Is_Builtin_Float_Name (Target_Type)
+        and then Expr /= null
+        and then Expr.Kind = CM.Expr_Conversion
+        and then Expr.Inner /= null
+        and then Has_Text (Expr.Type_Name)
+        and then FT.To_String (Expr.Type_Name) = Target_Type;
+   end Is_Explicit_Float_Narrowing;
+
+   function Try_Render_Stable_Float_Interpolation
+     (Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Expr            : CM.Expr_Access;
+      State           : in out Emit_State;
+      Condition_Image : out FT.UString;
+      Lower_Image     : out FT.UString;
+      Upper_Image     : out FT.UString) return Boolean
+   is
+      function Is_Real_One (Item : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Item /= null
+           and then Item.Kind = CM.Expr_Real
+           and then Has_Text (Item.Text)
+           and then FT.To_String (Item.Text) = "1.0";
+      end Is_Real_One;
+
+      function Images_Match (Left, Right : CM.Expr_Access) return Boolean is
+      begin
+         return Left /= null
+           and then Right /= null
+           and then Render_Expr (Unit, Document, Left, State) = Render_Expr (Unit, Document, Right, State);
+      end Images_Match;
+
+      function Complement_Of
+        (Candidate, Weight : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Candidate /= null
+           and then Candidate.Kind = CM.Expr_Binary
+           and then FT.To_String (Candidate.Operator) = "-"
+           and then Is_Real_One (Candidate.Left)
+           and then Images_Match (Candidate.Right, Weight);
+      end Complement_Of;
+
+      function Extract_Product
+        (Term      : CM.Expr_Access;
+         Weight    : out CM.Expr_Access;
+         Component : out CM.Expr_Access) return Boolean
+      is
+      begin
+         if Term = null or else Term.Kind /= CM.Expr_Binary or else FT.To_String (Term.Operator) /= "*" then
+            Weight := null;
+            Component := null;
+            return False;
+         end if;
+
+         Weight := Term.Left;
+         Component := Term.Right;
+         return True;
+      end Extract_Product;
+
+      function Match_Delta_Form
+        (Candidate : CM.Expr_Access;
+         Anchor    : out CM.Expr_Access;
+         Other     : out CM.Expr_Access;
+         Weight    : out CM.Expr_Access) return Boolean
+      is
+         Delta_Term : CM.Expr_Access := null;
+      begin
+         if Candidate = null
+           or else Candidate.Kind /= CM.Expr_Binary
+           or else FT.To_String (Candidate.Operator) /= "+"
+         then
+            Anchor := null;
+            Other := null;
+            Weight := null;
+            return False;
+         end if;
+
+         if Extract_Product (Candidate.Right, Weight, Delta_Term)
+           and then Delta_Term /= null
+           and then Delta_Term.Kind = CM.Expr_Binary
+           and then FT.To_String (Delta_Term.Operator) = "-"
+           and then Images_Match (Candidate.Left, Delta_Term.Right)
+         then
+            Anchor := Candidate.Left;
+            Other := Delta_Term.Left;
+            return True;
+         elsif Extract_Product (Candidate.Left, Weight, Delta_Term)
+           and then Delta_Term /= null
+           and then Delta_Term.Kind = CM.Expr_Binary
+           and then FT.To_String (Delta_Term.Operator) = "-"
+           and then Images_Match (Candidate.Right, Delta_Term.Right)
+         then
+            Anchor := Candidate.Right;
+            Other := Delta_Term.Left;
+            return True;
+         end if;
+
+         Anchor := null;
+         Other := null;
+         Weight := null;
+         return False;
+      end Match_Delta_Form;
+
+      Weight_1     : CM.Expr_Access := null;
+      Weight_2     : CM.Expr_Access := null;
+      Value_1      : CM.Expr_Access := null;
+      Value_2      : CM.Expr_Access := null;
+      Anchor       : CM.Expr_Access := null;
+      Other        : CM.Expr_Access := null;
+      Weight       : CM.Expr_Access := null;
+      Anchor_Image : FT.UString := FT.To_UString ("");
+      Other_Image  : FT.UString := FT.To_UString ("");
+      Weight_Image : FT.UString := FT.To_UString ("");
+   begin
+      Condition_Image := FT.To_UString ("");
+      Lower_Image := FT.To_UString ("");
+      Upper_Image := FT.To_UString ("");
+
+      if Match_Delta_Form (Expr, Anchor, Other, Weight) then
+         null;
+      elsif Expr /= null
+        and then Expr.Kind = CM.Expr_Binary
+        and then FT.To_String (Expr.Operator) = "+"
+        and then Extract_Product (Expr.Left, Weight_1, Value_1)
+        and then Extract_Product (Expr.Right, Weight_2, Value_2)
+      then
+         if Complement_Of (Weight_1, Weight_2) then
+            Anchor := Value_1;
+            Other := Value_2;
+            Weight := Weight_2;
+         elsif Complement_Of (Weight_2, Weight_1) then
+            Anchor := Value_2;
+            Other := Value_1;
+            Weight := Weight_1;
+         else
+            return False;
+         end if;
+      else
+         return False;
+      end if;
+
+      if Anchor = null or else Other = null or else Weight = null then
+         return False;
+      end if;
+
+      Anchor_Image := FT.To_UString (Render_Expr (Unit, Document, Anchor, State));
+      Other_Image := FT.To_UString (Render_Expr (Unit, Document, Other, State));
+      Weight_Image := FT.To_UString (Render_Expr (Unit, Document, Weight, State));
+
+      Condition_Image := FT.To_UString (FT.To_String (Weight_Image) & " <= 0.5");
+      Lower_Image :=
+        FT.To_UString
+          ("("
+           & FT.To_String (Anchor_Image)
+           & " + ("
+           & FT.To_String (Weight_Image)
+           & " * ("
+           & FT.To_String (Other_Image)
+           & " - "
+           & FT.To_String (Anchor_Image)
+           & ")))");
+      Upper_Image :=
+        FT.To_UString
+          ("("
+           & FT.To_String (Other_Image)
+           & " - ((1.0 - "
+           & FT.To_String (Weight_Image)
+           & ") * ("
+           & FT.To_String (Other_Image)
+           & " - "
+           & FT.To_String (Anchor_Image)
+           & ")))");
+      return True;
+   end Try_Render_Stable_Float_Interpolation;
+
    function Render_Channel_Send_Value
      (Unit         : CM.Resolved_Unit;
       Document     : GM.Mir_Document;
@@ -2968,7 +3154,10 @@ package body Safe_Frontend.Ada_Emit is
       return "(" & Join_Names (Items) & ")";
    end Render_Initializes_Aspect;
 
-   function Render_Global_Aspect (Summary : MB.Graph_Summary) return String is
+   function Render_Global_Aspect
+     (Unit    : CM.Resolved_Unit;
+      Summary : MB.Graph_Summary) return String
+   is
       Inputs  : FT.UString_Vectors.Vector;
       Outputs : FT.UString_Vectors.Vector;
       In_Outs : FT.UString_Vectors.Vector;
@@ -3004,6 +3193,7 @@ package body Safe_Frontend.Ada_Emit is
             if Starts_With (FT.To_String (Item), "param:")
               or else FT.To_String (Item) = "return"
               or else not Is_Aspect_State_Name (Name)
+              or else Is_Constant_Object_Name (Unit, Name)
             then
                null;
             elsif Contains (Summary.Writes, FT.To_String (Item)) then
@@ -3021,6 +3211,7 @@ package body Safe_Frontend.Ada_Emit is
             if Starts_With (FT.To_String (Item), "param:")
               or else FT.To_String (Item) = "return"
               or else not Is_Aspect_State_Name (Name)
+              or else Is_Constant_Object_Name (Unit, Name)
             then
                null;
             elsif not Contains (Summary.Reads, FT.To_String (Item)) then
@@ -3082,7 +3273,8 @@ package body Safe_Frontend.Ada_Emit is
    end Render_Global_Aspect;
 
    function Render_Depends_Aspect
-     (Subprogram : CM.Resolved_Subprogram;
+     (Unit       : CM.Resolved_Unit;
+      Subprogram : CM.Resolved_Subprogram;
       Summary    : MB.Graph_Summary) return String
    is
       Result : SU.Unbounded_String;
@@ -3149,6 +3341,7 @@ package body Safe_Frontend.Ada_Emit is
             if not Starts_With (FT.To_String (Item), "param:")
               and then FT.To_String (Item) /= "return"
               and then Is_Aspect_State_Name (Name)
+              and then not Is_Constant_Object_Name (Unit, Name)
             then
                Add_Unique (Allowed_Inputs, Name);
             end if;
@@ -3163,6 +3356,7 @@ package body Safe_Frontend.Ada_Emit is
             if not Starts_With (FT.To_String (Item), "param:")
               and then FT.To_String (Item) /= "return"
               and then Is_Aspect_State_Name (Name)
+              and then not Is_Constant_Object_Name (Unit, Name)
             then
                Add_Unique (Allowed_Outputs, Name);
             end if;
@@ -3188,6 +3382,7 @@ package body Safe_Frontend.Ada_Emit is
             if not Starts_With (FT.To_String (Item.Output_Name), "param:")
               and then FT.To_String (Item.Output_Name) /= "return"
               and then Is_Aspect_State_Name (Output_Name)
+              and then not Is_Constant_Object_Name (Unit, Output_Name)
             then
                Add_Unique (Allowed_Outputs, Output_Name);
             end if;
@@ -3199,6 +3394,7 @@ package body Safe_Frontend.Ada_Emit is
                   if not Starts_With (FT.To_String (Input), "param:")
                     and then FT.To_String (Input) /= "return"
                     and then Is_Aspect_State_Name (Name)
+                    and then not Is_Constant_Object_Name (Unit, Name)
                   then
                      Add_Unique (Allowed_Inputs, Name);
                   end if;
@@ -3240,7 +3436,9 @@ package body Safe_Frontend.Ada_Emit is
                          (FT.To_String (Subprogram.Name),
                           FT.To_String (Input));
                   begin
-                     if not Is_Aspect_State_Name (Name) then
+                     if not Is_Aspect_State_Name (Name)
+                       or else Is_Constant_Object_Name (Unit, Name)
+                     then
                         null;
                      elsif not Contains (Allowed_Inputs, Name) then
                         Raise_Internal
@@ -3399,6 +3597,23 @@ package body Safe_Frontend.Ada_Emit is
 
       Result : SU.Unbounded_String;
    begin
+      for Param of Subprogram.Params loop
+         if Is_Float_Type (Unit, Document, Param.Type_Info)
+           and then Param.Type_Info.Has_Float_Low_Text
+           and then Param.Type_Info.Has_Float_High_Text
+         then
+            Add_Unique
+              ("("
+               & FT.To_String (Param.Name)
+               & " >= "
+               & FT.To_String (Param.Type_Info.Float_Low_Text)
+               & " and then "
+               & FT.To_String (Param.Name)
+               & " <= "
+               & FT.To_String (Param.Type_Info.Float_High_Text)
+               & ")");
+         end if;
+      end loop;
       Collect (Subprogram.Statements);
       for Index in Conditions.First_Index .. Conditions.Last_Index loop
          if Index /= Conditions.First_Index then
@@ -3929,9 +4144,9 @@ package body Safe_Frontend.Ada_Emit is
    is
       Summary : constant MB.Graph_Summary :=
         Find_Graph_Summary (Bronze, FT.To_String (Subprogram.Name));
-      Global_Image  : constant String := Render_Global_Aspect (Summary);
+      Global_Image  : constant String := Render_Global_Aspect (Unit, Summary);
       Depends_Image : constant String :=
-        Render_Depends_Aspect (Subprogram, Summary);
+        Render_Depends_Aspect (Unit, Subprogram, Summary);
       Pre_Image : constant String :=
         Render_Access_Param_Precondition (Unit, Document, Subprogram, State);
       Post_Image : constant String :=
@@ -4187,6 +4402,93 @@ package body Safe_Frontend.Ada_Emit is
 
    end Append_Narrowing_Assignment;
 
+   procedure Append_Float_Narrowing_Checks
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Target_Type  : String;
+      Value_Name   : String;
+      Depth        : Natural)
+   is
+      pragma Unreferenced (Unit, Document, Target_Type);
+   begin
+      Append_Line
+        (Buffer,
+         "pragma Assert (" & Value_Name & " = " & Value_Name & ");",
+         Depth);
+      Append_Line
+        (Buffer,
+         "pragma Assert ("
+         & Value_Name
+         & " >= Long_Float'First and then "
+         & Value_Name
+         & " <= Long_Float'Last);",
+         Depth);
+   end Append_Float_Narrowing_Checks;
+
+   procedure Append_Float_Narrowing_Assignment
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Target_Type  : String;
+      Target_Image : String;
+      Inner_Image  : String;
+      Depth        : Natural)
+   is
+   begin
+      Append_Line (Buffer, "declare", Depth);
+      Append_Line
+        (Buffer,
+         "Narrowed_Float_Value : constant Long_Float := Long_Float ("
+         & Inner_Image
+         & ");",
+         Depth + 1);
+      Append_Line (Buffer, "begin", Depth);
+      Append_Float_Narrowing_Checks
+        (Buffer,
+         Unit => Unit,
+         Document => Document,
+         Target_Type => Target_Type,
+         Value_Name => "Narrowed_Float_Value",
+         Depth => Depth + 1);
+      Append_Line
+        (Buffer,
+         Target_Image & " := " & Target_Type & " (Narrowed_Float_Value);",
+         Depth + 1);
+      Append_Line (Buffer, "end;", Depth);
+   end Append_Float_Narrowing_Assignment;
+
+   procedure Append_Float_Narrowing_Return
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      Target_Type : String;
+      Inner_Image : String;
+      Depth       : Natural)
+   is
+   begin
+      Append_Line (Buffer, "declare", Depth);
+      Append_Line
+        (Buffer,
+         "Narrowed_Float_Value : constant Long_Float := Long_Float ("
+         & Inner_Image
+         & ");",
+         Depth + 1);
+      Append_Line (Buffer, "begin", Depth);
+      Append_Float_Narrowing_Checks
+        (Buffer,
+         Unit => Unit,
+         Document => Document,
+         Target_Type => Target_Type,
+         Value_Name => "Narrowed_Float_Value",
+         Depth => Depth + 1);
+      Append_Line
+        (Buffer,
+         "return " & Target_Type & " (Narrowed_Float_Value);",
+         Depth + 1);
+      Append_Line (Buffer, "end;", Depth);
+   end Append_Float_Narrowing_Return;
+
    procedure Append_Move_Null
      (Buffer     : in out SU.Unbounded_String;
       Unit       : CM.Resolved_Unit;
@@ -4300,6 +4602,36 @@ package body Safe_Frontend.Ada_Emit is
                      Target_Image & " := " & Target_Type & " (" & Snapshot_Wide_Image & ");",
                      Depth + 1);
                end;
+            elsif Is_Explicit_Float_Narrowing (Unit, Document, Target_Type, Stmt.Value)
+            then
+               declare
+                  Snapshot_Float_Supported : Boolean := True;
+                  Snapshot_Inner_Image : constant String :=
+                    Render_Expr_With_Target_Substitution
+                      (Unit,
+                       Document,
+                       Stmt.Value.Inner,
+                       Stmt.Target,
+                       Snapshot_Name,
+                       State,
+                       Snapshot_Float_Supported);
+               begin
+                  if not Snapshot_Float_Supported or else Snapshot_Inner_Image'Length = 0 then
+                     Raise_Unsupported
+                       (State,
+                        Stmt.Span,
+                        "float target-snapshot substitution shape is not yet supported in Ada emission");
+                  end if;
+
+                  Append_Float_Narrowing_Assignment
+                    (Buffer,
+                     Unit => Unit,
+                     Document => Document,
+                     Target_Type => Target_Type,
+                     Target_Image => Target_Image,
+                     Inner_Image => Snapshot_Inner_Image,
+                     Depth => Depth + 1);
+               end;
             else
                Append_Line
                  (Buffer,
@@ -4321,7 +4653,48 @@ package body Safe_Frontend.Ada_Emit is
          Append_Narrowing_Assignment
            (Buffer, Unit, Document, State, Stmt.Target, Stmt.Value, Depth);
       else
-         Append_Line (Buffer, Target_Image & " := " & Value_Image & ";", Depth);
+         declare
+            Condition_Image : FT.UString;
+            Lower_Image     : FT.UString;
+            Upper_Image     : FT.UString;
+         begin
+            if Is_Float_Type (Unit, Document, Target_Type)
+              and then Try_Render_Stable_Float_Interpolation
+                (Unit,
+                 Document,
+                 Stmt.Value,
+                 State,
+                 Condition_Image,
+                 Lower_Image,
+                 Upper_Image)
+            then
+               Append_Line
+                 (Buffer,
+                  "if " & FT.To_String (Condition_Image) & " then",
+                  Depth);
+               Append_Line
+                 (Buffer,
+                  Target_Image & " := " & FT.To_String (Lower_Image) & ";",
+                  Depth + 1);
+               Append_Line (Buffer, "else", Depth);
+               Append_Line
+                 (Buffer,
+                  Target_Image & " := " & FT.To_String (Upper_Image) & ";",
+                  Depth + 1);
+               Append_Line (Buffer, "end if;", Depth);
+            elsif Is_Explicit_Float_Narrowing (Unit, Document, Target_Type, Stmt.Value) then
+               Append_Float_Narrowing_Assignment
+                 (Buffer,
+                  Unit => Unit,
+                  Document => Document,
+                  Target_Type => Target_Type,
+                  Target_Image => Target_Image,
+                  Inner_Image => Render_Expr (Unit, Document, Stmt.Value.Inner, State),
+                  Depth => Depth);
+            else
+               Append_Line (Buffer, Target_Image & " := " & Value_Image & ";", Depth);
+            end if;
+         end;
       end if;
 
       if Is_Owner_Access (Target_Info)
@@ -4435,6 +4808,14 @@ package body Safe_Frontend.Ada_Emit is
             Raise_Internal ("function return missing value during Ada emission");
          end if;
          Append_Line (Buffer, "return;", Depth);
+      elsif Is_Explicit_Float_Narrowing (Unit, Document, Return_Type, Value) then
+         Append_Float_Narrowing_Return
+           (Buffer,
+            Unit => Unit,
+            Document => Document,
+            Target_Type => Return_Type,
+            Inner_Image => Render_Expr (Unit, Document, Value.Inner, State),
+            Depth => Depth);
       elsif Return_Type'Length > 0
         and then Is_Integer_Type (Unit, Document, Return_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
@@ -4504,7 +4885,15 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       Append_Line (Buffer, "declare", Depth);
-      if Is_Integer_Type (Unit, Document, Return_Type)
+      if Is_Explicit_Float_Narrowing (Unit, Document, Return_Type, Value) then
+         Append_Line
+           (Buffer,
+            "Narrowed_Float_Value : constant Long_Float := Long_Float ("
+            & Render_Expr (Unit, Document, Value.Inner, State)
+            & ");",
+            Depth + 1);
+         Append_Line (Buffer, "Return_Value : " & Return_Type & ";", Depth + 1);
+      elsif Is_Integer_Type (Unit, Document, Return_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
       then
          declare
@@ -4529,7 +4918,19 @@ package body Safe_Frontend.Ada_Emit is
             Depth + 1);
       end if;
       Append_Line (Buffer, "begin", Depth);
-      if Is_Integer_Type (Unit, Document, Return_Type)
+      if Is_Explicit_Float_Narrowing (Unit, Document, Return_Type, Value) then
+         Append_Float_Narrowing_Checks
+           (Buffer,
+            Unit => Unit,
+            Document => Document,
+            Target_Type => Return_Type,
+            Value_Name => "Narrowed_Float_Value",
+            Depth => Depth + 1);
+         Append_Line
+           (Buffer,
+            "Return_Value := " & Return_Type & " (Narrowed_Float_Value);",
+            Depth + 1);
+      elsif Is_Integer_Type (Unit, Document, Return_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
       then
          Append_Line

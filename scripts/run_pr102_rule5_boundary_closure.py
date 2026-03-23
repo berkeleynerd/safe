@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -19,10 +18,13 @@ from _lib.gate_expectations import (
     PR102_RULE5_POSITIVE_CASES,
 )
 from _lib.harness_common import (
+    assert_text_fragments,
+    compact_result,
     display_path,
     ensure_sdkroot,
     extract_expected_block,
     finalize_deterministic_report,
+    managed_scratch_root,
     normalize_text,
     read_diag_json,
     read_expected_reason,
@@ -31,7 +33,12 @@ from _lib.harness_common import (
     run,
     write_report,
 )
-from _lib.pr09_emit import COMPILER_ROOT, REPO_ROOT, compile_emitted_ada, repo_arg
+from _lib.proof_report import (
+    build_three_way_report,
+    split_command_result,
+    split_proof_fixtures,
+)
+from _lib.pr09_emit import COMPILER_ROOT, REPO_ROOT, compile_emitted_ada, emitted_body_file, repo_arg
 from _lib.pr10_emit import emit_fixture, gnatprove_emitted_ada
 
 
@@ -83,15 +90,29 @@ EXPECTED_PARITY_DIAGNOSTIC = {
     "notes": [],
     "suggestions": [],
 }
-
-
-def compact_result(result: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "command": result["command"],
-        "cwd": result["cwd"],
-        "returncode": result["returncode"],
-    }
-
+POSITIVE_BODY_ASSERTIONS: dict[str, list[str]] = {
+    "tests/positive/rule5_filter.safe": [
+        "Narrowed_Float_Value : constant Long_Float := Long_Float (Result);",
+        "pragma Assert (Narrowed_Float_Value = Narrowed_Float_Value);",
+        "pragma Assert (Narrowed_Float_Value >= Long_Float'First and then Narrowed_Float_Value <= Long_Float'Last);",
+        "State.Output := Signal (Narrowed_Float_Value);",
+    ],
+    "tests/positive/rule5_interpolate.safe": [
+        "if Long_Float (T) <= 0.5 then",
+        "Result := (Long_Float (A) + (Long_Float (T) * (Long_Float (B) - Long_Float (A))));",
+        "Result := (Long_Float (B) - ((1.0 - Long_Float (T)) * (Long_Float (B) - Long_Float (A))));",
+        "Narrowed_Float_Value : constant Long_Float := Long_Float (Result);",
+        "pragma Assert (Narrowed_Float_Value = Narrowed_Float_Value);",
+        "pragma Assert (Narrowed_Float_Value >= Long_Float'First and then Narrowed_Float_Value <= Long_Float'Last);",
+        "return Value (Narrowed_Float_Value);",
+    ],
+    "tests/positive/rule5_normalize.safe": [
+        "Narrowed_Float_Value : constant Long_Float := Long_Float (Result);",
+        "pragma Assert (Narrowed_Float_Value = Narrowed_Float_Value);",
+        "pragma Assert (Narrowed_Float_Value >= Long_Float'First and then Narrowed_Float_Value <= Long_Float'Last);",
+        "return Ratio (Narrowed_Float_Value);",
+    ],
+}
 
 def first_diag(payload: dict[str, Any], label: str) -> dict[str, Any]:
     diagnostics = payload.get("diagnostics", [])
@@ -143,6 +164,16 @@ def verify_corpus_contract() -> dict[str, Any]:
     }
 
 
+def structural_assertions_for_positive_fixture(source: Path, *, body_path: Path) -> dict[str, Any]:
+    fragments = POSITIVE_BODY_ASSERTIONS.get(repo_arg(source))
+    if not fragments:
+        return {}
+    body_text = body_path.read_text(encoding="utf-8")
+    return {
+        body_path.name: list(assert_text_fragments(text=body_text, fragments=fragments, label=body_path.name)),
+    }
+
+
 def run_positive_fixture(source: Path, *, env: dict[str, str], temp_root: Path) -> dict[str, Any]:
     fixture_root = temp_root / source.stem
     outputs = emit_fixture(source=source, root=fixture_root, env=env)
@@ -164,6 +195,14 @@ def run_positive_fixture(source: Path, *, env: dict[str, str], temp_root: Path) 
         mode="prove",
     )
     require(
+        flow_result["summary"]["total"]["justified"]["count"] == 0,
+        f"{repo_arg(source)}: flow justified checks must be zero",
+    )
+    require(
+        flow_result["summary"]["total"]["unproved"]["count"] == 0,
+        f"{repo_arg(source)}: flow unproved checks must be zero",
+    )
+    require(
         prove_result["summary"]["total"]["justified"]["count"] == 0,
         f"{repo_arg(source)}: justified checks must be zero",
     )
@@ -171,12 +210,19 @@ def run_positive_fixture(source: Path, *, env: dict[str, str], temp_root: Path) 
         prove_result["summary"]["total"]["unproved"]["count"] == 0,
         f"{repo_arg(source)}: unproved checks must be zero",
     )
-    return {
+    result = {
         "fixture": repo_arg(source),
         "compile": compile_result,
         "flow": flow_result,
         "prove": prove_result,
     }
+    structural_assertions = structural_assertions_for_positive_fixture(
+        source,
+        body_path=emitted_body_file(outputs["ada_dir"]),
+    )
+    if structural_assertions:
+        result["structural_assertions"] = structural_assertions
+    return result
 
 
 def run_negative_fixture(
@@ -248,38 +294,93 @@ def run_parity_fixture(*, safec: Path, env: dict[str, str], temp_root: Path) -> 
     }
 
 
-def generate_report(*, env: dict[str, str]) -> dict[str, Any]:
+def split_negative_fixture(fixture: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    diag_canonical, diag_machine = split_command_result(fixture["check_diag_json"])
+    human_canonical, human_machine = split_command_result(fixture["check_human"])
+    canonical = {
+        "fixture": fixture["fixture"],
+        "golden": fixture["golden"],
+        "expected_reason": fixture["expected_reason"],
+        "diagnostic": fixture["diagnostic"],
+        "check_diag_json": diag_canonical,
+        "check_human": human_canonical,
+    }
+    machine = {
+        "fixture": fixture["fixture"],
+        "check_diag_json": diag_machine,
+        "check_human": human_machine,
+    }
+    return canonical, machine
+
+
+def split_parity_fixture(fixture: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    analyze_canonical, analyze_machine = split_command_result(fixture["analyze_mir"])
+    canonical = {
+        "fixture": fixture["fixture"],
+        "diagnostic": fixture["diagnostic"],
+        "analyze_mir": analyze_canonical,
+    }
+    machine = {
+        "fixture": fixture["fixture"],
+        "analyze_mir": analyze_machine,
+    }
+    return canonical, machine
+
+
+def generate_report(*, env: dict[str, str], scratch_root: Path | None = None) -> dict[str, Any]:
     safec = require_repo_command(COMPILER_ROOT / "bin" / "safec", "safec")
-    with tempfile.TemporaryDirectory(prefix="pr102-rule5-") as temp_root_str:
-        temp_root = Path(temp_root_str)
-        return {
+    with managed_scratch_root(scratch_root=scratch_root, prefix="pr102-rule5-") as temp_root:
+        positive_fixtures = [
+            run_positive_fixture(REPO_ROOT / source_rel, env=env, temp_root=temp_root)
+            for source_rel in EXPECTED_RULE5_POSITIVES
+        ]
+        negative_fixtures = [
+            run_negative_fixture(source_rel, golden_rel, safec=safec, env=env, temp_root=temp_root)
+            for source_rel, golden_rel in EXPECTED_NEGATIVE_GOLDENS
+        ]
+        parity_fixture = run_parity_fixture(safec=safec, env=env, temp_root=temp_root)
+
+    semantic_floor, canonical_positive, machine_positive = split_proof_fixtures(positive_fixtures)
+    canonical_negative: list[dict[str, Any]] = []
+    machine_negative: list[dict[str, Any]] = []
+    for fixture in negative_fixtures:
+        canonical, machine = split_negative_fixture(fixture)
+        canonical_negative.append(canonical)
+        machine_negative.append(machine)
+    canonical_parity, machine_parity = split_parity_fixture(parity_fixture)
+    return build_three_way_report(
+        identity={
             "task": "PR10.2",
+        },
+        semantic_floor=semantic_floor,
+        canonical_proof_detail={
             "contract": verify_corpus_contract(),
-            "positive_rule5_corpus": [
-                run_positive_fixture(REPO_ROOT / source_rel, env=env, temp_root=temp_root)
-                for source_rel in EXPECTED_RULE5_POSITIVES
-            ],
-            "negative_diagnostics": [
-                run_negative_fixture(source_rel, golden_rel, safec=safec, env=env, temp_root=temp_root)
-                for source_rel, golden_rel in EXPECTED_NEGATIVE_GOLDENS
-            ],
-            "mir_parity": run_parity_fixture(safec=safec, env=env, temp_root=temp_root),
+            "positive_rule5_corpus": canonical_positive,
+            "negative_diagnostics": canonical_negative,
+            "mir_parity": canonical_parity,
             "notes": [
                 "PR10.2 closes the live accepted Rule 5 surface by merging the PR07 Rule 5 positives with the frozen PR10 Rule 5 emitted representative.",
                 "Rule 5 remains a narrowing-point proof boundary: IEEE 754 intermediate NaN and infinity are allowed, but narrowing points must be provably safe.",
                 "While-loop conditions outside the current derivable Loop_Variant surface are rejected during safec check rather than deferred to emitted GNATprove failure.",
             ],
-        }
+        },
+        machine_sensitive={
+            "positive_rule5_corpus": machine_positive,
+            "negative_diagnostics": machine_negative,
+            "mir_parity": machine_parity,
+        },
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--scratch-root", type=Path)
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
     report = finalize_deterministic_report(
-        lambda: generate_report(env=env),
+        lambda: generate_report(env=env, scratch_root=args.scratch_root),
         label="PR10.2 Rule 5 boundary closure",
     )
     write_report(args.report, report)

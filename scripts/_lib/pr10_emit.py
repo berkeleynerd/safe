@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from .harness_common import require, run
+from .harness_common import find_command, normalize_source_text, normalized_source_fragments, require, run
 from .pr09_emit import (
     COMPILER_ROOT,
     REPO_ROOT,
@@ -236,15 +235,6 @@ def emit_fixture(
         "ada_dir": ada_dir,
     }
 
-
-def normalize_source_text(text: str) -> str:
-    return " ".join(text.split())
-
-
-def normalized_source_fragments(item: dict[str, Any]) -> Sequence[str]:
-    return tuple(normalize_source_text(fragment) for fragment in item["source_fragments"])
-
-
 def emit_selected_fixture(
     *,
     source: Path,
@@ -261,11 +251,12 @@ def gnatprove_command(
     mode: str,
 ) -> list[str]:
     switches = FLOW_SWITCHES if mode == "flow" else PROVE_SWITCHES
+    gnatprove = find_command("gnatprove", Path.home() / ".alire" / "bin" / "gnatprove")
     argv = [
         alr_command(),
         "exec",
         "--",
-        "gnatprove",
+        gnatprove,
         "-P",
         str(gpr_path),
         *switches,

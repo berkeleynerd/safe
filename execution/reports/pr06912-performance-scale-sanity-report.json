@@ -65,9 +65,14 @@
       "compiler_impl/README.md",
       "release/frontend_runtime_decision.md"
     ],
-    "missing_doc_files": []
+    "missing_doc_files": [],
+    "policy_sections_used": [
+      "environment",
+      "portability"
+    ],
+    "policy_sha256": "0def5cfd661e53394a6f7662727ee25d56ed6da9687df332df781eb8f493c542"
   },
-  "repeat_sha256": "e0d63589dfb7f2f02c72c9cf874dd0ba89be010810eb1e5d56fb9ca0b1825e1e",
+  "repeat_sha256": "0b96ab0785e4027ac2c95dc0af13cd4d79e7454d212271357ed1c70d34539cba",
   "repeated_scenarios": {
     "analyze_mir": [
       {
@@ -216,7 +221,7 @@
     "check": 5,
     "emit": 3
   },
-  "report_sha256": "e0d63589dfb7f2f02c72c9cf874dd0ba89be010810eb1e5d56fb9ca0b1825e1e",
+  "report_sha256": "0b96ab0785e4027ac2c95dc0af13cd4d79e7454d212271357ed1c70d34539cba",
   "status": "ok",
   "task": "PR06.9.12"
 }

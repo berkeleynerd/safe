@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
+
+from .harness_common import normalize_source_text, normalized_source_fragments
 
 
 PR106_EXCLUDED_POSITIVE_CONCURRENCY_CASES = [
@@ -437,11 +438,3 @@ def corpus_paths() -> list[str]:
 
 def excluded_positive_concurrency_paths() -> list[str]:
     return list(PR106_EXCLUDED_POSITIVE_CONCURRENCY_CASES)
-
-
-def normalize_source_text(text: str) -> str:
-    return " ".join(text.split())
-
-
-def normalized_source_fragments(item: dict[str, Any]) -> Sequence[str]:
-    return tuple(normalize_source_text(fragment) for fragment in item["source_fragments"])

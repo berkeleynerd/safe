@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -24,6 +23,7 @@ from _lib.harness_common import (
     require,
     require_repo_command,
     run,
+    stable_emitted_artifact_sha256,
     write_report,
 )
 from _lib.platform_assumptions import (
@@ -118,17 +118,6 @@ RUNTIME_SOURCE_PATTERNS = [
         [r"\bRun_Backend\b", r"\bBackend_Script\b", r"pr05_backend\.py", *STATIC_PYTHON_INVOCATION_PATTERNS],
     ),
 ]
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(65536)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def emitted_paths(root: Path, sample: Path) -> dict[str, Path]:
@@ -597,7 +586,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
                 right_bytes = right.read_bytes()
                 if left_bytes != right_bytes:
                     raise RuntimeError(f"non-deterministic output for {sample.name}::{relative}")
-                file_hashes[relative] = sha256(left)
+                file_hashes[relative] = stable_emitted_artifact_sha256(left, temp_root=temp_root)
             deterministic_outputs[str(sample.relative_to(REPO_ROOT))] = file_hashes
 
             emit_samples.append(

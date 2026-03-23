@@ -7,7 +7,7 @@ It is intentionally practical rather than portable:
 
 - it assumes you are running from this repository checkout
 - it assumes the Ada toolchain is available through Alire on this host
-- it relies on the same macOS linker `syslibroot` pattern used by `compiler_impl/safec.gpr`
+- it follows the same Linux-oriented build assumptions as `compiler_impl/safec.gpr`
 
 The walkthrough below uses a small typed-channel package so the emitted Ada
 includes `gnat.adc` and actually exercises the local Jorvik link path.
@@ -19,7 +19,7 @@ host-local build script that does the full flow:
 2. runs `safec check`
 3. emits JSON plus Ada/SPARK with `safec emit --ada-out-dir`
 4. validates and analyzes the emitted MIR
-5. writes a tiny Ada driver plus a macOS-aware `build.gpr`
+5. writes a tiny Ada driver plus a matching `build.gpr`
 6. builds and runs the resulting native binary
 
 ## 1. Start From the Repo Root
@@ -39,7 +39,7 @@ If you need to rebuild it first:
 
 ```bash
 cd compiler_impl
-$HOME/bin/alr build
+alr build
 cd ..
 ```
 
@@ -102,7 +102,7 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:?set REPO_ROOT to your safe checkout root before running this script}"
 SAFEC="$REPO_ROOT/compiler_impl/bin/safec"
-ALR_BIN="${ALR_BIN:-$HOME/bin/alr}"
+ALR_BIN="${ALR_BIN:-alr}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 OUT_DIR="$SCRIPT_DIR/out"
@@ -169,21 +169,14 @@ ADA
 
 cat > "$ADA_DIR/build.gpr" <<'GPR'
 project Build is
-   Sdk_Root := External ("SDKROOT", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk");
    for Source_Dirs use (".");
    for Object_Dir use "obj";
 
    package Compiler is
       for Default_Switches ("Ada") use ("-gnatec=gnat.adc");
    end Compiler;
-
-   package Linker is
-      for Default_Switches ("Ada") use ("-Wl,-syslibroot," & Sdk_Root);
-   end Linker;
 end Build;
 GPR
-
-export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
 
 (
    cd "$REPO_ROOT/compiler_impl"
@@ -248,14 +241,13 @@ end to end on this host:
 - emitted `gnat.adc` generation for a real typed-channel package
 - host-local Ada compilation of the emitted package plus handwritten driver
 - execution of a native binary linked through the local Jorvik configuration
-- use of the macOS linker `syslibroot` fix needed by this host toolchain
 
 ## Notes
 
 - This is a host-local smoke path, not a replacement for the repo gates.
 - The PR09 CI gates are intentionally compile-only; the explicit native link and
   execution step here goes beyond what CI currently enforces.
-- This tutorial is macOS-specific and depends on the local Alire GNAT
-  toolchain plus the linker `syslibroot` project stanza.
+- This tutorial assumes a supported Linux host with the local Alire GNAT
+  toolchain available on `PATH`.
 - If you want a minimal emission-only sample instead, use
   `tests/positive/emitter_surface_proc.safe`.

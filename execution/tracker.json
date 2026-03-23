@@ -27,7 +27,7 @@
         "CI contains a uniquely named execution-guard job."
       ],
       "evidence": [
-        "execution/reports/pr00-pr04-verification.md",
+        "execution/reports/execution-state-validation-report.json",
         "execution/sessions/20260306-1148-pr00-pr04.md"
       ],
       "blockers": [],
@@ -606,6 +606,8 @@
         "docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json."
       ],
       "evidence": [
+        "execution/reports/pr101a-companion-proof-verification-report.json",
+        "execution/reports/pr101b-template-proof-verification-report.json",
         "execution/reports/pr101-comprehensive-audit-report.json"
       ],
       "blockers": [],

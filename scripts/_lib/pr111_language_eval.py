@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from .harness_common import DEFAULT_MACOS_SDKROOT, REPO_ROOT, require
+from .harness_common import REPO_ROOT, require
 from .pr09_emit import COMPILER_ROOT, alr_command, emitted_body_file, require_safec
 
 
@@ -102,6 +102,7 @@ def safe_build_project_text(
     gnat_adc_path: str = "ada/gnat.adc",
     platform_name: str = sys.platform,
 ) -> str:
+    del platform_name
     lines = [
         "project Build is",
         '   for Source_Dirs use (".", "ada");',
@@ -109,25 +110,12 @@ def safe_build_project_text(
         '   for Exec_Dir use ".";',
         '   for Main use ("main.adb");',
     ]
-    if platform_name == "darwin":
-        lines.insert(
-            1,
-            f'   Sdk_Root := External ("SDKROOT", "{DEFAULT_MACOS_SDKROOT}");',
-        )
     if has_gnat_adc:
         lines.extend(
             [
                 "   package Compiler is",
                 f'      for Default_Switches ("Ada") use ("-gnatec={gnat_adc_path}");',
                 "   end Compiler;",
-            ]
-        )
-    if platform_name == "darwin":
-        lines.extend(
-            [
-                "   package Linker is",
-                '      for Default_Switches ("Ada") use ("-Wl,-syslibroot," & Sdk_Root);',
-                "   end Linker;",
             ]
         )
     lines.append("end Build;")

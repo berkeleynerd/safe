@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
+
+from .harness_common import normalize_source_text, normalized_source_fragments
 
 
 PR103_OWNERSHIP_CORPUS: list[dict[str, Any]] = [
@@ -175,11 +176,3 @@ def ownership_proof_corpus() -> list[dict[str, Any]]:
 
 def corpus_paths() -> list[str]:
     return [item["fixture"] for item in PR103_OWNERSHIP_CORPUS]
-
-
-def normalize_source_text(text: str) -> str:
-    return " ".join(text.split())
-
-
-def normalized_source_fragments(item: dict[str, Any]) -> Sequence[str]:
-    return tuple(normalize_source_text(fragment) for fragment in item["source_fragments"])

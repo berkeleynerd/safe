@@ -1,319 +1,182 @@
 from __future__ import annotations
 
+import argparse
+import io
 import sys
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from run_local_pre_push import build_steps, gate_scripts_for_branch
+import run_local_pre_push
 
 
 class RunLocalPrePushTests(unittest.TestCase):
-    def test_gate_scripts_for_branch_maps_known_pr083a_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr083a-public-constants"),
-            (
-                "scripts/run_pr083_interface_contracts.py",
-                "scripts/run_pr083a_public_constants.py",
-            ),
-        )
+    def test_dry_run_reports_full_verify_plan(self) -> None:
+        args = argparse.Namespace(branch="codex/pr114-signature-control-flow-syntax", dry_run=True, skip_diff=False)
+        stdout = io.StringIO()
+        with mock.patch.object(run_local_pre_push, "parse_args", return_value=args), mock.patch.object(
+            run_local_pre_push,
+            "verify_pipeline",
+        ) as verify_pipeline:
+            with redirect_stdout(stdout):
+                self.assertEqual(run_local_pre_push.main(), 0)
+        self.assertIn("[pre-push] branch: codex/pr114-signature-control-flow-syntax", stdout.getvalue())
+        self.assertIn("[pre-push] plan: full canonical gate pipeline verify (authority=local)", stdout.getvalue())
+        verify_pipeline.assert_not_called()
 
-    def test_gate_scripts_for_branch_maps_known_pr084_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr084-imported-summary-integration"),
-            (
-                "scripts/run_pr084_transitive_concurrency_integration.py",
-                "scripts/run_pr08_frontend_baseline.py",
-            ),
-        )
+    def test_main_verifies_and_checks_diff(self) -> None:
+        args = argparse.Namespace(branch="codex/pr114-signature-control-flow-syntax", dry_run=False, skip_diff=False)
+        with mock.patch.object(run_local_pre_push, "parse_args", return_value=args), mock.patch.object(
+            run_local_pre_push,
+            "ensure_sdkroot",
+            side_effect=lambda env: env,
+        ), mock.patch.object(
+            run_local_pre_push,
+            "ensure_deterministic_env",
+            return_value={},
+        ), mock.patch.object(
+            run_local_pre_push,
+            "find_command",
+            side_effect=["git", "python3", "alr"],
+        ), mock.patch.object(run_local_pre_push,
+            "verify_pipeline",
+            return_value=0,
+        ) as verify_pipeline, mock.patch.object(
+            run_local_pre_push,
+            "run",
+            return_value={
+                "command": ["git", "diff", "--exit-code"],
+                "cwd": "$REPO_ROOT",
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+            },
+        ) as run_command:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(run_local_pre_push.main(), 0)
 
-    def test_gate_scripts_for_branch_rejects_unknown_pr08_branch(self) -> None:
-        with self.assertRaises(RuntimeError):
-            gate_scripts_for_branch("codex/pr083b-named-numbers")
-
-    def test_build_steps_includes_rebuild_and_diff(self) -> None:
-        steps = build_steps(
-            branch="codex/pr083a-public-constants",
+        verify_pipeline.assert_called_once_with(
+            authority="local",
             python="python3",
-            alr="alr",
             git="git",
-            include_diff=True,
+            alr="alr",
+            env={},
         )
-        labels = [step.label for step in steps]
-        self.assertEqual(labels[0], "Build compiler")
-        self.assertIn("Run run_pr083_interface_contracts.py", labels)
-        self.assertIn("Run run_pr083a_public_constants.py", labels)
-        self.assertIn("Run run_pr0699_build_reproducibility.py", labels)
-        self.assertIn("Rebuild compiler after reproducibility gate", labels)
-        self.assertEqual(labels[-1], "Require clean tracked tree after local gates")
-        self.assertEqual(
-            steps[0].argv,
-            ("alr", "build", "--", "-j1", "-p"),
-        )
+        run_command.assert_called_once()
+        self.assertEqual(run_command.call_args.args[0], ["git", "diff", "--exit-code"])
 
-    def test_build_steps_include_pr084_chain_and_pr09_followup(self) -> None:
-        steps = build_steps(
-            branch="codex/pr084-imported-summary-integration",
+    def test_main_skips_clean_tree_check_when_requested(self) -> None:
+        args = argparse.Namespace(branch="codex/pr114-signature-control-flow-syntax", dry_run=False, skip_diff=True)
+        with mock.patch.object(run_local_pre_push, "parse_args", return_value=args), mock.patch.object(
+            run_local_pre_push,
+            "ensure_sdkroot",
+            side_effect=lambda env: env,
+        ), mock.patch.object(
+            run_local_pre_push,
+            "ensure_deterministic_env",
+            return_value={},
+        ), mock.patch.object(
+            run_local_pre_push,
+            "find_command",
+            side_effect=["git", "python3", "alr"],
+        ), mock.patch.object(run_local_pre_push,
+            "verify_pipeline",
+            return_value=0,
+        ) as verify_pipeline, mock.patch.object(
+            run_local_pre_push,
+            "run",
+        ) as run_command:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(run_local_pre_push.main(), 0)
+
+        verify_pipeline.assert_called_once_with(
+            authority="local",
             python="python3",
-            alr="alr",
             git="git",
-            include_diff=False,
+            alr="alr",
+            env={},
         )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr084_transitive_concurrency_integration.py", labels)
-        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-        self.assertLess(
-            labels.index("Run run_pr09_ada_emission_baseline.py"),
-            labels.index("Rebuild compiler after reproducibility gate"),
-        )
+        run_command.assert_not_called()
 
-    def test_gate_scripts_for_branch_maps_known_pr09_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr09-ada-emission"),
-            ("scripts/run_pr09_ada_emission_baseline.py",),
-        )
-
-    def test_build_steps_include_pr09_baseline_gate(self) -> None:
-        steps = build_steps(
-            branch="codex/pr09-ada-emission",
+    def test_main_detects_current_branch_when_not_overridden(self) -> None:
+        args = argparse.Namespace(branch=None, dry_run=False, skip_diff=True)
+        with mock.patch.object(run_local_pre_push, "parse_args", return_value=args), mock.patch.object(
+            run_local_pre_push,
+            "ensure_sdkroot",
+            side_effect=lambda env: env,
+        ), mock.patch.object(
+            run_local_pre_push,
+            "ensure_deterministic_env",
+            return_value={},
+        ), mock.patch.object(
+            run_local_pre_push,
+            "find_command",
+            side_effect=["git", "python3", "alr"],
+        ), mock.patch.object(
+            run_local_pre_push,
+            "current_branch",
+            return_value="codex/pr114-signature-control-flow-syntax",
+        ) as current_branch, mock.patch.object(run_local_pre_push,
+            "verify_pipeline",
+            return_value=0,
+        ) as verify_pipeline:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(run_local_pre_push.main(), 0)
+        current_branch.assert_called_once()
+        verify_pipeline.assert_called_once_with(
+            authority="local",
             python="python3",
-            alr="alr",
             git="git",
-            include_diff=False,
-        )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-
-    def test_gate_scripts_for_branch_maps_known_pr103_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr103-ownership-proof-expansion"),
-            (
-                "scripts/run_pr103_sequential_proof_expansion.py",
-                "scripts/run_pr10_emitted_baseline.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
+            alr="alr",
+            env={},
         )
 
-    def test_gate_scripts_for_branch_maps_known_pr104_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr104-gnatprove-evidence-hardening"),
-            (
-                "scripts/run_pr104_gnatprove_evidence_parser_hardening.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_known_pr105_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr105-ada-emitter-maintenance"),
-            (
-                "scripts/run_pr105_ada_emitter_maintenance_hardening.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_known_pr106_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr106-sequential-proof-corpus-expansion"),
-            (
-                "scripts/run_pr106_sequential_proof_corpus_expansion.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_pr111_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr111-language-eval-harness"),
-            (
-                "scripts/run_pr111_language_evaluation_harness.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_pr112_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr112-parser-completeness"),
-            (
-                "scripts/run_pr112_parser_completeness_phase1.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_pr113_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr113-discriminants-tuples"),
-            (
-                "scripts/run_pr111_language_evaluation_harness.py",
-                "scripts/run_pr112_parser_completeness_phase1.py",
-                "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_pr113a_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr113a-proof-checkpoint1"),
-            (
-                "scripts/run_pr111_language_evaluation_harness.py",
-                "scripts/run_pr112_parser_completeness_phase1.py",
-                "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
-                "scripts/run_pr113a_proof_checkpoint1.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_gate_scripts_for_branch_maps_pr114_branch(self) -> None:
-        self.assertEqual(
-            gate_scripts_for_branch("codex/pr114-signature-control-flow-syntax"),
-            (
-                "scripts/run_pr111_language_evaluation_harness.py",
-                "scripts/run_pr112_parser_completeness_phase1.py",
-                "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
-                "scripts/run_pr113a_proof_checkpoint1.py",
-                "scripts/run_pr114_signature_control_flow_syntax.py",
-                "scripts/run_pr101_comprehensive_audit.py",
-            ),
-        )
-
-    def test_build_steps_include_stateful_baseline_scripts_for_pr111(self) -> None:
-        steps = build_steps(
-            branch="codex/pr111-language-eval-harness",
+    def test_main_verifies_full_pipeline_even_without_branch_plan(self) -> None:
+        args = argparse.Namespace(branch="codex/misc-cleanup", dry_run=False, skip_diff=False)
+        stdout = io.StringIO()
+        with mock.patch.object(run_local_pre_push, "parse_args", return_value=args), mock.patch.object(
+            run_local_pre_push,
+            "ensure_sdkroot",
+            side_effect=lambda env: env,
+        ), mock.patch.object(
+            run_local_pre_push,
+            "ensure_deterministic_env",
+            return_value={},
+        ), mock.patch.object(
+            run_local_pre_push,
+            "find_command",
+            side_effect=["git", "python3", "alr"],
+        ), mock.patch.object(run_local_pre_push,
+            "verify_pipeline",
+            return_value=0,
+        ) as verify_pipeline, mock.patch.object(
+            run_local_pre_push,
+            "run",
+            return_value={
+                "command": ["git", "diff", "--exit-code"],
+                "cwd": "$REPO_ROOT",
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+            },
+        ) as run_command:
+            with redirect_stdout(stdout):
+                self.assertEqual(run_local_pre_push.main(), 0)
+        self.assertIn("[pre-push] branch: codex/misc-cleanup", stdout.getvalue())
+        verify_pipeline.assert_called_once_with(
+            authority="local",
             python="python3",
-            alr="alr",
             git="git",
-            include_diff=False,
-        )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr111_language_evaluation_harness.py", labels)
-        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-        self.assertIn("Run run_pr10_emitted_baseline.py", labels)
-        self.assertIn("Rebuild compiler before stateful baselines", labels)
-        self.assertLess(
-            labels.index("Run run_pr111_language_evaluation_harness.py"),
-            labels.index("Rebuild compiler before stateful baselines"),
-        )
-        self.assertLess(
-            labels.index("Rebuild compiler before stateful baselines"),
-            labels.index("Run run_pr08_frontend_baseline.py"),
-        )
-        self.assertLess(
-            labels.index("Run run_pr09_ada_emission_baseline.py"),
-            labels.index("Rebuild compiler after reproducibility gate"),
-        )
-        self.assertLess(
-            labels.index("Run run_pr10_emitted_baseline.py"),
-            labels.index("Rebuild compiler after reproducibility gate"),
-        )
-
-    def test_build_steps_deduplicate_pr101_audit_for_pr111(self) -> None:
-        steps = build_steps(
-            branch="codex/pr111-language-eval-harness",
-            python="python3",
             alr="alr",
-            git="git",
-            include_diff=False,
+            env={},
         )
-        labels = [step.label for step in steps]
-        self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
-
-    def test_build_steps_include_stateful_baseline_scripts_for_pr112(self) -> None:
-        steps = build_steps(
-            branch="codex/pr112-parser-completeness",
-            python="python3",
-            alr="alr",
-            git="git",
-            include_diff=False,
-        )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr112_parser_completeness_phase1.py", labels)
-        self.assertIn("Rebuild compiler before stateful baselines", labels)
-        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-        self.assertIn("Run run_pr10_emitted_baseline.py", labels)
-        self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
-
-    def test_build_steps_include_pr111_pr112_and_pr113_for_pr113_branch(self) -> None:
-        steps = build_steps(
-            branch="codex/pr113-discriminants-tuples",
-            python="python3",
-            alr="alr",
-            git="git",
-            include_diff=False,
-        )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr111_language_evaluation_harness.py", labels)
-        self.assertIn("Run run_pr112_parser_completeness_phase1.py", labels)
-        self.assertIn("Run run_pr113_discriminated_types_tuples_structured_returns.py", labels)
-        self.assertIn("Rebuild compiler before stateful baselines", labels)
-        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-        self.assertIn("Run run_pr10_emitted_baseline.py", labels)
-        self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
-
-    def test_build_steps_include_pr111_pr112_pr113_and_pr113a_for_pr113a_branch(self) -> None:
-        steps = build_steps(
-            branch="codex/pr113a-proof-checkpoint1",
-            python="python3",
-            alr="alr",
-            git="git",
-            include_diff=False,
-        )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr111_language_evaluation_harness.py", labels)
-        self.assertIn("Run run_pr112_parser_completeness_phase1.py", labels)
-        self.assertIn("Run run_pr113_discriminated_types_tuples_structured_returns.py", labels)
-        self.assertIn("Run run_pr113a_proof_checkpoint1.py", labels)
-        self.assertIn("Rebuild compiler before stateful baselines", labels)
-        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-        self.assertIn("Run run_pr10_emitted_baseline.py", labels)
-        self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
-
-    def test_build_steps_include_pr111_through_pr114_for_pr114_branch(self) -> None:
-        steps = build_steps(
-            branch="codex/pr114-signature-control-flow-syntax",
-            python="python3",
-            alr="alr",
-            git="git",
-            include_diff=False,
-        )
-        labels = [step.label for step in steps]
-        self.assertIn("Run run_pr111_language_evaluation_harness.py", labels)
-        self.assertIn("Run run_pr112_parser_completeness_phase1.py", labels)
-        self.assertIn("Run run_pr113_discriminated_types_tuples_structured_returns.py", labels)
-        self.assertIn("Run run_pr113a_proof_checkpoint1.py", labels)
-        self.assertIn("Run run_pr114_signature_control_flow_syntax.py", labels)
-        self.assertIn("Rebuild compiler before stateful baselines", labels)
-        self.assertLess(
-            labels.index("Run run_pr114_signature_control_flow_syntax.py"),
-            labels.index("Rebuild compiler before stateful baselines"),
-        )
-        self.assertLess(
-            labels.index("Rebuild compiler before stateful baselines"),
-            labels.index("Run run_pr101_comprehensive_audit.py"),
-        )
-        self.assertIn("Run run_pr08_frontend_baseline.py", labels)
-        self.assertIn("Run run_pr09_ada_emission_baseline.py", labels)
-        self.assertIn("Run run_pr10_emitted_baseline.py", labels)
-        self.assertEqual(labels.count("Run run_pr101_comprehensive_audit.py"), 1)
-
-    def test_build_steps_skips_unmapped_non_pr08_branch(self) -> None:
-        self.assertEqual(
-            build_steps(
-                branch="codex/misc-cleanup",
-                python="python3",
-                alr="alr",
-                git="git",
-                include_diff=True,
-            ),
-            [],
-        )
+        run_command.assert_called_once()
 
 
 if __name__ == "__main__":

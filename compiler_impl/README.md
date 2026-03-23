@@ -30,20 +30,19 @@ PR06.9.12 is a cliff-detection gate, not a benchmark commitment, for that curren
 See [`../docs/frontend_architecture_baseline.md`](../docs/frontend_architecture_baseline.md) for the canonical frontend boundary, [`../docs/frontend_scale_limits.md`](../docs/frontend_scale_limits.md) for the current cliff-detection scale policy, and [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md) for the emitted-output assurance boundary.
 For a host-local end-to-end walkthrough from Safe source to a runnable native
 binary, see [`../docs/safec_end_to_end_cli_tutorial.md`](../docs/safec_end_to_end_cli_tutorial.md).
-On macOS, local emitted-Ada executable builds should use a generated project
-file with the same linker `syslibroot` pattern as `safec.gpr`.
+That walkthrough uses a generated project file that matches the current Linux
+build assumptions.
 
 ## Current Doctrine
 
-- Ubuntu/Linux CI and local macOS are the supported environments for the current frontend.
-- Windows is explicitly unsupported for PR06.9.x.
-- On macOS, repo glue assumes an SDK is discoverable through `xcrun --show-sdk-path` or `SDKROOT`.
+- Supported frontend environments: Ubuntu/Linux CI and local Linux.
+- Unsupported frontend environments: macOS and Windows.
 - Portability-sensitive repo glue uses PATH-based command discovery instead of hard-coded tool paths.
 - Portability-sensitive gates use deterministic TemporaryDirectory prefixes for stable temp roots and evidence.
-- Portability-sensitive glue scripts remain shell-free and do not rely on `shell=True` or `os.system`.
-- Active Python glue is orchestration/validation only and stays argv-based.
+- Portability-sensitive shell-free glue scripts do not rely on `shell=True` or `os.system`.
+- Active Python glue/orchestration is validation only and stays argv-based.
 - Safe source may only be read by glue scripts for fixture metadata extraction or inline negative/control cases, never as a second semantic source of truth.
-- The recovery note in `../docs/macos_alire_toolchain_repair.md` is a developer recovery procedure, not a compiler runtime dependency.
+- The archived note in `../docs/macos_alire_toolchain_repair.md` is historical host-local recovery guidance for an unsupported platform.
 - No-Python runtime enforcement covers `python`, `python3`, `python3.11`, `python3.<minor>`, and path-qualified Python invocations in compiler runtime sources.
 
 The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.
