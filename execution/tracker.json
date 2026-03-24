@@ -3,7 +3,7 @@
   "updated_at": "2026-03-24T00:00:00Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR11.6.1",
+  "next_task_id": "PR11.6.2",
   "repo_facts": {
     "tests": {
       "positive": 65,
@@ -465,7 +465,7 @@
         "typed-v2 and mir-v2 gain additive local task/channel metadata and explicit concurrency ops without changing the dependency-interface artifact."
       ],
       "evidence": [
-        "execution/reports/pr081-local-concurrency-frontend-report.json"
+        "execution/archive/pr081_local_concurrency_frontend/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -482,7 +482,7 @@
         "The accepted local concurrency corpus includes exclusive_variable.safe, channel_pingpong.safe, and select_priority.safe."
       ],
       "evidence": [
-        "execution/reports/pr082-local-concurrency-analysis-report.json"
+        "execution/archive/pr082_local_concurrency_analysis/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -500,7 +500,7 @@
         "safei-v1.objects[] remains additively extensible for later constant payload fields without requiring another format bump."
       ],
       "evidence": [
-        "execution/reports/pr083-interface-contracts-report.json"
+        "execution/archive/pr083_interface_contracts/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -518,7 +518,7 @@
         "A dedicated PR08.3a gate and report cover imported public constants and keep committed evidence up to date."
       ],
       "evidence": [
-        "execution/reports/pr083a-public-constants-report.json"
+        "execution/archive/pr083a_public_constants/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -535,7 +535,7 @@
         "Tracker, dashboard, and frontend docs flip the supported baseline from PR07 to PR08 and advance next_task_id to PR09."
       ],
       "evidence": [
-        "execution/reports/pr084-transitive-concurrency-integration-report.json"
+        "execution/archive/pr084_transitive_concurrency/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -550,7 +550,7 @@
         "The supported frontend subset expands from the PR07 sequential baseline to the PR08 concurrency baseline without reviving deleted legacy packages."
       ],
       "evidence": [
-        "execution/reports/pr08-frontend-baseline-report.json"
+        "execution/archive/pr08_frontend_baseline/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -566,12 +566,12 @@
         "Concurrency-enabled output includes gnat.adc with sequential elaboration and Jorvik profile pragmas."
       ],
       "evidence": [
-        "execution/reports/pr09a-emitter-surface-report.json",
-        "execution/reports/pr09a-emitter-mvp-report.json",
-        "execution/reports/pr09b-sequential-semantics-report.json",
-        "execution/reports/pr09b-concurrency-output-report.json",
-        "execution/reports/pr09b-snapshot-refresh-report.json",
-        "execution/reports/pr09-ada-emission-baseline-report.json"
+        "execution/archive/pr09a_emitter_surface/report.json",
+        "execution/archive/pr09a_emitter_mvp/report.json",
+        "execution/archive/pr09b_sequential_semantics/report.json",
+        "execution/archive/pr09b_concurrency_output/report.json",
+        "execution/archive/pr09b_snapshot_refresh/report.json",
+        "execution/archive/pr09_ada_emission_baseline/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -587,10 +587,10 @@
         "docs/emitted_output_verification_matrix.md is the canonical emitted-output coverage statement, and docs/post_pr10_scope.md records every residual gap beyond the selected corpus."
       ],
       "evidence": [
-        "execution/reports/pr10-contract-baseline-report.json",
-        "execution/reports/pr10-emitted-flow-report.json",
-        "execution/reports/pr10-emitted-prove-report.json",
-        "execution/reports/pr10-emitted-baseline-report.json"
+        "execution/archive/pr10_contract_baseline/report.json",
+        "execution/archive/pr10_emitted_flow/report.json",
+        "execution/archive/pr10_emitted_prove/report.json",
+        "execution/archive/pr10_emitted_baseline/report.json"
       ],
       "blockers": [],
       "unblock_condition": ""
@@ -606,8 +606,8 @@
         "docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json."
       ],
       "evidence": [
-        "execution/reports/pr101a-companion-proof-verification-report.json",
-        "execution/reports/pr101b-template-proof-verification-report.json",
+        "execution/archive/pr101a_companion_proof_verification/report.json",
+        "execution/archive/pr101b_template_proof_verification/report.json",
         "execution/reports/pr101-comprehensive-audit-report.json"
       ],
       "blockers": [],
@@ -814,7 +814,7 @@
     {
       "id": "PR11.6.1",
       "title": "Attestation Chain Compression",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["PR11.6"],
       "acceptance": [
         "A generic Merkle tree module computes SHA-256 binary Merkle roots over sorted report paths, with inclusion proof extraction and verification.",
@@ -822,11 +822,13 @@
         "Compression archives each retired report to execution/archive/<gate_id>/ with provenance.json containing report_sha256, Merkle inclusion proof, subsumed_by, and timestamp.",
         "The gate manifest is rewritten with retired nodes removed and live-node dependencies rewired to the subsumer.",
         "A compaction receipt in execution/compaction-receipts/ binds pre-compaction and post-compaction Merkle roots, retired gate inclusion proofs, and git commit SHAs.",
-        "The compressed pipeline (27 nodes) passes verify --authority ci with no regressions.",
+        "The compressed pipeline (37 nodes) passes verify --authority ci with no regressions.",
         "Replay: checking out the pre-compaction commit and recomputing the Merkle root reproduces the receipt's pre_merkle_root; each archived report's inclusion proof verifies against that root.",
         "Gate scripts for retired nodes remain on disk for replay but are not executed in the active pipeline."
       ],
-      "evidence": [],
+      "evidence": [
+        "execution/compaction-receipts/pr1161-attestation-chain-compression.json"
+      ],
       "blockers": [],
       "unblock_condition": ""
     },

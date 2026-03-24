@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR11.6.1`
+- **Next task:** `PR11.6.2`
 - **Updated at:** `2026-03-24T00:00:00Z`
 
 ## Repo Facts
@@ -65,7 +65,7 @@
 | PR11.4 | done | PR11.3a | 1 |
 | PR11.5 | done | PR11.4 | 1 |
 | PR11.6 | done | PR11.5 | 1 |
-| PR11.6.1 | planned | PR11.6 | 0 |
+| PR11.6.1 | done | PR11.6 | 1 |
 | PR11.6.2 | planned | PR11.6.1 | 0 |
 | PR11.7 | planned | PR11.6.2 | 0 |
 | PR11.8 | planned | PR11.7 | 0 |
@@ -434,7 +434,7 @@
   - Task/channel/select legality and task non-termination restrictions reject malformed local concurrency sources deterministically.
   - typed-v2 and mir-v2 gain additive local task/channel metadata and explicit concurrency ops without changing the dependency-interface artifact.
 - **Evidence:**
-  - `execution/reports/pr081-local-concurrency-frontend-report.json`
+  - `execution/archive/pr081_local_concurrency_frontend/report.json`
 
 ### PR08.2 — Local concurrency Bronze and Silver analysis
 
@@ -447,7 +447,7 @@
   - Representative local concurrency cases stay in parity between safec check --diag-json and emitted safec analyze-mir --diag-json.
   - The accepted local concurrency corpus includes exclusive_variable.safe, channel_pingpong.safe, and select_priority.safe.
 - **Evidence:**
-  - `execution/reports/pr082-local-concurrency-analysis-report.json`
+  - `execution/archive/pr082_local_concurrency_analysis/report.json`
 
 ### PR08.3 — Interface contracts and cross-package resolution
 
@@ -461,7 +461,7 @@
   - Missing interfaces and duplicate same-package matches in one search dir fail deterministically as source_frontend_error.
   - safei-v1.objects[] remains additively extensible for later constant payload fields without requiring another format bump.
 - **Evidence:**
-  - `execution/reports/pr083-interface-contracts-report.json`
+  - `execution/archive/pr083_interface_contracts/report.json`
 
 ### PR08.3a — Public constants and imported constant values
 
@@ -475,7 +475,7 @@
   - Missing or invalid imported constant values fail deterministically and safei-v1 constant payloads remain validator-covered and deterministic.
   - A dedicated PR08.3a gate and report cover imported public constants and keep committed evidence up to date.
 - **Evidence:**
-  - `execution/reports/pr083a-public-constants-report.json`
+  - `execution/archive/pr083a_public_constants/report.json`
 
 ### PR08.4 — Transitive concurrency integration and baseline flip
 
@@ -488,7 +488,7 @@
   - A dedicated PR08 gate and report plus CI wiring exist, and unsupported-boundary expectations are updated for the newly supported concurrency surfaces.
   - Tracker, dashboard, and frontend docs flip the supported baseline from PR07 to PR08 and advance next_task_id to PR09.
 - **Evidence:**
-  - `execution/reports/pr084-transitive-concurrency-integration-report.json`
+  - `execution/archive/pr084_transitive_concurrency/report.json`
 
 ### PR08 — Concurrency legality and Bronze summaries
 
@@ -499,7 +499,7 @@
   - PR08.1 through PR08.4, plus PR08.3a, complete the concurrency frontend, local analysis, interface contracts, ordinary-constant interface coverage, and transitive integration work on the live Ada-native path.
   - The supported frontend subset expands from the PR07 sequential baseline to the PR08 concurrency baseline without reviving deleted legacy packages.
 - **Evidence:**
-  - `execution/reports/pr08-frontend-baseline-report.json`
+  - `execution/archive/pr08_frontend_baseline/report.json`
 
 ### PR09 — Ada/SPARK emission and snapshot refresh
 
@@ -511,12 +511,12 @@
   - PR09b replaces historical golden Ada snapshots once emitter output is stable.
   - Concurrency-enabled output includes gnat.adc with sequential elaboration and Jorvik profile pragmas.
 - **Evidence:**
-  - `execution/reports/pr09a-emitter-surface-report.json`
-  - `execution/reports/pr09a-emitter-mvp-report.json`
-  - `execution/reports/pr09b-sequential-semantics-report.json`
-  - `execution/reports/pr09b-concurrency-output-report.json`
-  - `execution/reports/pr09b-snapshot-refresh-report.json`
-  - `execution/reports/pr09-ada-emission-baseline-report.json`
+  - `execution/archive/pr09a_emitter_surface/report.json`
+  - `execution/archive/pr09a_emitter_mvp/report.json`
+  - `execution/archive/pr09b_sequential_semantics/report.json`
+  - `execution/archive/pr09b_concurrency_output/report.json`
+  - `execution/archive/pr09b_snapshot_refresh/report.json`
+  - `execution/archive/pr09_ada_emission_baseline/report.json`
 
 ### PR10 — GNATprove flow/prove gate on emitted output
 
@@ -528,10 +528,10 @@
   - Selected emitted outputs build and pass GNATprove flow/prove with zero warnings, zero justified checks, and zero unproved checks.
   - docs/emitted_output_verification_matrix.md is the canonical emitted-output coverage statement, and docs/post_pr10_scope.md records every residual gap beyond the selected corpus.
 - **Evidence:**
-  - `execution/reports/pr10-contract-baseline-report.json`
-  - `execution/reports/pr10-emitted-flow-report.json`
-  - `execution/reports/pr10-emitted-prove-report.json`
-  - `execution/reports/pr10-emitted-baseline-report.json`
+  - `execution/archive/pr10_contract_baseline/report.json`
+  - `execution/archive/pr10_emitted_flow/report.json`
+  - `execution/archive/pr10_emitted_prove/report.json`
+  - `execution/archive/pr10_emitted_baseline/report.json`
 
 ### PR10.1 — Comprehensive assessment and refinement audit
 
@@ -543,8 +543,8 @@
   - docs/pr10_refinement_audit.md classifies every current post-PR10 residual and current PR10/post-PR10 claim surface using the required finding schema and allowed dispositions.
   - docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json.
 - **Evidence:**
-  - `execution/reports/pr101a-companion-proof-verification-report.json`
-  - `execution/reports/pr101b-template-proof-verification-report.json`
+  - `execution/archive/pr101a_companion_proof_verification/report.json`
+  - `execution/archive/pr101b_template_proof_verification/report.json`
   - `execution/reports/pr101-comprehensive-audit-report.json`
 
 ### PR10.2 — Rule 5 proof-boundary closure and loop-termination diagnostics
@@ -699,7 +699,7 @@
 
 ### PR11.6.1 — Attestation Chain Compression
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR11.6
 - **Blockers:** none
 - **Acceptance:**
@@ -708,9 +708,11 @@
   - Compression archives each retired report to execution/archive/<gate_id>/ with provenance.json containing report_sha256, Merkle inclusion proof, subsumed_by, and timestamp.
   - The gate manifest is rewritten with retired nodes removed and live-node dependencies rewired to the subsumer.
   - A compaction receipt in execution/compaction-receipts/ binds pre-compaction and post-compaction Merkle roots, retired gate inclusion proofs, and git commit SHAs.
-  - The compressed pipeline (27 nodes) passes verify --authority ci with no regressions.
+  - The compressed pipeline (37 nodes) passes verify --authority ci with no regressions.
   - Replay: checking out the pre-compaction commit and recomputing the Merkle root reproduces the receipt's pre_merkle_root; each archived report's inclusion proof verifies against that root.
   - Gate scripts for retired nodes remain on disk for replay but are not executed in the active pipeline.
+- **Evidence:**
+  - `execution/compaction-receipts/pr1161-attestation-chain-compression.json`
 
 ### PR11.6.2 — Legacy Ada Syntax Removal
 

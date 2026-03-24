@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
 
     verify = subparsers.add_parser("verify-receipt", help="verify archive proofs and the compaction receipt")
     verify.add_argument("--repo-root", type=Path, default=REPO_ROOT)
+    verify.add_argument("--pre-compaction-root", type=Path)
     verify.add_argument("--receipt", type=Path)
 
     return parser.parse_args()
@@ -164,15 +165,23 @@ def finalize_receipt(
     return 0
 
 
-def verify_receipt(*, receipt_path: Path, repo_root: Path) -> int:
+def verify_receipt(*, receipt_path: Path, repo_root: Path, pre_compaction_root: Path | None = None) -> int:
     require(receipt_path.exists(), f"missing receipt {display_path(receipt_path, repo_root=repo_root)}")
     payload = json.loads(receipt_path.read_text(encoding="utf-8"))
     require(payload["task_id"] == "PR11.6.1", "receipt task_id must be PR11.6.1")
     require(payload["retired_node_ids"] == list(RETIRED_NODE_IDS), "receipt retired_node_ids drifted")
     pre_root = payload["pre_merkle_root"]
     post_root = payload["post_merkle_root"]
+    if pre_compaction_root is not None:
+        require(
+            merkle_root(retired_entries(repo_root=pre_compaction_root)) == pre_root,
+            "receipt pre_merkle_root does not match the supplied pre-compaction checkout",
+        )
     for spec in RETIRED_NODE_SPECS:
-        report_bytes = spec.archive_report_path_at(repo_root).read_bytes()
+        archived_report_bytes = spec.archive_report_path_at(repo_root).read_bytes()
+        report_bytes = archived_report_bytes
+        if pre_compaction_root is not None:
+            report_bytes = spec.original_report_path_at(pre_compaction_root).read_bytes()
         provenance = json.loads(spec.archive_provenance_path_at(repo_root).read_text(encoding="utf-8"))
         require(
             verify_inclusion_proof(
@@ -214,7 +223,11 @@ def main() -> int:
         )
     if args.command == "verify-receipt":
         receipt_path = args.receipt or (args.repo_root / RECEIPT_PATH.relative_to(REPO_ROOT))
-        return verify_receipt(receipt_path=receipt_path, repo_root=args.repo_root)
+        return verify_receipt(
+            receipt_path=receipt_path,
+            repo_root=args.repo_root,
+            pre_compaction_root=args.pre_compaction_root,
+        )
     raise RuntimeError(f"unknown command {args.command}")
 
 

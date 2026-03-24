@@ -11,7 +11,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_NODE_IDS
+from _lib.attestation_compression import RECEIPT_PATH, RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_NODE_IDS
 from _lib.gate_manifest import NODES, resolve_branch, validate_manifest
 
 
@@ -53,6 +53,7 @@ class GateManifestTests(unittest.TestCase):
         }
         manifest_reports = {node.report_path for node in NODES if node.report_path is not None}
         manifest_reports.update(RETIRED_ARCHIVE_REPORT_PATHS.values())
+        manifest_reports.add(RECEIPT_PATH)
         self.assertEqual(set(), tracker_reports - manifest_reports)
 
     def test_branch_resolution_pr10(self) -> None:

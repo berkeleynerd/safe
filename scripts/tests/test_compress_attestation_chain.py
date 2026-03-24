@@ -64,7 +64,8 @@ class CompressAttestationChainTests(unittest.TestCase):
 
     def test_apply_archive_moves_reports_and_writes_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            repo_root = Path(temp_dir)
+            repo_root = Path(temp_dir) / "repo"
+            repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
             env = ensure_deterministic_env(os.environ.copy())
 
@@ -91,7 +92,9 @@ class CompressAttestationChainTests(unittest.TestCase):
 
     def test_finalize_and_verify_receipt_supports_alternate_repo_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            repo_root = Path(temp_dir)
+            workspace_root = Path(temp_dir)
+            repo_root = workspace_root / "repo"
+            repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
             env = ensure_deterministic_env(os.environ.copy())
 
@@ -121,15 +124,19 @@ class CompressAttestationChainTests(unittest.TestCase):
             self.assertEqual(payload["post_compaction_commit"], post_commit)
             self.assertEqual(len(payload["retired_nodes"]), len(RETIRED_NODE_SPECS))
 
+            replay_root = workspace_root / "pre-compaction-checkout"
+            self.git(repo_root, "worktree", "add", str(replay_root), pre_commit)
             verify_result = compress_attestation_chain.verify_receipt(
                 receipt_path=receipt_path,
                 repo_root=repo_root,
+                pre_compaction_root=replay_root,
             )
             self.assertEqual(verify_result, 0)
 
     def test_verify_receipt_rejects_tampered_post_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            repo_root = Path(temp_dir)
+            repo_root = Path(temp_dir) / "repo"
+            repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
             env = ensure_deterministic_env(os.environ.copy())
 
