@@ -4,7 +4,9 @@
       "tests/negative/neg_pr116_tab_indent.safe",
       "tests/negative/neg_pr116_bad_indent_step.safe",
       "tests/negative/neg_pr116_legacy_end_if.safe",
-      "tests/negative/neg_pr116_legacy_begin.safe"
+      "tests/negative/neg_pr116_legacy_begin.safe",
+      "tests/negative/neg_pr116_declare_missing_begin.safe",
+      "tests/negative/neg_pr116_mixed_named_end.safe"
     ],
     "positive_fixtures": [
       "tests/positive/pr116_bare_return.safe",
@@ -125,6 +127,42 @@
         "reason": "source_frontend_error"
       },
       "source": "tests/negative/neg_pr116_legacy_begin.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_pr116_declare_missing_begin.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1
+      },
+      "first_diagnostic": {
+        "message": "expected `begin`",
+        "path": "tests/negative/neg_pr116_declare_missing_begin.safe",
+        "reason": "source_frontend_error"
+      },
+      "source": "tests/negative/neg_pr116_declare_missing_begin.safe"
+    },
+    {
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "--diag-json",
+          "tests/negative/neg_pr116_mixed_named_end.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 1
+      },
+      "first_diagnostic": {
+        "message": "legacy block delimiter `end` is not allowed in package items; covered blocks are closed by indentation",
+        "path": "tests/negative/neg_pr116_mixed_named_end.safe",
+        "reason": "source_frontend_error"
+      },
+      "source": "tests/negative/neg_pr116_mixed_named_end.safe"
     }
   ],
   "positive_fixtures": [
@@ -552,8 +590,8 @@
       }
     }
   ],
-  "repeat_sha256": "b4c95c0a838744b53f7364e2132dcb7ed8727d0ca39cf16dd1370d87a66c5ded",
-  "report_sha256": "b4c95c0a838744b53f7364e2132dcb7ed8727d0ca39cf16dd1370d87a66c5ded",
+  "repeat_sha256": "e4bc31a4e3a806cdd06212579aae13fea5f4551fe39ec7c73d563f4cec606407",
+  "report_sha256": "e4bc31a4e3a806cdd06212579aae13fea5f4551fe39ec7c73d563f4cec606407",
   "rosetta_readability_samples": [
     {
       "ada_snippets": [],

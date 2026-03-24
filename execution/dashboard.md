@@ -9,11 +9,11 @@
 ## Repo Facts
 
 - `tests/positive`: 65
-- `tests/negative`: 119
+- `tests/negative`: 121
 - `tests/golden`: 3
 - `tests/concurrency`: 14
 - `tests/diagnostics_golden`: 22
-- **Total test corpus entries:** 223
+- **Total test corpus entries:** 225
 
 ## Task Ledger
 

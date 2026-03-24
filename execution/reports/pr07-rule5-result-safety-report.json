@@ -366,14 +366,14 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"$TMPDIR/result_wrong_boolean_flag.safe\",\"span\":{\"start_line\":19,\"start_col\":17,\"end_line\":19,\"end_col\":23},\"highlight_span\":{\"start_line\":19,\"start_col\":17,\"end_line\":19,\"end_col\":23},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"$TMPDIR/result_wrong_boolean_flag.safe\",\"span\":{\"start_line\":17,\"start_col\":17,\"end_line\":17,\"end_col\":23},\"highlight_span\":{\"start_line\":17,\"start_col\":17,\"end_line\":17,\"end_col\":23},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
       },
       "diagnostic": {
         "highlight_span": {
           "end_col": 23,
-          "end_line": 19,
+          "end_line": 17,
           "start_col": 17,
-          "start_line": 19
+          "start_line": 17
         },
         "message": "access to variant field 'Value' requires established discriminant 'OK'",
         "notes": [
@@ -383,9 +383,9 @@
         "reason": "discriminant_check_not_established",
         "span": {
           "end_col": 23,
-          "end_line": 19,
+          "end_line": 17,
           "start_col": 17,
-          "start_line": 19
+          "start_line": 17
         },
         "suggestions": []
       },
@@ -473,14 +473,14 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"$TMPDIR/result_partial_guard_join.safe\",\"span\":{\"start_line\":31,\"start_col\":14,\"end_line\":31,\"end_col\":20},\"highlight_span\":{\"start_line\":31,\"start_col\":14,\"end_line\":31,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"$TMPDIR/result_partial_guard_join.safe\",\"span\":{\"start_line\":26,\"start_col\":14,\"end_line\":26,\"end_col\":20},\"highlight_span\":{\"start_line\":26,\"start_col\":14,\"end_line\":26,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
       },
       "diagnostic": {
         "highlight_span": {
           "end_col": 20,
-          "end_line": 31,
+          "end_line": 26,
           "start_col": 14,
-          "start_line": 31
+          "start_line": 26
         },
         "message": "access to variant field 'Value' requires established discriminant 'OK'",
         "notes": [
@@ -490,9 +490,9 @@
         "reason": "discriminant_check_not_established",
         "span": {
           "end_col": 20,
-          "end_line": 31,
+          "end_line": 26,
           "start_col": 14,
-          "start_line": 31
+          "start_line": 26
         },
         "suggestions": []
       },
@@ -700,8 +700,8 @@
       "source": "tests/negative/neg_result_mutated.safe"
     }
   ],
-  "repeat_sha256": "ff37d886a91ca0d4c646831cbec5232502460020193118c8b53a9cbae42ef0e7",
-  "report_sha256": "ff37d886a91ca0d4c646831cbec5232502460020193118c8b53a9cbae42ef0e7",
+  "repeat_sha256": "8615526a2ca761676a4e5ded908926aa6a5f1699ef115c67837bd9bc205e48ae",
+  "report_sha256": "8615526a2ca761676a4e5ded908926aa6a5f1699ef115c67837bd9bc205e48ae",
   "source_corpus": {
     "negatives": [
       {

@@ -46,6 +46,8 @@ class Pr116MeaningfulWhitespaceTests(unittest.TestCase):
                 "neg_pr116_bad_indent_step.safe",
                 "neg_pr116_legacy_end_if.safe",
                 "neg_pr116_legacy_begin.safe",
+                "neg_pr116_declare_missing_begin.safe",
+                "neg_pr116_mixed_named_end.safe",
             },
         )
         self.assertEqual(

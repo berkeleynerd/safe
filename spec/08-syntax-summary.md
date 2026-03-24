@@ -201,13 +201,17 @@ discriminant_specification ::=
     defining_identifier_list ':' subtype_mark [ '=' default_expression ]
 
 variant_part ::=
-    'case' discriminant_direct_name 'is'
+    'case' discriminant_direct_name
+        indented_variant_list
+
+indented_variant_list ::=
+    INDENT
         variant { variant }
-    'end' 'case' ';'
+    DEDENT
 
 variant ::=
-    'when' discrete_choice_list 'then'
-        component_list
+    'when' discrete_choice_list
+        indented_component_list
 
 discrete_choice_list ::=
     discrete_choice { '|' discrete_choice }
@@ -611,7 +615,7 @@ subprogram_declaration ::=
     [ 'public' ] function_specification ';'
 
 subprogram_body ::=
-    [ 'public' ] function_specification
+    [ 'public' ] subprogram_specification
         indented_subprogram_body
 
 indented_subprogram_body ::=

@@ -1,0 +1,5 @@
+package Neg_PR116_Mixed_Named_End
+
+   function Broken returns Integer
+      return 1
+   end Broken

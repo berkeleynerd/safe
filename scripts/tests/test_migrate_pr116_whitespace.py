@@ -172,6 +172,24 @@ class MigratePr116WhitespaceTests(unittest.TestCase):
         self.assertEqual(rewritten, original)
         self.assertIn("   type Count is range 0 to 10;\n", rewritten)
 
+    def test_rewrite_safe_source_collapses_blank_lines_after_removing_closers(self) -> None:
+        original = (
+            "package Demo is\n"
+            "\n"
+            "   function Build returns Integer is\n"
+            "   begin\n"
+            "      if True then\n"
+            "         return 1;\n"
+            "      end if;\n"
+            "\n"
+            "      return 0;\n"
+            "   end Build;\n"
+            "end Demo;\n"
+        )
+        rewritten = migrate_pr116_whitespace.rewrite_safe_source(original)
+        self.assertNotIn("\n\n\n", rewritten)
+        self.assertIn("      return 1;\n\n      return 0;\n", rewritten)
+
 
 if __name__ == "__main__":
     unittest.main()

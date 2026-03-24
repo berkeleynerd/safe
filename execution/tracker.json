@@ -7,11 +7,11 @@
   "repo_facts": {
     "tests": {
       "positive": 65,
-      "negative": 119,
+      "negative": 121,
       "golden": 3,
       "concurrency": 14,
       "diagnostics_golden": 22,
-      "total": 223
+      "total": 225
     }
   },
   "tasks": [

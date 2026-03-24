@@ -222,7 +222,7 @@ def rewrite_safe_source(text: str) -> str:
             block_stack.append(opened)
         rewritten.append(updated + comment + newline)
 
-    return "".join(collapse_else_if_lines(rewritten))
+    return "".join(collapse_blank_line_runs(collapse_else_if_lines(rewritten)))
 
 
 def collapse_else_if_lines(lines: list[str]) -> list[str]:
@@ -248,6 +248,21 @@ def collapse_else_if_lines(lines: list[str]) -> list[str]:
 
         collapsed.append(lines[index])
         index += 1
+
+    return collapsed
+
+
+def collapse_blank_line_runs(lines: list[str]) -> list[str]:
+    collapsed: list[str] = []
+    previous_blank = False
+
+    for line in lines:
+        body, _newline = strip_newline(line)
+        is_blank = body.strip() == ""
+        if is_blank and previous_blank:
+            continue
+        collapsed.append(line)
+        previous_blank = is_blank
 
     return collapsed
 

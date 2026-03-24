@@ -137,6 +137,16 @@ PR116_NEGATIVE_CASES: tuple[dict[str, Any], ...] = (
         "reason": "source_frontend_error",
         "message": "legacy block delimiter `begin` is not allowed",
     },
+    {
+        "source": REPO_ROOT / "tests" / "negative" / "neg_pr116_declare_missing_begin.safe",
+        "reason": "source_frontend_error",
+        "message": "expected `begin`",
+    },
+    {
+        "source": REPO_ROOT / "tests" / "negative" / "neg_pr116_mixed_named_end.safe",
+        "reason": "source_frontend_error",
+        "message": "legacy block delimiter `end` is not allowed in package items",
+    },
 )
 
 PR116_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (

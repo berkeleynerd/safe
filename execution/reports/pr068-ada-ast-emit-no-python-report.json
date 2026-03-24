@@ -282,9 +282,9 @@
           "scope_id": "scope0",
           "span": {
             "end_col": 53,
-            "end_line": 8,
+            "end_line": 7,
             "start_col": 4,
-            "start_line": 8
+            "start_line": 7
           },
           "type": {
             "access_role": "Owner",
@@ -307,9 +307,9 @@
           "scope_id": "scope0",
           "span": {
             "end_col": 53,
-            "end_line": 10,
+            "end_line": 9,
             "start_col": 26,
-            "start_line": 10
+            "start_line": 9
           },
           "type": {
             "access_role": "Observe",
@@ -329,9 +329,9 @@
                 "name": "Owner",
                 "span": {
                   "end_col": 31,
-                  "end_line": 17,
+                  "end_line": 15,
                   "start_col": 27,
-                  "start_line": 17
+                  "start_line": 15
                 },
                 "tag": "ident",
                 "type": "Config_Ptr"
@@ -339,9 +339,9 @@
               "selector": "Access",
               "span": {
                 "end_col": 38,
-                "end_line": 17,
+                "end_line": 15,
                 "start_col": 27,
-                "start_line": 17
+                "start_line": 15
               },
               "tag": "select",
               "type": "Integer"
@@ -349,26 +349,26 @@
           ],
           "call_span": {
             "end_col": 39,
-            "end_line": 17,
+            "end_line": 15,
             "start_col": 26,
-            "start_line": 17
+            "start_line": 15
           },
           "callee": {
             "name": "Read_Config",
             "span": {
               "end_col": 24,
-              "end_line": 17,
+              "end_line": 15,
               "start_col": 14,
-              "start_line": 17
+              "start_line": 15
             },
             "tag": "ident",
             "type": "Integer"
           },
           "span": {
             "end_col": 39,
-            "end_line": 17,
+            "end_line": 15,
             "start_col": 14,
-            "start_line": 17
+            "start_line": 15
           },
           "tag": "call",
           "type": "Integer"
@@ -522,9 +522,9 @@
           "scope_id": "scope0",
           "span": {
             "end_col": 44,
-            "end_line": 7,
+            "end_line": 6,
             "start_col": 4,
-            "start_line": 7
+            "start_line": 6
           },
           "type": {
             "fields": {
@@ -582,9 +582,9 @@
             "name": "Current",
             "span": {
               "end_col": 20,
-              "end_line": 11,
+              "end_line": 10,
               "start_col": 14,
-              "start_line": 11
+              "start_line": 10
             },
             "tag": "ident",
             "type": "Config"
@@ -592,9 +592,9 @@
           "selector": "Rate",
           "span": {
             "end_col": 25,
-            "end_line": 11,
+            "end_line": 10,
             "start_col": 14,
-            "start_line": 11
+            "start_line": 10
           },
           "tag": "select",
           "type": "Natural"
@@ -821,8 +821,8 @@
       "python3.11": "$TMPDIR/python-mask/python3.11"
     }
   },
-  "repeat_sha256": "8fdfdd238cf5765639b3c1f9ce5fe22bc041ed3b34dab262aeade47052f314b6",
-  "report_sha256": "8fdfdd238cf5765639b3c1f9ce5fe22bc041ed3b34dab262aeade47052f314b6",
+  "repeat_sha256": "5a365e0e951c6d47fd542665c618efac27d00167e2c853bdfbb027d77858a1df",
+  "report_sha256": "5a365e0e951c6d47fd542665c618efac27d00167e2c853bdfbb027d77858a1df",
   "runtime_rule": {
     "banned_tokens_absent": [
       "Run_Backend",

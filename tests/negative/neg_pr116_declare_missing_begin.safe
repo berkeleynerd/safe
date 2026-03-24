@@ -1,0 +1,7 @@
+package Neg_PR116_Declare_Missing_Begin
+
+   function Broken returns Integer
+
+      declare
+         Temp : Integer = 1;
+      return Temp
