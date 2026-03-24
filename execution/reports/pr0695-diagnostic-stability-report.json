@@ -370,7 +370,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_result_unguarded.safe:34:14: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 34 |       return R.Value;  -- REJECTED: R.OK not established\n  |    |              ^~~~~~~\n  |\n  note: the discriminant 'OK' was not established on all paths before this access.\n",
+          "stderr": "neg_result_unguarded.safe:36:14: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 36 |       return R.Value;  -- REJECTED: R.OK not established\n  |    |              ^~~~~~~\n  |\n  note: the discriminant 'OK' was not established on all paths before this access.\n",
           "stdout": ""
         },
         "golden": "tests/diagnostics_golden/diag_result_unguarded.txt",
@@ -385,7 +385,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_result_mutated.safe:39:17: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 39 |          return R.Value;          -- REJECTED: R.OK no longer established\n  |    |                 ^~~~~~~\n  |\n  note: the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\n",
+          "stderr": "neg_result_mutated.safe:41:17: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 41 |          return R.Value;          -- REJECTED: R.OK no longer established\n  |    |                 ^~~~~~~\n  |\n  note: the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\n",
           "stdout": ""
         },
         "golden": "tests/diagnostics_golden/diag_result_mutated.txt",
@@ -460,7 +460,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot derive a supported Loop_Variant from this while condition\n  |\n  | 16 |       while Value < Goal loop\n  |    |             ^~~~~~~~~~~~\n  |\n  note: supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions.\n  note: rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant.\n",
+          "stderr": "neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot derive a supported Loop_Variant from this while condition\n  |\n  | 16 |       while Value < Goal\n  |    |             ^~~~~~~~~~~~\n  |\n  note: supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions.\n  note: rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant.\n",
           "stdout": ""
         },
         "golden": "tests/diagnostics_golden/diag_loop_variant_not_derivable.txt",
@@ -1694,22 +1694,20 @@
             "cwd": "$REPO_ROOT",
             "returncode": 1,
             "stderr": "",
-            "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"package end name must match declared package name\",\"path\":\"$TMPDIR/package_end_mismatch.safe\",\"span\":{\"start_line\":2,\"start_col\":1,\"end_line\":2,\"end_col\":18},\"highlight_span\":null,\"notes\":[\"declared `Package_End_Mismatch`, found `Different_Name`\"],\"suggestions\":[]}]}\n"
+            "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation\",\"path\":\"$TMPDIR/package_end_mismatch.safe\",\"span\":{\"start_line\":2,\"start_col\":4,\"end_line\":2,\"end_col\":8},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
           },
           "diagnostics": {
             "diagnostics": [
               {
                 "highlight_span": null,
-                "message": "package end name must match declared package name",
-                "notes": [
-                  "declared `Package_End_Mismatch`, found `Different_Name`"
-                ],
+                "message": "legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation",
+                "notes": [],
                 "path": "$TMPDIR/package_end_mismatch.safe",
                 "reason": "source_frontend_error",
                 "span": {
-                  "end_col": 18,
+                  "end_col": 8,
                   "end_line": 2,
-                  "start_col": 1,
+                  "start_col": 4,
                   "start_line": 2
                 },
                 "suggestions": []
@@ -1725,7 +1723,7 @@
             ],
             "cwd": "$REPO_ROOT",
             "returncode": 1,
-            "stderr": "package_end_mismatch.safe:2:1: error: package end name must match declared package name\n  |\n  | 2 | end Different_Name;\n  |   | ^~~~~~~~~~~~~~~~~~\n  |\n  note: declared `Package_End_Mismatch`, found `Different_Name`\n",
+            "stderr": "package_end_mismatch.safe:2:4: error: legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation\n  |\n  | 2 |    begin\n  |   |    ^~~~~\n  |\n",
             "stdout": ""
           },
           "source": "$TMPDIR/package_end_mismatch.safe"
@@ -1953,8 +1951,8 @@
       "oversized_integer_literal.safe"
     ]
   },
-  "repeat_sha256": "9c6c28c2d3c43917f0875d470f922318e8a9fc408903c22b3f0c160320b88861",
-  "report_sha256": "9c6c28c2d3c43917f0875d470f922318e8a9fc408903c22b3f0c160320b88861",
+  "repeat_sha256": "59204e1248c2382721ff3bde4f3d2c46d835d2d8e8d725b9ebc148aa32a5bbde",
+  "report_sha256": "59204e1248c2382721ff3bde4f3d2c46d835d2d8e8d725b9ebc148aa32a5bbde",
   "status": "ok",
   "task": "PR06.9.5"
 }

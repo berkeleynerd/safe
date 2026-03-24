@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR11.6`
+- **Next task:** `PR11.7`
 - **Updated at:** `2026-03-24T00:00:00Z`
 
 ## Repo Facts
 
 - `tests/positive`: 64
-- `tests/negative`: 115
+- `tests/negative`: 119
 - `tests/golden`: 3
 - `tests/concurrency`: 14
 - `tests/diagnostics_golden`: 22
-- **Total test corpus entries:** 218
+- **Total test corpus entries:** 222
 
 ## Task Ledger
 
@@ -64,7 +64,7 @@
 | PR11.3a | done | PR11.3 | 1 |
 | PR11.4 | done | PR11.3a | 1 |
 | PR11.5 | done | PR11.4 | 1 |
-| PR11.6 | planned | PR11.5 | 0 |
+| PR11.6 | done | PR11.5 | 1 |
 | PR11.7 | planned | PR11.6 | 0 |
 | PR11.8 | planned | PR11.7 | 0 |
 | PR11.8a | planned | PR11.8, PR11.3a | 0 |
@@ -683,15 +683,17 @@
 - **Evidence:**
   - `execution/reports/pr115-statement-ergonomics-report.json`
 
-### PR11.6 — Alternate Block Syntax Modes
+### PR11.6 — Meaningful Whitespace Blocks
 
-- **Status:** `planned`
+- **Status:** `done`
 - **Depends on:** PR11.5
 - **Blockers:** none
 - **Acceptance:**
-  - `pragma Strict` and whitespace-significant blocks are evaluated as alternate block-structuring modes with explicit mode-selection rules and no accidental mixed-syntax acceptance.
-  - A deterministic corpus demonstrates that the accepted block-mode surface remains readable, parseable, and mechanically migratable.
-  - Rosetta-side evaluation yields an explicit admit/defer decision for each candidate block-syntax mode.
+  - Meaningful whitespace is the admitted block-structuring surface for covered constructs, and legacy explicit block-closing syntax for those constructs is rejected.
+  - The compiler enforces deterministic indentation rules: spaces only, fixed 3-space indentation steps, no accidental mixed-syntax acceptance, and stable structural parsing via indentation tokens.
+  - A mechanical migration path and deterministic corpus evidence exist for the shipped whitespace surface, while `declare` blocks and `declare_expression` remain explicit in this milestone.
+- **Evidence:**
+  - `execution/reports/pr116-meaningful-whitespace-report.json`
 
 ### PR11.7 — Reference-Surface Experiments
 

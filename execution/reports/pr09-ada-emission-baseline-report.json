@@ -6,8 +6,8 @@
     "frontend_baseline": "docs/frontend_architecture_baseline.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "fd36b67552c14a4cea1496309e0ebbb0e73747dfd3e9c35a8713c15b4c25514f",
-  "report_sha256": "fd36b67552c14a4cea1496309e0ebbb0e73747dfd3e9c35a8713c15b4c25514f",
+  "repeat_sha256": "b5fc76e0cab4cc74401af16a16f179cca04f1a208eb1f5b89de1fbc473f14023",
+  "report_sha256": "b5fc76e0cab4cc74401af16a16f179cca04f1a208eb1f5b89de1fbc473f14023",
   "retired_snapshots_absent": [
     "tests/golden/golden_sensors.ada",
     "tests/golden/golden_ownership.ada",
@@ -16,25 +16,25 @@
   "slice_reports": [
     {
       "deterministic": true,
-      "report_sha256": "0aabacdef155312756997977cd2ff98c5c6637404ab19d528a4138c34e4b8c5d",
+      "report_sha256": "310975a1124d7751659e5348056752fafd57b4cbdef79b50b3a7a3c451344b12",
       "script": "scripts/run_pr09a_emitter_surface.py",
       "stdout": "pr09a emitter surface: OK ($TMPDIR/run_pr09a_emitter_surface.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "86eab2f8fd0069689169920eb352fce31c14a87637dfe402db63fd425651508f",
+      "report_sha256": "fabf289ad8a3dcb7471df93f1f114e958fe95bf0bfa66cdad462be68d76295d8",
       "script": "scripts/run_pr09a_emitter_mvp.py",
       "stdout": "pr09a emitter MVP: OK ($TMPDIR/run_pr09a_emitter_mvp.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "06bfd91a14d815f9da942fcbc829ef948b696d0a72a2fa6a0807747ec6b85a4b",
+      "report_sha256": "4e2573f45d6b4bb5ad641dd7f6f310fb28b8760b3176353ee396498e2403281f",
       "script": "scripts/run_pr09b_sequential_semantics.py",
       "stdout": "pr09b sequential semantics: OK ($TMPDIR/run_pr09b_sequential_semantics.json)\n"
     },
     {
       "deterministic": true,
-      "report_sha256": "2312ec622b22c57412336d6fd1965290522af37e02fba7ec27d65accbaffed14",
+      "report_sha256": "59187abd029031bceb0d30770d37376d453e3f2b9ab620d400d663a921efb64f",
       "script": "scripts/run_pr09b_concurrency_output.py",
       "stdout": "pr09b concurrency output: OK ($TMPDIR/run_pr09b_concurrency_output.json)\n"
     },
@@ -46,7 +46,7 @@
     }
   ],
   "tracker": {
-    "next_task_id": "PR11.6",
+    "next_task_id": "PR11.7",
     "pr09_evidence": [
       "execution/reports/pr09a-emitter-surface-report.json",
       "execution/reports/pr09a-emitter-mvp-report.json",

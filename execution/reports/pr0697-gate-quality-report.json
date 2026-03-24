@@ -266,8 +266,8 @@
       }
     }
   ],
-  "repeat_sha256": "ab8bc9abe8972a9e9403b28cf4af51035dfec0aae59562695a549d263a6929c7",
-  "report_sha256": "ab8bc9abe8972a9e9403b28cf4af51035dfec0aae59562695a549d263a6929c7",
+  "repeat_sha256": "354a0a08254c40a830319e0275b91e70049e983ec5ceabc715dac765812eb35c",
+  "report_sha256": "354a0a08254c40a830319e0275b91e70049e983ec5ceabc715dac765812eb35c",
   "status": "ok",
   "task": "PR06.9.7",
   "unit_tests": {
@@ -280,6 +280,7 @@
       "scripts.tests.test_harness_common",
       "scripts.tests.test_migrate_pr114_syntax",
       "scripts.tests.test_migrate_pr115_syntax",
+      "scripts.tests.test_migrate_pr116_whitespace",
       "scripts.tests.test_pr06912_performance_scale_sanity",
       "scripts.tests.test_pr0694_output_contract_stability",
       "scripts.tests.test_pr0697_gate_quality",
@@ -294,6 +295,7 @@
       "scripts.tests.test_pr113a_proof_checkpoint1",
       "scripts.tests.test_pr114_signature_control_flow_syntax",
       "scripts.tests.test_pr115_statement_ergonomics",
+      "scripts.tests.test_pr116_meaningful_whitespace",
       "scripts.tests.test_proof_report",
       "scripts.tests.test_render_execution_status",
       "scripts.tests.test_run_frontend_smoke",
@@ -309,6 +311,7 @@
       "scripts.tests.test_harness_common",
       "scripts.tests.test_migrate_pr114_syntax",
       "scripts.tests.test_migrate_pr115_syntax",
+      "scripts.tests.test_migrate_pr116_whitespace",
       "scripts.tests.test_pr06912_performance_scale_sanity",
       "scripts.tests.test_pr0694_output_contract_stability",
       "scripts.tests.test_pr0697_gate_quality",
@@ -323,6 +326,7 @@
       "scripts.tests.test_pr113a_proof_checkpoint1",
       "scripts.tests.test_pr114_signature_control_flow_syntax",
       "scripts.tests.test_pr115_statement_ergonomics",
+      "scripts.tests.test_pr116_meaningful_whitespace",
       "scripts.tests.test_proof_report",
       "scripts.tests.test_render_execution_status",
       "scripts.tests.test_run_frontend_smoke",
@@ -331,9 +335,9 @@
       "scripts.tests.test_validate_execution_state",
       "scripts.tests.test_validate_output_contracts"
     ],
-    "observed_count": 303,
+    "observed_count": 313,
     "returncode": 0,
-    "stderr": "...............................................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 303 tests in <elapsed>\n\nOK\n",
+    "stderr": ".........................................................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 313 tests in <elapsed>\n\nOK\n",
     "stdout": "[gate-pipeline] total wall time: 0.0s\n"
   },
   "valid_output_contracts": [

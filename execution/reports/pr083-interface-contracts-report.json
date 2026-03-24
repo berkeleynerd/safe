@@ -708,8 +708,8 @@
           "cwd": "$REPO_ROOT",
           "returncode": 0,
           "stderr": "",
-          "stdout": "<2892 chars>",
-          "stdout_sha256": "ce694403e62a5d1a0bcd78e6af1e6573fb0978156e8ce3a92a5c84d806b2e39e"
+          "stdout": "<2887 chars>",
+          "stdout_sha256": "2a4d35ebccbae89774c911451f2a3b87eee66379dbc5e56856dc8062188a5469"
         },
         "check": {
           "command": [
@@ -748,10 +748,10 @@
           "typed": "out/client_channel.typed.json"
         },
         "hashes": {
-          "ast": "ce694403e62a5d1a0bcd78e6af1e6573fb0978156e8ce3a92a5c84d806b2e39e",
-          "mir": "ff348b63b3867a1807184bb31fffdba36b889f44552ed82539d63ce5b8e4f018",
-          "safei": "cdf089f5c6c54dea00bdd4b1d2688660816a19fc9a7cfd8e8378e27a23a28a14",
-          "typed": "02c672878831993c1c1e5e7a9e4d4d5fcdd0edf714980302201ac2d5d20ec9dc"
+          "ast": "2a4d35ebccbae89774c911451f2a3b87eee66379dbc5e56856dc8062188a5469",
+          "mir": "725a2a00d0236749fddfb05233bde4b90aedbf802a1ce9f5585ca2e051e4e1b3",
+          "safei": "75d11437b3f0df81dd4fe8d8b345947fc2e700e802de8083baa09fde6afb1599",
+          "typed": "6cc18c32e6fad7a43e9775ff399f67d2f910c9b42f6216edd54f59eb309e2166"
         },
         "mir_summary": {
           "graph_names": [
@@ -863,10 +863,10 @@
           "typed": "out/provider_channel.typed.json"
         },
         "hashes": {
-          "ast": "9b1926f8b58e9c290ae00f88e7c2028b9f5d2dcb28efcabf86cef40a37ec59b6",
+          "ast": "991f53e5184d43554b59453c1c8c7c70d1c081c94b349337927246ef7b952629",
           "mir": "7f4ab0b86e5e5ccfa3695279cd59172781478002b94f080d2d134aad52a3bba6",
           "safei": "902e2de5bde709d4360dc7df6db2a526b066396f1f58d8de8c4760c3ab3aaab2",
-          "typed": "94fcfabf60d36796487e76ea9ced28db8ab33579d39a6406d6463e4aefc1d63b"
+          "typed": "3174d191d2e9c4c49c0380c6c3bf5f9e187d4e4a85a676667b6da850cf808d39"
         },
         "mir_summary": {
           "graph_names": [],
@@ -957,7 +957,7 @@
           "returncode": 0,
           "stderr": "",
           "stdout": "<2411 chars>",
-          "stdout_sha256": "94d02bd9c433f57ac1b3ff5181ad171836003f10995e3e7644c72df35429c5fb"
+          "stdout_sha256": "097cce5ee1998e96f0a3a4b95b4058b120ca5430d5b5e71d2a4b33e62233ec8d"
         },
         "check": {
           "command": [
@@ -996,10 +996,10 @@
           "typed": "out/client_object.typed.json"
         },
         "hashes": {
-          "ast": "94d02bd9c433f57ac1b3ff5181ad171836003f10995e3e7644c72df35429c5fb",
+          "ast": "097cce5ee1998e96f0a3a4b95b4058b120ca5430d5b5e71d2a4b33e62233ec8d",
           "mir": "7d3d0ab1ecb7b24bef03c45af9c1b826ebd78625e23e84e7bea7e3cefa8c92f2",
           "safei": "01623f7283e8ec5e2ee038b6b5d3d4b69e25d35334ec3d6fb5f4bbf5618c6a6a",
-          "typed": "624a911b9f3186cbe8ad6630d90c6aebd2ee8e27bd13ca590978a790eadfb0a2"
+          "typed": "1126220e3ee88f5dc44998ee65341fa660bc354f4f4723f1950398ff13279f89"
         },
         "mir_summary": {
           "graph_names": [],
@@ -1094,10 +1094,10 @@
           "typed": "out/provider_object.typed.json"
         },
         "hashes": {
-          "ast": "618894a325938bfc8ae7cc57dd807dcb09c7544c5c5722f5cff7fb2ae9d31366",
+          "ast": "7e6da58cb3f91ff6f2ae1d5338bb506a30dfc98c2200f6f67c4fb5eed8d1e2f3",
           "mir": "7bc90bc5803b59f91b3c75fbcaf3247a9810580811f8ac1de115a3fa2c911173",
           "safei": "750442df7b2e4772a3951ed9d057e8252b904ef836a29874159480ea1c295d8f",
-          "typed": "3ed99e7aefbd14484482ebbca5d7b86eaacbbadb5706203c9a2237c7fe1477a4"
+          "typed": "7cc1895d2f5e0b53090c0f959c7901ac07ff9678350067f991b60ef552e66b8e"
         },
         "mir_summary": {
           "graph_names": [],
@@ -1188,8 +1188,8 @@
           "cwd": "$REPO_ROOT",
           "returncode": 0,
           "stderr": "",
-          "stdout": "<7939 chars>",
-          "stdout_sha256": "b72fe89c16267b36ebfb865d4d6ddfe355f0246df9335f599573d9b3e148ad59"
+          "stdout": "<7937 chars>",
+          "stdout_sha256": "87c83715d2229b5eb93fcf8eb5ffd602bba469d0bf4000705921326ec153de5e"
         },
         "check": {
           "command": [
@@ -1228,10 +1228,10 @@
           "typed": "out/client_types.typed.json"
         },
         "hashes": {
-          "ast": "b72fe89c16267b36ebfb865d4d6ddfe355f0246df9335f599573d9b3e148ad59",
-          "mir": "a020098355e5f8ef513421d1fe4fe44f134639c5b2bcb72ce5644b7820135576",
+          "ast": "87c83715d2229b5eb93fcf8eb5ffd602bba469d0bf4000705921326ec153de5e",
+          "mir": "c62f229b55e82fd456963b8129e8435b35f3df37e7902256a3e1a76520020183",
           "safei": "30433b954cc0b36dca1f66628199d77ad2e2a1ffd90de2a32322b27922f63d21",
-          "typed": "bcfd9c1997cb91835f3421fe957a7081a2bbb9175e67419ad726d3e06d52682f"
+          "typed": "fadb7a165ca6709b5fd34a4fa199795e685d4c3bf4e8cd8a3d43547d716edd60"
         },
         "mir_summary": {
           "graph_names": [],
@@ -1332,10 +1332,10 @@
           "typed": "out/provider_types.typed.json"
         },
         "hashes": {
-          "ast": "570b20ff5d390e738df3901048098f085dbc3728af19aa3f16836ec0d3b5d0ad",
-          "mir": "1c9757fb9943e1d9803274ad10d216fda82655219c02d3d9fac86691f10d5d17",
-          "safei": "2a15855bc515c031a41e5e32126b376f4d325755b4eb7768f57545ae8a18eaec",
-          "typed": "28179ec8a70d2171dd2755818fa04c16ab44cf4483a6cae60ed85abb7fdccc3f"
+          "ast": "1c6f7753d19617f2d1ed078e0f453a6dd8df4fd595c556fcad5e305ab8957a23",
+          "mir": "ad38bdaf4cc7f5ead66083c8ca1387f8a219c221a304e1c00b53abb7c0a1169b",
+          "safei": "df354b19dfff1bb3c052eb25ef7b8cf347fc60f33c3b6a0afa5f6f66ee0f7272",
+          "typed": "4e14ad05e33d4a11ed0d82f51d7421132da620b26ae6fdb395bf7836ac4028d1"
         },
         "mir_summary": {
           "graph_names": [
@@ -1464,10 +1464,10 @@
       },
       "repeat_emit": {
         "hashes": {
-          "ast": "b72fe89c16267b36ebfb865d4d6ddfe355f0246df9335f599573d9b3e148ad59",
-          "mir": "a020098355e5f8ef513421d1fe4fe44f134639c5b2bcb72ce5644b7820135576",
+          "ast": "87c83715d2229b5eb93fcf8eb5ffd602bba469d0bf4000705921326ec153de5e",
+          "mir": "c62f229b55e82fd456963b8129e8435b35f3df37e7902256a3e1a76520020183",
           "safei": "30433b954cc0b36dca1f66628199d77ad2e2a1ffd90de2a32322b27922f63d21",
-          "typed": "bcfd9c1997cb91835f3421fe957a7081a2bbb9175e67419ad726d3e06d52682f"
+          "typed": "fadb7a165ca6709b5fd34a4fa199795e685d4c3bf4e8cd8a3d43547d716edd60"
         },
         "runs": [
           {
@@ -1508,8 +1508,8 @@
       }
     }
   },
-  "repeat_sha256": "fc86dd3d19e3a8a3c1adc40dd145132606766ae7c96a7d5c0d4e05f76ea909a3",
-  "report_sha256": "fc86dd3d19e3a8a3c1adc40dd145132606766ae7c96a7d5c0d4e05f76ea909a3",
+  "repeat_sha256": "9e2519a4bbcf93b58ecd4ba149537427a3aadad2fb4fe99fb03428a79048eb19",
+  "report_sha256": "9e2519a4bbcf93b58ecd4ba149537427a3aadad2fb4fe99fb03428a79048eb19",
   "search_order": {
     "failure": {
       "command": [
@@ -1583,10 +1583,10 @@
         "typed": "out/provider_record_object.typed.json"
       },
       "hashes": {
-        "ast": "2651e9a9ab7a73abfdb07a29ecb6d132c39942c970a71c0003392bb05727b187",
+        "ast": "7ae4c2e7bc048aaaa93422fe58515ca2103ed3033cd025ee4d948f570376160d",
         "mir": "4e7e35774af4f7f2a1f03ab7848fa5496ec188b0690c7cba0752f0106f655b7f",
-        "safei": "960516f15706a580bd071e3ba575bfb53987fbb1ebbd5e495efe027a353d7794",
-        "typed": "e26f136b25e452fad0c15085c8ff78cfa967fcb7475078534a061247aa3040ce"
+        "safei": "a3804b8b60e5c971957cf0680b18675c8505d0cf023c5f23b9efd6627086d7f4",
+        "typed": "28dde59c0ab3a2fc4d05a3b91129f03d33874289cc2b7a9e5e49b5e99649ed80"
       },
       "mir_payload": {
         "channels": [],
@@ -1646,8 +1646,8 @@
             "name": "Seed_Info",
             "signature": "Seed_Info",
             "span": {
-              "end_col": 14,
-              "end_line": 5,
+              "end_col": 22,
+              "end_line": 4,
               "start_col": 11,
               "start_line": 3
             }
@@ -1708,8 +1708,8 @@
                   "name": "Seed_Info",
                   "node_type": "TypeDeclaration",
                   "span": {
-                    "end_col": 14,
-                    "end_line": 5,
+                    "end_col": 22,
+                    "end_line": 4,
                     "start_col": 11,
                     "start_line": 3
                   },
@@ -1778,8 +1778,8 @@
                         "is_null": false,
                         "node_type": "ComponentList",
                         "span": {
-                          "end_col": 14,
-                          "end_line": 5,
+                          "end_col": 22,
+                          "end_line": 4,
                           "start_col": 11,
                           "start_line": 3
                         },
@@ -1788,15 +1788,15 @@
                       "is_null_record": false,
                       "node_type": "RecordDefinition",
                       "span": {
-                        "end_col": 14,
-                        "end_line": 5,
+                        "end_col": 22,
+                        "end_line": 4,
                         "start_col": 11,
                         "start_line": 3
                       }
                     },
                     "span": {
-                      "end_col": 14,
-                      "end_line": 5,
+                      "end_col": 22,
+                      "end_line": 4,
                       "start_col": 11,
                       "start_line": 3
                     }
@@ -1805,8 +1805,8 @@
                 "kind": "BasicDeclaration",
                 "node_type": "PackageItem",
                 "span": {
-                  "end_col": 14,
-                  "end_line": 5,
+                  "end_col": 22,
+                  "end_line": 4,
                   "start_col": 11,
                   "start_line": 3
                 }
@@ -1862,15 +1862,15 @@
             "name": "Provider_Record_Object",
             "node_type": "PackageUnit",
             "span": {
-              "end_col": 27,
-              "end_line": 9,
+              "end_col": 28,
+              "end_line": 7,
               "start_col": 1,
               "start_line": 1
             }
           },
           "span": {
-            "end_col": 27,
-            "end_line": 9,
+            "end_col": 28,
+            "end_line": 7,
             "start_col": 1,
             "start_line": 1
           }
@@ -1886,8 +1886,8 @@
             "name": "Seed_Info",
             "signature": "Seed_Info",
             "span": {
-              "end_col": 14,
-              "end_line": 5,
+              "end_col": 22,
+              "end_line": 4,
               "start_col": 11,
               "start_line": 3
             }

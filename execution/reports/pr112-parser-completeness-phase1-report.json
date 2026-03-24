@@ -127,10 +127,10 @@
       "reason": "unsupported_source_construct",
       "source": "tests/negative/neg_case_string_choice.safe",
       "span": {
-        "end_col": 26,
-        "end_line": 10,
-        "start_col": 23,
-        "start_line": 10
+        "end_col": 12,
+        "end_line": 11,
+        "start_col": 1,
+        "start_line": 11
       }
     },
     {
@@ -145,14 +145,14 @@
       }
     },
     {
-      "message": "case statements currently require a final `when others then` arm",
+      "message": "case statements currently require a final `when others` arm",
       "reason": "source_frontend_error",
       "source": "tests/negative/neg_case_missing_others.safe",
       "span": {
-        "end_col": 9,
-        "end_line": 13,
-        "start_col": 7,
-        "start_line": 13
+        "end_col": 1,
+        "end_line": 15,
+        "start_col": 1,
+        "start_line": 15
       }
     },
     {
@@ -414,8 +414,8 @@
       }
     }
   ],
-  "repeat_sha256": "8695de0ed605a70b0d71e7e674521b4714fcac8f19d641ace47f379b98bd5014",
-  "report_sha256": "8695de0ed605a70b0d71e7e674521b4714fcac8f19d641ace47f379b98bd5014",
+  "repeat_sha256": "2c6f0b2304c16d22291441e31e0425265ef75b7be245658ccb66f544d4c298a6",
+  "report_sha256": "2c6f0b2304c16d22291441e31e0425265ef75b7be245658ccb66f544d4c298a6",
   "rosetta_text_samples": [
     {
       "check": {

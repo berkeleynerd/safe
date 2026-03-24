@@ -1,27 +1,57 @@
 {
   "corpus_contract": {
     "negative_fixtures": [
-      "tests/negative/neg_pr115_same_line_missing_semicolon.safe",
-      "tests/negative/neg_pr115_var_package_item.safe",
-      "tests/negative/neg_pr115_var_declare_item.safe",
-      "tests/negative/neg_pr115_missing_declaration_semicolon.safe",
-      "tests/negative/neg_pr115_missing_case_arm_semicolon.safe"
+      "tests/negative/neg_pr116_tab_indent.safe",
+      "tests/negative/neg_pr116_bad_indent_step.safe",
+      "tests/negative/neg_pr116_legacy_end_if.safe",
+      "tests/negative/neg_pr116_legacy_begin.safe"
     ],
     "positive_fixtures": [
-      "tests/positive/pr115_var_basic.safe",
       "tests/positive/pr115_compound_terminators.safe",
-      "tests/positive/pr115_case_terminator.safe",
-      "tests/positive/pr115_legacy_local_decl.safe",
-      "tests/positive/pr115_declare_terminator.safe",
-      "tests/positive/pr115_multiline_return.safe"
+      "tests/positive/rule2_binary_search.safe",
+      "tests/positive/pr112_character_case.safe",
+      "tests/positive/pr113_variant_guard.safe",
+      "tests/concurrency/select_with_delay.safe"
     ],
     "rosetta_samples": [
-      "samples/rosetta/arithmetic/factorial.safe",
-      "samples/rosetta/sorting/binary_search.safe",
+      "samples/rosetta/arithmetic/collatz_bounded.safe",
+      "samples/rosetta/data_structures/bounded_stack.safe",
       "samples/rosetta/concurrency/producer_consumer.safe"
     ]
   },
   "deterministic": true,
+  "migration_examples": [
+    {
+      "forbidden_fragments": [
+        "function Adjust (Input : Count) returns Count is",
+        "begin",
+        "end if",
+        "end Adjust",
+        "end Demo"
+      ],
+      "name": "control_flow_cutover",
+      "required_fragments": [
+        "package Demo",
+        "function Adjust (Input : Count) returns Count",
+        "if Input > 0",
+        "else"
+      ]
+    },
+    {
+      "forbidden_fragments": [
+        "case Input is",
+        "when 0 then",
+        "when others then",
+        "end case"
+      ],
+      "name": "case_and_select_cutover",
+      "required_fragments": [
+        "case Input",
+        "when 0",
+        "when others"
+      ]
+    }
+  ],
   "negative_boundaries": [
     {
       "check": {
@@ -29,17 +59,17 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "tests/negative/neg_pr115_same_line_missing_semicolon.safe"
+          "tests/negative/neg_pr116_tab_indent.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1
       },
       "first_diagnostic": {
-        "message": "expected `;`",
-        "path": "tests/negative/neg_pr115_same_line_missing_semicolon.safe",
+        "message": "tabs are not allowed in indentation",
+        "path": "tests/negative/neg_pr116_tab_indent.safe",
         "reason": "source_frontend_error"
       },
-      "source": "tests/negative/neg_pr115_same_line_missing_semicolon.safe"
+      "source": "tests/negative/neg_pr116_tab_indent.safe"
     },
     {
       "check": {
@@ -47,17 +77,17 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "tests/negative/neg_pr115_var_package_item.safe"
+          "tests/negative/neg_pr116_bad_indent_step.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1
       },
       "first_diagnostic": {
-        "message": "statement-local `var` declarations are only allowed in executable statement sequences",
-        "path": "tests/negative/neg_pr115_var_package_item.safe",
+        "message": "indentation must use 3-space steps",
+        "path": "tests/negative/neg_pr116_bad_indent_step.safe",
         "reason": "source_frontend_error"
       },
-      "source": "tests/negative/neg_pr115_var_package_item.safe"
+      "source": "tests/negative/neg_pr116_bad_indent_step.safe"
     },
     {
       "check": {
@@ -65,17 +95,17 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "tests/negative/neg_pr115_var_declare_item.safe"
+          "tests/negative/neg_pr116_legacy_end_if.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1
       },
       "first_diagnostic": {
-        "message": "statement-local `var` declarations are only allowed in executable statement sequences",
-        "path": "tests/negative/neg_pr115_var_declare_item.safe",
+        "message": "legacy block delimiter `end` is not allowed; covered blocks are closed by indentation",
+        "path": "tests/negative/neg_pr116_legacy_end_if.safe",
         "reason": "source_frontend_error"
       },
-      "source": "tests/negative/neg_pr115_var_declare_item.safe"
+      "source": "tests/negative/neg_pr116_legacy_end_if.safe"
     },
     {
       "check": {
@@ -83,112 +113,24 @@
           "compiler_impl/bin/safec",
           "check",
           "--diag-json",
-          "tests/negative/neg_pr115_missing_declaration_semicolon.safe"
+          "tests/negative/neg_pr116_legacy_begin.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1
       },
       "first_diagnostic": {
-        "message": "expected `;`",
-        "path": "tests/negative/neg_pr115_missing_declaration_semicolon.safe",
+        "message": "legacy block delimiter `begin` is not allowed; covered blocks are closed by indentation",
+        "path": "tests/negative/neg_pr116_legacy_begin.safe",
         "reason": "source_frontend_error"
       },
-      "source": "tests/negative/neg_pr115_missing_declaration_semicolon.safe"
-    },
-    {
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "--diag-json",
-          "tests/negative/neg_pr115_missing_case_arm_semicolon.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 1
-      },
-      "first_diagnostic": {
-        "message": "expected `;`",
-        "path": "tests/negative/neg_pr115_missing_case_arm_semicolon.safe",
-        "reason": "source_frontend_error"
-      },
-      "source": "tests/negative/neg_pr115_missing_case_arm_semicolon.safe"
+      "source": "tests/negative/neg_pr116_legacy_begin.safe"
     }
   ],
   "positive_fixtures": [
     {
       "ada_snippets": [
-        "Local : Counter := Input;",
-        "Local := Input;",
-        "return Local;"
-      ],
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "tests/positive/pr115_var_basic.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "compile": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gprbuild",
-          "-c",
-          "-P",
-          "$TMPDIR/pr115_var_basic/ada/build.gpr",
-          "pr115_var_basic.adb"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/positive/pr115_var_basic.safe",
-          "--out-dir",
-          "$TMPDIR/pr115_var_basic/out",
-          "--interface-dir",
-          "$TMPDIR/pr115_var_basic/iface",
-          "--ada-out-dir",
-          "$TMPDIR/pr115_var_basic/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "mir_snippets": [
-        "\"name\":\"Bump\""
-      ],
-      "safei_snippets": [
-        "function Bump"
-      ],
-      "source": "tests/positive/pr115_var_basic.safe",
-      "source_fragments": [
-        "var Local : Counter = Input",
-        "Local = Input return Local"
-      ],
-      "typed_snippets": [
-        "\"name\":\"Bump\""
-      ],
-      "validate_mir": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/pr115_var_basic/out/pr115_var_basic.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      }
-    },
-    {
-      "ada_snippets": [
         "elsif (Current < 5) then",
-        "for I in 1 .. 2 loop",
-        "Current := 5;",
-        "end loop;"
+        "for I in 1 .. 2 loop"
       ],
       "check": {
         "command": [
@@ -228,18 +170,25 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
-      "mir_snippets": [
-        "\"name\":\"Adjust\""
-      ],
+      "mir_snippets": [],
       "safei_snippets": [
         "function Adjust"
       ],
       "source": "tests/positive/pr115_compound_terminators.safe",
-      "source_fragments": [
-        "else if Current < 5",
-        "for I in 1 to 2",
-        "return Current"
-      ],
+      "source_surface": {
+        "forbidden_fragments": [
+          "then",
+          "end if",
+          "end loop",
+          "begin"
+        ],
+        "required_fragments": [
+          "function Adjust (Input : Count) returns Count",
+          "if Current > 5",
+          "else if Current < 5",
+          "for I in 1 to 2"
+        ]
+      },
       "typed_snippets": [
         "\"name\":\"Adjust\""
       ],
@@ -255,15 +204,13 @@
     },
     {
       "ada_snippets": [
-        "case Input is",
-        "when 0 =>",
-        "end case;"
+        "while (Lo <= Hi) loop"
       ],
       "check": {
         "command": [
           "compiler_impl/bin/safec",
           "check",
-          "tests/positive/pr115_case_terminator.safe"
+          "tests/positive/rule2_binary_search.safe"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
@@ -276,331 +223,7 @@
           "gprbuild",
           "-c",
           "-P",
-          "$TMPDIR/pr115_case_terminator/ada/build.gpr",
-          "pr115_case_terminator.adb"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/positive/pr115_case_terminator.safe",
-          "--out-dir",
-          "$TMPDIR/pr115_case_terminator/out",
-          "--interface-dir",
-          "$TMPDIR/pr115_case_terminator/iface",
-          "--ada-out-dir",
-          "$TMPDIR/pr115_case_terminator/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "mir_snippets": [
-        "\"name\":\"Normalize\""
-      ],
-      "safei_snippets": [
-        "function Normalize"
-      ],
-      "source": "tests/positive/pr115_case_terminator.safe",
-      "source_fragments": [
-        "when others Result = True; return Result"
-      ],
-      "typed_snippets": [
-        "\"name\":\"Normalize\""
-      ],
-      "validate_mir": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/pr115_case_terminator/out/pr115_case_terminator.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      }
-    },
-    {
-      "ada_snippets": [
-        "Current : Counter := 0;",
-        "Current := 1;"
-      ],
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "tests/positive/pr115_legacy_local_decl.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "compile": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gprbuild",
-          "-c",
-          "-P",
-          "$TMPDIR/pr115_legacy_local_decl/ada/build.gpr",
-          "pr115_legacy_local_decl.adb"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/positive/pr115_legacy_local_decl.safe",
-          "--out-dir",
-          "$TMPDIR/pr115_legacy_local_decl/out",
-          "--interface-dir",
-          "$TMPDIR/pr115_legacy_local_decl/iface",
-          "--ada-out-dir",
-          "$TMPDIR/pr115_legacy_local_decl/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "mir_snippets": [
-        "\"name\":\"Build\""
-      ],
-      "safei_snippets": [
-        "function Build"
-      ],
-      "source": "tests/positive/pr115_legacy_local_decl.safe",
-      "source_fragments": [
-        "Current : Counter = 0 Current = 1"
-      ],
-      "typed_snippets": [
-        "\"name\":\"Build\""
-      ],
-      "validate_mir": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/pr115_legacy_local_decl/out/pr115_legacy_local_decl.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      }
-    },
-    {
-      "ada_snippets": [
-        "declare",
-        "Temp : Counter := 1;",
-        "end;"
-      ],
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "tests/positive/pr115_declare_terminator.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "compile": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gprbuild",
-          "-c",
-          "-P",
-          "$TMPDIR/pr115_declare_terminator/ada/build.gpr",
-          "pr115_declare_terminator.adb"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/positive/pr115_declare_terminator.safe",
-          "--out-dir",
-          "$TMPDIR/pr115_declare_terminator/out",
-          "--interface-dir",
-          "$TMPDIR/pr115_declare_terminator/iface",
-          "--ada-out-dir",
-          "$TMPDIR/pr115_declare_terminator/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "mir_snippets": [
-        "\"name\":\"Compute\""
-      ],
-      "safei_snippets": [
-        "function Compute"
-      ],
-      "source": "tests/positive/pr115_declare_terminator.safe",
-      "source_fragments": [
-        "begin null end return 1"
-      ],
-      "typed_snippets": [
-        "\"name\":\"Compute\""
-      ],
-      "validate_mir": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/pr115_declare_terminator/out/pr115_declare_terminator.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      }
-    },
-    {
-      "ada_snippets": [
-        "return Input;"
-      ],
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "tests/positive/pr115_multiline_return.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "compile": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gprbuild",
-          "-c",
-          "-P",
-          "$TMPDIR/pr115_multiline_return/ada/build.gpr",
-          "pr115_multiline_return.adb"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "tests/positive/pr115_multiline_return.safe",
-          "--out-dir",
-          "$TMPDIR/pr115_multiline_return/out",
-          "--interface-dir",
-          "$TMPDIR/pr115_multiline_return/iface",
-          "--ada-out-dir",
-          "$TMPDIR/pr115_multiline_return/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "mir_snippets": [
-        "\"name\":\"Identity\""
-      ],
-      "safei_snippets": [
-        "function Identity"
-      ],
-      "source": "tests/positive/pr115_multiline_return.safe",
-      "source_fragments": [
-        "return Input;"
-      ],
-      "typed_snippets": [
-        "\"name\":\"Identity\""
-      ],
-      "validate_mir": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/pr115_multiline_return/out/pr115_multiline_return.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      }
-    }
-  ],
-  "repeat_sha256": "51eb46e515f7405f4eabcd640dcec945519164100d025902fe4faa3695ce05cb",
-  "report_sha256": "51eb46e515f7405f4eabcd640dcec945519164100d025902fe4faa3695ce05cb",
-  "rosetta_readability_samples": [
-    {
-      "ada_snippets": [],
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "samples/rosetta/arithmetic/factorial.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "compile": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gprbuild",
-          "-c",
-          "-P",
-          "$TMPDIR/factorial/ada/build.gpr",
-          "factorial.adb"
-        ],
-        "cwd": "$REPO_ROOT/compiler_impl",
-        "returncode": 0
-      },
-      "emit": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "emit",
-          "samples/rosetta/arithmetic/factorial.safe",
-          "--out-dir",
-          "$TMPDIR/factorial/out",
-          "--interface-dir",
-          "$TMPDIR/factorial/iface",
-          "--ada-out-dir",
-          "$TMPDIR/factorial/ada"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "mir_snippets": [],
-      "safei_snippets": [],
-      "source": "samples/rosetta/arithmetic/factorial.safe",
-      "source_fragments": [
-        "var Product : Value = 1",
-        "Product = Product * Value (I)",
-        "return Product"
-      ],
-      "typed_snippets": [],
-      "validate_mir": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "validate-mir",
-          "$TMPDIR/factorial/out/factorial.mir.json"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      }
-    },
-    {
-      "ada_snippets": [],
-      "check": {
-        "command": [
-          "compiler_impl/bin/safec",
-          "check",
-          "samples/rosetta/sorting/binary_search.safe"
-        ],
-        "cwd": "$REPO_ROOT",
-        "returncode": 0
-      },
-      "compile": {
-        "command": [
-          "alr",
-          "exec",
-          "--",
-          "gprbuild",
-          "-c",
-          "-P",
-          "$TMPDIR/binary_search/ada/build.gpr",
+          "$TMPDIR/rule2_binary_search/ada/build.gpr",
           "binary_search.adb"
         ],
         "cwd": "$REPO_ROOT/compiler_impl",
@@ -610,32 +233,383 @@
         "command": [
           "compiler_impl/bin/safec",
           "emit",
-          "samples/rosetta/sorting/binary_search.safe",
+          "tests/positive/rule2_binary_search.safe",
           "--out-dir",
-          "$TMPDIR/binary_search/out",
+          "$TMPDIR/rule2_binary_search/out",
           "--interface-dir",
-          "$TMPDIR/binary_search/iface",
+          "$TMPDIR/rule2_binary_search/iface",
           "--ada-out-dir",
-          "$TMPDIR/binary_search/ada"
+          "$TMPDIR/rule2_binary_search/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "mir_snippets": [],
+      "safei_snippets": [
+        "function Search"
+      ],
+      "source": "tests/positive/rule2_binary_search.safe",
+      "source_surface": {
+        "forbidden_fragments": [
+          "then",
+          "end loop"
+        ],
+        "required_fragments": [
+          "while Lo <= Hi",
+          "else if Arr (Mid) < Key"
+        ]
+      },
+      "typed_snippets": [
+        "\"name\":\"Search\""
+      ],
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/rule2_binary_search/out/rule2_binary_search.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
+    {
+      "ada_snippets": [
+        "case Grade is",
+        "when others =>"
+      ],
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/pr112_character_case.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/pr112_character_case/ada/build.gpr",
+          "pr112_character_case.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/pr112_character_case.safe",
+          "--out-dir",
+          "$TMPDIR/pr112_character_case/out",
+          "--interface-dir",
+          "$TMPDIR/pr112_character_case/iface",
+          "--ada-out-dir",
+          "$TMPDIR/pr112_character_case/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "mir_snippets": [],
+      "safei_snippets": [
+        "function Grade_Message"
+      ],
+      "source": "tests/positive/pr112_character_case.safe",
+      "source_surface": {
+        "forbidden_fragments": [
+          "then",
+          "end case",
+          "end when"
+        ],
+        "required_fragments": [
+          "case Grade",
+          "when 'A'",
+          "when others"
+        ]
+      },
+      "typed_snippets": [
+        "\"name\":\"Grade_Message\""
+      ],
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/pr112_character_case/out/pr112_character_case.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
+    {
+      "ada_snippets": [
+        "type Packet",
+        "case Kind is"
+      ],
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/pr113_variant_guard.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/pr113_variant_guard/ada/build.gpr",
+          "pr113_variant_guard.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/pr113_variant_guard.safe",
+          "--out-dir",
+          "$TMPDIR/pr113_variant_guard/out",
+          "--interface-dir",
+          "$TMPDIR/pr113_variant_guard/iface",
+          "--ada-out-dir",
+          "$TMPDIR/pr113_variant_guard/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "mir_snippets": [],
+      "safei_snippets": [
+        "function Read_Alpha"
+      ],
+      "source": "tests/positive/pr113_variant_guard.safe",
+      "source_surface": {
+        "forbidden_fragments": [
+          "end record",
+          "end case"
+        ],
+        "required_fragments": [
+          "type Packet (Kind : Character = 'A') is",
+          "record",
+          "case Kind",
+          "when others"
+        ]
+      },
+      "typed_snippets": [
+        "\"name\":\"Read_Alpha\""
+      ],
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/pr113_variant_guard/out/pr113_variant_guard.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
+    {
+      "ada_snippets": [],
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/concurrency/select_with_delay.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/select_with_delay/ada/build.gpr",
+          "select_with_delay.adb",
+          "-cargs",
+          "-gnatec=$TMPDIR/select_with_delay/ada/gnat.adc"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/concurrency/select_with_delay.safe",
+          "--out-dir",
+          "$TMPDIR/select_with_delay/out",
+          "--interface-dir",
+          "$TMPDIR/select_with_delay/iface",
+          "--ada-out-dir",
+          "$TMPDIR/select_with_delay/ada"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
       },
       "mir_snippets": [],
       "safei_snippets": [],
-      "source": "samples/rosetta/sorting/binary_search.safe",
-      "source_fragments": [
-        "var Lo : Index = Index.First",
-        "var Hi : Index = Index.Last",
-        "var Mid : Index",
-        "else if Arr (Mid) < Key"
-      ],
+      "source": "tests/concurrency/select_with_delay.safe",
+      "source_surface": {
+        "forbidden_fragments": [
+          "then",
+          "end select"
+        ],
+        "required_fragments": [
+          "task Poller with Priority = 10",
+          "select",
+          "when Item : Message from Msg_Ch",
+          "or",
+          "delay 0.05"
+        ]
+      },
       "typed_snippets": [],
       "validate_mir": {
         "command": [
           "compiler_impl/bin/safec",
           "validate-mir",
-          "$TMPDIR/binary_search/out/binary_search.mir.json"
+          "$TMPDIR/select_with_delay/out/select_with_delay.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    }
+  ],
+  "repeat_sha256": "1ee6ea0d52fbfabadd5187ee3e4f8e9798aa76b0aa89f58ae5ed41afb46682d3",
+  "report_sha256": "1ee6ea0d52fbfabadd5187ee3e4f8e9798aa76b0aa89f58ae5ed41afb46682d3",
+  "rosetta_readability_samples": [
+    {
+      "ada_snippets": [],
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "samples/rosetta/arithmetic/collatz_bounded.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/collatz_bounded/ada/build.gpr",
+          "collatz_bounded.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "samples/rosetta/arithmetic/collatz_bounded.safe",
+          "--out-dir",
+          "$TMPDIR/collatz_bounded/out",
+          "--interface-dir",
+          "$TMPDIR/collatz_bounded/iface",
+          "--ada-out-dir",
+          "$TMPDIR/collatz_bounded/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "mir_snippets": [],
+      "safei_snippets": [],
+      "source": "samples/rosetta/arithmetic/collatz_bounded.safe",
+      "source_surface": {
+        "forbidden_fragments": [],
+        "required_fragments": [
+          "var Current : Working_Value = Working_Value (Seed)",
+          "for Step in Iteration",
+          "if Current == 1"
+        ]
+      },
+      "typed_snippets": [],
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/collatz_bounded/out/collatz_bounded.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
+    {
+      "ada_snippets": [],
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "samples/rosetta/data_structures/bounded_stack.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/bounded_stack/ada/build.gpr",
+          "bounded_stack.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "samples/rosetta/data_structures/bounded_stack.safe",
+          "--out-dir",
+          "$TMPDIR/bounded_stack/out",
+          "--interface-dir",
+          "$TMPDIR/bounded_stack/iface",
+          "--ada-out-dir",
+          "$TMPDIR/bounded_stack/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "mir_snippets": [],
+      "safei_snippets": [],
+      "source": "samples/rosetta/data_structures/bounded_stack.safe",
+      "source_surface": {
+        "forbidden_fragments": [],
+        "required_fragments": [
+          "type Stack is record",
+          "case S.Size",
+          "when others"
+        ]
+      },
+      "typed_snippets": [],
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/bounded_stack/out/bounded_stack.mir.json"
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 0
@@ -686,11 +660,14 @@
       "mir_snippets": [],
       "safei_snippets": [],
       "source": "samples/rosetta/concurrency/producer_consumer.safe",
-      "source_fragments": [
-        "send Data_Ch, 41",
-        "var Input : Message",
-        "receive Data_Ch, Input"
-      ],
+      "source_surface": {
+        "forbidden_fragments": [],
+        "required_fragments": [
+          "task Producer with Priority = 10",
+          "loop",
+          "receive Data_Ch, Input"
+        ]
+      },
       "typed_snippets": [],
       "validate_mir": {
         "command": [
@@ -705,14 +682,12 @@
   ],
   "status": "ok",
   "syntax_policy": {
-    "deferred_to_pr118b": [
-      "task channel direction constraints",
-      "scoped-binding receive"
-    ],
-    "legacy_statement_local_declarations_retained": true,
-    "lexer_token_stream_changed": false,
-    "optional_semicolons_parser_side": true,
-    "var_is_additive": true
+    "declare_blocks_remain_explicit": true,
+    "indentation_step": 3,
+    "indentation_style": "spaces_only",
+    "lexer_token_stream_changed": true,
+    "meaningful_whitespace_shipped": true,
+    "pragma_strict_deferred_post_1_0": true
   },
-  "task": "PR11.5"
+  "task": "PR11.6"
 }

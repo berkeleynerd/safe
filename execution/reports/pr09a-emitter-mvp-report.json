@@ -30,16 +30,16 @@
         },
         "json_and_interface": {
           "rule1_averaging.ast.json": {
-            "sha256": "7ba568081ad2d576fb92ffc3de3a554839e6d45291d1a4b1745915c210ac931d"
+            "sha256": "935c83f0432487b11573c525b28ac9e837392bfcd5fae4b1ff9b7ed851c2ff0d"
           },
           "rule1_averaging.mir.json": {
-            "sha256": "16bd00adfd0777b7649aa3003744b4f3e1236fcf7e6f428155d3e715518acec6"
+            "sha256": "89a7f6ef9020494a7e249f7360431d4b93ea2a99c542e6c5902750a6c56bc253"
           },
           "rule1_averaging.safei.json": {
-            "sha256": "4388d1d6a9b075172a7f51a6fe9f36de391c8d2cafb6dd8ec8ef49e025e847a0"
+            "sha256": "f123471d348abf62da4c93e67516442ae9d0657484f3d3fc92b0716e3f5f106c"
           },
           "rule1_averaging.typed.json": {
-            "sha256": "4a950ae0097ef37002c393b50e019245c9601ae6280bfb43b46da576ae5eb314"
+            "sha256": "46500cd25ee186c540d63bb541615af6b0f824565c6b1314d4439097128ae373"
           }
         }
       },
@@ -84,16 +84,16 @@
         },
         "json_and_interface": {
           "rule1_accumulate.ast.json": {
-            "sha256": "3767ff4506b5e868b64646317dbc70d8561770dae33dbff30a1922fbc3f03de5"
+            "sha256": "2afed12c4abb63c81b507f94f37363135bb21fe5c303b84626527cc2e513b1df"
           },
           "rule1_accumulate.mir.json": {
-            "sha256": "2d5aa84aa18fd5eec01836cac154facb96b55b0500b82e27ee22aeedba0ac1b1"
+            "sha256": "63bd48af19fec95e4115d9ea21226a5d5001435c3933b1cea74d84936839d552"
           },
           "rule1_accumulate.safei.json": {
-            "sha256": "b91298bde2f1fc13088ad5b1ad65e9953c81047b7a03a17c39da748afa858532"
+            "sha256": "a5b2f7519a4f5ff1195d416d4134a6659401b79b27363ad74551c9c78e3ee29c"
           },
           "rule1_accumulate.typed.json": {
-            "sha256": "e90d5765acbf2675f8de84f25a861d4a1e5f6d271febd2eefc6df85f1ea7d0a7"
+            "sha256": "750e79ce0d7440d1fd7d534c847bd33511f119afdf47bad493e97ea8d2d3fa4a"
           }
         }
       },
@@ -138,16 +138,16 @@
         },
         "json_and_interface": {
           "rule1_parameter.ast.json": {
-            "sha256": "959ceb32ff4b366d9c10a35fda09655c1f643f04e20ba65118d7f3fd86a91875"
+            "sha256": "73413472543c4d103897061d4bdcf89d9685ea4cc2deb6fc178c8c023062621b"
           },
           "rule1_parameter.mir.json": {
-            "sha256": "577033aae2e6f142cd9afa1237814eff329ae5ecd8e4ef50a0187a902446180a"
+            "sha256": "7e875aedc674d5b6c6bd7b19fde9fe69fd26670e9c787f21707dd39ba06cbcb3"
           },
           "rule1_parameter.safei.json": {
-            "sha256": "c4778364e0eacd9f8a711686001bf61f43162eb16f33d2e0b6039b2c3d1c992c"
+            "sha256": "e78b5d653196a4763ddf534d3d3345efd2380993a3b57c7d6fc0b6de65a2d1db"
           },
           "rule1_parameter.typed.json": {
-            "sha256": "b573e28a9da33c65c8c090f362fd2120099f4562d498387539b7d892d6385a30"
+            "sha256": "ced3e73168ec7ef968ed4375be773a2ca9279f3a567f3a00013eef189caacb7f"
           }
         }
       },
@@ -196,16 +196,16 @@
         },
         "json_and_interface": {
           "rule1_return.ast.json": {
-            "sha256": "3a76be2e64fe1e4375b9f7eac4c87f221aa88bb7986ec496ef3bbf69d283795c"
+            "sha256": "40a80bcb3f3887a5c72672819813ebf39746b75f39c5f736087527a03cdf2eab"
           },
           "rule1_return.mir.json": {
-            "sha256": "2b5aa0e03d6a55861a726700c5279a85e283222efccb8d26d4fb66adc9de15e5"
+            "sha256": "2b55c088f30d9fcdb151427b538806e9590843b666a1fa5d24b4186dec55ee9e"
           },
           "rule1_return.safei.json": {
-            "sha256": "771f9c828b07614bf0a7feb103a0aa68f76155a3957012c1370201052838af97"
+            "sha256": "bfffe1be464bdc2d90edeb429b303171c3b2b289f0426740521d2826725cda43"
           },
           "rule1_return.typed.json": {
-            "sha256": "204e4b35a001f916eefd7d54eab5e644a9e8ee8dc137ddc5c3b71723c008baf9"
+            "sha256": "2e295711d49855918e36ec4d853638cf3e2cc19969ab283d2ff3b3c11762fbf6"
           }
         }
       },
@@ -250,16 +250,16 @@
         },
         "json_and_interface": {
           "rule1_conversion.ast.json": {
-            "sha256": "d54ac7eccdb447a38ed5802c715d6e9e677cd56904ee30ed5e7170d60bfb5017"
+            "sha256": "14ba8a8e31f66dc304ce17c6c35abd765d05be578db572dbd60f0739d4e32fe8"
           },
           "rule1_conversion.mir.json": {
-            "sha256": "e6849d30827e9bb59cdd57bad86d11c994da244e19deff9ba1912c3aa2fb835a"
+            "sha256": "743ac9c666ca2d171a9df2257c5fee79b97c2fc927835b9ce8ef484e71d0fbd8"
           },
           "rule1_conversion.safei.json": {
-            "sha256": "4b5ec51bacd4b7682d951f30acdbdc00c4d46b090d0f6d6ba836ff7c80449bc0"
+            "sha256": "76e33256f1ff88bce223cbcf25de3c5500ad39be14a6e0d926076bb4c68c6d79"
           },
           "rule1_conversion.typed.json": {
-            "sha256": "191fd7e760d217e15486a7a7b84b45f914ad1e2eb000407178e66e896d64ebbc"
+            "sha256": "3b1d419fc796e304942929148377d4c67a72c79c682246accfd02ed4fc6ee62b"
           }
         }
       },
@@ -280,6 +280,6 @@
     "PR09a emits compile-valid Ada/SPARK skeleton output on the rule1 subset.",
     "safe_runtime.ads remains byte-identical to companion/templates/safe_runtime.ads."
   ],
-  "repeat_sha256": "86eab2f8fd0069689169920eb352fce31c14a87637dfe402db63fd425651508f",
-  "report_sha256": "86eab2f8fd0069689169920eb352fce31c14a87637dfe402db63fd425651508f"
+  "repeat_sha256": "fabf289ad8a3dcb7471df93f1f114e958fe95bf0bfa66cdad462be68d76295d8",
+  "report_sha256": "fabf289ad8a3dcb7471df93f1f114e958fe95bf0bfa66cdad462be68d76295d8"
 }

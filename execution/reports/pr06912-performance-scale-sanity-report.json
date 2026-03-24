@@ -15,8 +15,8 @@
       "budget_pass": true,
       "count": 32,
       "largest_sample": {
-        "bytes": 1902,
-        "lines": 49,
+        "bytes": 1797,
+        "lines": 48,
         "path": "tests/positive/rule5_statistics.safe"
       }
     }
@@ -70,9 +70,9 @@
       "environment",
       "portability"
     ],
-    "policy_sha256": "89bb742fb414c273b39b4523cab641e9e2bc59e9cb2e12a543a200152c4ea1d0"
+    "policy_sha256": "c55184eadddf714a8d7a31fbea83624115487e1a3758fa77eda2726b888c5b77"
   },
-  "repeat_sha256": "66aeb1d0ead006c146bb4cc42c766f53c9465a14dd2d3a13e5766552c7fd52cf",
+  "repeat_sha256": "3a48ae9f079579b222ae8bc9bedd0f2f4f599f35d0c23c1bf4c708727046fe0f",
   "repeated_scenarios": {
     "analyze_mir": [
       {
@@ -112,7 +112,7 @@
         "median_budget_ms": 500.0,
         "repetitions": 5,
         "sample": {
-          "bytes": 1366,
+          "bytes": 1298,
           "lines": 35,
           "path": "tests/positive/rule1_accumulate.safe"
         }
@@ -122,7 +122,7 @@
         "median_budget_ms": 500.0,
         "repetitions": 5,
         "sample": {
-          "bytes": 1830,
+          "bytes": 1690,
           "lines": 53,
           "path": "tests/positive/rule2_binary_search.safe"
         }
@@ -132,7 +132,7 @@
         "median_budget_ms": 500.0,
         "repetitions": 5,
         "sample": {
-          "bytes": 1527,
+          "bytes": 1424,
           "lines": 42,
           "path": "tests/positive/ownership_borrow.safe"
         }
@@ -159,7 +159,7 @@
         "median_budget_ms": 1000.0,
         "repetitions": 3,
         "sample": {
-          "bytes": 1366,
+          "bytes": 1298,
           "lines": 35,
           "path": "tests/positive/rule1_accumulate.safe"
         }
@@ -184,7 +184,7 @@
         "median_budget_ms": 1000.0,
         "repetitions": 3,
         "sample": {
-          "bytes": 1830,
+          "bytes": 1690,
           "lines": 53,
           "path": "tests/positive/rule2_binary_search.safe"
         }
@@ -209,7 +209,7 @@
         "median_budget_ms": 1000.0,
         "repetitions": 3,
         "sample": {
-          "bytes": 1527,
+          "bytes": 1424,
           "lines": 42,
           "path": "tests/positive/ownership_borrow.safe"
         }
@@ -221,7 +221,7 @@
     "check": 5,
     "emit": 3
   },
-  "report_sha256": "66aeb1d0ead006c146bb4cc42c766f53c9465a14dd2d3a13e5766552c7fd52cf",
+  "report_sha256": "3a48ae9f079579b222ae8bc9bedd0f2f4f599f35d0c23c1bf4c708727046fe0f",
   "status": "ok",
   "task": "PR06.9.12"
 }
