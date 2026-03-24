@@ -9,6 +9,12 @@ cd "${ROOT_DIR}"
 
 FAIL=0
 
+# Some negative fixtures intentionally preserve removed legacy syntax so the
+# parser can prove deterministic rejection. Keep the allowlist explicit.
+declare -A LINT_EXEMPT_TICK_ATTRIBUTE=(
+  ["tests/negative/neg_pr1162_removed_representation_clause.safe"]=1
+)
+
 echo "Linting .safe files for banned legacy syntax tokens..."
 
 # Banned tokens in Safe source (v0.2 syntax).
@@ -34,7 +40,7 @@ while IFS= read -r -d '' f; do
   done
   # Tick-attribute check: catches T'First, T'Succ, T'Image, etc.
   # Regex: word char + tick + uppercase + lowercase (avoids char literals 'A').
-  if grep -nE "[A-Za-z_0-9]'[A-Z][a-z]" "${f}" >/dev/null 2>&1; then
+  if [[ -z "${LINT_EXEMPT_TICK_ATTRIBUTE["${f}"]+x}" ]] && grep -nE "[A-Za-z_0-9]'[A-Z][a-z]" "${f}" >/dev/null 2>&1; then
     echo "ERROR: ${f} contains tick-attribute (use dot notation, spec §2.2 item 4):"
     grep -nE "[A-Za-z_0-9]'[A-Z][a-z]" "${f}" | head -5
     FAIL=1
