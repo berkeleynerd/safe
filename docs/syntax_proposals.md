@@ -4,6 +4,10 @@ imply an implementation commitment or rollout schedule.
 
 # Whitespace-Significant Blocks
 
+Status: shipped in PR11.6. The examples in this section now use the current
+pre-1.0 source surface. The later `pragma Strict` section remains a deferred
+post-1.0 counter-proposal.
+
 ## Motivation
 
 The current Safe syntax uses Ada-style `begin`/`end`, `loop`/`end loop`, and
@@ -31,7 +35,7 @@ Key observations from the design discussion:
 
 In the default mode, indentation defines block structure. No `begin`/`end`,
 no braces, no `end loop`, no `end record`. Keywords that introduce blocks
-(`function`, `procedure`, `if`, `else if`, `else`, `for`, `while`, `loop`,
+(`function`, `if`, `else if`, `else`, `for`, `while`, `loop`,
 `task`, `package`, `record`) increase the indentation level on the following
 line. A decrease in indentation level closes the block.
 
@@ -41,8 +45,9 @@ The compiler enforces:
 - consistent indentation throughout the compilation unit
 - a wrong indentation level is a compile error, not a silent structural change
 
-Under `pragma Strict`, the full Ada-style keyword-delimited syntax with
-closing labels is used instead. See the `pragma Strict` proposal.
+A historical `pragma Strict` alternative keeps full Ada-style keyword-delimited
+syntax with closing labels, but that option is deferred beyond the pre-1.0
+roadmap. See the later `pragma Strict` section for the archived design note.
 
 ## Block-Opening Rules
 
@@ -50,7 +55,7 @@ A new indentation level is opened after any line ending with one of:
 
 | Line ending | Opens block for |
 |-------------|-----------------|
-| Function/procedure signature | Subprogram body |
+| Function signature | Subprogram body |
 | `package <name>` | Package body |
 | `if <condition>` | If branch |
 | `else if <condition>` | Else-if branch |
@@ -67,133 +72,133 @@ A decrease in indentation closes the innermost open block.
 
 ### Accumulator — for loop
 
-```
-package accumulator
+```safe
+package Accumulator
 
-   type small_int is range 0 .. 100
-   type index is range 1 .. 20
-   type values is array (index) of small_int
-   type total_range is range 0 .. 2000
+   type Small_Int is range 0 to 100;
+   type Index is range 1 to 20;
+   type Values is array (Index) of Small_Int;
+   type Total_Range is range 0 to 2000;
 
-   function accumulate (data : values) returns total_range
-      sum : total_range = 0
+   function Accumulate (Data : Values) returns Total_Range
+      var Sum : Total_Range = 0
 
-      for i in index
-         sum = sum + total_range (data (i))
-      return sum
+      for I in Index
+         Sum = Sum + Total_Range (Data (I))
+      return Sum
 ```
 
 ### Binary Search — while loop, if/else if/else
 
-```
-package binary_search
+```safe
+package Binary_Search
 
-   type index is range 1 .. 256
-   type element is range 0 .. 10_000
-   type sorted_array is array (index) of element
-   type search_result is record
-      found    : boolean
-      found_at : index
+   type Index is range 1 to 256;
+   type Element is range 0 to 10_000;
+   type Sorted_Array is array (Index) of Element;
+   type Search_Result is record
+      Found    : Boolean;
+      Found_At : Index;
 
-   function search (arr : sorted_array;
-                    key : element) returns search_result
-      lo  : index = index.first
-      hi  : index = index.last
-      mid : index
+   function Search (Arr : Sorted_Array;
+                    Key : Element) returns Search_Result
+      var Lo  : Index = Index.First
+      var Hi  : Index = Index.Last
+      var Mid : Index
 
-      while lo <= hi
-         mid = lo + (hi - lo) / 2
-         if arr (mid) == key
-            return ((found = true, found_at = mid) as search_result)
-         else if arr (mid) < key
-            if mid == index.last
-               return ((found = false, found_at = index.first) as search_result)
-            lo = mid + 1
+      while Lo <= Hi
+         Mid = Lo + (Hi - Lo) / 2
+         if Arr (Mid) == Key
+            return ((Found = True, Found_At = Mid) as Search_Result)
+         else if Arr (Mid) < Key
+            if Mid == Index.Last
+               return ((Found = False, Found_At = Index.First) as Search_Result)
+            Lo = Mid + 1
          else
-            if mid == index.first
-               return ((found = false, found_at = index.first) as search_result)
-            hi = mid - 1
-      return ((found = false, found_at = index.first) as search_result)
+            if Mid == Index.First
+               return ((Found = False, Found_At = Index.First) as Search_Result)
+            Hi = Mid - 1
+      return ((Found = False, Found_At = Index.First) as Search_Result)
 ```
 
 ### Linked List — record types, null guard
 
-```
-package safe_linked_list
+```safe
+package Safe_Linked_List
 
-   type node
-   type node_ref is access node
+   type Node;
+   type Node_Ref is access Node;
 
-   type node is record
-      value : integer
-      Next  : access node
+   type Node is record
+      Value : Integer;
+      Next  : access Node;
 
-   function sum_values (Head : node_ref) returns integer
-      total : integer = 0
+   function Sum_Values (Head : Node_Ref) returns Integer
+      var Total : Integer = 0
 
       if Head != null
-         total = total + Head.value
+         Total = Total + Head.Value
          if Head.Next != null
-            total = total + Head.Next.value
-      return total
+            Total = Total + Head.Next.Value
+      return Total
 ```
 
 ### Channel Pipeline — tasks, bare loops, channels
 
-```
-package pipeline
+```safe
+package Pipeline
 
-   type sample is range 0 .. 10_000
+   type Sample is range 0 to 10_000;
 
-   channel raw_ch      : sample capacity 4
-   channel filtered_ch : sample capacity 4
+   channel Raw_Ch      : Sample capacity 4;
+   channel Filtered_Ch : Sample capacity 4;
 
-   task producer with priority = 10
-      counter : sample = 0
+   task Producer with Priority = 10
+      var Counter : Sample = 0
 
       loop
-         send raw_ch, counter
-         if counter < 10_000
-            counter = counter + 1
+         send Raw_Ch, Counter
+         if Counter < 10_000
+            Counter = Counter + 1
          else
-            counter = 0
+            Counter = 0
 
-   task filter with priority = 10
-      input  : sample
-      output : sample
-
-      loop
-         receive raw_ch, input
-         output = input / 2
-         send filtered_ch, output
-
-   task consumer with priority = 10
-      data : sample
-      sum  : integer = 0
+   task Filter with Priority = 10
+      var Input  : Sample
+      var Output : Sample
 
       loop
-         receive filtered_ch, data
-         sum = sum + integer (data)
-         if sum > 1_000_000
-            sum = 0
+         receive Raw_Ch, Input
+         Output = Input / 2
+         send Filtered_Ch, Output
+
+   task Consumer with Priority = 10
+      var Data : Sample
+      var Sum  : Integer = 0
+
+      loop
+         receive Filtered_Ch, Data
+         Sum = Sum + Integer (Data)
+         if Sum > 1_000_000
+            Sum = 0
 ```
 
 ### Ownership Move — record, access types, procedure
 
-```
-package ownership_demo
+```safe
+package Ownership_Demo
 
-   type payload is record
-      value : integer
+   type Payload is record
+      Value : Integer;
 
-   type payload_ref is access payload
+   type Payload_Ref is access Payload;
 
-   procedure transfer
-      Source : payload_ref = new ((value = 42) as payload)
-      Target : payload_ref = null
+   function Transfer
+      var Source : Payload_Ref = new ((Value = 42) as Payload)
+      var Target : Payload_Ref = null
 
-      Target = move Source
-      Target.value = 100
+      Target = Source
+      Target.Value = 100
 ```
 
 ## Tradeoffs
@@ -233,15 +238,13 @@ package ownership_demo
 
 Given the snippet:
 
-```
-package Buffers is
-   public type Buffer_Size is range 1 .. 4096;
+```safe
+package Buffers
+   public type Buffer_Size is range 1 to 4096;
    public subtype Buffer_Index is Buffer_Size;
    public type Buffer is private record
       Data   : array (Buffer_Index) of Character = (others = ' ');
       Length : Buffer_Size = 1;
-   end record;
-end Buffers;
 ```
 
 The declaration `public type Buffer is private record` reads as contradictory.

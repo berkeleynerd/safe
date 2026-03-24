@@ -68,8 +68,16 @@
     "keywords": {
       "patterns": [
         {
+          "name": "invalid.deprecated.safe",
+          "match": "\\b(then)\\b"
+        },
+        {
+          "name": "keyword.control.declare.safe",
+          "match": "\\b(begin|end)\\b"
+        },
+        {
           "name": "keyword.control.safe",
-          "match": "\\b(package|is|begin|end|if|else|then|loop|while|for|return|returns|record|type|range|to|access|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|var|null|and|or|not|mod|rem|case|when|others)\\b"
+          "match": "\\b(package|is|if|else|loop|while|for|return|returns|record|type|range|to|access|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|var|null|and|or|not|mod|rem|case|when|others)\\b"
         },
         {
           "name": "storage.modifier.safe",

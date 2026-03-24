@@ -1,7 +1,7 @@
 {
   "name": "safe-language-eval",
   "displayName": "Safe Language Eval",
-  "description": "PR11.1 evaluation tooling for Safe: static grammar through the current PR11.4 cutover subset plus disposable diagnostics.",
+  "description": "Safe editor tooling for the shipped PR11.6 meaningful-whitespace surface plus disposable diagnostics.",
   "version": "0.0.1",
   "publisher": "agentc1",
   "license": "UNLICENSED",

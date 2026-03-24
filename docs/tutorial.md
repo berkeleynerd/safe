@@ -47,25 +47,20 @@ Safe keeps most Ada surface syntax, but changes a few high-impact parts:
 
 In Safe, a package is a single `.safe` file containing declarations and bodies. There is no separate spec and body file.
 
-```ada
+```safe
 -- demo.safe
-package Demo is
+package Demo
 
    public type Index is range 0 to 15;
    public type Buf is array (Index) of Integer;
 
    Hidden : Integer = 0;  -- not public, not visible to clients
 
-   public function Sum (B : Buf) returns Integer is
-   begin
+   public function Sum (B : Buf) returns Integer
       var Total : Integer = 0
-      for I in Index.First to Index.Last loop
+      for I in Index.First to Index.Last
          Total = Total + B(I)
-      end loop
       return Total
-   end Sum;
-
-end Demo;
 ```
 
 Virtue: you can read a package top-to-bottom without jumping between spec/body, and public API is visually obvious.
@@ -78,16 +73,14 @@ See: `spec/03-single-file-packages.md`.
 
 Safe uses `private record` (not Ada's package `private` part) to express an opaque type:
 
-```ada
-package Buffers is
+```safe
+package Buffers
    public type Buffer_Size is range 1 to 4096;
    public subtype Buffer_Index is Buffer_Size;
 
    public type Buffer is private record
       Data   : array (Buffer_Index) of Character = (others = ' ');
       Length : Buffer_Size = 1;
-   end record;
-end Buffers;
 ```
 
 Virtue: clients can name and pass the type, but cannot depend on its representation.
@@ -112,16 +105,15 @@ See: `spec/02-restrictions.md` (tick restriction) and `spec/03-single-file-packa
 
 Ada uses `T'(Expr)` to qualify an expression (often an aggregate). Safe replaces this with:
 
-```ada
+```safe
 (Expr as T)
 ```
 
 This matters in allocators and aggregates. In Safe, you would write:
 
-```ada
+```safe
 type Payload is record
    Value : Integer;
-end record;
 
 type Payload_Ptr is access Payload;
 
@@ -164,19 +156,16 @@ Safe retains access-to-object types, but adopts SPARK's ownership model:
 
 Example sketch (move):
 
-```ada
+```safe
 type Node is record
    V : Integer;
-end record;
 type Node_Ptr is access Node;
 
-function Demo_Move is
-begin
+function Demo_Move
    var A : Node_Ptr = new ((V = 1) as Node)
    var B : Node_Ptr = null
    B = A        -- move A into B; A becomes null
    B.all.V = 2  -- safe dereference through the new owner
-end Demo_Move;
 ```
 
 Virtue: eliminates an entire class of aliasing and lifetime bugs, while staying in an Ada-like surface syntax.
@@ -196,47 +185,37 @@ Safe replaces most of Ada's tasking surface features with:
 
 Example sketch:
 
-```ada
-package Pipeline is
+```safe
+package Pipeline
    public type Measurement is range 0 to 65535;
 
    channel Raw : Measurement capacity 16;
    channel Out : Measurement capacity 8;
 
-   task Producer with Priority = 10 is
-   begin
+   task Producer with Priority = 10
       loop
          var M : Measurement = Read_Sensor
          send Raw, M
          delay 0.01
-      end loop
-   end Producer;
 
-   task Consumer with Priority = 5 is
-   begin
+   task Consumer with Priority = 5
       loop
          var M : Measurement
          receive Raw, M
          send Out, Process(M)
-      end loop
-   end Consumer;
-end Pipeline;
 ```
 
 Example sketch (`select`):
 
-```ada
-task Control with Priority = 10 is
-begin
+```safe
+task Control with Priority = 10
    loop
       select
-         when Cmd : Command from Commands then
+         when Cmd : Command from Commands
             Handle(Cmd)
-      or delay 1.0 then
+      or
+         delay 1.0
             Tick
-      end select
-   end loop
-end Control;
 ```
 
 Virtue: concurrency is structured around explicit communication points, which is easier to analyze and makes "what can race" more tractable.
@@ -257,15 +236,15 @@ One strong candidate idiom (from upstream GitHub Discussions
 [#11](https://github.com/berkeleynerd/safe/discussions/11) and
 [#12](https://github.com/berkeleynerd/safe/discussions/12)) is a discriminated "result" record:
 
-```ada
+```safe
 type Error_Code is (Invalid_Input, Overflow, Not_Found);
 
-	type Result (OK : Boolean = False) is record
-	   case OK is
-	      when True  then Value : Integer;
-	      when False then Error : Error_Code;
-	   end case;
-	end record;
+type Result (OK : Boolean = False) is record
+   case OK
+      when True
+         Value : Integer;
+      when False
+         Error : Error_Code;
 ```
 
 Why this is attractive in a SPARK/Safe world:

@@ -56,32 +56,24 @@ mkdir -p "$WORK/out" "$WORK/iface" "$WORK/ada"
 
 The script below writes this package:
 
-```ada
-package Typed_Channel_Demo is
+```safe
+package Typed_Channel_Demo
 
    type Message is range 0 to 1000;
 
    channel Data_Ch : Message capacity 1;
    Result : Message = 0;
 
-   task Producer is
-   begin
+   task Producer
       loop
          send Data_Ch, 41
          delay 0.05
-      end loop
-   end Producer;
 
-   task Consumer is
-   begin
+   task Consumer
       loop
          var Input : Message
          receive Data_Ch, Input
          Result = Input + 1
-      end loop
-   end Consumer;
-
-end Typed_Channel_Demo;
 ```
 
 Why this is useful:
@@ -113,7 +105,7 @@ SOURCE="$SCRIPT_DIR/typed_channel_demo.safe"
 mkdir -p "$OUT_DIR" "$IFACE_DIR" "$ADA_DIR"
 
 cat > "$SOURCE" <<'SAFE'
-package Typed_Channel_Demo is
+package Typed_Channel_Demo
 
    type Message is range 0 to 1000;
 
@@ -121,24 +113,16 @@ package Typed_Channel_Demo is
 
    Result : Message = 0;
 
-   task Producer is
-   begin
+   task Producer
       loop
          send Data_Ch, 41
          delay 0.05
-      end loop
-   end Producer;
 
-   task Consumer is
-   begin
+   task Consumer
       loop
          var Input : Message
          receive Data_Ch, Input
          Result = Input + 1
-      end loop
-   end Consumer;
-
-end Typed_Channel_Demo;
 SAFE
 
 "$SAFEC" check "$SOURCE"

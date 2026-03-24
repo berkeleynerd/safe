@@ -3,7 +3,7 @@
   "updated_at": "2026-03-24T00:00:00Z",
   "frozen_spec_sha": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "active_task_id": null,
-  "next_task_id": "PR11.7",
+  "next_task_id": "PR11.6.1",
   "repo_facts": {
     "tests": {
       "positive": 65,
@@ -812,10 +812,49 @@
       "unblock_condition": ""
     },
     {
+      "id": "PR11.6.1",
+      "title": "Attestation Chain Compression",
+      "status": "planned",
+      "depends_on": ["PR11.6"],
+      "acceptance": [
+        "A generic Merkle tree module computes SHA-256 binary Merkle roots over sorted report paths, with inclusion proof extraction and verification.",
+        "A compress tool identifies the 19 historically subsumed gate nodes (pr081-pr084, pr09a/pr09b slices, pr10 contract/flow/prove, the pr08/pr09/pr10 baseline rollups, emitted hardening, and pr101a/pr101b companion/template verification) and validates each is transitively subsumed by a live downstream gate.",
+        "Compression archives each retired report to execution/archive/<gate_id>/ with provenance.json containing report_sha256, Merkle inclusion proof, subsumed_by, and timestamp.",
+        "The gate manifest is rewritten with retired nodes removed and live-node dependencies rewired to the subsumer.",
+        "A compaction receipt in execution/compaction-receipts/ binds pre-compaction and post-compaction Merkle roots, retired gate inclusion proofs, and git commit SHAs.",
+        "The compressed pipeline (27 nodes) passes verify --authority ci with no regressions.",
+        "Replay: checking out the pre-compaction commit and recomputing the Merkle root reproduces the receipt's pre_merkle_root; each archived report's inclusion proof verifies against that root.",
+        "Gate scripts for retired nodes remain on disk for replay but are not executed in the active pipeline."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
+      "id": "PR11.6.2",
+      "title": "Legacy Ada Syntax Removal",
+      "status": "planned",
+      "depends_on": ["PR11.6.1"],
+      "acceptance": [
+        "Remove `declare` blocks from the accepted source surface; `var` declarations and implicit block scoping replace explicit `declare`/`begin`/`end` for all statement-local variable introduction.",
+        "Remove the `aliased` keyword from the accepted source surface; the ownership model infers aliasing from access type flow without manual annotation.",
+        "Remove `goto` from the accepted source surface and the spec's retained-feature list; structured control flow (`if`/`case`/`loop`/`return`) covers all supported patterns.",
+        "Remove named `exit` (exit with loop label) from the accepted surface; unnamed `exit` and `exit when` remain for structured loop termination.",
+        "Remove `null` statement from the accepted surface; empty indented blocks (immediate dedent) replace explicit no-op placeholders.",
+        "Remove legacy representation clause syntax (`for T use record`/`for T use (enum)`) from the accepted surface; aspect syntax (`with Size =>`, `with Alignment =>`) is the sole representation mechanism.",
+        "Remove legacy keyword rejection diagnostics for `procedure`, `elsif`, `..`, and `return`-as-type-annotation from the parser; these were already rejected since PR11.4 and the diagnostic scaffolding is no longer needed.",
+        "The spec, grammar summary, test corpus, Rosetta samples, documentation, and VS Code grammar are updated to reflect the removals.",
+        "A dedicated PR11.6.2 gate with positive and negative coverage demonstrates the narrowed surface, and the full pipeline passes verify --authority ci."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "unblock_condition": ""
+    },
+    {
       "id": "PR11.7",
       "title": "Reference-Surface Experiments",
       "status": "planned",
-      "depends_on": ["PR11.6"],
+      "depends_on": ["PR11.6.2"],
       "acceptance": [
         "Capitalisation as Reference Signal and Implicit Dereference are evaluated as separate high-risk reference-surface experiments rather than being silently bundled into lower-risk syntax work.",
         "Admission criteria explicitly cover parser impact, readability, ownership-model consequences, and tooling fallout.",

@@ -3,7 +3,7 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR11.7`
+- **Next task:** `PR11.6.1`
 - **Updated at:** `2026-03-24T00:00:00Z`
 
 ## Repo Facts
@@ -65,7 +65,9 @@
 | PR11.4 | done | PR11.3a | 1 |
 | PR11.5 | done | PR11.4 | 1 |
 | PR11.6 | done | PR11.5 | 1 |
-| PR11.7 | planned | PR11.6 | 0 |
+| PR11.6.1 | planned | PR11.6 | 0 |
+| PR11.6.2 | planned | PR11.6.1 | 0 |
+| PR11.7 | planned | PR11.6.2 | 0 |
 | PR11.8 | planned | PR11.7 | 0 |
 | PR11.8a | planned | PR11.8, PR11.3a | 0 |
 | PR11.8b | planned | PR10.5, PR10.6 | 0 |
@@ -695,10 +697,41 @@
 - **Evidence:**
   - `execution/reports/pr116-meaningful-whitespace-report.json`
 
-### PR11.7 — Reference-Surface Experiments
+### PR11.6.1 — Attestation Chain Compression
 
 - **Status:** `planned`
 - **Depends on:** PR11.6
+- **Blockers:** none
+- **Acceptance:**
+  - A generic Merkle tree module computes SHA-256 binary Merkle roots over sorted report paths, with inclusion proof extraction and verification.
+  - A compress tool identifies the 19 historically subsumed gate nodes (pr081-pr084, pr09a/pr09b slices, pr10 contract/flow/prove, the pr08/pr09/pr10 baseline rollups, emitted hardening, and pr101a/pr101b companion/template verification) and validates each is transitively subsumed by a live downstream gate.
+  - Compression archives each retired report to execution/archive/<gate_id>/ with provenance.json containing report_sha256, Merkle inclusion proof, subsumed_by, and timestamp.
+  - The gate manifest is rewritten with retired nodes removed and live-node dependencies rewired to the subsumer.
+  - A compaction receipt in execution/compaction-receipts/ binds pre-compaction and post-compaction Merkle roots, retired gate inclusion proofs, and git commit SHAs.
+  - The compressed pipeline (27 nodes) passes verify --authority ci with no regressions.
+  - Replay: checking out the pre-compaction commit and recomputing the Merkle root reproduces the receipt's pre_merkle_root; each archived report's inclusion proof verifies against that root.
+  - Gate scripts for retired nodes remain on disk for replay but are not executed in the active pipeline.
+
+### PR11.6.2 — Legacy Ada Syntax Removal
+
+- **Status:** `planned`
+- **Depends on:** PR11.6.1
+- **Blockers:** none
+- **Acceptance:**
+  - Remove `declare` blocks from the accepted source surface; `var` declarations and implicit block scoping replace explicit `declare`/`begin`/`end` for all statement-local variable introduction.
+  - Remove the `aliased` keyword from the accepted source surface; the ownership model infers aliasing from access type flow without manual annotation.
+  - Remove `goto` from the accepted source surface and the spec's retained-feature list; structured control flow (`if`/`case`/`loop`/`return`) covers all supported patterns.
+  - Remove named `exit` (exit with loop label) from the accepted surface; unnamed `exit` and `exit when` remain for structured loop termination.
+  - Remove `null` statement from the accepted surface; empty indented blocks (immediate dedent) replace explicit no-op placeholders.
+  - Remove legacy representation clause syntax (`for T use record`/`for T use (enum)`) from the accepted surface; aspect syntax (`with Size =>`, `with Alignment =>`) is the sole representation mechanism.
+  - Remove legacy keyword rejection diagnostics for `procedure`, `elsif`, `..`, and `return`-as-type-annotation from the parser; these were already rejected since PR11.4 and the diagnostic scaffolding is no longer needed.
+  - The spec, grammar summary, test corpus, Rosetta samples, documentation, and VS Code grammar are updated to reflect the removals.
+  - A dedicated PR11.6.2 gate with positive and negative coverage demonstrates the narrowed surface, and the full pipeline passes verify --authority ci.
+
+### PR11.7 — Reference-Surface Experiments
+
+- **Status:** `planned`
+- **Depends on:** PR11.6.2
 - **Blockers:** none
 - **Acceptance:**
   - Capitalisation as Reference Signal and Implicit Dereference are evaluated as separate high-risk reference-surface experiments rather than being silently bundled into lower-risk syntax work.

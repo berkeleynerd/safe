@@ -148,18 +148,39 @@ class Pr111LanguageEvalTests(unittest.TestCase):
 
         self.assertEqual(package_payload["main"], "./extension.js")
         self.assertEqual(package_payload["contributes"]["languages"][0]["id"], "safe")
+        self.assertIn("PR11.6", package_payload["description"])
         self.assertEqual(grammar_payload["scopeName"], "source.safe")
         keyword_matchers = grammar_payload["repository"]["keywords"]["patterns"]
+        control_matcher = next(
+            pattern for pattern in keyword_matchers if pattern["name"] == "keyword.control.safe"
+        )
+        declare_matcher = next(
+            pattern for pattern in keyword_matchers if pattern["name"] == "keyword.control.declare.safe"
+        )
+        deprecated_matcher = next(
+            pattern for pattern in keyword_matchers if pattern["name"] == "invalid.deprecated.safe"
+        )
         type_matchers = grammar_payload["repository"]["types"]["patterns"]
         builtin_matchers = grammar_payload["repository"]["builtins"]["patterns"]
         tuple_selector_matchers = grammar_payload["repository"]["tuple_selectors"]["patterns"]
         character_matchers = grammar_payload["repository"]["characters"]["patterns"]
-        self.assertIn("case", keyword_matchers[0]["match"])
-        self.assertIn("others", keyword_matchers[0]["match"])
-        self.assertIn("returns", keyword_matchers[0]["match"])
-        self.assertIn("to", keyword_matchers[0]["match"])
-        self.assertNotIn("procedure", keyword_matchers[0]["match"])
-        self.assertNotIn("elsif", keyword_matchers[0]["match"])
+        control_tokens = set(control_matcher["match"].removeprefix("\\b(").removesuffix(")\\b").split("|"))
+        declare_tokens = set(declare_matcher["match"].removeprefix("\\b(").removesuffix(")\\b").split("|"))
+        deprecated_tokens = set(
+            deprecated_matcher["match"].removeprefix("\\b(").removesuffix(")\\b").split("|")
+        )
+        self.assertIn("case", control_tokens)
+        self.assertIn("others", control_tokens)
+        self.assertIn("returns", control_tokens)
+        self.assertIn("to", control_tokens)
+        self.assertNotIn("begin", control_tokens)
+        self.assertNotIn("end", control_tokens)
+        self.assertNotIn("then", control_tokens)
+        self.assertNotIn("procedure", control_tokens)
+        self.assertNotIn("elsif", control_tokens)
+        self.assertIn("begin", declare_tokens)
+        self.assertIn("end", declare_tokens)
+        self.assertIn("then", deprecated_tokens)
         self.assertIn("Character", type_matchers[0]["match"])
         self.assertIn("String", type_matchers[0]["match"])
         self.assertIn("result", type_matchers[0]["match"])
