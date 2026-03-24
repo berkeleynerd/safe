@@ -1,6 +1,5 @@
 Diagnostics Golden: Use After Move
 Source: tests/negative/neg_own_use_after_move.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

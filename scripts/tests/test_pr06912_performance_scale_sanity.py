@@ -20,19 +20,19 @@ class Pr06912PerformanceScaleSanityTests(unittest.TestCase):
             run_pr06912_performance_scale_sanity.sample_metadata(
                 REPO_ROOT / "tests" / "positive" / "rule1_accumulate.safe"
             )["bytes"],
-            1366,
+            1298,
         )
         self.assertEqual(
             run_pr06912_performance_scale_sanity.sample_metadata(
                 REPO_ROOT / "tests" / "positive" / "rule2_binary_search.safe"
             )["bytes"],
-            1830,
+            1690,
         )
         self.assertEqual(
             run_pr06912_performance_scale_sanity.sample_metadata(
                 REPO_ROOT / "tests" / "positive" / "rule5_statistics.safe"
             )["bytes"],
-            1902,
+            1797,
         )
 
     def test_stable_source_size_leaves_non_safe_inputs_unchanged(self) -> None:

@@ -24,6 +24,7 @@ from _lib.harness_common import (
     stable_emitted_artifact_sha256,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -700,7 +701,10 @@ def run_write_to_constant_parity_case(
     check_diag = first_diag(check_payload, repo_arg(negative_source))
 
     temp_source = temp_root / f"{name}.safe"
-    temp_source.write_text(temp_source_text_for_parity(negative_source), encoding="utf-8")
+    temp_source.write_text(
+        rewrite_safe_source(temp_source_text_for_parity(negative_source)),
+        encoding="utf-8",
+    )
     emit_root = temp_root / f"{name}-emit"
     emit_result = run_emit(
         safec=safec,

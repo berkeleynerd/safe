@@ -7,7 +7,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
 -- Expected: ACCEPT
 
-package Safe_Vector_Normalize is
+package Safe_Vector_Normalize
 
    type Component is digits 6 range 0.0 to 100.0;
    type Positive_Count is range 1 to 4;
@@ -15,21 +15,21 @@ package Safe_Vector_Normalize is
       X : Component;
       Y : Component;
       Z : Component;
-   end record;
 
-   function Normalize_X (Input : Vector3) returns Float is
+
+   function Normalize_X (Input : Vector3) returns Float
       Divisor : Positive_Count = 1;
-   begin
-      if Input.X > 0.0 then
-         Divisor = Divisor + 1;
-      end if;
-      if Input.Y > 0.0 then
-         Divisor = Divisor + 1;
-      end if;
-      if Input.Z > 0.0 then
-         Divisor = Divisor + 1;
-      end if;
-      return Float (Input.X) / Float (Divisor);
-   end Normalize_X;
 
-end Safe_Vector_Normalize;
+      if Input.X > 0.0
+         Divisor = Divisor + 1;
+
+      if Input.Y > 0.0
+         Divisor = Divisor + 1;
+
+      if Input.Z > 0.0
+         Divisor = Divisor + 1;
+
+      return Float (Input.X) / Float (Divisor);
+
+
+

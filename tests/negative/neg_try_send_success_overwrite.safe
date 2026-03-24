@@ -2,23 +2,23 @@
 -- Description: Access-typed channel elements are rejected before try_send success-refinement checks run.
 -- Expected: REJECT source_frontend_error
 
-package Neg_Try_Send_Success_Overwrite is
+package Neg_Try_Send_Success_Overwrite
 
    type Payload is record
       Value : Integer;
-   end record;
+
 
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
 
-   function Run is
+   function Run
       Source  : Payload_Ptr = new ((Value = 1) as Payload);
       Success : Boolean = False;
-   begin
+
       try_send Data_Ch, Source, Success;
       Success = False;
       Source = new ((Value = 2) as Payload);
-   end Run;
 
-end Neg_Try_Send_Success_Overwrite;
+
+

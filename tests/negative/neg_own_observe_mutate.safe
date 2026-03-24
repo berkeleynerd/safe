@@ -5,21 +5,21 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
 -- Expected: REJECT observe_mutation
 
-package Observe_Mutate_Test is
+package Observe_Mutate_Test
 
    type Config is record
       Rate : Natural;
-   end record;
+
 
    type Config_Ptr is access Config;
 
    --  Mutate_Through_Observer: attempts to write via a constant access.
-   function Mutate_Through_Observer is
+   function Mutate_Through_Observer
       Owner    : Config_Ptr = new ((Rate = 100) as Config);
       Observer : access constant Config = Owner.Access;  -- observe
-   begin
+
       --  Observer is access constant; writing through it is illegal.
       Observer.all.Rate = 200;  -- ERROR: mutation through observer
-   end Mutate_Through_Observer;
 
-end Observe_Mutate_Test;
+
+

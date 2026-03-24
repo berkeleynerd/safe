@@ -30,6 +30,7 @@ from _lib.platform_assumptions import (
     MASKED_PYTHON_INTERPRETERS,
     STATIC_PYTHON_INVOCATION_PATTERNS,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -288,7 +289,7 @@ def emit_inline_source_case(
     temp_root: Path,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     source = temp_root / f"{name}.safe"
-    source.write_text(text, encoding="utf-8")
+    source.write_text(rewrite_safe_source(text), encoding="utf-8")
     emit_root = temp_root / f"{name}-emit"
     emit_run = run(
         [

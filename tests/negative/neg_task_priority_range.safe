@@ -3,13 +3,13 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p5:4e4afebc
 -- Expected: REJECT source_frontend_error
 
-package Task_Priority_Range_Test is
+package Task_Priority_Range_Test
 
-   task Worker with Priority = 10_000 is
-   begin
+   task Worker with Priority = 10_000
+
       loop
          null;
-      end loop;
-   end Worker;
 
-end Task_Priority_Range_Test;
+
+
+

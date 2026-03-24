@@ -12,7 +12,7 @@ PR103_OWNERSHIP_CORPUS: list[dict[str, Any]] = [
         "fixture": "tests/positive/ownership_borrow.safe",
         "coverage_note": "Anonymous mutable borrow with owner reuse after the borrow call and owner cleanup at scope exit.",
         "source_fragments": [
-            "function Modify_Via_Borrow (Ref : access Data) is",
+            "function Modify_Via_Borrow (Ref : access Data)",
             "Modify_Via_Borrow (Owner);",
             "Owner.all.X = Owner.all.X + 5;",
         ],
@@ -40,8 +40,8 @@ PR103_OWNERSHIP_CORPUS: list[dict[str, Any]] = [
         "fixture": "tests/positive/ownership_observe.safe",
         "coverage_note": "Two distinct access-constant observers over the same owner, with owner-only cleanup after the observations.",
         "source_fragments": [
-            "function Read_Rate (Ref : access constant Config) returns Natural is",
-            "function Read_Limit (Ref : access constant Config) returns Natural is",
+            "function Read_Rate (Ref : access constant Config) returns Natural",
+            "function Read_Limit (Ref : access constant Config) returns Natural",
             "R = Read_Rate (Owner);",
             "L = Read_Limit (Owner);",
         ],
@@ -97,7 +97,7 @@ PR103_OWNERSHIP_CORPUS: list[dict[str, Any]] = [
         "fixture": "tests/positive/ownership_return.safe",
         "coverage_note": "Return move captures the returned owner, nulls the source, preserves cleanup ordering, and frees only the final owner state at the caller.",
         "source_fragments": [
-            "function Build returns Payload_Ptr is",
+            "function Build returns Payload_Ptr",
             "return Source;",
             "Target = Build ();",
         ],
@@ -124,7 +124,7 @@ PR103_OWNERSHIP_CORPUS: list[dict[str, Any]] = [
         "fixture": "tests/positive/ownership_inout.safe",
         "coverage_note": "Owner passed by in out, consumed through the callee formal, and cleaned up only through the caller's post-call owner state.",
         "source_fragments": [
-            "function Consume (Ref : in out Payload_Ptr) is",
+            "function Consume (Ref : in out Payload_Ptr)",
             "Consume (Owner);",
         ],
         "spec_fragments": [
@@ -147,7 +147,7 @@ PR103_OWNERSHIP_CORPUS: list[dict[str, Any]] = [
         "fixture": "tests/positive/ownership_early_return.safe",
         "coverage_note": "Nested-scope early return still captures the return value before freeing inner then outer owners.",
         "source_fragments": [
-            "function Read_And_Exit returns Integer is",
+            "function Read_And_Exit returns Integer",
             "return Outer.all.Value;",
         ],
         "spec_fragments": [

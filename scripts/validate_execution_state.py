@@ -394,6 +394,7 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr113a_proof_checkpoint1.py",
     "scripts/run_pr114_signature_control_flow_syntax.py",
     "scripts/run_pr115_statement_ergonomics.py",
+    "scripts/run_pr116_meaningful_whitespace.py",
     "scripts/run_gate_pipeline.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
@@ -443,6 +444,7 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr113a_proof_checkpoint1.py",
     "scripts/run_pr114_signature_control_flow_syntax.py",
     "scripts/run_pr115_statement_ergonomics.py",
+    "scripts/run_pr116_meaningful_whitespace.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
@@ -459,6 +461,7 @@ GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
     "scripts/run_pr113a_proof_checkpoint1.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.3a sequential checkpoint corpus",
     "scripts/run_pr114_signature_control_flow_syntax.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.4 syntax cutover corpus",
     "scripts/run_pr115_statement_ergonomics.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.5 statement-ergonomics corpus",
+    "scripts/run_pr116_meaningful_whitespace.py": "fixture source-fragment checks, migration-example checks, and emitted structural assertions for the fixed PR11.6 meaningful-whitespace corpus",
 }
 GLUE_SAFETY_DIRECT_SAFE_READ_PATTERNS = [
     r'"[^"\n]*\.safe"\s*\)\.read_text\(',

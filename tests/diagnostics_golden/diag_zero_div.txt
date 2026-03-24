@@ -1,7 +1,5 @@
-Diagnostics Golden: Division by Zero
+Diagnostics Golden: Zero Div
 Source: tests/negative/neg_rule3_zero_div.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

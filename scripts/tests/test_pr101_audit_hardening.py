@@ -97,6 +97,14 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr116("PR11.5"))
         self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr116("PR11.4"))
 
+    def test_pr101_audit_next_task_guard_accepts_pr1161_and_beyond(self) -> None:
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr1161("PR11.6.1"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr1161("PR11.6.2"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr1161("PR11.7"))
+        self.assertTrue(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr1161("PR12.1"))
+        self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr1161("PR11.6"))
+        self.assertFalse(run_pr101_comprehensive_audit.task_is_at_or_beyond_pr1161("PR11.5"))
+
     def test_pr101_audit_tracks_pr111_acceptance_and_evidence(self) -> None:
         self.assertEqual(
             run_pr101_comprehensive_audit.EXPECTED_PR111_EVIDENCE,

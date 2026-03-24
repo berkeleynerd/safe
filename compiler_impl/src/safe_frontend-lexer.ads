@@ -13,6 +13,8 @@ package Safe_Frontend.Lexer is
       Real_Literal,
       String_Literal,
       Character_Literal,
+      Indent,
+      Dedent,
       Symbol,
       End_Of_File);
 

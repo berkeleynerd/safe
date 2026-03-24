@@ -1,7 +1,7 @@
 with Provider_Constant_Int;
 
-package Client_Constant_Range is
+package Client_Constant_Range
 
    type Index is range 0 to Provider_Constant_Int.Max_Count;
 
-end Client_Constant_Range;
+

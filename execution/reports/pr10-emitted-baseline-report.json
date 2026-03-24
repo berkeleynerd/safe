@@ -8,8 +8,8 @@
     "post_pr10_scope": "docs/post_pr10_scope.md",
     "readme": "README.md"
   },
-  "repeat_sha256": "7671f1c4151f55e35e3157dc68857baad489a2ecd5ccf55b057682e052dae668",
-  "report_sha256": "7671f1c4151f55e35e3157dc68857baad489a2ecd5ccf55b057682e052dae668",
+  "repeat_sha256": "52d48aa8fc7f059adc5f5174345893c9157b649ffed4353fdc44234be2ed7c30",
+  "report_sha256": "52d48aa8fc7f059adc5f5174345893c9157b649ffed4353fdc44234be2ed7c30",
   "slice_reports": [
     {
       "deterministic": true,
@@ -31,7 +31,7 @@
     }
   ],
   "tracker": {
-    "next_task_id": "PR11.6",
+    "next_task_id": "PR11.6.1",
     "pr10_evidence": [
       "execution/reports/pr10-contract-baseline-report.json",
       "execution/reports/pr10-emitted-flow-report.json",

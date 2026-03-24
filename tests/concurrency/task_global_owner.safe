@@ -4,22 +4,22 @@
 --   and the conservative Depends summary.
 -- Expected: ACCEPT
 
-package Task_Global_Owner is
+package Task_Global_Owner
 
    type Counter is range 0 to 100;
 
    Shared : Counter = 0;
 
-   function Bump is
-   begin
-      Shared = Shared + 1;
-   end Bump;
+   function Bump
 
-   task Worker is
-   begin
+      Shared = Shared + 1;
+
+
+   task Worker
+
       loop
          Bump;
-      end loop;
-   end Worker;
 
-end Task_Global_Owner;
+
+
+

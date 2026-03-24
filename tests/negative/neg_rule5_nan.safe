@@ -7,17 +7,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d
 -- Expected: REJECT nan_at_narrowing
 
-package NaN_Test is
+package NaN_Test
 
    type Temp is digits 6 range -100.0 to 100.0;
 
    --  Produce_NaN: 0.0 / 0.0 is NaN. Assigning to Temp is a narrowing
    --  point where NaN is not allowed.
-   function Produce_NaN returns Temp is
+   function Produce_NaN returns Temp
       X : Long_Float = 0.0;
       Y : Long_Float = 0.0;
-   begin
-      return Temp (X / Y);  -- ERROR: 0.0/0.0 = NaN, cannot narrow
-   end Produce_NaN;
 
-end NaN_Test;
+      return Temp (X / Y);  -- ERROR: 0.0/0.0 = NaN, cannot narrow
+
+
+

@@ -141,10 +141,10 @@
           "typed": "out/client_channel.typed.json"
         },
         "hashes": {
-          "ast": "ce694403e62a5d1a0bcd78e6af1e6573fb0978156e8ce3a92a5c84d806b2e39e",
-          "mir": "ff348b63b3867a1807184bb31fffdba36b889f44552ed82539d63ce5b8e4f018",
-          "safei": "cdf089f5c6c54dea00bdd4b1d2688660816a19fc9a7cfd8e8378e27a23a28a14",
-          "typed": "02c672878831993c1c1e5e7a9e4d4d5fcdd0edf714980302201ac2d5d20ec9dc"
+          "ast": "2a4d35ebccbae89774c911451f2a3b87eee66379dbc5e56856dc8062188a5469",
+          "mir": "725a2a00d0236749fddfb05233bde4b90aedbf802a1ce9f5585ca2e051e4e1b3",
+          "safei": "75d11437b3f0df81dd4fe8d8b345947fc2e700e802de8083baa09fde6afb1599",
+          "typed": "6cc18c32e6fad7a43e9775ff399f67d2f910c9b42f6216edd54f59eb309e2166"
         },
         "mir_payload": {
           "channels": [
@@ -176,16 +176,16 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 14,
-                    "end_line": 10,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 4,
                     "start_line": 5
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -202,16 +202,16 @@
                   "ops": [],
                   "role": "loop_header",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -270,16 +270,16 @@
                   ],
                   "role": "loop_body",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -292,16 +292,16 @@
                   "ops": [],
                   "role": "loop_exit",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 14,
-                      "end_line": 10,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 4,
                       "start_line": 5
                     },
@@ -327,8 +327,8 @@
                 }
               ],
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -358,8 +358,8 @@
               "name": "Sender",
               "signature": "task Sender",
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -493,10 +493,10 @@
           "typed": "out/client_imported_borrow_observe.typed.json"
         },
         "hashes": {
-          "ast": "ffd20d881cbadfa2ed6d432940b58f9eb9b33e531520ed1944e1da18dcef56be",
-          "mir": "1fe904e4ef7077b5dc64647e2cc374ed43256c12be9b0558843770108fe9e77f",
-          "safei": "05c9cc74c1bdf41d2c38168060f042c22c44c80695da44b38280cdbcf2949a66",
-          "typed": "0d9798396afa3d7ed71ab41ec7146eaee9dad7e08a675eec816cf0e6a68bffdf"
+          "ast": "1366b24bb67ef02b1c0e733913d1ccd42a781200df378128861a558e57e32e68",
+          "mir": "54db4bd8b6af71bd5ad7f7e0da6c1a255345871c3c1a3fcf1f8cfa28fd58ead6",
+          "safei": "61dfea623c9f9210a2c7fce0f8c2a971f5519bca3a0eee44d7366a72b0dd8967",
+          "typed": "95e4b0b5cfb3ce6be288454dbc1074146f2087f207b8058588acfc2414bc4ec7"
         },
         "mir_payload": {
           "channels": [],
@@ -543,8 +543,8 @@
               "return_type": null,
               "signature": "function Bump (Ref: access Payload)",
               "span": {
-                "end_col": 12,
-                "end_line": 12,
+                "end_col": 40,
+                "end_line": 11,
                 "start_col": 11,
                 "start_line": 9
               }
@@ -605,8 +605,8 @@
               },
               "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
-                "end_col": 18,
-                "end_line": 17,
+                "end_col": 27,
+                "end_line": 16,
                 "start_col": 11,
                 "start_line": 14
               }
@@ -651,8 +651,8 @@
               "return_type": null,
               "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
-                "end_col": 15,
-                "end_line": 22,
+                "end_col": 11,
+                "end_line": 21,
                 "start_col": 11,
                 "start_line": 19
               }
@@ -674,8 +674,8 @@
                       ],
                       "scope_id": "scope0",
                       "span": {
-                        "end_col": 11,
-                        "end_line": 13,
+                        "end_col": 29,
+                        "end_line": 11,
                         "start_col": 4,
                         "start_line": 5
                       }
@@ -685,16 +685,16 @@
                       "kind": "assign",
                       "ownership_effect": "Move",
                       "span": {
-                        "end_col": 70,
-                        "end_line": 7,
+                        "end_col": 123,
+                        "end_line": 6,
                         "start_col": 7,
                         "start_line": 6
                       },
                       "target": {
                         "name": "Owner",
                         "span": {
-                          "end_col": 70,
-                          "end_line": 7,
+                          "end_col": 123,
+                          "end_line": 6,
                           "start_col": 7,
                           "start_line": 6
                         },
@@ -704,10 +704,10 @@
                       "type": "Provider_Imported_Call_Ownership.Payload_Ptr",
                       "value": {
                         "span": {
-                          "end_col": 69,
-                          "end_line": 7,
-                          "start_col": 9,
-                          "start_line": 7
+                          "end_col": 122,
+                          "end_line": 6,
+                          "start_col": 62,
+                          "start_line": 6
                         },
                         "tag": "allocator",
                         "type": "Integer",
@@ -717,10 +717,10 @@
                               {
                                 "expr": {
                                   "span": {
-                                    "end_col": 23,
-                                    "end_line": 7,
-                                    "start_col": 23,
-                                    "start_line": 7
+                                    "end_col": 76,
+                                    "end_line": 6,
+                                    "start_col": 76,
+                                    "start_line": 6
                                   },
                                   "tag": "int",
                                   "text": "5",
@@ -729,45 +729,45 @@
                                 },
                                 "field": "Value",
                                 "span": {
-                                  "end_col": 23,
-                                  "end_line": 7,
-                                  "start_col": 15,
-                                  "start_line": 7
+                                  "end_col": 76,
+                                  "end_line": 6,
+                                  "start_col": 68,
+                                  "start_line": 6
                                 }
                               }
                             ],
                             "span": {
-                              "end_col": 24,
-                              "end_line": 7,
-                              "start_col": 14,
-                              "start_line": 7
+                              "end_col": 77,
+                              "end_line": 6,
+                              "start_col": 67,
+                              "start_line": 6
                             },
                             "tag": "aggregate",
                             "type": "Integer"
                           },
                           "span": {
-                            "end_col": 69,
-                            "end_line": 7,
-                            "start_col": 13,
-                            "start_line": 7
+                            "end_col": 122,
+                            "end_line": 6,
+                            "start_col": 66,
+                            "start_line": 6
                           },
                           "subtype": {
                             "prefix": {
                               "name": "Provider_Imported_Call_Ownership",
                               "span": {
-                                "end_col": 69,
-                                "end_line": 7,
-                                "start_col": 13,
-                                "start_line": 7
+                                "end_col": 122,
+                                "end_line": 6,
+                                "start_col": 66,
+                                "start_line": 6
                               },
                               "tag": "ident"
                             },
                             "selector": "Payload",
                             "span": {
-                              "end_col": 69,
-                              "end_line": 7,
-                              "start_col": 13,
-                              "start_line": 7
+                              "end_col": 122,
+                              "end_line": 6,
+                              "start_col": 66,
+                              "start_line": 6
                             },
                             "tag": "select"
                           },
@@ -781,9 +781,9 @@
                       "ownership_effect": "None",
                       "span": {
                         "end_col": 52,
-                        "end_line": 10,
+                        "end_line": 9,
                         "start_col": 7,
-                        "start_line": 10
+                        "start_line": 9
                       },
                       "target": null,
                       "type": "Integer",
@@ -793,9 +793,9 @@
                             "name": "Owner",
                             "span": {
                               "end_col": 50,
-                              "end_line": 10,
+                              "end_line": 9,
                               "start_col": 46,
-                              "start_line": 10
+                              "start_line": 9
                             },
                             "tag": "ident",
                             "type": "Provider_Imported_Call_Ownership.Payload_Ptr"
@@ -803,18 +803,18 @@
                         ],
                         "call_span": {
                           "end_col": 51,
-                          "end_line": 10,
+                          "end_line": 9,
                           "start_col": 45,
-                          "start_line": 10
+                          "start_line": 9
                         },
                         "callee": {
                           "prefix": {
                             "name": "Provider_Imported_Call_Ownership",
                             "span": {
                               "end_col": 38,
-                              "end_line": 10,
+                              "end_line": 9,
                               "start_col": 7,
-                              "start_line": 10
+                              "start_line": 9
                             },
                             "tag": "ident",
                             "type": "Integer"
@@ -822,18 +822,18 @@
                           "selector": "Bump",
                           "span": {
                             "end_col": 43,
-                            "end_line": 10,
+                            "end_line": 9,
                             "start_col": 7,
-                            "start_line": 10
+                            "start_line": 9
                           },
                           "tag": "select",
                           "type": "Integer"
                         },
                         "span": {
                           "end_col": 51,
-                          "end_line": 10,
+                          "end_line": 9,
                           "start_col": 7,
-                          "start_line": 10
+                          "start_line": 9
                         },
                         "tag": "call",
                         "type": "Integer"
@@ -845,17 +845,17 @@
                       "ownership_effect": "None",
                       "span": {
                         "end_col": 65,
-                        "end_line": 11,
+                        "end_line": 10,
                         "start_col": 7,
-                        "start_line": 11
+                        "start_line": 10
                       },
                       "target": {
                         "name": "Seen",
                         "span": {
                           "end_col": 10,
-                          "end_line": 11,
+                          "end_line": 10,
                           "start_col": 7,
-                          "start_line": 11
+                          "start_line": 10
                         },
                         "tag": "ident",
                         "type": "Integer"
@@ -867,9 +867,9 @@
                             "name": "Owner",
                             "span": {
                               "end_col": 63,
-                              "end_line": 11,
+                              "end_line": 10,
                               "start_col": 59,
-                              "start_line": 11
+                              "start_line": 10
                             },
                             "tag": "ident",
                             "type": "Provider_Imported_Call_Ownership.Payload_Ptr"
@@ -877,18 +877,18 @@
                         ],
                         "call_span": {
                           "end_col": 64,
-                          "end_line": 11,
+                          "end_line": 10,
                           "start_col": 58,
-                          "start_line": 11
+                          "start_line": 10
                         },
                         "callee": {
                           "prefix": {
                             "name": "Provider_Imported_Call_Ownership",
                             "span": {
                               "end_col": 45,
-                              "end_line": 11,
+                              "end_line": 10,
                               "start_col": 14,
-                              "start_line": 11
+                              "start_line": 10
                             },
                             "tag": "ident",
                             "type": "Integer"
@@ -896,18 +896,18 @@
                           "selector": "Read_Value",
                           "span": {
                             "end_col": 56,
-                            "end_line": 11,
+                            "end_line": 10,
                             "start_col": 14,
-                            "start_line": 11
+                            "start_line": 10
                           },
                           "tag": "select",
                           "type": "Integer"
                         },
                         "span": {
                           "end_col": 64,
-                          "end_line": 11,
+                          "end_line": 10,
                           "start_col": 14,
-                          "start_line": 11
+                          "start_line": 10
                         },
                         "tag": "call",
                         "type": "Integer"
@@ -919,9 +919,9 @@
                       "ownership_effect": "None",
                       "span": {
                         "end_col": 29,
-                        "end_line": 12,
+                        "end_line": 11,
                         "start_col": 7,
-                        "start_line": 12
+                        "start_line": 11
                       },
                       "target": {
                         "prefix": {
@@ -929,9 +929,9 @@
                             "name": "Owner",
                             "span": {
                               "end_col": 11,
-                              "end_line": 12,
+                              "end_line": 11,
                               "start_col": 7,
-                              "start_line": 12
+                              "start_line": 11
                             },
                             "tag": "ident",
                             "type": "Provider_Imported_Call_Ownership.Payload_Ptr"
@@ -939,9 +939,9 @@
                           "selector": "all",
                           "span": {
                             "end_col": 15,
-                            "end_line": 12,
+                            "end_line": 11,
                             "start_col": 7,
-                            "start_line": 12
+                            "start_line": 11
                           },
                           "tag": "select",
                           "type": "Provider_Imported_Call_Ownership.Payload"
@@ -949,9 +949,9 @@
                         "selector": "Value",
                         "span": {
                           "end_col": 21,
-                          "end_line": 12,
+                          "end_line": 11,
                           "start_col": 7,
-                          "start_line": 12
+                          "start_line": 11
                         },
                         "tag": "select",
                         "type": "Integer"
@@ -961,9 +961,9 @@
                         "name": "Seen",
                         "span": {
                           "end_col": 28,
-                          "end_line": 12,
+                          "end_line": 11,
                           "start_col": 25,
-                          "start_line": 12
+                          "start_line": 11
                         },
                         "tag": "ident",
                         "type": "Integer"
@@ -972,8 +972,8 @@
                   ],
                   "role": "entry",
                   "span": {
-                    "end_col": 11,
-                    "end_line": 13,
+                    "end_col": 29,
+                    "end_line": 11,
                     "start_col": 4,
                     "start_line": 5
                   },
@@ -981,8 +981,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 11,
-                      "end_line": 13,
+                      "end_col": 29,
+                      "end_line": 11,
                       "start_col": 4,
                       "start_line": 5
                     },
@@ -1002,8 +1002,8 @@
                   "ownership_role": "Owner",
                   "scope_id": "scope0",
                   "span": {
-                    "end_col": 70,
-                    "end_line": 7,
+                    "end_col": 123,
+                    "end_line": 6,
                     "start_col": 7,
                     "start_line": 6
                   },
@@ -1028,9 +1028,9 @@
                   "scope_id": "scope0",
                   "span": {
                     "end_col": 22,
-                    "end_line": 8,
+                    "end_line": 7,
                     "start_col": 7,
-                    "start_line": 8
+                    "start_line": 7
                   },
                   "type": {
                     "high": 9223372036854775807,
@@ -1058,8 +1058,8 @@
                 }
               ],
               "span": {
-                "end_col": 11,
-                "end_line": 13,
+                "end_col": 29,
+                "end_line": 11,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -1100,8 +1100,8 @@
               "name": "Run",
               "signature": "function Run ()",
               "span": {
-                "end_col": 11,
-                "end_line": 13,
+                "end_col": 29,
+                "end_line": 11,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -1233,10 +1233,10 @@
           "typed": "out/client_transitive_channel_client_ceiling.typed.json"
         },
         "hashes": {
-          "ast": "33bcaecf9eb887cf5ce5f94608518b1c068d7f88b6ba2999c8ee9d557369fcbe",
-          "mir": "952d46120e077eb24789aa48c6711be7a5f88fbb1977f72d688d7fb915296605",
-          "safei": "37d02ccbcda7e49ed3dc8c3648997b570d36a8a20ad1f952a0e3e1681af3cd93",
-          "typed": "9383dda199d81afc4caad81d76c9856662eed0747d9ac490cc02d3c16e5baa6c"
+          "ast": "7dcb21bfb0552fff57205baaff70606d450ab13e53e20e4988e7d240b74e2403",
+          "mir": "917dc7f213cd7a9074676e9fe72cac0716f212f79dd057bf90f732968f6d1f51",
+          "safei": "251213f079d7da9c94a38730be94b342262e7111bb0eebb9577d63872caba6c4",
+          "typed": "7cc85b4497bb5edb62271d77b7e7a622844e7c9bf8fd30d3069009e9fc4c261f"
         },
         "mir_payload": {
           "channels": [
@@ -1280,8 +1280,8 @@
               "return_type": null,
               "signature": "function Push ()",
               "span": {
-                "end_col": 12,
-                "end_line": 25,
+                "end_col": 20,
+                "end_line": 24,
                 "start_col": 11,
                 "start_line": 22
               }
@@ -1297,16 +1297,16 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 14,
-                    "end_line": 10,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 4,
                     "start_line": 5
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -1323,16 +1323,16 @@
                   "ops": [],
                   "role": "loop_header",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -1397,16 +1397,16 @@
                   ],
                   "role": "loop_body",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -1419,16 +1419,16 @@
                   "ops": [],
                   "role": "loop_exit",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 14,
-                      "end_line": 10,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 4,
                       "start_line": 5
                     },
@@ -1454,8 +1454,8 @@
                 }
               ],
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -1485,8 +1485,8 @@
               "name": "Caller",
               "signature": "task Caller",
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -1618,10 +1618,10 @@
           "typed": "out/client_transitive_channel_provider_ceiling.typed.json"
         },
         "hashes": {
-          "ast": "a7ecc37474f0f41897a4cadeb6da294f450af4f44d199cad2fa1d249a16ba760",
-          "mir": "5b51207c491d3cd8840a2ff4b35383bcfe28a6b9e0f428d3d765c19f94ae5e2b",
-          "safei": "0bd4b68e211c7dd83f80d928822dfce618311a77c9de513aa9187e088730ac7c",
-          "typed": "bc308b15662c0b875da887d64246afadcbcc4fbef9bad98cd2e0874568fee063"
+          "ast": "9ed34cdec1a9e77b181d7611901f7d649c8a083a4c10a9c1f5677d7b7268ef8a",
+          "mir": "1662723a309428c1bee42120381eb917cd7c8936e9df92321ef0a5455c25cf59",
+          "safei": "8d77164509a5c9712b15cb5842df857e4031f4c3f1881073ddb61a84ea9a35a6",
+          "typed": "b05594f1b851f3fa5f5516b4b231e6e96227d1d7330ab71bd80931d985d76503"
         },
         "mir_payload": {
           "channels": [
@@ -1665,8 +1665,8 @@
               "return_type": null,
               "signature": "function Push ()",
               "span": {
-                "end_col": 12,
-                "end_line": 25,
+                "end_col": 20,
+                "end_line": 24,
                 "start_col": 11,
                 "start_line": 22
               }
@@ -1682,16 +1682,16 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 14,
-                    "end_line": 10,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 4,
                     "start_line": 5
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -1708,16 +1708,16 @@
                   "ops": [],
                   "role": "loop_header",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -1782,16 +1782,16 @@
                   ],
                   "role": "loop_body",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -1804,16 +1804,16 @@
                   "ops": [],
                   "role": "loop_exit",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 14,
-                      "end_line": 10,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 4,
                       "start_line": 5
                     },
@@ -1839,8 +1839,8 @@
                 }
               ],
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -1870,8 +1870,8 @@
               "name": "Caller",
               "signature": "task Caller",
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -2009,10 +2009,10 @@
           "typed": "out/client_transitive_global_ok.typed.json"
         },
         "hashes": {
-          "ast": "c85c6a2312ccbe4e48d61990f79f32063294cbd7b36993ccfd6edd0e4fcb3351",
-          "mir": "f6424b2a09bdec969dd9acc78a7c801d47b83b0ceb2d83439d27e83e7a2ad3ff",
-          "safei": "75b8bdda3ed577f26496a036764d8e9f4eb8ae89e0d6f153c0cc5a909e731a41",
-          "typed": "7077d6c4706edd79ed14c7c13e4949318262d877d667ce3b26e6b2aec397540e"
+          "ast": "44c3c09cd708b4c1a7e2eeeb53cfd41761982358f68daf8fb706a833b1ebe8fb",
+          "mir": "a3b3c0d4be969837a0fb2a920047361673cc041ae1d1b31e845c09fd441a045e",
+          "safei": "085302282d8f7700362a2eaad45438d74c22eddd8bfbf92db5d1281fe2e3f881",
+          "typed": "15e2a41243714eeb62e50281cf253348854df2e3a1a2056abfa4a1f2ef090021"
         },
         "mir_payload": {
           "channels": [],
@@ -2051,8 +2051,8 @@
               "return_type": null,
               "signature": "function Touch ()",
               "span": {
-                "end_col": 13,
-                "end_line": 13,
+                "end_col": 21,
+                "end_line": 12,
                 "start_col": 11,
                 "start_line": 10
               }
@@ -2068,16 +2068,16 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 14,
-                    "end_line": 10,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 4,
                     "start_line": 5
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -2094,16 +2094,16 @@
                   "ops": [],
                   "role": "loop_header",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -2168,16 +2168,16 @@
                   ],
                   "role": "loop_body",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 9,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 7,
                       "start_line": 7
                     },
@@ -2190,16 +2190,16 @@
                   "ops": [],
                   "role": "loop_exit",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 9,
+                    "end_col": 42,
+                    "end_line": 8,
                     "start_col": 7,
                     "start_line": 7
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 14,
-                      "end_line": 10,
+                      "end_col": 42,
+                      "end_line": 8,
                       "start_col": 4,
                       "start_line": 5
                     },
@@ -2225,8 +2225,8 @@
                 }
               ],
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -2249,8 +2249,8 @@
               "name": "Worker",
               "signature": "task Worker",
               "span": {
-                "end_col": 14,
-                "end_line": 10,
+                "end_col": 42,
+                "end_line": 8,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -2337,10 +2337,10 @@
           "typed": "out/provider_channel.typed.json"
         },
         "hashes": {
-          "ast": "9b1926f8b58e9c290ae00f88e7c2028b9f5d2dcb28efcabf86cef40a37ec59b6",
+          "ast": "991f53e5184d43554b59453c1c8c7c70d1c081c94b349337927246ef7b952629",
           "mir": "7f4ab0b86e5e5ccfa3695279cd59172781478002b94f080d2d134aad52a3bba6",
           "safei": "902e2de5bde709d4360dc7df6db2a526b066396f1f58d8de8c4760c3ab3aaab2",
-          "typed": "94fcfabf60d36796487e76ea9ced28db8ab33579d39a6406d6463e4aefc1d63b"
+          "typed": "3174d191d2e9c4c49c0380c6c3bf5f9e187d4e4a85a676667b6da850cf808d39"
         },
         "mir_payload": {
           "channels": [
@@ -2482,10 +2482,10 @@
           "typed": "out/provider_imported_call_ownership.typed.json"
         },
         "hashes": {
-          "ast": "dae6b218de2dfe5faefd779ab19daad5c87afb12d64243417c4c62890e802d99",
-          "mir": "099950e5c8f0f240246fffce59959251f67644b981e405af8e63f185cf2919c0",
-          "safei": "9fac2b4228400dcc7caed6c824720057921c5de129918116ac71d4787fc3b559",
-          "typed": "7536b6709fc1f59fb755a56b85c8dda6688999b5eec1b41d42e3895d8eeb1e38"
+          "ast": "57ade098917016b76639fad9c06971c9d1be541892911f02d7ddd3dc19b361ca",
+          "mir": "44c49d85ab141d8dcfe5e8ca49d4b903fc0394f753346a4e6b4223de1692fe70",
+          "safei": "779f06f101836eb25b1ab4e4525a1cbe02490537df6c322c83f63967a4e1eac4",
+          "typed": "5cb4abe24008ba1b40d3c8196f8c74c8465ede06ebfd1109c45657dcbffe8cc4"
         },
         "mir_payload": {
           "channels": [],
@@ -2602,8 +2602,8 @@
                   ],
                   "role": "entry",
                   "span": {
-                    "end_col": 12,
-                    "end_line": 12,
+                    "end_col": 40,
+                    "end_line": 11,
                     "start_col": 11,
                     "start_line": 9
                   },
@@ -2611,8 +2611,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 12,
-                      "end_line": 12,
+                      "end_col": 40,
+                      "end_line": 11,
                       "start_col": 11,
                       "start_line": 9
                     },
@@ -2666,8 +2666,8 @@
                 }
               ],
               "span": {
-                "end_col": 12,
-                "end_line": 12,
+                "end_col": 40,
+                "end_line": 11,
                 "start_col": 11,
                 "start_line": 9
               }
@@ -2680,8 +2680,8 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 18,
-                    "end_line": 17,
+                    "end_col": 27,
+                    "end_line": 16,
                     "start_col": 11,
                     "start_line": 14
                   },
@@ -2781,8 +2781,8 @@
                 }
               ],
               "span": {
-                "end_col": 18,
-                "end_line": 17,
+                "end_col": 27,
+                "end_line": 16,
                 "start_col": 11,
                 "start_line": 14
               }
@@ -2795,8 +2795,8 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 22,
+                    "end_col": 11,
+                    "end_line": 21,
                     "start_col": 11,
                     "start_line": 19
                   },
@@ -2804,8 +2804,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 22,
+                      "end_col": 11,
+                      "end_line": 21,
                       "start_col": 11,
                       "start_line": 19
                     },
@@ -2859,8 +2859,8 @@
                 }
               ],
               "span": {
-                "end_col": 15,
-                "end_line": 22,
+                "end_col": 11,
+                "end_line": 21,
                 "start_col": 11,
                 "start_line": 19
               }
@@ -2956,8 +2956,8 @@
               "name": "Bump",
               "signature": "function Bump (Ref: access Payload)",
               "span": {
-                "end_col": 12,
-                "end_line": 12,
+                "end_col": 40,
+                "end_line": 11,
                 "start_col": 11,
                 "start_line": 9
               }
@@ -2967,8 +2967,8 @@
               "name": "Read_Value",
               "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
-                "end_col": 18,
-                "end_line": 17,
+                "end_col": 27,
+                "end_line": 16,
                 "start_col": 11,
                 "start_line": 14
               }
@@ -2978,8 +2978,8 @@
               "name": "Consume",
               "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
-                "end_col": 15,
-                "end_line": 22,
+                "end_col": 11,
+                "end_line": 21,
                 "start_col": 11,
                 "start_line": 19
               }
@@ -2994,8 +2994,8 @@
               "name": "Payload",
               "signature": "Payload",
               "span": {
-                "end_col": 14,
-                "end_line": 5,
+                "end_col": 22,
+                "end_line": 4,
                 "start_col": 11,
                 "start_line": 3
               }
@@ -3016,8 +3016,8 @@
               "name": "Bump",
               "signature": "function Bump (Ref: access Payload)",
               "span": {
-                "end_col": 12,
-                "end_line": 12,
+                "end_col": 40,
+                "end_line": 11,
                 "start_col": 11,
                 "start_line": 9
               }
@@ -3027,8 +3027,8 @@
               "name": "Read_Value",
               "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
-                "end_col": 18,
-                "end_line": 17,
+                "end_col": 27,
+                "end_line": 16,
                 "start_col": 11,
                 "start_line": 14
               }
@@ -3038,8 +3038,8 @@
               "name": "Consume",
               "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
-                "end_col": 15,
-                "end_line": 22,
+                "end_col": 11,
+                "end_line": 21,
                 "start_col": 11,
                 "start_line": 19
               }
@@ -3076,8 +3076,8 @@
               "return_type": null,
               "signature": "function Bump (Ref: access Payload)",
               "span": {
-                "end_col": 12,
-                "end_line": 12,
+                "end_col": 40,
+                "end_line": 11,
                 "start_col": 11,
                 "start_line": 9
               }
@@ -3117,8 +3117,8 @@
               },
               "signature": "function Read_Value (Ref: access Payload) returns Integer",
               "span": {
-                "end_col": 18,
-                "end_line": 17,
+                "end_col": 27,
+                "end_line": 16,
                 "start_col": 11,
                 "start_line": 14
               }
@@ -3153,8 +3153,8 @@
               "return_type": null,
               "signature": "function Consume (Ref: Payload_Ptr)",
               "span": {
-                "end_col": 15,
-                "end_line": 22,
+                "end_col": 11,
+                "end_line": 21,
                 "start_col": 11,
                 "start_line": 19
               }
@@ -3252,10 +3252,10 @@
           "typed": "out/provider_transitive_channel.typed.json"
         },
         "hashes": {
-          "ast": "ea372849e37fcb2c5ee2c699f26764033d39fad40ead811c564daf56c1a85bc8",
-          "mir": "5f0362c295542c0eaae44e418c4992b74ea7d079aad8f1c9c6eddd21a0df47ca",
-          "safei": "0a1d04fbff261de5ba07223ff6486a05310fd927fb6928b12008315d5d74ad51",
-          "typed": "0cec913b45b8dcc74cb7117f717b298e4e6584190b46ffcadeabf270c5ace85d"
+          "ast": "ab25b113a4975898b2bf409a7d61c1106de8efdf9f85cf110ccdba97ebc96072",
+          "mir": "046c803a6c65bab9aac35f305a16746f5d982e39b1b0331682498856d1f25eb4",
+          "safei": "897bc42729741dde8eb70b1671ee0f337bae8385a701b94d2ffc0ecc72235b4e",
+          "typed": "13599ccb1ad9dd5fbeb8a79500b283bc5153a4e88af6b5cb31875c1007f89bda"
         },
         "mir_payload": {
           "channels": [
@@ -3322,8 +3322,8 @@
                   ],
                   "role": "entry",
                   "span": {
-                    "end_col": 21,
-                    "end_line": 20,
+                    "end_col": 22,
+                    "end_line": 19,
                     "start_col": 4,
                     "start_line": 17
                   },
@@ -3331,8 +3331,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 21,
-                      "end_line": 20,
+                      "end_col": 22,
+                      "end_line": 19,
                       "start_col": 4,
                       "start_line": 17
                     },
@@ -3358,8 +3358,8 @@
                 }
               ],
               "span": {
-                "end_col": 21,
-                "end_line": 20,
+                "end_col": 22,
+                "end_line": 19,
                 "start_col": 4,
                 "start_line": 17
               }
@@ -3413,8 +3413,8 @@
                   ],
                   "role": "entry",
                   "span": {
-                    "end_col": 12,
-                    "end_line": 25,
+                    "end_col": 20,
+                    "end_line": 24,
                     "start_col": 11,
                     "start_line": 22
                   },
@@ -3422,8 +3422,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 12,
-                      "end_line": 25,
+                      "end_col": 20,
+                      "end_line": 24,
                       "start_col": 11,
                       "start_line": 22
                     },
@@ -3449,8 +3449,8 @@
                 }
               ],
               "span": {
-                "end_col": 12,
-                "end_line": 25,
+                "end_col": 20,
+                "end_line": 24,
                 "start_col": 11,
                 "start_line": 22
               }
@@ -3463,16 +3463,16 @@
                   "ops": [],
                   "role": "entry",
                   "span": {
-                    "end_col": 14,
-                    "end_line": 15,
+                    "end_col": 13,
+                    "end_line": 13,
                     "start_col": 4,
                     "start_line": 6
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 14,
+                      "end_col": 13,
+                      "end_line": 13,
                       "start_col": 7,
                       "start_line": 8
                     },
@@ -3489,16 +3489,16 @@
                   "ops": [],
                   "role": "loop_header",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 14,
+                    "end_col": 13,
+                    "end_line": 13,
                     "start_col": 7,
                     "start_line": 8
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 14,
+                      "end_col": 13,
+                      "end_line": 13,
                       "start_col": 7,
                       "start_line": 8
                     },
@@ -3511,8 +3511,8 @@
                   "ops": [],
                   "role": "loop_body",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 14,
+                    "end_col": 13,
+                    "end_line": 13,
                     "start_col": 7,
                     "start_line": 8
                   },
@@ -3533,16 +3533,16 @@
                   "ops": [],
                   "role": "loop_exit",
                   "span": {
-                    "end_col": 15,
-                    "end_line": 14,
+                    "end_col": 13,
+                    "end_line": 13,
                     "start_col": 7,
                     "start_line": 8
                   },
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 14,
-                      "end_line": 15,
+                      "end_col": 13,
+                      "end_line": 13,
                       "start_col": 4,
                       "start_line": 6
                     },
@@ -3655,8 +3655,8 @@
                   "terminator": {
                     "kind": "jump",
                     "span": {
-                      "end_col": 15,
-                      "end_line": 14,
+                      "end_col": 13,
+                      "end_line": 13,
                       "start_col": 7,
                       "start_line": 8
                     },
@@ -3716,8 +3716,8 @@
                 }
               ],
               "span": {
-                "end_col": 14,
-                "end_line": 15,
+                "end_col": 13,
+                "end_line": 13,
                 "start_col": 4,
                 "start_line": 6
               }
@@ -3782,8 +3782,8 @@
               "name": "Push_Internal",
               "signature": "function Push_Internal ()",
               "span": {
-                "end_col": 21,
-                "end_line": 20,
+                "end_col": 22,
+                "end_line": 19,
                 "start_col": 4,
                 "start_line": 17
               }
@@ -3793,8 +3793,8 @@
               "name": "Push",
               "signature": "function Push ()",
               "span": {
-                "end_col": 12,
-                "end_line": 25,
+                "end_col": 20,
+                "end_line": 24,
                 "start_col": 11,
                 "start_line": 22
               }
@@ -3804,8 +3804,8 @@
               "name": "Worker",
               "signature": "task Worker",
               "span": {
-                "end_col": 14,
-                "end_line": 15,
+                "end_col": 13,
+                "end_line": 13,
                 "start_col": 4,
                 "start_line": 6
               }
@@ -3831,8 +3831,8 @@
               "name": "Push",
               "signature": "function Push ()",
               "span": {
-                "end_col": 12,
-                "end_line": 25,
+                "end_col": 20,
+                "end_line": 24,
                 "start_col": 11,
                 "start_line": 22
               }
@@ -3848,8 +3848,8 @@
               "return_type": null,
               "signature": "function Push ()",
               "span": {
-                "end_col": 12,
-                "end_line": 25,
+                "end_col": 20,
+                "end_line": 24,
                 "start_col": 11,
                 "start_line": 22
               }
@@ -3936,10 +3936,10 @@
           "typed": "out/provider_transitive_global.typed.json"
         },
         "hashes": {
-          "ast": "94a47490233bec7eacc7b70d390ab42f477bfc55f5aa309bffb794ef31891c52",
-          "mir": "338f1d012828348536c2002add58b2317d4055fe5220dc713361751f4c7df2a7",
-          "safei": "4cf4e7cbb404263a5e18459e69b11bc91077b48b38ca76773b1d3bf1616371ad",
-          "typed": "4c0cc67223f4eb78b1fe24f2d81c9252c39371b1b62b7501bb765625473aed29"
+          "ast": "9534578d9b03a9870a3e8cc2dc0afb0f0a1f7d5704d0cb89827a179338e47fda",
+          "mir": "0d6fda1a30e1f4152c27d28664f476223abc83ffbab52925c42ca190b91af1bd",
+          "safei": "0d4549698e1c9c14759b64e31f65742eb894b14a319921ab99b5a402e2533d69",
+          "typed": "b465a4d90bd75ffcdb5e81a85a26b98d8f6c66ede4b5041278015a9e7256f018"
         },
         "mir_payload": {
           "channels": [],
@@ -4047,8 +4047,8 @@
                   ],
                   "role": "entry",
                   "span": {
-                    "end_col": 22,
-                    "end_line": 8,
+                    "end_col": 26,
+                    "end_line": 7,
                     "start_col": 4,
                     "start_line": 5
                   },
@@ -4056,8 +4056,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 22,
-                      "end_line": 8,
+                      "end_col": 26,
+                      "end_line": 7,
                       "start_col": 4,
                       "start_line": 5
                     },
@@ -4107,8 +4107,8 @@
                 }
               ],
               "span": {
-                "end_col": 22,
-                "end_line": 8,
+                "end_col": 26,
+                "end_line": 7,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -4197,8 +4197,8 @@
                   ],
                   "role": "entry",
                   "span": {
-                    "end_col": 13,
-                    "end_line": 13,
+                    "end_col": 21,
+                    "end_line": 12,
                     "start_col": 11,
                     "start_line": 10
                   },
@@ -4206,8 +4206,8 @@
                     "kind": "return",
                     "ownership_effect": "None",
                     "span": {
-                      "end_col": 13,
-                      "end_line": 13,
+                      "end_col": 21,
+                      "end_line": 12,
                       "start_col": 11,
                       "start_line": 10
                     },
@@ -4257,8 +4257,8 @@
                 }
               ],
               "span": {
-                "end_col": 13,
-                "end_line": 13,
+                "end_col": 21,
+                "end_line": 12,
                 "start_col": 11,
                 "start_line": 10
               }
@@ -4310,8 +4310,8 @@
               "name": "Touch_Internal",
               "signature": "function Touch_Internal ()",
               "span": {
-                "end_col": 22,
-                "end_line": 8,
+                "end_col": 26,
+                "end_line": 7,
                 "start_col": 4,
                 "start_line": 5
               }
@@ -4321,8 +4321,8 @@
               "name": "Touch",
               "signature": "function Touch ()",
               "span": {
-                "end_col": 13,
-                "end_line": 13,
+                "end_col": 21,
+                "end_line": 12,
                 "start_col": 11,
                 "start_line": 10
               }
@@ -4337,8 +4337,8 @@
               "name": "Touch",
               "signature": "function Touch ()",
               "span": {
-                "end_col": 13,
-                "end_line": 13,
+                "end_col": 21,
+                "end_line": 12,
                 "start_col": 11,
                 "start_line": 10
               }
@@ -4354,8 +4354,8 @@
               "return_type": null,
               "signature": "function Touch ()",
               "span": {
-                "end_col": 13,
-                "end_line": 13,
+                "end_col": 21,
+                "end_line": 12,
                 "start_col": 11,
                 "start_line": 10
               }
@@ -4412,8 +4412,8 @@
       }
     }
   },
-  "repeat_sha256": "cec94b560af15766e0ebe8dfe384f191d9c4e55197e31647c51c6f94d8181ef6",
-  "report_sha256": "cec94b560af15766e0ebe8dfe384f191d9c4e55197e31647c51c6f94d8181ef6",
+  "repeat_sha256": "2518ecd95844bf9b69a955192151fdd5fa0debe64445110e7ada8d397a5885dc",
+  "report_sha256": "2518ecd95844bf9b69a955192151fdd5fa0debe64445110e7ada8d397a5885dc",
   "synthetic_parity": {
     "imported_inout_parity": {
       "analyze_mir": {

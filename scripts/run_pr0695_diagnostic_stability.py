@@ -25,6 +25,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -322,13 +323,14 @@ def run_source_frontend_cases(safec: Path, env: dict[str, str], temp_root: Path)
     inline_cases = [
         {
             "name": "package_end_mismatch.safe",
-            "text": "package Package_End_Mismatch is\nend Different_Name;\n",
+            "text": "package Legacy_Begin\n   begin\n      null;\n",
+            "rewrite": False,
             "expected": {
                 "reason": "source_frontend_error",
-                "message": "package end name must match declared package name",
-                "span": {"start_line": 2, "start_col": 1, "end_line": 2, "end_col": 18},
+                "message": "legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation",
+                "span": {"start_line": 2, "start_col": 4, "end_line": 2, "end_col": 8},
                 "highlight_span": None,
-                "notes": ["declared `Package_End_Mismatch`, found `Different_Name`"],
+                "notes": [],
                 "suggestions": [],
             },
         },
@@ -353,7 +355,10 @@ def run_source_frontend_cases(safec: Path, env: dict[str, str], temp_root: Path)
     inline_results: list[dict[str, Any]] = []
     for case in inline_cases:
         source = temp_root / case["name"]
-        source.write_text(case["text"], encoding="utf-8")
+        source.write_text(
+            rewrite_safe_source(case["text"]) if case.get("rewrite", True) else case["text"],
+            encoding="utf-8",
+        )
         diag_json = run(
             [str(safec), "check", "--diag-json", str(source)],
             cwd=REPO_ROOT,

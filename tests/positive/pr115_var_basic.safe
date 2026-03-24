@@ -1,12 +1,12 @@
-package PR115_Var_Basic is
+package PR115_Var_Basic
 
    type Counter is range 0 to 20;
 
-   function Bump (Input : Counter) returns Counter is
-   begin
+   function Bump (Input : Counter) returns Counter
+
       var Local : Counter = Input
       Local = Input
       return Local
-   end Bump;
 
-end PR115_Var_Basic;
+
+

@@ -24,6 +24,7 @@ from _lib.harness_common import (
     stable_emitted_artifact_sha256,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -542,7 +543,7 @@ def validate_analysis_regression_case(
     temp_root: Path,
 ) -> dict[str, Any]:
     source = temp_root / sample["name"]
-    source.write_text(sample["text"], encoding="utf-8")
+    source.write_text(rewrite_safe_source(sample["text"]), encoding="utf-8")
 
     ast_result = run([str(safec), "ast", str(source)], cwd=REPO_ROOT, env=env, temp_root=temp_root)
     check_diag_json = run(

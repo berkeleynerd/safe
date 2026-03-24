@@ -3,34 +3,34 @@
 --   The reachability is genuinely transitive through Wrapper -> Helper.
 -- Expected: REJECT task_variable_ownership
 
-package Neg_Task_Shared_Subprogram_Global is
+package Neg_Task_Shared_Subprogram_Global
 
    type Counter is range 0 to 100;
 
    Shared : Counter = 0;
 
-   function Helper is
-   begin
+   function Helper
+
       Shared = Shared + 1;
-   end Helper;
 
-   function Wrapper is
-   begin
+
+   function Wrapper
+
       Helper;
-   end Wrapper;
 
-   task A is
-   begin
+
+   task A
+
       loop
          Helper;
-      end loop;
-   end A;
 
-   task B is
-   begin
+
+
+   task B
+
       loop
          Wrapper;
-      end loop;
-   end B;
 
-end Neg_Task_Shared_Subprogram_Global;
+
+
+

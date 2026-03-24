@@ -4,14 +4,14 @@
 --   on the non-arithmetic slice.
 -- Expected: ACCEPT
 
-package Emitter_Surface_Proc is
+package Emitter_Surface_Proc
 
    type Small is range 0 to 5;
 
-   function Copy (Input : Small; Output : out Small) is
+   function Copy (Input : Small; Output : out Small)
       Local : Small = Input;
-   begin
-      Output = Local;
-   end Copy;
 
-end Emitter_Surface_Proc;
+      Output = Local;
+
+
+

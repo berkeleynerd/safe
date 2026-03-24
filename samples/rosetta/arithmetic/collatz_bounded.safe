@@ -1,27 +1,27 @@
-package Collatz_Bounded is
+package Collatz_Bounded
 
    type Seed_Value is range 1 to 64;
    type Working_Value is range 1 to 4096;
    type Step_Count is range 0 to 64;
    type Iteration is range 1 to 64;
 
-   function Steps (Seed : Seed_Value) returns Step_Count is
-   begin
+   function Steps (Seed : Seed_Value) returns Step_Count
+
       var Current : Working_Value = Working_Value (Seed)
       var Total   : Step_Count = 0
-      for Step in Iteration loop
-         if Current == 1 then
+      for Step in Iteration
+         if Current == 1
             return Total
-         end if
-         if (Current rem 2) == 0 then
+
+         if (Current rem 2) == 0
             Current = Current / 2
          else
             Current = (Current * 3) + 1
-         end if
+
          Total = Total + 1
-      end loop
+
 
       return Total
-   end Steps;
 
-end Collatz_Bounded;
+
+

@@ -6,39 +6,39 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
 -- Expected: ACCEPT
 
-package Ownership_Observe is
+package Ownership_Observe
 
    type Config is record
       Rate  : Natural;
       Limit : Natural;
-   end record;
+
 
    type Config_Ptr is access Config;
 
    --  Read_Rate: observes the config through a constant access parameter.
    --  The observer does not mutate the designated object.
-   function Read_Rate (Ref : access constant Config) returns Natural is
-   begin
+   function Read_Rate (Ref : access constant Config) returns Natural
+
       return Ref.all.Rate;
-   end Read_Rate;
+
 
    --  Read_Limit: another observer on the same object.
-   function Read_Limit (Ref : access constant Config) returns Natural is
-   begin
+   function Read_Limit (Ref : access constant Config) returns Natural
+
       return Ref.all.Limit;
-   end Read_Limit;
+
 
    --  Use_Observe: creates an owned config, then observes it twice.
    --  Multiple observations of the same owned object are safe.
-   function Use_Observe is
+   function Use_Observe
       Owner : Config_Ptr = new ((Rate = 100, Limit = 500) as Config);
       R     : Natural;
       L     : Natural;
-   begin
+
       R = Read_Rate (Owner);
       L = Read_Limit (Owner);
       --  Owner regains full ownership after observations end.
       --  Owner goes out of scope; automatic deallocation.
-   end Use_Observe;
 
-end Ownership_Observe;
+
+

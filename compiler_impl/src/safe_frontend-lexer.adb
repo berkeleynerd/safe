@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Unbounded;
@@ -6,6 +7,9 @@ with Safe_Frontend.Json;
 package body Safe_Frontend.Lexer is
    package FD renames Safe_Frontend.Diagnostics;
    package US renames Ada.Strings.Unbounded;
+   package Natural_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Natural);
 
    function Kind_Name (Kind : Token_Kind) return String is
    begin
@@ -22,6 +26,10 @@ package body Safe_Frontend.Lexer is
             return "string_literal";
          when Character_Literal =>
             return "character_literal";
+         when Indent =>
+            return "indent";
+         when Dedent =>
+            return "dedent";
          when Symbol =>
             return "symbol";
          when End_Of_File =>
@@ -87,6 +95,9 @@ package body Safe_Frontend.Lexer is
       Index  : Natural := 1;
       Line   : Positive := 1;
       Column : Positive := 1;
+      Indents : Natural_Vectors.Vector;
+      At_Line_Start : Boolean := True;
+      Paren_Depth   : Natural := 0;
 
       procedure Advance is
       begin
@@ -94,6 +105,7 @@ package body Safe_Frontend.Lexer is
             if Text (Index) = Ada.Characters.Latin_1.LF then
                Line := Line + 1;
                Column := 1;
+               At_Line_Start := True;
             else
                Column := Column + 1;
             end if;
@@ -124,6 +136,22 @@ package body Safe_Frontend.Lexer is
              Span   => Make_Span (Start_Line, Start_Column, End_Line, End_Column)));
       end Append_Token;
 
+      procedure Append_Structural_Token
+        (Kind         : Token_Kind;
+         Token_Line   : Positive;
+         Start_Column : Positive;
+         End_Column   : Positive;
+         Lexeme       : String) is
+      begin
+         Append_Token
+           (Kind,
+            Lexeme,
+            Token_Line,
+            Start_Column,
+            Token_Line,
+            End_Column);
+      end Append_Structural_Token;
+
       procedure Report_Legacy_Token
         (Lexeme       : String;
          Start_Line   : Positive;
@@ -149,9 +177,144 @@ package body Safe_Frontend.Lexer is
             Suggestion => Suggestion);
       end Report_Legacy_Token;
 
+      procedure Report_Indentation_Error
+        (Start_Line   : Positive;
+         Start_Column : Positive;
+         End_Column   : Positive;
+         Message      : String) is
+      begin
+         FD.Add_Error
+           (Collection => Diagnostics,
+            Path       => FT.To_String (Input.Path),
+            Span       => Make_Span (Start_Line, Start_Column, Start_Line, End_Column),
+            Code       => "SC1002",
+            Message    => Message,
+            Suggestion => "Use spaces only and indent block bodies by exactly 3 spaces.");
+      end Report_Indentation_Error;
+
+      function Current_Indent return Natural is
+      begin
+         if Indents.Is_Empty then
+            return 0;
+         end if;
+         return Indents (Indents.Last_Index);
+      end Current_Indent;
+
+      procedure Emit_Dedents
+        (Target_Indent : Natural;
+         Token_Line    : Positive;
+         Token_Column  : Positive) is
+         Span_End : constant Positive :=
+           (if Token_Column < 1 then 1 else Token_Column);
+      begin
+         while not Indents.Is_Empty and then Current_Indent > Target_Indent loop
+            Indents.Delete_Last;
+            Append_Structural_Token
+              (Dedent,
+               Token_Line,
+               1,
+               Span_End,
+               "<dedent>");
+         end loop;
+      end Emit_Dedents;
+
+      procedure Handle_Line_Start is
+         Leading_Columns : Natural := 0;
+         Saw_Tab         : Boolean := False;
+         Token_Line      : constant Positive := Line;
+      begin
+         if not At_Line_Start then
+            return;
+         end if;
+
+         while Peek = ' ' or else Peek = Ada.Characters.Latin_1.HT loop
+            if Peek = Ada.Characters.Latin_1.HT then
+               Saw_Tab := True;
+            else
+               Leading_Columns := Leading_Columns + 1;
+            end if;
+            Advance;
+         end loop;
+
+         if Peek = Ada.Characters.Latin_1.CR then
+            Advance;
+         end if;
+
+         if Peek = Ada.Characters.Latin_1.LF then
+            Advance;
+            return;
+         elsif Peek = '-' and then Peek (1) = '-' then
+            while Index <= Text'Length and then Peek /= Ada.Characters.Latin_1.LF loop
+               Advance;
+            end loop;
+            if Peek = Ada.Characters.Latin_1.LF then
+               Advance;
+            end if;
+            return;
+         end if;
+
+         if Saw_Tab then
+            Report_Indentation_Error
+              (Token_Line,
+               1,
+               (if Leading_Columns = 0 then 1 else Leading_Columns),
+               "tabs are not allowed in indentation");
+         end if;
+
+         if Paren_Depth /= 0 then
+            At_Line_Start := False;
+            return;
+         end if;
+
+         if Leading_Columns mod 3 /= 0 then
+            Report_Indentation_Error
+              (Token_Line,
+               1,
+               (if Leading_Columns = 0 then 1 else Leading_Columns),
+               "indentation must use 3-space steps");
+         end if;
+
+         if Leading_Columns > Current_Indent then
+            if Leading_Columns /= Current_Indent + 3 then
+               Report_Indentation_Error
+                 (Token_Line,
+                  1,
+                  Leading_Columns,
+                  "unexpected indentation increase");
+            end if;
+            Indents.Append (Leading_Columns);
+            Append_Structural_Token
+              (Indent,
+               Token_Line,
+               1,
+               (if Leading_Columns = 0 then 1 else Leading_Columns),
+               "<indent>");
+         elsif Leading_Columns < Current_Indent then
+            Emit_Dedents
+              (Target_Indent => Leading_Columns,
+               Token_Line    => Token_Line,
+               Token_Column  => (if Leading_Columns = 0 then 1 else Leading_Columns));
+            if Current_Indent /= Leading_Columns then
+               Report_Indentation_Error
+                 (Token_Line,
+                  1,
+                  (if Leading_Columns = 0 then 1 else Leading_Columns),
+                  "dedent does not match a prior block indentation");
+            end if;
+         end if;
+
+         At_Line_Start := False;
+      end Handle_Line_Start;
+
    begin
       while Index <= Text'Length loop
-         if Peek = ' ' or else Peek = Ada.Characters.Latin_1.HT or else Peek = Ada.Characters.Latin_1.CR then
+         if At_Line_Start then
+            Handle_Line_Start;
+            exit when Index > Text'Length;
+            if At_Line_Start then
+               null;
+            end if;
+         elsif Peek = ' ' or else Peek = Ada.Characters.Latin_1.HT or else Peek = Ada.Characters.Latin_1.CR then
             Advance;
          elsif Peek = Ada.Characters.Latin_1.LF then
             Advance;
@@ -293,6 +456,11 @@ package body Safe_Frontend.Lexer is
                      Single : constant String := (1 => Peek);
                   begin
                      Advance;
+                     if Single = "(" then
+                        Paren_Depth := Paren_Depth + 1;
+                     elsif Single = ")" and then Paren_Depth > 0 then
+                        Paren_Depth := Paren_Depth - 1;
+                     end if;
                      Append_Token
                        (Symbol,
                         Single,
@@ -305,6 +473,11 @@ package body Safe_Frontend.Lexer is
             end;
          end if;
       end loop;
+
+      Emit_Dedents
+        (Target_Indent => 0,
+         Token_Line    => Line,
+         Token_Column  => 1);
 
       Tokens.Append
         ((Kind   => End_Of_File,

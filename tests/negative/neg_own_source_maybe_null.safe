@@ -3,16 +3,16 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: REJECT move_source_not_nonnull
 
-package Move_Source_Maybe_Null_Test is
+package Move_Source_Maybe_Null_Test
 
    type Payload is range 0 to 10;
    type Payload_Ptr is access Payload;
 
-   function Bad_Move is
+   function Bad_Move
       Source : Payload_Ptr = null;
       Target : Payload_Ptr = null;
-   begin
-      Target = Source;  -- ERROR: source is not provably non-null
-   end Bad_Move;
 
-end Move_Source_Maybe_Null_Test;
+      Target = Source;  -- ERROR: source is not provably non-null
+
+
+

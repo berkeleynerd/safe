@@ -168,6 +168,14 @@ EXPECTED_PR115_ACCEPTANCE = [
 EXPECTED_PR115_EVIDENCE = [
     "execution/reports/pr115-statement-ergonomics-report.json",
 ]
+EXPECTED_PR116_ACCEPTANCE = [
+    "Meaningful whitespace is the admitted block-structuring surface for covered constructs, and legacy explicit block-closing syntax for those constructs is rejected.",
+    "The compiler enforces deterministic indentation rules: spaces only, fixed 3-space indentation steps, no accidental mixed-syntax acceptance, and stable structural parsing via indentation tokens.",
+    "A mechanical migration path and deterministic corpus evidence exist for the shipped whitespace surface, while `declare` blocks and `declare_expression` remain explicit in this milestone.",
+]
+EXPECTED_PR116_EVIDENCE = [
+    "execution/reports/pr116-meaningful-whitespace-report.json",
+]
 EXPECTED_PR102_ACCEPTANCE = [
     "The exact six-fixture PR10.2 Rule 5 positive corpus is tests/positive/rule5_filter.safe, tests/positive/rule5_interpolate.safe, tests/positive/rule5_normalize.safe, tests/positive/rule5_statistics.safe, tests/positive/rule5_temperature.safe, and tests/positive/rule5_vector_normalize.safe; that merged PR07-plus-PR10 set is non-shrinkable and each fixture is frontend-accepted, Ada-emitted, compile-valid, and passes emitted GNATprove flow and prove under the all-proved-only policy.",
     "The source-level Rule 5 negative contract remains tests/negative/neg_rule5_div_zero.safe -> fp_division_by_zero, tests/negative/neg_rule5_infinity.safe -> infinity_at_narrowing, tests/negative/neg_rule5_nan.safe -> nan_at_narrowing, tests/negative/neg_rule5_overflow.safe -> fp_overflow_at_narrowing, and tests/negative/neg_rule5_uninitialized.safe -> fp_uninitialized_at_narrowing; unsupported float-evaluator shapes use the new fp_unsupported_expression_at_narrowing reason under MIR analysis parity coverage instead of being mislabeled as overflow.",
@@ -375,6 +383,30 @@ def task_is_at_or_beyond_pr116(value: object) -> bool:
         return False
     major, minor = parsed
     return major > 11 or (major == 11 and minor is not None and minor >= 6)
+
+
+def task_is_at_or_beyond_pr117(value: object) -> bool:
+    if value is None:
+        return True
+    parsed = parse_task_id(value)
+    if parsed is None:
+        return False
+    major, minor = parsed
+    return major > 11 or (major == 11 and minor is not None and minor >= 7)
+
+
+def task_is_at_or_beyond_pr1161(value: object) -> bool:
+    if value is None:
+        return True
+    if not isinstance(value, str):
+        return False
+    if re.fullmatch(r"PR11\.6\.[1-9]\d*[A-Za-z0-9]*", value):
+        return True
+    parsed = parse_task_id(value)
+    if parsed is None:
+        return False
+    major, minor = parsed
+    return major > 11 or (major == 11 and minor is not None and minor >= 7)
 
 def split_table_row(line: str) -> list[str] | None:
     stripped = line.strip()
@@ -806,9 +838,23 @@ def build_report(*, baseline_truth: dict[str, Any], generated_root: Path | None)
         task_map["PR11.5"]["evidence"] == EXPECTED_PR115_EVIDENCE,
         "PR11.5 evidence must list the committed statement-ergonomics report",
     )
+    require("PR11.6" in task_map, "tracker must define PR11.6")
+    require(task_map["PR11.6"]["depends_on"] == ["PR11.5"], "PR11.6 must depend on PR11.5")
     require(
-        task_is_at_or_beyond_pr116(tracker.get("next_task_id")),
-        "next_task_id must remain at or beyond PR11.6 after PR11.5",
+        task_map["PR11.6"]["acceptance"] == EXPECTED_PR116_ACCEPTANCE,
+        "PR11.6 acceptance text must match the committed meaningful-whitespace contract",
+    )
+    require(
+        task_map["PR11.6"]["status"] == "done",
+        "PR11.6 must be marked done",
+    )
+    require(
+        task_map["PR11.6"]["evidence"] == EXPECTED_PR116_EVIDENCE,
+        "PR11.6 evidence must list the committed meaningful-whitespace report",
+    )
+    require(
+        task_is_at_or_beyond_pr1161(tracker.get("next_task_id")),
+        "next_task_id must remain at or beyond PR11.6.1 after PR11.6",
     )
     for task_id in PROMOTED_TASKS:
         require(task_id in task_map, f"tracker must define promoted task {task_id}")
@@ -865,8 +911,8 @@ def build_report(*, baseline_truth: dict[str, Any], generated_root: Path | None)
     next_task_match = re.search(r"- \*\*Next task:\*\* `([^`]+)`", dashboard_text)
     require(next_task_match is not None, "execution/dashboard.md must render the next-task line")
     require(
-        task_is_at_or_beyond_pr116(next_task_match.group(1) if next_task_match is not None else None),
-        "execution/dashboard.md must show a next task at or beyond PR11.6 (or none)",
+        task_is_at_or_beyond_pr1161(next_task_match.group(1) if next_task_match is not None else None),
+        "execution/dashboard.md must show a next task at or beyond PR11.6.1 (or none)",
     )
     require(
         re.search(r"\| PR10\.4 \| done \| PR10\.1 \| \d+ \|", dashboard_text)

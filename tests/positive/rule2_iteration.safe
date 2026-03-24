@@ -5,7 +5,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
 -- Expected: ACCEPT
 
-package Safe_Iteration is
+package Safe_Iteration
 
    type Slot is range 0 to 15;
    type Value is range 0 to 1000;
@@ -14,24 +14,24 @@ package Safe_Iteration is
    --  Find_Max: iterates over all slots to find the maximum value.
    --  The loop variable I has type Slot (0..15), matching the
    --  array index bounds exactly.
-   function Find_Max (Bank : Register_Bank) returns Value is
+   function Find_Max (Bank : Register_Bank) returns Value
       Max_Val : Value = Bank (0);
-   begin
-      for I in Slot loop
+
+      for I in Slot
          --  I is of type Slot (0..15), same as array index. In bounds.
-         if Bank (I) > Max_Val then
+         if Bank (I) > Max_Val
             Max_Val = Bank (I);
-         end if;
-      end loop;
+
+
       return Max_Val;
-   end Find_Max;
+
 
    --  Zero_All: sets every element to zero.
-   function Zero_All (Bank : out Register_Bank) is
-   begin
-      for I in Slot loop
-         Bank (I) = 0;
-      end loop;
-   end Zero_All;
+   function Zero_All (Bank : out Register_Bank)
 
-end Safe_Iteration;
+      for I in Slot
+         Bank (I) = 0;
+
+
+
+

@@ -1,0 +1,8 @@
+-- Test: pr116_bare_return
+-- Description: Meaningful-whitespace no-return subprograms may begin with a bare return.
+-- Expected: ACCEPT
+
+package PR116_Bare_Return
+
+   function Exit_Early
+      return;

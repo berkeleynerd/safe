@@ -264,8 +264,8 @@
           "body_regexes": [],
           "coverage_note": "Character/string literals and strict case statements stay emitted as direct Ada Character/String and Ada case syntax.",
           "source_fragments": [
-            "function Grade_Message (Grade : in Character) returns String is",
-            "when 'A' then",
+            "function Grade_Message (Grade : in Character) returns String",
+            "when 'A'",
             "return Fallback;"
           ],
           "spec_fragments": [
@@ -519,9 +519,9 @@
           "body_regexes": [],
           "coverage_note": "Boolean and integer case statements remain direct emitted-Ada case constructs with string returns.",
           "source_fragments": [
-            "function Flag_Value (Flag : in Boolean) returns Integer is",
-            "function Opcode_Name (Opcode : in Integer) returns String is",
-            "when -1 then"
+            "function Flag_Value (Flag : in Boolean) returns Integer",
+            "function Opcode_Name (Opcode : in Integer) returns String",
+            "when -1"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -769,7 +769,7 @@
           "body_regexes": [],
           "coverage_note": "The admitted in-mode String parameter path stays accepted through emitted Ada and proof.",
           "source_fragments": [
-            "function Echo (Name : in String) returns String is",
+            "function Echo (Name : in String) returns String",
             "return Echo (\"hello\");"
           ],
           "spec_fragments": [
@@ -1022,8 +1022,8 @@
           "body_regexes": [],
           "coverage_note": "The emitted case path for a call-valued scrutinee remains proof-valid after the MIR single-evaluation fix.",
           "source_fragments": [
-            "function Read_Opcode returns Integer is",
-            "case Read_Opcode () is"
+            "function Read_Opcode returns Integer",
+            "case Read_Opcode ()"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -1524,7 +1524,7 @@
           "body_regexes": [],
           "coverage_note": "Tuple returns, destructuring, and positional field access stay visible in emitted tuple records and destructure lowering.",
           "source_fragments": [
-            "function Lookup (Flag : in Boolean) returns (Boolean, Integer) is",
+            "function Lookup (Flag : in Boolean) returns (Boolean, Integer)",
             "(Found, Value) : (Boolean, Integer) = Lookup (True);",
             "return Direct.2;"
           ],
@@ -1778,9 +1778,9 @@
           "body_regexes": [],
           "coverage_note": "Builtin result plus tuple structured returns remain explicit in emitted Ada while keeping fail(String) unbounded through Ada.Strings.Unbounded storage.",
           "source_fragments": [
-            "function Reject (Msg : in String) returns result is",
+            "function Reject (Msg : in String) returns result",
             "return fail (Msg);",
-            "function Parse (Input : in Integer) returns (result, Integer) is",
+            "function Parse (Input : in Integer) returns (result, Integer)",
             "return (ok (), Input);",
             "return (Reject (\"negative\"), 0);"
           ],
@@ -2038,7 +2038,7 @@
           "coverage_note": "Variant-part emission and guarded field access stay explicit through both if- and case-based discriminant establishment.",
           "source_fragments": [
             "type Packet (Kind : Character = 'A') is",
-            "case Kind is",
+            "case Kind",
             "return P.Alpha;"
           ],
           "spec_fragments": [
@@ -2541,7 +2541,7 @@
           "body_regexes": [],
           "coverage_note": "Existing equality/inequality lowering remains proof-clean after tuple/result parser and emitter expansion.",
           "source_fragments": [
-            "function Is_OK (S : Status) returns Boolean is",
+            "function Is_OK (S : Status) returns Boolean",
             "return S == 0;",
             "return S != 0;"
           ],
@@ -2794,7 +2794,7 @@
           "coverage_note": "The earlier boolean result-record guarded-access proof remains valid after the PR11.2/PR11.3 expansion.",
           "source_fragments": [
             "type Parse_Result (OK : Boolean = False) is record",
-            "if R.OK then",
+            "if R.OK",
             "return R.Value;"
           ],
           "spec_fragments": [
@@ -3598,8 +3598,8 @@
       }
     ]
   },
-  "repeat_sha256": "a610c6c2a95da9d80bb54001c95f557134ac066c6719ec8d37a4904ae8a20a1a",
-  "report_sha256": "a610c6c2a95da9d80bb54001c95f557134ac066c6719ec8d37a4904ae8a20a1a",
+  "repeat_sha256": "3e7e75e5d0e8a90a9cef13d353bfb4a643c2997198f555ba4c2dc0c5bf27631e",
+  "report_sha256": "3e7e75e5d0e8a90a9cef13d353bfb4a643c2997198f555ba4c2dc0c5bf27631e",
   "semantic_floor": {
     "fixture_count": 11,
     "fixtures": [

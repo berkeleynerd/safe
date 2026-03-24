@@ -2,24 +2,24 @@
 -- Description: Tuple returns, tuple field access, and local destructuring.
 -- Expected: ACCEPT
 
-package PR113_Tuple_Destructure is
+package PR113_Tuple_Destructure
 
-   function Lookup (Flag : in Boolean) returns (Boolean, Integer) is
-   begin
-      if Flag then
+   function Lookup (Flag : in Boolean) returns (Boolean, Integer)
+
+      if Flag
          return (True, 7);
-      end if;
+
       return (False, 0);
-   end Lookup;
 
-   function Read_Second returns Integer is
+
+   function Read_Second returns Integer
       Direct : (Boolean, Integer) = Lookup (False);
-   begin
-      (Found, Value) : (Boolean, Integer) = Lookup (True);
-      if Found then
-         return Value;
-      end if;
-      return Direct.2;
-   end Read_Second;
 
-end PR113_Tuple_Destructure;
+      (Found, Value) : (Boolean, Integer) = Lookup (True);
+      if Found
+         return Value;
+
+      return Direct.2;
+
+
+

@@ -14,7 +14,7 @@ PR114_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "emitter_surface_proc.safe",
         "coverage_note": "No-result callables now use source-level function syntax while emitted Ada still lowers them to procedures.",
         "source_fragments": (
-            "function Copy (Input : Small; Output : out Small) is",
+            "function Copy (Input : Small; Output : out Small)",
         ),
         "ast_snippets": ('"node_type":"ProcedureSpecification"',),
         "ast_absent_snippets": ('"node_type":"FunctionSpecification"',),
@@ -30,7 +30,7 @@ PR114_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "pr112_string_param.safe",
         "coverage_note": "The cutover composes with the PR11.2 text surface and keeps signature returns source-only.",
         "source_fragments": (
-            "function Echo (Name : in String) returns String is",
+            "function Echo (Name : in String) returns String",
         ),
         "ast_snippets": ('"node_type":"FunctionSpecification"',),
         "typed_snippets": ('"identifier":"String"',),
@@ -45,8 +45,8 @@ PR114_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "rule4_conditional.safe",
         "coverage_note": "Else-if chains are now source-only and still emit to Ada elsif without changing the lowered conditional shape.",
         "source_fragments": (
-            "else if A != null then",
-            "else if B != null then",
+            "else if A != null",
+            "else if B != null",
         ),
         "typed_snippets": ('"name":"Max_Of_Two"',),
         "mir_snippets": ('"name":"Max_Of_Two"',),
@@ -61,7 +61,7 @@ PR114_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "coverage_note": "Source ranges now use to for subtype declarations and explicit for-loop ranges while emitted Ada preserves ..",
         "source_fragments": (
             "type Index is range 1 to 100;",
-            "for I in First to Last loop",
+            "for I in First to Last",
         ),
         "typed_snippets": ('"identifier":"Index"',),
         "mir_snippets": ('"name":"Last_In_Subrange"',),

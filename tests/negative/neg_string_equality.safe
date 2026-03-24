@@ -2,11 +2,11 @@
 -- Description: String equality/comparison remains outside PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_String_Equality is
+package Neg_String_Equality
 
-   function Same (Left : in String; Right : in String) returns Boolean is
-   begin
+   function Same (Left : in String; Right : in String) returns Boolean
+
       return Left == Right;
-   end Same;
 
-end Neg_String_Equality;
+
+

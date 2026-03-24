@@ -6,17 +6,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: REJECT intermediate_overflow
 
-package Overflow_Test is
+package Overflow_Test
 
    type Big is range 0 to 9_999_999_999_999_999;
 
    --  Multiply: the product of two Big values can exceed 64-bit signed range.
    --  9_999_999_999_999_999 * 9_999_999_999_999_999 exceeds 2^63 - 1.
    --  A conforming implementation shall reject this expression.
-   function Multiply (A, B : Big) returns Big is
-   begin
+   function Multiply (A, B : Big) returns Big
+
 
       return A * B;  -- ERROR: intermediate may exceed 64-bit range
-   end Multiply;
 
-end Overflow_Test;
+
+

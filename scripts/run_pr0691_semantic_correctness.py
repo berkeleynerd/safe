@@ -24,6 +24,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -333,7 +334,7 @@ def emit_inline_source_case(
     dict[str, Any],
 ]:
     source = temp_root / f"{name}.safe"
-    source.write_text(text, encoding="utf-8")
+    source.write_text(rewrite_safe_source(text), encoding="utf-8")
 
     check_run = run(
         [str(safec), "check", "--diag-json", str(source)],

@@ -332,7 +332,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "neg_result_unguarded.safe:34:14: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 34 |       return R.Value;  -- REJECTED: R.OK not established\n  |    |              ^~~~~~~\n  |\n  note: the discriminant 'OK' was not established on all paths before this access.\n",
+        "stderr": "neg_result_unguarded.safe:36:14: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 36 |       return R.Value;  -- REJECTED: R.OK not established\n  |    |              ^~~~~~~\n  |\n  note: the discriminant 'OK' was not established on all paths before this access.\n",
         "stdout": ""
       },
       "golden": "tests/diagnostics_golden/diag_result_unguarded.txt",
@@ -347,7 +347,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "neg_result_mutated.safe:39:17: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 39 |          return R.Value;          -- REJECTED: R.OK no longer established\n  |    |                 ^~~~~~~\n  |\n  note: the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\n",
+        "stderr": "neg_result_mutated.safe:41:17: error: access to variant field 'Value' requires established discriminant 'OK'\n  |\n  | 41 |          return R.Value;          -- REJECTED: R.OK no longer established\n  |    |                 ^~~~~~~\n  |\n  note: the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\n",
         "stdout": ""
       },
       "golden": "tests/diagnostics_golden/diag_result_mutated.txt",
@@ -473,14 +473,14 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"$TMPDIR/result_partial_guard_join.safe\",\"span\":{\"start_line\":29,\"start_col\":14,\"end_line\":29,\"end_col\":20},\"highlight_span\":{\"start_line\":29,\"start_col\":14,\"end_line\":29,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"$TMPDIR/result_partial_guard_join.safe\",\"span\":{\"start_line\":26,\"start_col\":14,\"end_line\":26,\"end_col\":20},\"highlight_span\":{\"start_line\":26,\"start_col\":14,\"end_line\":26,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
       },
       "diagnostic": {
         "highlight_span": {
           "end_col": 20,
-          "end_line": 29,
+          "end_line": 26,
           "start_col": 14,
-          "start_line": 29
+          "start_line": 26
         },
         "message": "access to variant field 'Value' requires established discriminant 'OK'",
         "notes": [
@@ -490,9 +490,9 @@
         "reason": "discriminant_check_not_established",
         "span": {
           "end_col": 20,
-          "end_line": 29,
+          "end_line": 26,
           "start_col": 14,
-          "start_line": 29
+          "start_line": 26
         },
         "suggestions": []
       },
@@ -610,7 +610,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_unguarded.safe\",\"span\":{\"start_line\":34,\"start_col\":14,\"end_line\":34,\"end_col\":20},\"highlight_span\":{\"start_line\":34,\"start_col\":14,\"end_line\":34,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_unguarded.safe\",\"span\":{\"start_line\":36,\"start_col\":14,\"end_line\":36,\"end_col\":20},\"highlight_span\":{\"start_line\":36,\"start_col\":14,\"end_line\":36,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
       },
       "check": {
         "command": [
@@ -622,14 +622,14 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_unguarded.safe\",\"span\":{\"start_line\":34,\"start_col\":14,\"end_line\":34,\"end_col\":20},\"highlight_span\":{\"start_line\":34,\"start_col\":14,\"end_line\":34,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_unguarded.safe\",\"span\":{\"start_line\":36,\"start_col\":14,\"end_line\":36,\"end_col\":20},\"highlight_span\":{\"start_line\":36,\"start_col\":14,\"end_line\":36,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
       },
       "first_diagnostic": {
         "highlight_span": {
           "end_col": 20,
-          "end_line": 34,
+          "end_line": 36,
           "start_col": 14,
-          "start_line": 34
+          "start_line": 36
         },
         "message": "access to variant field 'Value' requires established discriminant 'OK'",
         "notes": [
@@ -639,9 +639,9 @@
         "reason": "discriminant_check_not_established",
         "span": {
           "end_col": 20,
-          "end_line": 34,
+          "end_line": 36,
           "start_col": 14,
-          "start_line": 34
+          "start_line": 36
         },
         "suggestions": []
       },
@@ -660,7 +660,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_mutated.safe\",\"span\":{\"start_line\":39,\"start_col\":17,\"end_line\":39,\"end_col\":23},\"highlight_span\":{\"start_line\":39,\"start_col\":17,\"end_line\":39,\"end_col\":23},\"notes\":[\"the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_mutated.safe\",\"span\":{\"start_line\":41,\"start_col\":17,\"end_line\":41,\"end_col\":23},\"highlight_span\":{\"start_line\":41,\"start_col\":17,\"end_line\":41,\"end_col\":23},\"notes\":[\"the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\"],\"suggestions\":[]}]}\n"
       },
       "check": {
         "command": [
@@ -672,14 +672,14 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_mutated.safe\",\"span\":{\"start_line\":39,\"start_col\":17,\"end_line\":39,\"end_col\":23},\"highlight_span\":{\"start_line\":39,\"start_col\":17,\"end_line\":39,\"end_col\":23},\"notes\":[\"the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_mutated.safe\",\"span\":{\"start_line\":41,\"start_col\":17,\"end_line\":41,\"end_col\":23},\"highlight_span\":{\"start_line\":41,\"start_col\":17,\"end_line\":41,\"end_col\":23},\"notes\":[\"the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\"],\"suggestions\":[]}]}\n"
       },
       "first_diagnostic": {
         "highlight_span": {
           "end_col": 23,
-          "end_line": 39,
+          "end_line": 41,
           "start_col": 17,
-          "start_line": 39
+          "start_line": 41
         },
         "message": "access to variant field 'Value' requires established discriminant 'OK'",
         "notes": [
@@ -689,9 +689,9 @@
         "reason": "discriminant_check_not_established",
         "span": {
           "end_col": 23,
-          "end_line": 39,
+          "end_line": 41,
           "start_col": 17,
-          "start_line": 39
+          "start_line": 41
         },
         "suggestions": []
       },
@@ -700,8 +700,8 @@
       "source": "tests/negative/neg_result_mutated.safe"
     }
   ],
-  "repeat_sha256": "03df4ccec30af98c6fd0d4d74832ec180d03bc90d28feb5dbe67d9499f783f88",
-  "report_sha256": "03df4ccec30af98c6fd0d4d74832ec180d03bc90d28feb5dbe67d9499f783f88",
+  "repeat_sha256": "8615526a2ca761676a4e5ded908926aa6a5f1699ef115c67837bd9bc205e48ae",
+  "report_sha256": "8615526a2ca761676a4e5ded908926aa6a5f1699ef115c67837bd9bc205e48ae",
   "source_corpus": {
     "negatives": [
       {
@@ -892,14 +892,14 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_unguarded.safe\",\"span\":{\"start_line\":34,\"start_col\":14,\"end_line\":34,\"end_col\":20},\"highlight_span\":{\"start_line\":34,\"start_col\":14,\"end_line\":34,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_unguarded.safe\",\"span\":{\"start_line\":36,\"start_col\":14,\"end_line\":36,\"end_col\":20},\"highlight_span\":{\"start_line\":36,\"start_col\":14,\"end_line\":36,\"end_col\":20},\"notes\":[\"the discriminant 'OK' was not established on all paths before this access.\"],\"suggestions\":[]}]}\n"
         },
         "diagnostic": {
           "highlight_span": {
             "end_col": 20,
-            "end_line": 34,
+            "end_line": 36,
             "start_col": 14,
-            "start_line": 34
+            "start_line": 36
           },
           "message": "access to variant field 'Value' requires established discriminant 'OK'",
           "notes": [
@@ -909,9 +909,9 @@
           "reason": "discriminant_check_not_established",
           "span": {
             "end_col": 20,
-            "end_line": 34,
+            "end_line": 36,
             "start_col": 14,
-            "start_line": 34
+            "start_line": 36
           },
           "suggestions": []
         },
@@ -929,14 +929,14 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_mutated.safe\",\"span\":{\"start_line\":39,\"start_col\":17,\"end_line\":39,\"end_col\":23},\"highlight_span\":{\"start_line\":39,\"start_col\":17,\"end_line\":39,\"end_col\":23},\"notes\":[\"the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\"],\"suggestions\":[]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"discriminant_check_not_established\",\"message\":\"access to variant field 'Value' requires established discriminant 'OK'\",\"path\":\"tests/negative/neg_result_mutated.safe\",\"span\":{\"start_line\":41,\"start_col\":17,\"end_line\":41,\"end_col\":23},\"highlight_span\":{\"start_line\":41,\"start_col\":17,\"end_line\":41,\"end_col\":23},\"notes\":[\"the discriminant fact for 'R' was invalidated by assignment or an out/in out call.\"],\"suggestions\":[]}]}\n"
         },
         "diagnostic": {
           "highlight_span": {
             "end_col": 23,
-            "end_line": 39,
+            "end_line": 41,
             "start_col": 17,
-            "start_line": 39
+            "start_line": 41
           },
           "message": "access to variant field 'Value' requires established discriminant 'OK'",
           "notes": [
@@ -946,9 +946,9 @@
           "reason": "discriminant_check_not_established",
           "span": {
             "end_col": 23,
-            "end_line": 39,
+            "end_line": 41,
             "start_col": 17,
-            "start_line": 39
+            "start_line": 41
           },
           "suggestions": []
         },

@@ -1,15 +1,14 @@
 -- Test: neg_task_end_mismatch
--- Description: Task end name must match the declared task name.
+-- Description: Legacy explicit task-body block delimiters are not allowed.
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p4:016e5737
 -- Expected: REJECT source_frontend_error
 
-package Task_End_Mismatch_Test is
+package Task_End_Mismatch_Test
 
-   task Worker is
-   begin
-      loop
+   task Worker
+
+      begin
          null;
-      end loop;
-   end Different_Name;
 
-end Task_End_Mismatch_Test;
+
+

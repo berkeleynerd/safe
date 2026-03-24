@@ -4,13 +4,13 @@
 
 with Provider_Channel;
 
-package Unknown_Imported_Member_Test is
+package Unknown_Imported_Member_Test
 
-   task Sender is
-   begin
+   task Sender
+
       loop
          send Provider_Channel.Unknown_Ch, 1;
-      end loop;
-   end Sender;
 
-end Unknown_Imported_Member_Test;
+
+
+

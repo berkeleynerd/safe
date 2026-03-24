@@ -6,21 +6,21 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
 -- Expected: REJECT narrowing_check_failure
 
-package Param_Fail is
+package Param_Fail
 
    type Percentage is range 0 to 100;
    type Wide_Int is range -10_000 to 10_000;
 
-   function Use_Percent (P : Percentage) is
-   begin
+   function Use_Percent (P : Percentage)
+
       null;
-   end Use_Percent;
+
 
    --  Pass_Unchecked: passes a Wide_Int to a Percentage parameter
    --  without verifying the value is in 0..100.
-   function Pass_Unchecked (V : Wide_Int) is
-   begin
-      Use_Percent (Percentage (V));  -- ERROR: V may not be in 0..100
-   end Pass_Unchecked;
+   function Pass_Unchecked (V : Wide_Int)
 
-end Param_Fail;
+      Use_Percent (Percentage (V));  -- ERROR: V may not be in 0..100
+
+
+

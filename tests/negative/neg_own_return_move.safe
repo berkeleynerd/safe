@@ -3,15 +3,15 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: REJECT move_source_not_nonnull
 
-package Return_Move_Test is
+package Return_Move_Test
 
    type Payload is range 0 to 100;
    type Payload_Ptr is access Payload;
 
-   function Build returns Payload_Ptr is
+   function Build returns Payload_Ptr
       Source : Payload_Ptr = null;
-   begin
-      return Source;  -- ERROR: return move source not provably non-null
-   end Build;
 
-end Return_Move_Test;
+      return Source;  -- ERROR: return move source not provably non-null
+
+
+

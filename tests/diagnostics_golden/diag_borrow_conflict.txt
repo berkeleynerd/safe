@@ -1,6 +1,5 @@
 Diagnostics Golden: Borrow Conflict
 Source: tests/negative/neg_own_borrow_conflict.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

@@ -5,24 +5,24 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p99b:47108b45
 -- Expected: REJECT borrow_conflict
 
-package Borrow_Conflict_Test is
+package Borrow_Conflict_Test
 
    type Data is record
       Value : Integer;
-   end record;
+
 
    type Data_Ptr is access Data;
 
    --  Modify_Both: borrows Owner to Ref, then tries to read Owner
    --  while the borrow is still active.
-   function Modify_Both is
+   function Modify_Both
       Owner : Data_Ptr = new ((Value = 10) as Data);
       Ref   : access Data = Owner;  -- borrow begins
       V     : Integer;
-   begin
+
       Ref.all.Value = 20;
       --  Owner is frozen while Ref (the borrow) is active.
       V = Owner.all.Value;  -- ERROR: lender accessed during active borrow
-   end Modify_Both;
 
-end Borrow_Conflict_Test;
+
+

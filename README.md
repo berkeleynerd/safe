@@ -35,7 +35,9 @@ that still live at the proposal/detail stage rather than in gate-backed CI.
 | ~~PR11.3a~~ | `done` | Checkpoint 1 proof closure |
 | ~~PR11.4~~ | `done` | Cut over to `function`, `returns`, `else if`, and `to` |
 | ~~PR11.5~~ | `done` | Optional semicolons and statement-local `var` |
-| *PR11.6* | `planned` | `pragma Strict` and whitespace blocks |
+| ~~PR11.6~~ | `done` | Meaningful whitespace blocks |
+| *PR11.6.1* | `planned` | Attestation chain compression |
+| *PR11.6.2* | `planned` | Legacy Ada syntax removal |
 | *PR11.7* | `planned` | Reference-surface experiments |
 | *PR11.8* | `planned` | Numeric model |
 | *PR11.8a* | `planned` | Numeric proof checkpoint |

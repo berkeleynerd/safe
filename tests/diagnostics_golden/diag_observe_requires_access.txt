@@ -1,6 +1,5 @@
 Diagnostics Golden: Observe Requires Access
 Source: tests/negative/neg_own_observe_requires_access.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4.p101a:ef2d8fd1
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

@@ -1,11 +1,11 @@
-package Parse_Result is
+package Parse_Result
 
-   function Parse_Count (Input : in Integer) returns (result, Integer) is
-   begin
-      if Input >= 0 then
+   function Parse_Count (Input : in Integer) returns (result, Integer)
+
+      if Input >= 0
          return (ok (), Input)
-      end if
-      return (fail ("negative"), 0)
-   end Parse_Count;
 
-end Parse_Result;
+      return (fail ("negative"), 0)
+
+
+

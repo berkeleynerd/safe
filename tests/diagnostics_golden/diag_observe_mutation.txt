@@ -1,6 +1,5 @@
 Diagnostics Golden: Observe Mutation
 Source: tests/negative/neg_own_observe_mutate.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

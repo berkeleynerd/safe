@@ -2,22 +2,22 @@
 -- Description: Access-typed channel elements are rejected before try_send ownership checks run.
 -- Expected: REJECT source_frontend_error
 
-package Neg_Try_Send_Use_After_Move is
+package Neg_Try_Send_Use_After_Move
 
    type Payload is record
       Value : Integer;
-   end record;
+
 
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
 
-   function Run is
+   function Run
       Source  : Payload_Ptr = new ((Value = 1) as Payload);
       Success : Boolean = False;
-   begin
+
       try_send Data_Ch, Source, Success;
       Source.all.Value = 2;
-   end Run;
 
-end Neg_Try_Send_Use_After_Move;
+
+

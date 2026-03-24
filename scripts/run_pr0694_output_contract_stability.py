@@ -24,6 +24,7 @@ from _lib.harness_common import (
     stable_emitted_artifact_sha256,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -282,7 +283,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
             )
 
         inline_source = inline_root / "public_interface.safe"
-        inline_source.write_text(PUBLIC_INTERFACE_SOURCE, encoding="utf-8")
+        inline_source.write_text(rewrite_safe_source(PUBLIC_INTERFACE_SOURCE), encoding="utf-8")
         inline_result = run_emit_case(
             name="public_interface",
             source=inline_source,

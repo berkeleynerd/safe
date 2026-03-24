@@ -28,6 +28,7 @@ from _lib.pr09_emit import (
     repo_arg,
 )
 from _lib.pr10_emit import emit_fixture, gnatprove_emitted_ada
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 DEFAULT_REPORT = (
@@ -207,7 +208,7 @@ def emit_and_compile_temp_source(
 ) -> tuple[dict[str, Path], dict[str, Any], str, str]:
     temp_root.mkdir(parents=True, exist_ok=True)
     source_path = temp_root / source_name
-    source_path.write_text(source_text, encoding="utf-8")
+    source_path.write_text(rewrite_safe_source(source_text), encoding="utf-8")
     outputs = emit_fixture(source=source_path, root=temp_root / source_path.stem, env=env)
     compile_result = compile_emitted_ada(
         ada_dir=outputs["ada_dir"],

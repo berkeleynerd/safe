@@ -2,8 +2,8 @@
 -- Description: Channel element types of String remain outside PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_String_Channel is
+package Neg_String_Channel
 
    channel Text_Ch : String capacity 1;
 
-end Neg_String_Channel;
+

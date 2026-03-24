@@ -1,4 +1,4 @@
-Diagnostics Golden: Rule 5 Division by Zero
+Diagnostics Golden: Rule5 Div Zero
 Source: tests/negative/neg_rule5_div_zero.safe
 
 Expected diagnostic output:

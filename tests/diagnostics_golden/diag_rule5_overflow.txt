@@ -1,4 +1,4 @@
-Diagnostics Golden: Rule 5 Overflow
+Diagnostics Golden: Rule5 Overflow
 Source: tests/negative/neg_rule5_overflow.safe
 
 Expected diagnostic output:

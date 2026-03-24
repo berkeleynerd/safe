@@ -1,14 +1,12 @@
 -- Expected: REJECT double_move
 with Provider_Imported_Call_Ownership;
 
-package Neg_Imported_Inout_Double_Move is
+package Neg_Imported_Inout_Double_Move
 
-   function Run is
-      Owner : Provider_Imported_Call_Ownership.Payload_Ptr =
-        new ((Value = 5) as Provider_Imported_Call_Ownership.Payload);
-   begin
+   function Run
+      Owner : Provider_Imported_Call_Ownership.Payload_Ptr = new ((Value = 5) as Provider_Imported_Call_Ownership.Payload);
+
       Provider_Imported_Call_Ownership.Consume (Owner);
       Provider_Imported_Call_Ownership.Consume (Owner);
-   end Run;
 
-end Neg_Imported_Inout_Double_Move;
+

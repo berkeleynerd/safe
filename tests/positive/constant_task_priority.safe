@@ -2,15 +2,15 @@
 -- Description: Local integer constant used in a task priority aspect.
 -- Expected: ACCEPT
 
-package Constant_Task_Priority is
+package Constant_Task_Priority
 
    Worker_Priority : constant Integer = 5;
 
-   task Worker with Priority = Worker_Priority is
-   begin
+   task Worker with Priority = Worker_Priority
+
       loop
          null;
-      end loop;
-   end Worker;
 
-end Constant_Task_Priority;
+
+
+

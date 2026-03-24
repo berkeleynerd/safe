@@ -1,18 +1,18 @@
-package Lookup_Result is
+package Lookup_Result
 
-   function Lookup_Name (Opcode : in Integer) returns (result, Integer) is
-   begin
-      case Opcode is
-         when 1 then
+   function Lookup_Name (Opcode : in Integer) returns (result, Integer)
+
+      case Opcode
+         when 1
             return (ok (), 100)
-         end when;
-         when 2 then
-            return (ok (), 200)
-         end when;
-         when others then
-            return (fail ("unknown"), 0)
-         end when;
-      end case
-   end Lookup_Name;
 
-end Lookup_Result;
+         when 2
+            return (ok (), 200)
+
+         when others
+            return (fail ("unknown"), 0)
+
+
+
+
+

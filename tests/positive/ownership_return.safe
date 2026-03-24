@@ -3,21 +3,21 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package Ownership_Return is
+package Ownership_Return
 
    type Payload is range 0 to 100;
    type Payload_Ptr is access Payload;
 
-   function Build returns Payload_Ptr is
+   function Build returns Payload_Ptr
       Source : Payload_Ptr = new (42 as Payload);
-   begin
+
       return Source;
-   end Build;
 
-   function Use_Return is
+
+   function Use_Return
       Target : Payload_Ptr = null;
-   begin
-      Target = Build ();
-   end Use_Return;
 
-end Ownership_Return;
+      Target = Build ();
+
+
+

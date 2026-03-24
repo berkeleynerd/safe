@@ -6,34 +6,34 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9
 -- Expected: ACCEPT
 
-package Select_With_Delay is
+package Select_With_Delay
 
    type Message is range 0 to 100;
 
    channel Msg_Ch : Message capacity 1;
 
-   task Producer with Priority = 10 is
-   begin
+   task Producer with Priority = 10
+
       loop
          delay 0.01;
-      end loop;
-   end Producer;
 
-   task Poller with Priority = 10 is
-   begin
+
+
+   task Poller with Priority = 10
+
       loop
          select
-            when Item : Message from Msg_Ch then
-               if Item > 0 then
+            when Item : Message from Msg_Ch
+               if Item > 0
                   delay 0.001;
                else
                   delay 0.001;
-               end if;
-         or
-            delay 0.05 then
-               delay 0.001;
-         end select;
-      end loop;
-   end Poller;
 
-end Select_With_Delay;
+         or
+            delay 0.05
+               delay 0.001;
+
+
+
+
+

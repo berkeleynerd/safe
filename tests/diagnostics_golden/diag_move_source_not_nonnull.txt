@@ -1,6 +1,5 @@
-Diagnostics Golden: Move Source Not NonNull
+Diagnostics Golden: Move Source Not Nonnull
 Source: tests/negative/neg_own_source_maybe_null.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

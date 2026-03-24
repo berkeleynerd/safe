@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
 -- Expected: ACCEPT
 
-package Safe_Parameters is
+package Safe_Parameters
 
    type Percentage is range 0 to 100;
    type Angle is range 0 to 359;
@@ -15,28 +15,28 @@ package Safe_Parameters is
    --  Apply_Percentage: accepts a percentage value. Caller must
    --  ensure the actual parameter is in 0..100.
    function Apply_Percentage (P : Percentage; Base : Wide_Int;
-                               Result : out Wide_Int) is
-   begin
+                               Result : out Wide_Int)
+
       --  Wide arithmetic: Base * P is at most 10_000 * 100 = 1_000_000,
       --  well within 64-bit range. Division by 100 narrows back.
       Result = Wide_Int ((Wide_Int (Base) * Wide_Int (P)) / 100);
-   end Apply_Percentage;
+
 
    --  Compute_Scaled: demonstrates safe parameter passing by
    --  first validating, then calling Apply_Percentage.
-   function Compute_Scaled (Raw : Wide_Int; Output : out Wide_Int) is
+   function Compute_Scaled (Raw : Wide_Int; Output : out Wide_Int)
       Pct : Percentage;
-   begin
+
       --  Clamp Raw to 0..100 before passing as Percentage.
-      if Raw < 0 then
+      if Raw < 0
          Pct = 0;
-      else if Raw > 100 then
+      else if Raw > 100
          Pct = 100;
       else
          --  Narrowing point (parameter): Raw is in 0..100.
          Pct = Percentage (Raw);
-      end if;
-      Apply_Percentage (Pct, 5000, Output);
-   end Compute_Scaled;
 
-end Safe_Parameters;
+      Apply_Percentage (Pct, 5000, Output);
+
+
+

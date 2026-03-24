@@ -7,7 +7,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129:9f3b1394
 -- Expected: ACCEPT
 
-package Accumulator is
+package Accumulator
 
    type Small_Int is range 0 to 100;
    type Index is range 1 to 20;
@@ -19,17 +19,17 @@ package Accumulator is
 
    --  Accumulate: sum all elements of the array.
    --  Loop invariant ensures Sum stays in 0 .. I * 100.
-   function Accumulate (Data : Values) returns Total_Range is
+   function Accumulate (Data : Values) returns Total_Range
       Sum : Total_Range = 0;
-   begin
-      for I in Index loop
+
+      for I in Index
          --  Wide intermediate: Sum + Data(I) is at most 2000 + 100 = 2100
          --  but Sum is bounded by (I-1)*100 and Data(I) by 100,
          --  so Sum + Data(I) <= I*100 <= 2000, within Total_Range.
          Sum = Sum + Total_Range (Data (I));
-      end loop;
+
       --  Narrowing point (return): Sum is in 0..2000.
       return Sum;
-   end Accumulate;
 
-end Accumulator;
+
+

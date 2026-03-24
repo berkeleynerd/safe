@@ -1,4 +1,4 @@
-package Bounded_Stack is
+package Bounded_Stack
 
    type Slot is range 1 to 8;
    type Depth is range 0 to 8;
@@ -8,65 +8,65 @@ package Bounded_Stack is
    type Stack is record
       Data : Storage;
       Size : Depth;
-   end record;
 
-   function Reset (S : out Stack) is
-   begin
+
+   function Reset (S : out Stack)
+
       S.Size = 0
-      for I in Slot loop
+      for I in Slot
          S.Data (I) = 0
-      end loop
-   end Reset;
 
-   function Push (S : in out Stack; Value : Item) is
-   begin
+
+
+   function Push (S : in out Stack; Value : Item)
+
       var Next_Size : Depth = S.Size
-      if S.Size < Depth.Last then
+      if S.Size < Depth.Last
          Next_Size = S.Size + 1
          S.Size = Next_Size
          S.Data (Slot (Next_Size)) = Value
-      end if
-   end Push;
 
-   function Pop (S : in out Stack; Value : out Item) is
-   begin
-      case S.Size is
-         when 1 then
+
+
+   function Pop (S : in out Stack; Value : out Item)
+
+      case S.Size
+         when 1
             Value = S.Data (1)
             S.Size = 0
-         end when;
-         when 2 then
+
+         when 2
             Value = S.Data (2)
             S.Size = 1
-         end when;
-         when 3 then
+
+         when 3
             Value = S.Data (3)
             S.Size = 2
-         end when;
-         when 4 then
+
+         when 4
             Value = S.Data (4)
             S.Size = 3
-         end when;
-         when 5 then
+
+         when 5
             Value = S.Data (5)
             S.Size = 4
-         end when;
-         when 6 then
+
+         when 6
             Value = S.Data (6)
             S.Size = 5
-         end when;
-         when 7 then
+
+         when 7
             Value = S.Data (7)
             S.Size = 6
-         end when;
-         when 8 then
+
+         when 8
             Value = S.Data (8)
             S.Size = 7
-         end when;
-         when others then
-            Value = 0
-         end when;
-      end case
-   end Pop;
 
-end Bounded_Stack;
+         when others
+            Value = 0
+
+
+
+
+

@@ -3,24 +3,24 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: REJECT double_move
 
-package Inout_Move_Test is
+package Inout_Move_Test
 
    type Payload is record
       Value : Integer;
-   end record;
+
 
    type Payload_Ptr is access Payload;
 
-   function Consume (Ref : in out Payload_Ptr) is
-   begin
-      null;
-   end Consume;
+   function Consume (Ref : in out Payload_Ptr)
 
-   function Use_Inout is
+      null;
+
+
+   function Use_Inout
       Owner : Payload_Ptr = new ((Value = 5) as Payload);
-   begin
+
       Consume (Owner);
       Consume (Owner);  -- ERROR: Owner was already moved by the first call
-   end Use_Inout;
 
-end Inout_Move_Test;
+
+

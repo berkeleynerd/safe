@@ -4,17 +4,17 @@
 --   remain writable after shadowing.
 -- Expected: ACCEPT
 
-package Constant_Shadow_Mutable is
+package Constant_Shadow_Mutable
 
    Value : constant Integer = 1;
 
-   function Update_Local is
-   begin
+   function Update_Local
+
       declare
          Value : Integer = 0;
       begin
          Value = 2;
       end;
-   end Update_Local;
 
-end Constant_Shadow_Mutable;
+
+

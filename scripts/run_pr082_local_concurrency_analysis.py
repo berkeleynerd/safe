@@ -22,6 +22,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -1479,7 +1480,7 @@ def write_temp_mir(path: Path, payload: dict[str, Any]) -> None:
 
 def write_temp_source(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    path.write_text(rewrite_safe_source(text), encoding="utf-8")
 
 
 def run_concurrency_parity_case(

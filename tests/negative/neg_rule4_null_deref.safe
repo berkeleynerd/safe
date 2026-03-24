@@ -4,14 +4,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT null_dereference
 
-package Null_Deref_Test is
+package Null_Deref_Test
 
    type Value is range 0 to 1000;
    type Value_Ptr is access Value;
-   function Read_Unsafe (P : Value_Ptr) returns Value is
-   begin
+   function Read_Unsafe (P : Value_Ptr) returns Value
+
 
       return P.all;  -- ERROR: P may be null
-   end Read_Unsafe;
 
-end Null_Deref_Test;
+
+

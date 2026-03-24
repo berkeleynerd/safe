@@ -1,10 +1,10 @@
-package Neg_PR115_Same_Line_Missing_Semicolon is
+package Neg_PR115_Same_Line_Missing_Semicolon
 
    type Counter is range 0 to 10;
 
-   function Broken returns Counter is
-   begin
-      return 0 return 1;
-   end Broken;
+   function Broken returns Counter
 
-end Neg_PR115_Same_Line_Missing_Semicolon;
+      return 0 return 1;
+
+
+

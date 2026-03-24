@@ -1,22 +1,22 @@
-package Bubble_Sort is
+package Bubble_Sort
 
    type Index is range 1 to 8;
    type Pass_Index is range 1 to 7;
    type Element is range 0 to 1000;
    type Values is array (Index) of Element;
 
-   function Sort (Data : in out Values) is
-   begin
+   function Sort (Data : in out Values)
+
       var Temp : Element
-      for Pass in Pass_Index loop
-         for J in Pass_Index loop
-            if Data (Index (J)) > Data (Index (J + 1)) then
+      for Pass in Pass_Index
+         for J in Pass_Index
+            if Data (Index (J)) > Data (Index (J + 1))
                Temp = Data (Index (J))
                Data (Index (J)) = Data (Index (J + 1))
                Data (Index (J + 1)) = Temp
-            end if
-         end loop
-      end loop
-   end Sort;
 
-end Bubble_Sort;
+
+
+
+
+

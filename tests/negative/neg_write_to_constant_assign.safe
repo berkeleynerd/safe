@@ -2,12 +2,12 @@
 -- Description: Direct assignment to a local constant must be rejected.
 -- Expected: REJECT write_to_constant
 
-package Neg_Write_To_Constant_Assign is
+package Neg_Write_To_Constant_Assign
 
-   function Run is
+   function Run
       Limit : constant Integer = 1;
-   begin
-      Limit = 2;
-   end Run;
 
-end Neg_Write_To_Constant_Assign;
+      Limit = 2;
+
+
+

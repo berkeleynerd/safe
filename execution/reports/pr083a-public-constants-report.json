@@ -46,10 +46,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "0ab94b03eed2c873666136439366e7af6fd42cbbde374f1693ad5d0ccc331bd2",
+        "ast": "592a9ba914edfba13791888af9a27678eae13f52c8fe74441a476d8f71f20f37",
         "mir": "d284967cc2fdd3f2d970faba8aa930cfbf01332b2128e4ea0ab3d321f460340b",
         "safei": "c0478811f358aad5c60e5dbad4b7c853882e73dd15fcbecf0ccc2730f667d0ab",
-        "typed": "032d2ae39f5ff09a3e331648fce45483feeaf1590715fc5866d40c6489670ba3"
+        "typed": "359e82cb594a4dd4f9fdb03f2d6bdef79995da5e1b44f39c0d1c9e8f8f80ed33"
       },
       "safei_summary": {
         "object_names": [],
@@ -146,10 +146,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "bb8f1469697bdc48c8dcd49bde0f821a5644d58160644d26b889499f71bf6ea3",
+        "ast": "a038bb95c3fe305ed59ad45de02ffce3acf13ab7a5f41fe88293c656912869dc",
         "mir": "be6c16a6d3c4e09cbf3cc6318327300fce735bc99e1b4c04b052e2ae91fe4b12",
         "safei": "5eb357227bf7eb778f90d403c40c31869932c5d0ff668aacea4450ca956f21ab",
-        "typed": "6b43548343192e7b092ad90775770ed53dc61b6a21154beb2bb4efcbaf2cae92"
+        "typed": "90fb50ab0794e69612876395031e32c64027c70e1fa1848ee7fda03f73e5725f"
       },
       "safei_summary": {
         "object_names": [],
@@ -247,10 +247,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "e0f3a68e98451f46e45ded366eb90343bf78518afee7a2260bd7054066d206bc",
+        "ast": "e1c7edfd88a3901466fc975318862c36cd533306290626f60ba387b43f92d2ed",
         "mir": "eff1e09585d3ca1d96aad380c1387d8f54f250c3295932d07d0cee9143be8c1d",
         "safei": "ffcf63f379260d355e0fe432d0f046c3dfeb61fcd67c2fea25fa7401a5c88ab5",
-        "typed": "6babc9432deb09e9a824abbd7f308157855c5cf84002306cf335e4737c221cd1"
+        "typed": "d965c698f8758f11c45ae352ae53a0065fa0c97ea1d344f35dbc293a7032404a"
       },
       "safei_summary": {
         "object_names": [],
@@ -345,10 +345,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "e2a51ad75d180c503bae818cc4a571186c4bb09015d4cd6610928ffc6f9254f1",
+        "ast": "a8e1a3feffa1f9e97ca61404d67358ed20ef59129dae0fc366c09381daf5925b",
         "mir": "be4c6cd9bb430fdf47ac40173924a8fd1d479e65b16eded89378bacd263f4ba7",
         "safei": "ef17178580c2d093dbc9771253a50e8c848ff376f52d80d8fe90ee5a2559c77c",
-        "typed": "600fab15b9cca7ba4a2aadde7b2e3bd3ce3a1957aaf99c81727ce1655ffd7246"
+        "typed": "0ed9c03105c42d1a2e7a1a71564d1fa05579aaf05c8330848ca3455a89a84e60"
       },
       "mir_constant_locals": 0,
       "source": "tests/positive/constant_discriminant_default.safe",
@@ -404,7 +404,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "<5725 chars>"
+        "stdout": "<5723 chars>"
       },
       "ast_constant_nodes": 1,
       "check": {
@@ -434,10 +434,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "ccd4a0dce19e3f4c38740cce6c04ebb52b81441f608fb7e1a34771efcc4f139b",
+        "ast": "82f194e7faa69b839515e1d48e4496aae6a2a6a5362a2dffd129faa12f7f41e3",
         "mir": "58d36d2540a500f7a1bcabaec4b9e13599f0bb0fb9d18dc8a2056b668aaad1b5",
         "safei": "47e89d6e413f77866f7340a26d880497700fbfe558755ad05717cc6c6dd90d7b",
-        "typed": "48fbdc117442de1f20dbf087343721763829e0a813fe964016f4786f61e75568"
+        "typed": "1ea52f34d6d1a3a7e1406cbbcdd0e9175e18eaec4002042f81d357a0753373e6"
       },
       "mir_constant_locals": 0,
       "source": "tests/positive/constant_channel_capacity.safe",
@@ -523,10 +523,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "65163f3410a1773556f66b5be6aab4efb66e9c8dddf00990d7029c153da4b1f4",
-        "mir": "a2b5fd44c9c8692389179c9e6f4a82133a0197d311c89e7276d0fbbec2ef1f06",
-        "safei": "431342a547174fbefea441dc8b909d33dbefea722bdf0d6584cd9d787463bb8c",
-        "typed": "a50f39819b9fb4d47fb601e2d2a1cabff8f7317d614a175bbcca733e933ba34f"
+        "ast": "a684bfa22dd1d57711caa40c6e9e27b5e6b815f7d3967983ae6fbd6c8b976b46",
+        "mir": "7d8f214c08967088c33517565602d384743bdfbecf061655ab91b079d671f37d",
+        "safei": "6b386e0ca9a53053fec401b8b9d95fcd099f96f6db8d90cce426e2844280d619",
+        "typed": "6ae419f4ebd46b3d5b86a2bab7d4671c0a6d4fa436027f0077bcd81ac7e55336"
       },
       "mir_constant_locals": 1,
       "source": "tests/positive/constant_access_deref_write.safe",
@@ -627,10 +627,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "6c2458fd067631ac10a284843a2a0902467335f8af78dae31045dd6f6d7b8ed6",
-        "mir": "9fa0a8124c4ad0d5bc517b91e93dc435f1bba98c72bea545d7e0c39e7866346d",
-        "safei": "b25f5f8b1f72c325638072f2a2281f7cb511b899303c82f0340cc652014bd186",
-        "typed": "17a5f9e54ac5b8b50f2e5e2e7572cc2cb848430b639e3a14af7932f286d5871a"
+        "ast": "bafcad30d63ed504613c5f8c693943a50fdee533f30262deec804f298351302b",
+        "mir": "e9f46402a5d80431d6e95421571f3acef11bc2580b7d9da888da4ca6e7f6e746",
+        "safei": "51a6c3de9be87e6525efdc90f3ce15a3412de0041adc0539dcf7f718bc05da89",
+        "typed": "be5074ff31e88a4fa90bbe5c5f40d463ba7056a17bfc325581f45379d48ef137"
       },
       "mir_constant_locals": 1,
       "source": "tests/positive/constant_shadow_mutable.safe",
@@ -701,7 +701,7 @@
         "cwd": "$REPO_ROOT",
         "returncode": 0,
         "stderr": "",
-        "stdout": "<4305 chars>"
+        "stdout": "<4303 chars>"
       },
       "ast_constant_nodes": 1,
       "check": {
@@ -731,10 +731,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "c9d71a8494125e12a3bebcaac8cc5d8a06941dc64aa7151d15f5327ead40363b",
+        "ast": "19649d5bd2606a8651993a199bd43317c2b5bddbaa0854bfc312cb8c1d9c570f",
         "mir": "4e8899239eeca8ad5f870ab7b44b2d26cd2462d18d84b7acd5689fdf67aaa4cf",
         "safei": "a0a5e82b179bc55319a1ea3a83b8c748c1ca3daf691876a4ec1039f847ef31de",
-        "typed": "f37bac36608cbfa650f767e0dfc1f5ce368cf9c1adf99b17e00d03504cd9e339"
+        "typed": "e4f386d75fa8740c10a59722fab6cca24b34dc586dbf40a222bc5ba83f4c9d47"
       },
       "mir_constant_locals": 0,
       "source": "tests/positive/constant_range_bound.safe",
@@ -820,10 +820,10 @@
         "stdout": ""
       },
       "hashes": {
-        "ast": "d226b2a8d5271188075b29f1c3b56c97e425559e6574b3a3886f08ab9ee9c067",
-        "mir": "db769efb8b3fd640590a194d4e6c5a5b828ab1911a05d9b3fa6b5dd44f4b5a10",
-        "safei": "3cceee950cbdbc7939678d2572897568ce32b79c7d7172b4ec600f8654b2296a",
-        "typed": "b1d986d8e744f6c4f225dc16783eb48c3860e6de2ea921ea2f54387386d3b86f"
+        "ast": "db6bb20931d97ee6c14c1e3b0dba391657e7fe3c943bb56416f6a0cebb5a99a1",
+        "mir": "d411eb04b49f883eb17d52aa940cf54b0ab7ebb423d3e07ded07c55dfcf34323",
+        "safei": "b9fe27e0a92e5794cb289dc6584b1a829a51e97ec2ab7a96f287e2e945599e09",
+        "typed": "a2376bd04fa58c675ec32fbc73d2302d538c5c27f2bdedb622325eb83c5c7626"
       },
       "mir_constant_locals": 1,
       "source": "tests/positive/constant_task_priority.safe",
@@ -927,10 +927,10 @@
         "typed": "out/provider_constant_bool.typed.json"
       },
       "hashes": {
-        "ast": "1a9884542d82967a9755f1a57bd155eb64b31b111cf671121877294770bcba07",
+        "ast": "00049557709dddfaa53fd4083c94a84e106837c7cc51f2fb7d59b70fd75e4d7a",
         "mir": "1b413f32048ca7e441b61c803755a8b6bf613a3020ef0a72875854d9d7d7f2a8",
         "safei": "44b74400c26a05ee85212ff2e368825658c92c94321bf71d8a13170eb9d87157",
-        "typed": "ea34c6a235fa545376a0720cccb9e11ab55e07acdb926f3a1108566c3022bb44"
+        "typed": "c3401ac32e05a8a4917dcc457d43c7f2efb2a4a05a37f169205e5845d74f335f"
       },
       "validators": {
         "analyze_mir": {
@@ -1015,10 +1015,10 @@
         "typed": "out/provider_constant_int.typed.json"
       },
       "hashes": {
-        "ast": "4f575d9ab31c175a7402170a63d3b7292335dfe5a2fd835a013e63f9189e88be",
+        "ast": "429607a5abc225d5a1ab543cd31e733343e488418a101189237c53ea9945a716",
         "mir": "d4464e2c0e6da7c7ceca150115165958fbef5b337312910abd8cbebb79ffd034",
         "safei": "7b94aaae6d515f06b1f503e153531511e3809cab230314e5c794e73fa96d60d9",
-        "typed": "717a129cb0c79016b5e446d55dbece4f3e37b2a640529b2f2b21543aea257eba"
+        "typed": "e06df843a70af42156e96658dde31952935334aa4c0725134ce4b5eb6cbf98c7"
       },
       "validators": {
         "analyze_mir": {
@@ -1101,10 +1101,10 @@
         "typed": "out/provider_constant_unsupported.typed.json"
       },
       "hashes": {
-        "ast": "9dd946c3679157720f4921fab5522793fed24bdf1d6f9643d0c6f4ab37f63e7a",
+        "ast": "a6f77703c10eb9f234277292aec3a55b63be6f30cd50a5da051b0a66c10a1973",
         "mir": "7b470c25527646dbf24dc96ecd1bc476e30c41adf3e56dbf66b6a74b9df8d5a2",
         "safei": "03832ae611193e484d32c3d366cedab3366467160c3b02ddf8242a5f5b0abc26",
-        "typed": "71b8381abd411ffc32cb917a076331bdbbf8d2a055a8104e507d51935905ac7f"
+        "typed": "201c92471c66b5d01fe29158cd70baedba92821fcd2a473a1b43772658de9254"
       },
       "validators": {
         "analyze_mir": {
@@ -1152,10 +1152,10 @@
   "repeat_emit": {
     "provider_constant_int": {
       "hashes": {
-        "ast": "4f575d9ab31c175a7402170a63d3b7292335dfe5a2fd835a013e63f9189e88be",
+        "ast": "429607a5abc225d5a1ab543cd31e733343e488418a101189237c53ea9945a716",
         "mir": "d4464e2c0e6da7c7ceca150115165958fbef5b337312910abd8cbebb79ffd034",
         "safei": "7b94aaae6d515f06b1f503e153531511e3809cab230314e5c794e73fa96d60d9",
-        "typed": "717a129cb0c79016b5e446d55dbece4f3e37b2a640529b2f2b21543aea257eba"
+        "typed": "e06df843a70af42156e96658dde31952935334aa4c0725134ce4b5eb6cbf98c7"
       },
       "runs": [
         {
@@ -1191,8 +1191,8 @@
       ]
     }
   },
-  "repeat_sha256": "d6fdfefd4c0e2de7e7a18955be8a1f3822e2a8c1623e7b063419652652d8b570",
-  "report_sha256": "d6fdfefd4c0e2de7e7a18955be8a1f3822e2a8c1623e7b063419652652d8b570",
+  "repeat_sha256": "a4a8b31720e39c99f3043ad3ec79956e6a7906ce66ca48a8f20526a383190e7e",
+  "report_sha256": "a4a8b31720e39c99f3043ad3ec79956e6a7906ce66ca48a8f20526a383190e7e",
   "source_failures": {
     "imported_missing_static_value": {
       "ast": {

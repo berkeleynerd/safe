@@ -2,26 +2,26 @@
 -- Description: Case scrutinees are evaluated exactly once during MIR lowering.
 -- Expected: ACCEPT
 
-package PR112_Case_Scrutinee_Once is
+package PR112_Case_Scrutinee_Once
 
-   function Read_Opcode returns Integer is
-   begin
+   function Read_Opcode returns Integer
+
       return 2;
-   end Read_Opcode;
 
-   function Label returns String is
-   begin
-      case Read_Opcode () is
-         when 1 then
+
+   function Label returns String
+
+      case Read_Opcode ()
+         when 1
             return "one";
-         end when;
-         when 2 then
-            return "two";
-         end when;
-         when others then
-            return "other";
-         end when;
-      end case;
-   end Label;
 
-end PR112_Case_Scrutinee_Once;
+         when 2
+            return "two";
+
+         when others
+            return "other";
+
+
+
+
+

@@ -1,4 +1,4 @@
-Diagnostics Golden: Rule 5 Uninitialized
+Diagnostics Golden: Rule5 Uninitialized
 Source: tests/negative/neg_rule5_uninitialized.safe
 
 Expected diagnostic output:

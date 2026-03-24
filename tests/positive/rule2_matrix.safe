@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: ACCEPT
 
-package Safe_Matrix is
+package Safe_Matrix
 
    type Row_Index is range 1 to 4;
    type Col_Index is range 1 to 4;
@@ -17,30 +17,30 @@ package Safe_Matrix is
    --  Trace: sum of diagonal elements. Both Row and Col indices
    --  range from 1 to 4, so diagonal access M(I, I) is always
    --  within bounds.
-   function Trace (M : Matrix_4x4) returns Trace_Total is
+   function Trace (M : Matrix_4x4) returns Trace_Total
       Sum : Trace_Total = 0;
-   begin
-      for I in Row_Index loop
+
+      for I in Row_Index
          --  I is Row_Index (1..4), also valid as Col_Index (1..4).
          Sum = Sum + Trace_Total (M (I, Col_Index (I)));
-      end loop;
+
       return Sum;
-   end Trace;
+
 
    --  Transpose: swap rows and columns in-place.
-   function Transpose (M : in out Matrix_4x4) is
+   function Transpose (M : in out Matrix_4x4)
       Temp : Cell;
-   begin
-      for I in Row_Index loop
-         for J in Col_Index loop
-            if Col_Index (I) < J then
+
+      for I in Row_Index
+         for J in Col_Index
+            if Col_Index (I) < J
                --  Both indices are of their respective types.
                Temp = M (I, J);
                M (I, J) = M (Row_Index (J), Col_Index (I));
                M (Row_Index (J), Col_Index (I)) = Temp;
-            end if;
-         end loop;
-      end loop;
-   end Transpose;
 
-end Safe_Matrix;
+
+
+
+
+

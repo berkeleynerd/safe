@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p130:2289e5b2
 -- Expected: ACCEPT
 
-package Safe_Conversion is
+package Safe_Conversion
 
    type Wide_Value is range -1_000_000 to 1_000_000;
    type Narrow_Value is range -1000 to 1000;
@@ -15,32 +15,32 @@ package Safe_Conversion is
    --  Clamp_And_Convert: takes a wide value, clamps it to [-1000..1000],
    --  then converts to Narrow_Value. The clamp guarantees the narrowing
    --  check succeeds.
-   function Clamp_And_Convert (V : Wide_Value) returns Narrow_Value is
+   function Clamp_And_Convert (V : Wide_Value) returns Narrow_Value
       Clamped : Wide_Value;
-   begin
-      if V < -1000 then
+
+      if V < -1000
          Clamped = -1000;
-      else if V > 1000 then
+      else if V > 1000
          Clamped = 1000;
       else
          Clamped = V;
-      end if;
+
       --  Narrowing point (conversion): Clamped is in -1000..1000.
       return Narrow_Value (Clamped);
-   end Clamp_And_Convert;
+
 
    --  Absolute_To_Positive: converts absolute value when known nonzero.
-   function Absolute_To_Positive (V : Narrow_Value) returns Positive_Value is
-   begin
-      if V > 0 and then V <= 500 then
+   function Absolute_To_Positive (V : Narrow_Value) returns Positive_Value
+
+      if V > 0 and then V <= 500
          --  Narrowing point (conversion): V is in 1..500.
          return Positive_Value (V);
-      else if V < 0 and then V >= -500 then
+      else if V < 0 and then V >= -500
          --  Narrowing point (conversion): -V is in 1..500.
          return Positive_Value (-V);
       else
          return 1;
-      end if;
-   end Absolute_To_Positive;
 
-end Safe_Conversion;
+
+
+

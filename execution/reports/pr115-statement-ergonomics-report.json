@@ -236,9 +236,9 @@
       ],
       "source": "tests/positive/pr115_compound_terminators.safe",
       "source_fragments": [
-        "else if Current < 5 then",
-        "end if for I in 1 to 2 loop",
-        "end loop return Current"
+        "else if Current < 5",
+        "for I in 1 to 2",
+        "return Current"
       ],
       "typed_snippets": [
         "\"name\":\"Adjust\""
@@ -305,7 +305,7 @@
       ],
       "source": "tests/positive/pr115_case_terminator.safe",
       "source_fragments": [
-        "end case return Result"
+        "when others Result = True; return Result"
       ],
       "typed_snippets": [
         "\"name\":\"Normalize\""
@@ -519,8 +519,8 @@
       }
     }
   ],
-  "repeat_sha256": "d35a87cfc17fe11f5ff644a1ed92f27ae3eaa6fe93c4c20e2632964ee43f4cdf",
-  "report_sha256": "d35a87cfc17fe11f5ff644a1ed92f27ae3eaa6fe93c4c20e2632964ee43f4cdf",
+  "repeat_sha256": "51eb46e515f7405f4eabcd640dcec945519164100d025902fe4faa3695ce05cb",
+  "report_sha256": "51eb46e515f7405f4eabcd640dcec945519164100d025902fe4faa3695ce05cb",
   "rosetta_readability_samples": [
     {
       "ada_snippets": [],
@@ -628,7 +628,7 @@
         "var Lo : Index = Index.First",
         "var Hi : Index = Index.Last",
         "var Mid : Index",
-        "else if Arr (Mid) < Key then"
+        "else if Arr (Mid) < Key"
       ],
       "typed_snippets": [],
       "validate_mir": {

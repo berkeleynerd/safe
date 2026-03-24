@@ -2,27 +2,27 @@
 -- Description: Builtin result plus tuple-based structured return conventions.
 -- Expected: ACCEPT
 
-package PR113_Structured_Result is
+package PR113_Structured_Result
 
-   function Reject (Msg : in String) returns result is
-   begin
+   function Reject (Msg : in String) returns result
+
       return fail (Msg);
-   end Reject;
 
-   function Parse (Input : in Integer) returns (result, Integer) is
-   begin
-      if Input >= 0 then
+
+   function Parse (Input : in Integer) returns (result, Integer)
+
+      if Input >= 0
          return (ok (), Input);
-      end if;
+
       return (Reject ("negative"), 0);
-   end Parse;
 
-   function Legacy (Input : in Integer) returns (Boolean, Integer) is
-   begin
-      if Input >= 0 then
+
+   function Legacy (Input : in Integer) returns (Boolean, Integer)
+
+      if Input >= 0
          return (True, Input);
-      end if;
-      return (False, 0);
-   end Legacy;
 
-end PR113_Structured_Result;
+      return (False, 0);
+
+
+

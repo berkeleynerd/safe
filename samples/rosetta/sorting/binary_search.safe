@@ -1,4 +1,4 @@
-package Binary_Search is
+package Binary_Search
 
    type Index is range 1 to 256;
    type Element is range 0 to 10_000;
@@ -7,31 +7,31 @@ package Binary_Search is
    function Search (Arr : Sorted_Array;
                      Key : Element;
                      Found : out Boolean;
-                     Found_At : out Index) is
-   begin
+                     Found_At : out Index)
+
       var Lo : Index = Index.First
       var Hi : Index = Index.Last
       var Mid : Index
       Found = False
       Found_At = Index.First
-      while Lo <= Hi loop
+      while Lo <= Hi
          Mid = Lo + (Hi - Lo) / 2
-         if Arr (Mid) == Key then
+         if Arr (Mid) == Key
             Found_At = Mid
             Found = True
             return
-         else if Arr (Mid) < Key then
-            if Mid == Index.Last then
+         else if Arr (Mid) < Key
+            if Mid == Index.Last
                return
-            end if
+
             Lo = Mid + 1
          else
-            if Mid == Index.First then
+            if Mid == Index.First
                return
-            end if
-            Hi = Mid - 1
-         end if
-      end loop
-   end Search;
 
-end Binary_Search;
+            Hi = Mid - 1
+
+
+
+
+

@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
-package Empty_Array_Test is
+package Empty_Array_Test
 
    type Element is range 0 to 255;
    type Index is range 1 to 100;
@@ -14,9 +14,9 @@ package Empty_Array_Test is
 
    --  First_Element: attempts to access the first element.
    --  If Arr is empty (Arr.Length = 0), there is no element at index 1.
-   function First_Element (Arr : Flex_Array) returns Element is
-   begin
-      return Arr (1);  -- ERROR: Arr may be empty
-   end First_Element;
+   function First_Element (Arr : Flex_Array) returns Element
 
-end Empty_Array_Test;
+      return Arr (1);  -- ERROR: Arr may be empty
+
+
+

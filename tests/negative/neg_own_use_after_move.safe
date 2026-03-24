@@ -5,24 +5,24 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 -- Expected: REJECT use_after_move
 
-package Use_After_Move_Test is
+package Use_After_Move_Test
 
    type Item is record
       Id    : Natural;
       Count : Natural;
-   end record;
+
 
    type Item_Ptr is access Item;
 
    --  Read_After_Move: reads Source.all after moving Source to Target.
-   function Read_After_Move is
+   function Read_After_Move
       Source : Item_Ptr = new ((Id = 1, Count = 10) as Item);
       Target : Item_Ptr = null;
       V      : Natural;
-   begin
+
       Target = Source;
       --  Source is now moved (null).
       V = Source.all.Count;  -- ERROR: dereference of moved variable
-   end Read_After_Move;
 
-end Use_After_Move_Test;
+
+

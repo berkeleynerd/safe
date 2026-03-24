@@ -22,6 +22,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -115,8 +116,9 @@ def run_source_frontend_checks(safec: Path, env: dict[str, str], temp_root: Path
     cases = [
         {
             "name": "package_end_mismatch.safe",
-            "text": "package Package_End_Mismatch is\nend Different_Name;\n",
-            "message": "package end name must match declared package name",
+            "text": "package Legacy_Begin\n   begin\n      null;\n",
+            "message": "legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation",
+            "rewrite": False,
         },
         {
             "name": "oversized_integer_literal.safe",
@@ -132,7 +134,10 @@ def run_source_frontend_checks(safec: Path, env: dict[str, str], temp_root: Path
 
     for case in cases:
         source = temp_root / case["name"]
-        source.write_text(case["text"], encoding="utf-8")
+        source.write_text(
+            rewrite_safe_source(case["text"]) if case.get("rewrite", True) else case["text"],
+            encoding="utf-8",
+        )
 
         diag_json = run(
             [str(safec), "check", "--diag-json", str(source)],

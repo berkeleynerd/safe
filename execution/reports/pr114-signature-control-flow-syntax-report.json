@@ -160,7 +160,7 @@
       ],
       "source": "tests/positive/emitter_surface_proc.safe",
       "source_fragments": [
-        "function Copy (Input : Small; Output : out Small) is"
+        "function Copy (Input : Small; Output : out Small)"
       ],
       "typed_snippets": [
         "\"name\":\"Copy\""
@@ -230,7 +230,7 @@
       ],
       "source": "tests/positive/pr112_string_param.safe",
       "source_fragments": [
-        "function Echo (Name : in String) returns String is"
+        "function Echo (Name : in String) returns String"
       ],
       "typed_snippets": [
         "\"identifier\":\"String\""
@@ -297,8 +297,8 @@
       ],
       "source": "tests/positive/rule4_conditional.safe",
       "source_fragments": [
-        "else if A != null then",
-        "else if B != null then"
+        "else if A != null",
+        "else if B != null"
       ],
       "typed_snippets": [
         "\"name\":\"Max_Of_Two\""
@@ -366,7 +366,7 @@
       "source": "tests/positive/rule2_slice.safe",
       "source_fragments": [
         "type Index is range 1 to 100;",
-        "for I in First to Last loop"
+        "for I in First to Last"
       ],
       "typed_snippets": [
         "\"identifier\":\"Index\""
@@ -454,8 +454,8 @@
       }
     }
   ],
-  "repeat_sha256": "5751794250253bd480d01ef91cff4760bf54a3a8c514650ed5c9665ec5b6f0d7",
-  "report_sha256": "5751794250253bd480d01ef91cff4760bf54a3a8c514650ed5c9665ec5b6f0d7",
+  "repeat_sha256": "c8276ddd77c2153c277fa33b92b4ed8f530b85e97969bdb36cbfe96cd7669044",
+  "report_sha256": "c8276ddd77c2153c277fa33b92b4ed8f530b85e97969bdb36cbfe96cd7669044",
   "status": "ok",
   "task": "PR11.4"
 }

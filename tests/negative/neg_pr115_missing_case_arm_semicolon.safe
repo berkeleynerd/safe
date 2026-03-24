@@ -1,17 +1,16 @@
-package Neg_PR115_Missing_Case_Arm_Semicolon is
+package Neg_PR115_Missing_Case_Arm_Semicolon
 
    type Switch is range 0 to 1;
 
-   function Broken (Input : Switch) returns Boolean is
-   begin
-      case Input is
-         when 0 then
-            return False;
-         end when
-         when others then
-            return True;
-         end when;
-      end case;
-   end Broken;
+   function Broken (Input : Switch) returns Boolean
 
-end Neg_PR115_Missing_Case_Arm_Semicolon;
+      case Input
+         when 0
+            return False return True;
+
+         when others
+            return True;
+
+
+
+

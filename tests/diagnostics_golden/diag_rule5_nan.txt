@@ -1,4 +1,4 @@
-Diagnostics Golden: Rule 5 NaN
+Diagnostics Golden: Rule5 Nan
 Source: tests/negative/neg_rule5_nan.safe
 
 Expected diagnostic output:

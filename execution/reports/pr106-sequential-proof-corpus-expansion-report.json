@@ -280,7 +280,7 @@
           "body_regexes": [],
           "coverage_note": "Access-typed constant initialization still lowers to explicit dereference writes plus explicit cleanup support.",
           "source_fragments": [
-            "package Constant_Access_Deref_Write is",
+            "package Constant_Access_Deref_Write",
             "function Mutate_Through_Constant_Access"
           ],
           "spec_fragments": [
@@ -534,7 +534,7 @@
           "body_regexes": [],
           "coverage_note": "Constant-derived channel capacity remains visible in the emitted protected buffer shape and entry guards.",
           "source_fragments": [
-            "package Constant_Channel_Capacity is",
+            "package Constant_Channel_Capacity",
             "channel Data_Ch : Message capacity Capacity_Value;"
           ],
           "spec_fragments": [
@@ -785,7 +785,7 @@
           "body_regexes": [],
           "coverage_note": "Defaulted discriminants in the current boolean-only subset emit as explicit discriminated Ada records.",
           "source_fragments": [
-            "package Constant_Discriminant_Default is",
+            "package Constant_Discriminant_Default",
             "Default_Active"
           ],
           "spec_fragments": [
@@ -1035,7 +1035,7 @@
           "body_regexes": [],
           "coverage_note": "Constant-derived scalar range bounds remain explicit in emitted subtype and constant declarations.",
           "source_fragments": [
-            "package Constant_Range_Bound is",
+            "package Constant_Range_Bound",
             "Max_Count"
           ],
           "spec_fragments": [
@@ -1291,7 +1291,7 @@
           "body_regexes": [],
           "coverage_note": "Shadowed mutable locals stay distinct from outer constants in the emitted Ada body.",
           "source_fragments": [
-            "package Constant_Shadow_Mutable is",
+            "package Constant_Shadow_Mutable",
             "function Update_Local"
           ],
           "spec_fragments": [
@@ -1545,7 +1545,7 @@
           "body_regexes": [],
           "coverage_note": "Task priorities derived from constants remain explicit in the emitted task declaration without dragging unrelated task-body proof noise into the corpus.",
           "source_fragments": [
-            "package Constant_Task_Priority is",
+            "package Constant_Task_Priority",
             "task Worker"
           ],
           "spec_fragments": [
@@ -1801,7 +1801,7 @@
           "body_regexes": [],
           "coverage_note": "Procedure-only emission stays support-file-light and preserves explicit dependency contracts.",
           "source_fragments": [
-            "package Emitter_Surface_Proc is",
+            "package Emitter_Surface_Proc",
             "function Copy"
           ],
           "spec_fragments": [
@@ -2056,7 +2056,7 @@
           "body_regexes": [],
           "coverage_note": "Record-only emission stays support-file-light and preserves the intended minimal package skeleton.",
           "source_fragments": [
-            "package Emitter_Surface_Record is",
+            "package Emitter_Surface_Record",
             "type Pair is record"
           ],
           "spec_fragments": [
@@ -2309,7 +2309,7 @@
           "body_regexes": [],
           "coverage_note": "Result equality and inequality lowering remain explicit and compile/prove cleanly in emitted Ada.",
           "source_fragments": [
-            "package Result_Equality_Check is",
+            "package Result_Equality_Check",
             "function Is_Error"
           ],
           "spec_fragments": [],
@@ -2561,7 +2561,7 @@
           "body_regexes": [],
           "coverage_note": "Guarded result access now proves on top of explicit boolean-discriminant variant record emission.",
           "source_fragments": [
-            "package Result_Guarded_Access is",
+            "package Result_Guarded_Access",
             "function Get_Or_Default"
           ],
           "spec_fragments": [
@@ -8866,8 +8866,8 @@
       }
     ]
   },
-  "repeat_sha256": "6771a324fd428f6a56576af22566ce3cd194d3d919fd0191629631282e61e243",
-  "report_sha256": "6771a324fd428f6a56576af22566ce3cd194d3d919fd0191629631282e61e243",
+  "repeat_sha256": "5c2236bc66cdae000e318f3d7dba0517e211a09e66ab27d6d0836d143822979a",
+  "report_sha256": "5c2236bc66cdae000e318f3d7dba0517e211a09e66ab27d6d0836d143822979a",
   "semantic_floor": {
     "fixture_count": 27,
     "fixtures": [

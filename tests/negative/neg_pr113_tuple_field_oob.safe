@@ -1,4 +1,4 @@
-package Neg_PR113_Tuple_Field_Oob is
+package Neg_PR113_Tuple_Field_Oob
    Pair : (Boolean, Integer) = (True, 1);
    Value : Integer = Pair.3;
-end Neg_PR113_Tuple_Field_Oob;
+

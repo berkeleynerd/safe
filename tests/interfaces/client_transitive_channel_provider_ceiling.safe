@@ -1,12 +1,12 @@
 with Provider_Transitive_Channel;
 
-package Client_Transitive_Channel_Provider_Ceiling is
+package Client_Transitive_Channel_Provider_Ceiling
 
-   task Caller with Priority = 8 is
-   begin
+   task Caller with Priority = 8
+
       loop
          Provider_Transitive_Channel.Push;
-      end loop;
-   end Caller;
 
-end Client_Transitive_Channel_Provider_Ceiling;
+
+
+

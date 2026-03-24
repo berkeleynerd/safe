@@ -224,6 +224,53 @@ class GateManifestTests(unittest.TestCase):
             ],
         )
 
+    def test_branch_resolution_pr116(self) -> None:
+        self.assertEqual(
+            [node.id for node in resolve_branch("codex/pr116-meaningful-whitespace")],
+            [
+                "validate_execution_state_preflight",
+                "build_initial",
+                "pr111_language_eval",
+                "pr112_parser_completeness",
+                "pr113_discriminated_types",
+                "pr113a_proof_checkpoint",
+                "pr114_signature_control_flow",
+                "pr115_statement_ergonomics",
+                "pr116_meaningful_whitespace",
+                "pr081_local_concurrency_frontend",
+                "pr082_local_concurrency_analysis",
+                "pr083_interface_contracts",
+                "pr083a_public_constants",
+                "pr084_transitive_concurrency",
+                "pr08_frontend_baseline",
+                "pr09a_emitter_surface",
+                "pr09a_emitter_mvp",
+                "pr09b_sequential_semantics",
+                "pr09b_concurrency_output",
+                "pr09b_snapshot_refresh",
+                "pr09_ada_emission_baseline",
+                "pr10_contract_baseline",
+                "pr10_emitted_flow",
+                "pr10_emitted_prove",
+                "pr10_emitted_baseline",
+                "emitted_hardening_regressions",
+                "pr101a_companion_proof_verification",
+                "pr101b_template_proof_verification",
+                "pr101_comprehensive_audit",
+                "pr0694_output_contract_stability",
+                "pr0697_gate_quality",
+                "frontend_smoke",
+                "pr0699_build_reproducibility",
+                "pr0693_runtime_boundary",
+                "pr068_ada_ast_emit_no_python",
+                "pr06910_portability_environment",
+                "pr0698_legacy_package_cleanup",
+                "pr06912_performance_scale_sanity",
+                "pr06911_glue_script_safety",
+                "pr06913_documentation_architecture_clarity",
+            ],
+        )
+
     def test_manifest_assigns_companion_and_template_clean_profiles(self) -> None:
         nodes = {node.id: node for node in NODES}
         self.assertEqual(

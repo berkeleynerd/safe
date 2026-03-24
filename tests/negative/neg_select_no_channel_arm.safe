@@ -3,16 +3,16 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
 -- Expected: REJECT source_frontend_error
 
-package Select_No_Channel_Arm_Test is
+package Select_No_Channel_Arm_Test
 
-   task Worker is
-   begin
+   task Worker
+
       loop
          select
-            delay 0.10 then
+            delay 0.10
                null;
-         end select;
-      end loop;
-   end Worker;
 
-end Select_No_Channel_Arm_Test;
+
+
+
+

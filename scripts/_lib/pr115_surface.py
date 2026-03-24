@@ -29,9 +29,9 @@ PR115_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "pr115_compound_terminators.safe",
         "coverage_note": "Compound statement terminators may omit semicolons on later lines without changing the lowered control-flow structure.",
         "source_fragments": (
-            "else if Current < 5 then",
-            "end if for I in 1 to 2 loop",
-            "end loop return Current",
+            "else if Current < 5",
+            "for I in 1 to 2",
+            "return Current",
         ),
         "typed_snippets": ('"name":"Adjust"',),
         "mir_snippets": ('"name":"Adjust"',),
@@ -47,7 +47,7 @@ PR115_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "pr115_case_terminator.safe",
         "coverage_note": "The final `end case` statement terminator may be omitted while `end when;` arm separators remain explicit.",
         "source_fragments": (
-            "end case return Result",
+            "when others Result = True; return Result",
         ),
         "typed_snippets": ('"name":"Normalize"',),
         "mir_snippets": ('"name":"Normalize"',),
@@ -145,7 +145,7 @@ PR115_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (
             "var Lo : Index = Index.First",
             "var Hi : Index = Index.Last",
             "var Mid : Index",
-            "else if Arr (Mid) < Key then",
+            "else if Arr (Mid) < Key",
         ),
     },
     {

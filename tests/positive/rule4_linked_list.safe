@@ -5,7 +5,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package Safe_Linked_List is
+package Safe_Linked_List
 
    type Node;
    type Node_Ptr is access Node;
@@ -13,53 +13,53 @@ package Safe_Linked_List is
    type Node is record
       Value : Integer;
       Next  : Node_Ptr;
-   end record;
+
 
    --  Last_Value: traverses to the tail and returns its value.
    --  The traversal uses a local observer derived from Head.Access.
-   function Last_Value (Head : Node_Ptr) returns Integer is
-   begin
-      if Head == null then
+   function Last_Value (Head : Node_Ptr) returns Integer
+
+      if Head == null
          return 0;
-      end if;
+
 
       declare
          Current : access constant Node = Head.Access;
       begin
-         while Current != null loop
-            if Current.all.Next == null then
+         while Current != null
+            if Current.all.Next == null
                return Current.all.Value;
             else
                Current = Current.all.Next.Access;
-            end if;
-         end loop;
+
+
       end;
 
       return 0;
-   end Last_Value;
+
 
    --  Has_Tail: proves nested null guards before traversing further.
-   function Has_Tail (Head : Node_Ptr) returns Boolean is
-   begin
-      if Head == null then
+   function Has_Tail (Head : Node_Ptr) returns Boolean
+
+      if Head == null
          return False;
-      end if;
+
 
       declare
          Current : access constant Node = Head.Access;
       begin
-         while Current != null loop
-            if Current.all.Next == null then
+         while Current != null
+            if Current.all.Next == null
                return False;
-            else if Current.all.Next.all.Next == null then
+            else if Current.all.Next.all.Next == null
                return True;
             else
                Current = Current.all.Next.Access;
-            end if;
-         end loop;
+
+
       end;
 
       return False;
-   end Has_Tail;
 
-end Safe_Linked_List;
+
+

@@ -3,19 +3,19 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p34:f0f83b83
 -- Expected: REJECT source_frontend_error
 
-package Select_Multiple_Delay_Test is
+package Select_Multiple_Delay_Test
 
-   task Worker is
-   begin
+   task Worker
+
       loop
          select
-            delay 0.10 then
+            delay 0.10
                null;
          or
-            delay 0.20 then
+            delay 0.20
                null;
-         end select;
-      end loop;
-   end Worker;
 
-end Select_Multiple_Delay_Test;
+
+
+
+

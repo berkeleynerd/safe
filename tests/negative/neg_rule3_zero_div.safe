@@ -5,13 +5,12 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
-   package Zero_Div_Test is
+package Zero_Div_Test
 
    type Value is range -100 to 100;
-   function Divide (A, B : Value) returns Value is
-   begin
+   function Divide (A, B : Value) returns Value
+
 
       return A / B;  -- ERROR: B may be zero
-   end Divide;
 
-end Zero_Div_Test;
+

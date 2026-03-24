@@ -1,4 +1,4 @@
-Diagnostics Golden: Rule 5 Infinity
+Diagnostics Golden: Rule5 Infinity
 Source: tests/negative/neg_rule5_infinity.safe
 
 Expected diagnostic output:

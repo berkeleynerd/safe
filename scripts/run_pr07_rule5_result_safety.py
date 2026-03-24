@@ -32,6 +32,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -337,7 +338,7 @@ def run_inline_negative_cases(safec: Path, env: dict[str, str], temp_root: Path)
     results: list[dict[str, Any]] = []
     for case in INLINE_NEGATIVE_CASES:
         source_path = temp_root / f"{case['name']}.safe"
-        source_path.write_text(case["source"], encoding="utf-8")
+        source_path.write_text(rewrite_safe_source(case["source"]), encoding="utf-8")
         result = run(
             [str(safec), "check", "--diag-json", str(source_path)],
             cwd=REPO_ROOT,

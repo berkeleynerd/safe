@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package Safe_Linked_List_Sum is
+package Safe_Linked_List_Sum
 
    type Node;
    type Node_Ptr is access Node;
@@ -17,45 +17,45 @@ package Safe_Linked_List_Sum is
    type Node is record
       Value : Node_Value;
       Next  : Node_Ptr;
-   end record;
 
-   function Summarize_Prefix (Head : Node_Ptr) returns Total_Value is
+
+   function Summarize_Prefix (Head : Node_Ptr) returns Total_Value
       Count : Visit_Count = 0;
       Total : Total_Value = 0;
-   begin
-      if Head != null then
+
+      if Head != null
          Count = Count + 1;
          Total = Total + Total_Value (Head.all.Value);
-         if Count == 3 then
+         if Count == 3
             return Total_Value (Total);
-         end if;
 
-         if Head.all.Next != null then
+
+         if Head.all.Next != null
             declare
                Second : access constant Node = Head.all.Next.Access;
             begin
                Count = Count + 1;
                Total = Total + Total_Value (Second.all.Value);
-               if Count == 3 then
+               if Count == 3
                   return Total_Value (Total);
-               end if;
 
-               if Second.all.Next != null then
+
+               if Second.all.Next != null
                   declare
                      Third : access constant Node = Second.all.Next.Access;
                   begin
                      Count = Count + 1;
                      Total = Total + Total_Value (Third.all.Value);
-                     if Count == 3 then
+                     if Count == 3
                         return Total_Value (Total);
-                     end if;
+
                   end;
-               end if;
+
             end;
-         end if;
-      end if;
+
+
 
       return Total_Value (Total);
-   end Summarize_Prefix;
 
-end Safe_Linked_List_Sum;
+
+

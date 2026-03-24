@@ -5,7 +5,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: ACCEPT
 
-package Safe_Optional is
+package Safe_Optional
 
    type Value is range 0 to 10_000;
    type Value_Ptr is access Value;
@@ -13,20 +13,20 @@ package Safe_Optional is
    --  Get_Or_Default: returns the designated value if non-null,
    --  otherwise returns a default.
    function Get_Or_Default (P : Value_Ptr;
-                            Default : Value) returns Value is
-   begin
-      if P != null then
+                            Default : Value) returns Value
+
+      if P != null
          --  P is provably not null by the guard.
          return P.all;
       else
          return Default;
-      end if;
-   end Get_Or_Default;
+
+
 
    --  Has_Value: checks if the pointer is non-null.
-   function Has_Value (P : Value_Ptr) returns Boolean is
-   begin
-      return P != null;
-   end Has_Value;
+   function Has_Value (P : Value_Ptr) returns Boolean
 
-end Safe_Optional;
+      return P != null;
+
+
+

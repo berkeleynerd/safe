@@ -8,7 +8,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
 -- Expected: ACCEPT
 
-package Safe_Statistics is
+package Safe_Statistics
 
    type Sample_Index is range 1 to 100;
    type Sample_Value is digits 6 range -1000.0 to 1000.0;
@@ -17,33 +17,32 @@ package Safe_Statistics is
    --  Mean: online average update with a provably nonzero typed divisor.
    --  At each step the new mean is an interpolation between the previous
    --  mean and the new sample, so it stays within -1000..1000.
-   function Mean (Data : Sample_Array) returns Sample_Value is
+   function Mean (Data : Sample_Array) returns Sample_Value
       Running_Mean : Sample_Value = 0.0;
-   begin
-      for I in Sample_Index loop
-         Running_Mean = Sample_Value
-           (Long_Float (Running_Mean)
+
+      for I in Sample_Index
+         Running_Mean = Sample_Value (
+            Long_Float (Running_Mean)
             + (Long_Float (Data (I)) - Long_Float (Running_Mean))
-              / Long_Float (I));
-      end loop;
+            / Long_Float (I)
+         );
+
       return Running_Mean;
-   end Mean;
+
 
    --  Variance: average of squared deviations from the mean.
-   function Variance (Data : Sample_Array) returns Long_Float is
+   function Variance (Data : Sample_Array) returns Long_Float
       M       : Long_Float;
       Sum_Sq  : Long_Float = 0.0;
       Diff    : Long_Float;
-   begin
+
       M = Long_Float (Mean (Data));
-      for I in Sample_Index loop
+      for I in Sample_Index
          Diff = Long_Float (Data (I)) - M;
          --  Diff is in -2000..2000, Diff*Diff in 0..4_000_000 (finite).
          Sum_Sq = Sum_Sq + Diff * Diff;
-      end loop;
+
       --  Sum_Sq is at most 100 * 4_000_000 = 400_000_000 (finite).
       --  Division by 100.0 (nonzero) yields finite result.
       return Sum_Sq / 100.0;
-   end Variance;
 
-end Safe_Statistics;

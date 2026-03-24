@@ -5,14 +5,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
-package Zero_Rem_Test is
+package Zero_Rem_Test
 
    type Signed is range -50 to 50;
 
    --  Remainder_Unsafe: computes A rem B, but B may be zero.
-   function Remainder_Unsafe (A, B : Signed) returns Signed is
-   begin
-      return A rem B;  -- ERROR: B may be zero
-   end Remainder_Unsafe;
+   function Remainder_Unsafe (A, B : Signed) returns Signed
 
-end Zero_Rem_Test;
+      return A rem B;  -- ERROR: B may be zero
+
+
+

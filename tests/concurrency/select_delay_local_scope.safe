@@ -6,28 +6,28 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9
 -- Expected: ACCEPT
 
-package Select_Delay_Local_Scope is
+package Select_Delay_Local_Scope
 
    type Message is range 0 to 100;
 
    channel Data_Ch : Message capacity 1;
 
-   task Worker is
+   task Worker
       Count : Natural = 0;
-   begin
+
       loop
          select
-            when Item : Message from Data_Ch then
-               if Item > 0 then
+            when Item : Message from Data_Ch
+               if Item > 0
                   Count = Count + 1;
-               end if;
+
          or
-            delay 0.05 then
+            delay 0.05
                Temp : Natural = 1;
                Temp = Temp + 1;
                Count = Count + Temp;
-         end select;
-      end loop;
-   end Worker;
 
-end Select_Delay_Local_Scope;
+
+
+
+

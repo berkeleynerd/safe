@@ -7,7 +7,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
 -- Expected: ACCEPT
 
-package Temperature_Conv is
+package Temperature_Conv
 
    type Celsius is digits 6 range -273.15 to 1000.0;
    type Fahrenheit is digits 6 range -459.67 to 1832.0;
@@ -17,17 +17,17 @@ package Temperature_Conv is
    --  C * 9.0/5.0 range: -491.67 .. 1800.0
    --  Result range: -459.67 .. 1832.0, fits in Fahrenheit.
    --  No intermediate can be NaN or infinity (bounded inputs, nonzero divisor).
-   function To_Fahrenheit (C : Celsius) returns Fahrenheit is
-   begin
+   function To_Fahrenheit (C : Celsius) returns Fahrenheit
+
       --  Narrowing point (return): result is finite and in Fahrenheit range.
       return Fahrenheit (Long_Float (C) * 9.0 / 5.0 + 32.0);
-   end To_Fahrenheit;
+
 
    --  To_Celsius: (F - 32.0) * 5.0 / 9.0
    --  9.0 is a nonzero literal, so no division by zero.
-   function To_Celsius (F : Fahrenheit) returns Celsius is
-   begin
-      return Celsius ((Long_Float (F) - 32.0) * 5.0 / 9.0);
-   end To_Celsius;
+   function To_Celsius (F : Fahrenheit) returns Celsius
 
-end Temperature_Conv;
+      return Celsius ((Long_Float (F) - 32.0) * 5.0 / 9.0);
+
+
+

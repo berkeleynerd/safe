@@ -4,6 +4,13 @@
 
 This section provides the complete consolidated BNF grammar for Safe. This is the authoritative grammar; all syntactic constructs of Safe are defined here. The notation follows 8652:2023 §1.1.4: `::=` for productions, `[ ]` for optional, `{ }` for zero or more repetitions, `|` for alternation. Keywords are shown in **bold** where referenced in prose; in productions they appear as quoted literals. Nonterminals are in `snake_case`.
 
+For the PR11.6 surface, the lexer emits structural `INDENT` / `DEDENT` tokens
+from leading spaces-only indentation in fixed 3-space steps. Covered block
+constructs are delimited by those structural tokens rather than explicit
+closing keywords. `declare` blocks and `declare_expression` remain explicit in
+this release and are therefore called out separately where they still use
+`begin` / `end`.
+
 ---
 
 ## 8.1 Compilation Units
@@ -22,9 +29,13 @@ package_name ::=
     identifier { '.' identifier }
 
 package_unit ::=
-    'package' defining_identifier 'is'
+    'package' defining_identifier
+        indented_package_item_list
+
+indented_package_item_list ::=
+    INDENT
         { package_item }
-    'end' defining_identifier ';'
+    DEDENT
 ```
 
 ## 8.2 Package Items
@@ -163,9 +174,13 @@ record_type_definition ::=
 
 record_definition ::=
     'record'
-        component_list
-    'end' 'record'
+        indented_component_list
   | 'null' 'record'
+
+indented_component_list ::=
+    INDENT
+        component_list
+    DEDENT
 
 component_list ::=
     component_item { component_item }
@@ -186,13 +201,17 @@ discriminant_specification ::=
     defining_identifier_list ':' subtype_mark [ '=' default_expression ]
 
 variant_part ::=
-    'case' discriminant_direct_name 'is'
+    'case' discriminant_direct_name
+        indented_variant_list
+
+indented_variant_list ::=
+    INDENT
         variant { variant }
-    'end' 'case' ';'
+    DEDENT
 
 variant ::=
-    'when' discrete_choice_list 'then'
-        component_list
+    'when' discrete_choice_list
+        indented_component_list
 
 discrete_choice_list ::=
     discrete_choice { '|' discrete_choice }
@@ -433,8 +452,9 @@ delta_aggregate ::=
 Within executable statement sequences, `statement_terminator` may be either an
 explicit `;` or an omitted terminator when the next significant token begins on
 a later source line. This omission rule applies only to executable statement
-sequences. Declarative parts, package items, and `case` arm `end when;`
-separators keep explicit semicolons.
+sequences. Declarative parts and package items keep explicit semicolons. Block
+structure for covered statements comes from indentation rather than explicit
+closing keywords.
 
 ```
 sequence_of_statements ::=
@@ -474,6 +494,11 @@ omitted_statement_terminator ::=
 statement ::=
     [ label ] simple_statement
   | [ label ] compound_statement
+
+indented_statement_suite ::=
+    INDENT
+        sequence_of_statements
+    DEDENT
 
 label ::=
     '<<' identifier '>>'
@@ -534,31 +559,31 @@ compound_statement ::=
   | select_statement
 
 if_statement ::=
-    'if' condition 'then'
-        sequence_of_statements
-    { 'elsif' condition 'then'
-        sequence_of_statements }
+    'if' condition
+        indented_statement_suite
+    { 'else' 'if' condition
+        indented_statement_suite }
     [ 'else'
-        sequence_of_statements ]
-    'end' 'if' statement_terminator
+        indented_statement_suite ]
 
 case_statement ::=
-    'case' expression 'is'
+    'case' expression
+        indented_case_statement_alternatives
+
+indented_case_statement_alternatives ::=
+    INDENT
         case_statement_alternative { case_statement_alternative }
-    'end' 'case' statement_terminator
+    DEDENT
 
 case_statement_alternative ::=
-    'when' discrete_choice_list 'then'
-        sequence_of_statements
-    'end' 'when' ';'
+    'when' discrete_choice_list
+        indented_statement_suite
 
 loop_statement ::=
-    [ loop_name ':' ] iteration_scheme 'loop'
-        sequence_of_statements
-    'end' 'loop' [ loop_name ] statement_terminator
+    [ loop_name ':' ] iteration_scheme
+        indented_statement_suite
   | [ loop_name ':' ] 'loop'
-        sequence_of_statements
-    'end' 'loop' [ loop_name ] statement_terminator
+        indented_statement_suite
 
 iteration_scheme ::=
     'while' condition
@@ -567,11 +592,13 @@ iteration_scheme ::=
 
 block_statement ::=
     [ block_name ':' ]
-    [ 'declare'
-        { basic_declaration } ]
+    'declare'
+        INDENT
+            { basic_declaration }
+        DEDENT
     'begin'
-        handled_sequence_of_statements
-    'end' [ block_name ] statement_terminator
+        indented_statement_suite
+    'end' statement_terminator
 
 handled_sequence_of_statements ::=
     sequence_of_statements
@@ -585,25 +612,24 @@ label_name ::= identifier
 
 ```
 subprogram_declaration ::=
-    [ 'public' ] subprogram_specification ';'
+    [ 'public' ] function_specification ';'
 
 subprogram_body ::=
-    [ 'public' ] subprogram_specification 'is'
-    [ declarative_part ]
-    'begin'
-        handled_sequence_of_statements
-    'end' [ designator ] ';'
+    [ 'public' ] subprogram_specification
+        indented_subprogram_body
+
+indented_subprogram_body ::=
+    INDENT
+        { basic_declaration }
+        { statement_item }
+    DEDENT
 
 subprogram_specification ::=
-    procedure_specification
-  | function_specification
-
-procedure_specification ::=
-    'procedure' defining_identifier [ formal_part ]
+    function_specification
 
 function_specification ::=
-    'function' defining_identifier [ formal_part ] 'return' subtype_mark
-  | 'function' defining_identifier [ formal_part ] 'return' access_definition
+    'function' defining_identifier [ formal_part ] [ 'returns' subtype_mark ]
+  | 'function' defining_identifier [ formal_part ] [ 'returns' access_definition ]
 
 formal_part ::=
     '(' parameter_specification { ';' parameter_specification } ')'
@@ -621,7 +647,7 @@ declarative_part ::=
     { basic_declaration }
 
 expression_function_declaration ::=
-    [ 'public' ] function_specification 'is' '(' expression ')' ';'
+    [ 'public' ] function_specification '(' expression ')' ';'
 
 designator ::=
     identifier
@@ -685,11 +711,14 @@ aspect_mark ::=
 ```
 task_declaration ::=
     'task' defining_identifier
-        [ 'with' 'Priority' '=' static_expression ] 'is'
-    [ declarative_part ]
-    'begin'
-        handled_sequence_of_statements
-    'end' defining_identifier ';'
+        [ 'with' 'Priority' '=' static_expression ]
+        indented_task_body
+
+indented_task_body ::=
+    INDENT
+        { basic_declaration }
+        { statement_item }
+    DEDENT
 
 channel_declaration ::=
     [ 'public' ] 'channel' defining_identifier ':' subtype_mark
@@ -709,20 +738,25 @@ try_receive_statement ::=
 
 select_statement ::=
     'select'
+        indented_select_arm
+    { 'or'
+        indented_select_arm }
+
+indented_select_arm ::=
+    INDENT
         select_arm
-    { 'or' select_arm }
-    'end' 'select' statement_terminator
+    DEDENT
 
 select_arm ::=
     channel_arm | delay_arm
 
 channel_arm ::=
-    'when' defining_identifier ':' subtype_mark 'from' channel_name 'then'
-        sequence_of_statements
+    'when' defining_identifier ':' subtype_mark 'from' channel_name
+        indented_statement_suite
 
 delay_arm ::=
-    'delay' expression 'then'
-        sequence_of_statements
+    'delay' expression
+        indented_statement_suite
 
 channel_name ::= name
 ```

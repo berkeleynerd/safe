@@ -3,9 +3,9 @@ Source: tests/negative/neg_result_mutated.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_result_mutated.safe:39:17: error: access to variant field 'Value' requires established discriminant 'OK'
+neg_result_mutated.safe:41:17: error: access to variant field 'Value' requires established discriminant 'OK'
   |
-  | 39 |          return R.Value;          -- REJECTED: R.OK no longer established
+  | 41 |          return R.Value;          -- REJECTED: R.OK no longer established
   |    |                 ^~~~~~~
   |
   note: the discriminant fact for 'R' was invalidated by assignment or an out/in out call.

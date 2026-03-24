@@ -23,6 +23,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -648,7 +649,7 @@ def run_inline_cases(
     results: dict[str, Any] = {}
     for name, source_text in INLINE_CASES.items():
         source_path = temp_root / f"{name}.safe"
-        source_path.write_text(source_text, encoding="utf-8")
+        source_path.write_text(rewrite_safe_source(source_text), encoding="utf-8")
         case = run_positive_case(safec, source_path, env, temp_root)
         case["case_specific"] = assert_case_specific(name, case["mir"])
         del case["mir"]

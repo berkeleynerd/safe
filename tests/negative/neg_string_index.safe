@@ -2,11 +2,11 @@
 -- Description: String indexing remains outside the PR11.2 text subset.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_String_Index is
+package Neg_String_Index
 
-   function First_Letter (Name : in String) returns Character is
-   begin
+   function First_Letter (Name : in String) returns Character
+
       return Name (1);
-   end First_Letter;
 
-end Neg_String_Index;
+
+

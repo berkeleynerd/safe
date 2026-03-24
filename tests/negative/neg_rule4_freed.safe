@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b-diag:ddab22c8
 -- Expected: REJECT dangling_reference
 
-package Freed_Test is
+package Freed_Test
 
    type Data is range 0 to 100;
    type Data_Ptr is access Data;
@@ -15,9 +15,9 @@ package Freed_Test is
    --  Inner declares an owning pointer, borrows it to Outer_Ref,
    --  then the owning pointer goes out of scope (deallocated).
    --  Outer_Ref now dangles.
-   function Escape_Reference returns Integer is
+   function Escape_Reference returns Integer
       Outer_Ref : access Data;
-   begin
+
       declare
          Owner : Data_Ptr = new (42 as Data);
       begin
@@ -25,6 +25,6 @@ package Freed_Test is
       end;
       --  Owner has been deallocated; Outer_Ref is dangling.
       return Integer (Outer_Ref.all);  -- ERROR: dangling reference
-   end Escape_Reference;
 
-end Freed_Test;
+
+

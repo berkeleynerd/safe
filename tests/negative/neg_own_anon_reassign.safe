@@ -3,20 +3,20 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66
 -- Expected: REJECT anonymous_access_reassign
 
-package Anonymous_Reassign_Test is
+package Anonymous_Reassign_Test
 
    type Data is record
       Value : Integer;
-   end record;
+
 
    type Data_Ptr is access Data;
 
-   function Reassign_Borrow is
+   function Reassign_Borrow
       Owner : Data_Ptr = new ((Value = 1) as Data);
       Other : Data_Ptr = new ((Value = 2) as Data);
       Ref   : access Data = Owner;
-   begin
-      Ref = Other;  -- ERROR: anonymous access reassignment after declaration
-   end Reassign_Borrow;
 
-end Anonymous_Reassign_Test;
+      Ref = Other;  -- ERROR: anonymous access reassignment after declaration
+
+
+

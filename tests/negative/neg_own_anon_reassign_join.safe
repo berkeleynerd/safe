@@ -3,26 +3,26 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66
 -- Expected: REJECT anonymous_access_reassign
 
-package Anonymous_Reassign_Join_Test is
+package Anonymous_Reassign_Join_Test
 
    type Data is record
       Value : Integer;
-   end record;
+
 
    type Data_Ptr is access Data;
 
-   function Reassign_After_Join (Pick : Integer) is
+   function Reassign_After_Join (Pick : Integer)
       Owner : Data_Ptr = new ((Value = 1) as Data);
       Other : Data_Ptr = new ((Value = 2) as Data);
       Ref   : access Data;
-   begin
-      if Pick == 0 then
+
+      if Pick == 0
          Ref = Owner;
       else
          null;
-      end if;
+
 
       Ref = Other;  -- ERROR: merge must not reset init-only tracking
-   end Reassign_After_Join;
 
-end Anonymous_Reassign_Join_Test;
+
+

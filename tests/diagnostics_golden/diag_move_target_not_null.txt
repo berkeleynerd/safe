@@ -1,6 +1,5 @@
 Diagnostics Golden: Move Target Not Null
 Source: tests/negative/neg_own_target_not_null.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

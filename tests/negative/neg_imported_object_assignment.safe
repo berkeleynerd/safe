@@ -4,13 +4,13 @@
 
 with Provider_Object;
 
-package Imported_Object_Assignment_Test is
+package Imported_Object_Assignment_Test
 
-   task Writer is
-   begin
+   task Writer
+
       loop
          Provider_Object.Seed = 4;
-      end loop;
-   end Writer;
 
-end Imported_Object_Assignment_Test;
+
+
+

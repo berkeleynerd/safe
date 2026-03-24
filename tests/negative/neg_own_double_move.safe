@@ -6,20 +6,20 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96c:0b45de01
 -- Expected: REJECT double_move
 
-package Double_Move_Test is
+package Double_Move_Test
 
    type Payload is range 0 to 100;
    type Payload_Ptr is access Payload;
 
    --  Double_Move: moves Source twice.
-   function Double_Move is
+   function Double_Move
       Source  : Payload_Ptr = new (42 as Payload);
       Target1 : Payload_Ptr = null;
       Target2 : Payload_Ptr = null;
-   begin
+
       Target1 = Source;
       --  Source is now null (moved).
       Target2 = Source;  -- ERROR: Source has already been moved
-   end Double_Move;
 
-end Double_Move_Test;
+
+

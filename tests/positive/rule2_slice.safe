@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: ACCEPT
 
-package Safe_Slice is
+package Safe_Slice
 
    type Index is range 1 to 100;
    type Element is range 0 to 255;
@@ -17,17 +17,17 @@ package Safe_Slice is
    --  every array access within the loop is provably in bounds.
    function Last_In_Subrange (Buf : Buffer;
                               First : Index;
-                              Last  : Index) returns Element is
+                              Last  : Index) returns Element
       Current : Element = 0;
-   begin
-      if First <= Last then
-         for I in First to Last loop
+
+      if First <= Last
+         for I in First to Last
             --  I is in First..Last, both of type Index (1..100).
             --  Provably within Buffer's bounds.
             Current = Buf (I);
-         end loop;
-      end if;
-      return Current;
-   end Last_In_Subrange;
 
-end Safe_Slice;
+
+      return Current;
+
+
+

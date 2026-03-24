@@ -2,11 +2,11 @@
 -- Description: String formals are restricted to mode in in PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_String_Out_Param is
+package Neg_String_Out_Param
 
-   function Set_Name (Name : out String) is
-   begin
+   function Set_Name (Name : out String)
+
       null;
-   end Set_Name;
 
-end Neg_String_Out_Param;
+
+

@@ -2,24 +2,24 @@
 -- Description: Character literals, string literals, and character-based case.
 -- Expected: ACCEPT
 
-package PR112_Character_Case is
+package PR112_Character_Case
 
    Marker : constant Character = 'A';
    Fallback : constant String = "needs work";
 
-   function Grade_Message (Grade : in Character) returns String is
-   begin
-      case Grade is
-         when 'A' then
-            return "excellent";
-         end when;
-         when 'B' then
-            return "good";
-         end when;
-         when others then
-            return Fallback;
-         end when;
-      end case;
-   end Grade_Message;
+   function Grade_Message (Grade : in Character) returns String
 
-end PR112_Character_Case;
+      case Grade
+         when 'A'
+            return "excellent";
+
+         when 'B'
+            return "good";
+
+         when others
+            return Fallback;
+
+
+
+
+

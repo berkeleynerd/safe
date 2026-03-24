@@ -1,6 +1,5 @@
-Diagnostics Golden: Anonymous Access Reassign After Join
+Diagnostics Golden: Anonymous Access Reassign Join
 Source: tests/negative/neg_own_anon_reassign_join.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

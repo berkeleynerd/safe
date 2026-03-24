@@ -10,7 +10,7 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
 -- Expected: ACCEPT
 
-package Pipeline is
+package Pipeline
 
    type Sample is range 0 to 10_000;
 
@@ -19,38 +19,38 @@ package Pipeline is
    channel Filtered_Ch : Sample capacity 4;
 
    --  Producer: background task used to keep channel/task emission in the proof corpus.
-   task Producer with Priority = 10 is
-   begin
+   task Producer with Priority = 10
+
       loop
          send Raw_Ch, 8;
          delay 0.001;
-      end loop;
-   end Producer;
+
+
 
    --  Filter: background task used to keep multiple task bodies in the proof corpus.
-   task Filter with Priority = 10 is
+   task Filter with Priority = 10
       Input : Sample;
-   begin
+
       loop
          receive Raw_Ch, Input;
          send Filtered_Ch, Input;
          delay 0.001;
-      end loop;
-   end Filter;
+
+
 
    --  Consumer: background task used to keep pipeline structure in the proof corpus.
-   task Consumer with Priority = 10 is
+   task Consumer with Priority = 10
       Data : Sample;
-   begin
+
       loop
          receive Filtered_Ch, Data;
-         if Data > 0 then
+         if Data > 0
             delay 0.001;
          else
             delay 0.001;
-         end if;
-         delay 0.001;
-      end loop;
-   end Consumer;
 
-end Pipeline;
+         delay 0.001;
+
+
+
+

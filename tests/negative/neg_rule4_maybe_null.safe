@@ -5,21 +5,21 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT null_dereference
 
-package Maybe_Null_Test is
+package Maybe_Null_Test
 
    type Value is range 0 to 100;
    type Value_Ptr is access Value;
 
    --  Conditional_Deref: only assigns P on one branch.
    --  After the if, P may still be null.
-   function Conditional_Deref (Flag : Boolean) returns Value is
+   function Conditional_Deref (Flag : Boolean) returns Value
       P : Value_Ptr = null;
-   begin
-      if Flag then
+
+      if Flag
          P = new (50 as Value);
-      end if;
+
       --  If Flag was False, P is still null.
       return P.all;  -- ERROR: P may be null when Flag = False
-   end Conditional_Deref;
 
-end Maybe_Null_Test;
+
+

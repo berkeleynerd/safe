@@ -2,18 +2,18 @@
 -- Description: Range choices are outside the PR11.2 case subset.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_Case_Range_Choice is
+package Neg_Case_Range_Choice
 
-   function Classify (Value : in Integer) returns Integer is
-   begin
-      case Value is
-         when 1 to 3 then
+   function Classify (Value : in Integer) returns Integer
+
+      case Value
+         when 1 to 3
             return 1;
-         end when;
-         when others then
-            return 0;
-         end when;
-      end case;
-   end Classify;
 
-end Neg_Case_Range_Choice;
+         when others
+            return 0;
+
+
+
+
+

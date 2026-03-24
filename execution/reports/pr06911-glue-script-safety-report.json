@@ -52,6 +52,7 @@
       "scripts/run_pr113a_proof_checkpoint1.py",
       "scripts/run_pr114_signature_control_flow_syntax.py",
       "scripts/run_pr115_statement_ergonomics.py",
+      "scripts/run_pr116_meaningful_whitespace.py",
       "scripts/run_gate_pipeline.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
@@ -69,7 +70,7 @@
     "policy_sections_used": [
       "glue_safety"
     ],
-    "policy_sha256": "89bb742fb414c273b39b4523cab641e9e2bc59e9cb2e12a543a200152c4ea1d0",
+    "policy_sha256": "c55184eadddf714a8d7a31fbea83624115487e1a3758fa77eda2726b888c5b77",
     "report_helper_violations": [],
     "report_scripts": [
       "scripts/run_frontend_smoke.py",
@@ -115,7 +116,8 @@
       "scripts/run_pr113_discriminated_types_tuples_structured_returns.py",
       "scripts/run_pr113a_proof_checkpoint1.py",
       "scripts/run_pr114_signature_control_flow_syntax.py",
-      "scripts/run_pr115_statement_ergonomics.py"
+      "scripts/run_pr115_statement_ergonomics.py",
+      "scripts/run_pr116_meaningful_whitespace.py"
     ],
     "safe_source_readers": [
       {
@@ -169,6 +171,10 @@
       {
         "category": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.5 statement-ergonomics corpus",
         "script": "scripts/run_pr115_statement_ergonomics.py"
+      },
+      {
+        "category": "fixture source-fragment checks, migration-example checks, and emitted structural assertions for the fixed PR11.6 meaningful-whitespace corpus",
+        "script": "scripts/run_pr116_meaningful_whitespace.py"
       }
     ],
     "shell_assumption_violations": [],
@@ -188,7 +194,7 @@
   "policy_sections_used": [
     "glue_safety"
   ],
-  "policy_sha256": "89bb742fb414c273b39b4523cab641e9e2bc59e9cb2e12a543a200152c4ea1d0",
+  "policy_sha256": "c55184eadddf714a8d7a31fbea83624115487e1a3758fa77eda2726b888c5b77",
   "referenced_deterministic_reports": {
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
@@ -217,8 +223,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "ed420d24ed99f275f14c603112983b9959380e7f56591ca93ffa6c616e28e86a",
-  "report_sha256": "ed420d24ed99f275f14c603112983b9959380e7f56591ca93ffa6c616e28e86a",
+  "repeat_sha256": "526e12a5658fbc307de0c9b810769136d0fecbaf538b68809812f9e4613d027a",
+  "report_sha256": "526e12a5658fbc307de0c9b810769136d0fecbaf538b68809812f9e4613d027a",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

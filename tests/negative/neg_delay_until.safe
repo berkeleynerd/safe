@@ -3,13 +3,13 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9
 -- Expected: REJECT unsupported_source_construct
 
-package Delay_Until_Test is
+package Delay_Until_Test
 
-   task Worker is
-   begin
+   task Worker
+
       loop
          delay until 1.0;
-      end loop;
-   end Worker;
 
-end Delay_Until_Test;
+
+
+

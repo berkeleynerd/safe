@@ -1,11 +1,11 @@
-package PR115_Multiline_Return is
+package PR115_Multiline_Return
 
    type Counter is range 0 to 10;
 
-   function Identity (Input : Counter) returns Counter is
-   begin
+   function Identity (Input : Counter) returns Counter
+
       return
          Input;
-   end Identity;
 
-end PR115_Multiline_Return;
+
+

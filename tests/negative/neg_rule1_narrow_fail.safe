@@ -7,16 +7,16 @@
 -- Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p26:9ca2c786
 -- Expected: REJECT narrowing_check_failure
 
-package Narrow_Fail is
+package Narrow_Fail
 
    type Wide is range -1_000_000 to 1_000_000;
    type Narrow is range -100 to 100;
 
    --  Unsafe_Assign: assigns a Wide value directly to a Narrow variable.
    --  The compiler cannot prove that V is in -100..100.
-   function Unsafe_Assign (V : Wide; Result : out Narrow) is
-   begin
-      Result = Narrow (V);  -- ERROR: V may not be in -100..100
-   end Unsafe_Assign;
+   function Unsafe_Assign (V : Wide; Result : out Narrow)
 
-end Narrow_Fail;
+      Result = Narrow (V);  -- ERROR: V may not be in -100..100
+
+
+

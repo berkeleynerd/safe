@@ -1,12 +1,12 @@
 with Provider_Channel;
 
-package Client_Channel is
+package Client_Channel
 
-   task Sender is
-   begin
+   task Sender
+
       loop
          send Provider_Channel.Data_Ch, 1;
-      end loop;
-   end Sender;
 
-end Client_Channel;
+
+
+

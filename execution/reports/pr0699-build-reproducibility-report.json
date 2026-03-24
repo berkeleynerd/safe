@@ -2,7 +2,7 @@
   "build_reproducibility": {
     "binary_deterministic": true,
     "binary_path": "compiler_impl/bin/safec",
-    "build_input_hash": "147a4ff77dd91e453b583ad74834eba391b91fe306aaad9d16f93cfff7a411bb",
+    "build_input_hash": "d4b5cdc09189824f937d28eb6464e18bd5767339d129d042b88bb42a02d9d5a2",
     "command": [
       "alr",
       "build",
@@ -17,14 +17,14 @@
     ]
   },
   "child_gate_input_hashes": {
-    "gate_quality": "eeb34054478480d124767eb1815122bc0bdf95207baa38de59719be2401e5aa7"
+    "gate_quality": "750979c5cc0f52b3f5bf158c05010f51fe4ad327341881fda278ba9f4a8b3d18"
   },
   "delegated_reports": {
     "frontend_smoke": {
       "binary_deterministic": true,
-      "repeat_sha256": "4966f6afee1c3cf09d045c9509fc0ab31b63da3fac28d0e8aa1cc37649e5ec5b",
+      "repeat_sha256": "bbb8a7481eba7402b619d161ff911d46fe9adf163d076fa9e3afb911542a6ae4",
       "report_path": "execution/reports/pr00-pr04-frontend-smoke.json",
-      "report_sha256": "4966f6afee1c3cf09d045c9509fc0ab31b63da3fac28d0e8aa1cc37649e5ec5b",
+      "report_sha256": "bbb8a7481eba7402b619d161ff911d46fe9adf163d076fa9e3afb911542a6ae4",
       "run": {
         "command": [
           "python3",
@@ -37,9 +37,9 @@
       }
     },
     "gate_quality": {
-      "repeat_sha256": "ab8bc9abe8972a9e9403b28cf4af51035dfec0aae59562695a549d263a6929c7",
+      "repeat_sha256": "4af8001e9dd380c37b3a6e44b556705d3d334014c7bebe2d39239631f9948574",
       "report_path": "execution/reports/pr0697-gate-quality-report.json",
-      "report_sha256": "ab8bc9abe8972a9e9403b28cf4af51035dfec0aae59562695a549d263a6929c7",
+      "report_sha256": "4af8001e9dd380c37b3a6e44b556705d3d334014c7bebe2d39239631f9948574",
       "run": {
         "command": [
           "python3",
@@ -68,9 +68,9 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "ce433e1edf1f89e8f5a7e176080fd0d42635d2efcdf58ce9f53a73d5e2ed6ed5",
-  "report_sha256": "ce433e1edf1f89e8f5a7e176080fd0d42635d2efcdf58ce9f53a73d5e2ed6ed5",
-  "safec_binary_sha256": "33aaa10eca80adde580e2c65158aa37cf2dda340fa9e7e45f53d0ba190d03197",
+  "repeat_sha256": "c7800b4bb46c902e55b20a8eb537e7463113aec615a9176ddda3083e870d086c",
+  "report_sha256": "c7800b4bb46c902e55b20a8eb537e7463113aec615a9176ddda3083e870d086c",
+  "safec_binary_sha256": "dc2b706ef8cf9ebd0d0979d0a6e9ddb51066298d2877c428fd3643f0b27e58b8",
   "status": "ok",
   "task": "PR06.9.9"
 }

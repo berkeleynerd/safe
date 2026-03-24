@@ -130,7 +130,7 @@ NEGATIVE_CASES = (
     {
         "source": REPO_ROOT / "tests" / "negative" / "neg_case_missing_others.safe",
         "reason": "source_frontend_error",
-        "message": "case statements currently require a final `when others then` arm",
+        "message": "case statements currently require a final `when others` arm",
     },
     {
         "source": REPO_ROOT / "tests" / "negative" / "neg_string_return_type.safe",

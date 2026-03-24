@@ -2,11 +2,11 @@
 -- Description: String attributes remain outside the PR11.2 text subset.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_String_Attribute is
+package Neg_String_Attribute
 
-   function Measure (Name : in String) returns Integer is
-   begin
+   function Measure (Name : in String) returns Integer
+
       return Name.Length;
-   end Measure;
 
-end Neg_String_Attribute;
+
+

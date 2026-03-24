@@ -146,6 +146,10 @@ package body Safe_Frontend.Check_Parse is
          return Token.Span;
       end if;
 
+      if Token.Kind = FL.Dedent or else Token.Kind = FL.End_Of_File then
+         return Last.Span;
+      end if;
+
       if Token.Kind /= FL.End_Of_File
         and then Last.Kind /= FL.End_Of_File
         and then Starts_On_Later_Line (Last.Span, Token.Span)
@@ -161,6 +165,92 @@ package body Safe_Frontend.Check_Parse is
             Note    => "saw `" & FT.To_String (Token.Lexeme) & "`"));
       return Token.Span;
    end Expect_Statement_Terminator;
+
+   function Match_Indent (State : in out Parser_State) return Boolean is
+   begin
+      if Current (State).Kind = FL.Indent then
+         Advance (State);
+         return True;
+      end if;
+      return False;
+   end Match_Indent;
+
+   function Match_Dedent (State : in out Parser_State) return Boolean is
+   begin
+      if Current (State).Kind = FL.Dedent then
+         Advance (State);
+         return True;
+      end if;
+      return False;
+   end Match_Dedent;
+
+   procedure Require_Indent
+     (State   : in out Parser_State;
+      Context : String) is
+   begin
+      if Match_Indent (State) then
+         return;
+      end if;
+
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => Path_String (State),
+            Span    => Current (State).Span,
+            Message => "expected indented block",
+            Note    => Context));
+   end Require_Indent;
+
+   procedure Require_Dedent
+     (State   : in out Parser_State;
+      Context : String) is
+   begin
+      if Match_Dedent (State) then
+         return;
+      end if;
+
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => Path_String (State),
+            Span    => Current (State).Span,
+            Message => "expected block dedent",
+            Note    => Context));
+   end Require_Dedent;
+
+   function Suite_End_Span
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Fallback   : FT.Source_Span) return FT.Source_Span is
+   begin
+      if Statements.Is_Empty then
+         return Fallback;
+      end if;
+      return Statements (Statements.Last_Index).Span;
+   end Suite_End_Span;
+
+   function Item_End_Span
+     (Items    : CM.Package_Item_Vectors.Vector;
+      Fallback : FT.Source_Span) return FT.Source_Span is
+   begin
+      if Items.Is_Empty then
+         return Fallback;
+      end if;
+
+      case Items (Items.Last_Index).Kind is
+         when CM.Item_Unknown =>
+            return Fallback;
+         when CM.Item_Type_Decl =>
+            return Items (Items.Last_Index).Type_Data.Span;
+         when CM.Item_Subtype_Decl =>
+            return Items (Items.Last_Index).Sub_Data.Span;
+         when CM.Item_Object_Decl =>
+            return Items (Items.Last_Index).Obj_Data.Span;
+         when CM.Item_Subprogram =>
+            return Items (Items.Last_Index).Subp_Data.Span;
+         when CM.Item_Task =>
+            return Items (Items.Last_Index).Task_Data.Span;
+         when CM.Item_Channel =>
+            return Items (Items.Last_Index).Chan_Data.Span;
+      end case;
+   end Item_End_Span;
 
    procedure Reject_Legacy_Keyword
      (State       : Parser_State;
@@ -565,11 +655,11 @@ package body Safe_Frontend.Check_Parse is
       Seed  : CM.Type_Decl) return CM.Type_Decl
    is
       Result       : CM.Type_Decl := Seed;
-      Semi         : FL.Token;
-      Variant_Semi : FL.Token;
+      Span_End     : FT.Source_Span := Start.Span;
    begin
+      Require_Indent (State, "record fields must be indented under `record`");
       loop
-         exit when Current_Lower (State) = "end";
+         exit when Current (State).Kind in FL.Dedent | FL.End_Of_File;
          if Current_Lower (State) = "case" then
             declare
                Case_Token  : constant FL.Token := Expect (State, "case");
@@ -581,8 +671,9 @@ package body Safe_Frontend.Check_Parse is
                      "variant records are outside the current PR07 result-record subset without a matching boolean discriminant");
                end if;
                Result.Variant_Discriminant_Name := FT.To_UString (Name_To_String (Name_Expr));
-               Require (State, "is");
+               Require_Indent (State, "variant alternatives must be indented under `case`");
                loop
+                  exit when Current (State).Kind in FL.Dedent | FL.End_Of_File;
                   declare
                      Variant_Start : constant FL.Token := Expect (State, "when");
                      Alternative   : CM.Variant_Alternative;
@@ -618,41 +709,59 @@ package body Safe_Frontend.Check_Parse is
                            Alternative.When_Value := False;
                         end if;
                      end if;
-                     Require (State, "then");
-                     while Current_Lower (State) not in "when" | "end" loop
+                     Require_Indent
+                       (State,
+                        "variant alternative fields must be indented under `when`");
+                     while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
                         Alternative.Components.Append (Parse_Component_Decl (State));
                      end loop;
-                     Alternative.Span := CM.Join (Variant_Start.Span, Current (State).Span);
+                     Require_Dedent
+                       (State,
+                        "variant alternative fields must align under `when`");
+                     Alternative.Span :=
+                       (if Alternative.Components.Is_Empty
+                        then Variant_Start.Span
+                        else CM.Join
+                          (Variant_Start.Span,
+                           Alternative.Components (Alternative.Components.Last_Index).Span));
                      Result.Variants.Append (Alternative);
-                     if Alternative.Is_Others and then Current_Lower (State) /= "end" then
+                     if Alternative.Is_Others
+                       and then Current (State).Kind /= FL.Dedent
+                       and then Current (State).Kind /= FL.End_Of_File
+                     then
                         Raise_Diag
                           (CM.Source_Frontend_Error
                              (Path    => Path_String (State),
                               Span    => Current (State).Span,
                               Message => "`when others then` must be the final variant alternative"));
                      end if;
-                     exit when Current_Lower (State) = "end";
                   end;
                end loop;
-               Require (State, "end");
-               Require (State, "case");
-               Variant_Semi := Expect (State, ";");
+               Require_Dedent
+                 (State,
+                  "variant alternatives must align under `case`");
                if Result.Variants.Is_Empty then
                   Reject_Unsupported
                     (State,
                      "variant part must contain at least one alternative");
                end if;
-               Result.Span := CM.Join (Case_Token.Span, Variant_Semi.Span);
+               Span_End :=
+                 (if Result.Variants.Is_Empty
+                  then Case_Token.Span
+                  else Result.Variants (Result.Variants.Last_Index).Span);
             end;
          else
-            Result.Components.Append (Parse_Component_Decl (State));
+            declare
+               Component : constant CM.Component_Decl := Parse_Component_Decl (State);
+            begin
+               Result.Components.Append (Component);
+               Span_End := Component.Span;
+            end;
          end if;
       end loop;
-      Require (State, "end");
-      Require (State, "record");
-      Semi := Expect (State, ";");
+      Require_Dedent (State, "record fields must align under `record`");
       Result.Kind := CM.Type_Decl_Record;
-      Result.Span := CM.Join (Start.Span, Semi.Span);
+      Result.Span := CM.Join (Start.Span, Span_End);
       return Result;
    end Parse_Record_Type;
 
@@ -660,10 +769,11 @@ package body Safe_Frontend.Check_Parse is
      (State     : in out Parser_State;
       Is_Public : Boolean) return CM.Package_Item
    is
-      Start  : constant FL.Token := Expect (State, "type");
-      Name   : constant FL.Token := Expect_Identifier (State);
-      Result : CM.Package_Item;
-      Item   : CM.Type_Decl;
+      Start          : constant FL.Token := Expect (State, "type");
+      Name           : constant FL.Token := Expect_Identifier (State);
+      Result         : CM.Package_Item;
+      Item           : CM.Type_Decl;
+      Has_Type_Suite : Boolean := False;
    begin
       Item.Is_Public := Is_Public;
       Item.Name := Name.Lexeme;
@@ -681,6 +791,9 @@ package body Safe_Frontend.Check_Parse is
          Item.Span := CM.Join (Start.Span, Name.Span);
       else
          Require (State, "is");
+         if Match_Indent (State) then
+            Has_Type_Suite := True;
+         end if;
          if Current_Lower (State) = "range" then
             Advance (State);
             Item.Low_Expr := Parse_Expression (State);
@@ -719,6 +832,11 @@ package body Safe_Frontend.Check_Parse is
             Reject_Unsupported
               (State,
                "unsupported type definition in current PR05/PR06 check subset");
+         end if;
+         if Has_Type_Suite then
+            Require_Dedent
+              (State,
+               "type definitions introduced after `is` must dedent back to the enclosing declaration level");
          end if;
       end if;
 
@@ -810,7 +928,11 @@ package body Safe_Frontend.Check_Parse is
          Close := Name.Span;
       end if;
 
-      if Current_Lower (State) in "returns" | "return" then
+      if Current_Lower (State) = "returns"
+        or else
+          (Current_Lower (State) = "return"
+           and then Current (State).Span.Start_Pos.Line = Close.End_Pos.Line)
+      then
          Require_Returns_Keyword (State);
          Result.Has_Return_Type := True;
          Result.Return_Type := Parse_Return_Type (State);
@@ -869,6 +991,23 @@ package body Safe_Frontend.Check_Parse is
       Result.Span := CM.Join (First.Span, Semi.Span);
       return Result;
    end Parse_Object_Declaration;
+
+   function Parse_Body_Local_Object_Declaration
+     (State : in out Parser_State) return CM.Object_Decl
+   is
+      First  : constant FL.Token := Expect_Identifier (State);
+      Result : CM.Object_Decl;
+      Semi   : FT.Source_Span;
+   begin
+      Result.Names.Append (First.Lexeme);
+      while Match (State, ",") loop
+         Result.Names.Append (Expect_Identifier (State).Lexeme);
+      end loop;
+      Parse_Object_Declaration_Tail (State, Result);
+      Semi := Expect_Statement_Terminator (State);
+      Result.Span := CM.Join (First.Span, Semi);
+      return Result;
+   end Parse_Body_Local_Object_Declaration;
 
    function Parse_Object_Declaration_Statement
      (State : in out Parser_State) return CM.Statement_Access
@@ -1026,6 +1165,21 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Statement_Sequence;
 
+   function Parse_Indented_Statement_Sequence
+     (State   : in out Parser_State;
+      Context : String) return CM.Statement_Access_Vectors.Vector
+   is
+      Result : CM.Statement_Access_Vectors.Vector;
+   begin
+      Require_Indent (State, Context);
+      loop
+         exit when Current (State).Kind in FL.Dedent | FL.End_Of_File;
+         Result.Append (Parse_Statement (State));
+      end loop;
+      Require_Dedent (State, Context);
+      return Result;
+   end Parse_Indented_Statement_Sequence;
+
    function Parse_Return_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
@@ -1034,7 +1188,15 @@ package body Safe_Frontend.Check_Parse is
       Semi   : FT.Source_Span;
    begin
       Result.Kind := CM.Stmt_Return;
-      if Current (State).Lexeme /= FT.To_UString (";")
+      if State.Return_Value_Allowed and then Match_Indent (State) then
+         Result.Value := Parse_Expression (State);
+         Semi := Expect_Statement_Terminator (State);
+         Require_Dedent
+           (State,
+            "multiline `return` expressions must dedent back to the enclosing statement level");
+         Result.Span := CM.Join (Start.Span, Semi);
+         return Result;
+      elsif Current (State).Lexeme /= FT.To_UString (";")
         and then (State.Return_Value_Allowed
                   or else Current (State).Kind = FL.End_Of_File
                   or else not Starts_On_Later_Line (Start.Span, Current (State).Span))
@@ -1049,11 +1211,9 @@ package body Safe_Frontend.Check_Parse is
    function Parse_If_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Ends        : FT.UString_Vectors.Vector;
       Start       : constant FL.Token := Expect (State, "if");
       Result      : constant CM.Statement_Access := new CM.Statement;
       Elsif_Part  : CM.Elsif_Part;
-      Semi        : FT.Source_Span;
 
       procedure Collapse_Wrapped_Else_If is
          Wrapped : constant CM.Statement_Access :=
@@ -1090,11 +1250,10 @@ package body Safe_Frontend.Check_Parse is
    begin
       Result.Kind := CM.Stmt_If;
       Result.Condition := Parse_Expression (State);
-      Require (State, "then");
-      Ends.Append (FT.To_UString ("elsif"));
-      Ends.Append (FT.To_UString ("else"));
-      Ends.Append (FT.To_UString ("end"));
-      Result.Then_Stmts := Parse_Statement_Sequence (State, Ends);
+      Result.Then_Stmts :=
+        Parse_Indented_Statement_Sequence
+          (State,
+           "if branches require an indented body");
 
       if Current_Lower (State) = "elsif" then
          Reject_Legacy_Keyword
@@ -1111,8 +1270,10 @@ package body Safe_Frontend.Check_Parse is
          Advance (State);
          Require (State, "if");
          Elsif_Part.Condition := Parse_Expression (State);
-         Require (State, "then");
-         Elsif_Part.Statements := Parse_Statement_Sequence (State, Ends);
+         Elsif_Part.Statements :=
+           Parse_Indented_Statement_Sequence
+             (State,
+              "`else if` branches require an indented body");
          Elsif_Part.Span :=
            (if Elsif_Part.Statements.Is_Empty then Elsif_Part.Condition.Span
             else CM.Join
@@ -1131,39 +1292,39 @@ package body Safe_Frontend.Check_Parse is
       if Current_Lower (State) = "else" then
          Advance (State);
          Result.Has_Else := True;
-         Ends.Clear;
-         Ends.Append (FT.To_UString ("end"));
-         Result.Else_Stmts := Parse_Statement_Sequence (State, Ends);
+         Result.Else_Stmts :=
+           Parse_Indented_Statement_Sequence
+             (State,
+              "`else` branches require an indented body");
          Collapse_Wrapped_Else_If;
       end if;
 
-      Require (State, "end");
-      Require (State, "if");
-      Semi := Expect_Statement_Terminator (State);
-      Result.Span := CM.Join (Start.Span, Semi);
+      Result.Span :=
+        CM.Join
+          (Start.Span,
+           (if Result.Has_Else
+            then Suite_End_Span (Result.Else_Stmts, Result.Condition.Span)
+            elsif not Result.Elsifs.Is_Empty
+            then Result.Elsifs (Result.Elsifs.Last_Index).Span
+            else Suite_End_Span (Result.Then_Stmts, Result.Condition.Span)));
       return Result;
    end Parse_If_Statement;
 
    function Parse_Case_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Arm_Ends   : FT.UString_Vectors.Vector;
       Start      : constant FL.Token := Expect (State, "case");
       Result     : constant CM.Statement_Access := new CM.Statement;
       Arm        : CM.Case_Arm;
       Arm_Start  : FL.Token;
-      Arm_End    : FL.Token;
-      Final_Semi : FT.Source_Span;
       Saw_Others : Boolean := False;
    begin
       Result.Kind := CM.Stmt_Case;
       Result.Case_Expr := Parse_Expression (State);
-      Require (State, "is");
-
-      Arm_Ends.Append (FT.To_UString ("when"));
-      Arm_Ends.Append (FT.To_UString ("end"));
+      Require_Indent (State, "case arms must be indented under `case`");
 
       loop
+         exit when Current (State).Kind in FL.Dedent | FL.End_Of_File;
          Arm := (others => <>);
          Arm_Start := Expect (State, "when");
 
@@ -1194,21 +1355,22 @@ package body Safe_Frontend.Check_Parse is
             end if;
          end if;
 
-         Require (State, "then");
-         Arm.Statements := Parse_Statement_Sequence (State, Arm_Ends);
-         Require (State, "end");
-         Require (State, "when");
-         Arm_End := Expect (State, ";");
-         Arm.Span := CM.Join (Arm_Start.Span, Arm_End.Span);
+         Arm.Statements :=
+           Parse_Indented_Statement_Sequence
+             (State,
+              "case arms require an indented body");
+         Arm.Span :=
+           CM.Join
+             (Arm_Start.Span,
+              Suite_End_Span (Arm.Statements, Arm_Start.Span));
          Result.Case_Arms.Append (Arm);
 
-         exit when Current_Lower (State) = "end";
-         if Saw_Others then
+         if Saw_Others and then Current (State).Kind not in FL.Dedent | FL.End_Of_File then
             Raise_Diag
               (CM.Source_Frontend_Error
                  (Path    => Path_String (State),
                   Span    => Current (State).Span,
-                  Message => "`when others then` must be the final case arm"));
+                  Message => "`when others` must be the final case arm"));
          end if;
       end loop;
 
@@ -1219,43 +1381,40 @@ package body Safe_Frontend.Check_Parse is
            (CM.Source_Frontend_Error
               (Path    => Path_String (State),
                Span    => Current (State).Span,
-               Message => "case statements currently require a final `when others then` arm"));
+               Message => "case statements currently require a final `when others` arm"));
       end if;
 
-      Require (State, "end");
-      Require (State, "case");
-      Final_Semi := Expect_Statement_Terminator (State);
-      Result.Span := CM.Join (Start.Span, Final_Semi);
+      Require_Dedent (State, "case arms must align under `case`");
+      Result.Span :=
+        CM.Join
+          (Start.Span,
+           (if Result.Case_Arms.Is_Empty
+            then Result.Case_Expr.Span
+            else Result.Case_Arms (Result.Case_Arms.Last_Index).Span));
       return Result;
    end Parse_Case_Statement;
 
    function Parse_While_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Ends   : FT.UString_Vectors.Vector;
       Start  : constant FL.Token := Expect (State, "while");
       Result : constant CM.Statement_Access := new CM.Statement;
-      Semi   : FT.Source_Span;
    begin
       Result.Kind := CM.Stmt_While;
       Result.Condition := Parse_Expression (State);
-      Require (State, "loop");
-      Ends.Append (FT.To_UString ("end"));
-      Result.Body_Stmts := Parse_Statement_Sequence (State, Ends);
-      Require (State, "end");
-      Require (State, "loop");
-      Semi := Expect_Statement_Terminator (State);
-      Result.Span := CM.Join (Start.Span, Semi);
+      Result.Body_Stmts :=
+        Parse_Indented_Statement_Sequence
+          (State,
+           "`while` requires an indented body");
+      Result.Span := CM.Join (Start.Span, Suite_End_Span (Result.Body_Stmts, Result.Condition.Span));
       return Result;
    end Parse_While_Statement;
 
    function Parse_For_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Ends   : FT.UString_Vectors.Vector;
       Start  : constant FL.Token := Expect (State, "for");
       Result : constant CM.Statement_Access := new CM.Statement;
-      Semi   : FT.Source_Span;
    begin
       Result.Kind := CM.Stmt_For;
       Result.Loop_Var := Expect_Identifier (State).Lexeme;
@@ -1272,34 +1431,57 @@ package body Safe_Frontend.Check_Parse is
       else
          Result.Loop_Range.Kind := CM.Range_Subtype;
       end if;
-      Require (State, "loop");
-      Ends.Append (FT.To_UString ("end"));
-      Result.Body_Stmts := Parse_Statement_Sequence (State, Ends);
-      Require (State, "end");
-      Require (State, "loop");
-      Semi := Expect_Statement_Terminator (State);
-      Result.Span := CM.Join (Start.Span, Semi);
+      Result.Body_Stmts :=
+        Parse_Indented_Statement_Sequence
+          (State,
+           "`for` requires an indented body");
+      Result.Span :=
+        CM.Join
+          (Start.Span,
+           Suite_End_Span (Result.Body_Stmts, Result.Loop_Range.Span));
       return Result;
    end Parse_For_Statement;
 
    function Parse_Block_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Ends   : FT.UString_Vectors.Vector;
       Start  : constant FL.Token := Expect (State, "declare");
       Result : constant CM.Statement_Access := new CM.Statement;
       Semi   : FT.Source_Span;
    begin
       Result.Kind := CM.Stmt_Block;
-      while Current_Lower (State) /= "begin" loop
-         if Current_Lower (State) = "var" then
-            Reject_Statement_Local_Var_Outside_Statements (State);
-         end if;
-         Result.Declarations.Append (Parse_Object_Declaration (State, False));
-      end loop;
+      if Match_Indent (State) then
+         while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
+            if Current_Lower (State) = "var" then
+               Reject_Statement_Local_Var_Outside_Statements (State);
+            end if;
+            Result.Declarations.Append (Parse_Object_Declaration (State, False));
+         end loop;
+         Require_Dedent
+           (State,
+            "`declare` declarations must dedent back to the `begin` line");
+      else
+         while Current_Lower (State) /= "begin" loop
+            if Current_Lower (State) = "var" then
+               Reject_Statement_Local_Var_Outside_Statements (State);
+            end if;
+            Result.Declarations.Append (Parse_Object_Declaration (State, False));
+         end loop;
+      end if;
       Require (State, "begin");
-      Ends.Append (FT.To_UString ("end"));
-      Result.Body_Stmts := Parse_Statement_Sequence (State, Ends);
+      if Current (State).Kind = FL.Indent then
+         Result.Body_Stmts :=
+           Parse_Indented_Statement_Sequence
+             (State,
+              "`begin` requires an indented statement suite");
+      else
+         declare
+            Ends : FT.UString_Vectors.Vector;
+         begin
+            Ends.Append (FT.To_UString ("end"));
+            Result.Body_Stmts := Parse_Statement_Sequence (State, Ends);
+         end;
+      end if;
       Require (State, "end");
       Semi := Expect_Statement_Terminator (State);
       Result.Span := CM.Join (Start.Span, Semi);
@@ -1309,18 +1491,15 @@ package body Safe_Frontend.Check_Parse is
    function Parse_Loop_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Ends   : FT.UString_Vectors.Vector;
       Start  : constant FL.Token := Expect (State, "loop");
       Result : constant CM.Statement_Access := new CM.Statement;
-      Semi   : FT.Source_Span;
    begin
       Result.Kind := CM.Stmt_Loop;
-      Ends.Append (FT.To_UString ("end"));
-      Result.Body_Stmts := Parse_Statement_Sequence (State, Ends);
-      Require (State, "end");
-      Require (State, "loop");
-      Semi := Expect_Statement_Terminator (State);
-      Result.Span := CM.Join (Start.Span, Semi);
+      Result.Body_Stmts :=
+        Parse_Indented_Statement_Sequence
+          (State,
+           "`loop` requires an indented body");
+      Result.Span := CM.Join (Start.Span, Suite_End_Span (Result.Body_Stmts, Start.Span));
       return Result;
    end Parse_Loop_Statement;
 
@@ -1439,17 +1618,14 @@ package body Safe_Frontend.Check_Parse is
    function Parse_Select_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Arm_Ends  : FT.UString_Vectors.Vector;
       Start     : constant FL.Token := Expect (State, "select");
       Result    : constant CM.Statement_Access := new CM.Statement;
-      Semi      : FT.Source_Span;
       New_Arm   : CM.Select_Arm;
    begin
       Result.Kind := CM.Stmt_Select;
-      Arm_Ends.Append (FT.To_UString ("or"));
-      Arm_Ends.Append (FT.To_UString ("end"));
 
       loop
+         Require_Indent (State, "select arms must be indented under `select` or `or`");
          if Current_Lower (State) = "when" then
             declare
                Arm_Start : constant FL.Token := Expect (State, "when");
@@ -1461,15 +1637,16 @@ package body Safe_Frontend.Check_Parse is
                New_Arm.Channel_Data.Subtype_Mark := Parse_Subtype_Indication (State);
                Require (State, "from");
                New_Arm.Channel_Data.Channel_Name := Parse_Name_Expression (State);
-               Require (State, "then");
-               New_Arm.Channel_Data.Statements := Parse_Statement_Sequence (State, Arm_Ends);
+               New_Arm.Channel_Data.Statements :=
+                 Parse_Indented_Statement_Sequence
+                   (State,
+                    "select channel arms require an indented body");
                New_Arm.Channel_Data.Span :=
-                 (if New_Arm.Channel_Data.Statements.Is_Empty
-                  then CM.Join (Arm_Start.Span, New_Arm.Channel_Data.Channel_Name.Span)
-                  else CM.Join
-                    (Arm_Start.Span,
-                     New_Arm.Channel_Data.Statements
-                       (New_Arm.Channel_Data.Statements.Last_Index).Span));
+                 CM.Join
+                   (Arm_Start.Span,
+                    Suite_End_Span
+                      (New_Arm.Channel_Data.Statements,
+                       New_Arm.Channel_Data.Channel_Name.Span));
                New_Arm.Span := New_Arm.Channel_Data.Span;
             end;
          elsif Current_Lower (State) = "delay" then
@@ -1484,15 +1661,16 @@ package body Safe_Frontend.Check_Parse is
                      "absolute `delay until` is outside the current PR08.1 concurrency subset");
                end if;
                New_Arm.Delay_Data.Duration_Expr := Parse_Expression (State);
-               Require (State, "then");
-               New_Arm.Delay_Data.Statements := Parse_Statement_Sequence (State, Arm_Ends);
+               New_Arm.Delay_Data.Statements :=
+                 Parse_Indented_Statement_Sequence
+                   (State,
+                    "select delay arms require an indented body");
                New_Arm.Delay_Data.Span :=
-                 (if New_Arm.Delay_Data.Statements.Is_Empty
-                  then CM.Join (Arm_Start.Span, New_Arm.Delay_Data.Duration_Expr.Span)
-                  else CM.Join
-                    (Arm_Start.Span,
-                     New_Arm.Delay_Data.Statements
-                       (New_Arm.Delay_Data.Statements.Last_Index).Span));
+                 CM.Join
+                   (Arm_Start.Span,
+                    Suite_End_Span
+                      (New_Arm.Delay_Data.Statements,
+                       New_Arm.Delay_Data.Duration_Expr.Span));
                New_Arm.Span := New_Arm.Delay_Data.Span;
             end;
          else
@@ -1504,13 +1682,16 @@ package body Safe_Frontend.Check_Parse is
          end if;
 
          Result.Arms.Append (New_Arm);
+         Require_Dedent
+           (State,
+            "select arms must dedent back to the surrounding `select` level");
          exit when not Match (State, "or");
       end loop;
 
-      Require (State, "end");
-      Require (State, "select");
-      Semi := Expect_Statement_Terminator (State);
-      Result.Span := CM.Join (Start.Span, Semi);
+      Result.Span :=
+        CM.Join
+          (Start.Span,
+           (if Result.Arms.Is_Empty then Start.Span else Result.Arms (Result.Arms.Last_Index).Span));
       return Result;
    end Parse_Select_Statement;
 
@@ -1572,6 +1753,14 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Select_Statement (State);
       elsif Lower = "var" then
          return Parse_Var_Declaration_Statement (State);
+      elsif Lower in "begin" | "end" | "then" then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Current (State).Span,
+               Message =>
+                 "legacy block delimiter `" & Lower
+                 & "` is not allowed; covered blocks are closed by indentation"));
       elsif Lower = "null" then
          declare
             Start  : constant FL.Token := Expect (State, "null");
@@ -1983,33 +2172,65 @@ package body Safe_Frontend.Check_Parse is
       Is_Public : Boolean) return CM.Package_Item
    is
       Result                   : CM.Package_Item;
-      Ends                     : FT.UString_Vectors.Vector;
       Start                    : constant FT.Source_Span := Current (State).Span;
-      Semi                     : FL.Token;
       Saved_Return_Value_Flag  : constant Boolean := State.Return_Value_Allowed;
+      Saw_Statements           : Boolean := False;
+      Suite_Already_Indented   : Boolean := False;
    begin
       Result.Kind := CM.Item_Subprogram;
       Result.Subp_Data.Is_Public := Is_Public;
       Result.Subp_Data.Spec := Parse_Subprogram_Spec (State);
-      Require (State, "is");
-      while Current_Lower (State) /= "begin" loop
-         if Current_Lower (State) = "var" then
-            Reject_Statement_Local_Var_Outside_Statements (State);
-         end if;
-         Result.Subp_Data.Declarations.Append
-           (Parse_Object_Declaration (State, False));
-      end loop;
-      Require (State, "begin");
-      Ends.Append (FT.To_UString ("end"));
-      State.Return_Value_Allowed := Result.Subp_Data.Spec.Has_Return_Type;
-      Result.Subp_Data.Statements := Parse_Statement_Sequence (State, Ends);
-      State.Return_Value_Allowed := Saved_Return_Value_Flag;
-      Require (State, "end");
-      if Current (State).Kind in FL.Identifier | FL.Keyword then
+      if not Result.Subp_Data.Spec.Has_Return_Type
+        and then Current (State).Kind = FL.Indent
+        and then Next (State).Kind in FL.Identifier | FL.Keyword
+        and then FT.Lowercase (FT.To_String (Next (State).Lexeme)) = "returns"
+      then
          Advance (State);
+         Require_Returns_Keyword (State);
+         Result.Subp_Data.Spec.Has_Return_Type := True;
+         Result.Subp_Data.Spec.Return_Type := Parse_Return_Type (State);
+         Result.Subp_Data.Spec.Return_Is_Access_Def :=
+           Result.Subp_Data.Spec.Return_Type.Kind = CM.Type_Spec_Access_Def;
+         Result.Subp_Data.Spec.Span :=
+           CM.Join (Result.Subp_Data.Spec.Span, Result.Subp_Data.Spec.Return_Type.Span);
+         Suite_Already_Indented := True;
+      else
+         Require_Indent
+           (State,
+            "subprogram bodies require an indented suite after the declaration line");
+         Suite_Already_Indented := True;
       end if;
-      Semi := Expect (State, ";");
-      Result.Subp_Data.Span := CM.Join (Start, Semi.Span);
+      State.Return_Value_Allowed := Result.Subp_Data.Spec.Has_Return_Type;
+      while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
+         if not Saw_Statements
+           and then Current (State).Kind in FL.Identifier | FL.Keyword
+           and then Next (State).Lexeme = FT.To_UString (":")
+         then
+            if Current_Lower (State) = "var" then
+               Reject_Statement_Local_Var_Outside_Statements (State);
+            end if;
+            Result.Subp_Data.Declarations.Append
+              (Parse_Body_Local_Object_Declaration (State));
+         else
+            Saw_Statements := True;
+            Result.Subp_Data.Statements.Append (Parse_Statement (State));
+         end if;
+      end loop;
+      State.Return_Value_Allowed := Saved_Return_Value_Flag;
+      if Suite_Already_Indented then
+         Require_Dedent
+           (State,
+            "subprogram bodies must dedent back to the enclosing declaration level");
+      end if;
+      Result.Subp_Data.Span :=
+        CM.Join
+          (Start,
+           (if not Result.Subp_Data.Statements.Is_Empty
+            then Suite_End_Span
+              (Result.Subp_Data.Statements, Result.Subp_Data.Spec.Span)
+            elsif not Result.Subp_Data.Declarations.Is_Empty
+            then Result.Subp_Data.Declarations (Result.Subp_Data.Declarations.Last_Index).Span
+            else Result.Subp_Data.Spec.Span));
       return Result;
    end Parse_Subprogram_Body;
 
@@ -2018,9 +2239,8 @@ package body Safe_Frontend.Check_Parse is
       Is_Public : Boolean) return CM.Package_Item
    is
       Result : CM.Package_Item;
-      Ends   : FT.UString_Vectors.Vector;
       Start  : constant FT.Source_Span := Current (State).Span;
-      Semi   : FL.Token;
+      Saw_Statements : Boolean := False;
    begin
       if Is_Public then
          Raise_Diag
@@ -2046,33 +2266,48 @@ package body Safe_Frontend.Check_Parse is
          Result.Task_Data.Has_Explicit_Priority := True;
          Result.Task_Data.Priority := Parse_Expression (State);
       end if;
-      Require (State, "is");
-      while Current_Lower (State) /= "begin" loop
+      Result.Task_Data.End_Name := Result.Task_Data.Name;
+      Require_Indent
+        (State,
+         "task bodies require an indented suite after the declaration line");
+      while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
          declare
             Lower : constant String := Current_Lower (State);
          begin
-            if Lower = "var" then
-               Reject_Statement_Local_Var_Outside_Statements (State);
-            elsif Lower in "type" | "subtype" | "function" | "procedure" then
-               Reject_Unsupported
-                 (State,
-                  "task declarative parts only support object declarations in the current PR08.1 concurrency subset");
-            elsif Lower in "task" | "channel" then
-               Reject_Unsupported
-                 (State,
-                  "nested task and channel declarations are outside the current PR08.1 concurrency subset");
+            if not Saw_Statements
+              and then Current (State).Kind in FL.Identifier | FL.Keyword
+              and then Next (State).Lexeme = FT.To_UString (":")
+            then
+               if Lower = "var" then
+                  Reject_Statement_Local_Var_Outside_Statements (State);
+               elsif Lower in "type" | "subtype" | "function" | "procedure" then
+                  Reject_Unsupported
+                    (State,
+                     "task declarative parts only support object declarations in the current PR08.1 concurrency subset");
+               elsif Lower in "task" | "channel" then
+                  Reject_Unsupported
+                    (State,
+                     "nested task and channel declarations are outside the current PR08.1 concurrency subset");
+               end if;
+               Result.Task_Data.Declarations.Append
+                 (Parse_Body_Local_Object_Declaration (State));
+            else
+               Saw_Statements := True;
+               Result.Task_Data.Statements.Append (Parse_Statement (State));
             end if;
          end;
-         Result.Task_Data.Declarations.Append
-           (Parse_Object_Declaration (State, False));
       end loop;
-      Require (State, "begin");
-      Ends.Append (FT.To_UString ("end"));
-      Result.Task_Data.Statements := Parse_Statement_Sequence (State, Ends);
-      Require (State, "end");
-      Result.Task_Data.End_Name := Expect_Identifier (State).Lexeme;
-      Semi := Expect (State, ";");
-      Result.Task_Data.Span := CM.Join (Start, Semi.Span);
+      Require_Dedent
+        (State,
+         "task bodies must dedent back to the enclosing declaration level");
+      Result.Task_Data.Span :=
+        CM.Join
+          (Start,
+           (if not Result.Task_Data.Statements.Is_Empty
+            then Suite_End_Span (Result.Task_Data.Statements, Start)
+            elsif not Result.Task_Data.Declarations.Is_Empty
+            then Result.Task_Data.Declarations (Result.Task_Data.Declarations.Last_Index).Span
+            else Start));
       return Result;
    end Parse_Task_Declaration;
 
@@ -2120,6 +2355,14 @@ package body Safe_Frontend.Check_Parse is
          Reject_Unsupported
            (State,
             "package item `" & Lower & "` is outside the current PR08.1 concurrency subset");
+      elsif Lower in "begin" | "end" | "then" then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Current (State).Span,
+               Message =>
+                 "legacy block delimiter `" & Lower
+                 & "` is not allowed in package items; covered blocks are closed by indentation"));
       end if;
 
       Result.Kind := CM.Item_Object_Decl;
@@ -2134,10 +2377,8 @@ package body Safe_Frontend.Check_Parse is
       State        : Parser_State := (Input => Input, Tokens => Tokens, others => <>);
       Result       : CM.Parsed_Unit;
       Start_Token  : FL.Token;
-      End_Token    : FL.Token;
       Ends         : FL.Token;
       Package_Name : CM.Expr_Access;
-      End_Name     : CM.Expr_Access;
       Clause       : CM.With_Clause;
    begin
       Result.Path := Input.Path;
@@ -2163,27 +2404,25 @@ package body Safe_Frontend.Check_Parse is
       Start_Token := Expect (State, "package");
       Package_Name := Parse_Package_Name (State);
       Result.Package_Name := FT.To_UString (Name_To_String (Package_Name));
-      Require (State, "is");
-      while Current_Lower (State) /= "end" loop
+      Result.End_Name := Result.Package_Name;
+      Require_Indent
+        (State,
+         "package bodies require an indented suite after the package declaration");
+      while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
          Result.Items.Append (Parse_Package_Item (State));
       end loop;
-      End_Token := Expect (State, "end");
-      End_Name := Parse_Package_Name (State);
-      Result.End_Name := FT.To_UString (Name_To_String (End_Name));
-      if FT.Lowercase (FT.To_String (Result.End_Name)) /=
-        FT.Lowercase (FT.To_String (Result.Package_Name))
-      then
+      Require_Dedent
+        (State,
+         "package items must dedent back to column 1 at the end of the unit");
+      if Current (State).Kind /= FL.End_Of_File then
          Raise_Diag
            (CM.Source_Frontend_Error
               (Path    => Path_String (State),
-               Span    => CM.Join (End_Token.Span, End_Name.Span),
-               Message => "package end name must match declared package name",
-               Note    =>
-                 "declared `" & FT.To_String (Result.Package_Name)
-                 & "`, found `" & FT.To_String (Result.End_Name) & "`"));
+               Span    => Current (State).Span,
+               Message => "unexpected trailing tokens after package body",
+               Note    => "covered block syntax no longer uses explicit `end Package_Name;`"));
       end if;
-      Ends := Expect (State, ";");
-      Result.Span := CM.Join (Start_Token.Span, Ends.Span);
+      Result.Span := CM.Join (Start_Token.Span, Item_End_Span (Result.Items, Package_Name.Span));
       return (Success => True, Unit => Result);
    exception
       when Parse_Failure =>

@@ -1,7 +1,5 @@
-Diagnostics Golden: Index Out of Bounds
+Diagnostics Golden: Index Oob
 Source: tests/negative/neg_rule2_oob.safe
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
-Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 
 Expected diagnostic output:
 ------------------------------------------------------------------------

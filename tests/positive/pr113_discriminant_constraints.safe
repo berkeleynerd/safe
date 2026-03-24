@@ -2,7 +2,7 @@
 -- Description: Multiple scalar discriminants, defaults, and positional/named constraints on objects and profiles.
 -- Expected: ACCEPT
 
-package PR113_Discriminant_Constraints is
+package PR113_Discriminant_Constraints
 
    Default_Kind : constant Character = 'A';
    Default_Count : constant Integer = 2;
@@ -10,18 +10,18 @@ package PR113_Discriminant_Constraints is
    type Packet (Active : Boolean = True, Kind : Character = 'A', Count : Integer = 0) is
       record
          Value : Integer;
-      end record;
+
 
    Defaulted : Packet = (Active = True, Kind = 'A', Count = 0, Value = 1);
    Positional : Packet (True, 'A', 1) = (Value = 2);
    Named : Packet (Active = True, Kind = Default_Kind, Count = Default_Count) = (Value = 3);
 
    function Take (Item : in Packet (Active = True, Kind = Default_Kind, Count = Default_Count))
-      returns Packet (Active = True, Kind = Default_Kind, Count = Default_Count) is
+      returns Packet (Active = True, Kind = Default_Kind, Count = Default_Count)
       Limit : constant Integer = Default_Count;
       Local : Packet (Active = True, Kind = Default_Kind, Count = Limit) = Item;
-   begin
-      return Local;
-   end Take;
 
-end PR113_Discriminant_Constraints;
+      return Local;
+
+
+

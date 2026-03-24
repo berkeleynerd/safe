@@ -42,9 +42,15 @@ from _lib.pr113a_sequential import (
     normalized_source_fragments,
     sequential_proof_corpus,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr113a-proof-checkpoint1-report.json"
+
+
+def normalize_expected_source_fragment(fragment: str) -> str:
+    return normalize_source_text(rewrite_safe_source(fragment))
+
 
 def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list[str]:
     normalized = normalize_source_text(path.read_text(encoding="utf-8"))
@@ -93,7 +99,12 @@ def structural_assertions_for_fixture(
     source_path = REPO_ROOT / item["fixture"]
     return {
         "coverage_note": item["coverage_note"],
-        "source_fragments": list(assert_normalized_source_fragments(source_path, list(normalized_source_fragments(item)))),
+        "source_fragments": list(
+            assert_normalized_source_fragments(
+                source_path,
+                [normalize_expected_source_fragment(fragment) for fragment in normalized_source_fragments(item)],
+            )
+        ),
         "spec_fragments": list(assert_text_fragments(text=spec_text, fragments=list(item.get("spec_fragments", [])), label=spec_path.name)),
         "body_fragments": list(assert_text_fragments(text=body_text, fragments=list(item.get("body_fragments", [])), label=body_path.name)),
         "spec_regexes": list(assert_regexes(text=spec_text, patterns=list(item.get("spec_regexes", [])), label=spec_path.name)),

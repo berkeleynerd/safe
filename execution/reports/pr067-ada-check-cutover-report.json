@@ -332,8 +332,8 @@
     "harness_blocked_log_path": "$TMPDIR/blocked-harness-python.log",
     "harness_stub_path": "$TMPDIR/python-mask-harness/python3"
   },
-  "repeat_sha256": "40bf453c92fabb0e7be0a53e6761194baa5204e12a60821322999dfa6e9776a6",
-  "report_sha256": "40bf453c92fabb0e7be0a53e6761194baa5204e12a60821322999dfa6e9776a6",
+  "repeat_sha256": "066c5d662af4967c66b51a286de04be0c97d03d69bd24dc95bb4782c8651b801",
+  "report_sha256": "066c5d662af4967c66b51a286de04be0c97d03d69bd24dc95bb4782c8651b801",
   "source_frontend_rejections": [
     {
       "diag_json": {
@@ -346,22 +346,20 @@
         "cwd": "$REPO_ROOT",
         "returncode": 1,
         "stderr": "",
-        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"package end name must match declared package name\",\"path\":\"$TMPDIR/package_end_mismatch.safe\",\"span\":{\"start_line\":2,\"start_col\":1,\"end_line\":2,\"end_col\":18},\"highlight_span\":null,\"notes\":[\"declared `Package_End_Mismatch`, found `Different_Name`\"],\"suggestions\":[]}]}\n"
+        "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"source_frontend_error\",\"message\":\"legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation\",\"path\":\"$TMPDIR/package_end_mismatch.safe\",\"span\":{\"start_line\":2,\"start_col\":4,\"end_line\":2,\"end_col\":8},\"highlight_span\":null,\"notes\":[],\"suggestions\":[]}]}\n"
       },
       "diagnostics": {
         "diagnostics": [
           {
             "highlight_span": null,
-            "message": "package end name must match declared package name",
-            "notes": [
-              "declared `Package_End_Mismatch`, found `Different_Name`"
-            ],
+            "message": "legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation",
+            "notes": [],
             "path": "$TMPDIR/package_end_mismatch.safe",
             "reason": "source_frontend_error",
             "span": {
-              "end_col": 18,
+              "end_col": 8,
               "end_line": 2,
-              "start_col": 1,
+              "start_col": 4,
               "start_line": 2
             },
             "suggestions": []
@@ -377,7 +375,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "package_end_mismatch.safe:2:1: error: package end name must match declared package name\n  |\n  | 2 | end Different_Name;\n  |   | ^~~~~~~~~~~~~~~~~~\n  |\n  note: declared `Package_End_Mismatch`, found `Different_Name`\n",
+        "stderr": "package_end_mismatch.safe:2:4: error: legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation\n  |\n  | 2 |    begin\n  |   |    ^~~~~\n  |\n",
         "stdout": ""
       },
       "source": "$TMPDIR/package_end_mismatch.safe"

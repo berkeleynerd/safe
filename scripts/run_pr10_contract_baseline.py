@@ -17,6 +17,7 @@ from _lib.pr10_emit import (
     normalized_source_fragments,
     selected_emitted_corpus,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr10-contract-baseline-report.json"
@@ -75,6 +76,14 @@ def load_tracker() -> dict[str, object]:
 
 def require_contains(text: str, snippet: str, label: str) -> None:
     require(snippet in text, f"{label}: expected to contain {snippet!r}")
+
+
+def normalize_expected_source_fragment(fragment: str) -> str:
+    updated = normalize_source_text(rewrite_safe_source(fragment))
+    updated = re.sub(r"\s+is$", "", updated)
+    updated = re.sub(r"\s+then$", "", updated)
+    updated = re.sub(r"\s+loop$", "", updated)
+    return updated
 
 
 def row_contains(text: str, *parts: str) -> bool:
@@ -149,7 +158,7 @@ def generate_report() -> dict[str, object]:
         normalized_source = normalize_source_text((REPO_ROOT / item["fixture"]).read_text(encoding="utf-8"))
         for fragment in normalized_source_fragments(item):
             require(
-                fragment in normalized_source,
+                normalize_expected_source_fragment(fragment) in normalized_source,
                 f"{item['fixture']}: missing required normalized source fragment {fragment!r}",
             )
 

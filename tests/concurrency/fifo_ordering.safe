@@ -8,42 +8,42 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
 -- Expected: ACCEPT
 
-package FIFO_Ordering is
+package FIFO_Ordering
 
    type Sequence_Number is range 0 to 999;
 
    channel Seq_Ch : Sequence_Number capacity 8;
 
    --  Producer: sends 0, 1, 2, ..., 999, 0, 1, ... in order.
-   task Producer is
+   task Producer
       N : Sequence_Number = 0;
-   begin
+
       loop
          send Seq_Ch, N;
-         if N < 999 then
+         if N < 999
             N = N + 1;
          else
             N = 0;
-         end if;
-      end loop;
-   end Producer;
+
+
+
 
    --  Consumer: receives values and verifies ordering.
    --  Each received value should equal the expected next sequence number.
-   task Consumer is
+   task Consumer
       Expected : Sequence_Number = 0;
       Received : Sequence_Number;
-   begin
+
       loop
          receive Seq_Ch, Received;
          --  FIFO guarantees Received = Expected.
          --  (In a real test harness, an assertion would verify this.)
-         if Expected < 999 then
+         if Expected < 999
             Expected = Expected + 1;
          else
             Expected = 0;
-         end if;
-      end loop;
-   end Consumer;
 
-end FIFO_Ordering;
+
+
+
+

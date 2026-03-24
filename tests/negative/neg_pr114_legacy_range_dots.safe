@@ -2,8 +2,8 @@
 -- Description: PR11.4 requires to in source ranges and rejects legacy ..
 -- Expected: REJECT source_frontend_error
 
-package Neg_PR114_Legacy_Range_Dots is
+package Neg_PR114_Legacy_Range_Dots
 
    type Small is range 0 .. 10;
 
-end Neg_PR114_Legacy_Range_Dots;
+

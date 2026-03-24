@@ -2,11 +2,11 @@
 -- Description: PR11.4 removes legacy procedure declarations from the admitted source surface.
 -- Expected: REJECT source_frontend_error
 
-package Neg_PR114_Legacy_Procedure is
+package Neg_PR114_Legacy_Procedure
 
    procedure Touch (Value : in out Integer) is
-   begin
-      Value = Value + 1;
-   end Touch;
 
-end Neg_PR114_Legacy_Procedure;
+      Value = Value + 1;
+
+
+

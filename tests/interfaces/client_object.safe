@@ -1,7 +1,7 @@
 with Provider_Object;
 
-package Client_Object is
+package Client_Object
 
    Value : Provider_Object.Count = Provider_Object.Seed;
 
-end Client_Object;
+

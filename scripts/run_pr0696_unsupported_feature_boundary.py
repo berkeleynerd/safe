@@ -21,6 +21,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -58,10 +59,11 @@ EXPECTED_LEGACY_DIAGNOSTICS = [
 CONTROL_INLINE_CASES = [
     {
         "name": "package_end_mismatch.safe",
-        "text": "package Package_End_Mismatch is\nend Different_Name;\n",
+        "text": "package Legacy_Begin\n   begin\n      null;\n",
         "expected_reason": "source_frontend_error",
-        "expected_message": "package end name must match declared package name",
-        "expected_header": "package_end_mismatch.safe:2:1: error: package end name must match declared package name",
+        "expected_message": "legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation",
+        "expected_header": "package_end_mismatch.safe:2:4: error: legacy block delimiter `begin` is not allowed in package items; covered blocks are closed by indentation",
+        "rewrite": False,
     },
     {
         "name": "oversized_integer_literal.safe",
@@ -214,7 +216,10 @@ def validate_inline_control_case(
     case: Dict[str, str],
 ) -> Dict[str, Any]:
     source = temp_root / case["name"]
-    source.write_text(case["text"], encoding="utf-8")
+    source.write_text(
+        rewrite_safe_source(case["text"]) if case.get("rewrite", True) else case["text"],
+        encoding="utf-8",
+    )
 
     diag_json = run(
         [str(safec), "check", "--diag-json", str(source)],
@@ -261,7 +266,7 @@ def materialize_case_source(temp_root: Path, case: Dict[str, Any]) -> Tuple[Path
         return path, str(path.relative_to(REPO_ROOT))
     name = case["name"]
     path = temp_root / name
-    path.write_text(case["text"], encoding="utf-8")
+    path.write_text(rewrite_safe_source(case["text"]), encoding="utf-8")
     return path, str(path)
 
 
