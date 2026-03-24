@@ -161,6 +161,17 @@ class MigratePr116WhitespaceTests(unittest.TestCase):
         self.assertIn("      else if A > 0\n", rewritten)
         self.assertNotIn("      else\n      if A > 0", rewritten)
 
+    def test_rewrite_safe_source_is_idempotent_for_already_migrated_signature(self) -> None:
+        original = (
+            "package Demo\n"
+            "   function Build returns Integer\n"
+            "      return 1;\n"
+            "   type Count is range 0 to 10;\n"
+        )
+        rewritten = migrate_pr116_whitespace.rewrite_safe_source(original)
+        self.assertEqual(rewritten, original)
+        self.assertIn("   type Count is range 0 to 10;\n", rewritten)
+
 
 if __name__ == "__main__":
     unittest.main()

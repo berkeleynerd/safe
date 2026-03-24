@@ -7,6 +7,7 @@
       "tests/negative/neg_pr116_legacy_begin.safe"
     ],
     "positive_fixtures": [
+      "tests/positive/pr116_bare_return.safe",
       "tests/positive/pr115_compound_terminators.safe",
       "tests/positive/rule2_binary_search.safe",
       "tests/positive/pr112_character_case.safe",
@@ -127,6 +128,69 @@
     }
   ],
   "positive_fixtures": [
+    {
+      "ada_snippets": [],
+      "check": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "check",
+          "tests/positive/pr116_bare_return.safe"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "compile": {
+        "command": [
+          "alr",
+          "exec",
+          "--",
+          "gprbuild",
+          "-c",
+          "-P",
+          "$TMPDIR/pr116_bare_return/ada/build.gpr",
+          "pr116_bare_return.adb"
+        ],
+        "cwd": "$REPO_ROOT/compiler_impl",
+        "returncode": 0
+      },
+      "emit": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "emit",
+          "tests/positive/pr116_bare_return.safe",
+          "--out-dir",
+          "$TMPDIR/pr116_bare_return/out",
+          "--interface-dir",
+          "$TMPDIR/pr116_bare_return/iface",
+          "--ada-out-dir",
+          "$TMPDIR/pr116_bare_return/ada"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      },
+      "mir_snippets": [],
+      "safei_snippets": [],
+      "source": "tests/positive/pr116_bare_return.safe",
+      "source_surface": {
+        "forbidden_fragments": [
+          "returns"
+        ],
+        "required_fragments": [
+          "function Exit_Early",
+          "return;"
+        ]
+      },
+      "typed_snippets": [],
+      "validate_mir": {
+        "command": [
+          "compiler_impl/bin/safec",
+          "validate-mir",
+          "$TMPDIR/pr116_bare_return/out/pr116_bare_return.mir.json"
+        ],
+        "cwd": "$REPO_ROOT",
+        "returncode": 0
+      }
+    },
     {
       "ada_snippets": [
         "elsif (Current < 5) then",
@@ -488,8 +552,8 @@
       }
     }
   ],
-  "repeat_sha256": "1ee6ea0d52fbfabadd5187ee3e4f8e9798aa76b0aa89f58ae5ed41afb46682d3",
-  "report_sha256": "1ee6ea0d52fbfabadd5187ee3e4f8e9798aa76b0aa89f58ae5ed41afb46682d3",
+  "repeat_sha256": "b4c95c0a838744b53f7364e2132dcb7ed8727d0ca39cf16dd1370d87a66c5ded",
+  "report_sha256": "b4c95c0a838744b53f7364e2132dcb7ed8727d0ca39cf16dd1370d87a66c5ded",
   "rosetta_readability_samples": [
     {
       "ada_snippets": [],

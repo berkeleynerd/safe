@@ -95,7 +95,7 @@ def rewrite_safe_source(text: str) -> str:
     inside_function_signature = False
     signature_paren_depth = 0
 
-    for line in lines:
+    for index, line in enumerate(lines):
         body, newline = strip_newline(line)
         content, comment = split_content_and_comment(body)
         stripped = content.strip()
@@ -114,6 +114,22 @@ def rewrite_safe_source(text: str) -> str:
                 block_stack.append("subprogram")
                 rewritten.append(content + comment + newline)
                 continue
+            if signature_paren_depth <= 0:
+                next_starts_return_continuation = False
+                for lookahead in lines[index + 1 :]:
+                    next_body, _next_newline = strip_newline(lookahead)
+                    next_content, _next_comment = split_content_and_comment(next_body)
+                    next_stripped = next_content.strip().lower()
+                    if not next_stripped:
+                        continue
+                    next_starts_return_continuation = next_stripped.startswith("returns")
+                    break
+                if not next_starts_return_continuation:
+                    inside_function_signature = False
+                    signature_paren_depth = 0
+                    block_stack.append("subprogram")
+                    rewritten.append(content + comment + newline)
+                    continue
 
         if lowered == "declare":
             block_stack.append("declare-pending")

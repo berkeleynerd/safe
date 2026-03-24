@@ -10,6 +10,17 @@ from .pr09_emit import REPO_ROOT
 
 PR116_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
     {
+        "source": REPO_ROOT / "tests" / "positive" / "pr116_bare_return.safe",
+        "coverage_note": "No-return subprograms may begin their indented suite with a bare `return;` without being mistaken for a multiline return-type continuation.",
+        "source_fragments": (
+            "function Exit_Early",
+            "return;",
+        ),
+        "forbidden_source_fragments": (
+            "returns",
+        ),
+    },
+    {
         "source": REPO_ROOT / "tests" / "positive" / "pr115_compound_terminators.safe",
         "coverage_note": "Executable control-flow blocks use indentation rather than `then` / `end if` / `end loop` while preserving the lowered control-flow shape.",
         "source_fragments": (

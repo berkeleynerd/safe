@@ -928,7 +928,11 @@ package body Safe_Frontend.Check_Parse is
          Close := Name.Span;
       end if;
 
-      if Current_Lower (State) in "returns" | "return" then
+      if Current_Lower (State) = "returns"
+        or else
+          (Current_Lower (State) = "return"
+           and then Current (State).Span.Start_Pos.Line = Close.End_Pos.Line)
+      then
          Require_Returns_Keyword (State);
          Result.Has_Return_Type := True;
          Result.Return_Type := Parse_Return_Type (State);
@@ -2179,7 +2183,7 @@ package body Safe_Frontend.Check_Parse is
       if not Result.Subp_Data.Spec.Has_Return_Type
         and then Current (State).Kind = FL.Indent
         and then Next (State).Kind in FL.Identifier | FL.Keyword
-        and then FT.Lowercase (FT.To_String (Next (State).Lexeme)) in "returns" | "return"
+        and then FT.Lowercase (FT.To_String (Next (State).Lexeme)) = "returns"
       then
          Advance (State);
          Require_Returns_Keyword (State);

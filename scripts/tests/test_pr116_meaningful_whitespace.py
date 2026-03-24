@@ -31,6 +31,7 @@ class Pr116MeaningfulWhitespaceTests(unittest.TestCase):
         self.assertEqual(
             positive_sources,
             {
+                "pr116_bare_return.safe",
                 "pr115_compound_terminators.safe",
                 "rule2_binary_search.safe",
                 "pr112_character_case.safe",
