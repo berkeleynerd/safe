@@ -1,7 +1,7 @@
 {
   "archive_root": "execution/archive",
-  "post_compaction_commit": "fdab32cb72b44f5cb3bf6a0687357be36275a9d7",
-  "post_merkle_root": "61e6577a01361c15e69cdd75585ff026947d0dad3a89b3ae40f9320e8a768d55",
+  "post_compaction_commit": "6ee4d91606a3c6d52f65beedee794282355d5fdc",
+  "post_merkle_root": "ac967657d88c0d0a6c04996f9f544c95a8057d08babe16ce0270359919be82bb",
   "pre_compaction_commit": "8e22abbcccd4f595f27a7b00f8b830a4762a1c60",
   "pre_merkle_root": "ffc127da01292096beb825c61d1d4d57ed131a68413c22085261ac07de50edb5",
   "retired_node_ids": [
