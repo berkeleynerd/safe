@@ -33,7 +33,7 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
             "return;",
         ),
         "forbidden_source_fragments": (
-            "null",
+            "null;",
         ),
         "safei_snippets": ("function Consume",),
         "ada_snippets": (
@@ -49,7 +49,7 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
             "loop",
         ),
         "forbidden_source_fragments": (
-            "null",
+            "null;",
         ),
         "ada_snippets": (
             "task body Worker is",
@@ -92,6 +92,39 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
             "declare",
         ),
         "safei_snippets": ("function Push",),
+    },
+    {
+        "source": REPO_ROOT / "tests" / "positive" / "pr1162_empty_subprogram_body_followed_by_sibling.safe",
+        "coverage_note": "Empty subprogram bodies remain legal after source `null` removal and must not consume later sibling package items.",
+        "source_fragments": (
+            "function Skip",
+            "function Value returns Integer",
+        ),
+        "forbidden_source_fragments": (
+            "null;",
+        ),
+        "safei_snippets": ("function Skip", "function Value"),
+        "ada_snippets": (
+            "procedure Skip",
+            "function Value return Integer",
+            "null;",
+        ),
+    },
+    {
+        "source": REPO_ROOT / "tests" / "positive" / "pr1162_empty_select_delay_arm.safe",
+        "coverage_note": "Empty select delay arms are emitted as Ada `null;` suites instead of producing invalid empty Ada blocks.",
+        "source_fragments": (
+            "select",
+            "delay 0.05",
+        ),
+        "forbidden_source_fragments": (
+            "null;",
+        ),
+        "safei_snippets": ("task Poller",),
+        "ada_snippets": (
+            "if not Select_Done then",
+            "null;",
+        ),
     },
 )
 

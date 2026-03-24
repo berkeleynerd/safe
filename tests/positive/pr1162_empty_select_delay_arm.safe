@@ -1,0 +1,18 @@
+-- Test: pr1162_empty_select_delay_arm
+-- Description: Empty delay arms remain legal after source null removal.
+-- Expected: ACCEPT
+
+package Pr1162_Empty_Select_Delay_Arm
+
+   type Message is range 0 to 10;
+
+   channel Msg_Ch : Message capacity 1;
+
+   task Poller
+
+      loop
+         select
+            when Item : Message from Msg_Ch
+               delay 0.001;
+         or
+            delay 0.05

@@ -60,6 +60,22 @@ class MigratePr1162LegacySyntaxTests(unittest.TestCase):
         with self.assertRaises(migrate_pr1162_legacy_syntax.LegacySyntaxMigrationError):
             migrate_pr1162_legacy_syntax.rewrite_safe_source(original)
 
+    def test_rewrite_safe_source_keeps_constant_declaration_without_var(self) -> None:
+        original = (
+            "package Demo\n"
+            "\n"
+            "   function Build returns Integer\n"
+            "\n"
+            "      declare\n"
+            "         Temp : constant Integer = 1;\n"
+            "      begin\n"
+            "         return Temp;\n"
+            "      end;\n"
+        )
+        rewritten = migrate_pr1162_legacy_syntax.rewrite_safe_source(original)
+        self.assertIn("      Temp : constant Integer = 1;\n", rewritten)
+        self.assertNotIn("      var Temp : constant Integer = 1;\n", rewritten)
+
 
 if __name__ == "__main__":
     unittest.main()

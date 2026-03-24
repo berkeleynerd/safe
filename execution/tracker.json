@@ -6,12 +6,12 @@
   "next_task_id": "PR11.7",
   "repo_facts": {
     "tests": {
-      "positive": 65,
+      "positive": 67,
       "negative": 127,
       "golden": 3,
       "concurrency": 14,
       "diagnostics_golden": 22,
-      "total": 231
+      "total": 233
     }
   },
   "tasks": [

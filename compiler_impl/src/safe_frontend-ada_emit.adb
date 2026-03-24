@@ -5431,7 +5431,7 @@ package body Safe_Frontend.Ada_Emit is
                               Depth + 4);
                            Append_Line (Buffer, "if Arm_Success then", Depth + 4);
                            Append_Line (Buffer, "Select_Done := True;", Depth + 5);
-                           Render_Statements
+                           Render_Required_Statement_Suite
                              (Buffer,
                               Unit,
                               Document,
@@ -5454,7 +5454,7 @@ package body Safe_Frontend.Ada_Emit is
                      for Arm of Item.Arms loop
                         if Arm.Kind = CM.Select_Arm_Delay then
                            Append_Line (Buffer, "if not Select_Done then", Depth + 1);
-                           Render_Statements
+                           Render_Required_Statement_Suite
                              (Buffer,
                               Unit,
                               Document,
@@ -5497,7 +5497,7 @@ package body Safe_Frontend.Ada_Emit is
                               Depth + 4);
                            Append_Line (Buffer, "if Arm_Success then", Depth + 4);
                            Append_Line (Buffer, "Select_Done := True;", Depth + 5);
-                           Render_Statements
+                           Render_Required_Statement_Suite
                              (Buffer,
                               Unit,
                               Document,
@@ -5890,7 +5890,7 @@ package body Safe_Frontend.Ada_Emit is
          Render_Block_Declarations
            (Buffer, Unit, Document, Inner_Alias_Declarations, State, 3);
          Append_Line (Buffer, "begin", 2);
-         Render_Statements
+         Render_Required_Statement_Suite
            (Buffer,
             Unit,
             Document,
@@ -5900,7 +5900,7 @@ package body Safe_Frontend.Ada_Emit is
             (if Subprogram.Has_Return_Type then Render_Type_Name (Subprogram.Return_Type) else ""));
          Append_Line (Buffer, "end;", 2);
       else
-         Render_Statements
+         Render_Required_Statement_Suite
            (Buffer,
             Unit,
             Document,
@@ -5935,7 +5935,7 @@ package body Safe_Frontend.Ada_Emit is
         (Buffer, Unit, Document, Task_Item.Declarations, State, 2);
       Render_Free_Declarations (Buffer, Task_Item.Declarations, 2);
       Append_Line (Buffer, "begin", 1);
-      Render_Statements
+      Render_Required_Statement_Suite
         (Buffer, Unit, Document, Task_Item.Statements, State, 2, "");
       if Statements_Fall_Through (Task_Item.Statements) then
          Render_Cleanup (Buffer, Task_Item.Declarations, 2);

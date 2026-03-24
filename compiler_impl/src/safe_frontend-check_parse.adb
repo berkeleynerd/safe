@@ -1189,11 +1189,18 @@ package body Safe_Frontend.Check_Parse is
       Context  : String;
       Anchor   : FT.Source_Span) return CM.Statement_Access_Vectors.Vector
    is
-      Result : CM.Statement_Access_Vectors.Vector;
+      Result      : CM.Statement_Access_Vectors.Vector;
+      Next_Token  : FL.Token;
    begin
       if not Match_Indent (State) then
-         if Current (State).Kind = FL.End_Of_File
+         Next_Token := Next (State);
+         if Current (State).Kind in FL.Dedent | FL.End_Of_File
            or else Starts_On_Later_Line (Anchor, Current (State).Span)
+           or else
+             (Current (State).Span = Anchor
+              and then
+                (Next_Token.Kind in FL.Dedent | FL.End_Of_File
+                 or else Starts_On_Later_Line (Anchor, Next_Token.Span)))
          then
             return Result;
          end if;
@@ -1211,6 +1218,15 @@ package body Safe_Frontend.Check_Parse is
       Require_Dedent (State, Context);
       return Result;
    end Parse_Indented_Statement_Sequence;
+
+   function Empty_Body_Suite
+     (State  : Parser_State;
+      Anchor : FT.Source_Span) return Boolean
+   is
+   begin
+      return Current (State).Kind = FL.End_Of_File
+        or else Starts_On_Later_Line (Anchor, Current (State).Span);
+   end Empty_Body_Suite;
 
    function Parse_Return_Statement
      (State : in out Parser_State) return CM.Statement_Access
@@ -2187,8 +2203,7 @@ package body Safe_Frontend.Check_Parse is
       else
          if Match_Indent (State) then
             Suite_Already_Indented := True;
-         elsif Current (State).Kind = FL.End_Of_File
-           or else Starts_On_Later_Line (Result.Subp_Data.Spec.Span, Current (State).Span)
+         elsif Empty_Body_Suite (State, Result.Subp_Data.Spec.Span)
          then
             Suite_Already_Indented := False;
          else
@@ -2201,21 +2216,23 @@ package body Safe_Frontend.Check_Parse is
          end if;
       end if;
       State.Return_Value_Allowed := Result.Subp_Data.Spec.Has_Return_Type;
-      while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
-         if not Saw_Statements
-           and then Current (State).Kind in FL.Identifier | FL.Keyword
-           and then Next (State).Lexeme = FT.To_UString (":")
-         then
-            if Current_Lower (State) = "var" then
-               Reject_Statement_Local_Var_Outside_Statements (State);
+      if Suite_Already_Indented then
+         while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
+            if not Saw_Statements
+              and then Current (State).Kind in FL.Identifier | FL.Keyword
+              and then Next (State).Lexeme = FT.To_UString (":")
+            then
+               if Current_Lower (State) = "var" then
+                  Reject_Statement_Local_Var_Outside_Statements (State);
+               end if;
+               Result.Subp_Data.Declarations.Append
+                 (Parse_Body_Local_Object_Declaration (State));
+            else
+               Saw_Statements := True;
+               Result.Subp_Data.Statements.Append (Parse_Statement (State));
             end if;
-            Result.Subp_Data.Declarations.Append
-              (Parse_Body_Local_Object_Declaration (State));
-         else
-            Saw_Statements := True;
-            Result.Subp_Data.Statements.Append (Parse_Statement (State));
-         end if;
-      end loop;
+         end loop;
+      end if;
       State.Return_Value_Allowed := Saved_Return_Value_Flag;
       if Suite_Already_Indented then
          Require_Dedent
@@ -2238,9 +2255,10 @@ package body Safe_Frontend.Check_Parse is
      (State     : in out Parser_State;
       Is_Public : Boolean) return CM.Package_Item
    is
-      Result : CM.Package_Item;
-      Start  : constant FT.Source_Span := Current (State).Span;
-      Saw_Statements : Boolean := False;
+      Result                 : CM.Package_Item;
+      Start                  : constant FT.Source_Span := Current (State).Span;
+      Saw_Statements         : Boolean := False;
+      Suite_Already_Indented : Boolean := False;
    begin
       if Is_Public then
          Raise_Diag
@@ -2268,11 +2286,10 @@ package body Safe_Frontend.Check_Parse is
       end if;
       Result.Task_Data.End_Name := Result.Task_Data.Name;
       if Match_Indent (State) then
-         null;
-      elsif Current (State).Kind = FL.End_Of_File
-        or else Starts_On_Later_Line (Start, Current (State).Span)
+         Suite_Already_Indented := True;
+      elsif Empty_Body_Suite (State, Start)
       then
-         null;
+         Suite_Already_Indented := False;
       else
          Raise_Diag
            (CM.Source_Frontend_Error
@@ -2281,34 +2298,36 @@ package body Safe_Frontend.Check_Parse is
                Message => "expected indented block",
                Note    => "task bodies require an indented suite after the declaration line"));
       end if;
-      while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
-         declare
-            Lower : constant String := Current_Lower (State);
-         begin
-            if not Saw_Statements
-              and then Current (State).Kind in FL.Identifier | FL.Keyword
-              and then Next (State).Lexeme = FT.To_UString (":")
-            then
-               if Lower = "var" then
-                  Reject_Statement_Local_Var_Outside_Statements (State);
-               elsif Lower in "type" | "subtype" | "function" | "procedure" then
-                  Reject_Unsupported
-                    (State,
-                     "task declarative parts only support object declarations in the current PR08.1 concurrency subset");
-               elsif Lower in "task" | "channel" then
-                  Reject_Unsupported
-                    (State,
-                     "nested task and channel declarations are outside the current PR08.1 concurrency subset");
+      if Suite_Already_Indented then
+         while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
+            declare
+               Lower : constant String := Current_Lower (State);
+            begin
+               if not Saw_Statements
+                 and then Current (State).Kind in FL.Identifier | FL.Keyword
+                 and then Next (State).Lexeme = FT.To_UString (":")
+               then
+                  if Lower = "var" then
+                     Reject_Statement_Local_Var_Outside_Statements (State);
+                  elsif Lower in "type" | "subtype" | "function" | "procedure" then
+                     Reject_Unsupported
+                       (State,
+                        "task declarative parts only support object declarations in the current PR08.1 concurrency subset");
+                  elsif Lower in "task" | "channel" then
+                     Reject_Unsupported
+                       (State,
+                        "nested task and channel declarations are outside the current PR08.1 concurrency subset");
+                  end if;
+                  Result.Task_Data.Declarations.Append
+                    (Parse_Body_Local_Object_Declaration (State));
+               else
+                  Saw_Statements := True;
+                  Result.Task_Data.Statements.Append (Parse_Statement (State));
                end if;
-               Result.Task_Data.Declarations.Append
-                 (Parse_Body_Local_Object_Declaration (State));
-            else
-               Saw_Statements := True;
-               Result.Task_Data.Statements.Append (Parse_Statement (State));
-            end if;
-         end;
-      end loop;
-      if Current (State).Kind = FL.Dedent then
+            end;
+         end loop;
+      end if;
+      if Suite_Already_Indented then
          Require_Dedent
            (State,
             "task bodies must dedent back to the enclosing declaration level");

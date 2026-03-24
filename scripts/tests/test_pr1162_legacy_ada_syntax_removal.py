@@ -34,6 +34,8 @@ class Pr1162LegacyAdaSyntaxRemovalTests(unittest.TestCase):
                 "ownership_early_return.safe",
                 "rule4_linked_list.safe",
                 "provider_transitive_channel.safe",
+                "pr1162_empty_subprogram_body_followed_by_sibling.safe",
+                "pr1162_empty_select_delay_arm.safe",
             },
         )
         self.assertEqual(

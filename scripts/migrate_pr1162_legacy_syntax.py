@@ -49,6 +49,9 @@ def rewrite_decl_line(line: str) -> str:
     if match is None:
         raise LegacySyntaxMigrationError("declare block contains a non-object declaration")
     indent, names, remainder, suffix = match.groups()
+    remainder_code = visible_code(remainder).strip().lower()
+    if remainder_code == "constant" or remainder_code.startswith("constant "):
+        return line
     return f"{indent}var {names} : {remainder}{suffix}{newline}"
 
 

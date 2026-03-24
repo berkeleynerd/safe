@@ -1,0 +1,10 @@
+-- Test: pr1162_empty_subprogram_body_followed_by_sibling
+-- Description: Empty subprogram bodies do not consume later sibling package items.
+-- Expected: ACCEPT
+
+package Pr1162_Empty_Subprogram_Body_Followed_By_Sibling
+
+   function Skip
+
+   function Value returns Integer
+      return 1;
