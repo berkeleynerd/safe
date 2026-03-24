@@ -25,6 +25,7 @@ REPORTS_ROOT_REL = Path("execution") / "reports"
 OUTPUT_CONTRACT_FIXTURES = REPO_ROOT / "scripts" / "tests" / "fixtures" / "output_contracts"
 OUTPUT_VALIDATOR = REPO_ROOT / "scripts" / "validate_output_contracts.py"
 EXPECTED_TEST_MODULES = (
+    "scripts.tests.test_compress_attestation_chain",
     "scripts.tests.test_dual_mode_canonicalization",
     "scripts.tests.test_gate_manifest",
     "scripts.tests.test_harness_common",

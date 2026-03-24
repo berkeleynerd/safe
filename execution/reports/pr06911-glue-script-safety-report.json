@@ -53,6 +53,7 @@
       "scripts/run_pr114_signature_control_flow_syntax.py",
       "scripts/run_pr115_statement_ergonomics.py",
       "scripts/run_pr116_meaningful_whitespace.py",
+      "scripts/compress_attestation_chain.py",
       "scripts/run_gate_pipeline.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
@@ -70,7 +71,7 @@
     "policy_sections_used": [
       "glue_safety"
     ],
-    "policy_sha256": "c55184eadddf714a8d7a31fbea83624115487e1a3758fa77eda2726b888c5b77",
+    "policy_sha256": "a3ce4bb1cddf5d36f07458cabbde111a1acf2c1d3880df44c6aa8f57efe783d8",
     "report_helper_violations": [],
     "report_scripts": [
       "scripts/run_frontend_smoke.py",
@@ -194,7 +195,7 @@
   "policy_sections_used": [
     "glue_safety"
   ],
-  "policy_sha256": "c55184eadddf714a8d7a31fbea83624115487e1a3758fa77eda2726b888c5b77",
+  "policy_sha256": "a3ce4bb1cddf5d36f07458cabbde111a1acf2c1d3880df44c6aa8f57efe783d8",
   "referenced_deterministic_reports": {
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
@@ -223,8 +224,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "526e12a5658fbc307de0c9b810769136d0fecbaf538b68809812f9e4613d027a",
-  "report_sha256": "526e12a5658fbc307de0c9b810769136d0fecbaf538b68809812f9e4613d027a",
+  "repeat_sha256": "efb6d3f091f6822859989bb87eb763a52b1112d73ea5549aab1f5da4ca4c4741",
+  "report_sha256": "efb6d3f091f6822859989bb87eb763a52b1112d73ea5549aab1f5da4ca4c4741",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -97,9 +98,13 @@ def next_task_is_at_or_beyond_pr09(value: object) -> bool:
 
 def run_subgates(*, python: str) -> dict[str, Any]:
     results: dict[str, Any] = {}
-    for script in SUBGATE_SCRIPTS:
-        result = run([python, script], cwd=REPO_ROOT)
-        results[Path(script).name] = compact_subgate_result(canonicalize_serialized_child_result(result))
+    with tempfile.TemporaryDirectory(prefix="pr08-subgates-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        for script in SUBGATE_SCRIPTS:
+            script_name = Path(script).name
+            report_path = temp_root / f"{script_name}.json"
+            result = run([python, script, "--report", str(report_path)], cwd=REPO_ROOT, temp_root=temp_root)
+            results[script_name] = compact_subgate_result(canonicalize_serialized_child_result(result))
     return results
 
 

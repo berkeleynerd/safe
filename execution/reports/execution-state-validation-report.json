@@ -1,5 +1,6 @@
 {
   "checks": {
+    "attestation_chain_compression": true,
     "dashboard_fresh": true,
     "documentation_architecture_clarity": true,
     "environment_assumptions": true,
@@ -21,9 +22,9 @@
     "portability",
     "glue_safety"
   ],
-  "policy_sha256": "c55184eadddf714a8d7a31fbea83624115487e1a3758fa77eda2726b888c5b77",
-  "repeat_sha256": "daa750b1828c2bc7c16b617109c81150a6923a3dfba7c3f2305b6023f4a53ff0",
-  "report_sha256": "daa750b1828c2bc7c16b617109c81150a6923a3dfba7c3f2305b6023f4a53ff0",
+  "policy_sha256": "a3ce4bb1cddf5d36f07458cabbde111a1acf2c1d3880df44c6aa8f57efe783d8",
+  "repeat_sha256": "0f9d6c92a80467d445ee888081308f52836d0f08c62b4fdc00dd00bcd2fe6ec6",
+  "report_sha256": "0f9d6c92a80467d445ee888081308f52836d0f08c62b4fdc00dd00bcd2fe6ec6",
   "status": "ok",
   "task": "execution-state"
 }

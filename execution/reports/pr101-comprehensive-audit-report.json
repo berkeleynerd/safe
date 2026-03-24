@@ -4,12 +4,12 @@
       "audit_doc": "fc4edf3f450f82ed744cb28283cfbce58f07320be1ca48fba90889c343d75832",
       "ci_workflow": "c6e73eb06095763835c758156654e4e9758841852591ee620a9fb072fbd3d775",
       "compiler_readme": "2dee3082c1f789efe0f9c251e57ba9419baa21782f7192e0bf48ace846bd9bf0",
-      "dashboard": "8d1ad8faf200bc746cfc910c0c3cd5dc8e4ff64c3580273cbd7a2e9e594327b8",
+      "dashboard": "37be21ce8c53c681d1900b2bd700057d74b8de5d0abd65ed03b0427233ce1188",
       "matrix": "9553b32825b2b3d25f153e781708987722e30f9d1edc2ae3e396aec24c4916a1",
       "pipeline_verify_workflow": "7f74e42cdaa3ebdbe7be613f0fe2b722e5205977da6cdcd89cefd1db0d52891f",
       "post_pr10_scope": "52d74391fcb697b6cc620bbeb8ed8aaff90f6d5689f99c9f093da972d9f55237",
-      "readme": "c21bb3a69f8df43270e8a816344b83435068fc41a666ab4e1cf92c90792314e5",
-      "tracker": "c3ff92c6de668eeed25f7311ca8f07570520dcaf11a5a1ac8c968bb55efedfec"
+      "readme": "97eeb06d248cf52fc65d8d3c5b3dc0105b6db7f4d247a21a680a19e0d4124441",
+      "tracker": "238159bbcccdc26ebdf0e69da13e19bc4593e14599a1cc6c5b3d909177786f7c"
     },
     "audited_surfaces": [
       "spec/TBD consistency",
@@ -25,7 +25,7 @@
       "python_gates": [
         {
           "deterministic": true,
-          "report_sha256": "f39a78afbffb4a7efe0b3727f978ba84dadd9ff401e4437f6827a88877d4de49",
+          "report_sha256": "c9b73842a68c81671eec7a0bd872250c86f82cfe0d94a4c6daa1804a83726eab",
           "result": {
             "command_profile": {
               "args": [],
@@ -38,7 +38,7 @@
         },
         {
           "deterministic": true,
-          "report_sha256": "0fdd680dce60ee780b36171bc74ceeb8914db291677006042d64e231eacaa719",
+          "report_sha256": "e3d08fd6b5d61f28813ce05cccb69c5ee416b0527fac918551f767e80e7b8454",
           "result": {
             "command_profile": {
               "args": [],
@@ -51,7 +51,7 @@
         },
         {
           "deterministic": true,
-          "report_sha256": "52d48aa8fc7f059adc5f5174345893c9157b649ffed4353fdc44234be2ed7c30",
+          "report_sha256": "f1f8f08f199ed96fd70b7bc28c0169d9c6ca3696001594a9f5608437cf956208",
           "result": {
             "command_profile": {
               "args": [],
@@ -81,12 +81,32 @@
           "deterministic": true,
           "node_id": "pr101a_companion_proof_verification",
           "report_sha256": "b3b658cef10da6109187495b5d5960b005f4255c9bd7640ed8b0f7bf689bf803",
+          "result": {
+            "command": [
+              "python3",
+              "scripts/run_pr101a_companion_proof_verification.py",
+              "--report",
+              "$TMPDIR/run_pr101a_companion_proof_verification.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0
+          },
           "script": "scripts/run_pr101a_companion_proof_verification.py"
         },
         {
           "deterministic": true,
           "node_id": "pr101b_template_proof_verification",
           "report_sha256": "199bd938efaa7e3169bc70c5cacf4ed706e8a6d64f749b98acb5d459ec1a02b7",
+          "result": {
+            "command": [
+              "python3",
+              "scripts/run_pr101b_template_proof_verification.py",
+              "--report",
+              "$TMPDIR/run_pr101b_template_proof_verification.json"
+            ],
+            "cwd": "$REPO_ROOT",
+            "returncode": 0
+          },
           "script": "scripts/run_pr101b_template_proof_verification.py"
         }
       ]
@@ -364,10 +384,10 @@
       }
     ],
     "tracker": {
-      "next_task_id": "PR11.6.1",
+      "next_task_id": "PR11.6.2",
       "pr101_evidence": [
-        "execution/reports/pr101a-companion-proof-verification-report.json",
-        "execution/reports/pr101b-template-proof-verification-report.json",
+        "execution/archive/pr101a_companion_proof_verification/report.json",
+        "execution/archive/pr101b_template_proof_verification/report.json",
         "execution/reports/pr101-comprehensive-audit-report.json"
       ],
       "pr101_status": "done",
@@ -444,8 +464,8 @@
       ]
     }
   },
-  "repeat_sha256": "d6646bfe380cbe2a53676bb7feba1caa96485c8ff0caee13c2ea9ae188f3af60",
-  "report_sha256": "d6646bfe380cbe2a53676bb7feba1caa96485c8ff0caee13c2ea9ae188f3af60",
+  "repeat_sha256": "8e6b5773c20157d53cbfd708fa0f026dd535146f1b219859c31015b89a9d5556",
+  "report_sha256": "8e6b5773c20157d53cbfd708fa0f026dd535146f1b219859c31015b89a9d5556",
   "semantic_floor": {
     "baseline_gate_hashes": {
       "emitted_hardening_regressions": "3f84ff42577ca0a50269aa187e2549f33bf901bdc1d25e9554a4e1c64e666657",

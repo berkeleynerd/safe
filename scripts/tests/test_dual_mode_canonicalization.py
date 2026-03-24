@@ -21,7 +21,6 @@ from _lib.gate_manifest import NODES
 
 
 CANONICALIZED_DUAL_MODE_NODES = {
-    "pr08_frontend_baseline",
     "pr0699_build_reproducibility",
     "pr06910_portability_environment",
     "pr06911_glue_script_safety",
@@ -29,8 +28,6 @@ CANONICALIZED_DUAL_MODE_NODES = {
     "pr101_comprehensive_audit",
 }
 AUDIT_ONLY_DUAL_MODE_NODES = {
-    "pr09_ada_emission_baseline",
-    "pr10_emitted_baseline",
     "validate_execution_state_final",
 }
 
@@ -95,7 +92,7 @@ class DualModeCanonicalizationTests(unittest.TestCase):
         )
 
     def test_pr08_standalone_and_pipeline_subgates_share_canonical_bytes(self) -> None:
-        def fake_run(argv: list[str], *, cwd: Path) -> dict[str, object]:
+        def fake_run(argv: list[str], *, cwd: Path, **_kwargs: object) -> dict[str, object]:
             script = Path(str(argv[1])).name
             report_path = hc.display_path(run_pr08_frontend_baseline.SUBGATE_REPORTS[script])
             return {
