@@ -12,6 +12,16 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Set
 
+from _lib.attestation_compression import (
+    RECEIPT_PATH,
+    RETIRED_ARCHIVE_REPORT_RELS,
+    RETIRED_NODE_IDS,
+    RETIRED_NODE_SPECS,
+    active_report_entries,
+    merkle_root,
+    verify_inclusion_proof,
+)
+from _lib.gate_manifest import NODES
 from _lib.harness_common import (
     display_path,
     ensure_deterministic_env,
@@ -148,37 +158,38 @@ EVIDENCE_FORBIDDEN_MARKERS = [
 ]
 FINALIZED_REPORT_METADATA_KEYS = frozenset({"deterministic", "report_sha256", "repeat_sha256"})
 REPORT_SYNC_SPECS = {
-    "execution/reports/pr09-ada-emission-baseline-report.json": {
+    RETIRED_ARCHIVE_REPORT_RELS["pr09_ada_emission_baseline"]: {
         "entry_list_key": "slice_reports",
         "entry_id_key": "script",
         "entry_sha_key": "report_sha256",
         "children": {
-            "scripts/run_pr09a_emitter_surface.py": "execution/reports/pr09a-emitter-surface-report.json",
-            "scripts/run_pr09a_emitter_mvp.py": "execution/reports/pr09a-emitter-mvp-report.json",
-            "scripts/run_pr09b_sequential_semantics.py": "execution/reports/pr09b-sequential-semantics-report.json",
-            "scripts/run_pr09b_concurrency_output.py": "execution/reports/pr09b-concurrency-output-report.json",
-            "scripts/run_pr09b_snapshot_refresh.py": "execution/reports/pr09b-snapshot-refresh-report.json",
+            "scripts/run_pr09a_emitter_surface.py": RETIRED_ARCHIVE_REPORT_RELS["pr09a_emitter_surface"],
+            "scripts/run_pr09a_emitter_mvp.py": RETIRED_ARCHIVE_REPORT_RELS["pr09a_emitter_mvp"],
+            "scripts/run_pr09b_sequential_semantics.py": RETIRED_ARCHIVE_REPORT_RELS["pr09b_sequential_semantics"],
+            "scripts/run_pr09b_concurrency_output.py": RETIRED_ARCHIVE_REPORT_RELS["pr09b_concurrency_output"],
+            "scripts/run_pr09b_snapshot_refresh.py": RETIRED_ARCHIVE_REPORT_RELS["pr09b_snapshot_refresh"],
         },
     },
-    "execution/reports/pr10-emitted-baseline-report.json": {
+    RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_baseline"]: {
         "entry_list_key": "slice_reports",
         "entry_id_key": "script",
         "entry_sha_key": "report_sha256",
         "children": {
-            "scripts/run_pr10_contract_baseline.py": "execution/reports/pr10-contract-baseline-report.json",
-            "scripts/run_pr10_emitted_flow.py": "execution/reports/pr10-emitted-flow-report.json",
-            "scripts/run_pr10_emitted_prove.py": "execution/reports/pr10-emitted-prove-report.json",
+            "scripts/run_pr10_contract_baseline.py": RETIRED_ARCHIVE_REPORT_RELS["pr10_contract_baseline"],
+            "scripts/run_pr10_emitted_flow.py": RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_flow"],
+            "scripts/run_pr10_emitted_prove.py": RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_prove"],
         },
     },
 }
 PR101_CHILD_REPORTS = {
-    "pr08_frontend_baseline": "execution/reports/pr08-frontend-baseline-report.json",
-    "pr09_ada_emission_baseline": "execution/reports/pr09-ada-emission-baseline-report.json",
-    "pr10_emitted_baseline": "execution/reports/pr10-emitted-baseline-report.json",
-    "emitted_hardening_regressions": "execution/reports/emitted-hardening-regressions-report.json",
-    "pr101a_companion_proof_verification": "execution/reports/pr101a-companion-proof-verification-report.json",
-    "pr101b_template_proof_verification": "execution/reports/pr101b-template-proof-verification-report.json",
+    "pr08_frontend_baseline": RETIRED_ARCHIVE_REPORT_RELS["pr08_frontend_baseline"],
+    "pr09_ada_emission_baseline": RETIRED_ARCHIVE_REPORT_RELS["pr09_ada_emission_baseline"],
+    "pr10_emitted_baseline": RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_baseline"],
+    "emitted_hardening_regressions": RETIRED_ARCHIVE_REPORT_RELS["emitted_hardening_regressions"],
+    "pr101a_companion_proof_verification": RETIRED_ARCHIVE_REPORT_RELS["pr101a_companion_proof_verification"],
+    "pr101b_template_proof_verification": RETIRED_ARCHIVE_REPORT_RELS["pr101b_template_proof_verification"],
 }
+COMPACTION_RECEIPT_REL = str(RECEIPT_PATH.relative_to(REPO_ROOT))
 PERFORMANCE_DOC_REQUIREMENTS = {
     "docs/frontend_scale_limits.md": [
         "the exact current Rule 5 fixture corpus, sequential ownership, and the current boolean result-record discriminant pattern",
@@ -1126,6 +1137,176 @@ def check_pr101_report_sync(
             require(recorded == child_sha, f"{pr101_rel}: {node_id} hash mismatch")
 
 
+def attestation_chain_compression_report(
+    *,
+    repo_root: Path = REPO_ROOT,
+) -> Dict[str, Any]:
+    manifest_ids = [node.id for node in NODES]
+    retired_manifest_nodes = [node_id for node_id in RETIRED_NODE_IDS if node_id in manifest_ids]
+    receipt_path = repo_root / COMPACTION_RECEIPT_REL
+    archive_missing: List[str] = []
+    archive_noncanonical: List[str] = []
+    provenance_missing: List[str] = []
+    provenance_noncanonical: List[str] = []
+    provenance_violations: List[str] = []
+    proof_violations: List[str] = []
+    receipt_violations: List[str] = []
+    receipt_payload: Dict[str, Any] | None = None
+
+    if not receipt_path.exists():
+        receipt_violations.append(f"missing {COMPACTION_RECEIPT_REL}")
+    else:
+        raw = receipt_path.read_text(encoding="utf-8")
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: invalid JSON ({exc.msg})")
+        else:
+            if raw != serialize_report(parsed):
+                receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: noncanonical JSON")
+            if not isinstance(parsed, dict):
+                receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: report root must be an object")
+            else:
+                receipt_payload = parsed
+
+    pre_merkle_root = receipt_payload.get("pre_merkle_root") if isinstance(receipt_payload, dict) else None
+    post_merkle_root = receipt_payload.get("post_merkle_root") if isinstance(receipt_payload, dict) else None
+    pre_commit = receipt_payload.get("pre_compaction_commit") if isinstance(receipt_payload, dict) else None
+    post_commit = receipt_payload.get("post_compaction_commit") if isinstance(receipt_payload, dict) else None
+
+    if receipt_payload is not None:
+        if receipt_payload.get("schema_version") != 1:
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: schema_version")
+        if receipt_payload.get("task_id") != "PR11.6.1":
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: task_id")
+        if receipt_payload.get("archive_root") != "execution/archive":
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: archive_root")
+        if receipt_payload.get("retired_node_ids") != list(RETIRED_NODE_IDS):
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}: retired_node_ids")
+        for field_name, value in (
+            ("pre_merkle_root", pre_merkle_root),
+            ("post_merkle_root", post_merkle_root),
+        ):
+            if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+                receipt_violations.append(f"{COMPACTION_RECEIPT_REL}:{field_name}")
+        for field_name, value in (
+            ("pre_compaction_commit", pre_commit),
+            ("post_compaction_commit", post_commit),
+        ):
+            if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{40}", value) is None:
+                receipt_violations.append(f"{COMPACTION_RECEIPT_REL}:{field_name}")
+        retired_nodes = receipt_payload.get("retired_nodes")
+        if not isinstance(retired_nodes, list) or len(retired_nodes) != len(RETIRED_NODE_IDS):
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}:retired_nodes")
+
+    for spec in RETIRED_NODE_SPECS:
+        report_path = spec.archive_report_path
+        provenance_path = spec.archive_provenance_path
+        if not report_path.exists():
+            archive_missing.append(spec.archive_report_rel)
+            continue
+        if not provenance_path.exists():
+            provenance_missing.append(spec.archive_provenance_rel)
+            continue
+
+        report_raw = report_path.read_text(encoding="utf-8")
+        provenance_raw = provenance_path.read_text(encoding="utf-8")
+        try:
+            report_payload = json.loads(report_raw)
+        except json.JSONDecodeError as exc:
+            archive_noncanonical.append(f"{spec.archive_report_rel}: invalid JSON ({exc.msg})")
+            continue
+        try:
+            provenance_payload = json.loads(provenance_raw)
+        except json.JSONDecodeError as exc:
+            provenance_noncanonical.append(f"{spec.archive_provenance_rel}: invalid JSON ({exc.msg})")
+            continue
+        if report_raw != serialize_report(report_payload):
+            archive_noncanonical.append(spec.archive_report_rel)
+        if provenance_raw != serialize_report(provenance_payload):
+            provenance_noncanonical.append(spec.archive_provenance_rel)
+        if not isinstance(report_payload, dict):
+            archive_noncanonical.append(f"{spec.archive_report_rel}: report root must be an object")
+            continue
+        if not isinstance(provenance_payload, dict):
+            provenance_noncanonical.append(f"{spec.archive_provenance_rel}: report root must be an object")
+            continue
+
+        report_sha256 = report_payload.get("report_sha256")
+        if report_payload.get("deterministic") is not True or report_payload.get("repeat_sha256") != report_sha256:
+            provenance_violations.append(f"{spec.archive_report_rel}:deterministic metadata")
+        if provenance_payload.get("schema_version") != 1:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:schema_version")
+        if provenance_payload.get("node_id") != spec.node_id:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:node_id")
+        if provenance_payload.get("original_report_path") != spec.original_report_rel:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:original_report_path")
+        if provenance_payload.get("archived_report_path") != spec.archive_report_rel:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:archived_report_path")
+        if provenance_payload.get("live_subsumer") != "pr101_comprehensive_audit":
+            provenance_violations.append(f"{spec.archive_provenance_rel}:live_subsumer")
+        if provenance_payload.get("transitive_chain") != list(spec.transitive_chain):
+            provenance_violations.append(f"{spec.archive_provenance_rel}:transitive_chain")
+        if provenance_payload.get("report_sha256") != report_sha256:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:report_sha256")
+        if provenance_payload.get("pre_compaction_commit") != pre_commit:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:pre_compaction_commit")
+        if provenance_payload.get("pre_merkle_root") != pre_merkle_root:
+            provenance_violations.append(f"{spec.archive_provenance_rel}:pre_merkle_root")
+
+        proof = provenance_payload.get("inclusion_proof")
+        if not isinstance(proof, list):
+            proof_violations.append(f"{spec.archive_provenance_rel}:inclusion_proof")
+            continue
+        if isinstance(pre_merkle_root, str):
+            if not verify_inclusion_proof(
+                path=spec.original_report_rel,
+                file_bytes=report_raw.encode("utf-8"),
+                proof=proof,
+                root_hex=pre_merkle_root,
+            ):
+                proof_violations.append(spec.node_id)
+
+    if isinstance(post_merkle_root, str):
+        actual_post_root = merkle_root(active_report_entries(repo_root=repo_root))
+        if actual_post_root != post_merkle_root:
+            receipt_violations.append(f"{COMPACTION_RECEIPT_REL}:post_merkle_root")
+
+    return {
+        "manifest_node_count": len(manifest_ids),
+        "retired_manifest_nodes": retired_manifest_nodes,
+        "archive_missing": archive_missing,
+        "archive_noncanonical": archive_noncanonical,
+        "provenance_missing": provenance_missing,
+        "provenance_noncanonical": provenance_noncanonical,
+        "provenance_violations": provenance_violations,
+        "proof_violations": proof_violations,
+        "receipt_violations": receipt_violations,
+    }
+
+
+def check_attestation_chain_compression(*, repo_root: Path = REPO_ROOT) -> None:
+    report = attestation_chain_compression_report(repo_root=repo_root)
+    if report["manifest_node_count"] != 37:
+        fail(f"compressed manifest must contain 37 nodes, found {report['manifest_node_count']}")
+    if report["retired_manifest_nodes"]:
+        fail(f"retired nodes still present in manifest: {report['retired_manifest_nodes']}")
+    if report["archive_missing"]:
+        fail(f"missing archived reports: {report['archive_missing']}")
+    if report["archive_noncanonical"]:
+        fail(f"archived reports are noncanonical: {report['archive_noncanonical']}")
+    if report["provenance_missing"]:
+        fail(f"missing archive provenance: {report['provenance_missing']}")
+    if report["provenance_noncanonical"]:
+        fail(f"archive provenance is noncanonical: {report['provenance_noncanonical']}")
+    if report["provenance_violations"]:
+        fail(f"archive provenance drifted: {report['provenance_violations']}")
+    if report["proof_violations"]:
+        fail(f"archived report inclusion proofs failed: {report['proof_violations']}")
+    if report["receipt_violations"]:
+        fail(f"compaction receipt drifted: {report['receipt_violations']}")
+
+
 def find_nested_key_paths(value: Any, key: str, prefix: str = "") -> List[str]:
     paths: List[str] = []
     if isinstance(value, dict):
@@ -1984,6 +2165,7 @@ def run_final_phase(
     check_dashboard_freshness(tracker, generated_root=generated_root)
     check_report_sync(generated_root=generated_root)
     check_pr101_report_sync(generated_root=generated_root)
+    check_attestation_chain_compression()
     # This report is being generated by the current invocation, so the pipeline
     # validates it after write-out rather than requiring it to pre-exist here.
     check_evidence_reproducibility(
@@ -2014,6 +2196,7 @@ def run_final_phase(
             "dashboard_fresh": True,
             "evidence_reproducible": True,
             "report_sync": True,
+            "attestation_chain_compression": True,
             "runtime_boundary": True,
             "environment_assumptions": True,
             "legacy_frontend_cleanup": True,

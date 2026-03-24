@@ -11,6 +11,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_NODE_IDS
 from _lib.gate_manifest import NODES, resolve_branch, validate_manifest
 
 
@@ -21,6 +22,7 @@ class GateManifestTests(unittest.TestCase):
     def test_manifest_nodes_are_unique(self) -> None:
         node_ids = [node.id for node in NODES]
         self.assertEqual(len(node_ids), len(set(node_ids)))
+        self.assertEqual(len(NODES), 37)
 
     def test_manifest_topologically_valid(self) -> None:
         positions = {node.id: index for index, node in enumerate(NODES)}
@@ -50,6 +52,7 @@ class GateManifestTests(unittest.TestCase):
             if evidence.endswith(".json")
         }
         manifest_reports = {node.report_path for node in NODES if node.report_path is not None}
+        manifest_reports.update(RETIRED_ARCHIVE_REPORT_PATHS.values())
         self.assertEqual(set(), tracker_reports - manifest_reports)
 
     def test_branch_resolution_pr10(self) -> None:
@@ -58,25 +61,6 @@ class GateManifestTests(unittest.TestCase):
             [
                 "validate_execution_state_preflight",
                 "build_initial",
-                "pr081_local_concurrency_frontend",
-                "pr082_local_concurrency_analysis",
-                "pr083_interface_contracts",
-                "pr083a_public_constants",
-                "pr084_transitive_concurrency",
-                "pr08_frontend_baseline",
-                "pr09a_emitter_surface",
-                "pr09a_emitter_mvp",
-                "pr09b_sequential_semantics",
-                "pr09b_concurrency_output",
-                "pr09b_snapshot_refresh",
-                "pr09_ada_emission_baseline",
-                "pr10_contract_baseline",
-                "pr10_emitted_flow",
-                "pr10_emitted_prove",
-                "pr10_emitted_baseline",
-                "emitted_hardening_regressions",
-                "pr101a_companion_proof_verification",
-                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -99,25 +83,6 @@ class GateManifestTests(unittest.TestCase):
                 "validate_execution_state_preflight",
                 "build_initial",
                 "pr111_language_eval",
-                "pr081_local_concurrency_frontend",
-                "pr082_local_concurrency_analysis",
-                "pr083_interface_contracts",
-                "pr083a_public_constants",
-                "pr084_transitive_concurrency",
-                "pr08_frontend_baseline",
-                "pr09a_emitter_surface",
-                "pr09a_emitter_mvp",
-                "pr09b_sequential_semantics",
-                "pr09b_concurrency_output",
-                "pr09b_snapshot_refresh",
-                "pr09_ada_emission_baseline",
-                "pr10_contract_baseline",
-                "pr10_emitted_flow",
-                "pr10_emitted_prove",
-                "pr10_emitted_baseline",
-                "emitted_hardening_regressions",
-                "pr101a_companion_proof_verification",
-                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -144,25 +109,6 @@ class GateManifestTests(unittest.TestCase):
                 "pr113_discriminated_types",
                 "pr113a_proof_checkpoint",
                 "pr114_signature_control_flow",
-                "pr081_local_concurrency_frontend",
-                "pr082_local_concurrency_analysis",
-                "pr083_interface_contracts",
-                "pr083a_public_constants",
-                "pr084_transitive_concurrency",
-                "pr08_frontend_baseline",
-                "pr09a_emitter_surface",
-                "pr09a_emitter_mvp",
-                "pr09b_sequential_semantics",
-                "pr09b_concurrency_output",
-                "pr09b_snapshot_refresh",
-                "pr09_ada_emission_baseline",
-                "pr10_contract_baseline",
-                "pr10_emitted_flow",
-                "pr10_emitted_prove",
-                "pr10_emitted_baseline",
-                "emitted_hardening_regressions",
-                "pr101a_companion_proof_verification",
-                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -190,25 +136,6 @@ class GateManifestTests(unittest.TestCase):
                 "pr113a_proof_checkpoint",
                 "pr114_signature_control_flow",
                 "pr115_statement_ergonomics",
-                "pr081_local_concurrency_frontend",
-                "pr082_local_concurrency_analysis",
-                "pr083_interface_contracts",
-                "pr083a_public_constants",
-                "pr084_transitive_concurrency",
-                "pr08_frontend_baseline",
-                "pr09a_emitter_surface",
-                "pr09a_emitter_mvp",
-                "pr09b_sequential_semantics",
-                "pr09b_concurrency_output",
-                "pr09b_snapshot_refresh",
-                "pr09_ada_emission_baseline",
-                "pr10_contract_baseline",
-                "pr10_emitted_flow",
-                "pr10_emitted_prove",
-                "pr10_emitted_baseline",
-                "emitted_hardening_regressions",
-                "pr101a_companion_proof_verification",
-                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -237,25 +164,6 @@ class GateManifestTests(unittest.TestCase):
                 "pr114_signature_control_flow",
                 "pr115_statement_ergonomics",
                 "pr116_meaningful_whitespace",
-                "pr081_local_concurrency_frontend",
-                "pr082_local_concurrency_analysis",
-                "pr083_interface_contracts",
-                "pr083a_public_constants",
-                "pr084_transitive_concurrency",
-                "pr08_frontend_baseline",
-                "pr09a_emitter_surface",
-                "pr09a_emitter_mvp",
-                "pr09b_sequential_semantics",
-                "pr09b_concurrency_output",
-                "pr09b_snapshot_refresh",
-                "pr09_ada_emission_baseline",
-                "pr10_contract_baseline",
-                "pr10_emitted_flow",
-                "pr10_emitted_prove",
-                "pr10_emitted_baseline",
-                "emitted_hardening_regressions",
-                "pr101a_companion_proof_verification",
-                "pr101b_template_proof_verification",
                 "pr101_comprehensive_audit",
                 "pr0694_output_contract_stability",
                 "pr0697_gate_quality",
@@ -271,18 +179,15 @@ class GateManifestTests(unittest.TestCase):
             ],
         )
 
-    def test_manifest_assigns_companion_and_template_clean_profiles(self) -> None:
+    def test_manifest_retires_historical_pr101_children(self) -> None:
         nodes = {node.id: node for node in NODES}
+        for node_id in RETIRED_NODE_IDS:
+            self.assertNotIn(node_id, nodes)
+        self.assertIn("pr101_comprehensive_audit", nodes)
         self.assertEqual(
-            nodes["pr101a_companion_proof_verification"].repo_clean_profile,
-            "companion_gen_proof",
+            nodes["pr101_comprehensive_audit"].depends_on,
+            ("build_initial", "validate_execution_state_preflight"),
         )
-        self.assertEqual(
-            nodes["pr101b_template_proof_verification"].repo_clean_profile,
-            "companion_template_proof",
-        )
-        self.assertTrue(nodes["pr09a_emitter_surface"].supports_scratch_root)
-        self.assertEqual(nodes["pr09a_emitter_surface"].scratch_profile, "surface_emit_workspace")
 
 
 if __name__ == "__main__":

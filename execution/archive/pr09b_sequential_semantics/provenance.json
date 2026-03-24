@@ -1,0 +1,36 @@
+{
+  "archived_report_path": "execution/archive/pr09b_sequential_semantics/report.json",
+  "inclusion_proof": [
+    {
+      "hash": "6f9fa896a322e0eaa7fc5787afd28a20233fedd3933b9010693a28957e690281",
+      "side": "left"
+    },
+    {
+      "hash": "e2ed53b008b1171d4f4b39c008b4284003d38dc5cc076a81a0410bde0b6a784f",
+      "side": "left"
+    },
+    {
+      "hash": "2949010ac1f10d57cc7e674389bcb52212b7b0702ae10652d2d6d21454c548bf",
+      "side": "right"
+    },
+    {
+      "hash": "94cf0d5c375737aa43b7c96ec184dd2f1058c28c6be3cc1a90acc3eb40b248b1",
+      "side": "left"
+    },
+    {
+      "hash": "9b3148fb3a5ee289816d80543baedd809624c9cbe0ecce06b26554a68ca82573",
+      "side": "right"
+    }
+  ],
+  "live_subsumer": "pr101_comprehensive_audit",
+  "node_id": "pr09b_sequential_semantics",
+  "original_report_path": "execution/reports/pr09b-sequential-semantics-report.json",
+  "pre_compaction_commit": "8e22abbcccd4f595f27a7b00f8b830a4762a1c60",
+  "pre_merkle_root": "ffc127da01292096beb825c61d1d4d57ed131a68413c22085261ac07de50edb5",
+  "report_sha256": "4e2573f45d6b4bb5ad641dd7f6f310fb28b8760b3176353ee396498e2403281f",
+  "schema_version": 1,
+  "transitive_chain": [
+    "pr09_ada_emission_baseline",
+    "pr101_comprehensive_audit"
+  ]
+}

@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
@@ -36,7 +37,7 @@ from _lib.pr10_emit import emit_fixture, gnatprove_emitted_ada
 from _lib.pr10_emit import require_explicit_gnat_adc
 
 
-DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "emitted-hardening-regressions-report.json"
+DEFAULT_REPORT = RETIRED_ARCHIVE_REPORT_PATHS["emitted_hardening_regressions"]
 OWNERSHIP_FIXTURE = REPO_ROOT / "tests" / "positive" / "ownership_early_return.safe"
 PROOF_FIXTURES = [
     REPO_ROOT / "tests" / "concurrency" / "select_with_delay_multiarm.safe",

@@ -11,6 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_ARCHIVE_REPORT_RELS
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
@@ -29,7 +30,7 @@ from _lib.harness_common import (
 from _lib.pr09_emit import REPO_ROOT
 
 
-DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr09-ada-emission-baseline-report.json"
+DEFAULT_REPORT = RETIRED_ARCHIVE_REPORT_PATHS["pr09_ada_emission_baseline"]
 TRACKER_PATH = REPO_ROOT / "execution" / "tracker.json"
 DASHBOARD_PATH = REPO_ROOT / "execution" / "dashboard.md"
 FRONTEND_BASELINE_PATH = REPO_ROOT / "docs" / "frontend_architecture_baseline.md"
@@ -48,12 +49,12 @@ SLICE_SCRIPTS = [
     REPO_ROOT / "scripts" / "run_pr09b_snapshot_refresh.py",
 ]
 EXPECTED_EVIDENCE = [
-    "execution/reports/pr09a-emitter-surface-report.json",
-    "execution/reports/pr09a-emitter-mvp-report.json",
-    "execution/reports/pr09b-sequential-semantics-report.json",
-    "execution/reports/pr09b-concurrency-output-report.json",
-    "execution/reports/pr09b-snapshot-refresh-report.json",
-    "execution/reports/pr09-ada-emission-baseline-report.json",
+    RETIRED_ARCHIVE_REPORT_RELS["pr09a_emitter_surface"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr09a_emitter_mvp"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr09b_sequential_semantics"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr09b_concurrency_output"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr09b_snapshot_refresh"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr09_ada_emission_baseline"],
 ]
 SLICE_PIPELINE_IDS = {
     "run_pr09a_emitter_surface.py": "pr09a_emitter_surface",

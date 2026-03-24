@@ -15,6 +15,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import validate_execution_state
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_RELS
 from validate_execution_state import (
     EVIDENCE_POLICY_SHA256,
     GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS,
@@ -175,18 +176,18 @@ class ValidateExecutionStateTests(unittest.TestCase):
             repo_root = Path(temp_dir)
             report_root = repo_root / "execution" / "reports"
             baseline_reports = {
-                "pr08_frontend_baseline": "pr08-frontend-baseline-report.json",
-                "pr09_ada_emission_baseline": "pr09-ada-emission-baseline-report.json",
-                "pr10_emitted_baseline": "pr10-emitted-baseline-report.json",
-                "emitted_hardening_regressions": "emitted-hardening-regressions-report.json",
+                "pr08_frontend_baseline": RETIRED_ARCHIVE_REPORT_RELS["pr08_frontend_baseline"],
+                "pr09_ada_emission_baseline": RETIRED_ARCHIVE_REPORT_RELS["pr09_ada_emission_baseline"],
+                "pr10_emitted_baseline": RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_baseline"],
+                "emitted_hardening_regressions": RETIRED_ARCHIVE_REPORT_RELS["emitted_hardening_regressions"],
             }
             baseline_hashes = {
-                node_id: self._write_finalized_report(report_root / filename, {"status": node_id})
-                for node_id, filename in baseline_reports.items()
+                node_id: self._write_finalized_report(repo_root / relative_path, {"status": node_id})
+                for node_id, relative_path in baseline_reports.items()
             }
             child_hashes = {
                 "pr101a_companion_proof_verification": self._write_finalized_report(
-                    report_root / "pr101a-companion-proof-verification-report.json",
+                    repo_root / RETIRED_ARCHIVE_REPORT_RELS["pr101a_companion_proof_verification"],
                     {
                         "task": "PR10.1",
                         "verification": "companion",
@@ -205,7 +206,7 @@ class ValidateExecutionStateTests(unittest.TestCase):
                     },
                 ),
                 "pr101b_template_proof_verification": self._write_finalized_report(
-                    report_root / "pr101b-template-proof-verification-report.json",
+                    repo_root / RETIRED_ARCHIVE_REPORT_RELS["pr101b_template_proof_verification"],
                     {
                         "task": "PR10.1",
                         "verification": "templates",
@@ -1529,6 +1530,8 @@ class ValidateExecutionStateTests(unittest.TestCase):
             ) as check_report_sync, mock.patch(
                 "validate_execution_state.check_pr101_report_sync"
             ) as check_pr101_report_sync, mock.patch(
+                "validate_execution_state.check_attestation_chain_compression"
+            ) as check_attestation_chain_compression, mock.patch(
                 "validate_execution_state.check_runtime_boundary"
             ), mock.patch(
                 "validate_execution_state.check_environment_assumptions"
@@ -1558,6 +1561,7 @@ class ValidateExecutionStateTests(unittest.TestCase):
         )
         check_report_sync.assert_called_once_with(generated_root=generated_root)
         check_pr101_report_sync.assert_called_once_with(generated_root=generated_root)
+        check_attestation_chain_compression.assert_called_once_with()
         self.assertEqual(report["phase"], "final")
         self.assertNotIn("authority", report)
         self.assertIsNone(report["generated_root"])

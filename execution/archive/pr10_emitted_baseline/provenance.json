@@ -1,0 +1,33 @@
+{
+  "archived_report_path": "execution/archive/pr10_emitted_baseline/report.json",
+  "inclusion_proof": [
+    {
+      "hash": "bd6af1683bd5ce379c7f3666eb5d0ba731cdaac0b69013bc56bdf92209e2d2dd",
+      "side": "right"
+    },
+    {
+      "hash": "fd5f65e6f0653b015d6838b6ddec9ab33acdc5508744d72f0937e7c395f31009",
+      "side": "left"
+    },
+    {
+      "hash": "99d9deca10611f1c1051c7cc0a709966c40a1eb428bbb2a4630f0128eb803f30",
+      "side": "left"
+    },
+    {
+      "hash": "94cf0d5c375737aa43b7c96ec184dd2f1058c28c6be3cc1a90acc3eb40b248b1",
+      "side": "left"
+    },
+    {
+      "hash": "9b3148fb3a5ee289816d80543baedd809624c9cbe0ecce06b26554a68ca82573",
+      "side": "right"
+    }
+  ],
+  "live_subsumer": "pr101_comprehensive_audit",
+  "node_id": "pr10_emitted_baseline",
+  "original_report_path": "execution/reports/pr10-emitted-baseline-report.json",
+  "pre_compaction_commit": "8e22abbcccd4f595f27a7b00f8b830a4762a1c60",
+  "pre_merkle_root": "ffc127da01292096beb825c61d1d4d57ed131a68413c22085261ac07de50edb5",
+  "report_sha256": "52d48aa8fc7f059adc5f5174345893c9157b649ffed4353fdc44234be2ed7c30",
+  "schema_version": 1,
+  "transitive_chain": []
+}

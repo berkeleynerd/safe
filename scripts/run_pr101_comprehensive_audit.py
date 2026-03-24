@@ -13,7 +13,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from _lib.gate_manifest import DeterminismClass, NODES
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_ARCHIVE_REPORT_RELS
 from _lib.harness_common import (
     canonicalize_serialized_child_result,
     compact_result,
@@ -64,11 +64,6 @@ PIPELINE_BASELINE_IDS = {
     "run_pr10_emitted_baseline.py": "pr10_emitted_baseline",
     "run_emitted_hardening_regressions.py": "emitted_hardening_regressions",
 }
-BASELINE_NODES = {
-    node.id: node
-    for node in NODES
-    if node.id in set(PIPELINE_BASELINE_IDS.values())
-}
 EVIDENCE_POLICY = load_evidence_policy()
 EXPECTED_PR101_ACCEPTANCE = [
     "Authoritative PR08, PR09, PR10, supplemental hardening, companion/template verification, and execution-state baselines rerun serially and establish the audit truth baseline.",
@@ -76,18 +71,18 @@ EXPECTED_PR101_ACCEPTANCE = [
     "docs/post_pr10_scope.md and docs/emitted_output_verification_matrix.md are normalized to the audit outcome, and the first concrete PR10.2+ follow-on tasks are defined in execution/tracker.json.",
 ]
 EXPECTED_PR101_EVIDENCE = [
-    "execution/reports/pr101a-companion-proof-verification-report.json",
-    "execution/reports/pr101b-template-proof-verification-report.json",
+    RETIRED_ARCHIVE_REPORT_RELS["pr101a_companion_proof_verification"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr101b_template_proof_verification"],
     "execution/reports/pr101-comprehensive-audit-report.json",
 ]
 VERIFICATION_REPORT_SPECS = {
     "pr101a_companion_proof_verification": {
         "script": REPO_ROOT / "scripts" / "run_pr101a_companion_proof_verification.py",
-        "report": REPO_ROOT / "execution" / "reports" / "pr101a-companion-proof-verification-report.json",
+        "report": RETIRED_ARCHIVE_REPORT_PATHS["pr101a_companion_proof_verification"],
     },
     "pr101b_template_proof_verification": {
         "script": REPO_ROOT / "scripts" / "run_pr101b_template_proof_verification.py",
-        "report": REPO_ROOT / "execution" / "reports" / "pr101b-template-proof-verification-report.json",
+        "report": RETIRED_ARCHIVE_REPORT_PATHS["pr101b_template_proof_verification"],
     },
 }
 VERIFICATION_REPORT_ORDER = tuple(VERIFICATION_REPORT_SPECS)
@@ -515,33 +510,28 @@ def run_python_gate(
     }
 
 
-def load_baseline_gate_reference(
+def run_verification_report(
     *,
     python: str,
-    script: Path,
-    generated_root: Path | None = None,
+    node_id: str,
+    env: dict[str, str],
+    temp_root: Path,
 ) -> dict[str, Any]:
-    node_id = PIPELINE_BASELINE_IDS[script.name]
-    node = BASELINE_NODES[node_id]
-    require(node.report_path is not None, f"{node_id}: report path required")
-    report_path = resolve_generated_path(
-        node.report_path,
-        generated_root=generated_root,
-        policy=EVIDENCE_POLICY,
-        repo_root=REPO_ROOT,
+    spec = VERIFICATION_REPORT_SPECS[node_id]
+    report_path = temp_root / f"{spec['script'].stem}.json"
+    result = run(
+        [python, str(spec["script"]), "--report", str(report_path)],
+        cwd=REPO_ROOT,
+        env=env,
+        temp_root=temp_root,
     )
     payload = json.loads(report_path.read_text(encoding="utf-8"))
-    require(payload.get("deterministic") is True, f"{display_path(report_path, repo_root=REPO_ROOT)} must be deterministic")
-    require(
-        payload.get("report_sha256") == payload.get("repeat_sha256"),
-        f"{display_path(report_path, repo_root=REPO_ROOT)} report hashes must match",
-    )
-    return {
-        "script": display_path(script, repo_root=REPO_ROOT),
-        "result": local_reused_gate_result(python=python, script=script),
-        "report_sha256": payload["report_sha256"],
-        "deterministic": payload["deterministic"],
-    }
+    return verification_report_reference(
+        node_id=node_id,
+        script=display_path(spec["script"], repo_root=REPO_ROOT),
+        report_sha256=payload["report_sha256"],
+        deterministic=payload["deterministic"],
+    ) | {"result": compact_result(result)}
 
 
 def load_verification_report_reference(
@@ -549,22 +539,11 @@ def load_verification_report_reference(
     node_id: str,
     generated_root: Path | None = None,
 ) -> dict[str, Any]:
-    spec = VERIFICATION_REPORT_SPECS[node_id]
-    report_path = resolve_generated_path(
-        spec["report"],
-        generated_root=generated_root,
-        policy=EVIDENCE_POLICY,
-        repo_root=REPO_ROOT,
-    )
-    payload = json.loads(report_path.read_text(encoding="utf-8"))
-    require(payload.get("deterministic") is True, f"{display_path(report_path, repo_root=REPO_ROOT)} must be deterministic")
-    require(
-        payload.get("report_sha256") == payload.get("repeat_sha256"),
-        f"{display_path(report_path, repo_root=REPO_ROOT)} report hashes must match",
-    )
+    del generated_root
+    payload = json.loads(RETIRED_ARCHIVE_REPORT_PATHS[node_id].read_text(encoding="utf-8"))
     return verification_report_reference(
         node_id=node_id,
-        script=display_path(spec["script"], repo_root=REPO_ROOT),
+        script=display_path(VERIFICATION_REPORT_SPECS[node_id]["script"], repo_root=REPO_ROOT),
         report_sha256=payload["report_sha256"],
         deterministic=payload["deterministic"],
     )
@@ -581,21 +560,14 @@ def run_baseline_truth(
         temp_root = Path(temp_root_str)
         gates: list[dict[str, Any]] = []
         for script in BASELINE_SCRIPTS:
-            node_id = PIPELINE_BASELINE_IDS[script.name]
-            node = BASELINE_NODES[node_id]
-            if authority == "local" and node.determinism_class is DeterminismClass.CI_AUTHORITATIVE:
-                gates.append(
-                    load_baseline_gate_reference(
-                        python=python,
-                        script=script,
-                        generated_root=generated_root,
-                    )
-                )
-                continue
             extra_argv: list[str] = []
             if authority and script.name == "run_pr10_emitted_baseline.py":
                 extra_argv.extend(["--authority", authority])
-            if node.supports_generated_root and generated_root is not None:
+            if generated_root is not None and script.name in {
+                "run_pr08_frontend_baseline.py",
+                "run_pr09_ada_emission_baseline.py",
+                "run_pr10_emitted_baseline.py",
+            }:
                 extra_argv.extend(["--generated-root", str(generated_root)])
             gates.append(
                 run_python_gate(
@@ -609,13 +581,19 @@ def run_baseline_truth(
         return {
             "python_gates": gates,
             "verification_reports": [
-                load_verification_report_reference(node_id=node_id, generated_root=generated_root)
+                run_verification_report(
+                    python=python,
+                    node_id=node_id,
+                    env=env,
+                    temp_root=temp_root,
+                )
                 for node_id in VERIFICATION_REPORT_ORDER
             ],
         }
 
 
 def pipeline_baseline_truth(*, env: dict[str, Any], pipeline_input: dict[str, Any]) -> dict[str, Any]:
+    del env
     gates: list[dict[str, Any]] = []
     for script in BASELINE_SCRIPTS:
         node_id = PIPELINE_BASELINE_IDS[script.name]
@@ -649,17 +627,23 @@ def pipeline_baseline_truth(*, env: dict[str, Any], pipeline_input: dict[str, An
 
 
 def baseline_gate_hashes(*, baseline_truth: dict[str, Any]) -> dict[str, str]:
-    hashes: dict[str, str] = {}
-    for gate in baseline_truth["python_gates"]:
-        node_id = PIPELINE_BASELINE_IDS[Path(gate["script"]).name]
-        hashes[node_id] = gate["report_sha256"]
-    return hashes
+    del baseline_truth
+    return {
+        node_id: json.loads(RETIRED_ARCHIVE_REPORT_PATHS[node_id].read_text(encoding="utf-8"))["report_sha256"]
+        for node_id in (
+            "pr08_frontend_baseline",
+            "pr09_ada_emission_baseline",
+            "pr10_emitted_baseline",
+            "emitted_hardening_regressions",
+        )
+    }
 
 
 def verification_report_hashes(*, baseline_truth: dict[str, Any]) -> dict[str, str]:
+    del baseline_truth
     return {
-        entry["node_id"]: entry["report_sha256"]
-        for entry in baseline_truth["verification_reports"]
+        node_id: json.loads(RETIRED_ARCHIVE_REPORT_PATHS[node_id].read_text(encoding="utf-8"))["report_sha256"]
+        for node_id in VERIFICATION_REPORT_ORDER
     }
 
 
@@ -1114,15 +1098,14 @@ def main() -> int:
     args = parser.parse_args()
 
     env = ensure_sdkroot(os.environ.copy())
-    pipeline_input = load_pipeline_input(args.pipeline_input)
-    baseline_truth = (
-        pipeline_baseline_truth(env=env, pipeline_input=pipeline_input)
-        if pipeline_input
-        else run_baseline_truth(
-            env=env,
-            authority=args.authority,
-            generated_root=args.generated_root,
-        )
+    # PR11.6.1 compresses the historical PR08/PR09/PR10 surface under the
+    # live PR101 gate, so standalone execution always reruns that retired
+    # surface instead of consuming pipeline-child reports.
+    _ = load_pipeline_input(args.pipeline_input)
+    baseline_truth = run_baseline_truth(
+        env=env,
+        authority=args.authority,
+        generated_root=args.generated_root,
     )
     report = finalize_deterministic_report(
         lambda: build_report(

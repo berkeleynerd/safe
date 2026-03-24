@@ -1,0 +1,36 @@
+{
+  "archived_report_path": "execution/archive/pr10_emitted_flow/report.json",
+  "inclusion_proof": [
+    {
+      "hash": "c1a16c9eb3b70df782fc156ea1c2bc81e97011a0422078c452d13034b8af6b83",
+      "side": "left"
+    },
+    {
+      "hash": "fd5f65e6f0653b015d6838b6ddec9ab33acdc5508744d72f0937e7c395f31009",
+      "side": "left"
+    },
+    {
+      "hash": "99d9deca10611f1c1051c7cc0a709966c40a1eb428bbb2a4630f0128eb803f30",
+      "side": "left"
+    },
+    {
+      "hash": "94cf0d5c375737aa43b7c96ec184dd2f1058c28c6be3cc1a90acc3eb40b248b1",
+      "side": "left"
+    },
+    {
+      "hash": "9b3148fb3a5ee289816d80543baedd809624c9cbe0ecce06b26554a68ca82573",
+      "side": "right"
+    }
+  ],
+  "live_subsumer": "pr101_comprehensive_audit",
+  "node_id": "pr10_emitted_flow",
+  "original_report_path": "execution/reports/pr10-emitted-flow-report.json",
+  "pre_compaction_commit": "8e22abbcccd4f595f27a7b00f8b830a4762a1c60",
+  "pre_merkle_root": "ffc127da01292096beb825c61d1d4d57ed131a68413c22085261ac07de50edb5",
+  "report_sha256": "aa8d7ab515de721eec113134a19564e0d1a5de3e3c4c58f87cb36520ecfd03b6",
+  "schema_version": 1,
+  "transitive_chain": [
+    "pr10_emitted_baseline",
+    "pr101_comprehensive_audit"
+  ]
+}

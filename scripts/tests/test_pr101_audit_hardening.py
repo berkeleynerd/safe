@@ -287,13 +287,16 @@ class Pr101AuditHardeningTests(unittest.TestCase):
     def test_pr10_standalone_local_reuses_ci_authoritative_slice_reports(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             generated_root = Path(temp_dir)
-            report_root = generated_root / "execution" / "reports"
-            report_root.mkdir(parents=True, exist_ok=True)
-            for filename, report_sha in (
-                ("pr10-emitted-flow-report.json", "2" * 64),
-                ("pr10-emitted-prove-report.json", "3" * 64),
+            archive_root = generated_root / "execution" / "archive"
+            archive_paths = {}
+            for node_id, report_sha in (
+                ("pr10_emitted_flow", "2" * 64),
+                ("pr10_emitted_prove", "3" * 64),
             ):
-                (report_root / filename).write_text(
+                path = archive_root / node_id / "report.json"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                archive_paths[node_id] = path
+                path.write_text(
                     json.dumps(
                         {
                             "deterministic": True,
@@ -337,6 +340,10 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                 run_pr10_emitted_baseline,
                 "run",
                 side_effect=fake_run,
+            ), mock.patch.dict(
+                run_pr10_emitted_baseline.RETIRED_ARCHIVE_REPORT_PATHS,
+                archive_paths,
+                clear=False,
             ):
                 results = run_pr10_emitted_baseline.build_slice_reports_standalone(
                     env={},
@@ -357,63 +364,94 @@ class Pr101AuditHardeningTests(unittest.TestCase):
         )
 
     def test_pr101_semantic_floor_tracks_baseline_hashes_and_anchor_hashes(self) -> None:
-        baseline_truth = {
-            "python_gates": [
-                {
-                    "script": "scripts/run_pr08_frontend_baseline.py",
-                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                    "report_sha256": "1" * 64,
-                    "deterministic": True,
-                },
-                {
-                    "script": "scripts/run_pr09_ada_emission_baseline.py",
-                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                    "report_sha256": "2" * 64,
-                    "deterministic": True,
-                },
-                {
-                    "script": "scripts/run_pr10_emitted_baseline.py",
-                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                    "report_sha256": "3" * 64,
-                    "deterministic": True,
-                },
-                {
-                    "script": "scripts/run_emitted_hardening_regressions.py",
-                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
-                    "report_sha256": "4" * 64,
-                    "deterministic": True,
-                },
-            ],
-            "verification_reports": [
-                {
-                    "node_id": "pr101a_companion_proof_verification",
-                    "script": "scripts/run_pr101a_companion_proof_verification.py",
-                    "report_sha256": "5" * 64,
-                    "deterministic": True,
-                },
-                {
-                    "node_id": "pr101b_template_proof_verification",
-                    "script": "scripts/run_pr101b_template_proof_verification.py",
-                    "report_sha256": "6" * 64,
-                    "deterministic": True,
-                },
-            ],
-        }
-        self.assertEqual(
-            run_pr101_comprehensive_audit.semantic_floor_from_baseline_truth(baseline_truth=baseline_truth),
-            {
-                "baseline_gate_hashes": {
-                    "pr08_frontend_baseline": "1" * 64,
-                    "pr09_ada_emission_baseline": "2" * 64,
-                    "pr10_emitted_baseline": "3" * 64,
-                    "emitted_hardening_regressions": "4" * 64,
-                },
-                "child_report_hashes": {
-                    "pr101a_companion_proof_verification": "5" * 64,
-                    "pr101b_template_proof_verification": "6" * 64,
-                },
-            },
-        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_root = Path(temp_dir)
+            archive_paths = {}
+            for node_id, report_sha in (
+                ("pr08_frontend_baseline", "1" * 64),
+                ("pr09_ada_emission_baseline", "2" * 64),
+                ("pr10_emitted_baseline", "3" * 64),
+                ("emitted_hardening_regressions", "4" * 64),
+                ("pr101a_companion_proof_verification", "5" * 64),
+                ("pr101b_template_proof_verification", "6" * 64),
+            ):
+                path = archive_root / f"{node_id}.json"
+                archive_paths[node_id] = path
+                path.write_text(
+                    json.dumps(
+                        {
+                            "deterministic": True,
+                            "report_sha256": report_sha,
+                            "repeat_sha256": report_sha,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+            baseline_truth = {
+                "python_gates": [
+                    {
+                        "script": "scripts/run_pr08_frontend_baseline.py",
+                        "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                        "report_sha256": "1" * 64,
+                        "deterministic": True,
+                    },
+                    {
+                        "script": "scripts/run_pr09_ada_emission_baseline.py",
+                        "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                        "report_sha256": "2" * 64,
+                        "deterministic": True,
+                    },
+                    {
+                        "script": "scripts/run_pr10_emitted_baseline.py",
+                        "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                        "report_sha256": "3" * 64,
+                        "deterministic": True,
+                    },
+                    {
+                        "script": "scripts/run_emitted_hardening_regressions.py",
+                        "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0, "stdout": "", "stderr": ""},
+                        "report_sha256": "4" * 64,
+                        "deterministic": True,
+                    },
+                ],
+                "verification_reports": [
+                    {
+                        "node_id": "pr101a_companion_proof_verification",
+                        "script": "scripts/run_pr101a_companion_proof_verification.py",
+                        "report_sha256": "5" * 64,
+                        "deterministic": True,
+                    },
+                    {
+                        "node_id": "pr101b_template_proof_verification",
+                        "script": "scripts/run_pr101b_template_proof_verification.py",
+                        "report_sha256": "6" * 64,
+                        "deterministic": True,
+                    },
+                ],
+            }
+            with mock.patch.dict(
+                run_pr101_comprehensive_audit.RETIRED_ARCHIVE_REPORT_PATHS,
+                archive_paths,
+                clear=False,
+            ):
+                self.assertEqual(
+                    run_pr101_comprehensive_audit.semantic_floor_from_baseline_truth(baseline_truth=baseline_truth),
+                    {
+                        "baseline_gate_hashes": {
+                            "pr08_frontend_baseline": "1" * 64,
+                            "pr09_ada_emission_baseline": "2" * 64,
+                            "pr10_emitted_baseline": "3" * 64,
+                            "emitted_hardening_regressions": "4" * 64,
+                        },
+                        "child_report_hashes": {
+                            "pr101a_companion_proof_verification": "5" * 64,
+                            "pr101b_template_proof_verification": "6" * 64,
+                        },
+                    },
+                )
 
     def test_pr101_split_baseline_truth_moves_raw_transport_to_machine_sensitive(self) -> None:
         baseline_truth = {
@@ -875,27 +913,11 @@ class Pr101AuditHardeningTests(unittest.TestCase):
             ],
         )
 
-    def test_pr101_run_baseline_truth_local_reuses_ci_authoritative_baselines(self) -> None:
+    def test_pr101_run_baseline_truth_local_reruns_historical_surface(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             generated_root = Path(temp_dir)
-            report_root = generated_root / "execution" / "reports"
-            report_root.mkdir(parents=True, exist_ok=True)
-            emitted_report = report_root / "emitted-hardening-regressions-report.json"
-            emitted_report.write_text(
-                json.dumps(
-                    {
-                        "deterministic": True,
-                        "report_sha256": "4" * 64,
-                        "repeat_sha256": "4" * 64,
-                    },
-                    indent=2,
-                    sort_keys=True,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-
             invocations: list[tuple[str, list[str]]] = []
+            verification_invocations: list[str] = []
 
             def fake_run_python_gate(
                 *,
@@ -918,27 +940,31 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                     "deterministic": True,
                 }
 
+            def fake_run_verification_report(
+                *,
+                python: str,
+                node_id: str,
+                env: dict[str, str],
+                temp_root: Path,
+            ) -> dict[str, object]:
+                del python, env, temp_root
+                verification_invocations.append(node_id)
+                return {
+                    "node_id": node_id,
+                    "script": f"scripts/run_{node_id}.py",
+                    "report_sha256": ("5" if node_id.endswith("companion_proof_verification") else "6") * 64,
+                    "deterministic": True,
+                    "result": {"command": ["python3"], "cwd": "$REPO_ROOT", "returncode": 0},
+                }
+
             with mock.patch.object(run_pr101_comprehensive_audit, "find_command", return_value="python3"), mock.patch.object(
                 run_pr101_comprehensive_audit,
                 "run_python_gate",
                 side_effect=fake_run_python_gate,
             ), mock.patch.object(
                 run_pr101_comprehensive_audit,
-                "load_verification_report_reference",
-                side_effect=[
-                    {
-                        "node_id": "pr101a_companion_proof_verification",
-                        "script": "scripts/run_pr101a_companion_proof_verification.py",
-                        "report_sha256": "5" * 64,
-                        "deterministic": True,
-                    },
-                    {
-                        "node_id": "pr101b_template_proof_verification",
-                        "script": "scripts/run_pr101b_template_proof_verification.py",
-                        "report_sha256": "6" * 64,
-                        "deterministic": True,
-                    },
-                ],
+                "run_verification_report",
+                side_effect=fake_run_verification_report,
             ):
                 baseline_truth = run_pr101_comprehensive_audit.run_baseline_truth(
                     env={},
@@ -952,27 +978,19 @@ class Pr101AuditHardeningTests(unittest.TestCase):
                 "run_pr08_frontend_baseline.py",
                 "run_pr09_ada_emission_baseline.py",
                 "run_pr10_emitted_baseline.py",
+                "run_emitted_hardening_regressions.py",
             ],
         )
         self.assertEqual(
             invocations[-1][1],
-            ["--authority", "local", "--generated-root", str(generated_root)],
+            [],
         )
         self.assertEqual(
-            baseline_truth["python_gates"][-1],
-            {
-                "script": "scripts/run_emitted_hardening_regressions.py",
-                "result": {
-                    "command": [
-                        "python3",
-                        "scripts/run_emitted_hardening_regressions.py",
-                    ],
-                    "cwd": "$REPO_ROOT",
-                    "returncode": 0,
-                },
-                "report_sha256": "4" * 64,
-                "deterministic": True,
-            },
+            verification_invocations,
+            [
+                "pr101a_companion_proof_verification",
+                "pr101b_template_proof_verification",
+            ],
         )
 
     def test_split_table_row_rejects_non_data_rows(self) -> None:

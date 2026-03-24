@@ -1,0 +1,33 @@
+{
+  "archived_report_path": "execution/archive/pr101a_companion_proof_verification/report.json",
+  "inclusion_proof": [
+    {
+      "hash": "623cddaccaafa3625b73dc139e05c0443e5bce3b7387cffd8fde70b950df69f1",
+      "side": "left"
+    },
+    {
+      "hash": "0fae8cec9a4792d2520d56feff8f1b5ad5080880ff83baae79aa6cd3d460aad2",
+      "side": "right"
+    },
+    {
+      "hash": "5051a26089d43d345e609b845cdea704e6a3985984a65f80ed9d5632a0468c08",
+      "side": "right"
+    },
+    {
+      "hash": "bd6b288ee72f5c212403ddbed2268715f06d7dcf57f287ef98b743bba6cebb2a",
+      "side": "right"
+    },
+    {
+      "hash": "d9aa3a817b210be86f37e9651c667fd7fec231cadfe3211239edeb08f840298a",
+      "side": "left"
+    }
+  ],
+  "live_subsumer": "pr101_comprehensive_audit",
+  "node_id": "pr101a_companion_proof_verification",
+  "original_report_path": "execution/reports/pr101a-companion-proof-verification-report.json",
+  "pre_compaction_commit": "8e22abbcccd4f595f27a7b00f8b830a4762a1c60",
+  "pre_merkle_root": "ffc127da01292096beb825c61d1d4d57ed131a68413c22085261ac07de50edb5",
+  "report_sha256": "b3b658cef10da6109187495b5d5960b005f4255c9bd7640ed8b0f7bf689bf803",
+  "schema_version": 1,
+  "transitive_chain": []
+}

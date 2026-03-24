@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -14,6 +16,7 @@ import run_emitted_hardening_regressions
 import run_pr102_rule5_boundary_closure
 import run_pr104_gnatprove_evidence_parser_hardening
 import run_pr10_emitted_prove
+from _lib import proof_report
 from _lib.proof_report import (
     command_profile,
     count_only_summary,
@@ -307,9 +310,31 @@ class ProofReportHelperTests(unittest.TestCase):
             "emitted_hardening_regressions": {"report": {"report_sha256": "4" * 64}},
             "pr101a_companion_proof_verification": {"report": {"report_sha256": "5" * 64}},
         }
-        with self.assertRaises(RuntimeError) as exc:
-            validate_pr101_semantic_floor(payload, pipeline_context=pipeline_context)
-        self.assertIn("PR101 pipeline_context missing pr101b_template_proof_verification", str(exc.exception))
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archived_path = Path(temp_dir) / "pr101b.json"
+            archived_path.write_text(
+                json.dumps(
+                    {
+                        "deterministic": True,
+                        "report_sha256": "6" * 64,
+                        "repeat_sha256": "6" * 64,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with mock.patch.dict(
+                proof_report.RETIRED_ARCHIVE_REPORT_PATHS,
+                {"pr101b_template_proof_verification": archived_path},
+                clear=False,
+            ):
+                validate_pr101_semantic_floor(payload, pipeline_context=pipeline_context)
+                payload["semantic_floor"]["child_report_hashes"]["pr101b_template_proof_verification"] = "0" * 64
+                with self.assertRaises(RuntimeError) as exc:
+                    validate_pr101_semantic_floor(payload, pipeline_context=pipeline_context)
+        self.assertIn("pr101b_template_proof_verification hash mismatch", str(exc.exception))
 
     def test_validate_pr101_child_semantic_floor_checks_anchor_hashes(self) -> None:
         payload = {

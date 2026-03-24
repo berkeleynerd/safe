@@ -8,12 +8,13 @@ import os
 import sys
 from pathlib import Path
 
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS
 from _lib.harness_common import display_path, ensure_sdkroot, finalize_deterministic_report, write_report
 from _lib.pr09_emit import REPO_ROOT
 from _lib.pr101_verification import build_verification_report, run_templates_verify
 
 
-DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr101b-template-proof-verification-report.json"
+DEFAULT_REPORT = RETIRED_ARCHIVE_REPORT_PATHS["pr101b_template_proof_verification"]
 
 
 def generate_report(*, env: dict[str, str]) -> dict[str, object]:

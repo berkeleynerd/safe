@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import Any
 
+from .attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS
 from .harness_common import require
 
 
@@ -307,7 +309,7 @@ def validate_pr101_semantic_floor(payload: dict[str, Any], *, pipeline_context: 
     require(isinstance(baseline_gate_hashes, dict), "PR101 semantic_floor.baseline_gate_hashes missing")
     for node_id in PR101_BASELINE_GATE_IDS:
         require(node_id in baseline_gate_hashes, f"PR101 semantic_floor missing {node_id}")
-        expected = _pipeline_report_sha256(pipeline_context, node_id=node_id)
+        expected = _reference_report_sha256(pipeline_context, node_id=node_id)
         require(
             baseline_gate_hashes[node_id] == expected,
             f"PR101 semantic_floor {node_id} hash mismatch",
@@ -316,7 +318,7 @@ def validate_pr101_semantic_floor(payload: dict[str, Any], *, pipeline_context: 
     require(isinstance(child_report_hashes, dict), "PR101 semantic_floor.child_report_hashes missing")
     for node_id in PR101_CHILD_REPORT_IDS:
         require(node_id in child_report_hashes, f"PR101 semantic_floor missing {node_id}")
-        expected = _pipeline_report_sha256(pipeline_context, node_id=node_id)
+        expected = _reference_report_sha256(pipeline_context, node_id=node_id)
         require(
             child_report_hashes[node_id] == expected,
             f"PR101 semantic_floor {node_id} hash mismatch",
@@ -353,3 +355,26 @@ def _pipeline_report_sha256(pipeline_context: dict[str, Any], *, node_id: str) -
         f"PR101 pipeline_context {node_id} missing report_sha256",
     )
     return report_sha256
+
+
+def _archived_report_sha256(node_id: str) -> str:
+    require(node_id in RETIRED_ARCHIVE_REPORT_PATHS, f"PR101 archive mapping missing {node_id}")
+    payload = json.loads(RETIRED_ARCHIVE_REPORT_PATHS[node_id].read_text(encoding="utf-8"))
+    require(isinstance(payload, dict), f"{node_id}: archived report root must be an object")
+    report_sha256 = payload.get("report_sha256")
+    repeat_sha256 = payload.get("repeat_sha256")
+    require(
+        isinstance(report_sha256, str) and SHA256_PATTERN.fullmatch(report_sha256) is not None,
+        f"{node_id}: archived report missing report_sha256",
+    )
+    require(
+        report_sha256 == repeat_sha256,
+        f"{node_id}: archived report hashes must match",
+    )
+    return report_sha256
+
+
+def _reference_report_sha256(pipeline_context: dict[str, Any], *, node_id: str) -> str:
+    if node_id in pipeline_context:
+        return _pipeline_report_sha256(pipeline_context, node_id=node_id)
+    return _archived_report_sha256(node_id)

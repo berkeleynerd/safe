@@ -11,7 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _lib.gate_manifest import DeterminismClass, NODES
+from _lib.attestation_compression import RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_ARCHIVE_REPORT_RELS
 from _lib.harness_common import (
     display_path,
     ensure_sdkroot,
@@ -29,7 +29,7 @@ from _lib.harness_common import (
 from _lib.pr10_emit import REPO_ROOT
 
 
-DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr10-emitted-baseline-report.json"
+DEFAULT_REPORT = RETIRED_ARCHIVE_REPORT_PATHS["pr10_emitted_baseline"]
 TRACKER_PATH = REPO_ROOT / "execution" / "tracker.json"
 DASHBOARD_PATH = REPO_ROOT / "execution" / "dashboard.md"
 FRONTEND_BASELINE_PATH = REPO_ROOT / "docs" / "frontend_architecture_baseline.md"
@@ -43,21 +43,17 @@ SLICE_SCRIPTS = [
     REPO_ROOT / "scripts" / "run_pr10_emitted_prove.py",
 ]
 EXPECTED_EVIDENCE = [
-    "execution/reports/pr10-contract-baseline-report.json",
-    "execution/reports/pr10-emitted-flow-report.json",
-    "execution/reports/pr10-emitted-prove-report.json",
-    "execution/reports/pr10-emitted-baseline-report.json",
+    RETIRED_ARCHIVE_REPORT_RELS["pr10_contract_baseline"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_flow"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_prove"],
+    RETIRED_ARCHIVE_REPORT_RELS["pr10_emitted_baseline"],
 ]
 SLICE_PIPELINE_IDS = {
     "run_pr10_contract_baseline.py": "pr10_contract_baseline",
     "run_pr10_emitted_flow.py": "pr10_emitted_flow",
     "run_pr10_emitted_prove.py": "pr10_emitted_prove",
 }
-SLICE_NODES = {
-    node.id: node
-    for node in NODES
-    if node.id in set(SLICE_PIPELINE_IDS.values())
-}
+CI_AUTHORITATIVE_SLICE_IDS = frozenset({"pr10_emitted_flow", "pr10_emitted_prove"})
 EVIDENCE_POLICY = load_evidence_policy()
 
 
@@ -105,10 +101,8 @@ def load_reused_slice_report(
     generated_root: Path | None,
 ) -> dict[str, object]:
     node_id = SLICE_PIPELINE_IDS[script.name]
-    node = SLICE_NODES[node_id]
-    require(node.report_path is not None, f"{node_id}: report path required")
     report_path = resolve_generated_path(
-        node.report_path,
+        RETIRED_ARCHIVE_REPORT_PATHS[node_id],
         generated_root=generated_root,
         policy=EVIDENCE_POLICY,
         repo_root=REPO_ROOT,
@@ -160,8 +154,7 @@ def build_slice_reports_standalone(
         results: list[dict[str, object]] = []
         for script in SLICE_SCRIPTS:
             node_id = SLICE_PIPELINE_IDS[script.name]
-            node = SLICE_NODES[node_id]
-            if authority == "local" and node.determinism_class is DeterminismClass.CI_AUTHORITATIVE:
+            if authority == "local" and node_id in CI_AUTHORITATIVE_SLICE_IDS:
                 results.append(load_reused_slice_report(script=script, generated_root=generated_root))
                 continue
             report_path = temp_root / f"{script.stem}.json"

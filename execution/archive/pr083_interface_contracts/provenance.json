@@ -1,0 +1,36 @@
+{
+  "archived_report_path": "execution/archive/pr083_interface_contracts/report.json",
+  "inclusion_proof": [
+    {
+      "hash": "04d5f905c90938aba2198d1a0068cfb512161408d5c0d051ce832805df16b9a9",
+      "side": "right"
+    },
+    {
+      "hash": "dcc0cd7a427c4b869fc45b7f8f119a4515d21e718cebf93120d87e769a5de0c1",
+      "side": "right"
+    },
+    {
+      "hash": "bfa5986c58a14c7fac50c06c5866f2e8d81124015f3d18803f9905557891bbd5",
+      "side": "left"
+    },
+    {
+      "hash": "468545b07b3126e8968ca53406b5f66f1c47227348596bbbcd38282f12e008bd",
+      "side": "right"
+    },
+    {
+      "hash": "9b3148fb3a5ee289816d80543baedd809624c9cbe0ecce06b26554a68ca82573",
+      "side": "right"
+    }
+  ],
+  "live_subsumer": "pr101_comprehensive_audit",
+  "node_id": "pr083_interface_contracts",
+  "original_report_path": "execution/reports/pr083-interface-contracts-report.json",
+  "pre_compaction_commit": "8e22abbcccd4f595f27a7b00f8b830a4762a1c60",
+  "pre_merkle_root": "ffc127da01292096beb825c61d1d4d57ed131a68413c22085261ac07de50edb5",
+  "report_sha256": "9e2519a4bbcf93b58ecd4ba149537427a3aadad2fb4fe99fb03428a79048eb19",
+  "schema_version": 1,
+  "transitive_chain": [
+    "pr08_frontend_baseline",
+    "pr101_comprehensive_audit"
+  ]
+}

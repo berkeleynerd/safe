@@ -218,6 +218,7 @@
       "scripts/run_pr114_signature_control_flow_syntax.py",
       "scripts/run_pr115_statement_ergonomics.py",
       "scripts/run_pr116_meaningful_whitespace.py",
+      "scripts/compress_attestation_chain.py",
       "scripts/run_gate_pipeline.py",
       "scripts/run_local_pre_push.py",
       "scripts/validate_execution_state.py",
@@ -321,6 +322,7 @@
       "scripts/run_pr083a_public_constants.py",
       "scripts/_lib/pr09_emit.py",
       "scripts/_lib/pr101_verification.py",
+      "scripts/compress_attestation_chain.py",
       "scripts/run_pr09_ada_emission_baseline.py",
       "scripts/run_pr101_comprehensive_audit.py",
       "scripts/run_local_pre_push.py"
