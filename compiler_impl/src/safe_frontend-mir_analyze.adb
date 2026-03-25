@@ -862,13 +862,17 @@ package body Safe_Frontend.Mir_Analyze is
    begin
       if Name = "" then
          return Type_Env.Element ("integer");
-      elsif Type_Env.Contains (Lower_Name) then
-         return Type_Env.Element (Lower_Name);
+      elsif Type_Env.Contains (Name) then
+         return Type_Env.Element (Name);
       elsif Lower_Name = "integer"
         or else Lower_Name = "natural"
         or else Lower_Name = "boolean"
+        or else Lower_Name = "character"
+        or else Lower_Name = "string"
+        or else Lower_Name = "result"
         or else Lower_Name = "float"
         or else Lower_Name = "long_float"
+        or else Lower_Name = "duration"
       then
          return Type_Env.Element (Lower_Name);
       elsif Lower_Name'Length >= 7
@@ -1598,21 +1602,26 @@ package body Safe_Frontend.Mir_Analyze is
             if UString_Value (Expr.Operator) = "-" then
                return -Constant_Value (Expr.Inner, Current, Var_Types, Type_Env);
             end if;
-         when GM.Expr_Conversion =>
-            return Constant_Value (Expr.Inner, Current, Var_Types, Type_Env);
+        when GM.Expr_Conversion =>
+           return Constant_Value (Expr.Inner, Current, Var_Types, Type_Env);
         when GM.Expr_Select =>
-            if FT.Lowercase (UString_Value (Expr.Selector)) = "first"
-              or else FT.Lowercase (UString_Value (Expr.Selector)) = "last"
-            then
-               Prefix := FT.To_UString (Flatten_Name (Expr.Prefix));
-               Type_Info := Resolve_Type (UString_Value (Prefix), Var_Types, Type_Env);
-               if Type_Info.Has_Low and then Type_Info.Has_High then
-                  if FT.Lowercase (UString_Value (Expr.Selector)) = "first" then
-                     return Wide_Integer (Type_Info.Low);
+            declare
+               Selector_Lower : constant String :=
+                 FT.Lowercase (UString_Value (Expr.Selector));
+            begin
+               if Selector_Lower = "first"
+                 or else Selector_Lower = "last"
+               then
+                  Prefix := FT.To_UString (Flatten_Name (Expr.Prefix));
+                  Type_Info := Resolve_Type (UString_Value (Prefix), Var_Types, Type_Env);
+                  if Type_Info.Has_Low and then Type_Info.Has_High then
+                     if Selector_Lower = "first" then
+                        return Wide_Integer (Type_Info.Low);
+                     end if;
+                     return Wide_Integer (Type_Info.High);
                   end if;
-                  return Wide_Integer (Type_Info.High);
                end if;
-            end if;
+            end;
          when others =>
             null;
       end case;
