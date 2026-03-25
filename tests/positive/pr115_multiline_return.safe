@@ -1,11 +1,11 @@
-package pr115_multiline_return
+package PR115_Multiline_Return
 
-   type counter is range 0 to 10;
+   type Counter is range 0 to 10;
 
-   function identity (input : counter) returns counter
+   function Identity (Input : Counter) returns Counter
 
       return
-         input;
+         Input;
 
 
 

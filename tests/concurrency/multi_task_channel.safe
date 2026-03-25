@@ -8,59 +8,59 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
 -- Expected: ACCEPT
 
-package multi_task_channel
+package Multi_Task_Channel
 
-   type event_code is range 0 to 10_000;
+   type Event_Code is range 0 to 10_000;
 
-   channel event_ch : event_code capacity 8;
+   channel Event_Ch : Event_Code capacity 8;
 
    --  Producer_A: sends low-range event codes.
-   task producer_a
-      seq : event_code = 0;
+   task Producer_A
+      Seq : Event_Code = 0;
 
       loop
-         send event_ch, seq;
-         if seq < 4_999
-            seq = seq + 1;
+         send Event_Ch, Seq;
+         if Seq < 4_999
+            Seq = Seq + 1;
          else
-            seq = 0;
+            Seq = 0;
 
 
 
 
    --  Producer_B: sends high-range event codes.
-   task producer_b
-      seq : event_code = 5_000;
+   task Producer_B
+      Seq : Event_Code = 5_000;
 
       loop
-         send event_ch, seq;
-         if seq < 10_000
-            seq = seq + 1;
+         send Event_Ch, Seq;
+         if Seq < 10_000
+            Seq = Seq + 1;
          else
-            seq = 5_000;
+            Seq = 5_000;
 
 
 
 
    --  Consumer: receives events from both producers.
    --  Channel atomicity guarantees each code is received intact.
-   task consumer
-      e : event_code = 0;
-      count_a : natural = 0;
-      count_b : natural = 0;
+   task Consumer
+      E : Event_Code = 0;
+      Count_A : Natural = 0;
+      Count_B : Natural = 0;
 
       loop
-         receive event_ch, e;
-         if e < 5_000
-            count_a = count_a + 1;
+         receive Event_Ch, E;
+         if E < 5_000
+            Count_A = Count_A + 1;
          else
-            count_b = count_b + 1;
+            Count_B = Count_B + 1;
 
-         if count_a > 1_000
-            count_a = 0;
+         if Count_A > 1_000
+            Count_A = 0;
 
-         if count_b > 1_000
-            count_b = 0;
+         if Count_B > 1_000
+            Count_B = 0;
 
 
 

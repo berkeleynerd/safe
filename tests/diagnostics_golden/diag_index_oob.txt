@@ -5,12 +5,12 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule2_oob.safe:15:14: error: index expression not provably within array bounds
   |
-  | 15 |       return arr (slot (idx));  -- ERROR: Idx may not be in 0..7
+  | 15 |       return Arr (Slot (Idx));  -- ERROR: Idx may not be in 0..7
   |    |              ^~~~~~~~~~~~~~~~
   |
-  note: array 'arr' has index range slot (0 .. 7).
-  note: index expression 'slot (idx)' has type integer, with range
-        [integer'First .. integer'Last].
+  note: array 'Arr' has index range Slot (0 .. 7).
+  note: index expression 'Slot (Idx)' has type Integer, with range
+        [Integer'First .. Integer'Last].
   note: static analysis cannot establish that the index is within
         [0 .. 7] on all execution paths.
   note: rule: D27 Rule 2 (Provable Index Safety)
@@ -22,8 +22,7 @@ neg_rule2_oob.safe:15:14: error: index expression not provably within array boun
         the implementation shall reject it with a diagnostic identifying
         the indexed_component and the unresolvable bound relationship."
   suggestion: add a bounds check before indexing:
-        if idx >= 0 and then idx <= 7 then
-           return arr (slot (idx));
+        if Idx >= 0 and then Idx <= 7 then
+           return Arr (Slot (Idx));
         end if;
-
 ------------------------------------------------------------------------

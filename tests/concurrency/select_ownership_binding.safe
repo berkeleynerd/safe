@@ -3,32 +3,32 @@
 --   The channel declaration is rejected before select-arm binding semantics apply.
 -- Expected: REJECT source_frontend_error
 
-package select_ownership_binding
+package Select_Ownership_Binding
 
-   type payload is record
-      value : integer;
+   type Payload is record
+      Value : Integer;
 
 
-   type payload_ptr is access payload;
+   type Payload_Ptr is access Payload;
 
-   channel data_ch : payload_ptr capacity 1;
+   channel Data_Ch : Payload_Ptr capacity 1;
 
-   task sender
-      counter : integer = 0;
+   task Sender
+      Counter : Integer = 0;
 
       loop
-         Item : payload_ptr = new ((value = counter) as payload);
-         send data_ch, Item;
-         counter = counter + 1;
+         Item : Payload_Ptr = new ((Value = Counter) as Payload);
+         send Data_Ch, Item;
+         Counter = Counter + 1;
 
 
 
-   task receiver
+   task Receiver
 
       loop
          select
-            when Item : payload_ptr from data_ch
-               Item.value = Item.value + 1;
+            when Item : Payload_Ptr from Data_Ch
+               Item.all.Value = Item.all.Value + 1;
          or
             delay 1.0
 

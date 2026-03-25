@@ -1,9 +1,9 @@
-package neg_pr113_variant_range_choice
-   type packet (count : integer = 0) is
+package Neg_PR113_Variant_Range_Choice
+   type Packet (Count : Integer = 0) is
       record
-         case count
+         case Count
             when 0 to 3
-               value : integer;
+               Value : Integer;
 
 
 

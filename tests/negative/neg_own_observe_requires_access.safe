@@ -3,16 +3,16 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4.p101a:ef2d8fd1
 -- Expected: REJECT observe_requires_access
 
-package observe_requires_access_test
+package Observe_Requires_Access_Test
 
-   type config is record
-      rate : natural;
+   type Config is record
+      Rate : Natural;
 
 
-   type config_ptr is access config;
+   type Config_Ptr is access Config;
 
-   function bad_observe
-      Owner    : config_ptr = new ((rate = 100) as config);
-      Observer : access constant config = Owner;  -- ERROR: must use Owner.Access
+   function Bad_Observe
+      Owner    : Config_Ptr = new ((Rate = 100) as Config);
+      Observer : access constant Config = Owner;  -- ERROR: must use Owner.Access
 
 

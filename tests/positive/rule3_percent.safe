@@ -5,20 +5,20 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
 -- Expected: ACCEPT
 
-package safe_percent
+package Safe_Percent
 
-   type percentage is range 0 to 100;
-   type count is range 0 to 1_000_000;
+   type Percentage is range 0 to 100;
+   type Count is range 0 to 1_000_000;
 
    --  Compute_Percentage: calculates (Part * 100) / Total.
    --  Guards against zero Total before dividing.
-   function compute_percentage (part, total : count) returns percentage
+   function Compute_Percentage (Part, Total : Count) returns Percentage
 
-      if total > 0 and then part <= total
+      if Total > 0 and then Part <= Total
          --  Total is provably nonzero by the guard.
          --  Part * 100 <= Total * 100 <= 100_000_000, within 64-bit.
          --  Result: (Part * 100) / Total is in 0..100.
-         return percentage ((natural (part) * 100) / natural (total));
+         return Percentage ((Natural (Part) * 100) / Natural (Total));
       else
          return 0;
 

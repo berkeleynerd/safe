@@ -1,15 +1,15 @@
-package provider_transitive_global
+package Provider_Transitive_Global
 
-   shared : integer = 0;
+   Shared : Integer = 0;
 
-   function touch_internal
+   function Touch_Internal
 
-      shared = shared + 1;
+      Shared = Shared + 1;
 
 
-   public function touch
+   public function Touch
 
-      touch_internal;
+      Touch_Internal;
 
 
 

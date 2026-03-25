@@ -2,9 +2,9 @@
 -- Description: String-returning functions reject non-String return expressions.
 -- Expected: REJECT type_check_failure
 
-package neg_string_return_type
+package Neg_String_Return_Type
 
-   function broken returns string
+   function Broken returns String
 
       return 1;
 

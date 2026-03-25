@@ -5,48 +5,48 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package safe_linked_list
+package Safe_Linked_List
 
-   type node;
-   type node_ptr is access node;
+   type Node;
+   type Node_Ptr is access Node;
 
-   type node is record
-      value : integer;
-      Next  : node_ptr;
+   type Node is record
+      Value : Integer;
+      Next  : Node_Ptr;
 
 
    --  Last_Value: traverses to the tail and returns its value.
    --  The traversal uses a local observer derived from Head.Access.
-   function last_value (Head : node_ptr) returns integer
+   function Last_Value (Head : Node_Ptr) returns Integer
 
       if Head == null
          return 0;
 
-      var Current : access constant node = Head.access;
+      var Current : access constant Node = Head.Access;
       while Current != null
-         if Current.Next == null
-            return Current.value;
+         if Current.all.Next == null
+            return Current.all.Value;
          else
-            Current = Current.Next.access;
+            Current = Current.all.Next.Access;
 
       return 0;
 
 
    --  Has_Tail: proves nested null guards before traversing further.
-   function has_tail (Head : node_ptr) returns boolean
+   function Has_Tail (Head : Node_Ptr) returns Boolean
 
       if Head == null
-         return false;
+         return False;
 
-      var Current : access constant node = Head.access;
+      var Current : access constant Node = Head.Access;
       while Current != null
-         if Current.Next == null
-            return false;
-         else if Current.Next.Next == null
-            return true;
+         if Current.all.Next == null
+            return False;
+         else if Current.all.Next.all.Next == null
+            return True;
          else
-            Current = Current.Next.access;
+            Current = Current.all.Next.Access;
 
-      return false;
+      return False;
 
 

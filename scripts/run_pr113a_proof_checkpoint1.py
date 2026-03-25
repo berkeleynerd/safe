@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 import os
 import sys
 from pathlib import Path
@@ -44,70 +43,13 @@ from _lib.pr113a_sequential import (
     sequential_proof_corpus,
 )
 from migrate_pr116_whitespace import rewrite_safe_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_reference_surface_source
 
 
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr113a-proof-checkpoint1-report.json"
 
-PRESERVE_CASE_TOKENS = {
-    "Ada",
-    "Depends",
-    "Global",
-    "Null_Unbounded_String",
-    "Result",
-    "SPARK_Mode",
-    "Safe_Runtime",
-    "True",
-    "False",
-    "Unbounded",
-}
 
-
-def canonical_casefold_map(source_text: str) -> dict[str, str]:
-    casefold_map: dict[str, str] = {}
-    for line in source_text.splitlines():
-        code = line.split("--", 1)[0]
-        for token in re.findall(r"\b[A-Za-z_]\w*\b", code):
-            casefold_map[token.lower()] = token
-    return casefold_map
-
-
-def canonicalize_fragment_identifiers(fragment: str, *, casefold_map: dict[str, str]) -> str:
-    def rewrite(match: re.Match[str]) -> str:
-        token = match.group(0)
-        canonical = casefold_map.get(token.lower())
-        if canonical is not None:
-            return canonical
-        if token.startswith("Safe_") or token in PRESERVE_CASE_TOKENS or not token[0].isupper():
-            return token
-        return token
-
-    return re.sub(r"\b[A-Za-z_]\w*\b", rewrite, fragment)
-
-
-def normalize_expected_source_fragment(fragment: str, *, source_text: str) -> str:
-    casefold_map = canonical_casefold_map(source_text)
-    return normalize_source_text(
-        canonicalize_fragment_identifiers(
-            rewrite_reference_surface_source(rewrite_safe_source(fragment), mode="combined"),
-            casefold_map=casefold_map,
-        )
-    )
-
-
-def normalize_expected_emitted_fragment(fragment: str, *, source_text: str) -> str:
-    casefold_map = canonical_casefold_map(source_text)
-
-    def rewrite(match: re.Match[str]) -> str:
-        token = match.group(0)
-        if token.startswith("Safe_") or re.fullmatch(r"F\d+", token) or token in PRESERVE_CASE_TOKENS or token == "Ok":
-            return token
-        canonical = casefold_map.get(token.lower())
-        if canonical is not None:
-            return canonical
-        return token
-
-    return re.sub(r"\b[A-Za-z_]\w*\b", rewrite, fragment)
+def normalize_expected_source_fragment(fragment: str) -> str:
+    return normalize_source_text(rewrite_safe_source(fragment))
 
 
 def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list[str]:
@@ -155,38 +97,16 @@ def structural_assertions_for_fixture(
     body_text = body_path.read_text(encoding="utf-8")
     spec_text = spec_path.read_text(encoding="utf-8")
     source_path = REPO_ROOT / item["fixture"]
-    source_text = source_path.read_text(encoding="utf-8")
     return {
         "coverage_note": item["coverage_note"],
         "source_fragments": list(
             assert_normalized_source_fragments(
                 source_path,
-                [
-                    normalize_expected_source_fragment(fragment, source_text=source_text)
-                    for fragment in normalized_source_fragments(item)
-                ],
+                [normalize_expected_source_fragment(fragment) for fragment in normalized_source_fragments(item)],
             )
         ),
-        "spec_fragments": list(
-            assert_text_fragments(
-                text=spec_text,
-                fragments=[
-                    normalize_expected_emitted_fragment(fragment, source_text=source_text)
-                    for fragment in list(item.get("spec_fragments", []))
-                ],
-                label=spec_path.name,
-            )
-        ),
-        "body_fragments": list(
-            assert_text_fragments(
-                text=body_text,
-                fragments=[
-                    normalize_expected_emitted_fragment(fragment, source_text=source_text)
-                    for fragment in list(item.get("body_fragments", []))
-                ],
-                label=body_path.name,
-            )
-        ),
+        "spec_fragments": list(assert_text_fragments(text=spec_text, fragments=list(item.get("spec_fragments", [])), label=spec_path.name)),
+        "body_fragments": list(assert_text_fragments(text=body_text, fragments=list(item.get("body_fragments", [])), label=body_path.name)),
         "spec_regexes": list(assert_regexes(text=spec_text, patterns=list(item.get("spec_regexes", [])), label=spec_path.name)),
         "body_regexes": list(assert_regexes(text=body_text, patterns=list(item.get("body_regexes", [])), label=body_path.name)),
         "body_order": list(assert_order(text=body_text, fragments=list(item.get("body_order", [])), label=body_path.name)),

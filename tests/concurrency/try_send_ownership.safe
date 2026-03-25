@@ -4,44 +4,44 @@
 --   are analyzed.
 -- Expected: REJECT source_frontend_error
 
-package try_send_ownership
+package Try_Send_Ownership
 
-   type payload is record
-      id    : natural;
-      value : integer;
+   type Payload is record
+      Id    : Natural;
+      Value : Integer;
 
 
-   type payload_ptr is access payload;
+   type Payload_Ptr is access Payload;
 
-   channel data_ch : payload_ptr capacity 2;
+   channel Data_Ch : Payload_Ptr capacity 2;
 
-   task sender
-      P       : payload_ptr;
-      success : boolean;
-      counter : natural = 0;
+   task Sender
+      P       : Payload_Ptr;
+      Success : Boolean;
+      Counter : Natural = 0;
 
       loop
-         P = new ((id = counter, value = counter * 10) as payload);
-         try_send data_ch, P, success;
-         if success
+         P = new ((Id = Counter, Value = Counter * 10) as Payload);
+         try_send Data_Ch, P, Success;
+         if Success
          else
-            P.value = P.value + 1;
-            send data_ch, P;
+            P.all.Value = P.all.Value + 1;
+            send Data_Ch, P;
 
-         counter = counter + 1;
-         if counter > 1_000_000
-            counter = 0;
-
-
+         Counter = Counter + 1;
+         if Counter > 1_000_000
+            Counter = 0;
 
 
-   task receiver
+
+
+   task Receiver
 
       loop
-         Item : payload_ptr;
-         receive data_ch, Item;
+         Item : Payload_Ptr;
+         receive Data_Ch, Item;
          if Item != null
-            Item.value = 0;
+            Item.all.Value = 0;
 
 
 

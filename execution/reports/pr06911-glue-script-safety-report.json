@@ -54,7 +54,6 @@
       "scripts/run_pr115_statement_ergonomics.py",
       "scripts/run_pr116_meaningful_whitespace.py",
       "scripts/run_pr1162_legacy_ada_syntax_removal.py",
-      "scripts/run_pr117_reference_surface_experiments.py",
       "scripts/compress_attestation_chain.py",
       "scripts/run_gate_pipeline.py",
       "scripts/run_local_pre_push.py",
@@ -73,7 +72,7 @@
     "policy_sections_used": [
       "glue_safety"
     ],
-    "policy_sha256": "1b01af2b51c2ded7686fd09f6a2af4bd3f2b6a1ee1877cbe0d9232835ceb9459",
+    "policy_sha256": "8a5fec84e9c18b6882c30e25f9f75e285f2ef59b224c298de409bc5d463276c1",
     "report_helper_violations": [],
     "report_scripts": [
       "scripts/run_frontend_smoke.py",
@@ -121,8 +120,7 @@
       "scripts/run_pr114_signature_control_flow_syntax.py",
       "scripts/run_pr115_statement_ergonomics.py",
       "scripts/run_pr116_meaningful_whitespace.py",
-      "scripts/run_pr1162_legacy_ada_syntax_removal.py",
-      "scripts/run_pr117_reference_surface_experiments.py"
+      "scripts/run_pr1162_legacy_ada_syntax_removal.py"
     ],
     "safe_source_readers": [
       {
@@ -184,10 +182,6 @@
       {
         "category": "fixture source-fragment checks, migration-example checks, and emitted structural assertions for the fixed PR11.6.2 legacy-syntax-removal corpus",
         "script": "scripts/run_pr1162_legacy_ada_syntax_removal.py"
-      },
-      {
-        "category": "fixed ownership/reference corpus checks, experiment-boundary diagnostics, migration-example checks, and emitted Ada parity comparisons for the PR11.7 reference-surface decision report",
-        "script": "scripts/run_pr117_reference_surface_experiments.py"
       }
     ],
     "shell_assumption_violations": [],
@@ -207,7 +201,7 @@
   "policy_sections_used": [
     "glue_safety"
   ],
-  "policy_sha256": "1b01af2b51c2ded7686fd09f6a2af4bd3f2b6a1ee1877cbe0d9232835ceb9459",
+  "policy_sha256": "8a5fec84e9c18b6882c30e25f9f75e285f2ef59b224c298de409bc5d463276c1",
   "referenced_deterministic_reports": {
     "build_reproducibility": {
       "committed_report_path": "execution/reports/pr0699-build-reproducibility-report.json",
@@ -236,8 +230,8 @@
       "script": "scripts/run_frontend_smoke.py"
     }
   },
-  "repeat_sha256": "bd10e4eba1fd29553fa17c0553433bfa1b7214543a0d30ae44e6a1640b173164",
-  "report_sha256": "bd10e4eba1fd29553fa17c0553433bfa1b7214543a0d30ae44e6a1640b173164",
+  "repeat_sha256": "77e3489195813f413cad5f1bd1f781a9c868d6b38e0e5d5ba8c95b9553e791e3",
+  "report_sha256": "77e3489195813f413cad5f1bd1f781a9c868d6b38e0e5d5ba8c95b9553e791e3",
   "reruns": {
     "gate_quality": {
       "committed_report_path": "execution/reports/pr0697-gate-quality-report.json",

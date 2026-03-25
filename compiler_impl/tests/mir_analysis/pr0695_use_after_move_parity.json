@@ -1,20 +1,20 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_own_use_after_move.safe",
-  "package_name": "use_after_move_test",
+  "package_name": "Use_After_Move_Test",
   "types": [
     {
-      "name": "item",
+      "name": "Item",
       "kind": "record",
       "fields": {
-        "Id": "natural",
-        "Count": "natural"
+        "Id": "Natural",
+        "Count": "Natural"
       }
     },
     {
-      "name": "item_ptr",
+      "name": "Item_Ptr",
       "kind": "access",
-      "target": "item",
+      "target": "Item",
       "not_null": false,
       "anonymous": false,
       "is_constant": false,
@@ -43,9 +43,9 @@
             "end_col": 51
           },
           "type": {
-            "name": "item_ptr",
+            "name": "Item_Ptr",
             "kind": "access",
-            "target": "item",
+            "target": "Item",
             "not_null": false,
             "anonymous": false,
             "is_constant": false,
@@ -67,9 +67,9 @@
             "end_col": 24
           },
           "type": {
-            "name": "item_ptr",
+            "name": "Item_Ptr",
             "kind": "access",
-            "target": "item",
+            "target": "Item",
             "not_null": false,
             "anonymous": false,
             "is_constant": false,
@@ -81,7 +81,7 @@
           "id": "v2",
           "kind": "local",
           "mode": "in",
-          "name": "v",
+          "name": "V",
           "ownership_role": "",
           "scope_id": "scope0",
           "span": {
@@ -91,7 +91,7 @@
             "end_col": 18
           },
           "type": {
-            "name": "natural",
+            "name": "Natural",
             "kind": "integer",
             "low": 0,
             "high": 9223372036854775807
@@ -137,7 +137,7 @@
               "locals": [
                 "Source",
                 "Target",
-                "v"
+                "V"
               ]
             },
             {
@@ -152,7 +152,7 @@
               "target": {
                 "tag": "ident",
                 "name": "Source",
-                "type": "item_ptr",
+                "type": "Item_Ptr",
                 "span": {
                   "start_line": 20,
                   "start_col": 7,
@@ -160,7 +160,7 @@
                   "end_col": 12
                 }
               },
-              "type": "item_ptr",
+              "type": "Item_Ptr",
               "value": {
                 "tag": "allocator",
                 "type": "access Item",
@@ -181,7 +181,7 @@
                   },
                   "subtype": {
                     "tag": "ident",
-                    "name": "item",
+                    "name": "Item",
                     "span": {
                       "start_line": 20,
                       "start_col": 30,
@@ -191,7 +191,7 @@
                   },
                   "expr": {
                     "tag": "aggregate",
-                    "type": "item",
+                    "type": "Item",
                     "span": {
                       "start_line": 20,
                       "start_col": 31,
@@ -200,7 +200,7 @@
                     },
                     "fields": [
                       {
-                        "field": "id",
+                        "field": "Id",
                         "span": {
                           "start_line": 20,
                           "start_col": 32,
@@ -211,7 +211,7 @@
                           "tag": "int",
                           "text": "1",
                           "value": 1,
-                          "type": "natural",
+                          "type": "Natural",
                           "span": {
                             "start_line": 20,
                             "start_col": 37,
@@ -221,7 +221,7 @@
                         }
                       },
                       {
-                        "field": "count",
+                        "field": "Count",
                         "span": {
                           "start_line": 20,
                           "start_col": 40,
@@ -232,7 +232,7 @@
                           "tag": "int",
                           "text": "10",
                           "value": 10,
-                          "type": "natural",
+                          "type": "Natural",
                           "span": {
                             "start_line": 20,
                             "start_col": 49,
@@ -259,7 +259,7 @@
               "target": {
                 "tag": "ident",
                 "name": "Target",
-                "type": "item_ptr",
+                "type": "Item_Ptr",
                 "span": {
                   "start_line": 21,
                   "start_col": 7,
@@ -267,10 +267,10 @@
                   "end_col": 12
                 }
               },
-              "type": "item_ptr",
+              "type": "Item_Ptr",
               "value": {
                 "tag": "null",
-                "type": "item_ptr",
+                "type": "Item_Ptr",
                 "span": {
                   "start_line": 21,
                   "start_col": 23,
@@ -292,7 +292,7 @@
               "target": {
                 "tag": "ident",
                 "name": "Target",
-                "type": "item_ptr",
+                "type": "Item_Ptr",
                 "span": {
                   "start_line": 23,
                   "start_col": 7,
@@ -300,11 +300,11 @@
                   "end_col": 12
                 }
               },
-              "type": "item_ptr",
+              "type": "Item_Ptr",
               "value": {
                 "tag": "ident",
                 "name": "Source",
-                "type": "item_ptr",
+                "type": "Item_Ptr",
                 "span": {
                   "start_line": 23,
                   "start_col": 16,
@@ -320,13 +320,13 @@
                 "start_line": 25,
                 "start_col": 7,
                 "end_line": 25,
-                "end_col": 22
+                "end_col": 28
               },
               "ownership_effect": "None",
               "target": {
                 "tag": "ident",
-                "name": "v",
-                "type": "natural",
+                "name": "V",
+                "type": "Natural",
                 "span": {
                   "start_line": 25,
                   "start_col": 7,
@@ -334,26 +334,37 @@
                   "end_col": 7
                 }
               },
-              "type": "natural",
+              "type": "Natural",
               "value": {
                 "tag": "select",
-                "selector": "count",
-                "type": "natural",
+                "selector": "Count",
+                "type": "Natural",
                 "span": {
                   "start_line": 25,
                   "start_col": 11,
                   "end_line": 25,
-                  "end_col": 22
+                  "end_col": 26
                 },
                 "prefix": {
-                  "tag": "ident",
-                  "name": "Source",
-                  "type": "item_ptr",
+                  "tag": "select",
+                  "selector": "all",
+                  "type": "Item",
                   "span": {
                     "start_line": 25,
                     "start_col": 11,
                     "end_line": 25,
-                    "end_col": 16
+                    "end_col": 20
+                  },
+                  "prefix": {
+                    "tag": "ident",
+                    "name": "Source",
+                    "type": "Item_Ptr",
+                    "span": {
+                      "start_line": 25,
+                      "start_col": 11,
+                      "end_line": 25,
+                      "end_col": 16
+                    }
                   }
                 }
               },

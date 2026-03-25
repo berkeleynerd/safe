@@ -1,10 +1,10 @@
 {
   "format": "mir-v2",
   "source_path": "compiler_impl/tests/mir_analysis/pr102_fp_unsupported_expression_parity.safe",
-  "package_name": "fp_unsupported_expression_parity",
+  "package_name": "FP_Unsupported_Expression_Parity",
   "types": [
     {
-      "name": "bounded_float",
+      "name": "Bounded_Float",
       "kind": "float",
       "digits_text": "6",
       "float_low_text": "-10.0",
@@ -13,11 +13,11 @@
   ],
   "graphs": [
     {
-      "name": "bad",
+      "name": "Bad",
       "kind": "function",
       "entry_bb": "bb0",
       "return_type": {
-        "name": "bounded_float",
+        "name": "Bounded_Float",
         "kind": "float",
         "digits_text": "6",
         "float_low_text": "-10.0",
@@ -58,17 +58,17 @@
             },
             "ownership_effect": "None",
             "value": {
-              "tag": "annotated",
+              "tag": "conversion",
               "span": {
                 "start_line": 1,
                 "start_col": 1,
                 "end_line": 1,
                 "end_col": 1
               },
-              "type": "bounded_float",
-              "subtype": {
+              "type": "Bounded_Float",
+              "target": {
                 "tag": "ident",
-                "name": "bounded_float",
+                "name": "Bounded_Float",
                 "span": {
                   "start_line": 1,
                   "start_col": 1,
@@ -84,7 +84,7 @@
                   "end_line": 1,
                   "end_col": 1
                 },
-                "type": "long_float",
+                "type": "Long_Float",
                 "fields": [
                   {
                     "field": "",
@@ -96,7 +96,7 @@
                         "end_line": 1,
                         "end_col": 1
                       },
-                      "type": "long_float",
+                      "type": "Long_Float",
                       "text": "1.0"
                     }
                   }

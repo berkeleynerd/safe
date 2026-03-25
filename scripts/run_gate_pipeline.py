@@ -7,7 +7,6 @@ import argparse
 import difflib
 import json
 import os
-import re
 import shutil
 import tempfile
 import time
@@ -19,11 +18,9 @@ from _lib.gate_manifest import (
     NODES,
     VALIDATE_EXECUTION_STATE_FINAL,
     VALIDATE_EXECUTION_STATE_PREFLIGHT,
-    BranchMode,
     DeterminismClass,
     Node,
     NodeKind,
-    branch_mode,
     resolve_branch,
 )
 from _lib.harness_common import (
@@ -133,20 +130,12 @@ def parse_args() -> argparse.Namespace:
         help="verify committed evidence against the canonical gate pipeline",
     )
     verify.add_argument("--authority", choices=("local", "ci"), default="local")
-    verify.add_argument("--branch", help="branch name to resolve; defaults to current branch")
 
     ratchet = subparsers.add_parser(
         "ratchet",
         help="advance ratchet-owned generated outputs from a clean generated-output baseline",
     )
     ratchet.add_argument("--authority", choices=("local", "ci"), default="local")
-    ratchet.add_argument("--branch", help="branch name to resolve; defaults to current branch")
-
-    promote = subparsers.add_parser(
-        "promote",
-        help="promote staged provisional-branch evidence into canonical execution/reports",
-    )
-    promote.add_argument("--branch", required=True, help="provisional branch name to promote")
 
     return parser.parse_args()
 
@@ -161,33 +150,6 @@ def current_branch(*, git: str, env: dict[str, str]) -> str:
     if not branch:
         raise RuntimeError("unable to determine current branch for gate pipeline")
     return branch
-
-
-def branch_from_env(env: dict[str, str]) -> str | None:
-    for name in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
-        value = env.get(name, "").strip()
-        if value:
-            return value
-    return None
-
-
-def effective_pipeline_branch(
-    *,
-    branch: str | None,
-    git: str,
-    env: dict[str, str],
-) -> str | None:
-    if branch is not None:
-        return branch
-    candidate = branch_from_env(env)
-    if candidate is None:
-        try:
-            candidate = current_branch(git=git, env=env)
-        except RuntimeError:
-            return None
-    if branch_mode(candidate) is BranchMode.PROVISIONAL:
-        return candidate
-    return None
 
 
 def tracked_diff_snapshot(
@@ -263,21 +225,7 @@ def generated_report_output_path(root: Path, report_path: Path) -> Path:
     return generated_output_path(root, relative)
 
 
-def branch_slug(branch: str) -> str:
-    return re.sub(r"[^A-Za-z0-9._-]+", "-", branch.replace("/", "-"))
-
-
-def provisional_reports_root(branch: str) -> Path:
-    return REPO_ROOT / "execution" / "staged" / branch_slug(branch) / "reports"
-
-
-def staged_report_path(reports_root: Path, report_path: Path) -> Path:
-    return reports_root / report_path.name
-
-
-def ratchet_owned_paths(*, branch: str | None = None) -> tuple[Path, ...]:
-    if branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL:
-        return (Path("execution") / "staged" / branch_slug(branch) / "reports",)
+def ratchet_owned_paths() -> tuple[Path, ...]:
     return (
         REPORTS_ROOT_REL,
         DASHBOARD_REL,
@@ -377,23 +325,14 @@ def load_seed_pipeline_context(*, checkpoint_root: Path, start_index: int) -> di
     return seeded
 
 
-def changed_report_nodes(
-    *,
-    generated_root: Path,
-    authority: str,
-    compare_reports_root: Path | None = None,
-) -> list[str]:
+def changed_report_nodes(*, generated_root: Path, authority: str) -> list[str]:
     changed: list[str] = []
     for node in NODES:
         if node.report_path is None:
             continue
         generated_path = generated_report_output_path(generated_root, node.report_path)
         require(generated_path.exists(), f"{node.id}: missing generated report {generated_path}")
-        expected_path = (
-            staged_report_path(compare_reports_root, node.report_path)
-            if compare_reports_root is not None
-            else node.report_path
-        )
+        expected_path = node.report_path
         if not expected_path.exists():
             changed.append(node.id)
             continue
@@ -412,11 +351,9 @@ def changed_report_nodes(
     return changed
 
 
-def dashboard_changed(*, generated_root: Path, destination_dashboard_path: Path | None = None) -> bool:
-    if destination_dashboard_path is None:
-        return False
+def dashboard_changed(*, generated_root: Path) -> bool:
     staged_dashboard = generated_output_path(generated_root, DASHBOARD_REL)
-    committed_dashboard = destination_dashboard_path
+    committed_dashboard = REPO_ROOT / DASHBOARD_REL
     require(staged_dashboard.exists(), f"missing staged dashboard {staged_dashboard}")
     require(committed_dashboard.exists(), f"missing committed dashboard {committed_dashboard}")
     return staged_dashboard.read_text(encoding="utf-8") != committed_dashboard.read_text(encoding="utf-8")
@@ -485,15 +422,8 @@ def report_compare_text(
     return report_text
 
 
-def expected_report_path(
-    node: Node,
-    *,
-    compare_root: Path | None,
-    compare_reports_root: Path | None = None,
-) -> Path:
+def expected_report_path(node: Node, *, compare_root: Path | None) -> Path:
     require(node.report_path is not None, f"{node.id}: report path required")
-    if compare_reports_root is not None:
-        return staged_report_path(compare_reports_root, node.report_path)
     if compare_root is None:
         return node.report_path
     return generated_report_output_path(compare_root, node.report_path)
@@ -526,7 +456,6 @@ def reuse_ci_authoritative_report(
     python: str,
     authority: str,
     compare_root: Path | None,
-    compare_reports_root: Path | None,
     write_generated_root: Path | None,
 ) -> tuple[dict[str, Any], dict[str, Any], Path]:
     require(authority == "local", f"{node.id}: CI-authoritative reuse is local-only")
@@ -537,11 +466,7 @@ def reuse_ci_authoritative_report(
     require(node.report_path is not None, f"{node.id}: report path required for CI-authoritative reuse")
     require(write_generated_root is not None, f"{node.id}: write root required for CI-authoritative reuse")
 
-    source_report_path = expected_report_path(
-        node,
-        compare_root=compare_root,
-        compare_reports_root=compare_reports_root,
-    )
+    source_report_path = expected_report_path(node, compare_root=compare_root)
     require(source_report_path.exists(), f"{node.id}: missing source report {source_report_path}")
     generated_report_path = generated_report_output_path(write_generated_root, node.report_path)
     generated_report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -607,7 +532,6 @@ def run_node(
     write_generated_root: Path | None,
     pipeline_context: dict[str, Any],
     preflight_generated_output_baseline_file: Path | None = None,
-    branch: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None, Path | None]:
     argv = [python, str(node.script), *node.argv]
     temp_root = write_generated_root
@@ -625,9 +549,6 @@ def run_node(
                 str(preflight_generated_output_baseline_file),
             ]
         )
-
-    if node.id in (VALIDATE_EXECUTION_STATE_PREFLIGHT, VALIDATE_EXECUTION_STATE_FINAL) and branch is not None:
-        argv.extend(["--branch", branch])
 
     if node.supports_pipeline_input:
         require(write_generated_root is not None, f"{node.id}: write root required for pipeline input")
@@ -673,15 +594,13 @@ def execute_pipeline(
     read_generated_root: Path | None,
     write_generated_root: Path | None,
     compare_root: Path | None,
-    compare_reports_root: Path | None = None,
-    compare_to_committed: bool = True,
+    compare_to_committed: bool,
     initial_snapshot: str,
     start_index: int = 0,
     seed_pipeline_context: dict[str, Any] | None = None,
     checkpoint_root: Path | None = None,
     preflight_generated_output_baseline_file: Path | None = None,
     nodes: tuple[Node, ...] | None = None,
-    branch: str | None = None,
 ) -> dict[str, Any]:
     active_nodes = NODES if nodes is None else nodes
     pipeline_context: dict[str, Any] = dict(seed_pipeline_context or {})
@@ -725,7 +644,6 @@ def execute_pipeline(
                 python=python,
                 authority=authority,
                 compare_root=compare_root,
-                compare_reports_root=compare_reports_root,
                 write_generated_root=write_generated_root,
             )
             require(payload is not None, f"{node.id}: missing reused report payload")
@@ -745,7 +663,6 @@ def execute_pipeline(
                 write_generated_root=write_generated_root,
                 pipeline_context=pipeline_context,
                 preflight_generated_output_baseline_file=preflight_generated_output_baseline_file,
-                branch=branch,
             )
         if node.report_path is not None:
             require(payload is not None and generated_report_path is not None, f"{node.id}: missing report payload")
@@ -753,11 +670,7 @@ def execute_pipeline(
                 expected_path = (
                     node.report_path
                     if compare_to_committed
-                    else expected_report_path(
-                        node,
-                        compare_root=compare_root,
-                        compare_reports_root=compare_reports_root,
-                    )
+                    else expected_report_path(node, compare_root=compare_root)
                 )
                 require(expected_path.exists(), f"{node.id}: missing expected report {expected_path}")
                 actual_report_text = generated_report_path.read_text(encoding="utf-8")
@@ -800,19 +713,11 @@ def verify_pipeline(
     branch: str | None = None,
 ) -> int:
     verify_started = time.monotonic()
-    branch = effective_pipeline_branch(branch=branch, git=git, env=env)
     if initial_snapshot is None:
         initial_snapshot = tracked_diff_snapshot(git=git, env=env)
     nodes = tuple(resolve_branch(branch)) if branch is not None else None
     if branch is not None:
         require(nodes, f"no pipeline plan is defined for branch {branch}")
-        if branch_mode(branch) is BranchMode.PROVISIONAL:
-            staged_root = provisional_reports_root(branch)
-            require(
-                staged_root.exists(),
-                f"{branch}: staged report baseline is missing at {display_path(staged_root, repo_root=REPO_ROOT)}; "
-                "run `scripts/run_gate_pipeline.py ratchet --branch <branch>` first",
-            )
     with tempfile.TemporaryDirectory(prefix="gate-pipeline-verify-") as temp_root_str:
         temp_root = Path(temp_root_str)
         execute_pipeline(
@@ -824,15 +729,9 @@ def verify_pipeline(
             read_generated_root=None,
             write_generated_root=temp_root,
             compare_root=None,
-            compare_reports_root=(
-                provisional_reports_root(branch)
-                if branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL
-                else None
-            ),
-            compare_to_committed=not (branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL),
+            compare_to_committed=True,
             initial_snapshot=initial_snapshot,
             nodes=nodes,
-            branch=branch,
         )
     print_gate_pipeline(f"verify complete ({format_elapsed(time.monotonic() - verify_started)})")
     print_gate_pipeline(f"verified ({authority})")
@@ -844,28 +743,18 @@ def promote_stage(
     *,
     changed_nodes: list[str],
     dashboard_changed_flag: bool,
-    destination_reports_root: Path | None = None,
-    destination_dashboard_path: Path | None = None,
 ) -> None:
     if not changed_nodes and not dashboard_changed_flag:
         return
-    destination_reports_root = destination_reports_root or (REPO_ROOT / REPORTS_ROOT_REL)
-    if destination_dashboard_path is None and dashboard_changed_flag:
-        destination_dashboard_path = REPO_ROOT / DASHBOARD_REL
 
     backup_root = Path(tempfile.mkdtemp(prefix="gate-pipeline-backup-"))
     staged_reports: list[tuple[Path, Path]] = []
     for node_id in changed_nodes:
         node = NODES_BY_ID[node_id]
         require(node.report_path is not None, f"{node.id}: report path required for promotion")
-        staged_reports.append(
-            (
-                generated_report_output_path(stage_root, node.report_path),
-                staged_report_path(destination_reports_root, node.report_path),
-            )
-        )
+        staged_reports.append((generated_report_output_path(stage_root, node.report_path), node.report_path))
 
-    dashboard_path = destination_dashboard_path
+    dashboard_path = REPO_ROOT / DASHBOARD_REL
     stage_dashboard = generated_output_path(stage_root, DASHBOARD_REL)
     try:
         for _source_path, destination_path in staged_reports:
@@ -873,7 +762,7 @@ def promote_stage(
             if destination_path.exists():
                 backup_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(destination_path, backup_path)
-        if dashboard_changed_flag and dashboard_path is not None and dashboard_path.exists():
+        if dashboard_changed_flag and dashboard_path.exists():
             backup_dashboard = backup_root / DASHBOARD_REL
             backup_dashboard.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(dashboard_path, backup_dashboard)
@@ -882,7 +771,7 @@ def promote_stage(
             require(source_path.exists(), f"missing staged report {source_path}")
             destination_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source_path, destination_path)
-        if dashboard_changed_flag and dashboard_path is not None:
+        if dashboard_changed_flag:
             require(stage_dashboard.exists(), f"missing staged dashboard {stage_dashboard}")
             dashboard_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(stage_dashboard, dashboard_path)
@@ -895,7 +784,7 @@ def promote_stage(
             else:
                 destination_path.unlink(missing_ok=True)
         backup_dashboard = backup_root / DASHBOARD_REL
-        if dashboard_changed_flag and dashboard_path is not None:
+        if dashboard_changed_flag:
             if backup_dashboard.exists():
                 dashboard_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(backup_dashboard, dashboard_path)
@@ -921,24 +810,9 @@ def final_rerun_pipeline(
     stage_root: Path,
     stage_verify_root: Path,
     final_verify_root: Path,
-    branch: str | None = None,
-    destination_reports_root: Path | None = None,
-    destination_dashboard_path: Path | None = None,
 ) -> int:
-    destination_reports_root = destination_reports_root or (REPO_ROOT / REPORTS_ROOT_REL)
-    if destination_dashboard_path is None and not (
-        branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL
-    ):
-        destination_dashboard_path = REPO_ROOT / DASHBOARD_REL
-    changed_nodes = changed_report_nodes(
-        generated_root=stage_root,
-        authority=authority,
-        compare_reports_root=destination_reports_root,
-    )
-    promoted_dashboard_changed = dashboard_changed(
-        generated_root=stage_root,
-        destination_dashboard_path=destination_dashboard_path,
-    )
+    changed_nodes = changed_report_nodes(generated_root=stage_root, authority=authority)
+    promoted_dashboard_changed = dashboard_changed(generated_root=stage_root)
     start_index = final_rerun_start_index(
         changed_nodes=changed_nodes,
         dashboard_changed_flag=promoted_dashboard_changed,
@@ -966,17 +840,11 @@ def final_rerun_pipeline(
         stage_root,
         changed_nodes=changed_nodes,
         dashboard_changed_flag=promoted_dashboard_changed,
-        destination_reports_root=destination_reports_root,
-        destination_dashboard_path=destination_dashboard_path,
     )
     print_gate_pipeline(f"promotion complete ({format_elapsed(time.monotonic() - promotion_started)})")
 
     promoted_snapshot = tracked_diff_snapshot(git=git, env=env)
-    promoted_generated_snapshot = tracked_diff_snapshot(
-        git=git,
-        env=env,
-        paths=ratchet_owned_paths(branch=branch),
-    )
+    promoted_generated_snapshot = tracked_diff_snapshot(git=git, env=env, paths=ratchet_owned_paths())
     baseline_path = final_verify_root / "generated-output-baseline.txt"
     write_generated_output_baseline_file(baseline_path, snapshot=promoted_generated_snapshot)
 
@@ -1004,18 +872,12 @@ def final_rerun_pipeline(
         read_generated_root=None,
         write_generated_root=final_verify_root,
         compare_root=None,
-        compare_reports_root=(
-            destination_reports_root
-            if branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL
-            else None
-        ),
-        compare_to_committed=not (branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL),
+        compare_to_committed=True,
         initial_snapshot=promoted_snapshot,
         start_index=start_index,
         seed_pipeline_context=seed_pipeline_context,
         checkpoint_root=final_verify_root / "checkpoints",
         preflight_generated_output_baseline_file=baseline_path,
-        branch=branch,
     )
     rerun_elapsed = time.monotonic() - rerun_started
     print_gate_pipeline(f"final rerun complete ({format_elapsed(rerun_elapsed)})")
@@ -1027,22 +889,13 @@ def final_rerun_pipeline(
     return 0
 
 
-def ratchet_pipeline(
-    *,
-    authority: str,
-    python: str,
-    git: str,
-    alr: str,
-    env: dict[str, str],
-    branch: str | None = None,
-) -> int:
+def ratchet_pipeline(*, authority: str, python: str, git: str, alr: str, env: dict[str, str]) -> int:
     ratchet_started = time.monotonic()
-    branch = effective_pipeline_branch(branch=branch, git=git, env=env)
     success = False
     reset_ratchet_node_timings()
     try:
         initial_snapshot = tracked_diff_snapshot(git=git, env=env)
-        generated_snapshot = tracked_diff_snapshot(git=git, env=env, paths=ratchet_owned_paths(branch=branch))
+        generated_snapshot = tracked_diff_snapshot(git=git, env=env, paths=ratchet_owned_paths())
         require(
             generated_snapshot == "",
             "ratchet requires a clean generated-output working tree; either accept ratchet artifact "
@@ -1067,11 +920,9 @@ def ratchet_pipeline(
                     read_generated_root=stage_root,
                     write_generated_root=stage_root,
                     compare_root=None,
-                    compare_reports_root=None,
                     compare_to_committed=False,
                     initial_snapshot=initial_snapshot,
                     checkpoint_root=stage_root / "checkpoints",
-                    branch=branch,
                 )
                 print_gate_pipeline(
                     f"stage generation complete ({format_elapsed(time.monotonic() - stage_generation_started)})"
@@ -1087,11 +938,9 @@ def ratchet_pipeline(
                     read_generated_root=stage_root,
                     write_generated_root=verify_root,
                     compare_root=stage_root,
-                    compare_reports_root=None,
                     compare_to_committed=False,
                     initial_snapshot=initial_snapshot,
                     checkpoint_root=verify_root / "checkpoints",
-                    branch=branch,
                 )
                 print_gate_pipeline(
                     f"stage verification complete ({format_elapsed(time.monotonic() - stage_verify_started)})"
@@ -1105,17 +954,6 @@ def ratchet_pipeline(
                     stage_root=stage_root,
                     stage_verify_root=verify_root,
                     final_verify_root=final_verify_root,
-                    branch=branch,
-                    destination_reports_root=(
-                        provisional_reports_root(branch)
-                        if branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL
-                        else REPO_ROOT / REPORTS_ROOT_REL
-                    ),
-                    destination_dashboard_path=(
-                        None
-                        if branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL
-                        else REPO_ROOT / DASHBOARD_REL
-                    ),
                 )
                 success = True
                 return result
@@ -1125,71 +963,6 @@ def ratchet_pipeline(
             success=success,
         )
         clear_ratchet_node_timings()
-
-
-def promote_pipeline(
-    *,
-    authority: str,
-    python: str,
-    git: str,
-    alr: str,
-    env: dict[str, str],
-    branch: str,
-) -> int:
-    require(
-        branch_mode(branch) is BranchMode.PROVISIONAL,
-        f"{branch}: promote is only defined for provisional branches",
-    )
-    staged_root = provisional_reports_root(branch)
-    require(
-        staged_root.exists(),
-        f"{branch}: staged report baseline is missing at {display_path(staged_root, repo_root=REPO_ROOT)}",
-    )
-    for node in resolve_branch(branch):
-        if node.report_path is None:
-            continue
-        staged_path = staged_report_path(staged_root, node.report_path)
-        require(
-            staged_path.exists(),
-            f"{branch}: missing staged report {display_path(staged_path, repo_root=REPO_ROOT)}",
-        )
-    backup_root = Path(tempfile.mkdtemp(prefix="gate-pipeline-promote-backup-"))
-    try:
-        for node in resolve_branch(branch):
-            if node.report_path is None:
-                continue
-            source_path = staged_report_path(staged_root, node.report_path)
-            destination_path = node.report_path
-            backup_path = backup_root / destination_path.relative_to(REPO_ROOT)
-            if destination_path.exists():
-                backup_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(destination_path, backup_path)
-            destination_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_path, destination_path)
-        result = verify_pipeline(
-            authority=authority,
-            python=python,
-            git=git,
-            alr=alr,
-            env=env,
-            branch=None,
-            initial_snapshot=tracked_diff_snapshot(git=git, env=env),
-        )
-    except Exception:
-        for node in resolve_branch(branch):
-            if node.report_path is None:
-                continue
-            destination_path = node.report_path
-            backup_path = backup_root / destination_path.relative_to(REPO_ROOT)
-            if backup_path.exists():
-                destination_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(backup_path, destination_path)
-            else:
-                destination_path.unlink(missing_ok=True)
-        raise
-    finally:
-        shutil.rmtree(backup_root, ignore_errors=True)
-    return result
 
 
 def main() -> int:
@@ -1206,20 +979,9 @@ def main() -> int:
         branch = args.branch or current_branch(git=git, env=env)
         return print_plan(branch)
     if args.command == "verify":
-        branch = args.branch or None
-        return verify_pipeline(authority=args.authority, python=python, git=git, alr=alr, env=env, branch=branch)
+        return verify_pipeline(authority=args.authority, python=python, git=git, alr=alr, env=env)
     if args.command == "ratchet":
-        branch = args.branch or None
-        return ratchet_pipeline(authority=args.authority, python=python, git=git, alr=alr, env=env, branch=branch)
-    if args.command == "promote":
-        return promote_pipeline(
-            authority="ci",
-            python=python,
-            git=git,
-            alr=alr,
-            env=env,
-            branch=args.branch,
-        )
+        return ratchet_pipeline(authority=args.authority, python=python, git=git, alr=alr, env=env)
     raise RuntimeError(f"unsupported command: {args.command}")
 
 

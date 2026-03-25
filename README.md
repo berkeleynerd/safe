@@ -38,7 +38,7 @@ that still live at the proposal/detail stage rather than in gate-backed CI.
 | ~~PR11.6~~ | `done` | Meaningful whitespace blocks |
 | ~~PR11.6.1~~ | `done` | Attestation chain compression |
 | ~~PR11.6.2~~ | `done` | Legacy Ada syntax removal |
-| ~~PR11.7~~ | `done` | Reference-surface experiments |
+| *PR11.7* | `planned` | Reference-surface experiments |
 | *PR11.8* | `planned` | Numeric model |
 | *PR11.8a* | `planned` | Numeric proof checkpoint |
 | *PR11.8b* | `planned` | Concurrency proof expansion plus channel constraints |

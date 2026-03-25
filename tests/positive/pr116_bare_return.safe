@@ -2,7 +2,7 @@
 -- Description: Meaningful-whitespace no-return subprograms may begin with a bare return.
 -- Expected: ACCEPT
 
-package pr116_bare_return
+package PR116_Bare_Return
 
-   function exit_early
+   function Exit_Early
       return;

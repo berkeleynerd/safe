@@ -3,18 +3,18 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p25:961abe5a
 -- Expected: REJECT source_frontend_error
 
-package try_receive_success_not_boolean_test
+package Try_Receive_Success_Not_Boolean_Test
 
-   type item is range 0 to 10;
+   type Item is range 0 to 10;
 
-   channel data_ch : item capacity 1;
+   channel Data_Ch : Item capacity 1;
 
-   task worker
-      value   : item = 0;
-      success : natural = 0;
+   task Worker
+      Value   : Item = 0;
+      Success : Natural = 0;
 
       loop
-         try_receive data_ch, value, success;
+         try_receive Data_Ch, Value, Success;
 
 
 

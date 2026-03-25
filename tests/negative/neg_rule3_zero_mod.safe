@@ -5,14 +5,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
-package zero_mod_test
+package Zero_Mod_Test
 
-   type counter is range 0 to 255;
+   type Counter is range 0 to 255;
 
    --  Wrap: computes Counter mod N, but N may be zero.
-   function wrap (c : counter; n : counter) returns counter
+   function Wrap (C : Counter; N : Counter) returns Counter
 
-      return c mod n;  -- ERROR: N may be zero
+      return C mod N;  -- ERROR: N may be zero
 
 
 

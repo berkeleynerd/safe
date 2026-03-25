@@ -6,17 +6,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d
 -- Expected: REJECT fp_uninitialized_at_narrowing
 
-package fp_uninit_test
+package FP_Uninit_Test
 
-   type bounded is digits 6 range -100.0 to 100.0;
+   type Bounded is digits 6 range -100.0 to 100.0;
 
    --  Use_Uninit: declares X without initialization, then narrows.
    --  X may hold NaN, infinity, or any value. Not provably finite
    --  or within -100..100.
-   function use_uninit returns bounded
-      x : long_float;
+   function Use_Uninit returns Bounded
+      X : Long_Float;
 
-      return bounded (x);  -- ERROR: X is uninitialized, may be NaN/infinity
+      return Bounded (X);  -- ERROR: X is uninitialized, may be NaN/infinity
 
 
 

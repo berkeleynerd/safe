@@ -6,46 +6,46 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
-package binary_search
+package Binary_Search
 
-   type index is range 1 to 256;
-   type element is range 0 to 10_000;
-   type sorted_array is array (index) of element;
+   type Index is range 1 to 256;
+   type Element is range 0 to 10_000;
+   type Sorted_Array is array (Index) of Element;
 
    --  Search: reports whether Key is found and, when found, the index.
    --  Lo and Hi are always valid indices (type Index = 1..256).
    --  Mid = Lo + (Hi - Lo) / 2 is in Lo..Hi, hence in 1..256.
-   function search (arr : sorted_array;
-                     key : element;
-                     found : out boolean;
-                     found_at : out index)
-      lo  : index = index.first;
-      hi  : index = index.last;
-      mid : index;
+   function Search (Arr : Sorted_Array;
+                     Key : Element;
+                     Found : out Boolean;
+                     Found_At : out Index)
+      Lo  : Index = Index.First;
+      Hi  : Index = Index.Last;
+      Mid : Index;
 
-      found = false;
-      found_at = index.first;
-      while lo <= hi
+      Found = False;
+      Found_At = Index.First;
+      while Lo <= Hi
          --  Wide arithmetic: Lo + (Hi - Lo) / 2.
          --  Hi - Lo is in 0..255. (Hi - Lo)/2 is in 0..127.
          --  Lo + 0..127 is in 1..383, but Hi <= 256 so Mid <= Hi.
          --  Therefore Mid is in Lo..Hi, which is within 1..256.
-         mid = lo + (hi - lo) / 2;
+         Mid = Lo + (Hi - Lo) / 2;
          --  Mid is of type Index (1..256). Provably in bounds.
-         if arr (mid) == key
-            found_at = mid;
-            found = true;
+         if Arr (Mid) == Key
+            Found_At = Mid;
+            Found = True;
             return;
-         else if arr (mid) < key
-            if mid == index.last
+         else if Arr (Mid) < Key
+            if Mid == Index.Last
                return;
 
-            lo = mid + 1;
+            Lo = Mid + 1;
          else
-            if mid == index.first
+            if Mid == Index.First
                return;
 
-            hi = mid - 1;
+            Hi = Mid - 1;
 
 
 

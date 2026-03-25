@@ -3,20 +3,20 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4.p101a:ef2d8fd1
 -- Expected: ACCEPT
 
-package ownership_observe_access
+package Ownership_Observe_Access
 
-   type config is record
-      rate : natural;
+   type Config is record
+      Rate : Natural;
 
 
-   type config_ptr is access config;
+   type Config_Ptr is access Config;
 
-   function read_with_local_observer
-      Owner    : config_ptr = new ((rate = 100) as config);
-      Observer : access constant config = Owner.access;
-      rate     : natural;
+   function Read_With_Local_Observer
+      Owner    : Config_Ptr = new ((Rate = 100) as Config);
+      Observer : access constant Config = Owner.Access;
+      Rate     : Natural;
 
-      rate = Observer.rate;
+      Rate = Observer.all.Rate;
 
 
 

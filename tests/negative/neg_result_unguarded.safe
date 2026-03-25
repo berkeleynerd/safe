@@ -6,34 +6,34 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.6.p139f
 -- Expected: REJECT discriminant_check_not_established
 
-package neg_result_unguarded
+package Neg_Result_Unguarded
 
-   type error_code is range 0 to 255;
+   type Error_Code is range 0 to 255;
 
-   type parse_result (ok : boolean = false) is record
-      case ok
-         when true
-            value : integer;
-         when false
-            error : error_code;
+   type Parse_Result (OK : Boolean = False) is record
+      case OK
+         when True
+            Value : Integer;
+         when False
+            Error : Error_Code;
 
 
 
-   function try_parse (input : integer) returns parse_result
+   function Try_Parse (Input : Integer) returns Parse_Result
 
-      if input >= 0
-         return (ok = true, value = input);
+      if Input >= 0
+         return (OK = True, Value = Input);
       else
-         return (ok = false, error = 1);
+         return (OK = False, Error = 1);
 
 
 
    --  NONCONFORMING: accesses R.Value without establishing R.OK = True.
    --  The discriminant check cannot be discharged statically.
-   function unsafe_access (input : integer) returns integer
-      r : parse_result = try_parse (input);
+   function Unsafe_Access (Input : Integer) returns Integer
+      R : Parse_Result = Try_Parse (Input);
 
-      return r.value;  -- REJECTED: R.OK not established
+      return R.Value;  -- REJECTED: R.OK not established
 
 
 

@@ -2,10 +2,10 @@
 -- Description: Local integer constant used in a channel capacity.
 -- Expected: ACCEPT
 
-package constant_channel_capacity
+package Constant_Channel_Capacity
 
-   capacity_value : constant integer = 3;
-   type message is range 0 to 10;
-   channel data_ch : message capacity capacity_value;
+   Capacity_Value : constant Integer = 3;
+   type Message is range 0 to 10;
+   channel Data_Ch : Message capacity Capacity_Value;
 
 

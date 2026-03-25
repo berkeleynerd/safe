@@ -40,9 +40,9 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
             "channel Data_Ch : Message capacity Capacity_Value;",
         ],
         "spec_fragments": [
-            "capacity_value : constant integer := 3;",
-            "subtype data_ch_Index is Positive range 1 .. 3;",
-            "protected type data_ch_Channel",
+            "Capacity_Value : constant Integer := 3;",
+            "subtype Data_Ch_Index is Positive range 1 .. 3;",
+            "protected type Data_Ch_Channel",
         ],
         "body_fragments": [
             "when Count < 3 is",
@@ -58,8 +58,8 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
             "Default_Active",
         ],
         "spec_fragments": [
-            "type default_result (active : boolean := True) is record",
-            "default_active : constant boolean := True;",
+            "type Result (Active : Boolean := True) is record",
+            "Default_Active : constant Boolean := True;",
         ],
     },
     {
@@ -175,8 +175,8 @@ PR106_SEQUENTIAL_PROOF_CORPUS: list[dict[str, Any]] = [
             "function Get_Or_Default",
         ],
         "spec_fragments": [
-            "type parse_result (ok : boolean := False) is record",
-            "case ok is",
+            "type Parse_Result (OK : Boolean := False) is record",
+            "case OK is",
             "when True =>",
             "when False =>",
         ],

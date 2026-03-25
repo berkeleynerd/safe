@@ -1422,42 +1422,6 @@ class ValidateExecutionStateTests(unittest.TestCase):
         self.assertEqual(report["phase"], "preflight")
         self.assertEqual(report["preconditions"]["authority"], "local")
 
-    def test_run_preflight_phase_skips_tracker_checks_for_provisional_branch(self) -> None:
-        tracker = {"tasks": []}
-        with mock.patch("validate_execution_state.check_tracker_schema"), mock.patch(
-            "validate_execution_state.check_status_rules"
-        ) as check_status_rules, mock.patch(
-            "validate_execution_state.check_dependencies"
-        ) as check_dependencies, mock.patch(
-            "validate_execution_state.check_frozen_sha"
-        ) as check_frozen_sha, mock.patch(
-            "validate_execution_state.check_documented_sha"
-        ) as check_documented_sha, mock.patch(
-            "validate_execution_state.check_test_distribution"
-        ) as check_test_distribution, mock.patch(
-            "validate_execution_state.check_environment_preconditions",
-            return_value={"authority": "local"},
-        ), mock.patch(
-            "validate_execution_state.check_generated_output_cleanliness"
-        ) as check_generated_output_cleanliness:
-            report = run_preflight_phase(
-                tracker=tracker,
-                authority="local",
-                env={},
-                branch="codex/pr117-reference-surface-experiments",
-            )
-
-        self.assertEqual(report["phase"], "preflight")
-        check_status_rules.assert_not_called()
-        check_dependencies.assert_not_called()
-        check_frozen_sha.assert_not_called()
-        check_documented_sha.assert_not_called()
-        check_test_distribution.assert_not_called()
-        self.assertEqual(
-            check_generated_output_cleanliness.call_args.kwargs["generated_output_paths"],
-            [Path("execution") / "staged" / "codex-pr117-reference-surface-experiments" / "reports"],
-        )
-
     def test_run_preflight_phase_rejects_missing_generated_output_baseline_file(self) -> None:
         tracker = {"tasks": []}
         with tempfile.TemporaryDirectory() as temp_dir, mock.patch(
@@ -1882,7 +1846,7 @@ class ValidateExecutionStateTests(unittest.TestCase):
             validate_execution_state,
             "attestation_chain_compression_report",
             return_value={
-                "manifest_node_count": 39,
+                "manifest_node_count": 38,
                 "retired_manifest_nodes": [],
                 "archive_missing": [],
                 "archive_noncanonical": [],

@@ -26,7 +26,6 @@ from _lib.harness_common import (
 )
 from migrate_pr116_whitespace import rewrite_safe_source as rewrite_pr116_whitespace_source
 from migrate_pr1162_legacy_syntax import rewrite_safe_source as rewrite_pr1162_legacy_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_pr117_reference_surface_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -298,7 +297,7 @@ def inspect_emitted_payloads(
     }
 
     if sample.name == "task_priority_delay.safe":
-        worker = graph_by_name(mir_payload, "worker")
+        worker = graph_by_name(mir_payload, "Worker")
         require(worker["priority"] == 5, "task_priority_delay.safe: explicit priority drifted")
         require(worker["has_explicit_priority"] is True, "task_priority_delay.safe: expected explicit priority")
         require("delay" in all_op_kinds(mir_payload), "task_priority_delay.safe: missing delay op")
@@ -325,7 +324,7 @@ def inspect_emitted_payloads(
             "select_with_delay.safe: missing delay arm",
         )
     elif sample.name == "select_delay_local_scope.safe":
-        worker = graph_by_name(mir_payload, "worker")
+        worker = graph_by_name(mir_payload, "Worker")
         delay_blocks = [block for block in worker["blocks"] if block["role"] == "select_delay_arm"]
         require(delay_blocks, "select_delay_local_scope.safe: missing select_delay_arm block")
         require(
@@ -546,10 +545,7 @@ def validate_analysis_regression_case(
 ) -> dict[str, Any]:
     source = temp_root / sample["name"]
     source.write_text(
-        rewrite_pr117_reference_surface_source(
-            rewrite_pr1162_legacy_source(rewrite_pr116_whitespace_source(sample["text"])),
-            mode="combined",
-        ),
+        rewrite_pr1162_legacy_source(rewrite_pr116_whitespace_source(sample["text"])),
         encoding="utf-8",
     )
 
@@ -706,7 +702,7 @@ def validate_delay_arm_scope_case(
     )
 
     mir_payload = load_json(paths["mir"])
-    worker = graph_by_name(mir_payload, "worker")
+    worker = graph_by_name(mir_payload, "Worker")
     delay_blocks = [block for block in worker["blocks"] if block["role"] == "select_delay_arm"]
     require(delay_blocks, f"{source.name}: missing select_delay_arm block")
     require(

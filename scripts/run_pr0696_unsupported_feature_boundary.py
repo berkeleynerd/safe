@@ -21,8 +21,6 @@ from _lib.harness_common import (
     run,
     write_report,
 )
-from migrate_pr1162_legacy_syntax import rewrite_safe_source as rewrite_pr1162_legacy_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_pr117_reference_surface_source
 from migrate_pr116_whitespace import rewrite_safe_source
 
 
@@ -139,13 +137,6 @@ def first_stderr_line(result: Dict[str, Any], label: str) -> str:
     return lines[0]
 
 
-def rewrite_current_surface_source(text: str) -> str:
-    return rewrite_pr117_reference_surface_source(
-        rewrite_pr1162_legacy_source(rewrite_safe_source(text)),
-        mode="combined",
-    )
-
-
 def ensure_no_internal_failure(result: Dict[str, Any], label: str) -> None:
     combined = f"{result['stdout']}\n{result['stderr']}".lower()
     require("internal error" not in combined, f"{label}: unexpected internal error wording")
@@ -226,7 +217,7 @@ def validate_inline_control_case(
 ) -> Dict[str, Any]:
     source = temp_root / case["name"]
     source.write_text(
-        rewrite_current_surface_source(case["text"]) if case.get("rewrite", True) else case["text"],
+        rewrite_safe_source(case["text"]) if case.get("rewrite", True) else case["text"],
         encoding="utf-8",
     )
 
@@ -275,7 +266,7 @@ def materialize_case_source(temp_root: Path, case: Dict[str, Any]) -> Tuple[Path
         return path, str(path.relative_to(REPO_ROOT))
     name = case["name"]
     path = temp_root / name
-    path.write_text(rewrite_current_surface_source(case["text"]), encoding="utf-8")
+    path.write_text(rewrite_safe_source(case["text"]), encoding="utf-8")
     return path, str(path)
 
 

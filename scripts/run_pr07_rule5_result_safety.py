@@ -34,7 +34,6 @@ from _lib.harness_common import (
 )
 from migrate_pr116_whitespace import rewrite_safe_source as rewrite_pr116_whitespace_source
 from migrate_pr1162_legacy_syntax import rewrite_safe_source as rewrite_pr1162_legacy_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_pr117_reference_surface_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -58,98 +57,98 @@ INLINE_NEGATIVE_CASES = [
     {
         "name": "result_wrong_boolean_flag",
         "expected_reason": "discriminant_check_not_established",
-        "source": """package result_wrong_boolean_flag is
+        "source": """package Result_Wrong_Boolean_Flag is
 
-   type error_code is range 0 to 255;
+   type Error_Code is range 0 to 255;
 
-   type parse_result (ok : boolean = false) is record
-      ready : boolean;
-      case ok is
-         when true  then value : integer;
-         when false then error : error_code;
+   type Parse_Result (OK : Boolean = False) is record
+      Ready : Boolean;
+      case OK is
+         when True  then Value : Integer;
+         when False then Error : Error_Code;
       end case;
    end record;
 
-   function unsafe returns integer is
-      r : parse_result = (ok = true, ready = true, value = 7);
+   function Unsafe returns Integer is
+      R : Parse_Result = (OK = True, Ready = True, Value = 7);
    begin
-      if r.ready then
-         return r.value;
+      if R.Ready then
+         return R.Value;
       else
          return 0;
       end if;
-   end unsafe;
+   end Unsafe;
 
-end result_wrong_boolean_flag;
+end Result_Wrong_Boolean_Flag;
 """,
     },
     {
         "name": "rule5_conversion_narrowing",
         "expected_reason": "fp_overflow_at_narrowing",
-        "source": """package rule5_conversion_narrowing is
+        "source": """package Rule5_Conversion_Narrowing is
 
-   type narrow is digits 6 range -1.0 to 1.0;
+   type Narrow is digits 6 range -1.0 to 1.0;
 
-   function bad returns long_float is
-      x : long_float = 2.0;
+   function Bad returns Long_Float is
+      X : Long_Float = 2.0;
    begin
-      return narrow (x);
-   end bad;
+      return Narrow (X);
+   end Bad;
 
-end rule5_conversion_narrowing;
+end Rule5_Conversion_Narrowing;
 """,
     },
     {
         "name": "rule5_annotation_narrowing",
         "expected_reason": "fp_overflow_at_narrowing",
-        "source": """package rule5_annotation_narrowing is
+        "source": """package Rule5_Annotation_Narrowing is
 
-   type narrow is digits 6 range -1.0 to 1.0;
+   type Narrow is digits 6 range -1.0 to 1.0;
 
-   function bad returns long_float is
-      x : long_float = 2.0;
+   function Bad returns Long_Float is
+      X : Long_Float = 2.0;
    begin
-      return (x as narrow);
-   end bad;
+      return (X as Narrow);
+   end Bad;
 
-end rule5_annotation_narrowing;
+end Rule5_Annotation_Narrowing;
 """,
     },
     {
         "name": "result_partial_guard_join",
         "expected_reason": "discriminant_check_not_established",
-        "source": """package result_partial_guard_join is
+        "source": """package Result_Partial_Guard_Join is
 
-   type error_code is range 0 to 255;
+   type Error_Code is range 0 to 255;
 
-   type parse_result (ok : boolean = false) is record
-      case ok is
-         when true  then value : integer;
-         when false then error : error_code;
+   type Parse_Result (OK : Boolean = False) is record
+      case OK is
+         when True  then Value : Integer;
+         when False then Error : Error_Code;
       end case;
    end record;
 
-   function try_parse (input : integer) returns parse_result is
+   function Try_Parse (Input : Integer) returns Parse_Result is
    begin
-      if input >= 0 then
-         return (ok = true, value = input);
+      if Input >= 0 then
+         return (OK = True, Value = Input);
       else
-         return (ok = false, error = 1);
+         return (OK = False, Error = 1);
       end if;
-   end try_parse;
+   end Try_Parse;
 
-   function unsafe (input : integer; guard : boolean) returns integer is
-      r : parse_result = try_parse (input);
+   function Unsafe (Input : Integer; Guard : Boolean) returns Integer is
+      R : Parse_Result = Try_Parse (Input);
    begin
-      if guard then
-         if r.ok then
+      if Guard then
+         if R.OK then
             null;
          end if;
       end if;
-      return r.value;
-   end unsafe;
+      return R.Value;
+   end Unsafe;
 
-end result_partial_guard_join;
+end Result_Partial_Guard_Join;
 """,
     },
 ]
@@ -219,38 +218,6 @@ def diag_signature(diag: dict[str, Any]) -> dict[str, Any]:
         "notes": sorted_lines(diag.get("notes", [])),
         "suggestions": sorted_lines(diag.get("suggestions", [])),
     }
-
-
-def canonical_parity_signature(*, case_name: str, diag: dict[str, Any]) -> dict[str, Any]:
-    signature = diag_signature(diag)
-    canonical = {
-        "reason": signature["reason"],
-        "message": signature["message"],
-        "path": signature["path"],
-        "span": signature["span"],
-        "highlight_span": signature["highlight_span"],
-    }
-
-    if case_name == "fp_division_by_zero" and canonical["reason"] == "division_by_zero":
-        canonical["reason"] = "fp_division_by_zero"
-        canonical["message"] = "floating divisor is not provably nonzero"
-    elif case_name == "nan_at_narrowing" and canonical["reason"] == "division_by_zero":
-        canonical["reason"] = "nan_at_narrowing"
-        canonical["message"] = "floating expression may be NaN at narrowing"
-    if case_name == "nan_at_narrowing":
-        canonical["span"] = None
-        canonical["highlight_span"] = None
-    elif case_name in {
-        "discriminant_check_not_established",
-        "discriminant_invalidation_after_mutation",
-    }:
-        canonical["message"] = (
-            canonical["message"]
-            .replace("'Value'", "'value'")
-            .replace("'OK'", "'ok'")
-        )
-
-    return canonical
 
 
 def first_diag(payload: dict[str, Any], label: str) -> dict[str, Any]:
@@ -373,10 +340,7 @@ def run_inline_negative_cases(safec: Path, env: dict[str, str], temp_root: Path)
     for case in INLINE_NEGATIVE_CASES:
         source_path = temp_root / f"{case['name']}.safe"
         source_path.write_text(
-            rewrite_pr117_reference_surface_source(
-                rewrite_pr1162_legacy_source(rewrite_pr116_whitespace_source(case["source"])),
-                mode="combined",
-            ),
+            rewrite_pr1162_legacy_source(rewrite_pr116_whitespace_source(case["source"])),
             encoding="utf-8",
         )
         result = run(
@@ -428,8 +392,8 @@ def run_parity_cases(safec: Path, env: dict[str, str], temp_root: Path) -> list[
         analyze_payload = read_diag_json(analyze_result["stdout"], fixture_rel)
         analyze_diag = first_diag(analyze_payload, fixture_rel)
 
-        check_sig = canonical_parity_signature(case_name=case["name"], diag=check_diag)
-        analyze_sig = canonical_parity_signature(case_name=case["name"], diag=analyze_diag)
+        check_sig = diag_signature(check_diag)
+        analyze_sig = diag_signature(analyze_diag)
         require(check_sig == analyze_sig, f"{case['name']}: check/analyze-mir parity drifted")
 
         results.append(
@@ -530,10 +494,10 @@ def validate_emitted_output(
         require("FloatingPointDefinition" in ast_nodes, "rule5_temperature: missing FloatingPointDefinition AST node")
         typed_types = typed_payload["types"]
         mir_types = mir_payload["types"]
-        celsius_typed = find_type(typed_types, "celsius")
-        fahrenheit_typed = find_type(typed_types, "fahrenheit")
-        celsius_mir = find_type(mir_types, "celsius")
-        fahrenheit_mir = find_type(mir_types, "fahrenheit")
+        celsius_typed = find_type(typed_types, "Celsius")
+        fahrenheit_typed = find_type(typed_types, "Fahrenheit")
+        celsius_mir = find_type(mir_types, "Celsius")
+        fahrenheit_mir = find_type(mir_types, "Fahrenheit")
         for entry in (celsius_typed, fahrenheit_typed, celsius_mir, fahrenheit_mir):
             require(entry.get("kind") == "float", "rule5_temperature: expected float metadata")
             require("digits_text" in entry, "rule5_temperature: missing digits_text")
@@ -553,11 +517,11 @@ def validate_emitted_output(
     elif sample.name == "result_guarded_access.safe":
         require("KnownDiscriminantPart" in ast_nodes, "result_guarded_access: missing KnownDiscriminantPart AST node")
         require("VariantPart" in ast_nodes, "result_guarded_access: missing VariantPart AST node")
-        parse_result_typed = find_type(typed_payload["types"], "parse_result")
-        parse_result_mir = find_type(mir_payload["types"], "parse_result")
+        parse_result_typed = find_type(typed_payload["types"], "Parse_Result")
+        parse_result_mir = find_type(mir_payload["types"], "Parse_Result")
         for entry in (parse_result_typed, parse_result_mir):
-            require(entry.get("discriminant_name") == "ok", "result_guarded_access: wrong discriminant_name")
-            require(entry.get("discriminant_type") == "boolean", "result_guarded_access: wrong discriminant_type")
+            require(entry.get("discriminant_name") == "OK", "result_guarded_access: wrong discriminant_name")
+            require(entry.get("discriminant_type") == "Boolean", "result_guarded_access: wrong discriminant_type")
             require(entry.get("discriminant_default") is False, "result_guarded_access: wrong discriminant_default")
             require(isinstance(entry.get("variant_fields"), list) and len(entry["variant_fields"]) == 2, "result_guarded_access: missing variant_fields")
         checks = {

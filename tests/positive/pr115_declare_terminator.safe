@@ -1,10 +1,10 @@
-package pr115_local_decl_terminator
+package PR115_Local_Decl_Terminator
 
-   type counter is range 0 to 10;
+   type Counter is range 0 to 10;
 
-   function compute returns counter
+   function Compute returns Counter
 
-      var temp : counter = 1
-      return temp
+      var Temp : Counter = 1
+      return Temp
 
 

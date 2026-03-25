@@ -8,26 +8,26 @@
 -- Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 -- Expected: ACCEPT
 
-package sensor_average
+package Sensor_Average
 
-   type reading is range 0 to 1000;
-   type sensor_count is range 1 to 10;
-   type readings is array (sensor_count) of reading;
+   type Reading is range 0 to 1000;
+   type Sensor_Count is range 1 to 10;
+   type Readings is array (Sensor_Count) of Reading;
 
    --  Average: compute mean of sensor readings.
    --  Sum of 10 values each in 0..1000 is at most 10_000,
    --  well within 64-bit signed range. Division by 10 yields
    --  a result in 0..1000, fitting Reading.
-   function average (data : readings) returns reading
-      sum : reading = 0;
+   function Average (Data : Readings) returns Reading
+      Sum : Reading = 0;
 
-      for i in sensor_count
+      for I in Sensor_Count
          --  Sum ranges from 0 to I * 1000.
          --  Wide arithmetic: intermediate sum can be up to 10_000.
-         sum = sum + data (i);
+         Sum = Sum + Data (I);
 
       --  Narrowing point (return): Sum / 10 is in 0..1000.
-      return sum / 10;
+      return Sum / 10;
 
 
 

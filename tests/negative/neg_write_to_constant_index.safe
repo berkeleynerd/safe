@@ -2,24 +2,24 @@
 -- Description: Writes through an indexed part rooted in a constant object must be rejected.
 -- Expected: REJECT write_to_constant
 
-package neg_write_to_constant_index
+package Neg_Write_To_Constant_Index
 
-   type index is range 1 to 3;
-   type buffer is array (index) of integer;
+   type Index is range 1 to 3;
+   type Buffer is array (Index) of Integer;
 
-   function make_buffer returns buffer
-      result : buffer;
+   function Make_Buffer returns Buffer
+      Result : Buffer;
 
-      for i in index
-         result (i) = integer (i);
+      for I in Index
+         Result (I) = Integer (I);
 
-      return result;
+      return Result;
 
 
-   function run
-      data : constant buffer = make_buffer;
+   function Run
+      Data : constant Buffer = Make_Buffer;
 
-      data (1) = 0;
+      Data (1) = 0;
 
 
 

@@ -10,5 +10,4 @@ neg_own_source_maybe_null.safe:15:7: error: move source 'Source' is not provably
   |
   note: static analysis determined state 'Null' at this move site.
   note: rule: Safe §2.3.2 (source of move must be provably non-null)
-
 ------------------------------------------------------------------------

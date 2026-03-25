@@ -6,39 +6,39 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
-package binary_search_function
+package Binary_Search_Function
 
-   type index is range 1 to 64;
-   type element is range 0 to 10_000;
-   type sorted_array is array (index) of element;
-   type search_result is record
-      found    : boolean;
-      found_at : index;
+   type Index is range 1 to 64;
+   type Element is range 0 to 10_000;
+   type Sorted_Array is array (Index) of Element;
+   type Search_Result is record
+      Found    : Boolean;
+      Found_At : Index;
 
 
-   function search (arr : sorted_array;
-                    key : element) returns search_result
-      lo  : index = index.first;
-      hi  : index = index.last;
-      mid : index;
+   function Search (Arr : Sorted_Array;
+                    Key : Element) returns Search_Result
+      Lo  : Index = Index.First;
+      Hi  : Index = Index.Last;
+      Mid : Index;
 
-      while lo <= hi
-         mid = lo + (hi - lo) / 2;
-         if arr (mid) == key
-            return ((found = true, found_at = mid) as search_result);
-         else if arr (mid) < key
-            if mid == index.last
-               return ((found = false, found_at = index.first) as search_result);
+      while Lo <= Hi
+         Mid = Lo + (Hi - Lo) / 2;
+         if Arr (Mid) == Key
+            return ((Found = True, Found_At = Mid) as Search_Result);
+         else if Arr (Mid) < Key
+            if Mid == Index.Last
+               return ((Found = False, Found_At = Index.First) as Search_Result);
 
-            lo = mid + 1;
+            Lo = Mid + 1;
          else
-            if mid == index.first
-               return ((found = false, found_at = index.first) as search_result);
+            if Mid == Index.First
+               return ((Found = False, Found_At = Index.First) as Search_Result);
 
-            hi = mid - 1;
+            Hi = Mid - 1;
 
 
-      return ((found = false, found_at = index.first) as search_result);
+      return ((Found = False, Found_At = Index.First) as Search_Result);
 
 
 

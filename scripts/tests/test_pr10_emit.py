@@ -97,9 +97,9 @@ Total                             5          .    5 (CVC5)           .          
         body = (
             pr10_emit.REPO_ROOT / "tests" / "golden" / "golden_pipeline" / "pipeline.adb"
         ).read_text(encoding="utf-8")
-        self.assertIn("procedure Try_Receive (Value : in out sample; Success : out Boolean);", spec)
-        self.assertIn("procedure Try_Receive (Value : in out sample; Success : out Boolean) is", body)
-        self.assertNotIn("Value := sample'First;", body)
+        self.assertIn("procedure Try_Receive (Value : in out Sample; Success : out Boolean);", spec)
+        self.assertIn("procedure Try_Receive (Value : in out Sample; Success : out Boolean) is", body)
+        self.assertNotIn("Value := Sample'First;", body)
 
 
 if __name__ == "__main__":

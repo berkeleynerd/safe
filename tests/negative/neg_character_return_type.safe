@@ -2,9 +2,9 @@
 -- Description: Character-returning functions reject integer return expressions.
 -- Expected: REJECT type_check_failure
 
-package neg_character_return_type
+package Neg_Character_Return_Type
 
-   function broken returns character
+   function Broken returns Character
 
       return 999;
 

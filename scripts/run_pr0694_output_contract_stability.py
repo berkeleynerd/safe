@@ -24,6 +24,9 @@ from _lib.harness_common import (
     stable_emitted_artifact_sha256,
     write_report,
 )
+from migrate_pr116_whitespace import rewrite_safe_source
+
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 DEFAULT_REPORT = (
@@ -35,13 +38,15 @@ CORPUS_SAMPLES = [
     *(REPO_ROOT / path for path in REPRESENTATIVE_EMIT_SAMPLES),
     REPO_ROOT / "tests" / "positive" / "ownership_inout.safe",
 ]
-PUBLIC_INTERFACE_SOURCE = """package public_interface
-   public type counter is range 0 to 10;
-   public seed : counter = 1;
+PUBLIC_INTERFACE_SOURCE = """package Public_Interface is
+   public type Counter is range 0 to 10;
+   public Seed : Counter = 1;
 
-   public function identity (value : counter) returns counter
-
-      return value;
+   public function Identity (Value : Counter) returns Counter is
+   begin
+      return Value;
+   end Identity;
+end Public_Interface;
 """
 
 
@@ -223,7 +228,7 @@ def run_emit_case(
     }
 
     if name == "public_interface":
-        expected_public_names = ["counter", "seed", "identity"]
+        expected_public_names = ["Counter", "Seed", "Identity"]
         expected_public_kinds = ["TypeDeclaration", "ObjectDeclaration", "SubprogramBody"]
         typed_public = typed_payload["public_declarations"]
         safei_public = safei_payload["public_declarations"]
@@ -250,7 +255,7 @@ def run_emit_case(
             "public_interface: public declarations must match between typed-v2 and safei-v1",
         )
         require(
-            typed_exec_names == ["identity"],
+            typed_exec_names == ["Identity"],
             "public_interface: executable ordering drifted",
         )
         result["public_contract"] = {
@@ -278,7 +283,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
             )
 
         inline_source = inline_root / "public_interface.safe"
-        inline_source.write_text(PUBLIC_INTERFACE_SOURCE, encoding="utf-8")
+        inline_source.write_text(rewrite_safe_source(PUBLIC_INTERFACE_SOURCE), encoding="utf-8")
         inline_result = run_emit_case(
             name="public_interface",
             source=inline_source,

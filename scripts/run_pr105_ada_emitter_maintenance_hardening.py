@@ -29,7 +29,6 @@ from _lib.pr09_emit import (
 )
 from _lib.pr10_emit import emit_fixture, gnatprove_emitted_ada
 from migrate_pr116_whitespace import rewrite_safe_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_reference_surface_source
 
 
 DEFAULT_REPORT = (
@@ -40,78 +39,102 @@ OWNERSHIP_BORROW_FIXTURE = REPO_ROOT / "tests" / "positive" / "ownership_borrow.
 POSTCONDITION_CASES: list[dict[str, object]] = [
     {
         "id": "similar_name_selector",
-        "source": """package similar_name_post
+        "source": """package Similar_Name_Post is
 
-   type payload is record
-      x : integer;
-      x_copy : integer;
+   type Payload is record
+      X : Integer;
+      X_Copy : Integer;
+   end record;
 
-   function touch (Ref : access payload)
-      Ref.x = Ref.x_copy + Ref.x;
+   function Touch (Ref : access Payload) is
+   begin
+      Ref.all.X = Ref.all.X_Copy + Ref.all.X;
+   end Touch;
+
+end Similar_Name_Post;
 """,
         "required_spec_fragments": [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.x = (Ref.all.x_copy + Ref.all.x'Old);",
+            "Post => Ref.all.X = (Ref.all.X_Copy + Ref.all.X'Old);",
         ],
         "forbidden_fragments": [
-            "Ref.all.x'Old_Copy",
-            "Ref_x_Snapshot_Copy",
+            "Ref.all.X'Old_Copy",
+            "Ref_X_Snapshot_Copy",
         ],
     },
     {
         "id": "nested_selector",
-        "source": """package nested_target_post
+        "source": """package Nested_Target_Post is
 
-   type inner is record
-      value : integer;
+   type Inner is record
+      Value : Integer;
+   end record;
 
-   type outer is record
-      inner_field : inner;
+   type Outer is record
+      Inner_Field : Inner;
+   end record;
 
-   function touch (Ref : access outer)
-      Ref.inner_field.value = Ref.inner_field.value + 1;
+   function Touch (Ref : access Outer) is
+   begin
+      Ref.all.Inner_Field.Value = Ref.all.Inner_Field.Value + 1;
+   end Touch;
+
+end Nested_Target_Post;
 """,
         "required_spec_fragments": [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.inner_field.value = (Ref.all.inner_field.value'Old + 1);",
+            "Post => Ref.all.Inner_Field.Value = (Ref.all.Inner_Field.Value'Old + 1);",
         ],
         "forbidden_fragments": [],
     },
     {
         "id": "repeated_target",
-        "source": """package repeated_target_post
+        "source": """package Repeated_Target_Post is
 
-   type payload is record
-      x : integer;
+   type Payload is record
+      X : Integer;
+   end record;
 
-   function touch (Ref : access payload)
-      Ref.x = Ref.x + Ref.x;
+   function Touch (Ref : access Payload) is
+   begin
+      Ref.all.X = Ref.all.X + Ref.all.X;
+   end Touch;
+
+end Repeated_Target_Post;
 """,
         "required_spec_fragments": [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.x = (Ref.all.x'Old + Ref.all.x'Old);",
+            "Post => Ref.all.X = (Ref.all.X'Old + Ref.all.X'Old);",
         ],
         "forbidden_fragments": [],
     },
     {
         "id": "call_aggregate_target",
-        "source": """package call_aggregate_target_post
+        "source": """package Call_Aggregate_Target_Post is
 
-   type payload is record
-      x : integer;
+   type Payload is record
+      X : Integer;
+   end record;
 
-   type holder is record
-      chosen : integer;
+   type Holder is record
+      Chosen : Integer;
+   end record;
 
-   function take (item : holder) returns integer
-      return item.chosen;
+   function Take (Item : Holder) returns Integer is
+   begin
+      return Item.Chosen;
+   end Take;
 
-   function touch (Ref : access payload)
-      Ref.x = take ((chosen = Ref.x));
+   function Touch (Ref : access Payload) is
+   begin
+      Ref.all.X = Take ((Chosen = Ref.all.X));
+   end Touch;
+
+end Call_Aggregate_Target_Post;
 """,
         "required_spec_fragments": [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.x = take ((chosen => Ref.all.x'Old));",
+            "Post => Ref.all.X = Take ((Chosen => Ref.all.X'Old));",
         ],
         "forbidden_fragments": [],
     },
@@ -120,33 +143,42 @@ POSTCONDITION_CASES: list[dict[str, object]] = [
 SUBTYPE_CASES: list[dict[str, object]] = [
     {
         "id": "integer_subtype_lowering",
-        "source": """package integer_subtype_hardening
+        "source": """package Integer_Subtype_Hardening is
 
-   subtype small_count is integer;
+   subtype Small_Count is Integer;
 
-   function bump (value : in out small_count)
-      value = value + 1;
+   function Bump (Value : in out Small_Count) is
+   begin
+      Value = Value + 1;
+   end Bump;
+
+end Integer_Subtype_Hardening;
 """,
         "required_body_fragments": [
-            "Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)",
-            "value := small_count ((Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)));",
+            "Safe_Runtime.Wide_Integer (Value) + Safe_Runtime.Wide_Integer (1)",
+            "Value := Small_Count ((Safe_Runtime.Wide_Integer (Value) + Safe_Runtime.Wide_Integer (1)));",
         ],
         "forbidden_body_fragments": [],
     },
     {
         "id": "float_subtype_no_integer_lowering",
-        "source": """package float_subtype_hardening
+        "source": """package Float_Subtype_Hardening is
 
-   subtype half_component is float;
-   type box is record
-      x : half_component;
+   subtype Half_Component is Float;
+   type Box is record
+      X : Half_Component;
+   end record;
 
-   function capture (input : box) returns half_component
-      value : half_component = input.x;
-      return value;
+   function Capture (Input : Box) returns Half_Component is
+      Value : Half_Component = Input.X;
+   begin
+      return Value;
+   end Capture;
+
+end Float_Subtype_Hardening;
 """,
         "required_body_fragments": [
-            "value : half_component := input.x;",
+            "Value : Half_Component := Input.X;",
         ],
         "forbidden_body_fragments": [
             "Safe_Runtime.Wide_Integer",
@@ -176,10 +208,7 @@ def emit_and_compile_temp_source(
 ) -> tuple[dict[str, Path], dict[str, Any], str, str]:
     temp_root.mkdir(parents=True, exist_ok=True)
     source_path = temp_root / source_name
-    source_path.write_text(
-        rewrite_reference_surface_source(rewrite_safe_source(source_text), mode="combined"),
-        encoding="utf-8",
-    )
+    source_path.write_text(rewrite_safe_source(source_text), encoding="utf-8")
     outputs = emit_fixture(source=source_path, root=temp_root / source_path.stem, env=env)
     compile_result = compile_emitted_ada(
         ada_dir=outputs["ada_dir"],
@@ -220,16 +249,16 @@ def verify_ownership_borrow(*, env: dict[str, str], temp_root: Path) -> dict[str
         spec_text,
         [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.x = (Ref.all.x'Old + 1) and then Ref.all.y = (Ref.all.y'Old * 2);",
+            "Post => Ref.all.X = (Ref.all.X'Old + 1) and then Ref.all.Y = (Ref.all.Y'Old * 2);",
         ],
         label=repo_arg(OWNERSHIP_BORROW_FIXTURE),
     )
     body_fragments = require_fragments(
         body_text,
         [
-            "Ref_x_Snapshot : constant integer := Ref.all.x;",
-            "Ref_y_Snapshot : constant integer := Ref.all.y;",
-            "Owner_x_Snapshot : constant integer := Owner.all.x;",
+            "Ref_X_Snapshot : constant Integer := Ref.all.X;",
+            "Ref_Y_Snapshot : constant Integer := Ref.all.Y;",
+            "Owner_X_Snapshot : constant Integer := Owner.all.X;",
         ],
         label=repo_arg(OWNERSHIP_BORROW_FIXTURE),
     )

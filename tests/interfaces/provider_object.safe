@@ -1,5 +1,6 @@
-package provider_object
+package Provider_Object
 
-   public type count is range 0 to 10;
-   public seed : count = 3;
+   public type Count is range 0 to 10;
+   public Seed : Count = 3;
+
 

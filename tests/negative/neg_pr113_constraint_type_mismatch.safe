@@ -1,6 +1,7 @@
-package neg_pr113_constraint_type_mismatch
-   type packet (active : boolean = true, kind : character = 'A', count : integer = 0) is
+package Neg_PR113_Constraint_Type_Mismatch
+   type Packet (Active : Boolean = True, Kind : Character = 'A', Count : Integer = 0) is
       record
-         value : integer;
+         Value : Integer;
 
-   p : packet (active = 1, kind = 'A', count = 1) = (value = 1);
+   P : Packet (Active = 1, Kind = 'A', Count = 1) = (Value = 1);
+

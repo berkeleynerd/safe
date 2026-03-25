@@ -47,11 +47,11 @@ class Pr113aProofCheckpoint1Tests(unittest.TestCase):
             by_fixture["tests/positive/pr112_character_case.safe"]["spec_fragments"],
         )
         self.assertIn(
-            "function take(item : Safe_constraint_packet_active_true_kind_A_count_2) return Safe_constraint_packet_active_true_kind_A_count_2 with Global => null,",
+            "function Take(Item : Safe_constraint_Packet_Active_true_Kind_A_Count_2) return Safe_constraint_Packet_Active_true_Kind_A_Count_2 with Global => null,",
             by_fixture["tests/positive/pr113_discriminant_constraints.safe"]["spec_fragments"],
         )
         self.assertIn(
-            "Depends => (take'Result => item);",
+            "Depends => (Take'Result => Item);",
             by_fixture["tests/positive/pr113_discriminant_constraints.safe"]["spec_fragments"],
         )
 

@@ -4,12 +4,12 @@
       "audit_doc": "fc4edf3f450f82ed744cb28283cfbce58f07320be1ca48fba90889c343d75832",
       "ci_workflow": "c6e73eb06095763835c758156654e4e9758841852591ee620a9fb072fbd3d775",
       "compiler_readme": "2dee3082c1f789efe0f9c251e57ba9419baa21782f7192e0bf48ace846bd9bf0",
-      "dashboard": "6039f3c3d61d8d4f7af42350e98aa69c6aa81c33d163d76df0be57de0c029d44",
+      "dashboard": "c13cfbb02a0f995389bed1d2dad9b94f21985c7e3857d3f886ceaeea9e1e40b6",
       "matrix": "9553b32825b2b3d25f153e781708987722e30f9d1edc2ae3e396aec24c4916a1",
       "pipeline_verify_workflow": "7f74e42cdaa3ebdbe7be613f0fe2b722e5205977da6cdcd89cefd1db0d52891f",
       "post_pr10_scope": "52d74391fcb697b6cc620bbeb8ed8aaff90f6d5689f99c9f093da972d9f55237",
-      "readme": "dc0f022c96c13f5e7f70385d67101ae8896c7aec3fddbc6d4e548f67b53eade2",
-      "tracker": "389f79917f5e1283127eb6c50311d245baae23c9493f33a6ee41657eda74f3a5"
+      "readme": "ce933c9aa2bd4d9e877466969dbe1b2cb4fcbfc6dd996c387e4ba2b1f91a379d",
+      "tracker": "ec011f53192024049cabcdcddaba639c1c0c161f9889bc5b8122451cd4522378"
     },
     "audited_surfaces": [
       "spec/TBD consistency",
@@ -25,7 +25,7 @@
       "python_gates": [
         {
           "deterministic": true,
-          "report_sha256": "2a3e3672e32119a4118c12ac05442c0bfb1d1c7d98e8eed102b2b9b0c9cfe9e2",
+          "report_sha256": "dc3197f50596fbb7563de4bb0b43c3c4cb1c5eb5d93f9f324f88987caf66d931",
           "result": {
             "command_profile": {
               "args": [],
@@ -38,7 +38,7 @@
         },
         {
           "deterministic": true,
-          "report_sha256": "0a22b4a0f2133af6a6974643d24e3cd909ee75aa76704716d54a5de7f848daf4",
+          "report_sha256": "d86c9823a0d9ee963f95792ca0fc12759ad974730acb93b8bec009983a19d0c1",
           "result": {
             "command_profile": {
               "args": [],
@@ -51,7 +51,7 @@
         },
         {
           "deterministic": true,
-          "report_sha256": "7c2a7010166540a166e0b45758b018e69c80f37b8eea1bb3c641322d32195b97",
+          "report_sha256": "ddcfe4b76660a6450788173b7602e7b7edc8d09cf865d0405e42a123488c2720",
           "result": {
             "command_profile": {
               "args": [],
@@ -384,7 +384,7 @@
       }
     ],
     "tracker": {
-      "next_task_id": "PR11.8",
+      "next_task_id": "PR11.7",
       "pr101_evidence": [
         "execution/archive/pr101a_companion_proof_verification/report.json",
         "execution/archive/pr101b_template_proof_verification/report.json",
@@ -464,8 +464,8 @@
       ]
     }
   },
-  "repeat_sha256": "9c65ae04a6c3d61b7fc20b200ac00289b2b9ff3f6838989e44352e97f9a90aa9",
-  "report_sha256": "9c65ae04a6c3d61b7fc20b200ac00289b2b9ff3f6838989e44352e97f9a90aa9",
+  "repeat_sha256": "ce0575184d018ecf380149878ce1d3de936072297f412427e81eeebe0716c202",
+  "report_sha256": "ce0575184d018ecf380149878ce1d3de936072297f412427e81eeebe0716c202",
   "semantic_floor": {
     "baseline_gate_hashes": {
       "emitted_hardening_regressions": "3f84ff42577ca0a50269aa187e2549f33bf901bdc1d25e9554a4e1c64e666657",

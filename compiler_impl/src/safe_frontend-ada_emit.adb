@@ -149,15 +149,6 @@ package body Safe_Frontend.Ada_Emit is
      (Subprogram_Name : String;
       Raw_Name        : String) return String;
    function Is_Attribute_Selector (Name : String) return Boolean;
-   function Is_Access_Target_Attribute_Selector (Name : String) return Boolean;
-   function Span_Contains
-     (Outer : FT.Source_Span;
-      Inner : FT.Source_Span) return Boolean;
-   function Lookup_Identifier_Type
-     (Unit : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Name : String;
-      Span : FT.Source_Span) return GM.Type_Descriptor;
    function Root_Name (Expr : CM.Expr_Access) return String;
    function Expr_Uses_Name
      (Expr : CM.Expr_Access;
@@ -167,15 +158,6 @@ package body Safe_Frontend.Ada_Emit is
       Document  : GM.Mir_Document;
       Prefix    : CM.Expr_Access;
       Selector  : String) return Boolean;
-   function Selector_Uses_Implicit_Dereference
-     (Unit      : CM.Resolved_Unit;
-      Document  : GM.Mir_Document;
-      Prefix    : CM.Expr_Access;
-      Selector  : String) return Boolean;
-   function Prefix_Has_Access_Type
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Prefix   : CM.Expr_Access) return Boolean;
    function Is_Aspect_State_Name (Name : String) return Boolean;
    function Is_Constant_Object_Name
      (Unit : CM.Resolved_Unit;
@@ -755,236 +737,84 @@ package body Safe_Frontend.Ada_Emit is
    end Normalize_Aspect_Name;
 
    function Is_Attribute_Selector (Name : String) return Boolean is
-      Lower_Name : constant String := Ada.Characters.Handling.To_Lower (Name);
    begin
       return
-        Lower_Name = "access"
-        or else Lower_Name = "address"
-        or else Lower_Name = "adjacent"
-        or else Lower_Name = "aft"
-        or else Lower_Name = "alignment"
-        or else Lower_Name = "base"
-        or else Lower_Name = "bit_order"
-        or else Lower_Name = "ceiling"
-        or else Lower_Name = "component_size"
-        or else Lower_Name = "compose"
-        or else Lower_Name = "constrained"
-        or else Lower_Name = "copy_sign"
-        or else Lower_Name = "definite"
-        or else Lower_Name = "delta"
-        or else Lower_Name = "denorm"
-        or else Lower_Name = "digits"
-        or else Lower_Name = "enum_rep"
-        or else Lower_Name = "enum_val"
-        or else Lower_Name = "exponent"
-        or else Lower_Name = "first"
-        or else Lower_Name = "first_valid"
-        or else Lower_Name = "floor"
-        or else Lower_Name = "fore"
-        or else Lower_Name = "fraction"
-        or else Lower_Name = "image"
-        or else Lower_Name = "last"
-        or else Lower_Name = "last_valid"
-        or else Lower_Name = "leading_part"
-        or else Lower_Name = "length"
-        or else Lower_Name = "machine"
-        or else Lower_Name = "machine_emax"
-        or else Lower_Name = "machine_emin"
-        or else Lower_Name = "machine_mantissa"
-        or else Lower_Name = "machine_overflows"
-        or else Lower_Name = "machine_radix"
-        or else Lower_Name = "machine_rounds"
-        or else Lower_Name = "max"
-        or else Lower_Name = "max_alignment_for_allocation"
-        or else Lower_Name = "max_size_in_storage_elements"
-        or else Lower_Name = "min"
-        or else Lower_Name = "mod"
-        or else Lower_Name = "model"
-        or else Lower_Name = "model_emin"
-        or else Lower_Name = "model_epsilon"
-        or else Lower_Name = "model_mantissa"
-        or else Lower_Name = "model_small"
-        or else Lower_Name = "modulus"
-        or else Lower_Name = "object_size"
-        or else Lower_Name = "overlaps_storage"
-        or else Lower_Name = "pos"
-        or else Lower_Name = "pred"
-        or else Lower_Name = "range"
-        or else Lower_Name = "remainder"
-        or else Lower_Name = "round"
-        or else Lower_Name = "rounding"
-        or else Lower_Name = "safe_first"
-        or else Lower_Name = "safe_last"
-        or else Lower_Name = "scale"
-        or else Lower_Name = "scaling"
-        or else Lower_Name = "size"
-        or else Lower_Name = "small"
-        or else Lower_Name = "storage_size"
-        or else Lower_Name = "succ"
-        or else Lower_Name = "truncation"
-        or else Lower_Name = "unbiased_rounding"
-        or else Lower_Name = "val"
-        or else Lower_Name = "valid"
-        or else Lower_Name = "value"
-        or else Lower_Name = "wide_image"
-        or else Lower_Name = "wide_value"
-        or else Lower_Name = "wide_wide_image"
-        or else Lower_Name = "wide_wide_value"
-        or else Lower_Name = "wide_wide_width"
-        or else Lower_Name = "wide_width"
-        or else Lower_Name = "width";
+        Name = "Access"
+        or else Name = "Address"
+        or else Name = "Adjacent"
+        or else Name = "Aft"
+        or else Name = "Alignment"
+        or else Name = "Base"
+        or else Name = "Bit_Order"
+        or else Name = "Ceiling"
+        or else Name = "Component_Size"
+        or else Name = "Compose"
+        or else Name = "Constrained"
+        or else Name = "Copy_Sign"
+        or else Name = "Definite"
+        or else Name = "Delta"
+        or else Name = "Denorm"
+        or else Name = "Digits"
+        or else Name = "Enum_Rep"
+        or else Name = "Enum_Val"
+        or else Name = "Exponent"
+        or else Name = "First"
+        or else Name = "First_Valid"
+        or else Name = "Floor"
+        or else Name = "Fore"
+        or else Name = "Fraction"
+        or else Name = "Image"
+        or else Name = "Last"
+        or else Name = "Last_Valid"
+        or else Name = "Leading_Part"
+        or else Name = "Length"
+        or else Name = "Machine"
+        or else Name = "Machine_Emax"
+        or else Name = "Machine_Emin"
+        or else Name = "Machine_Mantissa"
+        or else Name = "Machine_Overflows"
+        or else Name = "Machine_Radix"
+        or else Name = "Machine_Rounds"
+        or else Name = "Max"
+        or else Name = "Max_Alignment_For_Allocation"
+        or else Name = "Max_Size_In_Storage_Elements"
+        or else Name = "Min"
+        or else Name = "Mod"
+        or else Name = "Model"
+        or else Name = "Model_Emin"
+        or else Name = "Model_Epsilon"
+        or else Name = "Model_Mantissa"
+        or else Name = "Model_Small"
+        or else Name = "Modulus"
+        or else Name = "Object_Size"
+        or else Name = "Overlaps_Storage"
+        or else Name = "Pos"
+        or else Name = "Pred"
+        or else Name = "Range"
+        or else Name = "Remainder"
+        or else Name = "Round"
+        or else Name = "Rounding"
+        or else Name = "Safe_First"
+        or else Name = "Safe_Last"
+        or else Name = "Scale"
+        or else Name = "Scaling"
+        or else Name = "Size"
+        or else Name = "Small"
+        or else Name = "Storage_Size"
+        or else Name = "Succ"
+        or else Name = "Truncation"
+        or else Name = "Unbiased_Rounding"
+        or else Name = "Val"
+        or else Name = "Valid"
+        or else Name = "Value"
+        or else Name = "Wide_Image"
+        or else Name = "Wide_Value"
+        or else Name = "Wide_Wide_Image"
+        or else Name = "Wide_Wide_Value"
+        or else Name = "Wide_Wide_Width"
+        or else Name = "Wide_Width"
+        or else Name = "Width";
    end Is_Attribute_Selector;
-
-   function Is_Access_Target_Attribute_Selector (Name : String) return Boolean is
-      Lower_Name : constant String := Ada.Characters.Handling.To_Lower (Name);
-   begin
-      return Lower_Name in "address" | "first" | "last" | "length";
-   end Is_Access_Target_Attribute_Selector;
-
-   function Span_Contains
-     (Outer : FT.Source_Span;
-      Inner : FT.Source_Span) return Boolean
-   is
-      Starts_Before_Or_At : constant Boolean :=
-        Outer.Start_Pos.Line < Inner.Start_Pos.Line
-        or else
-          (Outer.Start_Pos.Line = Inner.Start_Pos.Line
-           and then Outer.Start_Pos.Column <= Inner.Start_Pos.Column);
-      Ends_After_Or_At : constant Boolean :=
-        Outer.End_Pos.Line > Inner.End_Pos.Line
-        or else
-          (Outer.End_Pos.Line = Inner.End_Pos.Line
-           and then Outer.End_Pos.Column >= Inner.End_Pos.Column);
-   begin
-      return Starts_Before_Or_At and then Ends_After_Or_At;
-   end Span_Contains;
-
-   function Lookup_Identifier_Type
-     (Unit : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Name : String;
-      Span : FT.Source_Span) return GM.Type_Descriptor
-   is
-      function Position_Before_Or_At
-        (Left  : FT.Source_Position;
-         Right : FT.Source_Position) return Boolean
-      is
-      begin
-         return Left.Line < Right.Line
-           or else
-             (Left.Line = Right.Line and then Left.Column <= Right.Column);
-      end Position_Before_Or_At;
-
-      function Lookup_From_Declarations
-        (Declarations : CM.Resolved_Object_Decl_Vectors.Vector) return GM.Type_Descriptor
-      is
-      begin
-         for Decl of Declarations loop
-            for Decl_Name of Decl.Names loop
-               if FT.To_String (Decl_Name) = Name then
-                  return Decl.Type_Info;
-               end if;
-            end loop;
-         end loop;
-         return (others => <>);
-      end Lookup_From_Declarations;
-
-      function Lookup_From_Statement_Declarations
-        (Statements : CM.Statement_Access_Vectors.Vector) return GM.Type_Descriptor
-      is
-      begin
-         for Stmt of Statements loop
-            if Stmt = null
-              or else not Position_Before_Or_At (Stmt.Span.Start_Pos, Span.Start_Pos)
-            then
-               null;
-            elsif Stmt.Kind = CM.Stmt_Object_Decl then
-               for Decl_Name of Stmt.Decl.Names loop
-                  if FT.To_String (Decl_Name) = Name then
-                     return Stmt.Decl.Type_Info;
-                  end if;
-               end loop;
-            elsif Stmt.Kind = CM.Stmt_Destructure_Decl then
-               for Decl_Name of Stmt.Destructure.Names loop
-                  if FT.To_String (Decl_Name) = Name then
-                     return Stmt.Destructure.Type_Info;
-                  end if;
-               end loop;
-            end if;
-         end loop;
-         return (others => <>);
-      end Lookup_From_Statement_Declarations;
-   begin
-      for Graph of Document.Graphs loop
-         if Span_Contains (Graph.Span, Span) then
-            for Local of Graph.Locals loop
-               if FT.To_String (Local.Name) = Name then
-                  return Local.Type_Info;
-               end if;
-            end loop;
-         end if;
-      end loop;
-
-      for Decl of Unit.Objects loop
-         for Decl_Name of Decl.Names loop
-            if FT.To_String (Decl_Name) = Name then
-               return Decl.Type_Info;
-            end if;
-         end loop;
-      end loop;
-
-      for Item of Unit.Subprograms loop
-         if Span_Contains (Item.Span, Span) then
-            for Param of Item.Params loop
-               if FT.To_String (Param.Name) = Name then
-                  return Param.Type_Info;
-               end if;
-            end loop;
-
-            declare
-               Info : constant GM.Type_Descriptor :=
-                 Lookup_From_Declarations (Item.Declarations);
-            begin
-               if Has_Text (Info.Name) then
-                  return Info;
-               end if;
-            end;
-
-            declare
-               Info : constant GM.Type_Descriptor :=
-                 Lookup_From_Statement_Declarations (Item.Statements);
-            begin
-               if Has_Text (Info.Name) then
-                  return Info;
-               end if;
-            end;
-         end if;
-      end loop;
-
-      for Item of Unit.Tasks loop
-         if Span_Contains (Item.Span, Span) then
-            declare
-               Info : constant GM.Type_Descriptor :=
-                 Lookup_From_Declarations (Item.Declarations);
-            begin
-               if Has_Text (Info.Name) then
-                  return Info;
-               end if;
-            end;
-
-            declare
-               Info : constant GM.Type_Descriptor :=
-                 Lookup_From_Statement_Declarations (Item.Statements);
-            begin
-               if Has_Text (Info.Name) then
-                  return Info;
-               end if;
-            end;
-         end if;
-      end loop;
-
-      return (others => <>);
-   end Lookup_Identifier_Type;
 
    function Root_Name (Expr : CM.Expr_Access) return String is
    begin
@@ -1064,82 +894,20 @@ package body Safe_Frontend.Ada_Emit is
       Prefix    : CM.Expr_Access;
       Selector  : String) return Boolean
    is
-      function Access_Target_Name (Name : String) return String is
-         function Strip_Prefix (Text : String; Prefix : String) return String is
-         begin
-            if Starts_With (Text, Prefix) and then Text'Length > Prefix'Length then
-               return Text (Text'First + Prefix'Length .. Text'Last);
-            end if;
-            return "";
-         end Strip_Prefix;
-
-         Not_Null_Access_All_Constant : constant String := "not null access all constant ";
-         Not_Null_Access_Constant     : constant String := "not null access constant ";
-         Not_Null_Access_All          : constant String := "not null access all ";
-         Not_Null_Access              : constant String := "not null access ";
-         Access_All_Constant_Prefix   : constant String := "access all constant ";
-         Access_Constant_Prefix       : constant String := "access constant ";
-         Access_All_Prefix            : constant String := "access all ";
-         Access_Prefix                : constant String := "access ";
-      begin
-         declare
-            Target_Name : constant String :=
-              (if Starts_With (Name, Not_Null_Access_All_Constant)
-               then Strip_Prefix (Name, Not_Null_Access_All_Constant)
-               elsif Starts_With (Name, Not_Null_Access_Constant)
-               then Strip_Prefix (Name, Not_Null_Access_Constant)
-               elsif Starts_With (Name, Not_Null_Access_All)
-               then Strip_Prefix (Name, Not_Null_Access_All)
-               elsif Starts_With (Name, Not_Null_Access)
-               then Strip_Prefix (Name, Not_Null_Access)
-               elsif Starts_With (Name, Access_All_Constant_Prefix)
-               then Strip_Prefix (Name, Access_All_Constant_Prefix)
-               elsif Starts_With (Name, Access_Constant_Prefix)
-               then Strip_Prefix (Name, Access_Constant_Prefix)
-               elsif Starts_With (Name, Access_All_Prefix)
-               then Strip_Prefix (Name, Access_All_Prefix)
-               elsif Starts_With (Name, Access_Prefix)
-               then Strip_Prefix (Name, Access_Prefix)
-               else "");
-         begin
-            return Target_Name;
-         end;
-      end Access_Target_Name;
-
       Prefix_Type : GM.Type_Descriptor;
-      Identifier_Type : constant GM.Type_Descriptor :=
-        (if Prefix.Kind = CM.Expr_Ident
-         then Lookup_Identifier_Type
-           (Unit, Document, FT.To_String (Prefix.Name), Prefix.Span)
-         else (others => <>));
-      Prefix_Name : constant String :=
-        (if Prefix.Kind = CM.Expr_Select
-         and then FT.To_String (Prefix.Selector) = "all"
-         and then Prefix.Prefix /= null
-         and then Has_Text (Prefix.Prefix.Type_Name)
-         then FT.To_String (Prefix.Prefix.Type_Name)
-         elsif Has_Text (Prefix.Type_Name)
-         then FT.To_String (Prefix.Type_Name)
-         else "");
    begin
       if Prefix = null or else Selector'Length = 0 then
          return False;
       end if;
 
-      if Has_Text (Identifier_Type.Name) then
-         Prefix_Type := Identifier_Type;
-      elsif Prefix_Name'Length > 0 then
-         declare
-            Target_Name : constant String := Access_Target_Name (Prefix_Name);
-         begin
-            if Has_Type (Unit, Document, Prefix_Name) then
-               Prefix_Type := Lookup_Type (Unit, Document, Prefix_Name);
-            elsif Target_Name'Length > 0 and then Has_Type (Unit, Document, Target_Name) then
-               Prefix_Type := Lookup_Type (Unit, Document, Target_Name);
-            else
-               return False;
-            end if;
-         end;
+      if Prefix.Kind = CM.Expr_Select
+        and then FT.To_String (Prefix.Selector) = "all"
+        and then Prefix.Prefix /= null
+        and then Has_Text (Prefix.Prefix.Type_Name)
+      then
+         Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Prefix.Prefix.Type_Name));
+      elsif Has_Text (Prefix.Type_Name) then
+         Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Prefix.Type_Name));
       else
          return False;
       end if;
@@ -1172,203 +940,6 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
       return False;
    end Selector_Is_Record_Field;
-
-   function Selector_Uses_Implicit_Dereference
-     (Unit      : CM.Resolved_Unit;
-      Document  : GM.Mir_Document;
-      Prefix    : CM.Expr_Access;
-      Selector  : String) return Boolean
-   is
-   begin
-      return
-        Prefix /= null
-        and then Prefix.Kind = CM.Expr_Select
-        and then Selector'Length > 0
-        and then Prefix_Has_Access_Type (Unit, Document, Prefix)
-        and then Selector_Is_Record_Field (Unit, Document, Prefix, Selector);
-   end Selector_Uses_Implicit_Dereference;
-
-   function Prefix_Has_Access_Type
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Prefix   : CM.Expr_Access) return Boolean
-   is
-      function Access_Target_Name (Name : String) return String is
-         function Strip_Prefix (Text : String; Prefix : String) return String is
-         begin
-            if Starts_With (Text, Prefix) and then Text'Length > Prefix'Length then
-               return Text (Text'First + Prefix'Length .. Text'Last);
-            end if;
-            return "";
-         end Strip_Prefix;
-
-         Not_Null_Access_All_Constant : constant String := "not null access all constant ";
-         Not_Null_Access_Constant     : constant String := "not null access constant ";
-         Not_Null_Access_All          : constant String := "not null access all ";
-         Not_Null_Access              : constant String := "not null access ";
-         Access_All_Constant_Prefix   : constant String := "access all constant ";
-         Access_Constant_Prefix       : constant String := "access constant ";
-         Access_All_Prefix            : constant String := "access all ";
-         Access_Prefix                : constant String := "access ";
-      begin
-         return
-           (if Starts_With (Name, Not_Null_Access_All_Constant)
-            then Strip_Prefix (Name, Not_Null_Access_All_Constant)
-            elsif Starts_With (Name, Not_Null_Access_Constant)
-            then Strip_Prefix (Name, Not_Null_Access_Constant)
-            elsif Starts_With (Name, Not_Null_Access_All)
-            then Strip_Prefix (Name, Not_Null_Access_All)
-            elsif Starts_With (Name, Not_Null_Access)
-            then Strip_Prefix (Name, Not_Null_Access)
-            elsif Starts_With (Name, Access_All_Constant_Prefix)
-            then Strip_Prefix (Name, Access_All_Constant_Prefix)
-            elsif Starts_With (Name, Access_Constant_Prefix)
-            then Strip_Prefix (Name, Access_Constant_Prefix)
-            elsif Starts_With (Name, Access_All_Prefix)
-            then Strip_Prefix (Name, Access_All_Prefix)
-            elsif Starts_With (Name, Access_Prefix)
-            then Strip_Prefix (Name, Access_Prefix)
-            else "");
-      end Access_Target_Name;
-
-      function Type_Name_Is_Access (Name : String) return Boolean is
-      begin
-         return
-           Starts_With (Name, "access ")
-           or else Starts_With (Name, "not null access ")
-           or else Starts_With (Name, "access constant ")
-           or else Starts_With (Name, "not null access constant ")
-           or else Starts_With (Name, "access all ")
-           or else Starts_With (Name, "not null access all ")
-           or else Starts_With (Name, "access all constant ")
-           or else Starts_With (Name, "not null access all constant ");
-      end Type_Name_Is_Access;
-
-      function Lookup_Selected_Type
-        (Expr     : CM.Expr_Access;
-         Selector : String) return GM.Type_Descriptor
-      is
-         Prefix_Type : GM.Type_Descriptor;
-         Identifier_Type : constant GM.Type_Descriptor :=
-           (if Expr /= null and then Expr.Kind = CM.Expr_Ident
-            then Lookup_Identifier_Type (Unit, Document, FT.To_String (Expr.Name), Expr.Span)
-            else (others => <>));
-         Prefix_Name : constant String :=
-           (if Expr /= null
-            and then Expr.Kind = CM.Expr_Select
-            and then FT.To_String (Expr.Selector) = "all"
-            and then Expr.Prefix /= null
-            and then Has_Text (Expr.Prefix.Type_Name)
-            then FT.To_String (Expr.Prefix.Type_Name)
-            elsif Expr /= null and then Has_Text (Expr.Type_Name)
-            then FT.To_String (Expr.Type_Name)
-            else "");
-         Result : GM.Type_Descriptor := (others => <>);
-      begin
-         if Expr = null or else Selector'Length = 0 then
-            return Result;
-         end if;
-
-         if Has_Text (Identifier_Type.Name) then
-            Prefix_Type := Identifier_Type;
-         elsif Prefix_Name = "" then
-            return Result;
-         else
-            declare
-               Target_Name : constant String := Access_Target_Name (Prefix_Name);
-            begin
-               if Has_Type (Unit, Document, Prefix_Name) then
-                  Prefix_Type := Lookup_Type (Unit, Document, Prefix_Name);
-               elsif Target_Name'Length > 0 and then Has_Type (Unit, Document, Target_Name) then
-                  Prefix_Type := Lookup_Type (Unit, Document, Target_Name);
-               else
-                  return Result;
-               end if;
-            end;
-         end if;
-
-         if not Has_Text (Prefix_Type.Name) then
-            return Result;
-         end if;
-
-         if Is_Access_Type (Prefix_Type) and then Has_Text (Prefix_Type.Target) then
-            Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Prefix_Type.Target));
-            if not Has_Text (Prefix_Type.Name) then
-               return Result;
-            end if;
-         end if;
-
-         if Prefix_Type.Has_Discriminant
-           and then FT.To_String (Prefix_Type.Discriminant_Name) = Selector
-         then
-            if Has_Text (Prefix_Type.Discriminant_Type)
-              and then Has_Type (Unit, Document, FT.To_String (Prefix_Type.Discriminant_Type))
-            then
-               return Lookup_Type (Unit, Document, FT.To_String (Prefix_Type.Discriminant_Type));
-            end if;
-            Result.Name := Prefix_Type.Discriminant_Type;
-            return Result;
-         end if;
-
-         for Field of Prefix_Type.Fields loop
-            if FT.To_String (Field.Name) = Selector then
-               if Has_Text (Field.Type_Name)
-                 and then Has_Type (Unit, Document, FT.To_String (Field.Type_Name))
-               then
-                  return Lookup_Type (Unit, Document, FT.To_String (Field.Type_Name));
-               end if;
-               Result.Name := Field.Type_Name;
-               return Result;
-            end if;
-         end loop;
-
-         return Result;
-      end Lookup_Selected_Type;
-
-      Type_Name : constant String :=
-        (if Prefix = null or else not Has_Text (Prefix.Type_Name)
-         then ""
-         else FT.To_String (Prefix.Type_Name));
-      Identifier_Type : constant GM.Type_Descriptor :=
-        (if Prefix /= null and then Prefix.Kind = CM.Expr_Ident
-         then Lookup_Identifier_Type (Unit, Document, FT.To_String (Prefix.Name), Prefix.Span)
-         else (others => <>));
-   begin
-      if Prefix /= null and then Prefix.Kind = CM.Expr_Select then
-         declare
-            Selector_Lower : constant String := FT.Lowercase (FT.To_String (Prefix.Selector));
-            Selected_Type  : constant GM.Type_Descriptor :=
-              Lookup_Selected_Type (Prefix.Prefix, FT.To_String (Prefix.Selector));
-         begin
-            if Selector_Lower = "access" then
-               return True;
-            elsif Selector_Lower in "all" | "first" | "last" | "length" then
-               return False;
-            elsif Has_Text (Selected_Type.Name) and then Is_Access_Type (Selected_Type) then
-               return True;
-            elsif Has_Text (Selected_Type.Name)
-              and then Type_Name_Is_Access (FT.To_String (Selected_Type.Name))
-            then
-               return True;
-            else
-               return False;
-            end if;
-         end;
-      elsif Has_Text (Identifier_Type.Name) then
-         return Is_Access_Type (Identifier_Type);
-      elsif Type_Name = "" then
-         return False;
-      elsif Type_Name_Is_Access (Type_Name)
-      then
-         return True;
-      end if;
-      if Has_Type (Unit, Document, Type_Name)
-        and then Is_Access_Type (Lookup_Type (Unit, Document, Type_Name))
-      then
-         return True;
-      end if;
-      return False;
-   end Prefix_Has_Access_Type;
 
    function Is_Aspect_State_Name (Name : String) return Boolean is
    begin
@@ -1423,14 +994,14 @@ package body Safe_Frontend.Ada_Emit is
 
    function Is_Builtin_Integer_Name (Name : String) return Boolean is
    begin
-      return Name in "integer" | "natural" | "positive"
+      return Name in "Integer" | "Natural" | "Positive"
         | "Long_Long_Integer" | "Long_Long_Long_Integer"
         | "Safe_Runtime.Wide_Integer";
    end Is_Builtin_Integer_Name;
 
    function Is_Builtin_Float_Name (Name : String) return Boolean is
    begin
-      return Name in "float" | "long_float";
+      return Name in "Float" | "Long_Float";
    end Is_Builtin_Float_Name;
 
    function Base_Type
@@ -1723,9 +1294,9 @@ package body Safe_Frontend.Ada_Emit is
 
    function Default_Value_Expr (Type_Name : String) return String is
    begin
-      if Type_Name = "boolean" then
+      if Type_Name = "Boolean" then
          return "False";
-      elsif Type_Name = "float" or else Type_Name = "long_float" then
+      elsif Type_Name = "Float" or else Type_Name = "Long_Float" then
          return "0.0";
       elsif Starts_With (Type_Name, "access ")
         or else Starts_With (Type_Name, "not null access ")
@@ -2330,56 +1901,22 @@ package body Safe_Frontend.Ada_Emit is
             declare
                Prefix_Image  : constant String := Render_Expr (Unit, Document, Expr.Prefix, State);
                Selector_Name : constant String := FT.To_String (Expr.Selector);
-               Lower_Selector : constant String := FT.Lowercase (Selector_Name);
-               Prefix_Is_Access : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Prefix_Has_Access_Type (Unit, Document, Expr.Prefix);
-               Prefix_Is_Explicit_All : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Expr.Prefix.Kind = CM.Expr_Select
-                   and then FT.Lowercase (FT.To_String (Expr.Prefix.Selector)) = "all";
-               Selector_Is_Field : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Selector_Is_Record_Field
-                     (Unit, Document, Expr.Prefix, Selector_Name);
-               Selector_Uses_Implicit_Deref : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Selector_Uses_Implicit_Dereference
-                     (Unit, Document, Expr.Prefix, Selector_Name);
             begin
-               if Lower_Selector = "access"
+               if Selector_Name = "Access"
                  and then Expr.Prefix /= null
                  and then Has_Text (Expr.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
                  and then Is_Access_Type (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
                then
                   return Prefix_Image;
-               elsif Selector_Uses_Implicit_Deref
-               then
-                  return Prefix_Image & ".all." & Selector_Name;
-               elsif Prefix_Is_Access
-                 and then Selector_Is_Field
-               then
-                  return Prefix_Image & ".all." & Selector_Name;
-               elsif Prefix_Is_Explicit_All
-                 and then Selector_Is_Field
-               then
-                  return Prefix_Image & "." & Selector_Name;
                elsif Is_Attribute_Selector (Selector_Name)
+                 and then not
+                   (Expr.Prefix /= null
+                    and then Expr.Prefix.Kind = CM.Expr_Select
+                    and then FT.To_String (Expr.Prefix.Selector) = "all")
+                 and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
                then
-                  if Prefix_Is_Explicit_All
-                    and then not Selector_Is_Field
-                  then
-                     return Prefix_Image & "'" & Selector_Name;
-                  elsif Prefix_Is_Access
-                    and then Is_Access_Target_Attribute_Selector (Selector_Name)
-                  then
-                     return Prefix_Image & ".all'" & Selector_Name;
-                  elsif not Prefix_Is_Access
-                    and then not Selector_Is_Field
-                  then
-                     return Prefix_Image & "'" & Selector_Name;
-                  end if;
+                  return Prefix_Image & "'" & Selector_Name;
                elsif Expr.Prefix /= null
                  and then Selector_Name'Length > 0
                  and then Selector_Name (Selector_Name'First) in '0' .. '9'
@@ -2407,11 +1944,6 @@ package body Safe_Frontend.Ada_Emit is
                then
                   State.Needs_Ada_Strings_Unbounded := True;
                   return "Ada.Strings.Unbounded.To_String (" & Prefix_Image & ".Message)";
-               elsif Expr.Prefix /= null
-                 and then Lower_Selector /= "all"
-                 and then Prefix_Is_Access
-               then
-                  return Prefix_Image & ".all." & Selector_Name;
                end if;
                return Prefix_Image & "." & Selector_Name;
             end;
@@ -2443,7 +1975,7 @@ package body Safe_Frontend.Ada_Emit is
                Callee_Image : constant String :=
                  (if Expr.Callee /= null
                    and then Expr.Callee.Kind = CM.Expr_Select
-                   and then FT.Lowercase (FT.To_String (Expr.Callee.Selector)) = "access"
+                   and then FT.To_String (Expr.Callee.Selector) = "Access"
                    and then Expr.Callee.Prefix /= null
                    and then Has_Text (Expr.Callee.Prefix.Type_Name)
                    and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
@@ -2457,7 +1989,7 @@ package body Safe_Frontend.Ada_Emit is
                    and then not
                      (Expr.Callee.Prefix /= null
                       and then Expr.Callee.Prefix.Kind = CM.Expr_Select
-                      and then FT.Lowercase (FT.To_String (Expr.Callee.Prefix.Selector)) = "all")
+                      and then FT.To_String (Expr.Callee.Prefix.Selector) = "all")
                    and then not
                      Selector_Is_Record_Field
                        (Unit,
@@ -4218,26 +3750,10 @@ package body Safe_Frontend.Ada_Emit is
                  Render_Expr_With_Target_Substitution
                    (Unit, Document, Expr.Prefix, Target, Replacement, State, Supported);
                Selector_Name : constant String := FT.To_String (Expr.Selector);
-               Lower_Selector : constant String := FT.Lowercase (Selector_Name);
-               Prefix_Is_Access : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Prefix_Has_Access_Type (Unit, Document, Expr.Prefix);
-               Prefix_Is_Explicit_All : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Expr.Prefix.Kind = CM.Expr_Select
-                   and then FT.Lowercase (FT.To_String (Expr.Prefix.Selector)) = "all";
-               Selector_Is_Field : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Selector_Is_Record_Field
-                     (Unit, Document, Expr.Prefix, Selector_Name);
-               Selector_Uses_Implicit_Deref : constant Boolean :=
-                 Expr.Prefix /= null
-                   and then Selector_Uses_Implicit_Dereference
-                     (Unit, Document, Expr.Prefix, Selector_Name);
             begin
                if not Supported then
                   return "";
-               elsif Lower_Selector = "access"
+               elsif Selector_Name = "Access"
                  and then Expr.Prefix /= null
                  and then Has_Text (Expr.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
@@ -4245,32 +3761,14 @@ package body Safe_Frontend.Ada_Emit is
                    (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
                then
                   return Prefix_Image;
-               elsif Selector_Uses_Implicit_Deref
-               then
-                  return Prefix_Image & ".all." & Selector_Name;
-               elsif Prefix_Is_Access
-                 and then Selector_Is_Field
-               then
-                  return Prefix_Image & ".all." & Selector_Name;
-               elsif Prefix_Is_Explicit_All
-                 and then Selector_Is_Field
-               then
-                  return Prefix_Image & "." & Selector_Name;
                elsif Is_Attribute_Selector (Selector_Name)
+                 and then not
+                   (Expr.Prefix /= null
+                    and then Expr.Prefix.Kind = CM.Expr_Select
+                    and then FT.To_String (Expr.Prefix.Selector) = "all")
+                 and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
                then
-                  if Prefix_Is_Explicit_All
-                    and then not Selector_Is_Field
-                  then
-                     return Prefix_Image & "'" & Selector_Name;
-                  elsif Prefix_Is_Access
-                    and then Is_Access_Target_Attribute_Selector (Selector_Name)
-                  then
-                     return Prefix_Image & ".all'" & Selector_Name;
-                  elsif not Prefix_Is_Access
-                    and then not Selector_Is_Field
-                  then
-                     return Prefix_Image & "'" & Selector_Name;
-                  end if;
+                  return Prefix_Image & "'" & Selector_Name;
                elsif Expr.Prefix /= null
                  and then FT.Lowercase (Selector_Name) = "message"
                  and then Has_Text (Expr.Prefix.Type_Name)
@@ -4280,11 +3778,6 @@ package body Safe_Frontend.Ada_Emit is
                then
                   State.Needs_Ada_Strings_Unbounded := True;
                   return "Ada.Strings.Unbounded.To_String (" & Prefix_Image & ".Message)";
-               elsif Expr.Prefix /= null
-                 and then Lower_Selector /= "all"
-                 and then Prefix_Is_Access
-               then
-                  return Prefix_Image & ".all." & Selector_Name;
                end if;
                return Prefix_Image & "." & Selector_Name;
             end;
@@ -4334,7 +3827,7 @@ package body Safe_Frontend.Ada_Emit is
             begin
                if Expr.Callee /= null
                  and then Expr.Callee.Kind = CM.Expr_Select
-                 and then FT.Lowercase (FT.To_String (Expr.Callee.Selector)) = "access"
+                 and then FT.To_String (Expr.Callee.Selector) = "Access"
                  and then Expr.Callee.Prefix /= null
                  and then Has_Text (Expr.Callee.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
@@ -4357,7 +3850,7 @@ package body Safe_Frontend.Ada_Emit is
                  and then not
                    (Expr.Callee.Prefix /= null
                     and then Expr.Callee.Prefix.Kind = CM.Expr_Select
-                    and then FT.Lowercase (FT.To_String (Expr.Callee.Prefix.Selector)) = "all")
+                    and then FT.To_String (Expr.Callee.Prefix.Selector) = "all")
                  and then not
                    Selector_Is_Record_Field
                      (Unit,

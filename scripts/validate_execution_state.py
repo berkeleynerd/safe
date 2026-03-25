@@ -21,7 +21,7 @@ from _lib.attestation_compression import (
     merkle_root,
     verify_inclusion_proof,
 )
-from _lib.gate_manifest import BranchMode, NODES, branch_mode
+from _lib.gate_manifest import NODES
 from _lib.harness_common import (
     display_path,
     ensure_deterministic_env,
@@ -407,7 +407,6 @@ GLUE_SAFETY_AUDITED_SCRIPTS = [
     "scripts/run_pr115_statement_ergonomics.py",
     "scripts/run_pr116_meaningful_whitespace.py",
     "scripts/run_pr1162_legacy_ada_syntax_removal.py",
-    "scripts/run_pr117_reference_surface_experiments.py",
     "scripts/run_gate_pipeline.py",
     "scripts/run_local_pre_push.py",
     "scripts/validate_execution_state.py",
@@ -459,7 +458,6 @@ GLUE_SAFETY_REPORT_SCRIPTS = [
     "scripts/run_pr115_statement_ergonomics.py",
     "scripts/run_pr116_meaningful_whitespace.py",
     "scripts/run_pr1162_legacy_ada_syntax_removal.py",
-    "scripts/run_pr117_reference_surface_experiments.py",
 ]
 GLUE_SAFETY_PATH_COMMANDS = ("python3", "alr", "git")
 GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
@@ -478,7 +476,6 @@ GLUE_SAFETY_ALLOWED_SAFE_SOURCE_READERS = {
     "scripts/run_pr115_statement_ergonomics.py": "fixture source-fragment checks and emitted structural assertions for the fixed PR11.5 statement-ergonomics corpus",
     "scripts/run_pr116_meaningful_whitespace.py": "fixture source-fragment checks, migration-example checks, and emitted structural assertions for the fixed PR11.6 meaningful-whitespace corpus",
     "scripts/run_pr1162_legacy_ada_syntax_removal.py": "fixture source-fragment checks, migration-example checks, and emitted structural assertions for the fixed PR11.6.2 legacy-syntax-removal corpus",
-    "scripts/run_pr117_reference_surface_experiments.py": "fixed ownership/reference corpus checks, experiment-boundary diagnostics, migration-example checks, and emitted Ada parity comparisons for the PR11.7 reference-surface decision report",
 }
 GLUE_SAFETY_DIRECT_SAFE_READ_PATTERNS = [
     r'"[^"\n]*\.safe"\s*\)\.read_text\(',
@@ -550,15 +547,10 @@ def check_generated_output_cleanliness(
     *,
     env: dict[str, str],
     expected_snapshot: str = "",
-    generated_output_paths: Sequence[Path] | None = None,
 ) -> None:
     git = find_command("git")
-    paths = list(generated_output_paths or ())
-    if not paths:
-        paths = [
-            Path(GENERATED_OUTPUTS_POLICY["reports_root"]),
-            Path(GENERATED_OUTPUTS_POLICY["dashboard"]),
-        ]
+    reports_root = Path(GENERATED_OUTPUTS_POLICY["reports_root"])
+    dashboard = Path(GENERATED_OUTPUTS_POLICY["dashboard"])
     result = run(
         [
             git,
@@ -566,7 +558,8 @@ def check_generated_output_cleanliness(
             "--porcelain",
             "--untracked-files=no",
             "--",
-            *[str(path) for path in paths],
+            str(reports_root),
+            str(dashboard),
         ],
         cwd=REPO_ROOT,
         env=env,
@@ -607,27 +600,16 @@ def run_preflight_phase(
     authority: str,
     env: dict[str, str],
     generated_output_baseline_file: Path | None = None,
-    branch: str | None = None,
 ) -> dict[str, Any]:
     expected_snapshot = read_generated_output_baseline(path=generated_output_baseline_file)
     check_tracker_schema(tracker)
-    provisional = branch is not None and branch_mode(branch) is BranchMode.PROVISIONAL
-    if not provisional:
-        tasks = tracker["tasks"]
-        check_status_rules(tracker, tasks)
-        check_dependencies(tasks)
-        meta_sha = check_frozen_sha(tracker)
-        check_documented_sha(meta_sha)
-        check_test_distribution(tracker)
-    generated_output_paths: list[Path] | None = None
-    if provisional:
-        branch_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", branch.replace("/", "-"))
-        generated_output_paths = [Path("execution") / "staged" / branch_slug / "reports"]
-    check_generated_output_cleanliness(
-        env=env,
-        expected_snapshot=expected_snapshot,
-        generated_output_paths=generated_output_paths,
-    )
+    tasks = tracker["tasks"]
+    check_status_rules(tracker, tasks)
+    check_dependencies(tasks)
+    meta_sha = check_frozen_sha(tracker)
+    check_documented_sha(meta_sha)
+    check_test_distribution(tracker)
+    check_generated_output_cleanliness(env=env, expected_snapshot=expected_snapshot)
     return {
         "task": "execution-state",
         "phase": "preflight",
@@ -1370,8 +1352,8 @@ def attestation_chain_compression_report(
 
 def check_attestation_chain_compression(*, repo_root: Path = REPO_ROOT) -> None:
     report = attestation_chain_compression_report(repo_root=repo_root)
-    if report["manifest_node_count"] != 39:
-        fail(f"compressed manifest must contain 39 nodes, found {report['manifest_node_count']}")
+    if report["manifest_node_count"] != 38:
+        fail(f"compressed manifest must contain 38 nodes, found {report['manifest_node_count']}")
     if report["retired_manifest_nodes"]:
         fail(f"retired nodes still present in manifest: {report['retired_manifest_nodes']}")
     if report["archive_missing"]:
@@ -2303,7 +2285,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tracker", type=Path, default=TRACKER_PATH)
     parser.add_argument("--phase", choices=("full", "preflight", "final"), default="full")
-    parser.add_argument("--branch")
     parser.add_argument("--generated-root", type=Path)
     parser.add_argument("--generated-output-baseline-file", type=Path)
     parser.add_argument("--report", type=Path, default=EXECUTION_STATE_REPORT_PATH)
@@ -2320,7 +2301,6 @@ def main() -> int:
             authority=args.authority,
             env=env,
             generated_output_baseline_file=args.generated_output_baseline_file,
-            branch=args.branch,
         )
         print("execution state preflight: OK")
         return 0
@@ -2344,7 +2324,6 @@ def main() -> int:
         authority=args.authority,
         env=env,
         generated_output_baseline_file=args.generated_output_baseline_file,
-        branch=args.branch,
     )
     report = finalize_deterministic_report(
         lambda: run_final_phase(

@@ -586,8 +586,8 @@ package body Safe_Frontend.Mir_Bronze is
                Use_Spans,
                Expr.Span,
                Binding);
-        when GM.Expr_Select =>
-            if FT.Lowercase (UString_Value (Expr.Selector)) = "access" then
+         when GM.Expr_Select =>
+            if UString_Value (Expr.Selector) = "Access" then
                Root := FT.To_UString (Root_Name (Expr.Prefix));
                Full := FT.To_UString (Flatten_Name (Expr.Prefix));
                if UString_Value (Root) /= "" and then Locals.Contains (UString_Value (Root)) then

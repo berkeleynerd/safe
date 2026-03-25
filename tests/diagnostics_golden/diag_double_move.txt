@@ -10,5 +10,4 @@ neg_own_double_move.safe:22:7: error: use of moved value 'Source'
   |
   note: the source was already moved earlier on this path.
   note: rule: Safe §2.3.2 (move semantics)
-
 ------------------------------------------------------------------------

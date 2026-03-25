@@ -4,9 +4,9 @@
 
 with Provider_Channel;
 
-package unknown_imported_member_test
+package Unknown_Imported_Member_Test
 
-   task sender
+   task Sender
 
       loop
          send Provider_Channel.Unknown_Ch, 1;

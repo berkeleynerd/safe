@@ -216,7 +216,7 @@ package body Safe_Frontend.Check_Emit is
       Selector_Kind : constant String :=
         (if Expr /= null
             and then Expr.Kind = CM.Expr_Select
-            and then FT.Lowercase (FT.To_String (Expr.Selector)) in "first" | "last" | "length" | "access"
+            and then FT.To_String (Expr.Selector) in "First" | "Last" | "Length" | "Access"
          then JS.Quote ("Attribute")
          elsif Expr /= null
            and then Expr.Kind = CM.Expr_Select
@@ -730,7 +730,7 @@ package body Safe_Frontend.Check_Emit is
       Expr : constant CM.Expr_Access := new CM.Expr_Node'
         (Kind       => CM.Expr_Bool,
          Span       => Span,
-         Type_Name  => FT.To_UString ("boolean"),
+         Type_Name  => FT.To_UString ("Boolean"),
          Text       => FT.To_UString (""),
          Int_Value  => 0,
          Bool_Value => Value,
@@ -782,7 +782,7 @@ package body Safe_Frontend.Check_Emit is
                    else new CM.Expr_Node'
                      (Kind       => CM.Expr_Bool,
                       Span       => Alternative.Span,
-                      Type_Name  => FT.To_UString ("boolean"),
+                      Type_Name  => FT.To_UString ("Boolean"),
                       Bool_Value => Alternative.When_Value,
                       others     => <>))))
             & ",""span"":"

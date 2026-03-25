@@ -4,13 +4,13 @@
 --   remain writable after shadowing.
 -- Expected: ACCEPT
 
-package constant_shadow_mutable
+package Constant_Shadow_Mutable
 
-   value : constant integer = 1;
+   Value : constant Integer = 1;
 
-   function update_local
+   function Update_Local
 
-      var value : integer = 0;
-      value = 2;
+      var Value : Integer = 0;
+      Value = 2;
 
 

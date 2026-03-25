@@ -63,7 +63,7 @@ def generate_report(*, safec: Path, env: dict[str, str], scratch_root: Path | No
             )
             body_path = emitted_body_file(root_a / "ada")
             spec_path = emitted_spec_file(root_a / "ada")
-            spec_fragments = ["Depends =>", "output => raw"] if fixture.name == "rule1_parameter.safe" else []
+            spec_fragments = ["Depends =>", "Output => Raw"] if fixture.name == "rule1_parameter.safe" else []
             safe_runtime_hashes = safe_runtime_matches_template(root_a / "ada")
             fixtures.append(
                 {

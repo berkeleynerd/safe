@@ -1,10 +1,12 @@
-with provider_channel;
+with Provider_Channel;
 
-package client_channel
+package Client_Channel
 
-   task sender
+   task Sender
 
       loop
-         send provider_channel.data_ch, 1;
+         send Provider_Channel.Data_Ch, 1;
+
+
 
 

@@ -1,24 +1,24 @@
-package fibonacci
+package Fibonacci
 
-   type count is range 1 to 12;
-   type value is range 0 to 10_000;
+   type Count is range 1 to 12;
+   type Value is range 0 to 10_000;
 
-   function nth (n : count) returns value
+   function Nth (N : Count) returns Value
 
-      var previous : value = 0
-      var current  : value = 1
-      var next     : value = 0
-      if n == 1
+      var Previous : Value = 0
+      var Current  : Value = 1
+      var Next     : Value = 0
+      if N == 1
          return 0
 
 
-      for step in 2 to n
-         next = previous + current
-         previous = current
-         current = next
+      for Step in 2 to N
+         Next = Previous + Current
+         Previous = Current
+         Current = Next
 
 
-      return current
+      return Current
 
 
 

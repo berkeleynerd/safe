@@ -22,9 +22,7 @@ from _lib.harness_common import (
     run,
     write_report,
 )
-from migrate_pr116_whitespace import rewrite_safe_source as rewrite_pr116_whitespace_source
-from migrate_pr1162_legacy_syntax import rewrite_safe_source as rewrite_pr1162_legacy_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_pr117_reference_surface_source
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -265,7 +263,7 @@ def payload_ptr_type() -> dict[str, Any]:
 
 def counter_type() -> dict[str, Any]:
     return {
-        "name": "counter",
+        "name": "Counter",
         "kind": "integer",
         "low": 0,
         "high": 100,
@@ -321,12 +319,12 @@ def build_task_variable_ownership_fixture(source_path: str) -> dict[str, Any]:
     global_span = span(9, 4, 9, 24)
     assign_a_span = span(14, 10, 14, 29)
     assign_b_span = span(21, 10, 21, 29)
-    shared_ident_a = ident("shared", "counter", span(14, 10, 14, 15))
-    shared_ident_b = ident("shared", "counter", span(21, 10, 21, 15))
+    shared_ident_a = ident("Shared", "Counter", span(14, 10, 14, 15))
+    shared_ident_b = ident("Shared", "Counter", span(21, 10, 21, 15))
     return {
         "format": "mir-v2",
         "source_path": source_path,
-        "package_name": "neg_Task_Shared_Variable",
+        "package_name": "Neg_Task_Shared_Variable",
         "types": [counter],
         "channels": [],
         "graphs": [
@@ -342,7 +340,7 @@ def build_task_variable_ownership_fixture(source_path: str) -> dict[str, Any]:
                         "id": "v0",
                         "kind": "global",
                         "mode": "in",
-                        "name": "shared",
+                        "name": "Shared",
                         "ownership_role": "",
                         "scope_id": "scope0",
                         "span": global_span,
@@ -362,10 +360,10 @@ def build_task_variable_ownership_fixture(source_path: str) -> dict[str, Any]:
                                 "span": assign_a_span,
                                 "ownership_effect": "None",
                                 "target": shared_ident_a,
-                                "type": "counter",
+                                "type": "Counter",
                                 "value": binary_expr(
                                     "+",
-                                    ident("shared", "counter", span(14, 19, 14, 24)),
+                                    ident("Shared", "Counter", span(14, 19, 14, 24)),
                                     int_expr(1, "Integer", span(14, 28, 14, 28)),
                                     "Integer",
                                     span(14, 19, 14, 28),
@@ -389,7 +387,7 @@ def build_task_variable_ownership_fixture(source_path: str) -> dict[str, Any]:
                         "id": "v1",
                         "kind": "global",
                         "mode": "in",
-                        "name": "shared",
+                        "name": "Shared",
                         "ownership_role": "",
                         "scope_id": "scope0",
                         "span": global_span,
@@ -409,10 +407,10 @@ def build_task_variable_ownership_fixture(source_path: str) -> dict[str, Any]:
                                 "span": assign_b_span,
                                 "ownership_effect": "None",
                                 "target": shared_ident_b,
-                                "type": "counter",
+                                "type": "Counter",
                                 "value": binary_expr(
                                     "+",
-                                    ident("shared", "counter", span(21, 19, 21, 24)),
+                                    ident("Shared", "Counter", span(21, 19, 21, 24)),
                                     int_expr(1, "Integer", span(21, 28, 21, 28)),
                                     "Integer",
                                     span(21, 19, 21, 28),
@@ -440,12 +438,12 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
     return {
         "format": "mir-v2",
         "source_path": source_path,
-        "package_name": "neg_task_shared_subprogram_global",
+        "package_name": "Neg_Task_Shared_Subprogram_Global",
         "types": [counter],
         "channels": [],
         "graphs": [
             {
-                "name": "helper",
+                "name": "Helper",
                 "kind": "procedure",
                 "entry_bb": "bb0",
                 "span": helper_span,
@@ -455,7 +453,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                         "id": "v0",
                         "kind": "global",
                         "mode": "in",
-                        "name": "shared",
+                        "name": "Shared",
                         "ownership_role": "",
                         "scope_id": "scope0",
                         "span": global_span,
@@ -474,8 +472,8 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                                 "kind": "assign",
                                 "span": global_span,
                                 "ownership_effect": "None",
-                                "target": ident("shared", "counter", global_span),
-                                "type": "counter",
+                                "target": ident("Shared", "Counter", global_span),
+                                "type": "Counter",
                                 "value": int_expr(0, "Integer", span(10, 23, 10, 23)),
                                 "declaration_init": True,
                             },
@@ -483,11 +481,11 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                                 "kind": "assign",
                                 "span": span(14, 7, 14, 26),
                                 "ownership_effect": "None",
-                                "target": ident("shared", "counter", span(14, 7, 14, 12)),
-                                "type": "counter",
+                                "target": ident("Shared", "Counter", span(14, 7, 14, 12)),
+                                "type": "Counter",
                                 "value": binary_expr(
                                     "+",
-                                    ident("shared", "counter", span(14, 16, 14, 21)),
+                                    ident("Shared", "Counter", span(14, 16, 14, 21)),
                                     int_expr(1, "Integer", span(14, 25, 14, 25)),
                                     "Integer",
                                     span(14, 16, 14, 25),
@@ -500,7 +498,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                 ],
             },
             {
-                "name": "wrapper",
+                "name": "Wrapper",
                 "kind": "procedure",
                 "entry_bb": "bb0",
                 "span": wrapper_span,
@@ -524,7 +522,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                                     "tag": "call",
                                     "span": helper_call_span,
                                     "type": "Integer",
-                                    "callee": ident("helper", "Integer", span(19, 7, 19, 12)),
+                                    "callee": ident("Helper", "Integer", span(19, 7, 19, 12)),
                                     "args": [],
                                     "call_span": helper_call_span,
                                 },
@@ -535,7 +533,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                 ],
             },
             {
-                "name": "a",
+                "name": "A",
                 "kind": "task",
                 "entry_bb": "bb0",
                 "span": task_a_span,
@@ -561,7 +559,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                                     "tag": "call",
                                     "span": span(25, 10, 25, 15),
                                     "type": "Integer",
-                                    "callee": ident("helper", "Integer", span(25, 10, 25, 15)),
+                                    "callee": ident("Helper", "Integer", span(25, 10, 25, 15)),
                                     "args": [],
                                     "call_span": span(25, 10, 25, 15),
                                 },
@@ -572,7 +570,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                 ],
             },
             {
-                "name": "b",
+                "name": "B",
                 "kind": "task",
                 "entry_bb": "bb0",
                 "span": task_b_span,
@@ -598,7 +596,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                                     "tag": "call",
                                     "span": wrapper_call_span,
                                     "type": "Integer",
-                                    "callee": ident("wrapper", "Integer", span(33, 10, 33, 16)),
+                                    "callee": ident("Wrapper", "Integer", span(33, 10, 33, 16)),
                                     "args": [],
                                     "call_span": wrapper_call_span,
                                 },
@@ -1482,13 +1480,7 @@ def write_temp_mir(path: Path, payload: dict[str, Any]) -> None:
 
 def write_temp_source(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        rewrite_pr117_reference_surface_source(
-            rewrite_pr1162_legacy_source(rewrite_pr116_whitespace_source(text)),
-            mode="combined",
-        ),
-        encoding="utf-8",
-    )
+    path.write_text(rewrite_safe_source(text), encoding="utf-8")
 
 
 def run_concurrency_parity_case(
@@ -1651,38 +1643,38 @@ def build_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[str, 
 
         task_global_evidence = evidence["tests/concurrency/task_global_owner.safe"]
         require(
-            task_global_evidence["ownership"] == [{"global_name": "shared", "task_name": "worker"}],
+            task_global_evidence["ownership"] == [{"global_name": "Shared", "task_name": "Worker"}],
             "task_global_owner.safe: ownership map drifted",
         )
-        worker_graph = next(item for item in task_global_evidence["graphs"] if item["name"] == "worker")
-        require(worker_graph["reads"] == ["shared"], "task_global_owner.safe: worker reads drifted")
-        require(worker_graph["writes"] == ["shared"], "task_global_owner.safe: worker writes drifted")
-        require(worker_graph["depends"] == [{"output_name": "global:shared", "inputs": ["global:shared"]}], "task_global_owner.safe: worker depends drifted")
-        require(task_global_evidence["initializes"] == ["shared"], "task_global_owner.safe: initializes drifted")
+        worker_graph = next(item for item in task_global_evidence["graphs"] if item["name"] == "Worker")
+        require(worker_graph["reads"] == ["Shared"], "task_global_owner.safe: Worker reads drifted")
+        require(worker_graph["writes"] == ["Shared"], "task_global_owner.safe: Worker writes drifted")
+        require(worker_graph["depends"] == [{"output_name": "global:Shared", "inputs": ["global:Shared"]}], "task_global_owner.safe: Worker depends drifted")
+        require(task_global_evidence["initializes"] == ["Shared"], "task_global_owner.safe: Initializes drifted")
 
         ceiling_evidence = evidence["tests/concurrency/channel_ceiling_priority.safe"]
         require(
-            ceiling_evidence["ceilings"] == [{"channel_name": "data_ch", "priority": 20, "task_names": ["fast", "slow"]}],
+            ceiling_evidence["ceilings"] == [{"channel_name": "Data_Ch", "priority": 20, "task_names": ["Fast", "Slow"]}],
             "channel_ceiling_priority.safe: ceiling summary drifted",
         )
-        fast_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "fast")
-        slow_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "slow")
-        push_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "push")
-        require(fast_graph["channels"] == ["data_ch"], "channel_ceiling_priority.safe: fast channel access drifted")
-        require(slow_graph["channels"] == ["data_ch"], "channel_ceiling_priority.safe: slow channel access drifted")
-        require(push_graph["channels"] == ["data_ch"], "channel_ceiling_priority.safe: push channel access drifted")
+        fast_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "Fast")
+        slow_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "Slow")
+        push_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "Push")
+        require(fast_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Fast channel access drifted")
+        require(slow_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Slow channel access drifted")
+        require(push_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Push channel access drifted")
 
         shared_callee_fixture = build_task_shared_subprogram_global_fixture(
             "tests/negative/neg_task_shared_subprogram_global.safe"
         )
         shared_callee_bronze = derive_bronze(shared_callee_fixture)
         require(
-            shared_callee_bronze["shared_globals"] == [{"global_name": "shared", "tasks": ["a", "b"]}],
+            shared_callee_bronze["shared_globals"] == [{"global_name": "Shared", "tasks": ["A", "B"]}],
             "neg_task_shared_subprogram_global.safe: shared-global Bronze summary drifted",
         )
         require(
             shared_callee_bronze["shared_callees"]
-            == [{"callee": "helper", "tasks": ["a", "b"], "globals": ["shared"]}],
+            == [{"callee": "Helper", "tasks": ["A", "B"], "globals": ["Shared"]}],
             "neg_task_shared_subprogram_global.safe: shared-callee Bronze summary drifted",
         )
         evidence["synthetic/neg_task_shared_subprogram_global"] = shared_callee_bronze

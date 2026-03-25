@@ -2,12 +2,12 @@
 -- Description: Qualified channel references require a matching with clause and interface.
 -- Expected: REJECT source_frontend_error
 
-package channel_package_not_withd_test
+package Channel_Package_Not_Withd_Test
 
-   task sender
+   task Sender
 
       loop
-         send Missing_Package.data_ch, 1;
+         send Missing_Package.Data_Ch, 1;
 
 
 

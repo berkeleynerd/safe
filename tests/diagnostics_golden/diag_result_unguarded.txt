@@ -3,11 +3,10 @@ Source: tests/negative/neg_result_unguarded.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_result_unguarded.safe:36:14: error: access to variant field 'value' requires established discriminant 'ok'
+neg_result_unguarded.safe:36:14: error: access to variant field 'Value' requires established discriminant 'OK'
   |
-  | 36 |       return r.value;  -- REJECTED: R.OK not established
+  | 36 |       return R.Value;  -- REJECTED: R.OK not established
   |    |              ^~~~~~~
   |
-  note: the discriminant 'ok' was not established on all paths before this access.
-
+  note: the discriminant 'OK' was not established on all paths before this access.
 ------------------------------------------------------------------------

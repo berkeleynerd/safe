@@ -414,11 +414,11 @@ def run_positive_case(
 
     if provider == PROVIDER_TYPES:
         require(
-            {entry["name"] for entry in provider_safei["types"]} == {"count", "handle"},
-            "provider_types: expected count and handle in safei-v1 types",
+            {entry["name"] for entry in provider_safei["types"]} == {"Count", "Handle"},
+            "provider_types: expected Count and Handle in safei-v1 types",
         )
         require(
-            provider_safei["subprograms"][0]["params"][0]["type"]["name"] == "count",
+            provider_safei["subprograms"][0]["params"][0]["type"]["name"] == "Count",
             "provider_types: expected structured parameter type in safei-v1",
         )
         require(
@@ -427,11 +427,11 @@ def run_positive_case(
             "provider_types: expected Bronze-derived public summaries in safei-v1",
         )
         require(
-            any(entry["name"] == "provider_types.handle" for entry in client_typed["types"]),
+            any(entry["name"] == "Provider_Types.Handle" for entry in client_typed["types"]),
             "client_types: expected imported incomplete type in typed-v2 output",
         )
         require(
-            any(entry["name"] == "provider_types.handle" for entry in client_mir["types"]),
+            any(entry["name"] == "Provider_Types.Handle" for entry in client_mir["types"]),
             "client_types: expected imported incomplete type in MIR output",
         )
         result["provider_contract"] = {
@@ -444,7 +444,7 @@ def run_positive_case(
             "client_imported_type_names": [
                 entry["name"]
                 for entry in client_typed["types"]
-                if entry["name"].startswith("provider_types.")
+                if entry["name"].startswith("Provider_Types.")
             ],
         }
     elif provider == PROVIDER_CHANNEL:
@@ -454,7 +454,7 @@ def run_positive_case(
         )
     elif provider == PROVIDER_OBJECT:
         require(
-            client_typed["types"][0]["name"] == "provider_object.count",
+            client_typed["types"][0]["name"] == "Provider_Object.Count",
             "client_object: imported typed-v2 types must be qualified",
         )
 
@@ -549,7 +549,6 @@ def assert_failure_parity(
     temp_root: Path,
     search_dirs: list[Path] | None = None,
     expected_reason: str | None = None,
-    ast_expected_returncode: int = 1,
 ) -> dict[str, Any]:
     reason = expected_reason or read_expected_reason(source)
 
@@ -560,7 +559,7 @@ def assert_failure_parity(
         env=env,
         temp_root=temp_root,
         search_dirs=search_dirs,
-        expected_returncode=ast_expected_returncode,
+        expected_returncode=1,
     )
     check_result = run_ast_or_check(
         safec=safec,
@@ -600,14 +599,10 @@ def assert_failure_parity(
         expected_returncode=1,
     )
 
+    ast_header = first_stderr_line(ast_result, f"{name}: ast")
     check_header = first_stderr_line(check_result, f"{name}: check")
     emit_header = first_stderr_line(emit_result, f"{name}: emit")
-    if ast_expected_returncode == 1:
-        ast_header = first_stderr_line(ast_result, f"{name}: ast")
-        require(ast_header == check_header == emit_header, f"{name}: first diagnostic header drifted")
-    else:
-        require(not ast_result["stderr"].strip(), f"{name}: ast stderr drifted")
-        require(check_header == emit_header, f"{name}: check/emit first diagnostic header drifted")
+    require(ast_header == check_header == emit_header, f"{name}: first diagnostic header drifted")
     require(
         read_first_reason(check_diag, source) == reason,
         f"{name}: check --diag-json reason drifted",

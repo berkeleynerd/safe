@@ -8,48 +8,48 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p38:35ed84d9
 -- Expected: ACCEPT
 
-package select_with_delay_multiarm
+package Select_With_Delay_Multiarm
 
-   type message is range 1 to 10;
-   type counter is range 0 to 100;
+   type Message is range 1 to 10;
+   type Counter is range 0 to 100;
 
-   channel high_ch : message capacity 2;
-   channel low_ch  : message capacity 2;
+   channel High_Ch : Message capacity 2;
+   channel Low_Ch  : Message capacity 2;
 
-   task producer with Priority = 10
+   task Producer with Priority = 10
 
       loop
-         send high_ch, 1;
-         send low_ch, 2;
+         send High_Ch, 1;
+         send Low_Ch, 2;
          delay 0.01;
 
 
 
-   task poller with Priority = 10
-      seen : counter = 0;
+   task Poller with Priority = 10
+      Seen : Counter = 0;
 
       loop
          select
-            when high_item : message from high_ch
-               if seen <= 90
-                  seen = seen + counter (high_item);
+            when High_Item : Message from High_Ch
+               if Seen <= 90
+                  Seen = Seen + Counter (High_Item);
                else
-                  seen = 0;
+                  Seen = 0;
 
          or
-            when low_item : message from low_ch
-               if seen <= 90
-                  seen = seen + counter (low_item);
+            when Low_Item : Message from Low_Ch
+               if Seen <= 90
+                  Seen = Seen + Counter (Low_Item);
                else
-                  seen = 0;
+                  Seen = 0;
 
          or
             delay 0.05
-               seen = 0;
+               Seen = 0;
 
 
-         if seen > 95
-            seen = 0;
+         if Seen > 95
+            Seen = 0;
          else
             delay 0.001;
 

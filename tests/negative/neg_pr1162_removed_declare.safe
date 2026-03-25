@@ -1,9 +1,9 @@
-package neg_pr1162_removed_declare
+package Neg_PR1162_Removed_Declare
 
-   function build returns integer
+   function Build returns Integer
 
       declare
-         temp : integer = 1;
+         Temp : Integer = 1;
       begin
-         return temp;
+         return Temp;
       end;

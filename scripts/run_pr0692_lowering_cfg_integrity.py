@@ -24,7 +24,6 @@ from _lib.harness_common import (
     write_report,
 )
 from migrate_pr116_whitespace import rewrite_safe_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_reference_surface_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -391,7 +390,7 @@ def assert_graph_integrity(graph: dict[str, Any], *, source: str) -> dict[str, A
 
 
 def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[str, Any]:
-    graph_name = "pick" if case_name == "if_return_cfg" else "read"
+    graph_name = "Pick" if case_name == "if_return_cfg" else "Read"
     graph = graph_by_name(mir_payload, graph_name)
     summary: dict[str, Any] = {}
 
@@ -401,27 +400,27 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
         owner_assigns = assign_ops_for_name(graph, "Owner")
         require(owner_local["kind"] == "global", "package_global_owner: Owner must lower as global")
         require(
-            owner_local["type"]["name"] == "value_ptr",
-            f"package_global_owner: expected Owner type value_ptr, saw {owner_local['type']['name']!r}",
+            owner_local["type"]["name"] == "Value_Ptr",
+            f"package_global_owner: expected Owner type Value_Ptr, saw {owner_local['type']['name']!r}",
         )
         require(owner_assigns and owner_assigns[0]["declaration_init"], "package_global_owner: Owner init must be declaration_init")
         require(return_value["tag"] == "select", "package_global_owner: expected select return")
         require(
-            return_value["prefix"].get("type") == "value_ptr",
-            f"package_global_owner: expected select prefix type value_ptr, saw {return_value['prefix'].get('type')!r}",
+            return_value["prefix"].get("type") == "Value_Ptr",
+            f"package_global_owner: expected select prefix type Value_Ptr, saw {return_value['prefix'].get('type')!r}",
         )
         summary["owner_local_id"] = owner_local["id"]
 
     elif case_name == "package_global_observe":
-        read_graph = graph_by_name(mir_payload, "read")
-        helper_graph = graph_by_name(mir_payload, "read_config")
+        read_graph = graph_by_name(mir_payload, "Read")
+        helper_graph = graph_by_name(mir_payload, "Read_Config")
         owner_local = local_by_name(read_graph, "Owner")
         ref_local = local_by_name(helper_graph, "Ref")
         return_value = first_return_value(read_graph)
         require(owner_local["kind"] == "global", "package_global_observe: Owner must lower as global")
         require(
-            owner_local["type"]["name"] == "config_ptr",
-            f"package_global_observe: expected Owner type config_ptr, saw {owner_local['type']['name']!r}",
+            owner_local["type"]["name"] == "Config_Ptr",
+            f"package_global_observe: expected Owner type Config_Ptr, saw {owner_local['type']['name']!r}",
         )
         require(
             ref_local["ownership_role"] == "Observe",
@@ -429,19 +428,19 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
         )
         require(return_value["tag"] == "call", "package_global_observe: expected call return")
         require(
-            return_value["args"][0]["prefix"].get("type") == "config_ptr",
-            "package_global_observe: expected Owner.access prefix type config_ptr",
+            return_value["args"][0]["prefix"].get("type") == "Config_Ptr",
+            "package_global_observe: expected Owner.Access prefix type Config_Ptr",
         )
         summary["observe_param_id"] = ref_local["id"]
 
     elif case_name == "package_global_record":
-        current_local = local_by_name(graph, "current")
-        current_assigns = assign_ops_for_name(graph, "current")
+        current_local = local_by_name(graph, "Current")
+        current_assigns = assign_ops_for_name(graph, "Current")
         return_value = first_return_value(graph)
         require(current_local["kind"] == "global", "package_global_record: Current must lower as global")
         require(
-            current_local["type"]["name"] == "config",
-            f"package_global_record: expected current type config, saw {current_local['type']['name']!r}",
+            current_local["type"]["name"] == "Config",
+            f"package_global_record: expected Current type Config, saw {current_local['type']['name']!r}",
         )
         require(
             current_assigns and current_assigns[0]["declaration_init"],
@@ -449,46 +448,46 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
         )
         require(return_value["tag"] == "select", "package_global_record: expected select return")
         require(
-            return_value["prefix"].get("type") == "config",
-            "package_global_record: expected select prefix type config",
+            return_value["prefix"].get("type") == "Config",
+            "package_global_record: expected select prefix type Config",
         )
         summary["current_local_id"] = current_local["id"]
 
     elif case_name == "package_global_array":
-        data_local = local_by_name(graph, "data")
+        data_local = local_by_name(graph, "Data")
         return_value = first_return_value(graph)
         require(data_local["kind"] == "global", "package_global_array: Data must lower as global")
         require(
-            data_local["type"]["name"] == "table",
-            f"package_global_array: expected data type table, saw {data_local['type']['name']!r}",
+            data_local["type"]["name"] == "Table",
+            f"package_global_array: expected Data type Table, saw {data_local['type']['name']!r}",
         )
         require(
             return_value["tag"] == "resolved_index",
             f"package_global_array: expected resolved_index return, saw {return_value['tag']!r}",
         )
         require(
-            return_value["prefix"].get("type") == "table",
-            "package_global_array: expected index prefix type table",
+            return_value["prefix"].get("type") == "Table",
+            "package_global_array: expected index prefix type Table",
         )
         summary["data_local_id"] = data_local["id"]
 
     elif case_name == "nested_declare_scope":
         require(len(graph["scopes"]) == 1, "nested_declare_scope: locals now remain in the enclosing subprogram scope")
-        inner_local = local_by_name(graph, "inner")
-        copy_local = local_by_name(graph, "copy")
-        inner_assigns = assign_ops_for_name(graph, "inner")
-        copy_assigns = assign_ops_for_name(graph, "copy")
-        total_assigns = assign_ops_for_name(graph, "total")
+        inner_local = local_by_name(graph, "Inner")
+        copy_local = local_by_name(graph, "Copy")
+        inner_assigns = assign_ops_for_name(graph, "Inner")
+        copy_assigns = assign_ops_for_name(graph, "Copy")
+        total_assigns = assign_ops_for_name(graph, "Total")
         then_block = block_by_role(graph, "if_then")
         else_block = block_by_role(graph, "if_else")
         join_block = block_by_role(graph, "if_join")
-        require(inner_local["scope_id"] == "scope0", "nested_declare_scope: inner must belong to scope0")
-        require(copy_local["scope_id"] == "scope0", "nested_declare_scope: copy must belong to scope0")
-        require(inner_assigns and inner_assigns[0]["declaration_init"], "nested_declare_scope: inner init must be declaration_init")
-        require(copy_assigns and not copy_assigns[0]["declaration_init"], "nested_declare_scope: copy assignment must not be declaration_init")
+        require(inner_local["scope_id"] == "scope0", "nested_declare_scope: Inner must belong to scope0")
+        require(copy_local["scope_id"] == "scope0", "nested_declare_scope: Copy must belong to scope0")
+        require(inner_assigns and inner_assigns[0]["declaration_init"], "nested_declare_scope: Inner init must be declaration_init")
+        require(copy_assigns and not copy_assigns[0]["declaration_init"], "nested_declare_scope: Copy assignment must not be declaration_init")
         require(
             total_assigns and not total_assigns[-1]["declaration_init"],
-            "nested_declare_scope: reassigned total must not be declaration_init",
+            "nested_declare_scope: reassigned Total must not be declaration_init",
         )
         require(
             then_block["terminator"]["kind"] == "jump"
@@ -500,20 +499,20 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
 
     elif case_name == "for_loop_scope":
         scope1 = graph["scopes"][1]
-        loop_local = local_by_name(graph, "i")
+        loop_local = local_by_name(graph, "I")
         init_block = block_by_role(graph, "for_init")
         latch_block = block_by_role(graph, "for_latch")
         exit_block = block_by_role(graph, "for_exit")
-        init_assigns = assign_ops_for_name(graph, "i")
+        init_assigns = assign_ops_for_name(graph, "I")
         require(scope1["kind"] == "loop", "for_loop_scope: scope1 must be loop")
         require(scope1["parent_scope_id"] == "scope0", "for_loop_scope: loop scope must parent scope0")
-        require(loop_local["scope_id"] == "scope1", "for_loop_scope: i must belong to scope1")
+        require(loop_local["scope_id"] == "scope1", "for_loop_scope: I must belong to scope1")
         require(
-            any(op["kind"] == "assign" and op["target"]["name"] == "i" and op["declaration_init"] for op in init_block["ops"]),
+            any(op["kind"] == "assign" and op["target"]["name"] == "I" and op["declaration_init"] for op in init_block["ops"]),
             "for_loop_scope: loop init assignment must be declaration_init",
         )
         require(
-            any(op["kind"] == "assign" and op["target"]["name"] == "i" and not op["declaration_init"] for op in latch_block["ops"]),
+            any(op["kind"] == "assign" and op["target"]["name"] == "I" and not op["declaration_init"] for op in latch_block["ops"]),
             "for_loop_scope: loop latch assignment must not be declaration_init",
         )
         require(
@@ -656,10 +655,7 @@ def run_inline_cases(
     results: dict[str, Any] = {}
     for name, source_text in INLINE_CASES.items():
         source_path = temp_root / f"{name}.safe"
-        source_path.write_text(
-            rewrite_reference_surface_source(rewrite_safe_source(source_text), mode="combined"),
-            encoding="utf-8",
-        )
+        source_path.write_text(rewrite_safe_source(source_text), encoding="utf-8")
         case = run_positive_case(safec, source_path, env, temp_root)
         case["case_specific"] = assert_case_specific(name, case["mir"])
         del case["mir"]

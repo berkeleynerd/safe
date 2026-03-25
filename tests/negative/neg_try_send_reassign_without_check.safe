@@ -2,22 +2,22 @@
 -- Description: Access-typed channel elements are rejected before try_send reassignment checks run.
 -- Expected: REJECT source_frontend_error
 
-package neg_try_send_reassign_without_check
+package Neg_Try_Send_Reassign_Without_Check
 
-   type payload is record
-      value : integer;
+   type Payload is record
+      Value : Integer;
 
 
-   type payload_ptr is access payload;
+   type Payload_Ptr is access Payload;
 
-   channel data_ch : payload_ptr capacity 1;
+   channel Data_Ch : Payload_Ptr capacity 1;
 
-   function run
-      Source  : payload_ptr = new ((value = 1) as payload);
-      success : boolean = false;
+   function Run
+      Source  : Payload_Ptr = new ((Value = 1) as Payload);
+      Success : Boolean = False;
 
-      try_send data_ch, Source, success;
-      Source = new ((value = 2) as payload);
+      try_send Data_Ch, Source, Success;
+      Source = new ((Value = 2) as Payload);
 
 
 

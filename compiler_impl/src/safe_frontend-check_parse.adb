@@ -2136,9 +2136,6 @@ package body Safe_Frontend.Check_Parse is
          if Match (State, ".") then
             if Current (State).Kind in FL.Identifier | FL.Keyword | FL.Integer_Literal then
                Selector := Current (State);
-               if FT.Lowercase (FT.To_String (Selector.Lexeme)) = "all" then
-                  Reject_Removed_Source_Construct (State, "explicit dereference `.all`");
-               end if;
                Advance (State);
                Next_Result := New_Expr;
                Next_Result.Kind := CM.Expr_Select;

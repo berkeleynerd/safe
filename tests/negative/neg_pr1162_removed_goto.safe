@@ -1,6 +1,6 @@
-package neg_pr1162_removed_goto
+package Neg_PR1162_Removed_Goto
 
-   function build returns integer
+   function Build returns Integer
 
       goto Done;
       return 0;

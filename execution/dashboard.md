@@ -3,17 +3,17 @@
 - **Schema version:** `1`
 - **Frozen spec SHA:** `468cf72332724b04b7c193b4d2a3b02f1584125d`
 - **Active task:** `none`
-- **Next task:** `PR11.8`
-- **Updated at:** `2026-03-25T00:00:00Z`
+- **Next task:** `PR11.7`
+- **Updated at:** `2026-03-24T00:00:00Z`
 
 ## Repo Facts
 
 - `tests/positive`: 67
-- `tests/negative`: 134
+- `tests/negative`: 127
 - `tests/golden`: 3
 - `tests/concurrency`: 14
 - `tests/diagnostics_golden`: 22
-- **Total test corpus entries:** 240
+- **Total test corpus entries:** 233
 
 ## Task Ledger
 
@@ -67,7 +67,7 @@
 | PR11.6 | done | PR11.5 | 1 |
 | PR11.6.1 | done | PR11.6 | 1 |
 | PR11.6.2 | done | PR11.6.1 | 1 |
-| PR11.7 | done | PR11.6.2 | 1 |
+| PR11.7 | planned | PR11.6.2 | 0 |
 | PR11.8 | planned | PR11.7 | 0 |
 | PR11.8a | planned | PR11.8, PR11.3a | 0 |
 | PR11.8b | planned | PR10.5, PR10.6 | 0 |
@@ -728,15 +728,13 @@
 
 ### PR11.7 — Reference-Surface Experiments
 
-- **Status:** `done`
+- **Status:** `planned`
 - **Depends on:** PR11.6.2
 - **Blockers:** none
 - **Acceptance:**
-  - PR11.7 records separate decision outcomes for Capitalisation as Reference Signal and Implicit Dereference rather than silently bundling them into a default syntax cutover.
-  - The milestone ships an experiment-only compiler path and deterministic gate/report that evaluate reference-signal casing over a fixed ownership/reference corpus without changing the default admitted source surface.
-  - PR11.7 explicitly defers Capitalisation as Reference Signal because it requires case-significant user-name resolution and migration/tooling churn, and it also defers any stronger Implicit Dereference endorsement because the fixed corpus still exposes emitted-Ada divergence from explicit `.all` spellings; Capitalisation as Export Signal and the `move` keyword remain out of scope and unscheduled.
-- **Evidence:**
-  - `execution/reports/pr117-reference-surface-experiments-report.json`
+  - Capitalisation as Reference Signal and Implicit Dereference are evaluated as separate high-risk reference-surface experiments rather than being silently bundled into lower-risk syntax work.
+  - Admission criteria explicitly cover parser impact, readability, ownership-model consequences, and tooling fallout.
+  - Rosetta comparisons against the current ownership/reference surface support an explicit admit, defer, or abandon decision for each proposal independently.
 
 ### PR11.8 — Numeric Model
 

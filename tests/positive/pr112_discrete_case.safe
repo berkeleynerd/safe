@@ -2,12 +2,12 @@
 -- Description: Boolean and integer case statements plus direct string returns.
 -- Expected: ACCEPT
 
-package pr112_discrete_case
+package PR112_Discrete_Case
 
-   function flag_value (flag : in boolean) returns integer
+   function Flag_Value (Flag : in Boolean) returns Integer
 
-      case flag
-         when true
+      case Flag
+         when True
             return 1;
 
          when others
@@ -16,9 +16,9 @@ package pr112_discrete_case
 
 
 
-   function opcode_name (opcode : in integer) returns string
+   function Opcode_Name (Opcode : in Integer) returns String
 
-      case opcode
+      case Opcode
          when -1
             return "reset";
 

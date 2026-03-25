@@ -5,10 +5,9 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_borrow_conflict.safe:25:11: error: lender 'Owner' is frozen by an active mutable borrow
   |
-  | 25 |       v = Owner.value;  -- ERROR: lender accessed during active borrow
+  | 25 |       V = Owner.all.Value;  -- ERROR: lender accessed during active borrow
   |    |           ^~~~~
   |
   note: reads, writes, and moves of the lender are forbidden while the borrow is active.
   note: rule: Safe §2.3.3 (mutable borrow freezes lender)
-
 ------------------------------------------------------------------------

@@ -92,25 +92,25 @@ EXPECTED_PARITY_DIAGNOSTIC = {
 }
 POSITIVE_BODY_ASSERTIONS: dict[str, list[str]] = {
     "tests/positive/rule5_filter.safe": [
-        "Narrowed_Float_Value : constant Long_Float := Long_Float (result);",
+        "Narrowed_Float_Value : constant Long_Float := Long_Float (Result);",
         "pragma Assert (Narrowed_Float_Value = Narrowed_Float_Value);",
         "pragma Assert (Narrowed_Float_Value >= Long_Float'First and then Narrowed_Float_Value <= Long_Float'Last);",
-        "state.output := signal (Narrowed_Float_Value);",
+        "State.Output := Signal (Narrowed_Float_Value);",
     ],
     "tests/positive/rule5_interpolate.safe": [
-        "if long_float (t) <= 0.5 then",
-        "result := (long_float (a) + (long_float (t) * (long_float (b) - long_float (a))));",
-        "result := (long_float (b) - ((1.0 - long_float (t)) * (long_float (b) - long_float (a))));",
-        "Narrowed_Float_Value : constant Long_Float := Long_Float (result);",
+        "if Long_Float (T) <= 0.5 then",
+        "Result := (Long_Float (A) + (Long_Float (T) * (Long_Float (B) - Long_Float (A))));",
+        "Result := (Long_Float (B) - ((1.0 - Long_Float (T)) * (Long_Float (B) - Long_Float (A))));",
+        "Narrowed_Float_Value : constant Long_Float := Long_Float (Result);",
         "pragma Assert (Narrowed_Float_Value = Narrowed_Float_Value);",
         "pragma Assert (Narrowed_Float_Value >= Long_Float'First and then Narrowed_Float_Value <= Long_Float'Last);",
-        "return value (Narrowed_Float_Value);",
+        "return Value (Narrowed_Float_Value);",
     ],
     "tests/positive/rule5_normalize.safe": [
-        "Narrowed_Float_Value : constant Long_Float := Long_Float (result);",
+        "Narrowed_Float_Value : constant Long_Float := Long_Float (Result);",
         "pragma Assert (Narrowed_Float_Value = Narrowed_Float_Value);",
         "pragma Assert (Narrowed_Float_Value >= Long_Float'First and then Narrowed_Float_Value <= Long_Float'Last);",
-        "return ratio (Narrowed_Float_Value);",
+        "return Ratio (Narrowed_Float_Value);",
     ],
 }
 

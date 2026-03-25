@@ -84,8 +84,8 @@ def assert_equality_tokens(result: dict[str, Any]) -> dict[str, Any]:
     require(all(isinstance(lexeme, str) for lexeme in lexemes), "token lexemes must be strings")
 
     sequences = [
-        ["return", "s", "==", "0", ";"],
-        ["return", "s", "!=", "0", ";"],
+        ["return", "S", "==", "0", ";"],
+        ["return", "S", "!=", "0", ";"],
     ]
     for sequence in sequences:
         require(

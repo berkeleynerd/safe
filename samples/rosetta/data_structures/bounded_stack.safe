@@ -1,70 +1,70 @@
-package bounded_stack
+package Bounded_Stack
 
-   type slot is range 1 to 8;
-   type depth is range 0 to 8;
-   type item is range 0 to 255;
-   type storage is array (slot) of item;
+   type Slot is range 1 to 8;
+   type Depth is range 0 to 8;
+   type Item is range 0 to 255;
+   type Storage is array (Slot) of Item;
 
-   type stack is record
-      data : storage;
-      size : depth;
-
-
-   function reset (s : out stack)
-
-      s.size = 0
-      for i in slot
-         s.data (i) = 0
+   type Stack is record
+      Data : Storage;
+      Size : Depth;
 
 
+   function Reset (S : out Stack)
 
-   function push (s : in out stack; value : item)
-
-      var next_size : depth = s.size
-      if s.size < depth.last
-         next_size = s.size + 1
-         s.size = next_size
-         s.data (slot (next_size)) = value
+      S.Size = 0
+      for I in Slot
+         S.Data (I) = 0
 
 
 
-   function pop (s : in out stack; value : out item)
+   function Push (S : in out Stack; Value : Item)
 
-      case s.size
+      var Next_Size : Depth = S.Size
+      if S.Size < Depth.Last
+         Next_Size = S.Size + 1
+         S.Size = Next_Size
+         S.Data (Slot (Next_Size)) = Value
+
+
+
+   function Pop (S : in out Stack; Value : out Item)
+
+      case S.Size
          when 1
-            value = s.data (1)
-            s.size = 0
+            Value = S.Data (1)
+            S.Size = 0
 
          when 2
-            value = s.data (2)
-            s.size = 1
+            Value = S.Data (2)
+            S.Size = 1
 
          when 3
-            value = s.data (3)
-            s.size = 2
+            Value = S.Data (3)
+            S.Size = 2
 
          when 4
-            value = s.data (4)
-            s.size = 3
+            Value = S.Data (4)
+            S.Size = 3
 
          when 5
-            value = s.data (5)
-            s.size = 4
+            Value = S.Data (5)
+            S.Size = 4
 
          when 6
-            value = s.data (6)
-            s.size = 5
+            Value = S.Data (6)
+            S.Size = 5
 
          when 7
-            value = s.data (7)
-            s.size = 6
+            Value = S.Data (7)
+            S.Size = 6
 
          when 8
-            value = s.data (8)
-            s.size = 7
+            Value = S.Data (8)
+            S.Size = 7
 
          when others
-            value = 0
+            Value = 0
 
 
 

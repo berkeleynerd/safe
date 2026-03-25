@@ -6,17 +6,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:2ed757bd
 -- Expected: ACCEPT
 
-package ownership_early_return
+package Ownership_Early_Return
 
-   type payload is record
-      value : integer;
+   type Payload is record
+      Value : Integer;
 
 
-   type payload_ptr is access payload;
+   type Payload_Ptr is access Payload;
 
-   function read_and_exit returns integer
-      Outer : payload_ptr = new ((value = 7) as payload);
-      Inner : payload_ptr = new ((value = 9) as payload);
-      return Outer.value;
+   function Read_And_Exit returns Integer
+      Outer : Payload_Ptr = new ((Value = 7) as Payload);
+      Inner : Payload_Ptr = new ((Value = 9) as Payload);
+      return Outer.all.Value;
 
 

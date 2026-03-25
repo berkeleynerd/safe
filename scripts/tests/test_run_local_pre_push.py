@@ -67,7 +67,6 @@ class RunLocalPrePushTests(unittest.TestCase):
             git="git",
             alr="alr",
             env={},
-            branch="codex/pr114-signature-control-flow-syntax",
         )
         run_command.assert_called_once()
         self.assertEqual(run_command.call_args.args[0], ["git", "diff", "--exit-code"])
@@ -102,7 +101,6 @@ class RunLocalPrePushTests(unittest.TestCase):
             git="git",
             alr="alr",
             env={},
-            branch="codex/pr114-signature-control-flow-syntax",
         )
         run_command.assert_not_called()
 
@@ -137,7 +135,6 @@ class RunLocalPrePushTests(unittest.TestCase):
             git="git",
             alr="alr",
             env={},
-            branch="codex/pr114-signature-control-flow-syntax",
         )
 
     def test_main_verifies_full_pipeline_even_without_branch_plan(self) -> None:

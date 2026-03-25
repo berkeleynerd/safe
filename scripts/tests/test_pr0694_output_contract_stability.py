@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import run_pr0694_output_contract_stability
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 class Pr0694OutputContractStabilityTests(unittest.TestCase):
@@ -37,7 +38,9 @@ class Pr0694OutputContractStabilityTests(unittest.TestCase):
                 captured_inline_source = source
                 self.assertEqual(
                     source.read_text(encoding="utf-8"),
-                    run_pr0694_output_contract_stability.PUBLIC_INTERFACE_SOURCE,
+                    rewrite_safe_source(
+                        run_pr0694_output_contract_stability.PUBLIC_INTERFACE_SOURCE
+                    ),
                 )
             return {"source": str(source)}
 

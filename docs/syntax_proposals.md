@@ -2884,10 +2884,6 @@ declarations without `sends`/`receives` remain valid and unrestricted.
 
 # Capitalisation as Reference Signal
 
-Canonical PR11.7 outcome: deferred. This parked hard-cutover branch promotes
-the proposal into a full implementation candidate, so the examples below
-describe the branch surface rather than the mainline admitted syntax.
-
 ## Motivation
 
 In Safe's current syntax, access-typed variables look identical to value-typed
@@ -2934,9 +2930,6 @@ lowercase letter. The compiler rejects violations.
 
 ## The `move` Keyword
 
-Status after PR11.7: out of scope. PR11.7 did not advance `move`; it remains an
-unscheduled companion idea within this broader proposal family.
-
 Capitalisation answers "is this a pointer?" The `move` keyword answers "is
 this assignment destructive?"
 
@@ -2959,11 +2952,6 @@ No `copy` keyword is needed. The absence of `move` on a lowercase variable
 is the copy signal.
 
 ## Implicit Dereference
-
-Canonical PR11.7 outcome: deferred as a stronger surface recommendation. This
-parked hard-cutover branch nonetheless removes explicit `.all` from Safe source
-and uses implicit dereference as the branch surface being evaluated for future
-promotion.
 
 With capitalisation marking every reference, the `.all` explicit dereference
 is redundant and dropped:
@@ -3133,9 +3121,6 @@ casing. Both modes enforce the same uppercase-means-reference rule.
 ---
 
 # Capitalisation as Export Signal
-
-Status after PR11.7: not in milestone scope and unscheduled after the current
-PR11 roadmap.
 
 ## Motivation
 

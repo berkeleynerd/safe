@@ -2,10 +2,10 @@
 -- Description: Record fields of type String remain outside PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package neg_string_field
+package Neg_String_Field
 
-   type person is record
-      name : string;
+   type Person is record
+      Name : String;
 
 
 

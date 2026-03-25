@@ -1,4 +1,4 @@
-package neg_pr113_access_tuple_element
-   type int_access is access integer;
-   value : (int_access, integer);
+package Neg_PR113_Access_Tuple_Element
+   type Int_Access is access Integer;
+   Value : (Int_Access, Integer);
 

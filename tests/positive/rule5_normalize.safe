@@ -7,20 +7,20 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
 -- Expected: ACCEPT
 
-package vector_normalize
+package Vector_Normalize
 
-   type sample is digits 6 range -1000.0 to 1000.0;
-   type ratio is digits 6 range -1.0 to 1.0;
+   type Sample is digits 6 range -1000.0 to 1000.0;
+   type Ratio is digits 6 range -1.0 to 1.0;
 
    --  Normalize: divide by a fixed nonzero bound.
    --  Input range: -1000.0 .. 1000.0
    --  Division by 1000.0 is safe and yields a result in -1.0 .. 1.0.
    --  No NaN or infinity can arise from bounded finite inputs.
-   function normalize (value : sample) returns ratio
-      result : long_float;
+   function Normalize (Value : Sample) returns Ratio
+      Result : Long_Float;
 
-      result = long_float (value) / 1000.0;
-      return ratio (result);
+      Result = Long_Float (Value) / 1000.0;
+      return Ratio (Result);
 
 
 

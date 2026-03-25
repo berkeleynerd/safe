@@ -1,18 +1,18 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_rule4_null_deref.safe",
-  "package_name": "null_deref_test",
+  "package_name": "Null_Deref_Test",
   "types": [
     {
-      "name": "value",
+      "name": "Value",
       "kind": "integer",
       "low": 0,
       "high": 1000
     },
     {
-      "name": "value_ptr",
+      "name": "Value_Ptr",
       "kind": "access",
-      "target": "value",
+      "target": "Value",
       "not_null": false,
       "anonymous": false,
       "is_constant": false,
@@ -22,11 +22,11 @@
   ],
   "graphs": [
     {
-      "name": "read_unsafe",
+      "name": "Read_Unsafe",
       "kind": "function",
       "entry_bb": "bb0",
       "return_type": {
-        "name": "value",
+        "name": "Value",
         "kind": "integer",
         "low": 0,
         "high": 1000
@@ -46,9 +46,9 @@
             "end_col": 26
           },
           "type": {
-            "name": "value_ptr",
+            "name": "Value_Ptr",
             "kind": "access",
-            "target": "value",
+            "target": "Value",
             "not_null": false,
             "anonymous": false,
             "is_constant": false,
@@ -88,23 +88,23 @@
               "start_line": 14,
               "start_col": 7,
               "end_line": 14,
-              "end_col": 14
+              "end_col": 18
             },
             "ownership_effect": "None",
             "value": {
               "tag": "select",
               "selector": "all",
-              "type": "value",
+              "type": "Value",
               "span": {
                 "start_line": 14,
                 "start_col": 14,
                 "end_line": 14,
-                "end_col": 14
+                "end_col": 18
               },
               "prefix": {
                 "tag": "ident",
                 "name": "P",
-                "type": "value_ptr",
+                "type": "Value_Ptr",
                 "span": {
                   "start_line": 14,
                   "start_col": 14,

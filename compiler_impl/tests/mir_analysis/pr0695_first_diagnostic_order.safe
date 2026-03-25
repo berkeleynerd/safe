@@ -1,13 +1,14 @@
-package first_diagnostic_order
+package First_Diagnostic_Order
 
-   type value is range -100 to 100;
+   type Value is range -100 to 100;
 
-   function pick (a, b, c : value) returns integer
+   function Pick (A, B, C : Value) returns Integer
 
-      if a > 0
-         return integer (a) / b;
+      if A > 0
+         return Integer (A) / B;
       else
-         return integer (a) / c;
+         return Integer (A) / C;
+
 
 
 

@@ -3,9 +3,9 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p4:016e5737
 -- Expected: REJECT source_frontend_error
 
-package task_end_mismatch_test
+package Task_End_Mismatch_Test
 
-   task worker
+   task Worker
 
       begin
 

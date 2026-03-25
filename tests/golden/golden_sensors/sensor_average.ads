@@ -1,15 +1,15 @@
 pragma SPARK_Mode (On);
 
-package sensor_average
+package Sensor_Average
    with SPARK_Mode => On,
         Initializes => null
 is
    pragma Elaborate_Body;
 
-   type reading is range 0 .. 1000;
-   type sensor_count is range 1 .. 10;
-   type readings is array (sensor_count) of reading;
-   function average(data : readings) return reading with Global => null,
-            Depends => (average'Result => data);
+   type Reading is range 0 .. 1000;
+   type Sensor_Count is range 1 .. 10;
+   type Readings is array (Sensor_Count) of Reading;
+   function Average(Data : Readings) return Reading with Global => null,
+            Depends => (Average'Result => Data);
 
-end sensor_average;
+end Sensor_Average;

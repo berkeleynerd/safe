@@ -2,21 +2,21 @@
 -- Description: Access-typed channel elements are rejected before send ownership-transfer checks run.
 -- Expected: REJECT source_frontend_error
 
-package neg_send_use_after_move
+package Neg_Send_Use_After_Move
 
-   type payload is record
-      value : integer;
+   type Payload is record
+      Value : Integer;
 
 
-   type payload_ptr is access payload;
+   type Payload_Ptr is access Payload;
 
-   channel data_ch : payload_ptr capacity 1;
+   channel Data_Ch : Payload_Ptr capacity 1;
 
-   function run
-      Source : payload_ptr = new ((value = 1) as payload);
+   function Run
+      Source : Payload_Ptr = new ((Value = 1) as Payload);
 
-      send data_ch, Source;
-      Source.value = 2;
+      send Data_Ch, Source;
+      Source.all.Value = 2;
 
 
 

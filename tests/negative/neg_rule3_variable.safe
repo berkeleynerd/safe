@@ -5,14 +5,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
-package variable_div_test
+package Variable_Div_Test
 
-   type value is range 0 to 1000;
+   type Value is range 0 to 1000;
 
    --  Ratio: computes A / (B - C), but B - C may be zero when B = C.
-   function ratio (a, b, c : value) returns integer
+   function Ratio (A, B, C : Value) returns Integer
 
-      return integer (a) / (integer (b) - integer (c));  -- ERROR: B - C may be zero
+      return Integer (A) / (Integer (B) - Integer (C));  -- ERROR: B - C may be zero
 
 
 

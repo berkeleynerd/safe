@@ -1,12 +1,12 @@
-package pr115_legacy_local_decl
+package PR115_Legacy_Local_Decl
 
-   type counter is range 0 to 10;
+   type Counter is range 0 to 10;
 
-   function build returns counter
+   function Build returns Counter
 
-      current : counter = 0
-      current = 1
-      return current
+      Current : Counter = 0
+      Current = 1
+      return Current
 
 
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -45,66 +44,15 @@ from _lib.pr106_sequential import (
     sequential_proof_corpus,
 )
 from migrate_pr116_whitespace import rewrite_safe_source
-from migrate_pr117_reference_surface import (
-    collect_rename_map,
-    rewrite_code_segment,
-    rewrite_safe_source as rewrite_reference_surface_source,
-)
+
+
 DEFAULT_REPORT = (
     REPO_ROOT / "execution" / "reports" / "pr106-sequential-proof-corpus-expansion-report.json"
 )
 
 
-def normalize_expected_source_fragment(fragment: str, *, source_text: str) -> str:
-    rename_map = collect_rename_map(source_text)
-    whitespace_rewritten = rewrite_safe_source(fragment)
-    reference_rewritten = rewrite_reference_surface_source(
-        whitespace_rewritten,
-        mode="combined",
-    )
-    casefold_map = canonical_casefold_map(source_text)
-    return normalize_source_text(
-        canonicalize_fragment_identifiers(
-            rewrite_code_segment(reference_rewritten, rename_map, strip_all=True),
-            casefold_map=casefold_map,
-        )
-    )
-
-
-def canonical_casefold_map(source_text: str) -> dict[str, str]:
-    casefold_map: dict[str, str] = {}
-    for line in source_text.splitlines():
-        code = line.split("--", 1)[0]
-        for token in re.findall(r"\b[A-Za-z_]\w*\b", code):
-            casefold_map[token.lower()] = token
-    return casefold_map
-
-
-def canonicalize_fragment_identifiers(fragment: str, *, casefold_map: dict[str, str]) -> str:
-    def rewrite(match: re.Match[str]) -> str:
-        token = match.group(0)
-        return casefold_map.get(token.lower(), token)
-
-    return re.sub(r"\b[A-Za-z_]\w*\b", rewrite, fragment)
-
-
-def normalize_expected_emitted_fragment(fragment: str, *, source_text: str) -> str:
-    rename_map = collect_rename_map(source_text)
-    updated = fragment
-    if rename_map:
-        pattern = re.compile(
-            r"\b(" + "|".join(sorted((re.escape(name) for name in rename_map), key=len, reverse=True)) + r")\b"
-        )
-        updated = pattern.sub(lambda match: rename_map[match.group(1)], updated)
-    casefold_map = canonical_casefold_map(source_text)
-
-    def rewrite(match: re.Match[str]) -> str:
-        token = match.group(0)
-        if token in {"True", "False"}:
-            return token
-        return casefold_map.get(token.lower(), token)
-
-    return re.sub(r"\b[A-Za-z_]\w*\b", rewrite, updated)
+def normalize_expected_source_fragment(fragment: str) -> str:
+    return normalize_source_text(rewrite_safe_source(fragment))
 
 
 def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list[str]:
@@ -160,51 +108,20 @@ def structural_assertions_for_fixture(
     body_text = body_path.read_text(encoding="utf-8")
     spec_text = spec_path.read_text(encoding="utf-8")
     source_path = REPO_ROOT / item["fixture"]
-    source_text = source_path.read_text(encoding="utf-8")
     observed_files = emitted_ada_files(ada_dir)
     return {
         "coverage_note": item["coverage_note"],
         "source_fragments": list(
             assert_normalized_source_fragments(
                 source_path,
-                [
-                    normalize_expected_source_fragment(fragment, source_text=source_text)
-                    for fragment in normalized_source_fragments(item)
-                ],
+                [normalize_expected_source_fragment(fragment) for fragment in normalized_source_fragments(item)],
             )
         ),
-        "spec_fragments": list(
-            assert_text_fragments(
-                text=spec_text,
-                fragments=[
-                    normalize_expected_emitted_fragment(fragment, source_text=source_text)
-                    for fragment in list(item.get("spec_fragments", []))
-                ],
-                label=spec_path.name,
-            )
-        ),
-        "body_fragments": list(
-            assert_text_fragments(
-                text=body_text,
-                fragments=[
-                    normalize_expected_emitted_fragment(fragment, source_text=source_text)
-                    for fragment in list(item.get("body_fragments", []))
-                ],
-                label=body_path.name,
-            )
-        ),
+        "spec_fragments": list(assert_text_fragments(text=spec_text, fragments=list(item.get("spec_fragments", [])), label=spec_path.name)),
+        "body_fragments": list(assert_text_fragments(text=body_text, fragments=list(item.get("body_fragments", [])), label=body_path.name)),
         "spec_regexes": list(assert_regexes(text=spec_text, patterns=list(item.get("spec_regexes", [])), label=spec_path.name)),
         "body_regexes": list(assert_regexes(text=body_text, patterns=list(item.get("body_regexes", [])), label=body_path.name)),
-        "body_order": list(
-            assert_order(
-                text=body_text,
-                fragments=[
-                    normalize_expected_emitted_fragment(fragment, source_text=source_text)
-                    for fragment in list(item.get("body_order", []))
-                ],
-                label=body_path.name,
-            )
-        ),
+        "body_order": list(assert_order(text=body_text, fragments=list(item.get("body_order", [])), label=body_path.name)),
         "absent_ada_files": list(assert_absent_files(observed=observed_files, forbidden=list(item.get("absent_ada_files", [])), label=display_path(ada_dir, repo_root=REPO_ROOT))),
     }
 

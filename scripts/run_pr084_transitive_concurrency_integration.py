@@ -505,29 +505,29 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
             }
 
         require(
-            positive_results[EXISTING_CLIENT_CHANNEL.name]["bronze"]["summaries"]["sender"]["channels"]
-            == ["provider_channel.data_ch"],
+            positive_results[EXISTING_CLIENT_CHANNEL.name]["bronze"]["summaries"]["Sender"]["channels"]
+            == ["Provider_Channel.Data_Ch"],
             "direct imported channel ops must preserve the full qualified channel name",
         )
         require(
             positive_results[CLIENT_CHANNEL_PROVIDER.name]["bronze"]["ceilings"][
-                "provider_transitive_channel.data_ch"
+                "Provider_Transitive_Channel.Data_Ch"
             ]
             == 12,
             "provider required ceiling must dominate local task priorities when higher",
         )
         require(
             positive_results[CLIENT_CHANNEL_CLIENT.name]["bronze"]["ceilings"][
-                "provider_transitive_channel.data_ch"
+                "Provider_Transitive_Channel.Data_Ch"
             ]
             == 20,
             "client task priorities must dominate provider required ceiling when higher",
         )
         require(
             positive_results[CLIENT_GLOBAL_OK.name]["bronze"]["ownership"][
-                "provider_transitive_global.shared"
+                "Provider_Transitive_Global.Shared"
             ]
-            == ["worker"],
+            == ["Worker"],
             "single-task imported global ownership should stay clean and deterministic",
         )
 
@@ -576,7 +576,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
         global_base_mir = positive_results[CLIENT_GLOBAL_OK.name]["outputs"]["mir_payload"]
         synthetic_global = json.loads(json.dumps(global_base_mir))
         cloned = json.loads(json.dumps(synthetic_global["graphs"][0]))
-        cloned["name"] = "worker_2"
+        cloned["name"] = "Worker_2"
         synthetic_global["graphs"].append(cloned)
         synthetic_global_path = temp_root / "synthetic_imported_shared_global.mir.json"
         write_json(synthetic_global_path, synthetic_global)
@@ -607,14 +607,14 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
         tmp_client.write_text(
             "\n".join(
                 [
-                    "with provider_imported_call_ownership;",
+                    "with Provider_Imported_Call_Ownership;",
                     "",
-                    "package tmp_imported_inout",
+                    "package Tmp_Imported_Inout",
                     "",
-                    "   function run",
-                    "      Owner : provider_imported_call_ownership.payload_ptr = new ((value = 5) as provider_imported_call_ownership.payload);",
+                    "   function Run",
+                    "      Owner : Provider_Imported_Call_Ownership.Payload_Ptr = new ((Value = 5) as Provider_Imported_Call_Ownership.Payload);",
                     "",
-                    "      provider_imported_call_ownership.consume (Owner);",
+                    "      Provider_Imported_Call_Ownership.Consume (Owner);",
                     "",
                 ]
             ),

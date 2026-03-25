@@ -1,4 +1,5 @@
-package provider_constant_bool
+package Provider_Constant_Bool
 
-   public default_active : constant boolean = true;
+   public Default_Active : constant Boolean = True;
+
 

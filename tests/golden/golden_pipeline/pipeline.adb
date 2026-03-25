@@ -1,39 +1,39 @@
-package body pipeline with SPARK_Mode => On is
+package body Pipeline with SPARK_Mode => On is
 
-   protected body raw_ch_Channel is
-      entry Send (Value : in sample)
+   protected body Raw_Ch_Channel is
+      entry Send (Value : in Sample)
          when Count < 4 is
       begin
          Buffer (Tail) := Value;
-         if Tail = raw_ch_Index'Last then
-            Tail := raw_ch_Index'First;
+         if Tail = Raw_Ch_Index'Last then
+            Tail := Raw_Ch_Index'First;
          else
-            Tail := raw_ch_Index'Succ (Tail);
+            Tail := Raw_Ch_Index'Succ (Tail);
          end if;
          Count := Count + 1;
       end Send;
 
-      entry Receive (Value : out sample)
+      entry Receive (Value : out Sample)
          when Count > 0 is
       begin
          Value := Buffer (Head);
-         Buffer (Head) := sample'First;
-         if Head = raw_ch_Index'Last then
-            Head := raw_ch_Index'First;
+         Buffer (Head) := Sample'First;
+         if Head = Raw_Ch_Index'Last then
+            Head := Raw_Ch_Index'First;
          else
-            Head := raw_ch_Index'Succ (Head);
+            Head := Raw_Ch_Index'Succ (Head);
          end if;
          Count := Count - 1;
       end Receive;
 
-      procedure Try_Send (Value : in sample; Success : out Boolean) is
+      procedure Try_Send (Value : in Sample; Success : out Boolean) is
       begin
          if Count < 4 then
             Buffer (Tail) := Value;
-            if Tail = raw_ch_Index'Last then
-               Tail := raw_ch_Index'First;
+            if Tail = Raw_Ch_Index'Last then
+               Tail := Raw_Ch_Index'First;
             else
-               Tail := raw_ch_Index'Succ (Tail);
+               Tail := Raw_Ch_Index'Succ (Tail);
             end if;
             Count := Count + 1;
             Success := True;
@@ -42,15 +42,15 @@ package body pipeline with SPARK_Mode => On is
          end if;
       end Try_Send;
 
-      procedure Try_Receive (Value : in out sample; Success : out Boolean) is
+      procedure Try_Receive (Value : in out Sample; Success : out Boolean) is
       begin
          if Count > 0 then
             Value := Buffer (Head);
-            Buffer (Head) := sample'First;
-            if Head = raw_ch_Index'Last then
-               Head := raw_ch_Index'First;
+            Buffer (Head) := Sample'First;
+            if Head = Raw_Ch_Index'Last then
+               Head := Raw_Ch_Index'First;
             else
-               Head := raw_ch_Index'Succ (Head);
+               Head := Raw_Ch_Index'Succ (Head);
             end if;
             Count := Count - 1;
             Success := True;
@@ -58,42 +58,42 @@ package body pipeline with SPARK_Mode => On is
             Success := False;
          end if;
       end Try_Receive;
-   end raw_ch_Channel;
+   end Raw_Ch_Channel;
 
-   protected body filtered_ch_Channel is
-      entry Send (Value : in sample)
+   protected body Filtered_Ch_Channel is
+      entry Send (Value : in Sample)
          when Count < 4 is
       begin
          Buffer (Tail) := Value;
-         if Tail = filtered_ch_Index'Last then
-            Tail := filtered_ch_Index'First;
+         if Tail = Filtered_Ch_Index'Last then
+            Tail := Filtered_Ch_Index'First;
          else
-            Tail := filtered_ch_Index'Succ (Tail);
+            Tail := Filtered_Ch_Index'Succ (Tail);
          end if;
          Count := Count + 1;
       end Send;
 
-      entry Receive (Value : out sample)
+      entry Receive (Value : out Sample)
          when Count > 0 is
       begin
          Value := Buffer (Head);
-         Buffer (Head) := sample'First;
-         if Head = filtered_ch_Index'Last then
-            Head := filtered_ch_Index'First;
+         Buffer (Head) := Sample'First;
+         if Head = Filtered_Ch_Index'Last then
+            Head := Filtered_Ch_Index'First;
          else
-            Head := filtered_ch_Index'Succ (Head);
+            Head := Filtered_Ch_Index'Succ (Head);
          end if;
          Count := Count - 1;
       end Receive;
 
-      procedure Try_Send (Value : in sample; Success : out Boolean) is
+      procedure Try_Send (Value : in Sample; Success : out Boolean) is
       begin
          if Count < 4 then
             Buffer (Tail) := Value;
-            if Tail = filtered_ch_Index'Last then
-               Tail := filtered_ch_Index'First;
+            if Tail = Filtered_Ch_Index'Last then
+               Tail := Filtered_Ch_Index'First;
             else
-               Tail := filtered_ch_Index'Succ (Tail);
+               Tail := Filtered_Ch_Index'Succ (Tail);
             end if;
             Count := Count + 1;
             Success := True;
@@ -102,15 +102,15 @@ package body pipeline with SPARK_Mode => On is
          end if;
       end Try_Send;
 
-      procedure Try_Receive (Value : in out sample; Success : out Boolean) is
+      procedure Try_Receive (Value : in out Sample; Success : out Boolean) is
       begin
          if Count > 0 then
             Value := Buffer (Head);
-            Buffer (Head) := sample'First;
-            if Head = filtered_ch_Index'Last then
-               Head := filtered_ch_Index'First;
+            Buffer (Head) := Sample'First;
+            if Head = Filtered_Ch_Index'Last then
+               Head := Filtered_Ch_Index'First;
             else
-               Head := filtered_ch_Index'Succ (Head);
+               Head := Filtered_Ch_Index'Succ (Head);
             end if;
             Count := Count - 1;
             Success := True;
@@ -118,38 +118,38 @@ package body pipeline with SPARK_Mode => On is
             Success := False;
          end if;
       end Try_Receive;
-   end filtered_ch_Channel;
+   end Filtered_Ch_Channel;
 
-   task body producer is
+   task body Producer is
    begin
       loop
-         raw_ch.Send (8);
+         Raw_Ch.Send (8);
          delay 0.001;
       end loop;
-   end producer;
+   end Producer;
 
-   task body filter is
-      input : sample;
+   task body Filter is
+      Input : Sample;
    begin
       loop
-         raw_ch.Receive (input);
-         filtered_ch.Send (input);
+         Raw_Ch.Receive (Input);
+         Filtered_Ch.Send (Input);
          delay 0.001;
       end loop;
-   end filter;
+   end Filter;
 
-   task body consumer is
-      data : sample;
+   task body Consumer is
+      Data : Sample;
    begin
       loop
-         filtered_ch.Receive (data);
-         if (data > 0) then
+         Filtered_Ch.Receive (Data);
+         if (Data > 0) then
             delay 0.001;
          else
             delay 0.001;
          end if;
          delay 0.001;
       end loop;
-   end consumer;
+   end Consumer;
 
-end pipeline;
+end Pipeline;

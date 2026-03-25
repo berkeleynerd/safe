@@ -34,7 +34,8 @@ from _lib.pr09_emit import (
 )
 from _lib.pr10_emit import emit_fixture, gnatprove_emitted_ada
 from _lib.pr103_sequential import normalized_source_fragments, ownership_proof_corpus
-from migrate_pr117_reference_surface import collect_rename_map, rewrite_code_segment
+
+
 DEFAULT_REPORT = REPO_ROOT / "execution" / "reports" / "pr103-sequential-proof-expansion-report.json"
 
 def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list[str]:
@@ -42,11 +43,6 @@ def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list
     for fragment in fragments:
         require(fragment in normalized, f"{display_path(path, repo_root=REPO_ROOT)} missing source fragment: {fragment}")
     return fragments
-
-
-def normalize_expected_source_fragment(fragment: str, *, source_text: str) -> str:
-    rename_map = collect_rename_map(source_text)
-    return normalize_source_text(rewrite_code_segment(fragment, rename_map, strip_all=True))
 
 
 def verify_corpus_contract(corpus: list[dict[str, Any]]) -> dict[str, Any]:
@@ -69,18 +65,9 @@ def structural_assertions_for_fixture(
     body_text = body_path.read_text(encoding="utf-8")
     spec_text = spec_path.read_text(encoding="utf-8")
     source_path = REPO_ROOT / item["fixture"]
-    source_text = source_path.read_text(encoding="utf-8")
     return {
         "coverage_note": item["coverage_note"],
-        "source_fragments": list(
-            assert_normalized_source_fragments(
-                source_path,
-                [
-                    normalize_expected_source_fragment(fragment, source_text=source_text)
-                    for fragment in normalized_source_fragments(item)
-                ],
-            )
-        ),
+        "source_fragments": list(assert_normalized_source_fragments(source_path, list(normalized_source_fragments(item)))),
         "body_fragments": list(assert_text_fragments(text=body_text, fragments=list(item.get("body_fragments", [])), label=body_path.name)),
         "spec_fragments": list(assert_text_fragments(text=spec_text, fragments=list(item.get("spec_fragments", [])), label=spec_path.name)),
         "body_regexes": list(assert_regexes(text=body_text, patterns=list(item.get("body_regexes", [])), label=body_path.name)),

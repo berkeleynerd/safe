@@ -25,11 +25,6 @@ class DeterminismClass(str, Enum):
     LOCAL_HOST_SENSITIVE = "local_host_sensitive"
 
 
-class BranchMode(str, Enum):
-    ENFORCED = "enforced"
-    PROVISIONAL = "provisional"
-
-
 @dataclass(frozen=True)
 class Node:
     id: str
@@ -46,12 +41,6 @@ class Node:
     repo_clean_profile: str | None = None
     scratch_profile: str | None = None
     child_order: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class BranchProfile:
-    roots: tuple[str, ...]
-    mode: BranchMode = BranchMode.ENFORCED
 
 
 VALIDATE_EXECUTION_STATE_PREFLIGHT = "validate_execution_state_preflight"
@@ -196,15 +185,6 @@ NODES: tuple[Node, ...] = (
         script=_script("run_pr1162_legacy_ada_syntax_removal.py"),
         report_path=_report("pr1162-legacy-ada-syntax-removal-report.json"),
         depends_on=("pr116_meaningful_whitespace",),
-        supports_scratch_root=True,
-        scratch_profile="fixture_forest",
-    ),
-    Node(
-        id="pr117_reference_surface_experiments",
-        kind=NodeKind.GATE,
-        script=_script("run_pr117_reference_surface_experiments.py"),
-        report_path=_report("pr117-reference-surface-experiments-report.json"),
-        depends_on=("pr1162_legacy_ada_syntax_removal",),
         supports_scratch_root=True,
         scratch_profile="fixture_forest",
     ),
@@ -411,19 +391,17 @@ NODES: tuple[Node, ...] = (
 NODES_BY_ID = {node.id: node for node in NODES}
 
 
-BRANCH_ROOTS: tuple[tuple[str, BranchProfile | tuple[str, ...]], ...] = (
+BRANCH_ROOTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "codex/pr081",
-        BranchProfile(
-            roots=(
-                "pr101_comprehensive_audit",
-                "pr0694_output_contract_stability",
-                "pr0697_gate_quality",
-                "pr0699_build_reproducibility",
-                "pr06910_portability_environment",
-                "pr06911_glue_script_safety",
-                "pr06913_documentation_architecture_clarity",
-            )
+        (
+            "pr101_comprehensive_audit",
+            "pr0694_output_contract_stability",
+            "pr0697_gate_quality",
+            "pr0699_build_reproducibility",
+            "pr06910_portability_environment",
+            "pr06911_glue_script_safety",
+            "pr06913_documentation_architecture_clarity",
         ),
     ),
     (
@@ -701,69 +679,29 @@ BRANCH_ROOTS: tuple[tuple[str, BranchProfile | tuple[str, ...]], ...] = (
             "pr06913_documentation_architecture_clarity",
         ),
     ),
-    (
-        "codex/pr117",
-        BranchProfile(
-            roots=(
-                "pr111_language_eval",
-                "pr112_parser_completeness",
-                "pr113_discriminated_types",
-                "pr113a_proof_checkpoint",
-                "pr114_signature_control_flow",
-                "pr115_statement_ergonomics",
-                "pr116_meaningful_whitespace",
-                "pr1162_legacy_ada_syntax_removal",
-                "pr117_reference_surface_experiments",
-                "pr101_comprehensive_audit",
-                "pr0694_output_contract_stability",
-                "pr0697_gate_quality",
-                "pr0699_build_reproducibility",
-                "pr06910_portability_environment",
-                "pr06911_glue_script_safety",
-                "pr06913_documentation_architecture_clarity",
-            ),
-            mode=BranchMode.PROVISIONAL,
-        ),
-    ),
 )
 
 
-def _branch_profile_value(profile: BranchProfile | tuple[str, ...]) -> BranchProfile:
-    if isinstance(profile, BranchProfile):
-        return profile
-    return BranchProfile(roots=profile)
-
-
-def branch_profile(branch: str) -> BranchProfile:
-    for prefix, profile in BRANCH_ROOTS:
+def branch_roots(branch: str) -> tuple[str, ...]:
+    for prefix, roots in BRANCH_ROOTS:
         if branch == prefix or branch.startswith(prefix + "-"):
-            return _branch_profile_value(profile)
+            return roots
     if branch.startswith("codex/pr11"):
-        return BranchProfile(
-            roots=(
-                "frontend_smoke",
-                "pr101_comprehensive_audit",
-                "pr0694_output_contract_stability",
-                "pr0697_gate_quality",
-                "pr0699_build_reproducibility",
-                "pr06910_portability_environment",
-                "pr06911_glue_script_safety",
-                "pr06913_documentation_architecture_clarity",
-            )
+        return (
+            "frontend_smoke",
+            "pr101_comprehensive_audit",
+            "pr0694_output_contract_stability",
+            "pr0697_gate_quality",
+            "pr0699_build_reproducibility",
+            "pr06910_portability_environment",
+            "pr06911_glue_script_safety",
+            "pr06913_documentation_architecture_clarity",
         )
     if branch.startswith("codex/pr08") or branch.startswith("codex/pr09") or branch.startswith("codex/pr10"):
         raise RuntimeError(
             f"{branch}: no local pre-push plan is defined yet; update scripts/_lib/gate_manifest.py"
         )
-    return BranchProfile(roots=())
-
-
-def branch_roots(branch: str) -> tuple[str, ...]:
-    return branch_profile(branch).roots
-
-
-def branch_mode(branch: str) -> BranchMode:
-    return branch_profile(branch).mode
+    return ()
 
 
 def resolve_branch(branch: str) -> list[Node]:
@@ -801,8 +739,8 @@ def validate_manifest() -> None:
             raise ValueError(f"{node.id}: dependencies must appear earlier in NODES")
         seen.add(node.id)
 
-    for _prefix, profile in BRANCH_ROOTS:
-        for node_id in _branch_profile_value(profile).roots:
+    for _prefix, roots in BRANCH_ROOTS:
+        for node_id in roots:
             if node_id not in NODES_BY_ID:
                 raise ValueError(f"branch roots reference unknown node {node_id}")
 

@@ -30,7 +30,7 @@ package body Safe_Frontend.Builtin_Types is
       if With_Analysis_Metadata then
          Result.Has_Digits_Text := True;
          Result.Digits_Text :=
-           FT.To_UString ((if Name = "float" then "6" else "15"));
+           FT.To_UString ((if Name = "Float" then "6" else "15"));
          Result.Has_Float_Low_Text := True;
          Result.Float_Low_Text := FT.To_UString ("-1.0E+308");
          Result.Has_Float_High_Text := True;
@@ -41,23 +41,23 @@ package body Safe_Frontend.Builtin_Types is
 
    function Integer_Type return GM.Type_Descriptor is
    begin
-      return Make_Integer_Range_Type ("integer", -(2 ** 63), (2 ** 63) - 1);
+      return Make_Integer_Range_Type ("Integer", -(2 ** 63), (2 ** 63) - 1);
    end Integer_Type;
 
    function Natural_Type return GM.Type_Descriptor is
    begin
-      return Make_Integer_Range_Type ("natural", 0, (2 ** 63) - 1);
+      return Make_Integer_Range_Type ("Natural", 0, (2 ** 63) - 1);
    end Natural_Type;
 
    function Boolean_Type return GM.Type_Descriptor is
    begin
-      return Make_Integer_Range_Type ("boolean", 0, 1);
+      return Make_Integer_Range_Type ("Boolean", 0, 1);
    end Boolean_Type;
 
    function Character_Type return GM.Type_Descriptor is
       Result : GM.Type_Descriptor;
    begin
-      Result.Name := FT.To_UString ("character");
+      Result.Name := FT.To_UString ("Character");
       Result.Kind := FT.To_UString ("character");
       return Result;
    end Character_Type;
@@ -65,10 +65,10 @@ package body Safe_Frontend.Builtin_Types is
    function String_Type return GM.Type_Descriptor is
       Result : GM.Type_Descriptor;
    begin
-      Result.Name := FT.To_UString ("string");
+      Result.Name := FT.To_UString ("String");
       Result.Kind := FT.To_UString ("array");
       Result.Has_Component_Type := True;
-      Result.Component_Type := FT.To_UString ("character");
+      Result.Component_Type := FT.To_UString ("Character");
       Result.Unconstrained := True;
       return Result;
    end String_Type;
@@ -82,11 +82,11 @@ package body Safe_Frontend.Builtin_Types is
       Result.Is_Result_Builtin := True;
 
       Field.Name := FT.To_UString ("ok");
-      Field.Type_Name := FT.To_UString ("boolean");
+      Field.Type_Name := FT.To_UString ("Boolean");
       Result.Fields.Append (Field);
 
       Field.Name := FT.To_UString ("message");
-      Field.Type_Name := FT.To_UString ("string");
+      Field.Type_Name := FT.To_UString ("String");
       Result.Fields.Append (Field);
 
       return Result;
@@ -94,16 +94,16 @@ package body Safe_Frontend.Builtin_Types is
 
    function Float_Type (With_Analysis_Metadata : Boolean := False) return GM.Type_Descriptor is
    begin
-      return Make_Float_Type ("float", With_Analysis_Metadata);
+      return Make_Float_Type ("Float", With_Analysis_Metadata);
    end Float_Type;
 
    function Long_Float_Type (With_Analysis_Metadata : Boolean := False) return GM.Type_Descriptor is
    begin
-      return Make_Float_Type ("long_float", With_Analysis_Metadata);
+      return Make_Float_Type ("Long_Float", With_Analysis_Metadata);
    end Long_Float_Type;
 
    function Duration_Type (With_Analysis_Metadata : Boolean := False) return GM.Type_Descriptor is
    begin
-      return Make_Float_Type ("duration", With_Analysis_Metadata);
+      return Make_Float_Type ("Duration", With_Analysis_Metadata);
    end Duration_Type;
 end Safe_Frontend.Builtin_Types;

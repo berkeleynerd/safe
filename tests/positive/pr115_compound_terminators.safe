@@ -1,21 +1,21 @@
-package pr115_compound_terminators
+package PR115_Compound_Terminators
 
-   type count is range 0 to 10;
+   type Count is range 0 to 10;
 
-   function adjust (input : count) returns count
+   function Adjust (Input : Count) returns Count
 
-      var current : count = input
-      if current > 5
-         current = 5
-      else if current < 5
-         current = 4
+      var Current : Count = Input
+      if Current > 5
+         Current = 5
+      else if Current < 5
+         Current = 4
 
-      for i in 1 to 2
-         if current < 5
-            current = 5
+      for I in 1 to 2
+         if Current < 5
+            Current = 5
 
 
-      return current
+      return Current
 
 
 

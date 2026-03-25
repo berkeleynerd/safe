@@ -2,8 +2,8 @@
 -- Description: Mutable String objects remain outside the PR11.2 text subset.
 -- Expected: REJECT unsupported_source_construct
 
-package neg_string_mutable_object
+package Neg_String_Mutable_Object
 
-   name : string = "hello";
+   Name : String = "hello";
 
 

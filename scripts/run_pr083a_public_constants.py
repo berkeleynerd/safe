@@ -24,9 +24,7 @@ from _lib.harness_common import (
     stable_emitted_artifact_sha256,
     write_report,
 )
-from migrate_pr116_whitespace import rewrite_safe_source as rewrite_pr116_whitespace_source
-from migrate_pr1162_legacy_syntax import rewrite_safe_source as rewrite_pr1162_legacy_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_pr117_reference_surface_source
+from migrate_pr116_whitespace import rewrite_safe_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -522,7 +520,7 @@ def make_missing_static_value_dir(*, base_interface: Path, temp_root: Path) -> P
     target.mkdir(parents=True, exist_ok=True)
     payload = load_json(base_interface)
     for entry in payload["objects"]:
-        if entry["name"] == "max_count":
+        if entry["name"] == "Max_Count":
             entry["is_constant"] = True
             entry["static_value_kind"] = "integer"
             entry.pop("static_value", None)
@@ -535,7 +533,7 @@ def make_kind_mismatch_dir(*, base_interface: Path, temp_root: Path) -> Path:
     target.mkdir(parents=True, exist_ok=True)
     payload = load_json(base_interface)
     for entry in payload["objects"]:
-        if entry["name"] == "max_count":
+        if entry["name"] == "Max_Count":
             entry["is_constant"] = True
             entry["static_value_kind"] = "boolean"
             entry["static_value"] = 4
@@ -704,10 +702,7 @@ def run_write_to_constant_parity_case(
 
     temp_source = temp_root / f"{name}.safe"
     temp_source.write_text(
-        rewrite_pr117_reference_surface_source(
-            rewrite_pr1162_legacy_source(rewrite_pr116_whitespace_source(temp_source_text_for_parity(negative_source))),
-            mode="combined",
-        ),
+        rewrite_safe_source(temp_source_text_for_parity(negative_source)),
         encoding="utf-8",
     )
     emit_root = temp_root / f"{name}-emit"
@@ -856,21 +851,21 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
 
         int_object = require_public_constant(
             safei_payload=provider_int_safei,
-            name="max_count",
+            name="Max_Count",
             kind="integer",
             value=4,
             label="provider_constant_int",
         )
         bool_object = require_public_constant(
             safei_payload=provider_bool_safei,
-            name="default_active",
+            name="Default_Active",
             kind="boolean",
             value=True,
             label="provider_constant_bool",
         )
         unsupported_object = require_public_constant(
             safei_payload=provider_unsupported_safei,
-            name="limit",
+            name="Limit",
             kind=None,
             value=None,
             label="provider_constant_unsupported",
@@ -986,7 +981,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
             run_write_to_constant_parity_case(
                 name="write-to-constant-assign",
                 negative_source=NEG_WRITE_ASSIGN,
-                local_name="limit",
+                local_name="Limit",
                 safec=safec,
                 python=python,
                 env=env,
@@ -995,7 +990,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
             run_write_to_constant_parity_case(
                 name="write-to-constant-field",
                 negative_source=NEG_WRITE_FIELD,
-                local_name="value",
+                local_name="Value",
                 safec=safec,
                 python=python,
                 env=env,
@@ -1004,7 +999,7 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
             run_write_to_constant_parity_case(
                 name="write-to-constant-index",
                 negative_source=NEG_WRITE_INDEX,
-                local_name="data",
+                local_name="Data",
                 safec=safec,
                 python=python,
                 env=env,

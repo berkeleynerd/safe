@@ -12,7 +12,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from _lib.attestation_compression import RECEIPT_PATH, RETIRED_ARCHIVE_REPORT_PATHS, RETIRED_NODE_IDS
-from _lib.gate_manifest import BranchMode, NODES, branch_mode, resolve_branch, validate_manifest
+from _lib.gate_manifest import NODES, resolve_branch, validate_manifest
 
 
 class GateManifestTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class GateManifestTests(unittest.TestCase):
     def test_manifest_nodes_are_unique(self) -> None:
         node_ids = [node.id for node in NODES]
         self.assertEqual(len(node_ids), len(set(node_ids)))
-        self.assertEqual(len(NODES), 39)
+        self.assertEqual(len(NODES), 38)
 
     def test_manifest_topologically_valid(self) -> None:
         positions = {node.id: index for index, node in enumerate(NODES)}
@@ -207,46 +207,6 @@ class GateManifestTests(unittest.TestCase):
                 "pr06911_glue_script_safety",
                 "pr06913_documentation_architecture_clarity",
             ],
-        )
-
-    def test_branch_resolution_pr117(self) -> None:
-        self.assertEqual(
-            [node.id for node in resolve_branch("codex/pr117-reference-surface-experiments")],
-            [
-                "validate_execution_state_preflight",
-                "build_initial",
-                "pr111_language_eval",
-                "pr112_parser_completeness",
-                "pr113_discriminated_types",
-                "pr113a_proof_checkpoint",
-                "pr114_signature_control_flow",
-                "pr115_statement_ergonomics",
-                "pr116_meaningful_whitespace",
-                "pr1162_legacy_ada_syntax_removal",
-                "pr117_reference_surface_experiments",
-                "pr101_comprehensive_audit",
-                "pr0694_output_contract_stability",
-                "pr0697_gate_quality",
-                "frontend_smoke",
-                "pr0699_build_reproducibility",
-                "pr0693_runtime_boundary",
-                "pr068_ada_ast_emit_no_python",
-                "pr06910_portability_environment",
-                "pr0698_legacy_package_cleanup",
-                "pr06912_performance_scale_sanity",
-                "pr06911_glue_script_safety",
-                "pr06913_documentation_architecture_clarity",
-            ],
-        )
-
-    def test_branch_mode_pr117_is_provisional(self) -> None:
-        self.assertEqual(
-            branch_mode("codex/pr117-reference-surface-experiments"),
-            BranchMode.PROVISIONAL,
-        )
-        self.assertEqual(
-            branch_mode("codex/pr1162-legacy-ada-syntax-removal"),
-            BranchMode.ENFORCED,
         )
 
     def test_manifest_retires_historical_pr101_children(self) -> None:

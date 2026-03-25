@@ -2,26 +2,26 @@
 -- Description: Tuple-typed channel send/receive with copyable tuple elements.
 -- Expected: ACCEPT
 
-package pr113_tuple_channel
+package PR113_Tuple_Channel
 
-   channel pair_ch : (boolean, integer) capacity 1;
-   result : integer = 0;
+   channel Pair_Ch : (Boolean, Integer) capacity 1;
+   Result : Integer = 0;
 
-   task producer with Priority = 10
+   task Producer with Priority = 10
 
       loop
-         send pair_ch, (true, 41);
+         send Pair_Ch, (True, 41);
          delay 0.05;
 
 
 
-   task consumer with Priority = 10
-      payload : (boolean, integer);
+   task Consumer with Priority = 10
+      Payload : (Boolean, Integer);
 
       loop
-         receive pair_ch, payload;
-         if payload.1
-            result = payload.2;
+         receive Pair_Ch, Payload;
+         if Payload.1
+            Result = Payload.2;
 
 
 

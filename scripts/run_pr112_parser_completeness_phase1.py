@@ -37,27 +37,27 @@ POSITIVE_CASES = (
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_character_case.safe",
         "mir_tags": ("char", "string"),
-        "ada_snippets": ("case grade is", "when 'A' =>", 'return "excellent";'),
+        "ada_snippets": ("case Grade is", "when 'A' =>", 'return "excellent";'),
     },
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_discrete_case.safe",
         "mir_tags": ("string",),
-        "ada_snippets": ("case flag is", "case opcode is", "when (-1) =>", 'return "unknown";'),
+        "ada_snippets": ("case Flag is", "case Opcode is", "when (-1) =>", 'return "unknown";'),
     },
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_string_param.safe",
         "mir_tags": ("string",),
         "ada_snippets": (
-            "function echo(name : string) return string is",
-            'return echo ("hello");',
-            "return name;",
+            "function Echo(Name : String) return String is",
+            'return Echo ("hello");',
+            "return Name;",
         ),
     },
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_case_scrutinee_once.safe",
         "mir_tags": ("string",),
-        "ada_snippets": ("case read_opcode is", 'return "two";'),
-        "call_counts": {"read_opcode": 1},
+        "ada_snippets": ("case Read_Opcode is", 'return "two";'),
+        "call_counts": {"Read_Opcode": 1},
     },
 )
 

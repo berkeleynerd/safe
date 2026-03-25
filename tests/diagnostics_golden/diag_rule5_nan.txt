@@ -5,8 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule5_nan.safe:20:14: error: floating expression may be NaN at narrowing
   |
-  | 20 |       return temp (x / y);  -- ERROR: 0.0/0.0 = NaN, cannot narrow
+  | 20 |       return Temp (X / Y);  -- ERROR: 0.0/0.0 = NaN, cannot narrow
   |    |              ^~~~~~~~~~~~
   |
-
 ------------------------------------------------------------------------

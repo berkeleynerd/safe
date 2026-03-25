@@ -1,6 +1,6 @@
-package neg_pr113_float_discriminant
-   type packet (weight : float = 1.0) is
+package Neg_PR113_Float_Discriminant
+   type Packet (Weight : Float = 1.0) is
       record
-         value : integer;
+         Value : Integer;
 
 

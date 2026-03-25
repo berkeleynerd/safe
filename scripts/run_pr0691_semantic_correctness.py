@@ -25,7 +25,6 @@ from _lib.harness_common import (
     write_report,
 )
 from migrate_pr116_whitespace import rewrite_safe_source
-from migrate_pr117_reference_surface import rewrite_safe_source as rewrite_reference_surface_source
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -335,10 +334,7 @@ def emit_inline_source_case(
     dict[str, Any],
 ]:
     source = temp_root / f"{name}.safe"
-    source.write_text(
-        rewrite_reference_surface_source(rewrite_safe_source(text), mode="combined"),
-        encoding="utf-8",
-    )
+    source.write_text(rewrite_safe_source(text), encoding="utf-8")
 
     check_run = run(
         [str(safec), "check", "--diag-json", str(source)],
@@ -415,15 +411,15 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
         }
 
         if name == "package_global_observe":
-            read_graph = graph_by_name(mir_payload, "read")
-            helper_graph = graph_by_name(mir_payload, "read_config")
+            read_graph = graph_by_name(mir_payload, "Read")
+            helper_graph = graph_by_name(mir_payload, "Read_Config")
             owner_local = local_by_name(read_graph, "Owner")
             ref_local = local_by_name(helper_graph, "Ref")
             return_value = first_return_value(read_graph)
             require(owner_local["kind"] == "global", "package_global_observe: Owner must lower as global")
             require(
-                owner_local["type"]["name"] == "config_ptr",
-                f"package_global_observe: expected Owner type config_ptr, saw {owner_local['type']['name']!r}",
+                owner_local["type"]["name"] == "Config_Ptr",
+                f"package_global_observe: expected Owner type Config_Ptr, saw {owner_local['type']['name']!r}",
             )
             require(
                 ref_local["ownership_role"] == "Observe",
@@ -431,12 +427,12 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
             )
             require(return_value["tag"] == "call", "package_global_observe: expected return call expression")
             require(
-                return_value["args"][0]["tag"] == "select" and return_value["args"][0]["selector"] == "access",
-                "package_global_observe: expected Owner.access call argument",
+                return_value["args"][0]["tag"] == "select" and return_value["args"][0]["selector"] == "Access",
+                "package_global_observe: expected Owner.Access call argument",
             )
             require(
-                return_value["args"][0]["prefix"]["type"] == "config_ptr",
-                f"package_global_observe: expected Owner.access prefix type config_ptr, saw {return_value['args'][0]['prefix'].get('type')!r}",
+                return_value["args"][0]["prefix"]["type"] == "Config_Ptr",
+                f"package_global_observe: expected Owner.Access prefix type Config_Ptr, saw {return_value['args'][0]['prefix'].get('type')!r}",
             )
             result["semantic_proof"] = {
                 "owner_local": owner_local,
@@ -445,18 +441,18 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
             }
 
         if name == "package_global_record":
-            graph = graph_by_name(mir_payload, "read")
-            current_local = local_by_name(graph, "current")
+            graph = graph_by_name(mir_payload, "Read")
+            current_local = local_by_name(graph, "Current")
             return_value = first_return_value(graph)
             init_ops = [
                 op
                 for op in graph["blocks"][0]["ops"]
-                if op["kind"] == "assign" and op["target"]["name"] == "current"
+                if op["kind"] == "assign" and op["target"]["name"] == "Current"
             ]
             require(current_local["kind"] == "global", "package_global_record: Current must lower as global")
             require(
-                current_local["type"]["name"] == "config",
-                f"package_global_record: expected current type config, saw {current_local['type']['name']!r}",
+                current_local["type"]["name"] == "Config",
+                f"package_global_record: expected Current type Config, saw {current_local['type']['name']!r}",
             )
             require(
                 init_ops and init_ops[0]["declaration_init"],
@@ -464,8 +460,8 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
             )
             require(return_value["tag"] == "select", "package_global_record: expected select return")
             require(
-                return_value["prefix"]["type"] == "config",
-                f"package_global_record: expected select prefix type config, saw {return_value['prefix'].get('type')!r}",
+                return_value["prefix"]["type"] == "Config",
+                f"package_global_record: expected select prefix type Config, saw {return_value['prefix'].get('type')!r}",
             )
             result["semantic_proof"] = {
                 "current_local": current_local,
@@ -473,21 +469,21 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
             }
 
         if name == "package_global_array":
-            graph = graph_by_name(mir_payload, "read")
-            data_local = local_by_name(graph, "data")
+            graph = graph_by_name(mir_payload, "Read")
+            data_local = local_by_name(graph, "Data")
             return_value = first_return_value(graph)
             require(data_local["kind"] == "global", "package_global_array: Data must lower as global")
             require(
-                data_local["type"]["name"] == "table",
-                f"package_global_array: expected data type table, saw {data_local['type']['name']!r}",
+                data_local["type"]["name"] == "Table",
+                f"package_global_array: expected Data type Table, saw {data_local['type']['name']!r}",
             )
             require(
                 return_value["tag"] == "resolved_index",
                 f"package_global_array: expected resolved_index return, saw {return_value['tag']!r}",
             )
             require(
-                return_value["prefix"]["type"] == "table",
-                f"package_global_array: expected indexed prefix type table, saw {return_value['prefix'].get('type')!r}",
+                return_value["prefix"]["type"] == "Table",
+                f"package_global_array: expected indexed prefix type Table, saw {return_value['prefix'].get('type')!r}",
             )
             result["semantic_proof"] = {
                 "data_local": data_local,

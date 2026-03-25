@@ -10,5 +10,4 @@ neg_own_anon_reassign.safe:19:7: error: anonymous access 'Ref' may only be assig
   |
   note: borrow and observe locals are initialization-only.
   note: rule: Safe §2.3.3 / §2.3.4a (anonymous access is initialization-only)
-
 ------------------------------------------------------------------------

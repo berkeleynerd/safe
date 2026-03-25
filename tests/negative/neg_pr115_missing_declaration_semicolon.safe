@@ -1,7 +1,7 @@
-package neg_pr115_missing_declaration_semicolon
+package Neg_PR115_Missing_Declaration_Semicolon
 
-   value : integer = 0
+   Value : Integer = 0
 
-   function broken returns integer
-      return value;
+   function Broken returns Integer
+      return Value;
 

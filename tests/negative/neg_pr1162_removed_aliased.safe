@@ -1,3 +1,3 @@
-package neg_pr1162_removed_aliased
+package Neg_PR1162_Removed_Aliased
 
-   value : aliased integer = 1;
+   Value : aliased Integer = 1;

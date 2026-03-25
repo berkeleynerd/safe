@@ -5,10 +5,9 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_observe_mutate.safe:22:7: error: observer 'Observer' provides read-only access
   |
-  | 22 |       Observer.rate = 200;  -- ERROR: mutation through observer
+  | 22 |       Observer.all.Rate = 200;  -- ERROR: mutation through observer
   |    |       ^~~~~~~~
   |
   note: writes and moves through an active observer are not permitted.
   note: rule: Safe §2.3.4 (observe is read-only; source frozen for write/move)
-
 ------------------------------------------------------------------------

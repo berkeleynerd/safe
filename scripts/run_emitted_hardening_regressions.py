@@ -60,17 +60,17 @@ def ownership_early_return_regression(*, env: dict[str, str], temp_root: Path) -
     body_path = emitted_body_file(outputs["ada_dir"])
     body_text = body_path.read_text(encoding="utf-8")
     required = [
-        "Return_Value : constant integer := Outer.all.value;",
-        "Free_payload_ptr (Inner);",
-        "Free_payload_ptr (Outer);",
+        "Return_Value : constant Integer := Outer.all.Value;",
+        "Free_Payload_Ptr (Inner);",
+        "Free_Payload_Ptr (Outer);",
         "return Return_Value;",
     ]
     for fragment in required:
         require(fragment in body_text, f"{OWNERSHIP_FIXTURE}: missing emitted fragment {fragment!r}")
 
-    capture_index = body_text.index("Return_Value : constant integer := Outer.all.value;")
-    inner_index = body_text.index("Free_payload_ptr (Inner);")
-    outer_index = body_text.index("Free_payload_ptr (Outer);")
+    capture_index = body_text.index("Return_Value : constant Integer := Outer.all.Value;")
+    inner_index = body_text.index("Free_Payload_Ptr (Inner);")
+    outer_index = body_text.index("Free_Payload_Ptr (Outer);")
     return_index = body_text.index("return Return_Value;")
     require(
         capture_index < inner_index < outer_index < return_index,
@@ -117,14 +117,14 @@ def supplemental_proof_fixture(*, source: Path, env: dict[str, str], temp_root: 
         f"unexpected supplemental proof fixture: {source}",
     )
     require(
-        "procedure Try_Receive (Value : in out message; Success : out Boolean);" in spec_text,
+        "procedure Try_Receive (Value : in out Message; Success : out Boolean);" in spec_text,
         f"{source}: expected in out Try_Receive channel contract in emitted spec",
     )
     require(
-        "procedure Try_Receive (Value : in out message; Success : out Boolean) is" in body_text,
+        "procedure Try_Receive (Value : in out Message; Success : out Boolean) is" in body_text,
         f"{source}: expected in out Try_Receive channel contract in emitted body",
     )
-    require("Value := message'First;" not in body_text, f"{source}: failed Try_Receive must not write message'First")
+    require("Value := Message'First;" not in body_text, f"{source}: failed Try_Receive must not write Message'First")
     structural = ["Select_Polls", "Try_Receive (", "Success := False;"]
     prove_result = gnatprove_emitted_ada(
         ada_dir=ada_dir,

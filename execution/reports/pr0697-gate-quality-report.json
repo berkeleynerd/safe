@@ -266,8 +266,8 @@
       }
     }
   ],
-  "repeat_sha256": "184fb06e46998723e0b38341cc9ee7330b0cf03da577ff922991c80502359a13",
-  "report_sha256": "184fb06e46998723e0b38341cc9ee7330b0cf03da577ff922991c80502359a13",
+  "repeat_sha256": "0d5a5258376a2326696fa786142963c25d1ad8c17bbc6866a21077530534ae01",
+  "report_sha256": "0d5a5258376a2326696fa786142963c25d1ad8c17bbc6866a21077530534ae01",
   "status": "ok",
   "task": "PR06.9.7",
   "unit_tests": {
@@ -283,7 +283,6 @@
       "scripts.tests.test_migrate_pr115_syntax",
       "scripts.tests.test_migrate_pr1162_legacy_syntax",
       "scripts.tests.test_migrate_pr116_whitespace",
-      "scripts.tests.test_migrate_pr117_reference_surface",
       "scripts.tests.test_pr06912_performance_scale_sanity",
       "scripts.tests.test_pr0694_output_contract_stability",
       "scripts.tests.test_pr0697_gate_quality",
@@ -300,7 +299,6 @@
       "scripts.tests.test_pr115_statement_ergonomics",
       "scripts.tests.test_pr1162_legacy_ada_syntax_removal",
       "scripts.tests.test_pr116_meaningful_whitespace",
-      "scripts.tests.test_pr117_reference_surface_experiments",
       "scripts.tests.test_proof_report",
       "scripts.tests.test_render_execution_status",
       "scripts.tests.test_run_frontend_smoke",
@@ -319,7 +317,6 @@
       "scripts.tests.test_migrate_pr115_syntax",
       "scripts.tests.test_migrate_pr1162_legacy_syntax",
       "scripts.tests.test_migrate_pr116_whitespace",
-      "scripts.tests.test_migrate_pr117_reference_surface",
       "scripts.tests.test_pr06912_performance_scale_sanity",
       "scripts.tests.test_pr0694_output_contract_stability",
       "scripts.tests.test_pr0697_gate_quality",
@@ -336,7 +333,6 @@
       "scripts.tests.test_pr115_statement_ergonomics",
       "scripts.tests.test_pr1162_legacy_ada_syntax_removal",
       "scripts.tests.test_pr116_meaningful_whitespace",
-      "scripts.tests.test_pr117_reference_surface_experiments",
       "scripts.tests.test_proof_report",
       "scripts.tests.test_render_execution_status",
       "scripts.tests.test_run_frontend_smoke",
@@ -345,9 +341,9 @@
       "scripts.tests.test_validate_execution_state",
       "scripts.tests.test_validate_output_contracts"
     ],
-    "observed_count": 341,
+    "observed_count": 335,
     "returncode": 0,
-    "stderr": ".....................................................................................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 341 tests in <elapsed>\n\nOK\n",
+    "stderr": "...............................................................................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 335 tests in <elapsed>\n\nOK\n",
     "stdout": "attestation compression applied: execution/archive\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\ncompaction receipt verified: execution/compaction-receipts/pr1161-attestation-chain-compression.json\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\ncompaction receipt verified: execution/compaction-receipts/pr1161-attestation-chain-compression.json\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\n[gate-pipeline] total wall time: 0.0s\n"
   },
   "valid_output_contracts": [

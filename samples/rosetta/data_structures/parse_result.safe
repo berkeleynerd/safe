@@ -1,9 +1,9 @@
-package parse_result
+package Parse_Result
 
-   function parse_count (input : in integer) returns (result, integer)
+   function Parse_Count (Input : in Integer) returns (result, Integer)
 
-      if input >= 0
-         return (ok (), input)
+      if Input >= 0
+         return (ok (), Input)
 
       return (fail ("negative"), 0)
 
