@@ -5,14 +5,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: ACCEPT
 
-package safe_Optional
+package safe_optional
 
    type value is range 0 to 10_000;
-   type value_Ptr is access value;
+   type value_ptr is access value;
 
    --  Get_Or_Default: returns the designated value if non-null,
    --  otherwise returns a default.
-   function get_Or_Default (P : value_Ptr;
+   function get_or_default (P : value_ptr;
                             default : value) returns value
 
       if P != null
@@ -24,7 +24,7 @@ package safe_Optional
 
 
    --  Has_Value: checks if the pointer is non-null.
-   function has_Value (P : value_Ptr) returns boolean
+   function has_value (P : value_ptr) returns boolean
 
       return P != null;
 

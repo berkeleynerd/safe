@@ -40,18 +40,18 @@ OWNERSHIP_BORROW_FIXTURE = REPO_ROOT / "tests" / "positive" / "ownership_borrow.
 POSTCONDITION_CASES: list[dict[str, object]] = [
     {
         "id": "similar_name_selector",
-        "source": """package similar_Name_Post
+        "source": """package similar_name_post
 
    type payload is record
       x : integer;
-      x_Copy : integer;
+      x_copy : integer;
 
    function touch (Ref : access payload)
-      Ref.x = Ref.x_Copy + Ref.x;
+      Ref.x = Ref.x_copy + Ref.x;
 """,
         "required_spec_fragments": [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.x = (Ref.all.x_Copy + Ref.all.x'Old);",
+            "Post => Ref.all.x = (Ref.all.x_copy + Ref.all.x'Old);",
         ],
         "forbidden_fragments": [
             "Ref.all.x'Old_Copy",
@@ -60,26 +60,26 @@ POSTCONDITION_CASES: list[dict[str, object]] = [
     },
     {
         "id": "nested_selector",
-        "source": """package nested_Target_Post
+        "source": """package nested_target_post
 
    type inner is record
       value : integer;
 
    type outer is record
-      inner_Field : inner;
+      inner_field : inner;
 
    function touch (Ref : access outer)
-      Ref.inner_Field.value = Ref.inner_Field.value + 1;
+      Ref.inner_field.value = Ref.inner_field.value + 1;
 """,
         "required_spec_fragments": [
             "pragma Unevaluated_Use_Of_Old (Allow);",
-            "Post => Ref.all.inner_Field.value = (Ref.all.inner_Field.value'Old + 1);",
+            "Post => Ref.all.inner_field.value = (Ref.all.inner_field.value'Old + 1);",
         ],
         "forbidden_fragments": [],
     },
     {
         "id": "repeated_target",
-        "source": """package repeated_Target_Post
+        "source": """package repeated_target_post
 
    type payload is record
       x : integer;
@@ -95,7 +95,7 @@ POSTCONDITION_CASES: list[dict[str, object]] = [
     },
     {
         "id": "call_aggregate_target",
-        "source": """package call_Aggregate_Target_Post
+        "source": """package call_aggregate_target_post
 
    type payload is record
       x : integer;
@@ -120,33 +120,33 @@ POSTCONDITION_CASES: list[dict[str, object]] = [
 SUBTYPE_CASES: list[dict[str, object]] = [
     {
         "id": "integer_subtype_lowering",
-        "source": """package integer_Subtype_Hardening
+        "source": """package integer_subtype_hardening
 
-   subtype small_Count is integer;
+   subtype small_count is integer;
 
-   function bump (value : in out small_Count)
+   function bump (value : in out small_count)
       value = value + 1;
 """,
         "required_body_fragments": [
             "Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)",
-            "value := small_Count ((Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)));",
+            "value := small_count ((Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)));",
         ],
         "forbidden_body_fragments": [],
     },
     {
         "id": "float_subtype_no_integer_lowering",
-        "source": """package float_Subtype_Hardening
+        "source": """package float_subtype_hardening
 
-   subtype half_Component is float;
+   subtype half_component is float;
    type box is record
-      x : half_Component;
+      x : half_component;
 
-   function capture (input : box) returns half_Component
-      value : half_Component = input.x;
+   function capture (input : box) returns half_component
+      value : half_component = input.x;
       return value;
 """,
         "required_body_fragments": [
-            "value : half_Component := input.x;",
+            "value : half_component := input.x;",
         ],
         "forbidden_body_fragments": [
             "Safe_Runtime.Wide_Integer",

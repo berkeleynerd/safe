@@ -63,13 +63,13 @@ def generate_report(*, safec: Path, env: dict[str, str], scratch_root: Path | No
             if fixture.name == "ownership_early_return.safe":
                 required = [
                     "Return_Value : constant integer := Outer.all.value;",
-                    "Free_payload_Ptr (Inner);",
-                    "Free_payload_Ptr (Outer);",
+                    "Free_payload_ptr (Inner);",
+                    "Free_payload_ptr (Outer);",
                     "return Return_Value;",
                 ]
                 capture_index = body_text.find("Return_Value : constant integer := Outer.all.value;")
-                inner_index = body_text.find("Free_payload_Ptr (Inner);")
-                outer_index = body_text.find("Free_payload_Ptr (Outer);")
+                inner_index = body_text.find("Free_payload_ptr (Inner);")
+                outer_index = body_text.find("Free_payload_ptr (Outer);")
                 return_index = body_text.find("return Return_Value;")
                 require(
                     capture_index >= 0 and inner_index >= 0 and outer_index >= 0 and return_index >= 0,

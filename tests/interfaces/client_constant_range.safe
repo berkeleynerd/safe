@@ -1,6 +1,6 @@
-with provider_Constant_Int;
+with provider_constant_int;
 
-package client_Constant_Range
+package client_constant_range
 
-   type index is range 0 to provider_Constant_Int.max_Count;
+   type index is range 0 to provider_constant_int.max_count;
 

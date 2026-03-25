@@ -61,16 +61,16 @@ def ownership_early_return_regression(*, env: dict[str, str], temp_root: Path) -
     body_text = body_path.read_text(encoding="utf-8")
     required = [
         "Return_Value : constant integer := Outer.all.value;",
-        "Free_payload_Ptr (Inner);",
-        "Free_payload_Ptr (Outer);",
+        "Free_payload_ptr (Inner);",
+        "Free_payload_ptr (Outer);",
         "return Return_Value;",
     ]
     for fragment in required:
         require(fragment in body_text, f"{OWNERSHIP_FIXTURE}: missing emitted fragment {fragment!r}")
 
     capture_index = body_text.index("Return_Value : constant integer := Outer.all.value;")
-    inner_index = body_text.index("Free_payload_Ptr (Inner);")
-    outer_index = body_text.index("Free_payload_Ptr (Outer);")
+    inner_index = body_text.index("Free_payload_ptr (Inner);")
+    outer_index = body_text.index("Free_payload_ptr (Outer);")
     return_index = body_text.index("return Return_Value;")
     require(
         capture_index < inner_index < outer_index < return_index,

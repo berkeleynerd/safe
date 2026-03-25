@@ -393,7 +393,7 @@
         "returncode": 0
       },
       "observed_call_counts": {
-        "read_Opcode": 1
+        "read_opcode": 1
       },
       "observed_mir_tags": [
         "binary",
@@ -414,8 +414,8 @@
       }
     }
   ],
-  "repeat_sha256": "396d196abf7f1cfa725765e95e3b3e9ccfe834f8a9d7507a2ff4602f015661b4",
-  "report_sha256": "396d196abf7f1cfa725765e95e3b3e9ccfe834f8a9d7507a2ff4602f015661b4",
+  "repeat_sha256": "7b8e490b85e84f600431ad4255c588027abca64e08e2eceb77abf674e2bca117",
+  "report_sha256": "7b8e490b85e84f600431ad4255c588027abca64e08e2eceb77abf674e2bca117",
   "rosetta_text_samples": [
     {
       "check": {

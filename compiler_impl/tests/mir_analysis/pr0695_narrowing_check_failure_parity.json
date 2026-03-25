@@ -1,7 +1,7 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_rule1_index_fail.safe",
-  "package_name": "index_Narrow_Fail",
+  "package_name": "index_narrow_fail",
   "types": [
     {
       "name": "idx",
@@ -21,7 +21,7 @@
   ],
   "graphs": [
     {
-      "name": "index_From_Computation",
+      "name": "index_from_computation",
       "kind": "function",
       "entry_bb": "bb0",
       "return_type": {

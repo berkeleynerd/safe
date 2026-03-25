@@ -20,4 +20,5 @@ neg_rule1_overflow.safe:19:14: error: intermediate overflow in integer expressio
         range analysis, that every intermediate subexpression of an integer
         arithmetic expression stays within the 64-bit signed range, the
         expression shall be rejected with a diagnostic."
+
 ------------------------------------------------------------------------

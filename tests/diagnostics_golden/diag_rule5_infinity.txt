@@ -5,7 +5,8 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule5_infinity.safe:19:14: error: floating expression may be infinite at narrowing
   |
-  | 19 |       return bounded_Float (big / small);  -- ERROR: result may be infinity
+  | 19 |       return bounded_float (big / small);  -- ERROR: result may be infinity
   |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~
   |
+
 ------------------------------------------------------------------------

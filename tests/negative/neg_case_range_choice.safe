@@ -2,7 +2,7 @@
 -- Description: Range choices are outside the PR11.2 case subset.
 -- Expected: REJECT unsupported_source_construct
 
-package neg_Case_Range_Choice
+package neg_case_range_choice
 
    function classify (value : in integer) returns integer
 

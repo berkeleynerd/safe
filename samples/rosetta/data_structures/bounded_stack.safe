@@ -1,4 +1,4 @@
-package bounded_Stack
+package bounded_stack
 
    type slot is range 1 to 8;
    type depth is range 0 to 8;
@@ -13,18 +13,18 @@ package bounded_Stack
    function reset (s : out stack)
 
       s.size = 0
-      for I in slot
-         s.data (I) = 0
+      for i in slot
+         s.data (i) = 0
 
 
 
    function push (s : in out stack; value : item)
 
-      var next_Size : depth = s.size
+      var next_size : depth = s.size
       if s.size < depth.last
-         next_Size = s.size + 1
-         s.size = next_Size
-         s.data (slot (next_Size)) = value
+         next_size = s.size + 1
+         s.size = next_size
+         s.data (slot (next_size)) = value
 
 
 

@@ -7,20 +7,20 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p35:2ad6e64f
 -- Expected: ACCEPT
 
-package select_Priority
+package select_priority
 
    type command is range 0 to 10;
    type status is range 0 to 255;
 
-   channel High_Ch : command capacity 2;
-   channel Low_Ch  : status capacity 2;
+   channel high_ch : command capacity 2;
+   channel low_ch  : status capacity 2;
 
    --  Feeder_High: sends commands on the high-priority channel.
-   task Feeder_High
+   task feeder_high
       cmd : command = 1;
 
       loop
-         send High_Ch, cmd;
+         send high_ch, cmd;
          if cmd < 10
             cmd = cmd + 1;
          else
@@ -30,11 +30,11 @@ package select_Priority
 
 
    --  Feeder_Low: sends status on the low-priority channel.
-   task Feeder_Low
+   task feeder_low
       s : status = 0;
 
       loop
-         send Low_Ch, s;
+         send low_ch, s;
          if s < 255
             s = s + 1;
          else
@@ -45,16 +45,16 @@ package select_Priority
 
    --  Dispatcher: uses select to receive from multiple channels.
    --  High_Ch arm appears first, so it has priority when both are ready.
-   task Dispatcher
+   task dispatcher
       processed : natural = 0;
 
       loop
          select
-            when cmd : command from High_Ch
+            when cmd : command from high_ch
                --  High-priority command received.
                processed = processed + 1;
          or
-            when s : status from Low_Ch
+            when s : status from low_ch
                --  Low-priority status received.
                processed = processed + 1;
 

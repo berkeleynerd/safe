@@ -2,7 +2,7 @@
 -- Description: String equality/comparison remains outside PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package neg_String_Equality
+package neg_string_equality
 
    function same (left : in string; right : in string) returns boolean
 

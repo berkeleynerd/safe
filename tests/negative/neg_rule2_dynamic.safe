@@ -6,22 +6,22 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
-package dynamic_Index_Test
+package dynamic_index_test
 
    type idx is range 1 to 50;
    type table is array (idx) of integer;
 
    --  Compute_Index: returns some value; the compiler cannot determine range.
-   function compute_Index (seed : integer) returns integer
+   function compute_index (seed : integer) returns integer
 
       return seed * 7 + 3;
 
 
    --  Lookup_Dynamic: uses the result of Compute_Index as array index.
    --  The result of Compute_Index is not provably in 1..50.
-   function lookup_Dynamic (t : table; seed : integer) returns integer
+   function lookup_dynamic (t : table; seed : integer) returns integer
 
-      return t (idx (compute_Index (seed)));  -- ERROR: not provably in 1..50
+      return t (idx (compute_index (seed)));  -- ERROR: not provably in 1..50
 
 
 

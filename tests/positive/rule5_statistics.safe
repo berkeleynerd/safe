@@ -8,41 +8,41 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p133:0610d951
 -- Expected: ACCEPT
 
-package safe_Statistics
+package safe_statistics
 
-   type sample_Index is range 1 to 100;
-   type sample_Value is digits 6 range -1000.0 to 1000.0;
-   type sample_Array is array (sample_Index) of sample_Value;
+   type sample_index is range 1 to 100;
+   type sample_value is digits 6 range -1000.0 to 1000.0;
+   type sample_array is array (sample_index) of sample_value;
 
    --  Mean: online average update with a provably nonzero typed divisor.
    --  At each step the new mean is an interpolation between the previous
    --  mean and the new sample, so it stays within -1000..1000.
-   function mean (data : sample_Array) returns sample_Value
-      running_Mean : sample_Value = 0.0;
+   function mean (data : sample_array) returns sample_value
+      running_mean : sample_value = 0.0;
 
-      for I in sample_Index
-         running_Mean = sample_Value (
-            long_float (running_Mean)
-            + (long_float (data (I)) - long_float (running_Mean))
-            / long_float (I)
+      for i in sample_index
+         running_mean = sample_value (
+            long_float (running_mean)
+            + (long_float (data (i)) - long_float (running_mean))
+            / long_float (i)
          );
 
-      return running_Mean;
+      return running_mean;
 
 
    --  Variance: average of squared deviations from the mean.
-   function variance (data : sample_Array) returns long_float
+   function variance (data : sample_array) returns long_float
       m       : long_float;
-      sum_Sq  : long_float = 0.0;
+      sum_sq  : long_float = 0.0;
       diff    : long_float;
 
       m = long_float (mean (data));
-      for I in sample_Index
-         diff = long_float (data (I)) - m;
+      for i in sample_index
+         diff = long_float (data (i)) - m;
          --  Diff is in -2000..2000, Diff*Diff in 0..4_000_000 (finite).
-         sum_Sq = sum_Sq + diff * diff;
+         sum_sq = sum_sq + diff * diff;
 
       --  Sum_Sq is at most 100 * 4_000_000 = 400_000_000 (finite).
       --  Division by 100.0 (nonzero) yields finite result.
-      return sum_Sq / 100.0;
+      return sum_sq / 100.0;
 

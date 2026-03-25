@@ -25,4 +25,5 @@ neg_rule2_oob.safe:15:14: error: index expression not provably within array boun
         if idx >= 0 and then idx <= 7 then
            return arr (slot (idx));
         end if;
+
 ------------------------------------------------------------------------

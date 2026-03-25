@@ -1,16 +1,16 @@
-package pR115_Case_Terminator
+package pr115_case_terminator
 
    type switch is range 0 to 1;
 
    function normalize (input : switch) returns boolean
 
-      var result : boolean = False
+      var result : boolean = false
       case input
          when 0
-            result = False;
+            result = false;
 
          when others
-            result = True;
+            result = true;
 
 
       return result

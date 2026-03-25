@@ -12,7 +12,7 @@ package fibonacci
          return 0
 
 
-      for Step in 2 to n
+      for step in 2 to n
          next = previous + current
          previous = current
          current = next

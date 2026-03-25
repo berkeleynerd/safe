@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: REJECT intermediate_overflow
 
-package overflow_Test
+package overflow_test
 
    type big is range 0 to 9_999_999_999_999_999;
 

@@ -6,7 +6,7 @@
 -- Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 -- Expected: REJECT narrowing_check_failure
 
-package return_Fail
+package return_fail
 
    type small is range 0 to 100;
 

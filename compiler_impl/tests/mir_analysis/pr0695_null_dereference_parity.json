@@ -1,7 +1,7 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_rule4_null_deref.safe",
-  "package_name": "null_Deref_Test",
+  "package_name": "null_deref_test",
   "types": [
     {
       "name": "value",
@@ -10,7 +10,7 @@
       "high": 1000
     },
     {
-      "name": "value_Ptr",
+      "name": "value_ptr",
       "kind": "access",
       "target": "value",
       "not_null": false,
@@ -22,7 +22,7 @@
   ],
   "graphs": [
     {
-      "name": "read_Unsafe",
+      "name": "read_unsafe",
       "kind": "function",
       "entry_bb": "bb0",
       "return_type": {
@@ -46,7 +46,7 @@
             "end_col": 26
           },
           "type": {
-            "name": "value_Ptr",
+            "name": "value_ptr",
             "kind": "access",
             "target": "value",
             "not_null": false,
@@ -104,7 +104,7 @@
               "prefix": {
                 "tag": "ident",
                 "name": "P",
-                "type": "value_Ptr",
+                "type": "value_ptr",
                 "span": {
                   "start_line": 14,
                   "start_col": 14,

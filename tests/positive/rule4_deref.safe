@@ -4,21 +4,21 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: ACCEPT
 
-package safe_Deref
+package safe_deref
 
    type data is range 0 to 1000;
-   type data_Ptr is not null access data;
+   type data_ptr is not null access data;
 
    --  Read_Value: dereferences a not-null pointer.
    --  The access subtype Data_Ptr excludes null by declaration.
-   function read_Value (P : data_Ptr) returns data
+   function read_value (P : data_ptr) returns data
 
       --  P is of type Data_Ptr (not null access). Provably not null.
       return P;
 
 
    --  Write_Value: writes through a not-null pointer.
-   function write_Value (P : data_Ptr; v : data)
+   function write_value (P : data_ptr; v : data)
 
       --  P is provably not null.
       P = v;

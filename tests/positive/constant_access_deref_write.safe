@@ -4,17 +4,16 @@
 --   still target the designated object rather than the constant object.
 -- Expected: ACCEPT
 
-package constant_Access_Deref_Write
+package constant_access_deref_write
 
    type payload is record
       value : integer;
 
 
-   type payload_Ptr is access payload;
+   type payload_ptr is access payload;
 
-   function mutate_Through_Constant_Access
-      Ptr : constant payload_Ptr = new ((value = 1) as payload);
+   function mutate_through_constant_access
+      Ptr : constant payload_ptr = new ((value = 1) as payload);
 
       Ptr.value = 2;
-
 

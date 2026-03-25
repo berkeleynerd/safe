@@ -5,11 +5,11 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102b-diag:ddab22c8
 -- Expected: REJECT lifetime_violation
 
-package freed_Test
+package freed_test
 
    type data is range 0 to 100;
 
-   function borrow_From_Local returns not null access data
+   function borrow_from_local returns not null access data
       local : data = 42;
       return local.access;  -- ERROR: observe value cannot outlive local lender
 

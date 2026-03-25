@@ -163,11 +163,11 @@
               }
             ],
             "fields": {
-              "error": "error_Code",
+              "error": "error_code",
               "value": "integer"
             },
             "kind": "record",
-            "name": "parse_Result",
+            "name": "parse_result",
             "variant_discriminant_name": "ok",
             "variant_fields": [
               {
@@ -187,7 +187,7 @@
                 },
                 "is_others": false,
                 "name": "error",
-                "type": "error_Code",
+                "type": "error_code",
                 "when": false
               }
             ]
@@ -208,11 +208,11 @@
               }
             ],
             "fields": {
-              "error": "error_Code",
+              "error": "error_code",
               "value": "integer"
             },
             "kind": "record",
-            "name": "parse_Result",
+            "name": "parse_result",
             "variant_discriminant_name": "ok",
             "variant_fields": [
               {
@@ -231,7 +231,7 @@
                 },
                 "is_others": false,
                 "name": "error",
-                "type": "error_Code"
+                "type": "error_code"
               }
             ]
           }
@@ -676,8 +676,8 @@
       "source": "tests/negative/neg_result_mutated.safe"
     }
   ],
-  "repeat_sha256": "4749909a14ffb478cb6f6b751fb4c0653a9ebb83c96fc020ffa6553126b25636",
-  "report_sha256": "4749909a14ffb478cb6f6b751fb4c0653a9ebb83c96fc020ffa6553126b25636",
+  "repeat_sha256": "76cd3a08f36115c19e9cd44a84d390a6c55c79b6714e59aa3411554265ad6405",
+  "report_sha256": "76cd3a08f36115c19e9cd44a84d390a6c55c79b6714e59aa3411554265ad6405",
   "source_corpus": {
     "negatives": [
       {

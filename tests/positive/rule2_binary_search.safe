@@ -6,25 +6,25 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
-package binary_Search
+package binary_search
 
    type index is range 1 to 256;
    type element is range 0 to 10_000;
-   type sorted_Array is array (index) of element;
+   type sorted_array is array (index) of element;
 
    --  Search: reports whether Key is found and, when found, the index.
    --  Lo and Hi are always valid indices (type Index = 1..256).
    --  Mid = Lo + (Hi - Lo) / 2 is in Lo..Hi, hence in 1..256.
-   function search (arr : sorted_Array;
+   function search (arr : sorted_array;
                      key : element;
                      found : out boolean;
-                     found_At : out index)
+                     found_at : out index)
       lo  : index = index.first;
       hi  : index = index.last;
       mid : index;
 
-      found = False;
-      found_At = index.first;
+      found = false;
+      found_at = index.first;
       while lo <= hi
          --  Wide arithmetic: Lo + (Hi - Lo) / 2.
          --  Hi - Lo is in 0..255. (Hi - Lo)/2 is in 0..127.
@@ -33,8 +33,8 @@ package binary_Search
          mid = lo + (hi - lo) / 2;
          --  Mid is of type Index (1..256). Provably in bounds.
          if arr (mid) == key
-            found_At = mid;
-            found = True;
+            found_at = mid;
+            found = true;
             return;
          else if arr (mid) < key
             if mid == index.last

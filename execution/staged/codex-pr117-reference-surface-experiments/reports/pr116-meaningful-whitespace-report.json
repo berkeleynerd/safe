@@ -25,30 +25,30 @@
   "migration_examples": [
     {
       "forbidden_fragments": [
-        "function Adjust (Input : Count) returns Count is",
+        "function adjust (input : count) returns count is",
         "begin",
         "end if",
-        "end Adjust",
-        "end Demo"
+        "end adjust",
+        "end demo"
       ],
       "name": "control_flow_cutover",
       "required_fragments": [
-        "package Demo",
-        "function Adjust (Input : Count) returns Count",
-        "if Input > 0",
+        "package demo",
+        "function adjust (input : count) returns count",
+        "if input > 0",
         "else"
       ]
     },
     {
       "forbidden_fragments": [
-        "case Input is",
+        "case input is",
         "when 0 then",
         "when others then",
         "end case"
       ],
       "name": "case_and_select_cutover",
       "required_fragments": [
-        "case Input",
+        "case input",
         "when 0",
         "when others"
       ]
@@ -195,7 +195,7 @@
           "returns"
         ],
         "required_fragments": [
-          "function exit_Early",
+          "function exit_early",
           "return;"
         ]
       },
@@ -213,7 +213,7 @@
     {
       "ada_snippets": [
         "elsif (current < 5) then",
-        "for I in 1 .. 2 loop"
+        "for i in 1 .. 2 loop"
       ],
       "check": {
         "command": [
@@ -269,7 +269,7 @@
           "function adjust (input : count) returns count",
           "if current > 5",
           "else if current < 5",
-          "for I in 1 to 2"
+          "for i in 1 to 2"
         ]
       },
       "typed_snippets": [
@@ -400,7 +400,7 @@
       },
       "mir_snippets": [],
       "safei_snippets": [
-        "function grade_Message"
+        "function grade_message"
       ],
       "source": "tests/positive/pr112_character_case.safe",
       "source_surface": {
@@ -416,7 +416,7 @@
         ]
       },
       "typed_snippets": [
-        "\"name\":\"grade_Message\""
+        "\"name\":\"grade_message\""
       ],
       "validate_mir": {
         "command": [
@@ -431,7 +431,7 @@
     {
       "ada_snippets": [
         "type packet",
-        "case Kind is"
+        "case kind is"
       ],
       "check": {
         "command": [
@@ -473,7 +473,7 @@
       },
       "mir_snippets": [],
       "safei_snippets": [
-        "function read_Alpha"
+        "function read_alpha"
       ],
       "source": "tests/positive/pr113_variant_guard.safe",
       "source_surface": {
@@ -482,14 +482,14 @@
           "end case"
         ],
         "required_fragments": [
-          "type packet (Kind : character = 'A') is",
+          "type packet (kind : character = 'A') is",
           "record",
-          "case Kind",
+          "case kind",
           "when others"
         ]
       },
       "typed_snippets": [
-        "\"name\":\"read_Alpha\""
+        "\"name\":\"read_alpha\""
       ],
       "validate_mir": {
         "command": [
@@ -552,9 +552,9 @@
           "end select"
         ],
         "required_fragments": [
-          "task Poller with Priority = 10",
+          "task poller with Priority = 10",
           "select",
-          "when Item : message from Msg_Ch",
+          "when item : message from msg_ch",
           "or",
           "delay 0.05"
         ]
@@ -571,8 +571,8 @@
       }
     }
   ],
-  "repeat_sha256": "a215a16bec42e54c55e832e3f159e0b89422ecfdca20b84c1972732be0e870f1",
-  "report_sha256": "a215a16bec42e54c55e832e3f159e0b89422ecfdca20b84c1972732be0e870f1",
+  "repeat_sha256": "e90b93646c9df6363852614bebee01483f6a3ffce808855421f9f7f434c9f347",
+  "report_sha256": "e90b93646c9df6363852614bebee01483f6a3ffce808855421f9f7f434c9f347",
   "rosetta_readability_samples": [
     {
       "ada_snippets": [],
@@ -620,8 +620,8 @@
       "source_surface": {
         "forbidden_fragments": [],
         "required_fragments": [
-          "var current : working_Value = working_Value (seed)",
-          "for Step in iteration",
+          "var current : working_value = working_value (seed)",
+          "for step in iteration",
           "if current == 1"
         ]
       },
@@ -746,9 +746,9 @@
       "source_surface": {
         "forbidden_fragments": [],
         "required_fragments": [
-          "task Producer with Priority = 10",
+          "task producer with Priority = 10",
           "loop",
-          "receive Data_Ch, input"
+          "receive data_ch, input"
         ]
       },
       "typed_snippets": [],

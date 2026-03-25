@@ -370,13 +370,18 @@ package body Safe_Frontend.Check_Resolve is
         and then Ada.Characters.Handling.Is_Lower (Name (Name'First));
    end Starts_With_Lowercase;
 
+   function Is_Fully_Lowercase (Name : String) return Boolean is
+   begin
+      return Name'Length > 0 and then FT.Lowercase (Name) = Name;
+   end Is_Fully_Lowercase;
+
    procedure Require_Lowercase_Name
      (Name    : String;
       Path    : String;
       Span    : FT.Source_Span;
       Context : String) is
    begin
-      if Starts_With_Lowercase (Name) then
+      if Is_Fully_Lowercase (Name) then
          return;
       end if;
 
@@ -388,7 +393,7 @@ package body Safe_Frontend.Check_Resolve is
               Context
               & " `"
               & Name
-              & "` must start with a lowercase letter"));
+              & "` must be fully lowercase"));
    end Require_Lowercase_Name;
 
    procedure Require_Canonical_Builtin_Type_Name
@@ -468,7 +473,7 @@ package body Safe_Frontend.Check_Resolve is
       Good_Case : constant Boolean :=
         (if Needs_Uppercase
          then Starts_With_Uppercase (Name)
-         else Starts_With_Lowercase (Name));
+         else Is_Fully_Lowercase (Name));
    begin
       if Good_Case then
          return;
@@ -483,9 +488,10 @@ package body Safe_Frontend.Check_Resolve is
               & Context
               & " `"
               & Name
-              & "` to start with a "
-              & (if Needs_Uppercase then "uppercase" else "lowercase")
-              & " letter"));
+              & "` to "
+              & (if Needs_Uppercase
+                 then "start with an uppercase letter"
+                 else "be fully lowercase")));
    end Require_Reference_Signal_Name;
 
    procedure Reject_Casefold_Collision
@@ -2546,6 +2552,13 @@ package body Safe_Frontend.Check_Resolve is
             Result.Destructure.Type_Info :=
               Resolve_Type_Spec
                 (Stmt.Destructure.Decl_Type, Type_Env, Local_Static_Constants, Path);
+            for Name of Result.Destructure.Names loop
+               Require_Lowercase_Name
+                 (UString_Value (Name),
+                  Path,
+                  Stmt.Destructure.Span,
+                  "destructuring binding");
+            end loop;
             if not Is_Tuple_Type (Result.Destructure.Type_Info, Type_Env) then
                Raise_Diag
                  (CM.Unsupported_Source_Construct
@@ -2740,6 +2753,11 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_For =>
             Result.Loop_Range := Stmt.Loop_Range;
+            Require_Lowercase_Name
+              (UString_Value (Stmt.Loop_Var),
+               Path,
+               Stmt.Span,
+               "loop variable");
             if Stmt.Loop_Range.Kind = CM.Range_Explicit then
                Result.Loop_Range.Low_Expr :=
                  Normalize_Expr_Checked
@@ -3008,6 +3026,13 @@ package body Safe_Frontend.Check_Resolve is
                                     Message =>
                                       "select arm binding type does not match channel element type"));
                            end if;
+                           Require_Reference_Signal_Name
+                             (UString_Value (Arm.Channel_Data.Variable_Name),
+                              New_Arm.Channel_Data.Type_Info,
+                              Path,
+                              Arm.Channel_Data.Subtype_Mark.Span,
+                              "select arm binding",
+                              Type_Env);
                            Arm_Types.Include
                              (UString_Value (Arm.Channel_Data.Variable_Name),
                               New_Arm.Channel_Data.Type_Info);
@@ -3187,6 +3212,11 @@ package body Safe_Frontend.Check_Resolve is
                      Disc_Desc    : GM.Discriminant_Descriptor;
                      Static_Value : CM.Static_Value;
                   begin
+                     Require_Lowercase_Name
+                       (UString_Value (Disc_Spec.Name),
+                        Path,
+                        Disc_Spec.Span,
+                        "discriminant name");
                      if not Is_Discrete_Case_Type (Disc_Type, Type_Env) then
                         Raise_Diag
                           (CM.Unsupported_Source_Construct
@@ -3447,6 +3477,11 @@ package body Safe_Frontend.Check_Resolve is
          Path,
          Decl.Element_Type.Span,
          "channel element types of String are outside the current PR11.2 text subset");
+      Require_Lowercase_Name
+        (UString_Value (Decl.Name),
+         Path,
+         Decl.Span,
+         "channel name");
 
       if not Is_Definite_Type (Type_Info, Type_Env) then
          Raise_Diag
@@ -3823,6 +3858,11 @@ package body Safe_Frontend.Check_Resolve is
                   Priority_Expr : CM.Expr_Access := null;
                   Priority_Type : GM.Type_Descriptor;
                begin
+                  Require_Lowercase_Name
+                    (UString_Value (Item.Task_Data.Name),
+                     UString_Value (Unit.Path),
+                     Item.Task_Data.Span,
+                     "task name");
                   Priority_Info.Priority := Default_Task_Priority;
                   if Item.Task_Data.Has_Explicit_Priority
                     and then Item.Task_Data.Priority /= null

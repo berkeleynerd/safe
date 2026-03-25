@@ -2,16 +2,16 @@
 -- Description: Reference-signal naming requires access-typed record fields to start uppercase.
 -- Expected: REJECT source_frontend_error
 
-package neg_PR117_Lowercase_Access_Field
+package neg_pr117_lowercase_access_field
 
    type node;
-   type node_Ptr is access node;
+   type node_ptr is access node;
 
    type node is record
       value : integer;
-      next  : node_Ptr;
+      next  : node_ptr;
 
-   function demo (Head : node_Ptr) returns integer
+   function demo (Head : node_ptr) returns integer
       if Head == null
          return 0;
 

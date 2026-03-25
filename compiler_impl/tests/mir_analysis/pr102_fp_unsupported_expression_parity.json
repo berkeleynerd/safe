@@ -1,10 +1,10 @@
 {
   "format": "mir-v2",
   "source_path": "compiler_impl/tests/mir_analysis/pr102_fp_unsupported_expression_parity.safe",
-  "package_name": "fp_Unsupported_Expression_Parity",
+  "package_name": "fp_unsupported_expression_parity",
   "types": [
     {
-      "name": "bounded_Float",
+      "name": "bounded_float",
       "kind": "float",
       "digits_text": "6",
       "float_low_text": "-10.0",
@@ -17,7 +17,7 @@
       "kind": "function",
       "entry_bb": "bb0",
       "return_type": {
-        "name": "bounded_Float",
+        "name": "bounded_float",
         "kind": "float",
         "digits_text": "6",
         "float_low_text": "-10.0",
@@ -65,10 +65,10 @@
                 "end_line": 1,
                 "end_col": 1
               },
-              "type": "bounded_Float",
+              "type": "bounded_float",
               "subtype": {
                 "tag": "ident",
-                "name": "bounded_Float",
+                "name": "bounded_float",
                 "span": {
                   "start_line": 1,
                   "start_col": 1,

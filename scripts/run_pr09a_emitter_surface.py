@@ -151,7 +151,7 @@ def generate_report(*, safec: Path, env: dict[str, str], scratch_root: Path | No
                     discriminant_spec.name: structural_assertions(
                         discriminant_spec,
                         [
-                            "type emitter_Result (ok : boolean := False) is record",
+                            "type emitter_result (ok : boolean := False) is record",
                             "case ok is",
                             "when True =>",
                             "when False =>",
@@ -159,7 +159,7 @@ def generate_report(*, safec: Path, env: dict[str, str], scratch_root: Path | No
                     ),
                     discriminant_body.name: structural_assertions(
                         discriminant_body,
-                        ["package body pR09_Emitter_Discriminant with SPARK_Mode => On is"],
+                        ["package body pr09_emitter_discriminant with SPARK_Mode => On is"],
                     ),
                 },
             },

@@ -5,23 +5,23 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: ACCEPT
 
-package safe_Remainder
+package safe_remainder
 
-   type signed_Value is range -10_000 to 10_000;
-   type positive_Mod is range 1 to 100;
+   type signed_value is range -10_000 to 10_000;
+   type positive_mod is range 1 to 100;
 
    --  Compute_Remainder: remainder with a positive modulus.
    --  The divisor is of type Positive_Mod (1..100), provably nonzero.
-   function compute_Remainder (v : signed_Value;
-                               m : positive_Mod) returns signed_Value
+   function compute_remainder (v : signed_value;
+                               m : positive_mod) returns signed_value
 
       --  M is provably nonzero (range 1..100).
-      return v rem signed_Value (m);
+      return v rem signed_value (m);
 
 
    --  Is_Even: checks whether a value is even using rem 2.
    --  The literal 2 is provably nonzero.
-   function is_Even (v : signed_Value) returns boolean
+   function is_even (v : signed_value) returns boolean
 
       return (v rem 2) == 0;
 

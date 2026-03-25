@@ -1179,6 +1179,20 @@ package body Safe_Frontend.Ada_Emit is
       Prefix    : CM.Expr_Access;
       Selector  : String) return Boolean
    is
+   begin
+      return
+        Prefix /= null
+        and then Prefix.Kind = CM.Expr_Select
+        and then Selector'Length > 0
+        and then Prefix_Has_Access_Type (Unit, Document, Prefix)
+        and then Selector_Is_Record_Field (Unit, Document, Prefix, Selector);
+   end Selector_Uses_Implicit_Dereference;
+
+   function Prefix_Has_Access_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Prefix   : CM.Expr_Access) return Boolean
+   is
       function Access_Target_Name (Name : String) return String is
          function Strip_Prefix (Text : String; Prefix : String) return String is
          begin
@@ -1197,111 +1211,120 @@ package body Safe_Frontend.Ada_Emit is
          Access_All_Prefix            : constant String := "access all ";
          Access_Prefix                : constant String := "access ";
       begin
-         declare
-            Target_Name : constant String :=
-              (if Starts_With (Name, Not_Null_Access_All_Constant)
-               then Strip_Prefix (Name, Not_Null_Access_All_Constant)
-               elsif Starts_With (Name, Not_Null_Access_Constant)
-               then Strip_Prefix (Name, Not_Null_Access_Constant)
-               elsif Starts_With (Name, Not_Null_Access_All)
-               then Strip_Prefix (Name, Not_Null_Access_All)
-               elsif Starts_With (Name, Not_Null_Access)
-               then Strip_Prefix (Name, Not_Null_Access)
-               elsif Starts_With (Name, Access_All_Constant_Prefix)
-               then Strip_Prefix (Name, Access_All_Constant_Prefix)
-               elsif Starts_With (Name, Access_Constant_Prefix)
-               then Strip_Prefix (Name, Access_Constant_Prefix)
-               elsif Starts_With (Name, Access_All_Prefix)
-               then Strip_Prefix (Name, Access_All_Prefix)
-               elsif Starts_With (Name, Access_Prefix)
-               then Strip_Prefix (Name, Access_Prefix)
-               else "");
-         begin
-            return Target_Name;
-         end;
+         return
+           (if Starts_With (Name, Not_Null_Access_All_Constant)
+            then Strip_Prefix (Name, Not_Null_Access_All_Constant)
+            elsif Starts_With (Name, Not_Null_Access_Constant)
+            then Strip_Prefix (Name, Not_Null_Access_Constant)
+            elsif Starts_With (Name, Not_Null_Access_All)
+            then Strip_Prefix (Name, Not_Null_Access_All)
+            elsif Starts_With (Name, Not_Null_Access)
+            then Strip_Prefix (Name, Not_Null_Access)
+            elsif Starts_With (Name, Access_All_Constant_Prefix)
+            then Strip_Prefix (Name, Access_All_Constant_Prefix)
+            elsif Starts_With (Name, Access_Constant_Prefix)
+            then Strip_Prefix (Name, Access_Constant_Prefix)
+            elsif Starts_With (Name, Access_All_Prefix)
+            then Strip_Prefix (Name, Access_All_Prefix)
+            elsif Starts_With (Name, Access_Prefix)
+            then Strip_Prefix (Name, Access_Prefix)
+            else "");
       end Access_Target_Name;
 
-      Prefix_Type : GM.Type_Descriptor;
-      Identifier_Type : constant GM.Type_Descriptor :=
-        (if Prefix.Kind = CM.Expr_Ident
-         then Lookup_Identifier_Type
-           (Unit, Document, FT.To_String (Prefix.Name), Prefix.Span)
-         else (others => <>));
-      Prefix_Name : constant String :=
-        (if Prefix.Kind = CM.Expr_Select
-         and then FT.To_String (Prefix.Selector) = "all"
-         and then Prefix.Prefix /= null
-         and then Has_Text (Prefix.Prefix.Type_Name)
-         then FT.To_String (Prefix.Prefix.Type_Name)
-         elsif Has_Text (Prefix.Type_Name)
-         then FT.To_String (Prefix.Type_Name)
-         else "");
-      Needs_Dereference : Boolean :=
-        Prefix.Kind /= CM.Expr_Select
-        or else FT.To_String (Prefix.Selector) /= "all";
-   begin
-      if Prefix = null or else Selector'Length = 0 then
-         return False;
-      end if;
+      function Type_Name_Is_Access (Name : String) return Boolean is
+      begin
+         return
+           Starts_With (Name, "access ")
+           or else Starts_With (Name, "not null access ")
+           or else Starts_With (Name, "access constant ")
+           or else Starts_With (Name, "not null access constant ")
+           or else Starts_With (Name, "access all ")
+           or else Starts_With (Name, "not null access all ")
+           or else Starts_With (Name, "access all constant ")
+           or else Starts_With (Name, "not null access all constant ");
+      end Type_Name_Is_Access;
 
-      if Has_Text (Identifier_Type.Name) then
-         Prefix_Type := Identifier_Type;
-         Needs_Dereference :=
-           Is_Access_Type (Prefix_Type) and then Has_Text (Prefix_Type.Target);
-      elsif Prefix_Name'Length > 0 then
-         declare
-            Target_Name : constant String := Access_Target_Name (Prefix_Name);
-         begin
-            if Has_Type (Unit, Document, Prefix_Name) then
-               Prefix_Type := Lookup_Type (Unit, Document, Prefix_Name);
-               if Is_Access_Type (Prefix_Type) and then Has_Text (Prefix_Type.Target) then
-                  Needs_Dereference := True;
+      function Lookup_Selected_Type
+        (Expr     : CM.Expr_Access;
+         Selector : String) return GM.Type_Descriptor
+      is
+         Prefix_Type : GM.Type_Descriptor;
+         Identifier_Type : constant GM.Type_Descriptor :=
+           (if Expr /= null and then Expr.Kind = CM.Expr_Ident
+            then Lookup_Identifier_Type (Unit, Document, FT.To_String (Expr.Name), Expr.Span)
+            else (others => <>));
+         Prefix_Name : constant String :=
+           (if Expr /= null
+            and then Expr.Kind = CM.Expr_Select
+            and then FT.To_String (Expr.Selector) = "all"
+            and then Expr.Prefix /= null
+            and then Has_Text (Expr.Prefix.Type_Name)
+            then FT.To_String (Expr.Prefix.Type_Name)
+            elsif Expr /= null and then Has_Text (Expr.Type_Name)
+            then FT.To_String (Expr.Type_Name)
+            else "");
+         Result : GM.Type_Descriptor := (others => <>);
+      begin
+         if Expr = null or else Selector'Length = 0 then
+            return Result;
+         end if;
+
+         if Has_Text (Identifier_Type.Name) then
+            Prefix_Type := Identifier_Type;
+         elsif Prefix_Name = "" then
+            return Result;
+         else
+            declare
+               Target_Name : constant String := Access_Target_Name (Prefix_Name);
+            begin
+               if Has_Type (Unit, Document, Prefix_Name) then
+                  Prefix_Type := Lookup_Type (Unit, Document, Prefix_Name);
+               elsif Target_Name'Length > 0 and then Has_Type (Unit, Document, Target_Name) then
+                  Prefix_Type := Lookup_Type (Unit, Document, Target_Name);
+               else
+                  return Result;
                end if;
-            elsif Target_Name'Length > 0 and then Has_Type (Unit, Document, Target_Name) then
-               Prefix_Type := Lookup_Type (Unit, Document, Target_Name);
-               Needs_Dereference := True;
-            else
-               return False;
-            end if;
-         end;
-      else
-         return False;
-      end if;
+            end;
+         end if;
 
-      if not Has_Text (Prefix_Type.Name) then
-         return False;
-      end if;
-
-      if Is_Access_Type (Prefix_Type) and then Has_Text (Prefix_Type.Target) then
-         Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Prefix_Type.Target));
          if not Has_Text (Prefix_Type.Name) then
-            return False;
+            return Result;
          end if;
-      end if;
 
-      if FT.To_String (Prefix_Type.Kind) /= "record" then
-         return False;
-      end if;
-
-      if Prefix_Type.Has_Discriminant
-        and then FT.To_String (Prefix_Type.Discriminant_Name) = Selector
-      then
-         return Needs_Dereference;
-      end if;
-
-      for Field of Prefix_Type.Fields loop
-         if FT.To_String (Field.Name) = Selector then
-            return Needs_Dereference;
+         if Is_Access_Type (Prefix_Type) and then Has_Text (Prefix_Type.Target) then
+            Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Prefix_Type.Target));
+            if not Has_Text (Prefix_Type.Name) then
+               return Result;
+            end if;
          end if;
-      end loop;
-      return False;
-   end Selector_Uses_Implicit_Dereference;
 
-   function Prefix_Has_Access_Type
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Prefix   : CM.Expr_Access) return Boolean
-   is
+         if Prefix_Type.Has_Discriminant
+           and then FT.To_String (Prefix_Type.Discriminant_Name) = Selector
+         then
+            if Has_Text (Prefix_Type.Discriminant_Type)
+              and then Has_Type (Unit, Document, FT.To_String (Prefix_Type.Discriminant_Type))
+            then
+               return Lookup_Type (Unit, Document, FT.To_String (Prefix_Type.Discriminant_Type));
+            end if;
+            Result.Name := Prefix_Type.Discriminant_Type;
+            return Result;
+         end if;
+
+         for Field of Prefix_Type.Fields loop
+            if FT.To_String (Field.Name) = Selector then
+               if Has_Text (Field.Type_Name)
+                 and then Has_Type (Unit, Document, FT.To_String (Field.Type_Name))
+               then
+                  return Lookup_Type (Unit, Document, FT.To_String (Field.Type_Name));
+               end if;
+               Result.Name := Field.Type_Name;
+               return Result;
+            end if;
+         end loop;
+
+         return Result;
+      end Lookup_Selected_Type;
+
       Type_Name : constant String :=
         (if Prefix = null or else not Has_Text (Prefix.Type_Name)
          then ""
@@ -1311,18 +1334,31 @@ package body Safe_Frontend.Ada_Emit is
          then Lookup_Identifier_Type (Unit, Document, FT.To_String (Prefix.Name), Prefix.Span)
          else (others => <>));
    begin
-      if Has_Text (Identifier_Type.Name) then
+      if Prefix /= null and then Prefix.Kind = CM.Expr_Select then
+         declare
+            Selector_Lower : constant String := FT.Lowercase (FT.To_String (Prefix.Selector));
+            Selected_Type  : constant GM.Type_Descriptor :=
+              Lookup_Selected_Type (Prefix.Prefix, FT.To_String (Prefix.Selector));
+         begin
+            if Selector_Lower = "access" then
+               return True;
+            elsif Selector_Lower in "all" | "first" | "last" | "length" then
+               return False;
+            elsif Has_Text (Selected_Type.Name) and then Is_Access_Type (Selected_Type) then
+               return True;
+            elsif Has_Text (Selected_Type.Name)
+              and then Type_Name_Is_Access (FT.To_String (Selected_Type.Name))
+            then
+               return True;
+            else
+               return False;
+            end if;
+         end;
+      elsif Has_Text (Identifier_Type.Name) then
          return Is_Access_Type (Identifier_Type);
       elsif Type_Name = "" then
          return False;
-      elsif Starts_With (Type_Name, "access ")
-        or else Starts_With (Type_Name, "not null access ")
-        or else Starts_With (Type_Name, "access constant ")
-        or else Starts_With (Type_Name, "not null access constant ")
-        or else Starts_With (Type_Name, "access all ")
-        or else Starts_With (Type_Name, "not null access all ")
-        or else Starts_With (Type_Name, "access all constant ")
-        or else Starts_With (Type_Name, "not null access all constant ")
+      elsif Type_Name_Is_Access (Type_Name)
       then
          return True;
       end if;

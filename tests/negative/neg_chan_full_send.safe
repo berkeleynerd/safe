@@ -9,19 +9,19 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
 -- Expected: REJECT channel_deadlock
 
-package full_Send_Test
+package full_send_test
 
    type msg is range 0 to 255;
 
-   channel Ch : msg capacity 1;
+   channel ch : msg capacity 1;
 
    --  Sender_Task: sends twice to a capacity-1 channel without receiving.
    --  The second send will block forever (deadlock in single task).
-   task Sender_Task
+   task sender_task
 
       loop
-         send Ch, 1;
-         send Ch, 2;  -- ERROR: channel is full, no receiver to drain it
+         send ch, 1;
+         send ch, 2;  -- ERROR: channel is full, no receiver to drain it
 
 
 

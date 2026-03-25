@@ -2,7 +2,7 @@
 -- Description: Statement labels before assignments remain unsupported.
 -- Expected: REJECT unsupported_source_construct
 
-package statement_Label_Assignment_Test
+package statement_label_assignment_test
 
    type counter is range 0 to 10;
 

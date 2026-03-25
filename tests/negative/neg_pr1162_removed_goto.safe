@@ -1,4 +1,4 @@
-package neg_PR1162_Removed_Goto
+package neg_pr1162_removed_goto
 
    function build returns integer
 

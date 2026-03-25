@@ -5,12 +5,12 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 -- Expected: ACCEPT
 
-package safe_Average
+package safe_average
 
    type measurement is range 0 to 10_000;
 
    --  Compute_Average: divide by a fixed nonzero literal.
-   function compute_Average (total : measurement) returns measurement
+   function compute_average (total : measurement) returns measurement
 
       return measurement (total / 2);
 

@@ -62,7 +62,7 @@
           "returncode": 1
         },
         "first_diagnostic": {
-          "message": "reference-signal naming requires local binding `owner` to start with a uppercase letter",
+          "message": "reference-signal naming requires local binding `owner` to start with an uppercase letter",
           "path": "tests/negative/neg_pr117_lowercase_access_binding.safe",
           "reason": "source_frontend_error"
         },
@@ -80,7 +80,7 @@
           "returncode": 1
         },
         "first_diagnostic": {
-          "message": "reference-signal naming requires local binding `Total` to start with a lowercase letter",
+          "message": "reference-signal naming requires local binding `Total` to be fully lowercase",
           "path": "tests/negative/neg_pr117_uppercase_value_binding.safe",
           "reason": "source_frontend_error"
         },
@@ -98,7 +98,7 @@
           "returncode": 1
         },
         "first_diagnostic": {
-          "message": "reference-signal naming requires record field `next` to start with a uppercase letter",
+          "message": "reference-signal naming requires record field `next` to start with an uppercase letter",
           "path": "tests/negative/neg_pr117_lowercase_access_field.safe",
           "reason": "source_frontend_error"
         },
@@ -189,29 +189,29 @@
   },
   "readability_examples": [
     {
-      "cutover_surface": "package ownership_Transfer\n\n   type payload is record\n      value : integer;\n\n   type payload_ptr is access payload;\n\n   function transfer\n      Source : payload_ptr = new ((value = 42) as payload);\n      Target : payload_ptr = null;\n\n      Target = Source;\n      Target.value = 100;\n",
+      "cutover_surface": "package ownership_transfer\n\n   type payload is record\n      value : integer;\n\n   type payload_ptr is access payload;\n\n   function transfer\n      Source : payload_ptr = new ((value = 42) as payload);\n      Target : payload_ptr = null;\n\n      Target = Source;\n      Target.value = 100;\n",
       "description": "Owned reference transfer and post-move mutation at the use site.",
-      "implicit_deref": "package Ownership_Transfer\n\n   type payload is record\n      value : integer;\n\n   type payload_ptr is access payload;\n\n   function transfer\n      source : payload_ptr = new ((value = 42) as payload);\n      target : payload_ptr = null;\n\n      target = source;\n      target.value = 100;\n",
-      "legacy_baseline": "package Ownership_Transfer\n\n   type payload is record\n      value : integer;\n\n   type payload_ptr is access payload;\n\n   function transfer\n      source : payload_ptr = new ((value = 42) as payload);\n      target : payload_ptr = null;\n\n      target = source;\n      target.value = 100;\n",
+      "implicit_deref": "package ownership_transfer\n\n   type payload is record\n      value : integer;\n\n   type payload_ptr is access payload;\n\n   function transfer\n      Source : payload_ptr = new ((value = 42) as payload);\n      Target : payload_ptr = null;\n\n      Target = Source;\n      Target.value = 100;\n",
+      "legacy_baseline": "package ownership_transfer\n\n   type payload is record\n      value : integer;\n\n   type payload_ptr is access payload;\n\n   function transfer\n      Source : payload_ptr = new ((value = 42) as payload);\n      Target : payload_ptr = null;\n\n      Target = Source;\n      Target.value = 100;\n",
       "name": "ownership_transfer"
     },
     {
-      "cutover_surface": "package linked_Traversal\n\n   type node;\n   type node_ptr is access node;\n\n   type node is record\n      value : integer;\n      Next  : node_ptr;\n\n   function sum_values (Head : node_ptr) returns integer\n      total : integer = 0;\n\n      if Head != null\n         total = total + Head.value;\n         if Head.Next != null\n            total = total + Head.Next.value;\n      return total;\n",
+      "cutover_surface": "package linked_traversal\n\n   type node;\n   type node_ptr is access node;\n\n   type node is record\n      value : integer;\n      Next  : node_ptr;\n\n   function sum_values (Head : node_ptr) returns integer\n      total : integer = 0;\n\n      if Head != null\n         total = total + Head.value;\n         if Head.Next != null\n            total = total + Head.Next.value;\n      return total;\n",
       "description": "Null-guarded linked traversal with an access-typed field chain.",
-      "implicit_deref": "package Linked_Traversal\n\n   type node;\n   type node_ptr is access node;\n\n   type node is record\n      value : integer;\n      next  : node_ptr;\n\n   function sum_values (head : node_ptr) returns integer\n      total : integer = 0;\n\n      if head != null\n         total = total + head.value;\n         if head.next != null\n            total = total + head.next.value;\n      return total;\n",
-      "legacy_baseline": "package Linked_Traversal\n\n   type node;\n   type node_ptr is access node;\n\n   type node is record\n      value : integer;\n      next  : node_ptr;\n\n   function sum_values (head : node_ptr) returns integer\n      total : integer = 0;\n\n      if head != null\n         total = total + head.value;\n         if head.next != null\n            total = total + head.next.value;\n      return total;\n",
+      "implicit_deref": "package linked_traversal\n\n   type node;\n   type node_ptr is access node;\n\n   type node is record\n      value : integer;\n      Next  : node_ptr;\n\n   function sum_values (Head : node_ptr) returns integer\n      total : integer = 0;\n\n      if Head != null\n         total = total + Head.value;\n         if Head.Next != null\n            total = total + Head.Next.value;\n      return total;\n",
+      "legacy_baseline": "package linked_traversal\n\n   type node;\n   type node_ptr is access node;\n\n   type node is record\n      value : integer;\n      Next  : node_ptr;\n\n   function sum_values (Head : node_ptr) returns integer\n      total : integer = 0;\n\n      if Head != null\n         total = total + Head.value;\n         if Head.Next != null\n            total = total + Head.Next.value;\n      return total;\n",
       "name": "linked_traversal"
     },
     {
-      "cutover_surface": "package local_Observer\n\n   type config is record\n      rate : natural;\n\n   type config_ptr is access config;\n\n   function read\n      Owner    : config_ptr = new ((rate = 100) as config);\n      Observer : access constant config = Owner.access;\n      rate     : natural;\n\n      rate = Observer.rate;\n",
+      "cutover_surface": "package local_observer\n\n   type config is record\n      rate : natural;\n\n   type config_ptr is access config;\n\n   function read\n      Owner    : config_ptr = new ((rate = 100) as config);\n      Observer : access constant config = Owner.access;\n      rate     : natural;\n\n      rate = Observer.rate;\n",
       "description": "Local observer bound through `.access` and then read via implicit dereference.",
-      "implicit_deref": "package Local_Observer\n\n   type config is record\n      rate : natural;\n\n   type config_ptr is access config;\n\n   function read\n      owner    : config_ptr = new ((rate = 100) as config);\n      observer : access constant config = owner.access;\n      rate     : natural;\n\n      rate = observer.rate;\n",
-      "legacy_baseline": "package Local_Observer\n\n   type config is record\n      rate : natural;\n\n   type config_ptr is access config;\n\n   function read\n      owner    : config_ptr = new ((rate = 100) as config);\n      observer : access constant config = owner.access;\n      rate     : natural;\n\n      rate = observer.rate;\n",
+      "implicit_deref": "package local_observer\n\n   type config is record\n      rate : natural;\n\n   type config_ptr is access config;\n\n   function read\n      Owner    : config_ptr = new ((rate = 100) as config);\n      Observer : access constant config = Owner.access;\n      rate     : natural;\n\n      rate = Observer.rate;\n",
+      "legacy_baseline": "package local_observer\n\n   type config is record\n      rate : natural;\n\n   type config_ptr is access config;\n\n   function read\n      Owner    : config_ptr = new ((rate = 100) as config);\n      Observer : access constant config = Owner.access;\n      rate     : natural;\n\n      rate = Observer.rate;\n",
       "name": "local_observer"
     }
   ],
-  "repeat_sha256": "ef5243740379fa6cc740bdc13c4186dbc784003df753cabe80d39d5251728008",
-  "report_sha256": "ef5243740379fa6cc740bdc13c4186dbc784003df753cabe80d39d5251728008",
+  "repeat_sha256": "f2f441d1198bd2e3aef8a69a889e25bafcee1f114754fa7b4aaf75c06263dd83",
+  "report_sha256": "f2f441d1198bd2e3aef8a69a889e25bafcee1f114754fa7b4aaf75c06263dd83",
   "scope": {
     "default_surface_changed": true,
     "excluded": [
@@ -232,7 +232,7 @@
     "cases": [
       {
         "cutover_surface": {
-          "ada_sha256": "978f4e461322328485e6175d5224da34fc307e37270189139cb3612447fbdb03",
+          "ada_sha256": "2dac0341504fc1b1ac473779fdbff2f25bbbd4d3f2a9f712aad63caa40eea3de",
           "check": {
             "command": [
               "compiler_impl/bin/safec",
@@ -271,8 +271,8 @@
             "cwd": "$REPO_ROOT",
             "returncode": 0
           },
-          "mir_sha256": "58236d9cd6bb3269f5e3abd3f717e133275eece0a2ad467fe952667227704ca2",
-          "typed_sha256": "30f4cc6491d489fbebcff85ef030857f5b964d8af79fa8b6c97bc8ab7ec34dc0",
+          "mir_sha256": "c439e5e312c591b6062c315f16afe8a6c7c9615f64a18baace746cfb90bb0ef8",
+          "typed_sha256": "5c29c11e41531f01e0e5a8a1370410deb5debea5c9f47537fd124c905240641d",
           "validate_mir": {
             "command": [
               "compiler_impl/bin/safec",
@@ -288,7 +288,7 @@
       },
       {
         "cutover_surface": {
-          "ada_sha256": "a60c15113ed1a3c93841eb63b9e46ac63e738bef99002dad8386dc6af54120a3",
+          "ada_sha256": "663f89554ed9ebcb2e062a36624c7a37fa50118ca41f1e9e60cbb7f9705844d7",
           "check": {
             "command": [
               "compiler_impl/bin/safec",
@@ -327,8 +327,8 @@
             "cwd": "$REPO_ROOT",
             "returncode": 0
           },
-          "mir_sha256": "2227acc7570576fc733ae5a9245da9f51c9b98e98c33e50dd924b690aa410ae8",
-          "typed_sha256": "3132516e729a70b6c395cb4cb7b2f3c38cd6c9db56a604151daf96dcb547d8e1",
+          "mir_sha256": "5a892dcbb8934d192340b39e66d01b9c4e0ca4c3541fa1af5de8c0d7498151cd",
+          "typed_sha256": "37621fccf43a945fcd7ee80e1b245980f113c407089a433a7c58e9366998c76d",
           "validate_mir": {
             "command": [
               "compiler_impl/bin/safec",
@@ -344,7 +344,7 @@
       },
       {
         "cutover_surface": {
-          "ada_sha256": "b880c2df484341efbf29df2293d88fd3382646bc8acd600e627e12961e937bdf",
+          "ada_sha256": "03199df19b41c83435d14bf6f945e5692b28d408d4f1b4583d246e247a5621d0",
           "check": {
             "command": [
               "compiler_impl/bin/safec",
@@ -383,8 +383,8 @@
             "cwd": "$REPO_ROOT",
             "returncode": 0
           },
-          "mir_sha256": "401e7c62fa7171be996aeeaf6de8ae7c08d78aa89b5177c090c2dbd2306c3922",
-          "typed_sha256": "ef4597ab1bc545feeb1e3f1f7b36b6066961870f31122e19ffc1d42108129a29",
+          "mir_sha256": "97bcd1a130b8696f2e4906abcd207cb392477c8f5e7e82bc335d1704e2120b31",
+          "typed_sha256": "8bfef8366c0c90d0826eb01a4e2be41dee9fe28cd93cad32d72838413ccde3e9",
           "validate_mir": {
             "command": [
               "compiler_impl/bin/safec",
@@ -400,7 +400,7 @@
       },
       {
         "cutover_surface": {
-          "ada_sha256": "10b78b7f4373de04c2f97a9bbc4b108fc9629beebde8d732f6b2e4ac6ea6e871",
+          "ada_sha256": "088a32d0bdcfc85eef661fdba854935cb11d3ec62c2c79d1c967095ef1f64e88",
           "check": {
             "command": [
               "compiler_impl/bin/safec",
@@ -439,8 +439,8 @@
             "cwd": "$REPO_ROOT",
             "returncode": 0
           },
-          "mir_sha256": "2a47fdc6988b0ca43ba7768cf4092c70905e0e4b6f559443e8214fd80cad408f",
-          "typed_sha256": "031b87d9260f10c626c0970ac1eb487c496b3d7584dec9a25517cb0f0b90bf8f",
+          "mir_sha256": "da549f8b1314b3e061f929d1c894c8c52d4daafd85c6160bdfd8b2975e7a0bba",
+          "typed_sha256": "b3c7754554ac19ef91433bbc5674020f1e165e88eed0a98b333b4800f6c75cf5",
           "validate_mir": {
             "command": [
               "compiler_impl/bin/safec",
@@ -456,7 +456,7 @@
       },
       {
         "cutover_surface": {
-          "ada_sha256": "62091c9388eccbd989ea75a8d7c5cb21fb7068bf5bd703a010135f55e5ace631",
+          "ada_sha256": "a05ee2bc42b8c4533d86a26f43bb39516e14cdbac1ab8a0ed1f43e8c03142b0a",
           "check": {
             "command": [
               "compiler_impl/bin/safec",
@@ -495,8 +495,8 @@
             "cwd": "$REPO_ROOT",
             "returncode": 0
           },
-          "mir_sha256": "0ada446882a3bc7897e9ef5eadeae5f419e005a9678b634d8a41e7c685e725e5",
-          "typed_sha256": "546f2308c48abba4930d4b753caae2bd648c915f53f36d4a4dc24a1e6cfb71f2",
+          "mir_sha256": "eab42c64cad4a08cf3fcfa988eb975f406af62199d6e9d879ad00301d598d732",
+          "typed_sha256": "529531ff35234bff38b185e15b110e50be64b0f4f72f9fe71ef8ecb1f4f83f57",
           "validate_mir": {
             "command": [
               "compiler_impl/bin/safec",
@@ -512,7 +512,7 @@
       },
       {
         "cutover_surface": {
-          "ada_sha256": "d42cd4061d627f6f051834b538fa7ac3c1429ba7b757d127473f3cbf1d31b983",
+          "ada_sha256": "44bc9f71146716183df40c30b835b96803e76766523fd3c9b66746e0d8c0e9f3",
           "check": {
             "command": [
               "compiler_impl/bin/safec",
@@ -551,8 +551,8 @@
             "cwd": "$REPO_ROOT",
             "returncode": 0
           },
-          "mir_sha256": "921fefc16b9009618fe4fbcd243acd7aa5bf4544bf4729ab72ede04f7e4d4b0f",
-          "typed_sha256": "831b349eb50262c3944af9d37a500f7065f40cd7811aa7bbff581b8365271583",
+          "mir_sha256": "bd922bb795ef79ce27e618d1cc427551b5bc906913b175b01e04074020f871cf",
+          "typed_sha256": "de3c8f93a8ceaeb5266444ef638355ff98e12510712355b0b51d5093979d6c0f",
           "validate_mir": {
             "command": [
               "compiler_impl/bin/safec",

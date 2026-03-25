@@ -280,11 +280,11 @@
           "body_regexes": [],
           "coverage_note": "Access-typed constant initialization still lowers to explicit dereference writes plus explicit cleanup support.",
           "source_fragments": [
-            "package constant_Access_Deref_Write",
-            "function mutate_Through_Constant_Access"
+            "package constant_access_deref_write",
+            "function mutate_through_constant_access"
           ],
           "spec_fragments": [
-            "type payload_Ptr is access payload;"
+            "type payload_ptr is access payload;"
           ],
           "spec_regexes": []
         }
@@ -534,13 +534,13 @@
           "body_regexes": [],
           "coverage_note": "Constant-derived channel capacity remains visible in the emitted protected buffer shape and entry guards.",
           "source_fragments": [
-            "package constant_Channel_Capacity",
-            "channel Data_Ch : message capacity capacity_Value;"
+            "package constant_channel_capacity",
+            "channel data_ch : message capacity capacity_value;"
           ],
           "spec_fragments": [
-            "capacity_Value : constant integer := 3;",
-            "subtype Data_Ch_Index is Positive range 1 .. 3;",
-            "protected type Data_Ch_Channel"
+            "capacity_value : constant integer := 3;",
+            "subtype data_ch_Index is Positive range 1 .. 3;",
+            "protected type data_ch_Channel"
           ],
           "spec_regexes": []
         }
@@ -785,12 +785,12 @@
           "body_regexes": [],
           "coverage_note": "Defaulted discriminants in the current boolean-only subset emit as explicit discriminated Ada records.",
           "source_fragments": [
-            "package constant_Discriminant_Default",
-            "default_Active"
+            "package constant_discriminant_default",
+            "default_active"
           ],
           "spec_fragments": [
-            "type default_Result (active : boolean := True) is record",
-            "default_Active : constant boolean := True;"
+            "type default_result (active : boolean := True) is record",
+            "default_active : constant boolean := True;"
           ],
           "spec_regexes": []
         }
@@ -1035,12 +1035,12 @@
           "body_regexes": [],
           "coverage_note": "Constant-derived scalar range bounds remain explicit in emitted subtype and constant declarations.",
           "source_fragments": [
-            "package constant_Range_Bound",
-            "max_Count"
+            "package constant_range_bound",
+            "max_count"
           ],
           "spec_fragments": [
             "type index is range 0 .. 4;",
-            "max_Count : constant integer := 4;"
+            "max_count : constant integer := 4;"
           ],
           "spec_regexes": []
         }
@@ -1291,8 +1291,8 @@
           "body_regexes": [],
           "coverage_note": "Shadowed mutable locals stay distinct from outer constants in the emitted Ada body.",
           "source_fragments": [
-            "package constant_Shadow_Mutable",
-            "function update_Local"
+            "package constant_shadow_mutable",
+            "function update_local"
           ],
           "spec_fragments": [
             "value : constant integer := 1;"
@@ -1545,12 +1545,12 @@
           "body_regexes": [],
           "coverage_note": "Task priorities derived from constants remain explicit in the emitted task declaration without dragging unrelated task-body proof noise into the corpus.",
           "source_fragments": [
-            "package constant_Task_Priority",
-            "task Worker"
+            "package constant_task_priority",
+            "task worker"
           ],
           "spec_fragments": [
-            "worker_Priority : constant integer := 5;",
-            "task Worker with Priority => 5;"
+            "worker_priority : constant integer := 5;",
+            "task worker with Priority => 5;"
           ],
           "spec_regexes": []
         }
@@ -1801,7 +1801,7 @@
           "body_regexes": [],
           "coverage_note": "Procedure-only emission stays support-file-light and preserves explicit dependency contracts.",
           "source_fragments": [
-            "package emitter_Surface_Proc",
+            "package emitter_surface_proc",
             "function copy"
           ],
           "spec_fragments": [
@@ -2056,7 +2056,7 @@
           "body_regexes": [],
           "coverage_note": "Record-only emission stays support-file-light and preserves the intended minimal package skeleton.",
           "source_fragments": [
-            "package emitter_Surface_Record",
+            "package emitter_surface_record",
             "type pair is record"
           ],
           "spec_fragments": [
@@ -2309,8 +2309,8 @@
           "body_regexes": [],
           "coverage_note": "Result equality and inequality lowering remain explicit and compile/prove cleanly in emitted Ada.",
           "source_fragments": [
-            "package result_Equality_Check",
-            "function is_Error"
+            "package result_equality_check",
+            "function is_error"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -2552,8 +2552,8 @@
         "structural_assertions": {
           "absent_ada_files": [],
           "body_fragments": [
-            "return parse_Result'(ok => True, value => input);",
-            "return parse_Result'(ok => False, error => 1);",
+            "return parse_result'(ok => True, value => input);",
+            "return parse_result'(ok => False, error => 1);",
             "if r.ok then",
             "return r.value;"
           ],
@@ -2561,11 +2561,11 @@
           "body_regexes": [],
           "coverage_note": "Guarded result access now proves on top of explicit boolean-discriminant variant record emission.",
           "source_fragments": [
-            "package result_Guarded_Access",
-            "function get_Or_Default"
+            "package result_guarded_access",
+            "function get_or_default"
           ],
           "spec_fragments": [
-            "type parse_Result (ok : boolean := False) is record",
+            "type parse_result (ok : boolean := False) is record",
             "case ok is",
             "when True =>",
             "when False =>"
@@ -2810,15 +2810,15 @@
           "absent_ada_files": [],
           "body_fragments": [
             "sum : Safe_Runtime.Wide_Integer := Safe_Runtime.Wide_Integer (0);",
-            "sum := (Safe_Runtime.Wide_Integer (sum) + Safe_Runtime.Wide_Integer (data (I)));",
-            "return total_Range (Safe_Runtime.Wide_Integer (sum));"
+            "sum := (Safe_Runtime.Wide_Integer (sum) + Safe_Runtime.Wide_Integer (data (i)));",
+            "return total_range (Safe_Runtime.Wide_Integer (sum));"
           ],
           "body_order": [],
           "body_regexes": [],
           "coverage_note": "Loop-carried wide arithmetic and narrowing remain explicit in the emitted accumulation path.",
           "source_fragments": [
             "function accumulate",
-            "type total_Range"
+            "type total_range"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -3060,16 +3060,16 @@
         "structural_assertions": {
           "absent_ada_files": [],
           "body_fragments": [
-            "clamped : wide_Value;",
-            "return narrow_Value (clamped);",
-            "return positive_Value ((-Safe_Runtime.Wide_Integer (v)));"
+            "clamped : wide_value;",
+            "return narrow_value (clamped);",
+            "return positive_value ((-Safe_Runtime.Wide_Integer (v)));"
           ],
           "body_order": [],
           "body_regexes": [],
           "coverage_note": "Wide-to-narrow conversion and sign-sensitive narrowing remain explicit and asserted before return.",
           "source_fragments": [
-            "function clamp_And_Convert",
-            "function absolute_To_Positive"
+            "function clamp_and_convert",
+            "function absolute_to_positive"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -3319,7 +3319,7 @@
           "coverage_note": "Return-path arithmetic stays widened and narrowed explicitly, including negative constant returns.",
           "source_fragments": [
             "function signum",
-            "function bounded_Add"
+            "function bounded_add"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -3571,7 +3571,7 @@
           "coverage_note": "Index-safe midpoint search remains explicit through loop variants, midpoint asserts, and bounded index conversions.",
           "source_fragments": [
             "function search",
-            "type sorted_Array"
+            "type sorted_array"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -3813,16 +3813,16 @@
         "structural_assertions": {
           "absent_ada_files": [],
           "body_fragments": [
-            "for I in slot loop",
-            "max_Val := bank (I);",
-            "bank (I) := 0;"
+            "for i in slot loop",
+            "max_val := bank (i);",
+            "bank (i) := 0;"
           ],
           "body_order": [],
           "body_regexes": [],
           "coverage_note": "Whole-range iteration over bounded indices remains direct and safe in the emitted loops.",
           "source_fragments": [
-            "function find_Max",
-            "function zero_All"
+            "function find_max",
+            "function zero_all"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -4065,15 +4065,15 @@
           "absent_ada_files": [],
           "body_fragments": [
             "return table (id);",
-            "if ((raw_Id >= 1) and then (raw_Id <= 8)) then",
-            "return table (sensor_Id (raw_Id));"
+            "if ((raw_id >= 1) and then (raw_id <= 8)) then",
+            "return table (sensor_id (raw_id));"
           ],
           "body_order": [],
           "body_regexes": [],
           "coverage_note": "Lookup lowering keeps explicit raw-id range guards before index narrowing and table access.",
           "source_fragments": [
             "function lookup",
-            "function lookup_With_Default"
+            "function lookup_with_default"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -4315,10 +4315,10 @@
         "structural_assertions": {
           "absent_ada_files": [],
           "body_fragments": [
-            "sum := (Safe_Runtime.Wide_Integer (sum) + Safe_Runtime.Wide_Integer (m (I, col_Index (I))));",
-            "for J in col_Index loop",
-            "m (I, J) := m (row_Index (J), col_Index (I));",
-            "m (row_Index (J), col_Index (I)) := temp;"
+            "sum := (Safe_Runtime.Wide_Integer (sum) + Safe_Runtime.Wide_Integer (m (i, col_index (i))));",
+            "for j in col_index loop",
+            "m (i, j) := m (row_index (j), col_index (i));",
+            "m (row_index (j), col_index (i)) := temp;"
           ],
           "body_order": [],
           "body_regexes": [],
@@ -4568,15 +4568,15 @@
           "absent_ada_files": [],
           "body_fragments": [
             "if (first <= last) then",
-            "for I in first .. last loop",
-            "current := buf (I);",
+            "for i in first .. last loop",
+            "current := buf (i);",
             "return current;"
           ],
           "body_order": [],
           "body_regexes": [],
           "coverage_note": "Subrange iteration remains explicit through guarded bounds and direct in-range element access across the selected slice.",
           "source_fragments": [
-            "function last_In_Subrange",
+            "function last_in_subrange",
             "type buffer"
           ],
           "spec_fragments": [],
@@ -4826,7 +4826,7 @@
           "body_regexes": [],
           "coverage_note": "Division-by-constant lowering remains explicit and range-asserted before narrowing the result.",
           "source_fragments": [
-            "function compute_Average",
+            "function compute_average",
             "type measurement"
           ],
           "spec_fragments": [],
@@ -5076,8 +5076,8 @@
           "body_regexes": [],
           "coverage_note": "Modulo lowering stays explicit for both fixed divisor and size-parameterized ring indexing.",
           "source_fragments": [
-            "function normalize_Angle",
-            "function ring_Index"
+            "function normalize_angle",
+            "function ring_index"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -5327,7 +5327,7 @@
           "body_regexes": [],
           "coverage_note": "Percentage computation keeps the total-nonzero guard and explicit widened multiply/divide shape.",
           "source_fragments": [
-            "function compute_Percentage",
+            "function compute_percentage",
             "type percentage"
           ],
           "spec_fragments": [],
@@ -5577,8 +5577,8 @@
           "body_regexes": [],
           "coverage_note": "Remainder lowering and parity testing remain explicit, bounded, and prove-clean.",
           "source_fragments": [
-            "function compute_Remainder",
-            "function is_Even"
+            "function compute_remainder",
+            "function is_even"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -5828,8 +5828,8 @@
           "body_regexes": [],
           "coverage_note": "Conditional access dereference stays guarded by explicit null checks on both pointers.",
           "source_fragments": [
-            "function max_Of_Two",
-            "type config_Ptr is access config_Value;"
+            "function max_of_two",
+            "type config_ptr is access config_value;"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -6078,11 +6078,11 @@
           "body_regexes": [],
           "coverage_note": "Not-null access parameters still lower to direct dereference reads and writes without extra null-guard noise.",
           "source_fragments": [
-            "type data_Ptr is not null access data;",
-            "function write_Value"
+            "type data_ptr is not null access data;",
+            "function write_value"
           ],
           "spec_fragments": [
-            "type data_Ptr is not null access data;"
+            "type data_ptr is not null access data;"
           ],
           "spec_regexes": []
         }
@@ -6323,15 +6323,15 @@
         "structural_assertions": {
           "absent_ada_files": [],
           "body_fragments": [
-            "return new sensor_Data'(id => id, value => initial_Value);",
+            "return new sensor_data'(id => id, value => initial_value);",
             "return S.all.value;"
           ],
           "body_order": [],
           "body_regexes": [],
           "coverage_note": "Allocator-based factory returns and later field dereference remain explicit in the emitted body.",
           "source_fragments": [
-            "function create_Sensor",
-            "function read_Sensor"
+            "function create_sensor",
+            "function read_sensor"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -6581,8 +6581,8 @@
           "body_regexes": [],
           "coverage_note": "Linked-list traversal keeps structural loop variants and observer-style pointer progression in emitted Ada.",
           "source_fragments": [
-            "function last_Value",
-            "function has_Tail"
+            "function last_value",
+            "function has_tail"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -6832,8 +6832,8 @@
           "body_regexes": [],
           "coverage_note": "Optional access values stay guarded through explicit null tests on read and presence-check paths.",
           "source_fragments": [
-            "function get_Or_Default",
-            "function has_Value"
+            "function get_or_default",
+            "function has_value"
           ],
           "spec_fragments": [],
           "spec_regexes": []
@@ -8866,8 +8866,8 @@
       }
     ]
   },
-  "repeat_sha256": "483948717aebe9a038644f51907b08b43924fbc4f1fb5bc8ef30a2770bc3b56c",
-  "report_sha256": "483948717aebe9a038644f51907b08b43924fbc4f1fb5bc8ef30a2770bc3b56c",
+  "repeat_sha256": "7896d2df7fd1b82e5cebb749a4879ef1c75c3458aaaaffa89eccacf0cf0d00e6",
+  "report_sha256": "7896d2df7fd1b82e5cebb749a4879ef1c75c3458aaaaffa89eccacf0cf0d00e6",
   "semantic_floor": {
     "fixture_count": 27,
     "fixtures": [

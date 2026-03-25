@@ -10,4 +10,5 @@ neg_own_borrow_conflict.safe:25:11: error: lender 'Owner' is frozen by an active
   |
   note: reads, writes, and moves of the lender are forbidden while the borrow is active.
   note: rule: Safe §2.3.3 (mutable borrow freezes lender)
+
 ------------------------------------------------------------------------

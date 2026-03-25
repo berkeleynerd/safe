@@ -6,9 +6,9 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53:897d5577
 -- Expected: ACCEPT
 
-package task_Priority_Delay
+package task_priority_delay
 
-   task Worker with Priority = 5
+   task worker with Priority = 5
       ticks : natural = 0;
 
       loop

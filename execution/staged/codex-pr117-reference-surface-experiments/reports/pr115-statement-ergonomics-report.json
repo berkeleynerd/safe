@@ -186,7 +186,7 @@
     {
       "ada_snippets": [
         "elsif (current < 5) then",
-        "for I in 1 .. 2 loop",
+        "for i in 1 .. 2 loop",
         "current := 5;",
         "end loop;"
       ],
@@ -237,7 +237,7 @@
       "source": "tests/positive/pr115_compound_terminators.safe",
       "source_fragments": [
         "else if current < 5",
-        "for I in 1 to 2",
+        "for i in 1 to 2",
         "return current"
       ],
       "typed_snippets": [
@@ -305,7 +305,7 @@
       ],
       "source": "tests/positive/pr115_case_terminator.safe",
       "source_fragments": [
-        "when others result = True; return result"
+        "when others result = true; return result"
       ],
       "typed_snippets": [
         "\"name\":\"normalize\""
@@ -518,8 +518,8 @@
       }
     }
   ],
-  "repeat_sha256": "d782f0649e7022c6cfa8ae0905fa2f225bda758544d9ebe091c70fd22f7c183b",
-  "report_sha256": "d782f0649e7022c6cfa8ae0905fa2f225bda758544d9ebe091c70fd22f7c183b",
+  "repeat_sha256": "444be7b65eabc8937704c13d9d703c1ae10d181d2bb3f4fa3e0ef764f3d7f60a",
+  "report_sha256": "444be7b65eabc8937704c13d9d703c1ae10d181d2bb3f4fa3e0ef764f3d7f60a",
   "rosetta_readability_samples": [
     {
       "ada_snippets": [],
@@ -566,7 +566,7 @@
       "source": "samples/rosetta/arithmetic/factorial.safe",
       "source_fragments": [
         "var product : value = 1",
-        "product = product * value (I)",
+        "product = product * value (i)",
         "return product"
       ],
       "typed_snippets": [],
@@ -686,9 +686,9 @@
       "safei_snippets": [],
       "source": "samples/rosetta/concurrency/producer_consumer.safe",
       "source_fragments": [
-        "send Data_Ch, 41",
+        "send data_ch, 41",
         "var input : message",
-        "receive Data_Ch, input"
+        "receive data_ch, input"
       ],
       "typed_snippets": [],
       "validate_mir": {

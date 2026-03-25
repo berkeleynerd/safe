@@ -5,7 +5,7 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
-package zero_Mod_Test
+package zero_mod_test
 
    type counter is range 0 to 255;
 

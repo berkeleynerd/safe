@@ -30,8 +30,8 @@
       ],
       "name": "declare_tail_hoist",
       "required_fragments": [
-        "var Temp : Integer = 1;",
-        "return Temp;"
+        "var temp : integer = 1;",
+        "return temp;"
       ]
     },
     {
@@ -40,7 +40,7 @@
       ],
       "name": "null_statement_removal",
       "required_fragments": [
-        "function Consume"
+        "function consume"
       ]
     }
   ],
@@ -218,7 +218,7 @@
       },
       "mir_snippets": [],
       "safei_snippets": [
-        "function update_Local"
+        "function update_local"
       ],
       "source": "tests/positive/constant_shadow_mutable.safe",
       "source_surface": {
@@ -294,7 +294,7 @@
           "null;"
         ],
         "required_fragments": [
-          "function consume (Ref : in out payload_Ptr)",
+          "function consume (Ref : in out payload_ptr)",
           "return;"
         ]
       },
@@ -311,7 +311,7 @@
     },
     {
       "ada_snippets": [
-        "task body Worker is",
+        "task body worker is",
         "null;"
       ],
       "check": {
@@ -362,7 +362,7 @@
           "null;"
         ],
         "required_fragments": [
-          "task Worker with Priority = worker_Priority",
+          "task worker with Priority = worker_priority",
           "loop"
         ]
       },
@@ -419,7 +419,7 @@
       },
       "mir_snippets": [],
       "safei_snippets": [
-        "function read_And_Exit"
+        "function read_and_exit"
       ],
       "source": "tests/positive/ownership_early_return.safe",
       "source_surface": {
@@ -427,8 +427,8 @@
           "declare"
         ],
         "required_fragments": [
-          "Outer : payload_Ptr = new ((value = 7) as payload);",
-          "Inner : payload_Ptr = new ((value = 9) as payload);",
+          "Outer : payload_ptr = new ((value = 7) as payload);",
+          "Inner : payload_ptr = new ((value = 9) as payload);",
           "return Outer.value;"
         ]
       },
@@ -485,8 +485,8 @@
       },
       "mir_snippets": [],
       "safei_snippets": [
-        "function last_Value",
-        "function has_Tail"
+        "function last_value",
+        "function has_tail"
       ],
       "source": "tests/positive/rule4_linked_list.safe",
       "source_surface": {
@@ -562,7 +562,7 @@
         ],
         "required_fragments": [
           "var item : message = 0;",
-          "receive Data_Ch, item;"
+          "receive data_ch, item;"
         ]
       },
       "typed_snippets": [],
@@ -693,7 +693,7 @@
       },
       "mir_snippets": [],
       "safei_snippets": [
-        "task Poller"
+        "task poller"
       ],
       "source": "tests/positive/pr1162_empty_select_delay_arm.safe",
       "source_surface": {
@@ -717,8 +717,8 @@
       }
     }
   ],
-  "repeat_sha256": "b5b0e98cfb207ff8a4254300f9c7a1abf772e0fd19622cf0246180c6f8b3b9a4",
-  "report_sha256": "b5b0e98cfb207ff8a4254300f9c7a1abf772e0fd19622cf0246180c6f8b3b9a4",
+  "repeat_sha256": "f8c139553c2c7b1c8d7edf81b59be485b2a0a6ff90ab55cb407112bf1366d533",
+  "report_sha256": "f8c139553c2c7b1c8d7edf81b59be485b2a0a6ff90ab55cb407112bf1366d533",
   "status": "ok",
   "syntax_policy": {
     "empty_suites_replace_null_statements": true,

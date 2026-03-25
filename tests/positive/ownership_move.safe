@@ -8,19 +8,19 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
 -- Expected: ACCEPT
 
-package ownership_Move
+package ownership_move
 
    type payload is record
       value : integer;
 
 
-   type payload_Ptr is access payload;
+   type payload_ptr is access payload;
 
    --  Transfer: moves ownership from Source to Target.
    --  After the move, Source is null and only Target is used.
    function transfer
-      Source : payload_Ptr = new ((value = 42) as payload);
-      Target : payload_Ptr = null;
+      Source : payload_ptr = new ((value = 42) as payload);
+      Target : payload_ptr = null;
 
       --  Target is provably null before the move (just declared null).
       Target = Source;

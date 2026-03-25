@@ -1,4 +1,4 @@
-package neg_PR1162_Removed_Declare
+package neg_pr1162_removed_declare
 
    function build returns integer
 

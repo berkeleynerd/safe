@@ -1,22 +1,22 @@
-package provider_Transitive_Channel
+package provider_transitive_channel
 
    public type message is range 0 to 10;
-   public channel Data_Ch : message capacity 4;
+   public channel data_ch : message capacity 4;
 
-   task Worker with Priority = 12
+   task worker with Priority = 12
 
       loop
          var item : message = 0;
-         receive Data_Ch, item;
+         receive data_ch, item;
 
 
 
-   function push_Internal
+   function push_internal
 
-      send Data_Ch, 1;
+      send data_ch, 1;
 
 
    public function push
 
-      push_Internal;
+      push_internal;
 

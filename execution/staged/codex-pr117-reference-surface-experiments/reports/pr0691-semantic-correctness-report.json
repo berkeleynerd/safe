@@ -391,7 +391,7 @@
             "is_all": false,
             "is_constant": false,
             "kind": "access",
-            "name": "config_Ptr",
+            "name": "config_ptr",
             "not_null": false,
             "target": "config"
           }
@@ -433,7 +433,7 @@
                   "start_line": 15
                 },
                 "tag": "ident",
-                "type": "config_Ptr"
+                "type": "config_ptr"
               },
               "selector": "access",
               "span": {
@@ -453,7 +453,7 @@
             "start_line": 15
           },
           "callee": {
-            "name": "read_Config",
+            "name": "read_config",
             "span": {
               "end_col": 24,
               "end_line": 15,
@@ -595,8 +595,8 @@
       }
     }
   },
-  "repeat_sha256": "35d7c3969ec13541bc0608a005bd2692599f06a0b93125f702a88a33e908f606",
-  "report_sha256": "35d7c3969ec13541bc0608a005bd2692599f06a0b93125f702a88a33e908f606",
+  "repeat_sha256": "9d9d645e3d6ec9e6a548ba3f2afbee6fad9f20b591b9e097b60fa110def3d939",
+  "report_sha256": "9d9d645e3d6ec9e6a548ba3f2afbee6fad9f20b591b9e097b60fa110def3d939",
   "scope": {
     "analyzer_fixture_pairs": [
       {

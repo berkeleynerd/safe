@@ -2,11 +2,11 @@
 -- Description: Character-driven variant fields guarded by if and strict case.
 -- Expected: ACCEPT
 
-package pR113_Variant_Guard
+package pr113_variant_guard
 
-   type packet (Kind : character = 'A') is
+   type packet (kind : character = 'A') is
       record
-         case Kind
+         case kind
             when 'A'
                alpha : integer;
             when others
@@ -16,17 +16,17 @@ package pR113_Variant_Guard
 
    sample : packet ('A') = (alpha = 1);
 
-   function read_Alpha (p : in packet) returns integer
+   function read_alpha (p : in packet) returns integer
 
-      if p.Kind == 'A'
+      if p.kind == 'A'
          return p.alpha;
 
       return 0;
 
 
-   function read_Alpha_With_Case (p : in packet) returns integer
+   function read_alpha_with_case (p : in packet) returns integer
 
-      case p.Kind
+      case p.kind
          when 'A'
             return p.alpha;
 

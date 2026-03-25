@@ -6,17 +6,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
 -- Expected: REJECT infinity_at_narrowing
 
-package infinity_Test
+package infinity_test
 
-   type bounded_Float is digits 6 range -1.0E+10 to 1.0E+10;
+   type bounded_float is digits 6 range -1.0E+10 to 1.0E+10;
 
    --  Overflow_To_Inf: 1.0E+308 / 1.0E-308 overflows to +Infinity
    --  under IEEE 754. Assigning to Bounded_Float is a narrowing point.
-   function overflow_To_Inf returns bounded_Float
+   function overflow_to_inf returns bounded_float
       big   : long_float = 1.0E+308;
       small : long_float = 1.0E-308;
 
-      return bounded_Float (big / small);  -- ERROR: result may be infinity
+      return bounded_float (big / small);  -- ERROR: result may be infinity
 
 
 

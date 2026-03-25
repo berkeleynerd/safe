@@ -9,4 +9,5 @@ neg_result_unguarded.safe:36:14: error: access to variant field 'value' requires
   |    |              ^~~~~~~
   |
   note: the discriminant 'ok' was not established on all paths before this access.
+
 ------------------------------------------------------------------------

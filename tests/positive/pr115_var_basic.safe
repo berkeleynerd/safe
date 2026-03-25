@@ -1,4 +1,4 @@
-package pR115_Var_Basic
+package pr115_var_basic
 
    type counter is range 0 to 20;
 

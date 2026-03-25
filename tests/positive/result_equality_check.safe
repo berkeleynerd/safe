@@ -5,16 +5,16 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.12.p148
 -- Expected: ACCEPT
 
-package result_Equality_Check
+package result_equality_check
 
    type status is range 0 to 255;
 
-   function is_OK (s : status) returns boolean
+   function is_ok (s : status) returns boolean
 
       return s == 0;
 
 
-   function is_Error (s : status) returns boolean
+   function is_error (s : status) returns boolean
 
       return s != 0;
 

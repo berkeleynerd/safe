@@ -6,27 +6,27 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.5.p103a:520dc0d4
 -- Expected: ACCEPT
 
-package safe_Factory
+package safe_factory
 
-   type sensor_Data is record
+   type sensor_data is record
       id    : natural;
       value : integer;
 
 
-   type sensor_Ptr is not null access sensor_Data;
+   type sensor_ptr is not null access sensor_data;
 
    --  Create_Sensor: allocates a new Sensor_Data.
    --  The allocator returns a not-null value by construction.
-   function create_Sensor (id : natural;
-                           initial_Value : integer) returns sensor_Ptr
+   function create_sensor (id : natural;
+                           initial_value : integer) returns sensor_ptr
 
-      return new ((id = id, value = initial_Value) as sensor_Data);
+      return new ((id = id, value = initial_value) as sensor_data);
 
 
    --  Read_Sensor: dereferences the factory-created pointer.
    --  The return type Sensor_Ptr is not null access, so
    --  dereference is always safe.
-   function read_Sensor (S : sensor_Ptr) returns integer
+   function read_sensor (S : sensor_ptr) returns integer
 
       return S.value;
 

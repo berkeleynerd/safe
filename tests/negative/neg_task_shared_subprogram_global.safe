@@ -3,7 +3,7 @@
 --   The reachability is genuinely transitive through Wrapper -> Helper.
 -- Expected: REJECT task_variable_ownership
 
-package neg_Task_Shared_Subprogram_Global
+package neg_task_shared_subprogram_global
 
    type counter is range 0 to 100;
 
@@ -19,14 +19,14 @@ package neg_Task_Shared_Subprogram_Global
       helper;
 
 
-   task A
+   task a
 
       loop
          helper;
 
 
 
-   task B
+   task b
 
       loop
          wrapper;

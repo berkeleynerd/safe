@@ -6,14 +6,14 @@
 
 with Remote_Package;
 
-package qualified_Channel_Reference_Test
+package qualified_channel_reference_test
 
    type message is range 0 to 100;
 
-   task Worker
+   task worker
 
       loop
-         send Remote_Package.Data_Ch, 1;
+         send Remote_Package.data_ch, 1;
 
 
 

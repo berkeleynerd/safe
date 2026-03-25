@@ -1,11 +1,11 @@
-with provider_Transitive_Global;
+with provider_transitive_global;
 
-package client_Transitive_Global_Ok
+package client_transitive_global_ok
 
-   task Worker
+   task worker
 
       loop
-         provider_Transitive_Global.touch;
+         provider_transitive_global.touch;
 
 
 

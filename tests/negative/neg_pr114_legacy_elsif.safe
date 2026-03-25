@@ -2,7 +2,7 @@
 -- Description: PR11.4 requires else if and rejects legacy elsif chains.
 -- Expected: REJECT source_frontend_error
 
-package neg_PR114_Legacy_Elsif
+package neg_pr114_legacy_elsif
 
    function classify (value : integer) returns integer
 

@@ -1,4 +1,4 @@
-package pR115_Multiline_Return
+package pr115_multiline_return
 
    type counter is range 0 to 10;
 

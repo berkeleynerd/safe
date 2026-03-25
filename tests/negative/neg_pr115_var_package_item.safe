@@ -1,4 +1,4 @@
-package neg_PR115_Var_Package_Item
+package neg_pr115_var_package_item
 
    type counter is range 0 to 10;
 

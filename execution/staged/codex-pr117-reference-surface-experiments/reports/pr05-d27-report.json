@@ -343,8 +343,8 @@
               },
               "message": "index expression not provably within array bounds",
               "notes": [
-                "array 'arr' has index range nat_Index (0 .. 15).",
-                "index expression 'nat_Index (integer (base) - offset)' has type integer, with range\n[integer'First .. integer'Last].",
+                "array 'arr' has index range nat_index (0 .. 15).",
+                "index expression 'nat_index (integer (base) - offset)' has type integer, with range\n[integer'First .. integer'Last].",
                 "static analysis cannot establish that the index is within\n[0 .. 15] on all execution paths.",
                 "rule: D27 Rule 2 (Provable Index Safety)",
                 "per spec/02-restrictions.md section 2.8.2 paragraph 131:\n\"The index expression in an indexed_component shall be provably\nwithin the array object's index bounds at compile time.\"",
@@ -359,7 +359,7 @@
                 "start_line": 20
               },
               "suggestions": [
-                "add a bounds check before indexing:\nif integer (base) - offset >= 0 and then integer (base) - offset <= 15 then\n   return arr (nat_Index (integer (base) - offset));\nend if;"
+                "add a bounds check before indexing:\nif integer (base) - offset >= 0 and then integer (base) - offset <= 15 then\n   return arr (nat_index (integer (base) - offset));\nend if;"
               ]
             }
           ],
@@ -376,7 +376,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"index_out_of_bounds\",\"message\":\"index expression not provably within array bounds\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule2_negative.safe\",\"span\":{\"start_line\":20,\"start_col\":14,\"end_line\":20,\"end_col\":54},\"highlight_span\":{\"start_line\":20,\"start_col\":14,\"end_line\":20,\"end_col\":54},\"notes\":[\"array 'arr' has index range nat_Index (0 .. 15).\",\"index expression 'nat_Index (integer (base) - offset)' has type integer, with range\\n[integer'First .. integer'Last].\",\"static analysis cannot establish that the index is within\\n[0 .. 15] on all execution paths.\",\"rule: D27 Rule 2 (Provable Index Safety)\",\"per spec/02-restrictions.md section 2.8.2 paragraph 131:\\n\\\"The index expression in an indexed_component shall be provably\\nwithin the array object's index bounds at compile time.\\\"\",\"per spec/02-restrictions.md section 2.8.2 paragraph 132:\\n\\\"If neither condition holds, the program is nonconforming and\\nthe implementation shall reject it with a diagnostic identifying\\nthe indexed_component and the unresolvable bound relationship.\\\"\"],\"suggestions\":[\"add a bounds check before indexing:\\nif integer (base) - offset >= 0 and then integer (base) - offset <= 15 then\\n   return arr (nat_Index (integer (base) - offset));\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"index_out_of_bounds\",\"message\":\"index expression not provably within array bounds\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule2_negative.safe\",\"span\":{\"start_line\":20,\"start_col\":14,\"end_line\":20,\"end_col\":54},\"highlight_span\":{\"start_line\":20,\"start_col\":14,\"end_line\":20,\"end_col\":54},\"notes\":[\"array 'arr' has index range nat_index (0 .. 15).\",\"index expression 'nat_index (integer (base) - offset)' has type integer, with range\\n[integer'First .. integer'Last].\",\"static analysis cannot establish that the index is within\\n[0 .. 15] on all execution paths.\",\"rule: D27 Rule 2 (Provable Index Safety)\",\"per spec/02-restrictions.md section 2.8.2 paragraph 131:\\n\\\"The index expression in an indexed_component shall be provably\\nwithin the array object's index bounds at compile time.\\\"\",\"per spec/02-restrictions.md section 2.8.2 paragraph 132:\\n\\\"If neither condition holds, the program is nonconforming and\\nthe implementation shall reject it with a diagnostic identifying\\nthe indexed_component and the unresolvable bound relationship.\\\"\"],\"suggestions\":[\"add a bounds check before indexing:\\nif integer (base) - offset >= 0 and then integer (base) - offset <= 15 then\\n   return arr (nat_index (integer (base) - offset));\\nend if;\"]}]}\n"
         },
         "source": "tests/negative/neg_rule2_negative.safe"
       },
@@ -394,7 +394,7 @@
               "message": "index expression not provably within array bounds",
               "notes": [
                 "array 'arr' has index range idx (1 .. 10).",
-                "index expression 'idx (I)' has type integer, with range\n[integer'First .. integer'Last].",
+                "index expression 'idx (i)' has type integer, with range\n[integer'First .. integer'Last].",
                 "static analysis cannot establish that the index is within\n[1 .. 10] on all execution paths.",
                 "rule: D27 Rule 2 (Provable Index Safety)",
                 "per spec/02-restrictions.md section 2.8.2 paragraph 131:\n\"The index expression in an indexed_component shall be provably\nwithin the array object's index bounds at compile time.\"",
@@ -409,7 +409,7 @@
                 "start_line": 18
               },
               "suggestions": [
-                "add a bounds check before indexing:\nif I >= 1 and then I <= 10 then\n   return arr (idx (I));\nend if;"
+                "add a bounds check before indexing:\nif i >= 1 and then i <= 10 then\n   return arr (idx (i));\nend if;"
               ]
             }
           ],
@@ -426,7 +426,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"index_out_of_bounds\",\"message\":\"index expression not provably within array bounds\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule2_off_by_one.safe\",\"span\":{\"start_line\":18,\"start_col\":26,\"end_line\":18,\"end_col\":38},\"highlight_span\":{\"start_line\":18,\"start_col\":26,\"end_line\":18,\"end_col\":38},\"notes\":[\"array 'arr' has index range idx (1 .. 10).\",\"index expression 'idx (I)' has type integer, with range\\n[integer'First .. integer'Last].\",\"static analysis cannot establish that the index is within\\n[1 .. 10] on all execution paths.\",\"rule: D27 Rule 2 (Provable Index Safety)\",\"per spec/02-restrictions.md section 2.8.2 paragraph 131:\\n\\\"The index expression in an indexed_component shall be provably\\nwithin the array object's index bounds at compile time.\\\"\",\"per spec/02-restrictions.md section 2.8.2 paragraph 132:\\n\\\"If neither condition holds, the program is nonconforming and\\nthe implementation shall reject it with a diagnostic identifying\\nthe indexed_component and the unresolvable bound relationship.\\\"\"],\"suggestions\":[\"add a bounds check before indexing:\\nif I >= 1 and then I <= 10 then\\n   return arr (idx (I));\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"index_out_of_bounds\",\"message\":\"index expression not provably within array bounds\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule2_off_by_one.safe\",\"span\":{\"start_line\":18,\"start_col\":26,\"end_line\":18,\"end_col\":38},\"highlight_span\":{\"start_line\":18,\"start_col\":26,\"end_line\":18,\"end_col\":38},\"notes\":[\"array 'arr' has index range idx (1 .. 10).\",\"index expression 'idx (i)' has type integer, with range\\n[integer'First .. integer'Last].\",\"static analysis cannot establish that the index is within\\n[1 .. 10] on all execution paths.\",\"rule: D27 Rule 2 (Provable Index Safety)\",\"per spec/02-restrictions.md section 2.8.2 paragraph 131:\\n\\\"The index expression in an indexed_component shall be provably\\nwithin the array object's index bounds at compile time.\\\"\",\"per spec/02-restrictions.md section 2.8.2 paragraph 132:\\n\\\"If neither condition holds, the program is nonconforming and\\nthe implementation shall reject it with a diagnostic identifying\\nthe indexed_component and the unresolvable bound relationship.\\\"\"],\"suggestions\":[\"add a bounds check before indexing:\\nif i >= 1 and then i <= 10 then\\n   return arr (idx (i));\\nend if;\"]}]}\n"
         },
         "source": "tests/negative/neg_rule2_off_by_one.safe"
       },
@@ -787,7 +787,7 @@
               },
               "message": "dereference of possibly null access value",
               "notes": [
-                "P is of type value_Ptr (access value), which does not exclude null.",
+                "P is of type value_ptr (access value), which does not exclude null.",
                 "no null check precedes this dereference on all paths reaching\nthis program point.",
                 "rule: D27 Rule 4 (Not-Null Dereference)",
                 "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
@@ -818,7 +818,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule4_maybe_null.safe\",\"span\":{\"start_line\":22,\"start_col\":14,\"end_line\":22,\"end_col\":14},\"highlight_span\":{\"start_line\":22,\"start_col\":14,\"end_line\":22,\"end_col\":14},\"notes\":[\"P is of type value_Ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule4_maybe_null.safe\",\"span\":{\"start_line\":22,\"start_col\":14,\"end_line\":22,\"end_col\":14},\"highlight_span\":{\"start_line\":22,\"start_col\":14,\"end_line\":22,\"end_col\":14},\"notes\":[\"P is of type value_ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
         },
         "source": "tests/negative/neg_rule4_maybe_null.safe"
       },
@@ -879,7 +879,7 @@
               },
               "message": "dereference of possibly null access value",
               "notes": [
-                "P is of type value_Ptr (access value), which does not exclude null.",
+                "P is of type value_ptr (access value), which does not exclude null.",
                 "no null check precedes this dereference on all paths reaching\nthis program point.",
                 "rule: D27 Rule 4 (Not-Null Dereference)",
                 "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
@@ -910,7 +910,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_Ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
         },
         "source": "tests/negative/neg_rule4_null_deref.safe"
       },
@@ -927,7 +927,7 @@
               },
               "message": "dereference of possibly null access value",
               "notes": [
-                "P is of type rec_Ptr (access rec), which does not exclude null.",
+                "P is of type rec_ptr (access rec), which does not exclude null.",
                 "no null check precedes this dereference on all paths reaching\nthis program point.",
                 "rule: D27 Rule 4 (Not-Null Dereference)",
                 "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
@@ -958,7 +958,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule4_uninitialized.safe\",\"span\":{\"start_line\":21,\"start_col\":14,\"end_line\":21,\"end_col\":14},\"highlight_span\":{\"start_line\":21,\"start_col\":14,\"end_line\":21,\"end_col\":14},\"notes\":[\"P is of type rec_Ptr (access rec), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"$REPO_ROOT/tests/negative/neg_rule4_uninitialized.safe\",\"span\":{\"start_line\":21,\"start_col\":14,\"end_line\":21,\"end_col\":14},\"highlight_span\":{\"start_line\":21,\"start_col\":14,\"end_line\":21,\"end_col\":14},\"notes\":[\"P is of type rec_ptr (access rec), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
         },
         "source": "tests/negative/neg_rule4_uninitialized.safe"
       }
@@ -1348,16 +1348,16 @@
   },
   "determinism": {
     "tests/positive/rule2_binary_search.safe": {
-      "iface/rule2_binary_search.safei.json": "2fe083d77d4a95ff27e4bb4f91362c46d912f14fe0cb9e710729fdba305daeac",
-      "out/rule2_binary_search.ast.json": "bd1434a5e836dd3c5665a9b56fc51034c9b945a6dff0caa74ed84bfd02637a31",
-      "out/rule2_binary_search.mir.json": "c14520e6ef9fe4e5435c41abea3daabb3bed4e433242025f21f4860aac3e9c4e",
-      "out/rule2_binary_search.typed.json": "6334cf80eda77fa677079415e4ddb0bd7aae04099dd36c90a99400fa65d3def7"
+      "iface/rule2_binary_search.safei.json": "ae692dbb7ada64933c2afb9b35689a08026f537fe7a701928331d92f3164177e",
+      "out/rule2_binary_search.ast.json": "9a8fb13ce8ae3e5a1445495570d5170c6b75de3488091199dbf9a164ce6cf952",
+      "out/rule2_binary_search.mir.json": "4f37ac6951b370b0381fc989d81f166acb1e9e58bfd6d4f8d305ef45fb56a834",
+      "out/rule2_binary_search.typed.json": "6db4fd945bd24684f0570d128d50b2066faa9abe1e990e4b307c66f4d8ce2c7b"
     },
     "tests/positive/rule4_conditional.safe": {
-      "iface/rule4_conditional.safei.json": "1efe2357d0e0f2e79af6ac29ed6379ab199a6afc1992a3bd80d87a362f9ca52e",
-      "out/rule4_conditional.ast.json": "5da55e1ca13896daf4d52b201ce2d3ec8f2e30a7bd5a83803dfae9032f12e070",
-      "out/rule4_conditional.mir.json": "cc9173140100e7c3e82af6e18049409e4434c53d540b917c1aace5a63bafd865",
-      "out/rule4_conditional.typed.json": "665e2c9aea92e8e94c37f5437d3e230dbf479a9c92c1a20ae86f735cafee3ff8"
+      "iface/rule4_conditional.safei.json": "60121d50ffa26d6607cfe550c31fe75ea2190ab4c1aa362ca0d8b930d650ca48",
+      "out/rule4_conditional.ast.json": "ef9dafdd2d893884ef48c37b6de0612fcc1e53d4b5503bbb65322b02a3cf72e0",
+      "out/rule4_conditional.mir.json": "5ebbe0d20f80afec7adde1d4c471f2ce37c334ce6a17db6c2e312b78f9e44315",
+      "out/rule4_conditional.typed.json": "6251c0964be330cdbe1a167404d258510925b019d975f494008509d23feef7d0"
     }
   },
   "deterministic": true,
@@ -1417,7 +1417,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P;  -- ERROR: P may be null\n  |    |              ^\n  |\n  note: P is of type value_Ptr (access value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
+        "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P;  -- ERROR: P may be null\n  |    |              ^\n  |\n  note: P is of type value_ptr (access value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
         "stdout": ""
       },
       "source": "tests/negative/neg_rule4_null_deref.safe"
@@ -1557,6 +1557,6 @@
     }
   ],
   "mode": "all",
-  "repeat_sha256": "b1a15e333de202cef5b8e88073cdca099c701eab7f57467e1dc7fc046a8d7a5f",
-  "report_sha256": "b1a15e333de202cef5b8e88073cdca099c701eab7f57467e1dc7fc046a8d7a5f"
+  "repeat_sha256": "1aa8f58cfa747e07ae02da43b156e2c10f5f8fe0242fc69620f262d233d425e0",
+  "report_sha256": "1aa8f58cfa747e07ae02da43b156e2c10f5f8fe0242fc69620f262d233d425e0"
 }

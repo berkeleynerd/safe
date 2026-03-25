@@ -35,7 +35,7 @@ CORPUS_SAMPLES = [
     *(REPO_ROOT / path for path in REPRESENTATIVE_EMIT_SAMPLES),
     REPO_ROOT / "tests" / "positive" / "ownership_inout.safe",
 ]
-PUBLIC_INTERFACE_SOURCE = """package public_Interface
+PUBLIC_INTERFACE_SOURCE = """package public_interface
    public type counter is range 0 to 10;
    public seed : counter = 1;
 

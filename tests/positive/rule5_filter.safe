@@ -6,28 +6,28 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
 -- Expected: ACCEPT
 
-package low_Pass_Filter
+package low_pass_filter
 
    type signal is digits 6 range -100.0 to 100.0;
-   type alpha_Range is digits 6 range 0.01 to 0.99;
+   type alpha_range is digits 6 range 0.01 to 0.99;
 
-   type filter_State is record
+   type filter_state is record
       output : signal;
-      alpha  : alpha_Range;
+      alpha  : alpha_range;
 
 
    --  Init_Filter: create a filter with initial output and coefficient.
-   function init_Filter (initial : signal;
-                         coeff   : alpha_Range) returns filter_State
+   function init_filter (initial : signal;
+                         coeff   : alpha_range) returns filter_state
 
-      return ((output = initial, alpha = coeff) as filter_State);
+      return ((output = initial, alpha = coeff) as filter_state);
 
 
    --  Update: output = Alpha * input + (1 - Alpha) * previous_output.
    --  Alpha in 0.01..0.99, input in -100..100, output in -100..100.
    --  Weighted sum of two values each in -100..100 is in -100..100 (convex).
    --  No NaN or infinity possible with bounded finite inputs.
-   function update (state : in out filter_State;
+   function update (state : in out filter_state;
                      input : signal)
       a : long_float;
       result : long_float;

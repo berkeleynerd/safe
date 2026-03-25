@@ -2,7 +2,7 @@
 -- Description: Builtin result plus tuple-based structured return conventions.
 -- Expected: ACCEPT
 
-package pR113_Structured_Result
+package pr113_structured_result
 
    function reject (msg : in string) returns result
 
@@ -20,9 +20,9 @@ package pR113_Structured_Result
    function legacy (input : in integer) returns (boolean, integer)
 
       if input >= 0
-         return (True, input);
+         return (true, input);
 
-      return (False, 0);
+      return (false, 0);
 
 
 

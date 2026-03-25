@@ -100,7 +100,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_Ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
         },
         "diagnostics": {
           "diagnostics": [
@@ -113,7 +113,7 @@
               },
               "message": "dereference of possibly null access value",
               "notes": [
-                "P is of type value_Ptr (access value), which does not exclude null.",
+                "P is of type value_ptr (access value), which does not exclude null.",
                 "no null check precedes this dereference on all paths reaching\nthis program point.",
                 "rule: D27 Rule 4 (Not-Null Dereference)",
                 "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
@@ -340,7 +340,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P;  -- ERROR: P may be null\n  |    |              ^\n  |\n  note: P is of type value_Ptr (access value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
+          "stderr": "neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value\n  |\n  | 14 |       return P;  -- ERROR: P may be null\n  |    |              ^\n  |\n  note: P is of type value_ptr (access value), which does not exclude null.\n  note: no null check precedes this dereference on all paths reaching\n        this program point.\n  note: rule: D27 Rule 4 (Not-Null Dereference)\n  note: per spec/02-restrictions.md section 2.8.4 paragraph 136:\n        \"Dereference of an access value shall require the access subtype\n        to be not null. A conforming implementation shall reject any\n        dereference where the access subtype at the point of dereference\n        does not exclude null.\"\n  suggestion: use a \"not null access\" subtype, or add an explicit null check:\n        if P /= null then\n           return P.all;\n        end if;\n",
           "stdout": ""
         },
         "golden": "tests/diagnostics_golden/diag_null_deref.txt",
@@ -415,7 +415,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_rule5_infinity.safe:19:14: error: floating expression may be infinite at narrowing\n  |\n  | 19 |       return bounded_Float (big / small);  -- ERROR: result may be infinity\n  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+          "stderr": "neg_rule5_infinity.safe:19:14: error: floating expression may be infinite at narrowing\n  |\n  | 19 |       return bounded_float (big / small);  -- ERROR: result may be infinity\n  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
           "stdout": ""
         },
         "golden": "tests/diagnostics_golden/diag_rule5_infinity.txt",
@@ -430,7 +430,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "neg_rule5_overflow.safe:19:14: error: floating expression is not provably within target range\n  |\n  | 19 |       return small_Float (long_float (a) * long_float (b));\n  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
+          "stderr": "neg_rule5_overflow.safe:19:14: error: floating expression is not provably within target range\n  |\n  | 19 |       return small_float (long_float (a) * long_float (b));\n  |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  |\n",
           "stdout": ""
         },
         "golden": "tests/diagnostics_golden/diag_rule5_overflow.txt",
@@ -1356,7 +1356,7 @@
               },
               "message": "dereference of possibly null access value",
               "notes": [
-                "P is of type value_Ptr (access value), which does not exclude null.",
+                "P is of type value_ptr (access value), which does not exclude null.",
                 "no null check precedes this dereference on all paths reaching\nthis program point.",
                 "rule: D27 Rule 4 (Not-Null Dereference)",
                 "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
@@ -1386,7 +1386,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_Ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
         },
         "check": {
           "command": [
@@ -1398,7 +1398,7 @@
           "cwd": "$REPO_ROOT",
           "returncode": 1,
           "stderr": "",
-          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_Ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
+          "stdout": "{\"format\":\"diagnostics-v0\",\"diagnostics\":[{\"reason\":\"null_dereference\",\"message\":\"dereference of possibly null access value\",\"path\":\"tests/negative/neg_rule4_null_deref.safe\",\"span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"highlight_span\":{\"start_line\":14,\"start_col\":14,\"end_line\":14,\"end_col\":14},\"notes\":[\"P is of type value_ptr (access value), which does not exclude null.\",\"no null check precedes this dereference on all paths reaching\\nthis program point.\",\"rule: D27 Rule 4 (Not-Null Dereference)\",\"per spec/02-restrictions.md section 2.8.4 paragraph 136:\\n\\\"Dereference of an access value shall require the access subtype\\nto be not null. A conforming implementation shall reject any\\ndereference where the access subtype at the point of dereference\\ndoes not exclude null.\\\"\"],\"suggestions\":[\"use a \\\"not null access\\\" subtype, or add an explicit null check:\\nif P /= null then\\n   return P.all;\\nend if;\"]}]}\n"
         },
         "check_diagnostics": {
           "diagnostics": [
@@ -1411,7 +1411,7 @@
               },
               "message": "dereference of possibly null access value",
               "notes": [
-                "P is of type value_Ptr (access value), which does not exclude null.",
+                "P is of type value_ptr (access value), which does not exclude null.",
                 "no null check precedes this dereference on all paths reaching\nthis program point.",
                 "rule: D27 Rule 4 (Not-Null Dereference)",
                 "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\""
@@ -1850,7 +1850,7 @@
           ],
           "cwd": "$REPO_ROOT",
           "returncode": 1,
-          "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | Legacy_Assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
+          "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | legacy_assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
           "stdout": ""
         }
       }
@@ -1951,8 +1951,8 @@
       "oversized_integer_literal.safe"
     ]
   },
-  "repeat_sha256": "1bb0a020bf5b4cae5a818258792d59c214c3000fefc2178e2c33651dd6c9a0c0",
-  "report_sha256": "1bb0a020bf5b4cae5a818258792d59c214c3000fefc2178e2c33651dd6c9a0c0",
+  "repeat_sha256": "a25969129a595d3716ba0d92b98a0b2b44e4770e97c345a6f165ce571e9e1e20",
+  "report_sha256": "a25969129a595d3716ba0d92b98a0b2b44e4770e97c345a6f165ce571e9e1e20",
   "status": "ok",
   "task": "PR06.9.5"
 }

@@ -5,19 +5,19 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
-package negative_Index_Test
+package negative_index_test
 
-   type nat_Index is range 0 to 15;
-   type buffer is array (nat_Index) of integer;
+   type nat_index is range 0 to 15;
+   type buffer is array (nat_index) of integer;
 
    --  Access_Offset: accesses Arr(Base - Offset).
    --  If Base = 0 and Offset = 1, then Base - Offset = -1, which
    --  is below the array's lower bound of 0.
-   function access_Offset (arr : buffer;
-                           base : nat_Index;
+   function access_offset (arr : buffer;
+                           base : nat_index;
                            offset : natural) returns integer
 
-      return arr (nat_Index (integer (base) - offset));  -- ERROR: may be negative
+      return arr (nat_index (integer (base) - offset));  -- ERROR: may be negative
 
 
 

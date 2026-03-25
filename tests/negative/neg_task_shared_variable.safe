@@ -2,20 +2,20 @@
 -- Description: Two tasks access the same package global directly.
 -- Expected: REJECT task_variable_ownership
 
-package neg_Task_Shared_Variable
+package neg_task_shared_variable
 
    type counter is range 0 to 100;
 
    shared : counter = 0;
 
-   task A
+   task a
 
       loop
          shared = shared + 1;
 
 
 
-   task B
+   task b
 
       loop
          shared = shared + 1;

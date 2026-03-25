@@ -1,7 +1,7 @@
-with provider_Constant_Bool;
+with provider_constant_bool;
 
-package client_Constant_Bool
+package client_constant_bool
 
-   type client_Result (active : boolean = provider_Constant_Bool.default_Active) is record
+   type client_result (active : boolean = provider_constant_bool.default_active) is record
       value : integer;
 

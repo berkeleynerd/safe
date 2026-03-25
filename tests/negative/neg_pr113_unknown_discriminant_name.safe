@@ -1,7 +1,6 @@
-package neg_PR113_Unknown_Discriminant_Name
-   type packet (Kind : character = 'A', Count : integer = 0) is
+package neg_pr113_unknown_discriminant_name
+   type packet (kind : character = 'A', count : integer = 0) is
       record
          value : integer;
 
-   p : packet (Mode = 'A', Count = 1) = (value = 1);
-
+   p : packet (mode = 'A', count = 1) = (value = 1);

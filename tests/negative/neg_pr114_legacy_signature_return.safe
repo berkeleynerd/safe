@@ -2,7 +2,7 @@
 -- Description: PR11.4 requires returns in subprogram signatures and rejects legacy signature return.
 -- Expected: REJECT source_frontend_error
 
-package neg_PR114_Legacy_Signature_Return
+package neg_pr114_legacy_signature_return
 
    function identity (value : integer) return integer
 

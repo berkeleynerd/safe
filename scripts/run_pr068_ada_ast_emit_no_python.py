@@ -399,13 +399,13 @@ def assert_package_global_cases(
             return_value = first_return_value(graph)
             require(owner_local["kind"] == "global", "package_global_owner: Owner must lower as a global local")
             require(
-                owner_local["type"]["name"] == "value_Ptr",
-                f"package_global_owner: expected Owner type value_Ptr, saw {owner_local['type']['name']!r}",
+                owner_local["type"]["name"] == "value_ptr",
+                f"package_global_owner: expected Owner type value_ptr, saw {owner_local['type']['name']!r}",
             )
             require(return_value["tag"] == "select", "package_global_owner: expected select return expression")
             require(
-                return_value["prefix"]["type"] == "value_Ptr",
-                f"package_global_owner: expected select prefix type value_Ptr, saw {return_value['prefix'].get('type')!r}",
+                return_value["prefix"]["type"] == "value_ptr",
+                f"package_global_owner: expected select prefix type value_ptr, saw {return_value['prefix'].get('type')!r}",
             )
             case_result["owner_local"] = owner_local
             case_result["return_value"] = return_value
@@ -451,14 +451,14 @@ def assert_package_global_cases(
 
         if name == "package_global_observe":
             read_graph = graph_by_name(mir_payload, "read")
-            callee_graph = graph_by_name(mir_payload, "read_Config")
+            callee_graph = graph_by_name(mir_payload, "read_config")
             owner_local = local_by_name(read_graph, "Owner")
             ref_local = local_by_name(callee_graph, "Ref")
             return_value = first_return_value(read_graph)
             require(owner_local["kind"] == "global", "package_global_observe: Owner must lower as a global local")
             require(
-                owner_local["type"]["name"] == "config_Ptr",
-                f"package_global_observe: expected Owner type config_Ptr, saw {owner_local['type']['name']!r}",
+                owner_local["type"]["name"] == "config_ptr",
+                f"package_global_observe: expected Owner type config_ptr, saw {owner_local['type']['name']!r}",
             )
             require(
                 ref_local["ownership_role"] == "Observe",
@@ -470,8 +470,8 @@ def assert_package_global_cases(
                 "package_global_observe: expected call argument Owner.access",
             )
             require(
-                return_value["args"][0]["prefix"]["type"] == "config_Ptr",
-                f"package_global_observe: expected Owner.access prefix type config_Ptr, saw {return_value['args'][0]['prefix'].get('type')!r}",
+                return_value["args"][0]["prefix"]["type"] == "config_ptr",
+                f"package_global_observe: expected Owner.access prefix type config_ptr, saw {return_value['args'][0]['prefix'].get('type')!r}",
             )
             case_result["owner_local"] = owner_local
             case_result["ref_local"] = ref_local

@@ -1,6 +1,6 @@
-with provider_Constant_Unsupported;
+with provider_constant_unsupported;
 
-package client_Constant_Missing_Value
+package client_constant_missing_value
 
-   type index is range 0 to provider_Constant_Unsupported.limit;
+   type index is range 0 to provider_constant_unsupported.limit;
 

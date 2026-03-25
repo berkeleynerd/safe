@@ -28,4 +28,5 @@ neg_rule3_zero_div.safe:14:16: error: divisor not provably nonzero
         end if;
   suggestion: or use a positive subtype that excludes zero:
         type Positive_Value is range 1 .. 100;
+
 ------------------------------------------------------------------------

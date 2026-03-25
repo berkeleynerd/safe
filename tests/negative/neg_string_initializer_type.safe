@@ -2,7 +2,7 @@
 -- Description: Constant String declarations still require String-compatible initializers.
 -- Expected: REJECT source_frontend_error
 
-package neg_String_Initializer_Type
+package neg_string_initializer_type
 
    name : constant string = 1;
 

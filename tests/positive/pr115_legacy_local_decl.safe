@@ -1,4 +1,4 @@
-package pR115_Legacy_Local_Decl
+package pr115_legacy_local_decl
 
    type counter is range 0 to 10;
 

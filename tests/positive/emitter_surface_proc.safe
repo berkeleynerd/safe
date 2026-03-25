@@ -4,7 +4,7 @@
 --   on the non-arithmetic slice.
 -- Expected: ACCEPT
 
-package emitter_Surface_Proc
+package emitter_surface_proc
 
    type small is range 0 to 5;
 

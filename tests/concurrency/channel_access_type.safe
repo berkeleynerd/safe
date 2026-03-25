@@ -3,29 +3,29 @@
 --   Access-typed channel declarations are rejected at the declaration site.
 -- Expected: REJECT source_frontend_error
 
-package channel_Access_Type
+package channel_access_type
 
-   type payload_Value is range 0 to 1;
+   type payload_value is range 0 to 1;
 
    type payload is record
-      value : payload_Value;
+      value : payload_value;
 
 
-   type payload_Ptr is access payload;
+   type payload_ptr is access payload;
 
-   channel Data_Ch : payload_Ptr capacity 1;
+   channel data_ch : payload_ptr capacity 1;
 
-   task Sender with Priority = 10
-      toggle : boolean = False;
+   task sender with Priority = 10
+      toggle : boolean = false;
 
       loop
-         var Item : payload_Ptr;
+         var Item : payload_ptr;
          if toggle
             Item = new ((value = 1) as payload);
          else
             Item = new ((value = 0) as payload);
 
-         send Data_Ch, Item;
+         send data_ch, Item;
          if Item == null
             delay 0.001;
          else
@@ -35,11 +35,11 @@ package channel_Access_Type
 
 
 
-   task Receiver with Priority = 10
+   task receiver with Priority = 10
 
       loop
-         var Item : payload_Ptr;
-         receive Data_Ch, Item;
+         var Item : payload_ptr;
+         receive data_ch, Item;
          if Item != null and then Item.value == 0
             delay 0.001;
          else

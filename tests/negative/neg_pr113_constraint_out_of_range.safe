@@ -1,8 +1,8 @@
-package neg_PR113_Constraint_Out_Of_Range
+package neg_pr113_constraint_out_of_range
    type small is range 0 to 3;
-   type packet (Count : small = 0) is
+   type packet (count : small = 0) is
       record
          value : integer;
 
-   p : packet (Count = 9) = (value = 1);
+   p : packet (count = 9) = (value = 1);
 

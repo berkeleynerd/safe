@@ -1,6 +1,6 @@
-with provider_Object;
+with provider_object;
 
-package client_Object
+package client_object
 
-   value : provider_Object.count = provider_Object.seed;
+   value : provider_object.count = provider_object.seed;
 

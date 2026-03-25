@@ -30,7 +30,7 @@ PR115_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "coverage_note": "Compound statement terminators may omit semicolons on later lines without changing the lowered control-flow structure.",
         "source_fragments": (
             "else if current < 5",
-            "for I in 1 to 2",
+            "for i in 1 to 2",
             "return current",
         ),
         "typed_snippets": ('"name":"adjust"',),
@@ -38,7 +38,7 @@ PR115_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "safei_snippets": ("function adjust",),
         "ada_snippets": (
             "elsif (current < 5) then",
-            "for I in 1 .. 2 loop",
+            "for i in 1 .. 2 loop",
             "current := 5;",
             "end loop;",
         ),
@@ -47,7 +47,7 @@ PR115_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "pr115_case_terminator.safe",
         "coverage_note": "The final `end case` statement terminator may be omitted while `end when;` arm separators remain explicit.",
         "source_fragments": (
-            "when others result = True; return result",
+            "when others result = true; return result",
         ),
         "typed_snippets": ('"name":"normalize"',),
         "mir_snippets": ('"name":"normalize"',),
@@ -134,7 +134,7 @@ PR115_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "samples" / "rosetta" / "arithmetic" / "factorial.safe",
         "source_fragments": (
             "var product : value = 1",
-            "product = product * value (I)",
+            "product = product * value (i)",
             "return product",
         ),
     },
@@ -150,9 +150,9 @@ PR115_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (
     {
         "source": REPO_ROOT / "samples" / "rosetta" / "concurrency" / "producer_consumer.safe",
         "source_fragments": (
-            "send Data_Ch, 41",
+            "send data_ch, 41",
             "var input : message",
-            "receive Data_Ch, input",
+            "receive data_ch, input",
         ),
     },
 )

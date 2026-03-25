@@ -1,7 +1,7 @@
 {
   "format": "mir-v2",
   "source_path": "compiler_impl/tests/mir_analysis/pr0695_first_diagnostic_order.safe",
-  "package_name": "first_Diagnostic_Order",
+  "package_name": "first_diagnostic_order",
   "types": [
     {
       "name": "value",

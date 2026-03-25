@@ -1,4 +1,4 @@
-package pR115_Local_Decl_Terminator
+package pr115_local_decl_terminator
 
    type counter is range 0 to 10;
 

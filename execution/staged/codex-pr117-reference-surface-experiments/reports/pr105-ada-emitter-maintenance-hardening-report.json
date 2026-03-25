@@ -23,7 +23,7 @@
         ],
         "required": [
           "pragma Unevaluated_Use_Of_Old (Allow);",
-          "Post => Ref.all.x = (Ref.all.x_Copy + Ref.all.x'Old);"
+          "Post => Ref.all.x = (Ref.all.x_copy + Ref.all.x'Old);"
         ]
       }
     },
@@ -47,7 +47,7 @@
         "forbidden": [],
         "required": [
           "pragma Unevaluated_Use_Of_Old (Allow);",
-          "Post => Ref.all.inner_Field.value = (Ref.all.inner_Field.value'Old + 1);"
+          "Post => Ref.all.inner_field.value = (Ref.all.inner_field.value'Old + 1);"
         ]
       }
     },
@@ -700,8 +700,8 @@
       ]
     }
   },
-  "repeat_sha256": "1061e3f7522bcb00fec636a720cfd14f98332cb43c4cbb93d59b419c54e225df",
-  "report_sha256": "1061e3f7522bcb00fec636a720cfd14f98332cb43c4cbb93d59b419c54e225df",
+  "repeat_sha256": "7c15115ebb5edc85812c1ddce4a5070fe3a3dca1c88fffec8f2e16ee1c29c426",
+  "report_sha256": "7c15115ebb5edc85812c1ddce4a5070fe3a3dca1c88fffec8f2e16ee1c29c426",
   "status": "ok",
   "subtype_classification_regressions": [
     {
@@ -709,7 +709,7 @@
         "forbidden": [],
         "required": [
           "Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)",
-          "value := small_Count ((Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)));"
+          "value := small_count ((Safe_Runtime.Wide_Integer (value) + Safe_Runtime.Wide_Integer (1)));"
         ]
       },
       "case": "integer_subtype_lowering",
@@ -735,7 +735,7 @@
           "pragma Assert ("
         ],
         "required": [
-          "value : half_Component := input.x;"
+          "value : half_component := input.x;"
         ]
       },
       "case": "float_subtype_no_integer_lowering",

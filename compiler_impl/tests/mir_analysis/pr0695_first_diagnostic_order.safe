@@ -1,4 +1,4 @@
-package first_Diagnostic_Order
+package first_diagnostic_order
 
    type value is range -100 to 100;
 

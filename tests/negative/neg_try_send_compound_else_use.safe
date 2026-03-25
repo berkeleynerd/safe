@@ -2,25 +2,25 @@
 -- Description: Access-typed channel elements are rejected before try_send path-sensitivity checks run.
 -- Expected: REJECT source_frontend_error
 
-package neg_Try_Send_Compound_Else_Use
+package neg_try_send_compound_else_use
 
    type payload is record
       value : integer;
 
 
-   type payload_Ptr is access payload;
+   type payload_ptr is access payload;
 
-   channel Data_Ch : payload_Ptr capacity 1;
+   channel data_ch : payload_ptr capacity 1;
 
    function run
-      Source  : payload_Ptr = new ((value = 1) as payload);
-      success : boolean = False;
-      ready   : boolean = False;
+      Source  : payload_ptr = new ((value = 1) as payload);
+      success : boolean = false;
+      ready   : boolean = false;
 
-      try_send Data_Ch, Source, success;
+      try_send data_ch, Source, success;
       if success and then ready
       else
-         send Data_Ch, Source;
+         send data_ch, Source;
 
 
 

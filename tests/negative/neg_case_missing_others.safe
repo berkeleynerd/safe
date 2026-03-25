@@ -2,7 +2,7 @@
 -- Description: Every PR11.2 case statement requires a final others arm.
 -- Expected: REJECT source_frontend_error
 
-package neg_Case_Missing_Others
+package neg_case_missing_others
 
    function classify (value : in integer) returns integer
 

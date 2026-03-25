@@ -522,7 +522,7 @@ def make_missing_static_value_dir(*, base_interface: Path, temp_root: Path) -> P
     target.mkdir(parents=True, exist_ok=True)
     payload = load_json(base_interface)
     for entry in payload["objects"]:
-        if entry["name"] == "max_Count":
+        if entry["name"] == "max_count":
             entry["is_constant"] = True
             entry["static_value_kind"] = "integer"
             entry.pop("static_value", None)
@@ -535,7 +535,7 @@ def make_kind_mismatch_dir(*, base_interface: Path, temp_root: Path) -> Path:
     target.mkdir(parents=True, exist_ok=True)
     payload = load_json(base_interface)
     for entry in payload["objects"]:
-        if entry["name"] == "max_Count":
+        if entry["name"] == "max_count":
             entry["is_constant"] = True
             entry["static_value_kind"] = "boolean"
             entry["static_value"] = 4
@@ -856,14 +856,14 @@ def generate_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[st
 
         int_object = require_public_constant(
             safei_payload=provider_int_safei,
-            name="max_Count",
+            name="max_count",
             kind="integer",
             value=4,
             label="provider_constant_int",
         )
         bool_object = require_public_constant(
             safei_payload=provider_bool_safei,
-            name="default_Active",
+            name="default_active",
             kind="boolean",
             value=True,
             label="provider_constant_bool",

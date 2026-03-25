@@ -3,11 +3,11 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p14:a35bd0fa
 -- Expected: REJECT source_frontend_error
 
-package channel_Indefinite_Test
+package channel_indefinite_test
 
    type index is range 1 to 8;
    type buffer is array (index range <>) of integer;
 
-   channel Data_Ch : buffer capacity 1;
+   channel data_ch : buffer capacity 1;
 
 

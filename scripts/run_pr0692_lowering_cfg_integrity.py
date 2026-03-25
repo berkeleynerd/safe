@@ -401,27 +401,27 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
         owner_assigns = assign_ops_for_name(graph, "Owner")
         require(owner_local["kind"] == "global", "package_global_owner: Owner must lower as global")
         require(
-            owner_local["type"]["name"] == "value_Ptr",
-            f"package_global_owner: expected Owner type value_Ptr, saw {owner_local['type']['name']!r}",
+            owner_local["type"]["name"] == "value_ptr",
+            f"package_global_owner: expected Owner type value_ptr, saw {owner_local['type']['name']!r}",
         )
         require(owner_assigns and owner_assigns[0]["declaration_init"], "package_global_owner: Owner init must be declaration_init")
         require(return_value["tag"] == "select", "package_global_owner: expected select return")
         require(
-            return_value["prefix"].get("type") == "value_Ptr",
-            f"package_global_owner: expected select prefix type value_Ptr, saw {return_value['prefix'].get('type')!r}",
+            return_value["prefix"].get("type") == "value_ptr",
+            f"package_global_owner: expected select prefix type value_ptr, saw {return_value['prefix'].get('type')!r}",
         )
         summary["owner_local_id"] = owner_local["id"]
 
     elif case_name == "package_global_observe":
         read_graph = graph_by_name(mir_payload, "read")
-        helper_graph = graph_by_name(mir_payload, "read_Config")
+        helper_graph = graph_by_name(mir_payload, "read_config")
         owner_local = local_by_name(read_graph, "Owner")
         ref_local = local_by_name(helper_graph, "Ref")
         return_value = first_return_value(read_graph)
         require(owner_local["kind"] == "global", "package_global_observe: Owner must lower as global")
         require(
-            owner_local["type"]["name"] == "config_Ptr",
-            f"package_global_observe: expected Owner type config_Ptr, saw {owner_local['type']['name']!r}",
+            owner_local["type"]["name"] == "config_ptr",
+            f"package_global_observe: expected Owner type config_ptr, saw {owner_local['type']['name']!r}",
         )
         require(
             ref_local["ownership_role"] == "Observe",
@@ -429,8 +429,8 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
         )
         require(return_value["tag"] == "call", "package_global_observe: expected call return")
         require(
-            return_value["args"][0]["prefix"].get("type") == "config_Ptr",
-            "package_global_observe: expected Owner.access prefix type config_Ptr",
+            return_value["args"][0]["prefix"].get("type") == "config_ptr",
+            "package_global_observe: expected Owner.access prefix type config_ptr",
         )
         summary["observe_param_id"] = ref_local["id"]
 
@@ -500,20 +500,20 @@ def assert_case_specific(case_name: str, mir_payload: dict[str, Any]) -> dict[st
 
     elif case_name == "for_loop_scope":
         scope1 = graph["scopes"][1]
-        loop_local = local_by_name(graph, "I")
+        loop_local = local_by_name(graph, "i")
         init_block = block_by_role(graph, "for_init")
         latch_block = block_by_role(graph, "for_latch")
         exit_block = block_by_role(graph, "for_exit")
-        init_assigns = assign_ops_for_name(graph, "I")
+        init_assigns = assign_ops_for_name(graph, "i")
         require(scope1["kind"] == "loop", "for_loop_scope: scope1 must be loop")
         require(scope1["parent_scope_id"] == "scope0", "for_loop_scope: loop scope must parent scope0")
-        require(loop_local["scope_id"] == "scope1", "for_loop_scope: I must belong to scope1")
+        require(loop_local["scope_id"] == "scope1", "for_loop_scope: i must belong to scope1")
         require(
-            any(op["kind"] == "assign" and op["target"]["name"] == "I" and op["declaration_init"] for op in init_block["ops"]),
+            any(op["kind"] == "assign" and op["target"]["name"] == "i" and op["declaration_init"] for op in init_block["ops"]),
             "for_loop_scope: loop init assignment must be declaration_init",
         )
         require(
-            any(op["kind"] == "assign" and op["target"]["name"] == "I" and not op["declaration_init"] for op in latch_block["ops"]),
+            any(op["kind"] == "assign" and op["target"]["name"] == "i" and not op["declaration_init"] for op in latch_block["ops"]),
             "for_loop_scope: loop latch assignment must not be declaration_init",
         )
         require(

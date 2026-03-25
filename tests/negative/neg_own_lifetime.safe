@@ -6,14 +6,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
 -- Expected: REJECT lifetime_violation
 
-package lifetime_Test
+package lifetime_test
 
    type value is range 0 to 100;
-   type value_Ptr is access value;
+   type value_ptr is access value;
 
    --  Leak_Borrow: returns a borrow tied to a local owner.
-   function leak_Borrow returns access value
-      Owner : value_Ptr = new (42 as value);
+   function leak_borrow returns access value
+      Owner : value_ptr = new (42 as value);
       Ref   : access value = Owner;
 
       return Ref;  -- ERROR: borrowed value outlives local owner

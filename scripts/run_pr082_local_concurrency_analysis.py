@@ -440,7 +440,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
     return {
         "format": "mir-v2",
         "source_path": source_path,
-        "package_name": "neg_Task_Shared_Subprogram_Global",
+        "package_name": "neg_task_shared_subprogram_global",
         "types": [counter],
         "channels": [],
         "graphs": [
@@ -535,7 +535,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                 ],
             },
             {
-                "name": "A",
+                "name": "a",
                 "kind": "task",
                 "entry_bb": "bb0",
                 "span": task_a_span,
@@ -572,7 +572,7 @@ def build_task_shared_subprogram_global_fixture(source_path: str) -> dict[str, A
                 ],
             },
             {
-                "name": "B",
+                "name": "b",
                 "kind": "task",
                 "entry_bb": "bb0",
                 "span": task_b_span,
@@ -1651,38 +1651,38 @@ def build_report(*, safec: Path, python: str, env: dict[str, str]) -> dict[str, 
 
         task_global_evidence = evidence["tests/concurrency/task_global_owner.safe"]
         require(
-            task_global_evidence["ownership"] == [{"global_name": "shared", "task_name": "Worker"}],
+            task_global_evidence["ownership"] == [{"global_name": "shared", "task_name": "worker"}],
             "task_global_owner.safe: ownership map drifted",
         )
-        worker_graph = next(item for item in task_global_evidence["graphs"] if item["name"] == "Worker")
-        require(worker_graph["reads"] == ["shared"], "task_global_owner.safe: Worker reads drifted")
-        require(worker_graph["writes"] == ["shared"], "task_global_owner.safe: Worker writes drifted")
-        require(worker_graph["depends"] == [{"output_name": "global:shared", "inputs": ["global:shared"]}], "task_global_owner.safe: Worker depends drifted")
-        require(task_global_evidence["initializes"] == ["shared"], "task_global_owner.safe: Initializes drifted")
+        worker_graph = next(item for item in task_global_evidence["graphs"] if item["name"] == "worker")
+        require(worker_graph["reads"] == ["shared"], "task_global_owner.safe: worker reads drifted")
+        require(worker_graph["writes"] == ["shared"], "task_global_owner.safe: worker writes drifted")
+        require(worker_graph["depends"] == [{"output_name": "global:shared", "inputs": ["global:shared"]}], "task_global_owner.safe: worker depends drifted")
+        require(task_global_evidence["initializes"] == ["shared"], "task_global_owner.safe: initializes drifted")
 
         ceiling_evidence = evidence["tests/concurrency/channel_ceiling_priority.safe"]
         require(
-            ceiling_evidence["ceilings"] == [{"channel_name": "Data_Ch", "priority": 20, "task_names": ["Fast", "Slow"]}],
+            ceiling_evidence["ceilings"] == [{"channel_name": "data_ch", "priority": 20, "task_names": ["fast", "slow"]}],
             "channel_ceiling_priority.safe: ceiling summary drifted",
         )
-        fast_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "Fast")
-        slow_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "Slow")
+        fast_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "fast")
+        slow_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "slow")
         push_graph = next(item for item in ceiling_evidence["graphs"] if item["name"] == "push")
-        require(fast_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Fast channel access drifted")
-        require(slow_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: Slow channel access drifted")
-        require(push_graph["channels"] == ["Data_Ch"], "channel_ceiling_priority.safe: push channel access drifted")
+        require(fast_graph["channels"] == ["data_ch"], "channel_ceiling_priority.safe: fast channel access drifted")
+        require(slow_graph["channels"] == ["data_ch"], "channel_ceiling_priority.safe: slow channel access drifted")
+        require(push_graph["channels"] == ["data_ch"], "channel_ceiling_priority.safe: push channel access drifted")
 
         shared_callee_fixture = build_task_shared_subprogram_global_fixture(
             "tests/negative/neg_task_shared_subprogram_global.safe"
         )
         shared_callee_bronze = derive_bronze(shared_callee_fixture)
         require(
-            shared_callee_bronze["shared_globals"] == [{"global_name": "shared", "tasks": ["A", "B"]}],
+            shared_callee_bronze["shared_globals"] == [{"global_name": "shared", "tasks": ["a", "b"]}],
             "neg_task_shared_subprogram_global.safe: shared-global Bronze summary drifted",
         )
         require(
             shared_callee_bronze["shared_callees"]
-            == [{"callee": "helper", "tasks": ["A", "B"], "globals": ["shared"]}],
+            == [{"callee": "helper", "tasks": ["a", "b"], "globals": ["shared"]}],
             "neg_task_shared_subprogram_global.safe: shared-callee Bronze summary drifted",
         )
         evidence["synthetic/neg_task_shared_subprogram_global"] = shared_callee_bronze

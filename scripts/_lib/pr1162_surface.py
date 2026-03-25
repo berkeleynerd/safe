@@ -19,7 +19,7 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "forbidden_source_fragments": (
             "declare",
         ),
-        "safei_snippets": ("function update_Local",),
+        "safei_snippets": ("function update_local",),
         "ada_snippets": (
             "value : integer := 0;",
             "value := 2;",
@@ -29,7 +29,7 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "ownership_inout.safe",
         "coverage_note": "No-result helper callables migrate former source `null` statements to explicit bare `return;` without reintroducing removed Ada syntax.",
         "source_fragments": (
-            "function consume (Ref : in out payload_Ptr)",
+            "function consume (Ref : in out payload_ptr)",
             "return;",
         ),
         "forbidden_source_fragments": (
@@ -45,14 +45,14 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "constant_task_priority.safe",
         "coverage_note": "Empty nested suites replace source `null` placeholders while emitted Ada may still synthesize `null;` where Ada requires a statement.",
         "source_fragments": (
-            "task Worker with Priority = worker_Priority",
+            "task worker with Priority = worker_priority",
             "loop",
         ),
         "forbidden_source_fragments": (
             "null;",
         ),
         "ada_snippets": (
-            "task body Worker is",
+            "task body worker is",
             "null;",
         ),
     },
@@ -60,14 +60,14 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "ownership_early_return.safe",
         "coverage_note": "Early return cleanup remains covered after removing explicit inner `declare` blocks from the admitted source surface.",
         "source_fragments": (
-            "Outer : payload_Ptr = new ((value = 7) as payload);",
-            "Inner : payload_Ptr = new ((value = 9) as payload);",
+            "Outer : payload_ptr = new ((value = 7) as payload);",
+            "Inner : payload_ptr = new ((value = 9) as payload);",
             "return Outer.value;",
         ),
         "forbidden_source_fragments": (
             "declare",
         ),
-        "safei_snippets": ("function read_And_Exit",),
+        "safei_snippets": ("function read_and_exit",),
     },
     {
         "source": REPO_ROOT / "tests" / "positive" / "rule4_linked_list.safe",
@@ -79,14 +79,14 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "forbidden_source_fragments": (
             "declare",
         ),
-        "safei_snippets": ("function last_Value", "function has_Tail"),
+        "safei_snippets": ("function last_value", "function has_tail"),
     },
     {
         "source": REPO_ROOT / "tests" / "interfaces" / "provider_transitive_channel.safe",
         "coverage_note": "Concurrency helpers migrate former `declare`-scoped receive temporaries to suite-local `var` declarations.",
         "source_fragments": (
             "var item : message = 0;",
-            "receive Data_Ch, item;",
+            "receive data_ch, item;",
         ),
         "forbidden_source_fragments": (
             "declare",
@@ -120,7 +120,7 @@ PR1162_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "forbidden_source_fragments": (
             "null;",
         ),
-        "safei_snippets": ("task Poller",),
+        "safei_snippets": ("task poller",),
         "ada_snippets": (
             "if not Select_Done then",
             "null;",
@@ -169,19 +169,19 @@ PR1162_NEGATIVE_CASES: tuple[dict[str, Any], ...] = (
 PR1162_MIGRATION_EXAMPLES: tuple[dict[str, Any], ...] = (
     {
         "name": "declare_tail_hoist",
-        "legacy_source": """package Demo
+        "legacy_source": """package demo
 
-   function Build returns Integer
+   function build returns integer
 
       declare
-         Temp : Integer = 1;
+         temp : integer = 1;
       begin
-         return Temp;
+         return temp;
       end;
 """,
         "migrated_fragments": (
-            "var Temp : Integer = 1;",
-            "return Temp;",
+            "var temp : integer = 1;",
+            "return temp;",
         ),
         "forbidden_fragments": (
             "declare",
@@ -191,14 +191,14 @@ PR1162_MIGRATION_EXAMPLES: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "null_statement_removal",
-        "legacy_source": """package Demo
+        "legacy_source": """package demo
 
-   function Consume
+   function consume
 
       null;
 """,
         "migrated_fragments": (
-            "function Consume",
+            "function consume",
         ),
         "forbidden_fragments": (
             "null;",

@@ -285,7 +285,7 @@
       ],
       "cwd": "$REPO_ROOT",
       "returncode": 1,
-      "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | Legacy_Assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
+      "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | legacy_assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
       "stdout": ""
     },
     "source": "compiler_impl/tests/legacy_two_char_tokens.safe"
@@ -332,8 +332,8 @@
     "harness_blocked_log_path": "$TMPDIR/blocked-harness-python.log",
     "harness_stub_path": "$TMPDIR/python-mask-harness/python3"
   },
-  "repeat_sha256": "84f9075212ad7b0a261a405ff80fd4eb9ae5210af45165a6cb6d6592ffa22724",
-  "report_sha256": "84f9075212ad7b0a261a405ff80fd4eb9ae5210af45165a6cb6d6592ffa22724",
+  "repeat_sha256": "4a0e4a45df8526d670398344cab33cc2ef064a7be8d1993ba044c9793154b2db",
+  "report_sha256": "4a0e4a45df8526d670398344cab33cc2ef064a7be8d1993ba044c9793154b2db",
   "source_frontend_rejections": [
     {
       "diag_json": {

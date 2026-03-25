@@ -56,8 +56,8 @@ POSITIVE_CASES = (
     {
         "source": REPO_ROOT / "tests" / "positive" / "pr112_case_scrutinee_once.safe",
         "mir_tags": ("string",),
-        "ada_snippets": ("case read_Opcode is", 'return "two";'),
-        "call_counts": {"read_Opcode": 1},
+        "ada_snippets": ("case read_opcode is", 'return "two";'),
+        "call_counts": {"read_opcode": 1},
     },
 )
 

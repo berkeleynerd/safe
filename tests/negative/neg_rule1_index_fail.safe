@@ -6,14 +6,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p131:30aba5f5
 -- Expected: REJECT narrowing_check_failure
 
-package index_Narrow_Fail
+package index_narrow_fail
 
    type idx is range 1 to 10;
    type values is array (idx) of integer;
 
    --  Index_From_Computation: uses result of arbitrary arithmetic as index.
    --  A + B can produce any value in -20_000..20_000; not provably in 1..10.
-   function index_From_Computation (arr : values;
+   function index_from_computation (arr : values;
                                     a, b : integer) returns integer
 
       return arr (idx (a + b));  -- ERROR: A + B may not be in 1..10

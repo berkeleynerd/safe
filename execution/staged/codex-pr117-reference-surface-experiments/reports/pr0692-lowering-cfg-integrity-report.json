@@ -18,8 +18,8 @@
       "$TMPDIR/while_integer_bound_cfg.safe"
     ]
   },
-  "repeat_sha256": "3af3acc25e9cff7d657300d191a1d9b7e102717f0ac10e81dbeaed688a0dfb0a",
-  "report_sha256": "3af3acc25e9cff7d657300d191a1d9b7e102717f0ac10e81dbeaed688a0dfb0a",
+  "repeat_sha256": "2070277cd14d7a770bcf05a57a95218b7cfe0c5855b57e11e80169e16ae113c7",
+  "report_sha256": "2070277cd14d7a770bcf05a57a95218b7cfe0c5855b57e11e80169e16ae113c7",
   "results": {
     "corpus_cases": {
       "tests/positive/ownership_inout.safe": {
@@ -92,7 +92,7 @@
             }
           },
           {
-            "graph": "use_Inout",
+            "graph": "use_inout",
             "patched_dead_blocks": [],
             "reachable_blocks": [
               "bb0"
@@ -282,7 +282,7 @@
         },
         "integrity": [
           {
-            "graph": "max_Of_Two",
+            "graph": "max_of_two",
             "patched_dead_blocks": [
               "bb3",
               "bb7",
@@ -767,7 +767,7 @@
         },
         "integrity": [
           {
-            "graph": "read_Config",
+            "graph": "read_config",
             "patched_dead_blocks": [],
             "reachable_blocks": [
               "bb0"

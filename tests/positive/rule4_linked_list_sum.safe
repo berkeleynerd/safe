@@ -6,47 +6,47 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package safe_Linked_List_Sum
+package safe_linked_list_sum
 
    type node;
-   type node_Ptr is access node;
-   type visit_Count is range 0 to 3;
-   type node_Value is range 0 to 100;
-   type total_Value is range 0 to 300;
+   type node_ptr is access node;
+   type visit_count is range 0 to 3;
+   type node_value is range 0 to 100;
+   type total_value is range 0 to 300;
 
    type node is record
-      value : node_Value;
-      Next  : node_Ptr;
+      value : node_value;
+      Next  : node_ptr;
 
 
-   function summarize_Prefix (Head : node_Ptr) returns total_Value
-      count : visit_Count = 0;
-      total : total_Value = 0;
+   function summarize_prefix (Head : node_ptr) returns total_value
+      count : visit_count = 0;
+      total : total_value = 0;
 
       if Head != null
          count = count + 1;
-         total = total + total_Value (Head.value);
+         total = total + total_value (Head.value);
          if count == 3
-            return total_Value (total);
+            return total_value (total);
 
 
          if Head.Next != null
             var Second : access constant node = Head.Next.access;
             count = count + 1;
-            total = total + total_Value (Second.value);
+            total = total + total_value (Second.value);
             if count == 3
-               return total_Value (total);
+               return total_value (total);
 
 
             if Second.Next != null
                var Third : access constant node = Second.Next.access;
                count = count + 1;
-               total = total + total_Value (Third.value);
+               total = total + total_value (Third.value);
                if count == 3
-                  return total_Value (total);
+                  return total_value (total);
 
 
 
-      return total_Value (total);
+      return total_value (total);
 
 

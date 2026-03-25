@@ -10,4 +10,5 @@ neg_own_observe_requires_access.safe:16:7: error: observer 'Observer' must be in
   |
   note: local observe uses anonymous access constant and requires an explicit .Access attribute.
   note: rule: Safe §2.3.4 (local observe must use .Access)
+
 ------------------------------------------------------------------------

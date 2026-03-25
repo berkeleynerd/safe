@@ -1,8 +1,8 @@
-package provider_Record_Object
+package provider_record_object
 
-   public type seed_Info is record
+   public type seed_info is record
       value : integer;
 
 
-   public state : seed_Info;
+   public state : seed_info;
 

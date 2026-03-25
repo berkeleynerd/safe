@@ -89,10 +89,22 @@ def canonicalize_fragment_identifiers(fragment: str, *, casefold_map: dict[str, 
 
 
 def normalize_expected_emitted_fragment(fragment: str, *, source_text: str) -> str:
-    return canonicalize_fragment_identifiers(
-        rewrite_reference_surface_source(fragment, mode="reference-signal"),
-        casefold_map=canonical_casefold_map(source_text),
-    )
+    rename_map = collect_rename_map(source_text)
+    updated = fragment
+    if rename_map:
+        pattern = re.compile(
+            r"\b(" + "|".join(sorted((re.escape(name) for name in rename_map), key=len, reverse=True)) + r")\b"
+        )
+        updated = pattern.sub(lambda match: rename_map[match.group(1)], updated)
+    casefold_map = canonical_casefold_map(source_text)
+
+    def rewrite(match: re.Match[str]) -> str:
+        token = match.group(0)
+        if token in {"True", "False"}:
+            return token
+        return casefold_map.get(token.lower(), token)
+
+    return re.sub(r"\b[A-Za-z_]\w*\b", rewrite, updated)
 
 
 def assert_normalized_source_fragments(path: Path, fragments: list[str]) -> list[str]:

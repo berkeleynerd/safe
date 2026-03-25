@@ -1,7 +1,6 @@
-package neg_PR113_Mixed_Constraints
-   type packet (Active : boolean = True, Kind : character = 'A', Count : integer = 0) is
+package neg_pr113_mixed_constraints
+   type packet (active : boolean = true, kind : character = 'A', count : integer = 0) is
       record
          value : integer;
 
-   p : packet (True, Kind = 'A', Count = 1) = (value = 1);
-
+   p : packet (true, kind = 'A', count = 1) = (value = 1);

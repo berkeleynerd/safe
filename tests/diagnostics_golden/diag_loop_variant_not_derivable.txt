@@ -10,4 +10,5 @@ neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot 
   |
   note: supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions.
   note: rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant.
+
 ------------------------------------------------------------------------

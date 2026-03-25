@@ -2,12 +2,12 @@
 -- Description: Explicit `.all` is removed from the admitted Safe source surface.
 -- Expected: REJECT removed_source_construct
 
-package neg_PR117_Explicit_All
+package neg_pr117_explicit_all
 
    type payload is record
       value : integer;
 
-   type payload_Ptr is not null access payload;
+   type payload_ptr is not null access payload;
 
-   function demo (Source : payload_Ptr) returns integer
+   function demo (Source : payload_ptr) returns integer
       return Source.all.value;

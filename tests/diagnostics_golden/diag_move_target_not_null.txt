@@ -10,4 +10,5 @@ neg_own_target_not_null.safe:18:7: error: move target 'Target' is not provably n
   |
   note: static analysis determined state 'NonNull' for the move target.
   note: rule: Safe §2.3.2 (target of move must be provably null)
+
 ------------------------------------------------------------------------

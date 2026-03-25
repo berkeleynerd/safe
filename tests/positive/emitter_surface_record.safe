@@ -4,7 +4,7 @@
 --   object declarations, and literal/identifier returns without arithmetic.
 -- Expected: ACCEPT
 
-package emitter_Surface_Record
+package emitter_surface_record
 
    type counter is range 0 to 10;
 

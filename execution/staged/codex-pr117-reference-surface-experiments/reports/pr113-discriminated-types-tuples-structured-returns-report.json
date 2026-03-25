@@ -13,7 +13,7 @@
       }
     },
     {
-      "message": "duplicate named discriminant constraint 'Kind'",
+      "message": "duplicate named discriminant constraint 'kind'",
       "reason": "source_frontend_error",
       "source": "tests/negative/neg_pr113_duplicate_named_constraint.safe",
       "span": {
@@ -24,7 +24,7 @@
       }
     },
     {
-      "message": "unknown discriminant name 'Mode'",
+      "message": "unknown discriminant name 'mode'",
       "reason": "source_frontend_error",
       "source": "tests/negative/neg_pr113_unknown_discriminant_name.safe",
       "span": {
@@ -500,8 +500,8 @@
       }
     }
   ],
-  "repeat_sha256": "dae7b207d25baac50ed2305e646539d4fc448d5f4dee8c89215e66f0f1f414a1",
-  "report_sha256": "dae7b207d25baac50ed2305e646539d4fc448d5f4dee8c89215e66f0f1f414a1",
+  "repeat_sha256": "1dbd16b5c135f0d64b63fec69a12e6b51b57a983fca5414de7345072e7996cae",
+  "report_sha256": "1dbd16b5c135f0d64b63fec69a12e6b51b57a983fca5414de7345072e7996cae",
   "rosetta_samples": [
     {
       "analyze_mir": {

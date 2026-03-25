@@ -39,17 +39,17 @@ PR117_NEGATIVE_CASES: tuple[dict[str, Any], ...] = (
     {
         "source": REPO_ROOT / "tests" / "negative" / "neg_pr117_lowercase_access_binding.safe",
         "reason": "source_frontend_error",
-        "message": "reference-signal naming requires local binding `owner` to start with a uppercase letter",
+        "message": "reference-signal naming requires local binding `owner` to start with an uppercase letter",
     },
     {
         "source": REPO_ROOT / "tests" / "negative" / "neg_pr117_uppercase_value_binding.safe",
         "reason": "source_frontend_error",
-        "message": "reference-signal naming requires local binding `Total` to start with a lowercase letter",
+        "message": "reference-signal naming requires local binding `Total` to be fully lowercase",
     },
     {
         "source": REPO_ROOT / "tests" / "negative" / "neg_pr117_lowercase_access_field.safe",
         "reason": "source_frontend_error",
-        "message": "reference-signal naming requires record field `next` to start with a uppercase letter",
+        "message": "reference-signal naming requires record field `next` to start with an uppercase letter",
     },
     {
         "source": REPO_ROOT / "tests" / "negative" / "neg_pr117_casefold_collision.safe",
@@ -77,20 +77,20 @@ PR117_MIGRATION_EXAMPLES: tuple[dict[str, Any], ...] = (
     {
         "name": "reference_signal_binding_and_field_case",
         "mode": "reference-signal",
-        "source": """package Demo
+        "source": """package demo
 
    type payload is record
       value : integer;
-      next  : payload_ptr;
+      Next  : payload_ptr;
 
    type payload_ptr is access payload;
 
    function transfer
-      source : payload_ptr = new ((value = 42, next = null) as payload);
-      target : payload_ptr = null;
+      Source : payload_ptr = new ((value = 42, Next = null) as payload);
+      Target : payload_ptr = null;
 
-      target = source;
-      target.value = 100;
+      Target = Source;
+      Target.value = 100;
 """,
         "required_fragments": (
             "package demo",
@@ -103,21 +103,21 @@ PR117_MIGRATION_EXAMPLES: tuple[dict[str, Any], ...] = (
     {
         "name": "combined_reference_signal_and_implicit_deref",
         "mode": "combined",
-        "source": """package Demo
+        "source": """package demo
 
    type node is record
       value : integer;
-      next  : node_ptr;
+      Next  : node_ptr;
 
    type node_ptr is access node;
 
-   function sum (head : node_ptr) returns integer
+   function sum (Head : node_ptr) returns integer
       total : integer = 0;
 
-      if head != null
-         total = total + head.value;
-         if head.next != null
-            total = total + head.next.value;
+      if Head != null
+         total = total + Head.value;
+         if Head.Next != null
+            total = total + Head.Next.value;
       return total;
 """,
         "required_fragments": (
@@ -139,7 +139,7 @@ PR117_READABILITY_EXAMPLES: tuple[dict[str, Any], ...] = (
     {
         "name": "ownership_transfer",
         "description": "Owned reference transfer and post-move mutation at the use site.",
-        "source": """package Ownership_Transfer
+        "source": """package ownership_transfer
 
    type payload is record
       value : integer;
@@ -147,39 +147,39 @@ PR117_READABILITY_EXAMPLES: tuple[dict[str, Any], ...] = (
    type payload_ptr is access payload;
 
    function transfer
-      source : payload_ptr = new ((value = 42) as payload);
-      target : payload_ptr = null;
+      Source : payload_ptr = new ((value = 42) as payload);
+      Target : payload_ptr = null;
 
-      target = source;
-      target.value = 100;
+      Target = Source;
+      Target.value = 100;
 """,
     },
     {
         "name": "linked_traversal",
         "description": "Null-guarded linked traversal with an access-typed field chain.",
-        "source": """package Linked_Traversal
+        "source": """package linked_traversal
 
    type node;
    type node_ptr is access node;
 
    type node is record
       value : integer;
-      next  : node_ptr;
+      Next  : node_ptr;
 
-   function sum_values (head : node_ptr) returns integer
+   function sum_values (Head : node_ptr) returns integer
       total : integer = 0;
 
-      if head != null
-         total = total + head.value;
-         if head.next != null
-            total = total + head.next.value;
+      if Head != null
+         total = total + Head.value;
+         if Head.Next != null
+            total = total + Head.Next.value;
       return total;
 """,
     },
     {
         "name": "local_observer",
         "description": "Local observer bound through `.access` and then read via implicit dereference.",
-        "source": """package Local_Observer
+        "source": """package local_observer
 
    type config is record
       rate : natural;
@@ -187,11 +187,11 @@ PR117_READABILITY_EXAMPLES: tuple[dict[str, Any], ...] = (
    type config_ptr is access config;
 
    function read
-      owner    : config_ptr = new ((rate = 100) as config);
-      observer : access constant config = owner.access;
+      Owner    : config_ptr = new ((rate = 100) as config);
+      Observer : access constant config = Owner.access;
       rate     : natural;
 
-      rate = observer.rate;
+      rate = Observer.rate;
 """,
     },
 )

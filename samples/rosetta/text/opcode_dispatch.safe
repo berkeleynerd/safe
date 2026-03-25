@@ -1,4 +1,4 @@
-package opcode_Dispatch
+package opcode_dispatch
 
    function render (opcode : in integer) returns string
 

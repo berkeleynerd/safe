@@ -1,4 +1,4 @@
-package neg_PR116_Legacy_Begin
+package neg_pr116_legacy_begin
 
    function broken returns integer
 

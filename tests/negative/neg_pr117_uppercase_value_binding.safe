@@ -2,15 +2,15 @@
 -- Description: Reference-signal naming requires value bindings to start lowercase.
 -- Expected: REJECT source_frontend_error
 
-package neg_PR117_Uppercase_Value_Binding
+package neg_pr117_uppercase_value_binding
 
    type payload is record
       value : integer;
 
-   type payload_Ptr is access payload;
+   type payload_ptr is access payload;
 
    function demo returns integer
-      Owner : payload_Ptr = new ((value = 1) as payload);
+      Owner : payload_ptr = new ((value = 1) as payload);
       Total : integer = 0;
 
       Total = Owner.value;

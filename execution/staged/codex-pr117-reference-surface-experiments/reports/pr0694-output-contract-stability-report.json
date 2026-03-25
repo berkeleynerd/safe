@@ -35,10 +35,10 @@
           }
         ],
         "file_hashes": {
-          "iface/ownership_inout.safei.json": "c2e40223714f786f6f65ad3ad9ffd1685087a29e061daf10b8c5d7ec81a0f49f",
-          "out/ownership_inout.ast.json": "ffc32a529b8327e1801ee4b8585c60f983bb7626d06484cc6f7a649ecd26f0ae",
-          "out/ownership_inout.mir.json": "d3b00d96ac90917551ba4454ba35bb72e4cc9e442845407a846f67e498526c88",
-          "out/ownership_inout.typed.json": "65e3d0eb7a167083844b20d5abf5ff5898793b91089c19323b8aadd0f2cd6232"
+          "iface/ownership_inout.safei.json": "9c5c17c319c8dfc6b5fc6ae807ad327ef1e3089a221ea807052d5c54c89b8f3a",
+          "out/ownership_inout.ast.json": "976424ac28a5c962c0d06b7fa006dde416b9a8d6b9a8c6de90d7476f6cae4483",
+          "out/ownership_inout.mir.json": "80da231609f5f2d5d27eef558352f3cd76210b50abf2f0c04eab50b3220b6683",
+          "out/ownership_inout.typed.json": "ebdb0df535ef2a4b39f2e27f6d2cebc5d4a24389e0c9a68879ca3e35d2beaa7a"
         },
         "format_tags": {
           "mir": "mir-v2",
@@ -48,13 +48,13 @@
         "mir_source_path": "$REPO_ROOT/tests/positive/ownership_inout.safe",
         "safei_executable_names": [
           "consume",
-          "use_Inout"
+          "use_inout"
         ],
         "safei_public_declaration_names": [],
         "source": "$REPO_ROOT/tests/positive/ownership_inout.safe",
         "typed_executable_names": [
           "consume",
-          "use_Inout"
+          "use_inout"
         ],
         "typed_public_declaration_names": [],
         "validators": {
@@ -136,10 +136,10 @@
           }
         ],
         "file_hashes": {
-          "iface/rule2_binary_search.safei.json": "2fe083d77d4a95ff27e4bb4f91362c46d912f14fe0cb9e710729fdba305daeac",
-          "out/rule2_binary_search.ast.json": "bd1434a5e836dd3c5665a9b56fc51034c9b945a6dff0caa74ed84bfd02637a31",
-          "out/rule2_binary_search.mir.json": "c14520e6ef9fe4e5435c41abea3daabb3bed4e433242025f21f4860aac3e9c4e",
-          "out/rule2_binary_search.typed.json": "6334cf80eda77fa677079415e4ddb0bd7aae04099dd36c90a99400fa65d3def7"
+          "iface/rule2_binary_search.safei.json": "ae692dbb7ada64933c2afb9b35689a08026f537fe7a701928331d92f3164177e",
+          "out/rule2_binary_search.ast.json": "9a8fb13ce8ae3e5a1445495570d5170c6b75de3488091199dbf9a164ce6cf952",
+          "out/rule2_binary_search.mir.json": "4f37ac6951b370b0381fc989d81f166acb1e9e58bfd6d4f8d305ef45fb56a834",
+          "out/rule2_binary_search.typed.json": "6db4fd945bd24684f0570d128d50b2066faa9abe1e990e4b307c66f4d8ce2c7b"
         },
         "format_tags": {
           "mir": "mir-v2",
@@ -235,10 +235,10 @@
           }
         ],
         "file_hashes": {
-          "iface/rule4_conditional.safei.json": "1efe2357d0e0f2e79af6ac29ed6379ab199a6afc1992a3bd80d87a362f9ca52e",
-          "out/rule4_conditional.ast.json": "5da55e1ca13896daf4d52b201ce2d3ec8f2e30a7bd5a83803dfae9032f12e070",
-          "out/rule4_conditional.mir.json": "cc9173140100e7c3e82af6e18049409e4434c53d540b917c1aace5a63bafd865",
-          "out/rule4_conditional.typed.json": "665e2c9aea92e8e94c37f5437d3e230dbf479a9c92c1a20ae86f735cafee3ff8"
+          "iface/rule4_conditional.safei.json": "60121d50ffa26d6607cfe550c31fe75ea2190ab4c1aa362ca0d8b930d650ca48",
+          "out/rule4_conditional.ast.json": "ef9dafdd2d893884ef48c37b6de0612fcc1e53d4b5503bbb65322b02a3cf72e0",
+          "out/rule4_conditional.mir.json": "5ebbe0d20f80afec7adde1d4c471f2ce37c334ce6a17db6c2e312b78f9e44315",
+          "out/rule4_conditional.typed.json": "6251c0964be330cdbe1a167404d258510925b019d975f494008509d23feef7d0"
         },
         "format_tags": {
           "mir": "mir-v2",
@@ -247,12 +247,12 @@
         },
         "mir_source_path": "$REPO_ROOT/tests/positive/rule4_conditional.safe",
         "safei_executable_names": [
-          "max_Of_Two"
+          "max_of_two"
         ],
         "safei_public_declaration_names": [],
         "source": "$REPO_ROOT/tests/positive/rule4_conditional.safe",
         "typed_executable_names": [
-          "max_Of_Two"
+          "max_of_two"
         ],
         "typed_public_declaration_names": [],
         "validators": {
@@ -336,10 +336,10 @@
           }
         ],
         "file_hashes": {
-          "iface/public_interface.safei.json": "f467aeb5e15508f247fd55c99026e956f35528c6ffe876a25f3ff4044709551d",
-          "out/public_interface.ast.json": "39420c7c61421fe3ee22f044dc4a4b48dbbadd04cea48b98e5d9517e80344c16",
-          "out/public_interface.mir.json": "2bd0255f0085f3973d1ef9d489864b2a8c172d9239f9621581d30511727c46c5",
-          "out/public_interface.typed.json": "684c2aee7aee13123900430004a6abc82e337f737515db5ef59f73261305f803"
+          "iface/public_interface.safei.json": "bee1956db07cb79a8faa1a7b1f9e8d8be98559d30b14619b986c6f5151dec486",
+          "out/public_interface.ast.json": "e6672c614e5b0c3d6c50da77977ad5fad4852032c576f4ccefd1516aacbaac71",
+          "out/public_interface.mir.json": "b70aae6055db80348b7d65685e42887f048420d65aaf009394339f851b605f2e",
+          "out/public_interface.typed.json": "1556cfd450055c38c6c36300d658b92ec1a5b8c58d3a4caae87e67de5b570ea1"
         },
         "format_tags": {
           "mir": "mir-v2",
@@ -434,8 +434,8 @@
       "public_interface"
     ]
   },
-  "repeat_sha256": "71dcd8bc79806016d440926563353095026dbe7da5f2a3f62ea92743c6ca7dd3",
-  "report_sha256": "71dcd8bc79806016d440926563353095026dbe7da5f2a3f62ea92743c6ca7dd3",
+  "repeat_sha256": "9d0646b3bbeed88f6fcbda5a70eb925eece6bbdc9b5e17944b3ac005f545046b",
+  "report_sha256": "9d0646b3bbeed88f6fcbda5a70eb925eece6bbdc9b5e17944b3ac005f545046b",
   "status": "ok",
   "task": "PR06.9.4"
 }

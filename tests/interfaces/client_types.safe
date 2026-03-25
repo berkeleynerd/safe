@@ -1,10 +1,10 @@
 with provider_types;
 
-package client_Types
+package client_types
 
-   type handle_Ref is access provider_Types.handle;
+   type handle_ref is access provider_types.handle;
 
-   Current    : handle_Ref = null;
-   value      : provider_Types.small_Count = 1;
-   next_Value : provider_Types.count = provider_Types.next (value);
+   Current    : handle_ref = null;
+   value      : provider_types.small_count = 1;
+   next_value : provider_types.count = provider_types.next (value);
 

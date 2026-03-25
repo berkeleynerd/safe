@@ -9,4 +9,5 @@ neg_result_mutated.safe:41:17: error: access to variant field 'value' requires e
   |    |                 ^~~~~~~
   |
   note: the discriminant fact for 'r' was invalidated by assignment or an out/in out call.
+
 ------------------------------------------------------------------------

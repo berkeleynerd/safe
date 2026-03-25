@@ -10,4 +10,5 @@ neg_own_lifetime.safe:19:14: error: returned borrow value cannot outlive lender 
   |
   note: borrowed and observed values must remain within the lender lifetime.
   note: rule: Safe §2.3.3 / §2.3.4a (lifetime containment)
+
 ------------------------------------------------------------------------

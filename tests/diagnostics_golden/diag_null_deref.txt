@@ -8,7 +8,7 @@ neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access valu
   | 14 |       return P;  -- ERROR: P may be null
   |    |              ^
   |
-  note: P is of type value_Ptr (access value), which does not exclude null.
+  note: P is of type value_ptr (access value), which does not exclude null.
   note: no null check precedes this dereference on all paths reaching
         this program point.
   note: rule: D27 Rule 4 (Not-Null Dereference)
@@ -21,4 +21,5 @@ neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access valu
         if P /= null then
            return P.all;
         end if;
+
 ------------------------------------------------------------------------

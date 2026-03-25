@@ -2,9 +2,9 @@
 -- Description: String literals are not admitted as PR11.2 case-arm choices.
 -- Expected: REJECT unsupported_source_construct
 
-package neg_Case_String_Choice
+package neg_case_string_choice
 
-   function opcode_Name (opcode : in integer) returns string
+   function opcode_name (opcode : in integer) returns string
 
       case opcode
          when "reset"

@@ -1,7 +1,7 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_own_use_after_move.safe",
-  "package_name": "use_After_Move_Test",
+  "package_name": "use_after_move_test",
   "types": [
     {
       "name": "item",
@@ -12,7 +12,7 @@
       }
     },
     {
-      "name": "item_Ptr",
+      "name": "item_ptr",
       "kind": "access",
       "target": "item",
       "not_null": false,
@@ -43,7 +43,7 @@
             "end_col": 51
           },
           "type": {
-            "name": "item_Ptr",
+            "name": "item_ptr",
             "kind": "access",
             "target": "item",
             "not_null": false,
@@ -67,7 +67,7 @@
             "end_col": 24
           },
           "type": {
-            "name": "item_Ptr",
+            "name": "item_ptr",
             "kind": "access",
             "target": "item",
             "not_null": false,
@@ -152,7 +152,7 @@
               "target": {
                 "tag": "ident",
                 "name": "Source",
-                "type": "item_Ptr",
+                "type": "item_ptr",
                 "span": {
                   "start_line": 20,
                   "start_col": 7,
@@ -160,7 +160,7 @@
                   "end_col": 12
                 }
               },
-              "type": "item_Ptr",
+              "type": "item_ptr",
               "value": {
                 "tag": "allocator",
                 "type": "access Item",
@@ -259,7 +259,7 @@
               "target": {
                 "tag": "ident",
                 "name": "Target",
-                "type": "item_Ptr",
+                "type": "item_ptr",
                 "span": {
                   "start_line": 21,
                   "start_col": 7,
@@ -267,10 +267,10 @@
                   "end_col": 12
                 }
               },
-              "type": "item_Ptr",
+              "type": "item_ptr",
               "value": {
                 "tag": "null",
-                "type": "item_Ptr",
+                "type": "item_ptr",
                 "span": {
                   "start_line": 21,
                   "start_col": 23,
@@ -292,7 +292,7 @@
               "target": {
                 "tag": "ident",
                 "name": "Target",
-                "type": "item_Ptr",
+                "type": "item_ptr",
                 "span": {
                   "start_line": 23,
                   "start_col": 7,
@@ -300,11 +300,11 @@
                   "end_col": 12
                 }
               },
-              "type": "item_Ptr",
+              "type": "item_ptr",
               "value": {
                 "tag": "ident",
                 "name": "Source",
-                "type": "item_Ptr",
+                "type": "item_ptr",
                 "span": {
                   "start_line": 23,
                   "start_col": 16,
@@ -348,7 +348,7 @@
                 "prefix": {
                   "tag": "ident",
                   "name": "Source",
-                  "type": "item_Ptr",
+                  "type": "item_ptr",
                   "span": {
                     "start_line": 25,
                     "start_col": 11,

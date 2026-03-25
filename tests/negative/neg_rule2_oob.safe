@@ -6,11 +6,11 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: REJECT index_out_of_bounds
 
-package oOB_Test
+package oob_test
 
    type slot is range 0 to 7;
    type data is array (slot) of integer;
-   function access_With_Integer (arr : data; idx : integer) returns integer
+   function access_with_integer (arr : data; idx : integer) returns integer
 
       return arr (slot (idx));  -- ERROR: Idx may not be in 0..7
 

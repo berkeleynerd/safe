@@ -1,7 +1,7 @@
-with provider_Constant_Int;
+with provider_constant_int;
 
-package client_Constant_Capacity
+package client_constant_capacity
 
    type message is range 0 to 10;
-   channel Data_Ch : message capacity provider_Constant_Int.max_Count;
+   channel data_ch : message capacity provider_constant_int.max_count;
 

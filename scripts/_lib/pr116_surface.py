@@ -13,7 +13,7 @@ PR116_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "pr116_bare_return.safe",
         "coverage_note": "No-return subprograms may begin their indented suite with a bare `return;` without being mistaken for a multiline return-type continuation.",
         "source_fragments": (
-            "function exit_Early",
+            "function exit_early",
             "return;",
         ),
         "forbidden_source_fragments": (
@@ -27,7 +27,7 @@ PR116_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
             "function adjust (input : count) returns count",
             "if current > 5",
             "else if current < 5",
-            "for I in 1 to 2",
+            "for i in 1 to 2",
         ),
         "forbidden_source_fragments": (
             "then",
@@ -39,7 +39,7 @@ PR116_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "safei_snippets": ("function adjust",),
         "ada_snippets": (
             "elsif (current < 5) then",
-            "for I in 1 .. 2 loop",
+            "for i in 1 .. 2 loop",
         ),
     },
     {
@@ -72,8 +72,8 @@ PR116_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
             "end case",
             "end when",
         ),
-        "typed_snippets": ('"name":"grade_Message"',),
-        "safei_snippets": ("function grade_Message",),
+        "typed_snippets": ('"name":"grade_message"',),
+        "safei_snippets": ("function grade_message",),
         "ada_snippets": (
             "case grade is",
             "when others =>",
@@ -83,29 +83,29 @@ PR116_POSITIVE_CASES: tuple[dict[str, Any], ...] = (
         "source": REPO_ROOT / "tests" / "positive" / "pr113_variant_guard.safe",
         "coverage_note": "Record field lists and variant arms are indentation-structured with no `end record` / `end case` closers.",
         "source_fragments": (
-            "type packet (Kind : character = 'A') is",
+            "type packet (kind : character = 'A') is",
             "record",
-            "case Kind",
+            "case kind",
             "when others",
         ),
         "forbidden_source_fragments": (
             "end record",
             "end case",
         ),
-        "typed_snippets": ('"name":"read_Alpha"',),
-        "safei_snippets": ("function read_Alpha",),
+        "typed_snippets": ('"name":"read_alpha"',),
+        "safei_snippets": ("function read_alpha",),
         "ada_snippets": (
             "type packet",
-            "case Kind is",
+            "case kind is",
         ),
     },
     {
         "source": REPO_ROOT / "tests" / "concurrency" / "select_with_delay.safe",
         "coverage_note": "Task and `select` bodies use indentation-defined suites while preserving the admitted concurrency surface.",
         "source_fragments": (
-            "task Poller with Priority = 10",
+            "task poller with Priority = 10",
             "select",
-            "when Item : message from Msg_Ch",
+            "when item : message from msg_ch",
             "or",
             "delay 0.05",
         ),
@@ -148,8 +148,8 @@ PR116_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (
     {
         "source": REPO_ROOT / "samples" / "rosetta" / "arithmetic" / "collatz_bounded.safe",
         "source_fragments": (
-            "var current : working_Value = working_Value (seed)",
-            "for Step in iteration",
+            "var current : working_value = working_value (seed)",
+            "for step in iteration",
             "if current == 1",
         ),
     },
@@ -164,9 +164,9 @@ PR116_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (
     {
         "source": REPO_ROOT / "samples" / "rosetta" / "concurrency" / "producer_consumer.safe",
         "source_fragments": (
-            "task Producer with Priority = 10",
+            "task producer with Priority = 10",
             "loop",
-            "receive Data_Ch, input",
+            "receive data_ch, input",
         ),
     },
 )
@@ -174,59 +174,59 @@ PR116_ROSETTA_READABILITY_CASES: tuple[dict[str, Any], ...] = (
 PR116_MIGRATION_EXAMPLES: tuple[dict[str, Any], ...] = (
     {
         "name": "control_flow_cutover",
-        "legacy_source": """package Demo is
+        "legacy_source": """package demo is
 
-   type Count is range 0 to 10;
+   type count is range 0 to 10;
 
-   function Adjust (Input : Count) returns Count is
+   function adjust (input : count) returns count is
    begin
-      if Input > 0 then
-         return Input;
+      if input > 0 then
+         return input;
       else
          return 0;
       end if;
-   end Adjust;
-end Demo;
+   end adjust;
+end demo;
 """,
         "migrated_fragments": (
-            "package Demo",
-            "function Adjust (Input : Count) returns Count",
-            "if Input > 0",
+            "package demo",
+            "function adjust (input : count) returns count",
+            "if input > 0",
             "else",
         ),
         "forbidden_fragments": (
-            "function Adjust (Input : Count) returns Count is",
+            "function adjust (input : count) returns count is",
             "begin",
             "end if",
-            "end Adjust",
-            "end Demo",
+            "end adjust",
+            "end demo",
         ),
     },
     {
         "name": "case_and_select_cutover",
-        "legacy_source": """package Demo is
+        "legacy_source": """package demo is
 
-   type Flag is range 0 to 1;
-   channel Msg_Ch : Flag capacity 1;
+   type flag is range 0 to 1;
+   channel msg_ch : flag capacity 1;
 
-   function Decide (Input : Flag) returns Flag is
+   function decide (input : flag) returns flag is
    begin
-      case Input is
+      case input is
          when 0 then
             return 0;
          when others then
             return 1;
       end case;
-   end Decide;
-end Demo;
+   end decide;
+end demo;
 """,
         "migrated_fragments": (
-            "case Input",
+            "case input",
             "when 0",
             "when others",
         ),
         "forbidden_fragments": (
-            "case Input is",
+            "case input is",
             "when 0 then",
             "when others then",
             "end case",

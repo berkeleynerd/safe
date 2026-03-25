@@ -290,10 +290,10 @@
         "returncode": 0
       },
       "mir_snippets": [
-        "\"name\":\"max_Of_Two\""
+        "\"name\":\"max_of_two\""
       ],
       "safei_snippets": [
-        "function max_Of_Two"
+        "function max_of_two"
       ],
       "source": "tests/positive/rule4_conditional.safe",
       "source_fragments": [
@@ -301,7 +301,7 @@
         "else if B != null"
       ],
       "typed_snippets": [
-        "\"name\":\"max_Of_Two\""
+        "\"name\":\"max_of_two\""
       ],
       "validate_mir": {
         "command": [
@@ -316,7 +316,7 @@
     {
       "ada_snippets": [
         "type index is range 1 .. 100;",
-        "for I in first .. last loop"
+        "for i in first .. last loop"
       ],
       "ast_snippets": [],
       "check": {
@@ -358,15 +358,15 @@
         "returncode": 0
       },
       "mir_snippets": [
-        "\"name\":\"last_In_Subrange\""
+        "\"name\":\"last_in_subrange\""
       ],
       "safei_snippets": [
-        "function last_In_Subrange"
+        "function last_in_subrange"
       ],
       "source": "tests/positive/rule2_slice.safe",
       "source_fragments": [
         "type index is range 1 to 100;",
-        "for I in first to last"
+        "for i in first to last"
       ],
       "typed_snippets": [
         "\"identifier\":\"index\""
@@ -383,8 +383,8 @@
     },
     {
       "ada_snippets": [
-        "type packet (Active : boolean := True; Kind : character := 'A'; Count : integer := 0) is record",
-        "subtype Safe_constraint_packet_Active_true_Kind_A_Count_2 is packet (Active => True, Kind => 'A', Count => 2);"
+        "type packet (active : boolean := True; kind : character := 'A'; count : integer := 0) is record",
+        "subtype Safe_constraint_packet_active_true_kind_A_count_2 is packet (active => True, kind => 'A', count => 2);"
       ],
       "ast_snippets": [],
       "check": {
@@ -428,20 +428,20 @@
       "mir_snippets": [
         "\"discriminants\":[",
         "\"discriminant_constraints\":[",
-        "\"name\":\"Count\""
+        "\"name\":\"count\""
       ],
       "safei_snippets": [
         "packet",
-        "__constraint_packet_Active_true_Kind_A_Count_2"
+        "__constraint_packet_active_true_kind_A_count_2"
       ],
       "source": "tests/positive/pr113_discriminant_constraints.safe",
       "source_fragments": [
-        "type packet (Active : boolean = True, Kind : character = 'A', Count : integer = 0) is"
+        "type packet (active : boolean = true, kind : character = 'A', count : integer = 0) is"
       ],
       "typed_snippets": [
         "\"discriminants\":[",
-        "\"name\":\"Kind\"",
-        "\"name\":\"Count\""
+        "\"name\":\"kind\"",
+        "\"name\":\"count\""
       ],
       "validate_mir": {
         "command": [
@@ -454,8 +454,8 @@
       }
     }
   ],
-  "repeat_sha256": "f3602a02641738b26c87082e06149693585deba6fa9e4e94daec13c22eaca072",
-  "report_sha256": "f3602a02641738b26c87082e06149693585deba6fa9e4e94daec13c22eaca072",
+  "repeat_sha256": "e1fabde6e7ea51ce7f45da154babf43e966bb5bf4ad828e15c4ca6678cc6f9cf",
+  "report_sha256": "e1fabde6e7ea51ce7f45da154babf43e966bb5bf4ad828e15c4ca6678cc6f9cf",
   "status": "ok",
   "task": "PR11.4"
 }

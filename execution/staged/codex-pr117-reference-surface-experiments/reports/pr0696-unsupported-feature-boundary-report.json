@@ -161,7 +161,7 @@
         ],
         "cwd": "$REPO_ROOT",
         "returncode": 1,
-        "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | Legacy_Assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
+        "stderr": "legacy_two_char_tokens.safe:2:19: error: legacy token \":=\" is not allowed\n  |\n  | 2 | legacy_assignment := 1;\n  |   |                   ^~\n  |\n  suggestion: Use current Safe syntax (`=` for assignment).\n",
         "stdout": ""
       },
       "name": "legacy_two_char_tokens",
@@ -169,8 +169,8 @@
     }
   },
   "deterministic": true,
-  "repeat_sha256": "a4f3d32d592ea5b4849092610a36a1a87fea79f76ae229512d593234fd8ed6a4",
-  "report_sha256": "a4f3d32d592ea5b4849092610a36a1a87fea79f76ae229512d593234fd8ed6a4",
+  "repeat_sha256": "eef1eeff35fdba66b60bf14a7fd8857596bb7ca5e79bfc1a8cd853f3c1b6a876",
+  "report_sha256": "eef1eeff35fdba66b60bf14a7fd8857596bb7ca5e79bfc1a8cd853f3c1b6a876",
   "status": "ok",
   "task": "PR06.9.6",
   "unsupported_cases": [

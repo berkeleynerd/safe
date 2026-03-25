@@ -416,14 +416,14 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
 
         if name == "package_global_observe":
             read_graph = graph_by_name(mir_payload, "read")
-            helper_graph = graph_by_name(mir_payload, "read_Config")
+            helper_graph = graph_by_name(mir_payload, "read_config")
             owner_local = local_by_name(read_graph, "Owner")
             ref_local = local_by_name(helper_graph, "Ref")
             return_value = first_return_value(read_graph)
             require(owner_local["kind"] == "global", "package_global_observe: Owner must lower as global")
             require(
-                owner_local["type"]["name"] == "config_Ptr",
-                f"package_global_observe: expected Owner type config_Ptr, saw {owner_local['type']['name']!r}",
+                owner_local["type"]["name"] == "config_ptr",
+                f"package_global_observe: expected Owner type config_ptr, saw {owner_local['type']['name']!r}",
             )
             require(
                 ref_local["ownership_role"] == "Observe",
@@ -435,8 +435,8 @@ def run_package_global_cases(safec: Path, env: dict[str, str], temp_root: Path) 
                 "package_global_observe: expected Owner.access call argument",
             )
             require(
-                return_value["args"][0]["prefix"]["type"] == "config_Ptr",
-                f"package_global_observe: expected Owner.access prefix type config_Ptr, saw {return_value['args'][0]['prefix'].get('type')!r}",
+                return_value["args"][0]["prefix"]["type"] == "config_ptr",
+                f"package_global_observe: expected Owner.access prefix type config_ptr, saw {return_value['args'][0]['prefix'].get('type')!r}",
             )
             result["semantic_proof"] = {
                 "owner_local": owner_local,

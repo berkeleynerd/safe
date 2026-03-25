@@ -10,4 +10,5 @@ neg_own_use_after_move.safe:25:11: error: dereference of moved access value
   |
   note: the access value was moved before this dereference.
   note: rule: D27 Rule 4 (Not-Null Dereference)
+
 ------------------------------------------------------------------------

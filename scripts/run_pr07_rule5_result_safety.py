@@ -58,98 +58,98 @@ INLINE_NEGATIVE_CASES = [
     {
         "name": "result_wrong_boolean_flag",
         "expected_reason": "discriminant_check_not_established",
-        "source": """package Result_Wrong_Boolean_Flag is
+        "source": """package result_wrong_boolean_flag is
 
-   type Error_Code is range 0 to 255;
+   type error_code is range 0 to 255;
 
-   type Parse_Result (OK : Boolean = False) is record
-      Ready : Boolean;
-      case OK is
-         when True  then Value : Integer;
-         when False then Error : Error_Code;
+   type parse_result (ok : boolean = false) is record
+      ready : boolean;
+      case ok is
+         when true  then value : integer;
+         when false then error : error_code;
       end case;
    end record;
 
-   function Unsafe returns Integer is
-      R : Parse_Result = (OK = True, Ready = True, Value = 7);
+   function unsafe returns integer is
+      r : parse_result = (ok = true, ready = true, value = 7);
    begin
-      if R.Ready then
-         return R.Value;
+      if r.ready then
+         return r.value;
       else
          return 0;
       end if;
-   end Unsafe;
+   end unsafe;
 
-end Result_Wrong_Boolean_Flag;
+end result_wrong_boolean_flag;
 """,
     },
     {
         "name": "rule5_conversion_narrowing",
         "expected_reason": "fp_overflow_at_narrowing",
-        "source": """package Rule5_Conversion_Narrowing is
+        "source": """package rule5_conversion_narrowing is
 
-   type Narrow is digits 6 range -1.0 to 1.0;
+   type narrow is digits 6 range -1.0 to 1.0;
 
-   function Bad returns Long_Float is
-      X : Long_Float = 2.0;
+   function bad returns long_float is
+      x : long_float = 2.0;
    begin
-      return Narrow (X);
-   end Bad;
+      return narrow (x);
+   end bad;
 
-end Rule5_Conversion_Narrowing;
+end rule5_conversion_narrowing;
 """,
     },
     {
         "name": "rule5_annotation_narrowing",
         "expected_reason": "fp_overflow_at_narrowing",
-        "source": """package Rule5_Annotation_Narrowing is
+        "source": """package rule5_annotation_narrowing is
 
-   type Narrow is digits 6 range -1.0 to 1.0;
+   type narrow is digits 6 range -1.0 to 1.0;
 
-   function Bad returns Long_Float is
-      X : Long_Float = 2.0;
+   function bad returns long_float is
+      x : long_float = 2.0;
    begin
-      return (X as Narrow);
-   end Bad;
+      return (x as narrow);
+   end bad;
 
-end Rule5_Annotation_Narrowing;
+end rule5_annotation_narrowing;
 """,
     },
     {
         "name": "result_partial_guard_join",
         "expected_reason": "discriminant_check_not_established",
-        "source": """package Result_Partial_Guard_Join is
+        "source": """package result_partial_guard_join is
 
-   type Error_Code is range 0 to 255;
+   type error_code is range 0 to 255;
 
-   type Parse_Result (OK : Boolean = False) is record
-      case OK is
-         when True  then Value : Integer;
-         when False then Error : Error_Code;
+   type parse_result (ok : boolean = false) is record
+      case ok is
+         when true  then value : integer;
+         when false then error : error_code;
       end case;
    end record;
 
-   function Try_Parse (Input : Integer) returns Parse_Result is
+   function try_parse (input : integer) returns parse_result is
    begin
-      if Input >= 0 then
-         return (OK = True, Value = Input);
+      if input >= 0 then
+         return (ok = true, value = input);
       else
-         return (OK = False, Error = 1);
+         return (ok = false, error = 1);
       end if;
-   end Try_Parse;
+   end try_parse;
 
-   function Unsafe (Input : Integer; Guard : Boolean) returns Integer is
-      R : Parse_Result = Try_Parse (Input);
+   function unsafe (input : integer; guard : boolean) returns integer is
+      r : parse_result = try_parse (input);
    begin
-      if Guard then
-         if R.OK then
+      if guard then
+         if r.ok then
             null;
          end if;
       end if;
-      return R.Value;
-   end Unsafe;
+      return r.value;
+   end unsafe;
 
-end Result_Partial_Guard_Join;
+end result_partial_guard_join;
 """,
     },
 ]
@@ -553,8 +553,8 @@ def validate_emitted_output(
     elif sample.name == "result_guarded_access.safe":
         require("KnownDiscriminantPart" in ast_nodes, "result_guarded_access: missing KnownDiscriminantPart AST node")
         require("VariantPart" in ast_nodes, "result_guarded_access: missing VariantPart AST node")
-        parse_result_typed = find_type(typed_payload["types"], "parse_Result")
-        parse_result_mir = find_type(mir_payload["types"], "parse_Result")
+        parse_result_typed = find_type(typed_payload["types"], "parse_result")
+        parse_result_mir = find_type(mir_payload["types"], "parse_result")
         for entry in (parse_result_typed, parse_result_mir):
             require(entry.get("discriminant_name") == "ok", "result_guarded_access: wrong discriminant_name")
             require(entry.get("discriminant_type") == "boolean", "result_guarded_access: wrong discriminant_type")

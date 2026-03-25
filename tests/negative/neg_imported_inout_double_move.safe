@@ -1,11 +1,11 @@
 -- Expected: REJECT double_move
-with provider_Imported_Call_Ownership;
+with provider_imported_call_ownership;
 
-package neg_Imported_Inout_Double_Move
+package neg_imported_inout_double_move
 
    function run
-      Owner : provider_Imported_Call_Ownership.payload_Ptr = new ((value = 5) as provider_Imported_Call_Ownership.payload);
+      Owner : provider_imported_call_ownership.payload_ptr = new ((value = 5) as provider_imported_call_ownership.payload);
 
-      provider_Imported_Call_Ownership.consume (Owner);
-      provider_Imported_Call_Ownership.consume (Owner);
+      provider_imported_call_ownership.consume (Owner);
+      provider_imported_call_ownership.consume (Owner);
 

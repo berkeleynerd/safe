@@ -93,7 +93,7 @@ ANALYZER_EXPECTED = {
         "span": {"start_line": 14, "start_col": 14, "end_line": 14, "end_col": 14},
         "highlight_span": {"start_line": 14, "start_col": 14, "end_line": 14, "end_col": 14},
         "notes": [
-            "P is of type value_Ptr (access value), which does not exclude null.",
+            "P is of type value_ptr (access value), which does not exclude null.",
             "no null check precedes this dereference on all paths reaching\nthis program point.",
             "rule: D27 Rule 4 (Not-Null Dereference)",
             "per spec/02-restrictions.md section 2.8.4 paragraph 136:\n\"Dereference of an access value shall require the access subtype\nto be not null. A conforming implementation shall reject any\ndereference where the access subtype at the point of dereference\ndoes not exclude null.\"",

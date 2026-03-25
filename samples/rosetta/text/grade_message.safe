@@ -1,4 +1,4 @@
-package grade_Message
+package grade_message
 
    function render (grade : in character) returns string
 

@@ -7,16 +7,16 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139c:7fad4f7d
 -- Expected: REJECT fp_overflow_at_narrowing
 
-package fP_Overflow_Test
+package fp_overflow_test
 
-   type small_Float is digits 6 range -1000.0 to 1000.0;
+   type small_float is digits 6 range -1000.0 to 1000.0;
 
    --  Multiply: multiplies two Small_Float values.
    --  500.0 * 500.0 = 250_000.0, which exceeds 1000.0.
    --  The result cannot be narrowed to Small_Float.
-   function multiply (a, b : small_Float) returns small_Float
+   function multiply (a, b : small_float) returns small_float
 
-      return small_Float (long_float (a) * long_float (b));
+      return small_float (long_float (a) * long_float (b));
       -- ERROR: product may exceed target range -1000..1000
 
 

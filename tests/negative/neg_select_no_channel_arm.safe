@@ -3,9 +3,9 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
 -- Expected: REJECT source_frontend_error
 
-package select_No_Channel_Arm_Test
+package select_no_channel_arm_test
 
-   task Worker
+   task worker
 
       loop
          select

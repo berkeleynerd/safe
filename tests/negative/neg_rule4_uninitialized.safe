@@ -5,17 +5,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT null_dereference
 
-package uninitialized_Test
+package uninitialized_test
 
    type rec is record
       x : integer;
 
 
-   type rec_Ptr is access rec;
+   type rec_ptr is access rec;
 
    --  Read_Uninitialized: declares P (default null), then dereferences.
-   function read_Uninitialized returns integer
-      P : rec_Ptr;
+   function read_uninitialized returns integer
+      P : rec_ptr;
 
       --  P is null (default for access types).
       return P.x;  -- ERROR: P is null (uninitialized = null)

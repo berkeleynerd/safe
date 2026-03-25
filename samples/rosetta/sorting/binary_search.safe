@@ -1,23 +1,23 @@
-package binary_Search
+package binary_search
 
    type index is range 1 to 256;
    type element is range 0 to 10_000;
-   type sorted_Array is array (index) of element;
+   type sorted_array is array (index) of element;
 
-   function search (arr : sorted_Array;
+   function search (arr : sorted_array;
                      key : element;
                      found : out boolean;
-                     found_At : out index)
+                     found_at : out index)
 
       var lo : index = index.first
       var hi : index = index.last
       var mid : index
       found = false
-      found_At = index.first
+      found_at = index.first
       while lo <= hi
          mid = lo + (hi - lo) / 2
          if arr (mid) == key
-            found_At = mid
+            found_at = mid
             found = true
             return
          else if arr (mid) < key

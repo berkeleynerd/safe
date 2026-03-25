@@ -1,4 +1,4 @@
 -- Lexer-only regression fixture for legacy two-character tokens.
-Legacy_Assignment := 1;
+legacy_assignment := 1;
 Legacy_Association => 2;
 Legacy_Inequality /= 3;

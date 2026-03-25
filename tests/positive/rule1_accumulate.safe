@@ -9,24 +9,24 @@
 
 package accumulator
 
-   type small_Int is range 0 to 100;
+   type small_int is range 0 to 100;
    type index is range 1 to 20;
-   type values is array (index) of small_Int;
+   type values is array (index) of small_int;
 
    --  Total_Range: The accumulated sum of up to 20 values each in 0..100
    --  is at most 2000. We declare a type to hold that.
-   type total_Range is range 0 to 2000;
+   type total_range is range 0 to 2000;
 
    --  Accumulate: sum all elements of the array.
    --  Loop invariant ensures Sum stays in 0 .. I * 100.
-   function accumulate (data : values) returns total_Range
-      sum : total_Range = 0;
+   function accumulate (data : values) returns total_range
+      sum : total_range = 0;
 
-      for I in index
+      for i in index
          --  Wide intermediate: Sum + Data(I) is at most 2000 + 100 = 2100
          --  but Sum is bounded by (I-1)*100 and Data(I) by 100,
          --  so Sum + Data(I) <= I*100 <= 2000, within Total_Range.
-         sum = sum + total_Range (data (I));
+         sum = sum + total_range (data (i));
 
       --  Narrowing point (return): Sum is in 0..2000.
       return sum;

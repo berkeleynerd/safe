@@ -10,42 +10,42 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p31:a7297e97
 -- Expected: ACCEPT
 
-package channel_Pipeline_Compute
+package channel_pipeline_compute
 
    type sample is range 0 to 100;
-   type running_Total is range 0 to 1000;
+   type running_total is range 0 to 1000;
 
-   channel Raw_Ch      : sample capacity 2;
-   channel Filtered_Ch : sample capacity 2;
+   channel raw_ch      : sample capacity 2;
+   channel filtered_ch : sample capacity 2;
 
-   task Producer with Priority = 10
+   task producer with Priority = 10
       seed : sample = 8;
 
       loop
-         send Raw_Ch, seed;
+         send raw_ch, seed;
          delay 0.001;
 
 
 
-   task Filter with Priority = 10
+   task filter with Priority = 10
       input  : sample;
       output : sample;
 
       loop
-         receive Raw_Ch, input;
+         receive raw_ch, input;
          output = input / 2 + 1;
-         send Filtered_Ch, output;
+         send filtered_ch, output;
 
 
 
-   task Consumer with Priority = 10
+   task consumer with Priority = 10
       data     : sample;
-      adjusted : running_Total;
+      adjusted : running_total;
 
       loop
-         receive Filtered_Ch, data;
-         adjusted = running_Total (running_Total (data) + 1);
-         if running_Total (adjusted) > running_Total (50)
+         receive filtered_ch, data;
+         adjusted = running_total (running_total (data) + 1);
+         if running_total (adjusted) > running_total (50)
             delay 0.001;
          else
             delay 0.002;

@@ -1,7 +1,7 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_rule1_overflow.safe",
-  "package_name": "overflow_Test",
+  "package_name": "overflow_test",
   "types": [
     {
       "name": "big",

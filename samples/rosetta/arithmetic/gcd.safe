@@ -1,15 +1,15 @@
 package gcd
 
-   type input_Value is range 1 to 10_000;
-   type working_Value is range 0 to 10_000;
+   type input_value is range 1 to 10_000;
+   type working_value is range 0 to 10_000;
    type iteration is range 1 to 32;
 
-   function compute (left : input_Value; right : input_Value) returns working_Value
+   function compute (left : input_value; right : input_value) returns working_value
 
-      var a : working_Value = working_Value (left)
-      var b : working_Value = working_Value (right)
-      var t : working_Value = 0
-      for Step in iteration
+      var a : working_value = working_value (left)
+      var b : working_value = working_value (right)
+      var t : working_value = 0
+      for step in iteration
          if b == 0
             return a
 

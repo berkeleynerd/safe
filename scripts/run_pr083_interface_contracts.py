@@ -427,11 +427,11 @@ def run_positive_case(
             "provider_types: expected Bronze-derived public summaries in safei-v1",
         )
         require(
-            any(entry["name"] == "provider_Types.handle" for entry in client_typed["types"]),
+            any(entry["name"] == "provider_types.handle" for entry in client_typed["types"]),
             "client_types: expected imported incomplete type in typed-v2 output",
         )
         require(
-            any(entry["name"] == "provider_Types.handle" for entry in client_mir["types"]),
+            any(entry["name"] == "provider_types.handle" for entry in client_mir["types"]),
             "client_types: expected imported incomplete type in MIR output",
         )
         result["provider_contract"] = {
@@ -444,7 +444,7 @@ def run_positive_case(
             "client_imported_type_names": [
                 entry["name"]
                 for entry in client_typed["types"]
-                if entry["name"].startswith("provider_Types.")
+                if entry["name"].startswith("provider_types.")
             ],
         }
     elif provider == PROVIDER_CHANNEL:
@@ -454,7 +454,7 @@ def run_positive_case(
         )
     elif provider == PROVIDER_OBJECT:
         require(
-            client_typed["types"][0]["name"] == "provider_Object.count",
+            client_typed["types"][0]["name"] == "provider_object.count",
             "client_object: imported typed-v2 types must be qualified",
         )
 

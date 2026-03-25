@@ -2,45 +2,45 @@ pragma SPARK_Mode (On);
 
 package pipeline
    with SPARK_Mode => On,
-        Initializes => (Raw_Ch, Filtered_Ch, Producer, Filter, Consumer)
+        Initializes => (raw_ch, filtered_ch, producer, filter, consumer)
 is
    pragma Elaborate_Body;
 
    type sample is range 0 .. 10000;
-   subtype Raw_Ch_Index is Positive range 1 .. 4;
-   subtype Raw_Ch_Count is Natural range 0 .. 4;
-   type Raw_Ch_Buffer is array (Raw_Ch_Index) of sample;
-   protected type Raw_Ch_Channel with Priority => 10 is
+   subtype raw_ch_Index is Positive range 1 .. 4;
+   subtype raw_ch_Count is Natural range 0 .. 4;
+   type raw_ch_Buffer is array (raw_ch_Index) of sample;
+   protected type raw_ch_Channel with Priority => 10 is
       entry Send (Value : in sample);
       entry Receive (Value : out sample);
       procedure Try_Send (Value : in sample; Success : out Boolean);
       procedure Try_Receive (Value : in out sample; Success : out Boolean);
    private
-      Buffer : Raw_Ch_Buffer := (others => sample'First);
-      Head   : Raw_Ch_Index := Raw_Ch_Index'First;
-      Tail   : Raw_Ch_Index := Raw_Ch_Index'First;
-      Count  : Raw_Ch_Count := 0;
-   end Raw_Ch_Channel;
-   Raw_Ch : Raw_Ch_Channel;
+      Buffer : raw_ch_Buffer := (others => sample'First);
+      Head   : raw_ch_Index := raw_ch_Index'First;
+      Tail   : raw_ch_Index := raw_ch_Index'First;
+      Count  : raw_ch_Count := 0;
+   end raw_ch_Channel;
+   raw_ch : raw_ch_Channel;
 
-   subtype Filtered_Ch_Index is Positive range 1 .. 4;
-   subtype Filtered_Ch_Count is Natural range 0 .. 4;
-   type Filtered_Ch_Buffer is array (Filtered_Ch_Index) of sample;
-   protected type Filtered_Ch_Channel with Priority => 10 is
+   subtype filtered_ch_Index is Positive range 1 .. 4;
+   subtype filtered_ch_Count is Natural range 0 .. 4;
+   type filtered_ch_Buffer is array (filtered_ch_Index) of sample;
+   protected type filtered_ch_Channel with Priority => 10 is
       entry Send (Value : in sample);
       entry Receive (Value : out sample);
       procedure Try_Send (Value : in sample; Success : out Boolean);
       procedure Try_Receive (Value : in out sample; Success : out Boolean);
    private
-      Buffer : Filtered_Ch_Buffer := (others => sample'First);
-      Head   : Filtered_Ch_Index := Filtered_Ch_Index'First;
-      Tail   : Filtered_Ch_Index := Filtered_Ch_Index'First;
-      Count  : Filtered_Ch_Count := 0;
-   end Filtered_Ch_Channel;
-   Filtered_Ch : Filtered_Ch_Channel;
+      Buffer : filtered_ch_Buffer := (others => sample'First);
+      Head   : filtered_ch_Index := filtered_ch_Index'First;
+      Tail   : filtered_ch_Index := filtered_ch_Index'First;
+      Count  : filtered_ch_Count := 0;
+   end filtered_ch_Channel;
+   filtered_ch : filtered_ch_Channel;
 
-   task Producer with Priority => 10;
-   task Filter with Priority => 10;
-   task Consumer with Priority => 10;
+   task producer with Priority => 10;
+   task filter with Priority => 10;
+   task consumer with Priority => 10;
 
 end pipeline;

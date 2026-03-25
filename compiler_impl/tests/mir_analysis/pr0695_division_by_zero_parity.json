@@ -1,7 +1,7 @@
 {
   "format": "mir-v2",
   "source_path": "tests/negative/neg_rule3_expression.safe",
-  "package_name": "expression_Div_Test",
+  "package_name": "expression_div_test",
   "types": [
     {
       "name": "value",

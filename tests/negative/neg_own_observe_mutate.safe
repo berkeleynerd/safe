@@ -5,17 +5,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a:5bc5ab8b
 -- Expected: REJECT observe_mutation
 
-package observe_Mutate_Test
+package observe_mutate_test
 
    type config is record
       rate : natural;
 
 
-   type config_Ptr is access config;
+   type config_ptr is access config;
 
    --  Mutate_Through_Observer: attempts to write via a constant access.
-   function mutate_Through_Observer
-      Owner    : config_Ptr = new ((rate = 100) as config);
+   function mutate_through_observer
+      Owner    : config_ptr = new ((rate = 100) as config);
       Observer : access constant config = Owner.access;  -- observe
 
       --  Observer is access constant; writing through it is illegal.

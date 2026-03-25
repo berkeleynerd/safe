@@ -2,10 +2,10 @@
 -- Description: Local integer constant used in a type range bound.
 -- Expected: ACCEPT
 
-package constant_Range_Bound
+package constant_range_bound
 
-   max_Count : constant integer = 4;
+   max_count : constant integer = 4;
 
-   type index is range 0 to max_Count;
+   type index is range 0 to max_count;
 
 
