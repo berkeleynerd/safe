@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
@@ -35,6 +36,17 @@ def write_sample_report(path: Path, *, report_sha256: str) -> None:
 
 
 class CompressAttestationChainTests(unittest.TestCase):
+    @staticmethod
+    def git_env() -> dict[str, str]:
+        return {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("GIT_")
+        }
+
+    def deterministic_env(self) -> dict[str, str]:
+        return ensure_deterministic_env(self.git_env())
+
     def git(self, repo_root: Path, *args: str) -> str:
         completed = subprocess.run(
             ["git", *args],
@@ -42,6 +54,7 @@ class CompressAttestationChainTests(unittest.TestCase):
             check=True,
             text=True,
             capture_output=True,
+            env=self.git_env(),
         )
         return completed.stdout.strip()
 
@@ -67,7 +80,7 @@ class CompressAttestationChainTests(unittest.TestCase):
             repo_root = Path(temp_dir) / "repo"
             repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
-            env = ensure_deterministic_env(os.environ.copy())
+            env = self.deterministic_env()
 
             result = compress_attestation_chain.apply_archive(
                 git="git",
@@ -90,13 +103,29 @@ class CompressAttestationChainTests(unittest.TestCase):
             self.assertEqual(provenance["pre_compaction_commit"], pre_commit)
             self.assertEqual(len(provenance["inclusion_proof"]), 5)
 
+    def test_init_repo_ignores_inherited_git_hook_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir) / "repo"
+            repo_root.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "GIT_DIR": "/tmp/not-the-temp-repo/.git",
+                    "GIT_WORK_TREE": "/tmp/not-the-temp-repo",
+                    "GIT_INDEX_FILE": "/tmp/not-the-temp-repo/index",
+                },
+                clear=False,
+            ):
+                commit = self.init_repo(repo_root)
+            self.assertRegex(commit, r"^[0-9a-f]{40}$")
+
     def test_finalize_and_verify_receipt_supports_alternate_repo_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             workspace_root = Path(temp_dir)
             repo_root = workspace_root / "repo"
             repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
-            env = ensure_deterministic_env(os.environ.copy())
+            env = self.deterministic_env()
 
             compress_attestation_chain.apply_archive(
                 git="git",
@@ -138,7 +167,7 @@ class CompressAttestationChainTests(unittest.TestCase):
             repo_root = Path(temp_dir) / "repo"
             repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
-            env = ensure_deterministic_env(os.environ.copy())
+            env = self.deterministic_env()
 
             compress_attestation_chain.apply_archive(
                 git="git",
@@ -174,7 +203,7 @@ class CompressAttestationChainTests(unittest.TestCase):
             repo_root = Path(temp_dir) / "repo"
             repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
-            env = ensure_deterministic_env(os.environ.copy())
+            env = self.deterministic_env()
 
             compress_attestation_chain.apply_archive(
                 git="git",
@@ -210,7 +239,7 @@ class CompressAttestationChainTests(unittest.TestCase):
             repo_root = Path(temp_dir) / "repo"
             repo_root.mkdir()
             pre_commit = self.init_repo(repo_root)
-            env = ensure_deterministic_env(os.environ.copy())
+            env = self.deterministic_env()
 
             compress_attestation_chain.apply_archive(
                 git="git",

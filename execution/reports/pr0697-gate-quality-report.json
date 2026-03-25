@@ -266,8 +266,8 @@
       }
     }
   ],
-  "repeat_sha256": "c891c04949947f125074e3c03be0f004bfd254371ee09831ef845b24e3f3bb21",
-  "report_sha256": "c891c04949947f125074e3c03be0f004bfd254371ee09831ef845b24e3f3bb21",
+  "repeat_sha256": "0d5a5258376a2326696fa786142963c25d1ad8c17bbc6866a21077530534ae01",
+  "report_sha256": "0d5a5258376a2326696fa786142963c25d1ad8c17bbc6866a21077530534ae01",
   "status": "ok",
   "task": "PR06.9.7",
   "unit_tests": {
@@ -341,9 +341,9 @@
       "scripts.tests.test_validate_execution_state",
       "scripts.tests.test_validate_output_contracts"
     ],
-    "observed_count": 334,
+    "observed_count": 335,
     "returncode": 0,
-    "stderr": "..............................................................................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 334 tests in <elapsed>\n\nOK\n",
+    "stderr": "...............................................................................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 335 tests in <elapsed>\n\nOK\n",
     "stdout": "attestation compression applied: execution/archive\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\ncompaction receipt verified: execution/compaction-receipts/pr1161-attestation-chain-compression.json\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\ncompaction receipt verified: execution/compaction-receipts/pr1161-attestation-chain-compression.json\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\nattestation compression applied: execution/archive\ncompaction receipt written: execution/compaction-receipts/pr1161-attestation-chain-compression.json\n[gate-pipeline] total wall time: 0.0s\n"
   },
   "valid_output_contracts": [

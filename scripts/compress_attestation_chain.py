@@ -28,6 +28,16 @@ from _lib.attestation_compression import (
 from _lib.harness_common import REPO_ROOT, display_path, ensure_deterministic_env, find_command, require, run, write_report
 
 
+def git_process_env(base_env: dict[str, str]) -> dict[str, str]:
+    return ensure_deterministic_env(
+        {
+            key: value
+            for key, value in base_env.items()
+            if not key.startswith("GIT_")
+        }
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -228,7 +238,7 @@ def verify_receipt(*, receipt_path: Path, repo_root: Path, pre_compaction_root: 
             f"{spec.node_id}: inclusion proof failed",
         )
     git = find_command("git")
-    env = ensure_deterministic_env(os.environ.copy())
+    env = git_process_env(os.environ.copy())
     if current_head_commit(git=git, env=env, repo_root=repo_root) == post_commit:
         require(
             merkle_root(active_report_entries(repo_root=repo_root)) == post_root,
@@ -240,7 +250,7 @@ def verify_receipt(*, receipt_path: Path, repo_root: Path, pre_compaction_root: 
 
 def main() -> int:
     args = parse_args()
-    env = ensure_deterministic_env(os.environ.copy())
+    env = git_process_env(os.environ.copy())
     git = find_command("git")
     if args.command == "apply":
         return apply_archive(
