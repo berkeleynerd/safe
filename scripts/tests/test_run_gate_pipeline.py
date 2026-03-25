@@ -19,6 +19,15 @@ from _lib.gate_manifest import DeterminismClass, Node, NodeKind, VALIDATE_EXECUT
 
 
 class RunGatePipelineTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.current_branch_patcher = mock.patch.object(
+            run_gate_pipeline,
+            "current_branch",
+            return_value="main",
+        )
+        self.current_branch_patcher.start()
+        self.addCleanup(self.current_branch_patcher.stop)
+
     @staticmethod
     def _report_payload(status: str) -> dict[str, object]:
         return {
@@ -247,6 +256,126 @@ class RunGatePipelineTests(unittest.TestCase):
                     0,
                 )
         self.assertEqual(execute_pipeline.call_args.kwargs["nodes"], branch_nodes)
+
+    def test_effective_pipeline_branch_prefers_github_head_ref(self) -> None:
+        env = {
+            "GITHUB_HEAD_REF": "codex/pr117-reference-surface-experiments",
+            "GITHUB_REF_NAME": "main",
+        }
+        with mock.patch.object(
+            run_gate_pipeline,
+            "branch_mode",
+            side_effect=lambda branch: (
+                run_gate_pipeline.BranchMode.PROVISIONAL
+                if branch == "codex/pr117-reference-surface-experiments"
+                else run_gate_pipeline.BranchMode.ENFORCED
+            ),
+        ), mock.patch.object(
+            run_gate_pipeline,
+            "current_branch",
+            side_effect=AssertionError("should not fall back to git branch"),
+        ):
+            self.assertEqual(
+                run_gate_pipeline.effective_pipeline_branch(branch=None, git="git", env=env),
+                "codex/pr117-reference-surface-experiments",
+            )
+
+    def test_effective_pipeline_branch_ignores_non_provisional_detected_branch(self) -> None:
+        env = {"GITHUB_HEAD_REF": "main"}
+        with mock.patch.object(
+            run_gate_pipeline,
+            "branch_mode",
+            return_value=run_gate_pipeline.BranchMode.ENFORCED,
+        ):
+            self.assertIsNone(
+                run_gate_pipeline.effective_pipeline_branch(branch=None, git="git", env=env)
+            )
+
+    def test_verify_auto_detects_provisional_branch_from_ci_env(self) -> None:
+        branch_nodes = (
+            Node(id="validate_execution_state_preflight", kind=NodeKind.GATE, script=Path("/tmp/preflight.py")),
+        )
+        env = {"GITHUB_HEAD_REF": "codex/pr117-reference-surface-experiments"}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            staged_root = Path(temp_dir)
+            with mock.patch.object(run_gate_pipeline, "resolve_branch", return_value=list(branch_nodes)), mock.patch.object(
+                run_gate_pipeline,
+                "branch_mode",
+                side_effect=lambda branch: (
+                    run_gate_pipeline.BranchMode.PROVISIONAL
+                    if branch == "codex/pr117-reference-surface-experiments"
+                    else run_gate_pipeline.BranchMode.ENFORCED
+                ),
+            ), mock.patch.object(
+                run_gate_pipeline,
+                "provisional_reports_root",
+                return_value=staged_root,
+            ), mock.patch.object(
+                run_gate_pipeline,
+                "tracked_diff_snapshot",
+                return_value="",
+            ), mock.patch.object(
+                run_gate_pipeline,
+                "execute_pipeline",
+                return_value={},
+            ) as execute_pipeline, mock.patch.object(
+                run_gate_pipeline,
+                "current_branch",
+                side_effect=AssertionError("should not fall back to git branch"),
+            ):
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(
+                        run_gate_pipeline.verify_pipeline(
+                            authority="ci",
+                            python="python3",
+                            git="git",
+                            alr="alr",
+                            env=env,
+                        ),
+                        0,
+                    )
+        self.assertEqual(
+            execute_pipeline.call_args.kwargs["branch"],
+            "codex/pr117-reference-surface-experiments",
+        )
+        self.assertEqual(execute_pipeline.call_args.kwargs["nodes"], branch_nodes)
+        self.assertEqual(execute_pipeline.call_args.kwargs["compare_reports_root"], staged_root)
+        self.assertFalse(execute_pipeline.call_args.kwargs["compare_to_committed"])
+
+    def test_verify_auto_detected_provisional_branch_requires_staged_baseline(self) -> None:
+        branch_nodes = (
+            Node(id="validate_execution_state_preflight", kind=NodeKind.GATE, script=Path("/tmp/preflight.py")),
+        )
+        env = {"GITHUB_HEAD_REF": "codex/pr117-reference-surface-experiments"}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            staged_root = Path(temp_dir) / "missing-staged-root"
+            with mock.patch.object(run_gate_pipeline, "resolve_branch", return_value=list(branch_nodes)), mock.patch.object(
+                run_gate_pipeline,
+                "branch_mode",
+                side_effect=lambda branch: (
+                    run_gate_pipeline.BranchMode.PROVISIONAL
+                    if branch == "codex/pr117-reference-surface-experiments"
+                    else run_gate_pipeline.BranchMode.ENFORCED
+                ),
+            ), mock.patch.object(
+                run_gate_pipeline,
+                "provisional_reports_root",
+                return_value=staged_root,
+            ), mock.patch.object(
+                run_gate_pipeline,
+                "tracked_diff_snapshot",
+                return_value="",
+            ):
+                with redirect_stdout(io.StringIO()):
+                    with self.assertRaises(RuntimeError) as exc:
+                        run_gate_pipeline.verify_pipeline(
+                            authority="ci",
+                            python="python3",
+                            git="git",
+                            alr="alr",
+                            env=env,
+                        )
+        self.assertIn("staged report baseline is missing", str(exc.exception))
 
     def test_provisional_reports_root_uses_branch_slug(self) -> None:
         self.assertEqual(
@@ -1340,6 +1469,45 @@ class RunGatePipelineTests(unittest.TestCase):
         self.assertEqual(str(exc.exception), "stage verify failed")
         self.assertEqual(execute_pipeline.call_count, 2)
         final_rerun_pipeline.assert_not_called()
+
+    def test_ratchet_auto_detects_provisional_branch_from_ci_env(self) -> None:
+        env = {"GITHUB_HEAD_REF": "codex/pr117-reference-surface-experiments"}
+        with mock.patch.object(
+            run_gate_pipeline,
+            "branch_mode",
+            side_effect=lambda branch: (
+                run_gate_pipeline.BranchMode.PROVISIONAL
+                if branch == "codex/pr117-reference-surface-experiments"
+                else run_gate_pipeline.BranchMode.ENFORCED
+            ),
+        ), mock.patch.object(
+            run_gate_pipeline,
+            "tracked_diff_snapshot",
+            side_effect=["", ""],
+        ), mock.patch.object(
+            run_gate_pipeline,
+            "execute_pipeline",
+            return_value={},
+        ) as execute_pipeline, mock.patch.object(
+            run_gate_pipeline,
+            "final_rerun_pipeline",
+            return_value=0,
+        ):
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    run_gate_pipeline.ratchet_pipeline(
+                        authority="ci",
+                        python="python3",
+                        git="git",
+                        alr="alr",
+                        env=env,
+                    ),
+                    0,
+                )
+        self.assertEqual(
+            execute_pipeline.call_args_list[0].kwargs["branch"],
+            "codex/pr117-reference-surface-experiments",
+        )
 
     def test_verify_uses_explicit_initial_snapshot(self) -> None:
         with mock.patch.object(run_gate_pipeline, "NODES", ()), mock.patch.object(

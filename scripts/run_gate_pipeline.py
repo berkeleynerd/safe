@@ -163,6 +163,33 @@ def current_branch(*, git: str, env: dict[str, str]) -> str:
     return branch
 
 
+def branch_from_env(env: dict[str, str]) -> str | None:
+    for name in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
+        value = env.get(name, "").strip()
+        if value:
+            return value
+    return None
+
+
+def effective_pipeline_branch(
+    *,
+    branch: str | None,
+    git: str,
+    env: dict[str, str],
+) -> str | None:
+    if branch is not None:
+        return branch
+    candidate = branch_from_env(env)
+    if candidate is None:
+        try:
+            candidate = current_branch(git=git, env=env)
+        except RuntimeError:
+            return None
+    if branch_mode(candidate) is BranchMode.PROVISIONAL:
+        return candidate
+    return None
+
+
 def tracked_diff_snapshot(
     *,
     git: str,
@@ -773,6 +800,7 @@ def verify_pipeline(
     branch: str | None = None,
 ) -> int:
     verify_started = time.monotonic()
+    branch = effective_pipeline_branch(branch=branch, git=git, env=env)
     if initial_snapshot is None:
         initial_snapshot = tracked_diff_snapshot(git=git, env=env)
     nodes = tuple(resolve_branch(branch)) if branch is not None else None
@@ -1009,6 +1037,7 @@ def ratchet_pipeline(
     branch: str | None = None,
 ) -> int:
     ratchet_started = time.monotonic()
+    branch = effective_pipeline_branch(branch=branch, git=git, env=env)
     success = False
     reset_ratchet_node_timings()
     try:
