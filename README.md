@@ -39,9 +39,14 @@ that still live at the proposal/detail stage rather than in gate-backed CI.
 | ~~PR11.6.1~~ | `done` | Attestation chain compression |
 | ~~PR11.6.2~~ | `done` | Legacy Ada syntax removal |
 | ~~PR11.7~~ | `done` | Reference-surface experiments |
-| *PR11.8* | `planned` | Numeric model |
-| *PR11.8a* | `planned` | Numeric proof checkpoint |
+| *PR11.8* | `planned` | Unified integer type |
+| *PR11.8a* | `planned` | Unified integer proof checkpoint |
 | *PR11.8b* | `planned` | Concurrency proof expansion plus channel constraints |
+| *PR11.8c* | `planned` | Modular arithmetic |
+| *PR11.8d* | `planned` | Value-type string |
+| *PR11.8e* | `planned` | Inferred reference types and copy-only values |
+| *PR11.8f* | `planned` | Value-type proof checkpoint |
+| *PR11.8g* | `planned` | Value-type channel elements |
 | *PR11.9* | `planned` | Artifact contract stabilization |
 | *PR11.10* | `planned` | Monomorphic library layer |
 | *PR11.11* | `planned` | Restricted generics |

@@ -71,7 +71,12 @@
 | PR11.8 | planned | PR11.7 | 0 |
 | PR11.8a | planned | PR11.8, PR11.3a | 0 |
 | PR11.8b | planned | PR10.5, PR10.6 | 0 |
-| PR11.9 | planned | PR11.8a, PR11.8b | 0 |
+| PR11.8c | planned | PR11.8a | 0 |
+| PR11.8d | planned | PR11.8c | 0 |
+| PR11.8e | planned | PR11.8d | 0 |
+| PR11.8f | planned | PR11.8e | 0 |
+| PR11.8g | planned | PR11.8f, PR11.8b | 0 |
+| PR11.9 | planned | PR11.8g | 0 |
 | PR11.10 | planned | PR11.9 | 0 |
 | PR11.11 | planned | PR11.10 | 0 |
 
@@ -738,15 +743,19 @@
 - **Evidence:**
   - `execution/reports/pr117-reference-surface-experiments-report.json`
 
-### PR11.8 — Numeric Model
+### PR11.8 — Unified Integer Type
 
 - **Status:** `planned`
 - **Depends on:** PR11.7
 - **Blockers:** none
 - **Acceptance:**
-  - The three-tier integer model with wide-intermediate overflow checking and the simplified predefined type names (`integer`, `short`, `byte`) ship as one coupled change.
-  - The milestone resolves or explicitly defers `PS-028` and `PS-030` within its own scope without absorbing fixed-point Rule 5 work (`PS-002`) or broader floating-point semantics (`PS-026`).
-  - The Rosetta/sample corpus and existing tests are updated for the admitted numeric-model surface.
+  - A single predefined `integer` type replaces all other predefined integer types; it is 64-bit signed with full range by default.
+  - `integer (A to B)` provides inline range constraints at binding sites for parameters, fields, and locals; `subtype` provides named range aliases.
+  - Existing `type X is range A to B` becomes equivalent to `subtype X is integer (A to B)`.
+  - Wide-intermediate lifting is removed; the default integer is already 64-bit.
+  - Integer literals have type `integer` with no conversion required.
+  - Array index types must be constrained (bounded).
+  - The corpus, samples, and documentation are migrated to the single integer model.
 
 ### PR11.8a — Proof checkpoint 2 for numeric-model revalidation
 
@@ -754,9 +763,9 @@
 - **Depends on:** PR11.8, PR11.3a
 - **Blockers:** none
 - **Acceptance:**
-  - The fixtures added or materially changed by PR11.8 are explicitly enumerated as a non-shrinkable numeric proof checkpoint corpus.
-  - That checkpoint corpus, plus the previously proved numeric-sensitive emitted corpus, passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence.
-  - Fixed-point Rule 5 (`PS-002`) and broader floating-point semantics (`PS-026`) are either still explicitly deferred or version-targeted; PR11.8a does not silently expand proof claims beyond the admitted numeric surface.
+  - All numeric-sensitive proof fixtures from pr102, pr103, pr106, and pr113a recompile and reprove under the single-integer model.
+  - Emitted Ada narrowing assertions adjust to the single-type model.
+  - Zero unproved VCs under the all-proved-only policy.
 
 ### PR11.8b — Concurrency proof expansion
 
@@ -769,10 +778,81 @@
   - That bounded concurrency corpus, plus the admitted PR11.8b source-surface additions, passes compile, GNATprove flow, and GNATprove prove under the all-proved-only policy with dedicated deterministic evidence, without restating spec-excluded fixtures as proof debt.
   - Tracker/docs surfaces keep source-level select semantics (`PS-007`), I/O seam wrapper obligations (`PS-019`), and Jorvik/Ravenscar runtime obligations (`PS-031`) explicitly open even as emitted concurrency proof coverage expands.
 
+### PR11.8c — Modular Arithmetic
+
+- **Status:** `planned`
+- **Depends on:** PR11.8a
+- **Blockers:** none
+- **Acceptance:**
+  - `modular (N)` is the sole modular integer kind, wrapping at 2^N for standard widths (8, 16, 32, 64).
+  - Explicit conversion is required between `integer` and `modular`; no implicit mixing.
+  - Bitwise operations (`and`, `or`, `xor`, `not`, shift) are admitted on `modular` only.
+  - No overflow proof obligations for `modular` operations; wraparound is defined behavior.
+  - PS-030 is resolved: modular semantics are defined as wraps-at-2^N with explicit boundary conversion.
+
+### PR11.8d — Value-Type String
+
+- **Status:** `planned`
+- **Depends on:** PR11.8c
+- **Blockers:** none
+- **Acceptance:**
+  - `string` is a first-class value type: heap-backed, growable, copied on assignment, freed on scope exit.
+  - `character` is removed as a separate type; character literals `'A'` produce a single-character string.
+  - String literals construct `string` values directly; `&` concatenates and returns a new owned string.
+  - `string (N)` provides a compile-time-bounded stack-allocated variant.
+  - `.length`, indexing `s(3)`, slicing `s(1 to 5)`, and value equality `==` are built in.
+  - `in` parameters borrow without copying; `in out` borrows mutably; assignment copies.
+  - The corpus, samples, and documentation are migrated to the unified string model.
+
+### PR11.8e — Copy-Only Value Types
+
+- **Status:** `planned`
+- **Depends on:** PR11.8d
+- **Blockers:** none
+- **Acceptance:**
+  - All types are value types by default: assignment copies, no ownership tracking, no move semantics.
+  - The compiler infers reference semantics automatically for self-referential types: a record type whose fields directly or transitively contain its own type is a reference type.
+  - No `access`, `ref`, or `?` annotation exists in the language surface. The programmer writes `next : node` in a record definition; the compiler infers that the field is heap-indirect, nullable, and ownership-tracked.
+  - The capitalization signal enforces reference-type awareness: bindings, fields, and parameters whose type is inferred as reference-typed must start with an uppercase letter. Value-typed bindings must start with a lowercase letter. The compiler rejects violations with a diagnostic that explains why the type is reference-typed.
+  - `null` is valid only for reference-typed bindings. Value-typed bindings cannot be null.
+  - Assignment of reference-typed bindings moves (source becomes null). Assignment of value-typed bindings copies.
+  - `in` parameters borrow (both value and reference types). `in out` borrows mutably.
+  - `new` is removed from the language surface. Construction of reference-typed values uses the record constructor directly: `var Head = node (value = 1, Next = null)`. The compiler allocates on the heap automatically.
+  - `.all` remains removed from source (PR11.7). Implicit dereference is the only access path.
+  - `.access` / `.Access` is removed from the source surface. The compiler handles access-level operations internally.
+  - The ownership model (move, borrow, observe, deallocation on scope exit) applies only to reference-typed bindings. The prover tracks ownership only for these bindings.
+  - Records and arrays that contain no reference-typed fields (directly or transitively) are pure value types with no ownership, no null, and no move semantics.
+  - The language consumer sees: `integer`, `string`, `boolean`, arrays, and records as plain values. Self-referential records automatically become reference types. Uppercase casing is the only visible signal of this distinction.
+  - The admitted Safe source, grammar, and documentation remove explicit access-surface constructs: `access`, `ref`, named access types, `new`, `.access` / `.Access`, explicit access parameter modes, explicit deallocation, and value-typed `null`; these remain emitter-internal Ada implementation details only.
+
+### PR11.8f — Proof Checkpoint for Value-Type Model
+
+- **Status:** `planned`
+- **Depends on:** PR11.8e
+- **Blockers:** none
+- **Acceptance:**
+  - All proof-bearing fixtures recompile and reprove under the copy-by-default model.
+  - Emitted Ada correctly maps value-type copies to Ada assignment and ref-type moves to SPARK ownership transfers.
+  - Zero unproved VCs under the all-proved-only policy.
+  - Explicit decision record for what remains deferred (generics, fixed-point, broader floating-point).
+
+### PR11.8g — Value-Type Channel Elements
+
+- **Status:** `planned`
+- **Depends on:** PR11.8f, PR11.8b
+- **Blockers:** none
+- **Acceptance:**
+  - Channel element types must be value types. The compiler rejects channel declarations whose element type is reference-typed (self-referential, directly or transitively).
+  - send copies the value into the channel buffer. receive copies it out. No ownership transfer, no move semantics, no null-before-receive requirement.
+  - The diagnostic for rejected reference-typed channel elements explains why the type is reference-typed and suggests flattening the structure into a value-typed representation.
+  - Existing concurrency fixtures are updated: any fixture that relied on ownership transfer through channels is rewritten to use value-typed elements.
+  - The prover never needs to reason about cross-task ownership transfer through channels.
+  - Channel direction constraints (sends/receives from PR11.8b) remain valid and unchanged; they restrict which tasks can send or receive, independent of element type.
+
 ### PR11.9 — Artifact Contract Stabilization
 
 - **Status:** `planned`
-- **Depends on:** PR11.8a, PR11.8b
+- **Depends on:** PR11.8g
 - **Blockers:** none
 - **Acceptance:**
   - Compatibility policy and version-bump rules are documented for diagnostics-v0, safei-v1, and mir-v2.
