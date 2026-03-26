@@ -82,15 +82,15 @@ This section specifies the language-level assurance guarantees provided by Safe.
 
 13. The following five rules collectively guarantee Silver (see Section 2, §2.8 for the formal legality rules):
 
-### 5.3.2 Wide Intermediate Arithmetic (Rule 1)
+### 5.3.2 64-Bit Integer Arithmetic (Rule 1)
 
-14. All integer arithmetic expressions are evaluated in a mathematical integer type. Intermediate results cannot overflow. Range checks are performed only at narrowing points: assignment, parameter passing, return, type conversion, and type annotation.
+14. All integer arithmetic expressions are evaluated in Safe's single predefined `integer` model. Every integer arithmetic result must be statically provable within the signed 64-bit range. Range checks are performed only at narrowing points: assignment, parameter passing, return, type conversion, and type annotation.
 
 15. A conforming implementation shall reject any program where the static range of a declared integer type exceeds 64-bit signed range.
 
 16. A conforming implementation shall reject any integer expression where it cannot establish that all intermediate subexpressions stay within 64-bit signed range.
 
-17. **How this discharges overflow checks.** Since intermediate results are computed in a wide type, integer overflow in subexpressions is impossible. The only points where a range violation can occur are at narrowing: assignment to a typed variable, return from a function, parameter passing, type conversion to a more restrictive type, and type annotation `(Expr as T)`. At these points, the implementation performs sound static range analysis on the wide intermediate to establish that the result is within the target type's range.
+17. **How this discharges overflow checks.** Integer overflow is not ignored or deferred to a support type. Instead, the implementation rejects any arithmetic expression whose possible results are not provably within signed 64-bit range. The remaining points where a range violation can occur are the narrowing points: assignment to a typed variable, return from a function, parameter passing, type conversion to a more restrictive type, and type annotation `(Expr as T)`. At these points, the implementation performs sound static range analysis on the computed result to establish that the value is within the target type's range.
 
 18. Interval analysis is one permitted technique for range analysis; no specific algorithm is mandated.
 
@@ -114,9 +114,9 @@ This section specifies the language-level assurance guarantees provided by Safe.
 
 ### 5.3.6 Range Checks at Narrowing Points
 
-25. Range checks occur at every narrowing point: when a wide intermediate result is assigned to a typed variable, returned from a function, passed as a parameter, used as the operand of a type conversion to a more restrictive type, or used as the expression of a type annotation `(Expr as T)`. The implementation shall discharge these checks via sound static range analysis.
+25. Range checks occur at every narrowing point: when an integer result is assigned to a typed variable, returned from a function, passed as a parameter, used as the operand of a type conversion to a more restrictive type, or used as the expression of a type annotation `(Expr as T)`. The implementation shall discharge these checks via sound static range analysis.
 
-26. If a conforming implementation cannot establish that a narrowing point is safe (i.e., the computed range of the wide intermediate does not fit within the target type), the program is nonconforming and shall be rejected with a diagnostic.
+26. If a conforming implementation cannot establish that a narrowing point is safe (i.e., the computed range of the result does not fit within the target type), the program is nonconforming and shall be rejected with a diagnostic.
 
 ### 5.3.7 Discriminant Checks
 
@@ -142,12 +142,12 @@ This section specifies the language-level assurance guarantees provided by Safe.
 
 | Check Category | 8652:2023 Reference | How Discharged |
 |---------------|--------------------:|----------------|
-| Integer overflow | §4.5 | Impossible — wide intermediate arithmetic (Rule 1) |
-| Range check — integer (assignment) | §4.6, §5.2 | Sound static range analysis on wide intermediates (Rule 1) |
-| Range check — integer (return) | §6.5 | Sound static range analysis on wide intermediates (Rule 1) |
-| Range check — integer (parameter) | §6.4 | Sound static range analysis on wide intermediates (Rule 1) |
-| Range check — integer (type conversion) | §4.6 | Sound static range analysis on wide intermediates (Rule 1) |
-| Range check — integer (type annotation) | §4.7 | Sound static range analysis on wide intermediates (Rule 1) |
+| Integer overflow | §4.5 | Rejected unless every integer arithmetic result is provably within signed 64-bit range (Rule 1) |
+| Range check — integer (assignment) | §4.6, §5.2 | Sound static range analysis on integer results (Rule 1) |
+| Range check — integer (return) | §6.5 | Sound static range analysis on integer results (Rule 1) |
+| Range check — integer (parameter) | §6.4 | Sound static range analysis on integer results (Rule 1) |
+| Range check — integer (type conversion) | §4.6 | Sound static range analysis on integer results (Rule 1) |
+| Range check — integer (type annotation) | §4.7 | Sound static range analysis on integer results (Rule 1) |
 | Floating-point overflow | §A.5.3, §4.5 | Non-exceptional — produces ±infinity under IEEE 754 non-trapping mode; caught at narrowing points (Rule 5) |
 | Floating-point division by zero | §A.5.3, §4.5.5 | Non-exceptional — produces ±infinity under IEEE 754 non-trapping mode; caught at narrowing points (Rule 5) |
 | Floating-point invalid operation (NaN) | §A.5.3 | Non-exceptional — produces NaN under IEEE 754 non-trapping mode; caught at narrowing points (Rule 5) |
@@ -250,34 +250,29 @@ end T_B;
 
 **Conforming Example.**
 
-```ada
+```safe
 -- averaging.safe
 
-package Averaging is
+package averaging
 
-    public type Sample is range 0 .. 10000;
-    public subtype Sample_Count is Integer range 1 .. 100;
-    -- Sample_Count excludes zero: valid divisor (Rule 3a)
+    public subtype sample is integer (0 to 10000);
+    public subtype sample_count is integer (1 to 100);
+    -- sample_count excludes zero: valid divisor (Rule 3a)
 
-    public function Average_Two (A, B : Sample) return Sample is
-    begin
-        return (A + B) / 2;
-        -- Rule 1: wide intermediate — max (10000+10000)/2 = 10000
+    public function average_two (a, b : sample) returns sample
+        return (a + b) / 2
+        -- Rule 1: max (10000+10000)/2 = 10000
         -- Rule 3(b): literal 2 is static nonzero
         -- D27 proof: result in 0..10000
-    end Average_Two;
 
-    public function Average_N (Sum : Integer; Count : Sample_Count)
-        return Sample is
-    begin
-        return Sample(Sum / Count);
-        -- Rule 3(a): Sample_Count excludes zero
-        -- Rule 1: wide intermediate for Sum / Count
-        -- Narrowing at return: range check to Sample
-        -- D27 proof: implementation verifies Sum / Count in 0..10000
-    end Average_N;
+    public function average_n (sum : integer; count : sample_count)
+        returns sample
+        return sample (sum / count)
+        -- Rule 3(a): sample_count excludes zero
+        -- Narrowing at return: range check to sample
+        -- D27 proof: implementation verifies sum / count in 0..10000
 
-end Averaging;
+end averaging;
 ```
 
 ### 5.6.2 Example: Array Indexing — Silver-Provable via Provable Index Safety

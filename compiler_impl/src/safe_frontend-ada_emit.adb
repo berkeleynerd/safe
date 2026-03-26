@@ -515,27 +515,22 @@ package body Safe_Frontend.Ada_Emit is
      (State : in out Emit_State;
       Name  : String) is
    begin
-      if not Contains_Name (State.Wide_Local_Names, Name) then
-         State.Wide_Local_Names.Append (FT.To_UString (Name));
-      end if;
+      pragma Unreferenced (State, Name);
    end Add_Wide_Name;
 
    function Is_Wide_Name
      (State : Emit_State;
       Name  : String) return Boolean is
    begin
-      return Contains_Name (State.Wide_Local_Names, Name);
+      pragma Unreferenced (State, Name);
+      return False;
    end Is_Wide_Name;
 
    function Names_Use_Wide_Storage
      (State : Emit_State;
       Names : FT.UString_Vectors.Vector) return Boolean is
    begin
-      for Name of Names loop
-         if Is_Wide_Name (State, FT.To_String (Name)) then
-            return True;
-         end if;
-      end loop;
+      pragma Unreferenced (State, Names);
       return False;
    end Names_Use_Wide_Storage;
 
@@ -696,7 +691,21 @@ package body Safe_Frontend.Ada_Emit is
 
    function Ada_Safe_Name (Name : String) return String is
    begin
-      if Starts_With (Name, "__") then
+      if Name = "integer" then
+         return "Long_Long_Integer";
+      elsif Name = "boolean" then
+         return "Boolean";
+      elsif Name = "character" then
+         return "Character";
+      elsif Name = "string" then
+         return "String";
+      elsif Name = "float" then
+         return "Float";
+      elsif Name = "long_float" then
+         return "Long_Float";
+      elsif Name = "duration" then
+         return "Duration";
+      elsif Starts_With (Name, "__") then
          return "Safe_" & Name (Name'First + 2 .. Name'Last);
       elsif Name'Length > 0 and then Name (Name'First) = '_' then
          return "Safe" & Name;
@@ -994,9 +1003,7 @@ package body Safe_Frontend.Ada_Emit is
 
    function Is_Builtin_Integer_Name (Name : String) return Boolean is
    begin
-      return Name in "integer" | "natural" | "positive"
-        | "long_long_integer" | "long_long_long_integer"
-        | "safe_runtime.wide_integer";
+      return Name in "integer" | "long_long_integer";
    end Is_Builtin_Integer_Name;
 
    function Is_Builtin_Float_Name (Name : String) return Boolean is
@@ -1267,6 +1274,18 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
          Result := Result & SU.To_Unbounded_String (")");
          return SU.To_String (Result);
+      elsif FT.To_String (Info.Kind) = "subtype"
+        and then Starts_With (FT.To_String (Info.Name), "__constraint")
+        and then Info.Has_Base
+        and then Info.Has_Low
+        and then Info.Has_High
+      then
+         return
+           Ada_Safe_Name (FT.To_String (Info.Base))
+           & " range "
+           & Trim_Image (Info.Low)
+           & " .. "
+           & Trim_Image (Info.High);
       end if;
       return Ada_Safe_Name (FT.To_String (Info.Name));
    end Render_Type_Name;
@@ -1573,11 +1592,6 @@ package body Safe_Frontend.Ada_Emit is
             end loop;
             Result := Result & SU.To_Unbounded_String (");");
             return SU.To_String (Result);
-         elsif Is_Builtin_Integer_Name (FT.To_String (Type_Item.Base))
-           or else Is_Builtin_Float_Name (FT.To_String (Type_Item.Base))
-         then
-            return
-              "subtype " & Ada_Safe_Name (Name) & " is " & Ada_Safe_Name (FT.To_String (Type_Item.Base)) & ";";
          elsif Type_Item.Has_Low and then Type_Item.Has_High then
             return
               "subtype "
@@ -1589,6 +1603,11 @@ package body Safe_Frontend.Ada_Emit is
               & " .. "
               & Trim_Image (Type_Item.High)
               & ";";
+         elsif Is_Builtin_Integer_Name (FT.To_String (Type_Item.Base))
+           or else Is_Builtin_Float_Name (FT.To_String (Type_Item.Base))
+         then
+            return
+              "subtype " & Ada_Safe_Name (Name) & " is " & Ada_Safe_Name (FT.To_String (Type_Item.Base)) & ";";
          else
             return
               "subtype " & Ada_Safe_Name (Name) & " is " & Ada_Safe_Name (FT.To_String (Type_Item.Base)) & ";";
@@ -1963,11 +1982,20 @@ package body Safe_Frontend.Ada_Emit is
             Result := Result & SU.To_Unbounded_String (")");
             return SU.To_String (Result);
          when CM.Expr_Conversion =>
-            return
-              Render_Expr (Unit, Document, Expr.Target, State)
-              & " ("
-              & Render_Expr (Unit, Document, Expr.Inner, State)
-              & ")";
+            declare
+               Target_Image : constant String :=
+                 (if Has_Text (Expr.Type_Name)
+                     then Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name))
+                  elsif Expr.Target /= null
+                     then Render_Expr (Unit, Document, Expr.Target, State)
+                  else "");
+            begin
+               return
+                 Target_Image
+                 & " ("
+                 & Render_Expr (Unit, Document, Expr.Inner, State)
+                 & ")";
+            end;
          when CM.Expr_Call =>
             declare
                Callee_Flat : constant String := CM.Flatten_Name (Expr.Callee);
@@ -2288,33 +2316,8 @@ package body Safe_Frontend.Ada_Emit is
       Expr     : CM.Expr_Access) return Boolean
    is
    begin
-      if Expr = null then
-         return False;
-      elsif Uses_Wide_Arithmetic (Unit, Document, Expr) then
-         return True;
-      end if;
-
-      case Expr.Kind is
-         when CM.Expr_Ident =>
-            return Is_Wide_Name (State, FT.To_String (Expr.Name));
-         when CM.Expr_Unary | CM.Expr_Conversion | CM.Expr_Annotated =>
-            return Uses_Wide_Value (Unit, Document, State, Expr.Inner);
-         when CM.Expr_Binary =>
-            return
-              Uses_Wide_Value (Unit, Document, State, Expr.Left)
-              or else Uses_Wide_Value (Unit, Document, State, Expr.Right);
-         when CM.Expr_Call | CM.Expr_Resolved_Index =>
-            for Item of Expr.Args loop
-               if Uses_Wide_Value (Unit, Document, State, Item) then
-                  return True;
-               end if;
-            end loop;
-            return False;
-         when CM.Expr_Select =>
-            return Uses_Wide_Value (Unit, Document, State, Expr.Prefix);
-         when others =>
-            return False;
-      end case;
+      pragma Unreferenced (Unit, Document, State, Expr);
+      return False;
    end Uses_Wide_Value;
 
    function Is_Explicit_Float_Narrowing
@@ -3806,13 +3809,21 @@ package body Safe_Frontend.Ada_Emit is
             Result := Result & SU.To_Unbounded_String (")");
             return SU.To_String (Result);
          when CM.Expr_Conversion =>
-            return
-              Render_Expr_With_Target_Substitution
-                (Unit, Document, Expr.Target, Target, Replacement, State, Supported)
-              & " ("
-              & Render_Expr_With_Target_Substitution
-                  (Unit, Document, Expr.Inner, Target, Replacement, State, Supported)
-              & ")";
+            declare
+               Target_Image : constant String :=
+                 (if Has_Text (Expr.Type_Name)
+                     then Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name))
+                  else
+                    Render_Expr_With_Target_Substitution
+                      (Unit, Document, Expr.Target, Target, Replacement, State, Supported));
+            begin
+               return
+                 Target_Image
+                 & " ("
+                 & Render_Expr_With_Target_Substitution
+                     (Unit, Document, Expr.Inner, Target, Replacement, State, Supported)
+                 & ")";
+            end;
          when CM.Expr_Subtype_Indication =>
             if Has_Text (Expr.Type_Name) then
                return Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name));

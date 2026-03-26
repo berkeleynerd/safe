@@ -27,7 +27,7 @@ The mapping from Safe constructs to templates is defined in
 
 | Template | D27 Rule | Emission pattern | PO hooks |
 |----------|----------|-----------------|----------|
-| `template_wide_arithmetic` | Rule 1 | Wide intermediate arithmetic + narrowing at assignment/return | `Narrow_Return`, `Narrow_Assignment` |
+| `template_wide_arithmetic` | Rule 1 | 64-bit integer arithmetic + narrowing at assignment/return | `Narrow_Return`, `Narrow_Assignment` |
 | `template_division_nonzero` | Rule 3 | Safe division, mod, rem with nonzero guard | `Nonzero`, `Safe_Div`, `Safe_Mod`, `Safe_Rem` |
 | `template_ownership_move` | Section 2.3 | Ownership transfer via move semantics | `Check_Owned_For_Move`, `Check_Not_Moved` |
 | `template_scope_dealloc` | Section 2.3 | Scope-exit deallocation in reverse declaration order | `Check_Owned_For_Move`, `Check_Not_Moved` |
@@ -40,7 +40,7 @@ The mapping from Safe constructs to templates is defined in
 | `template_borrow_observe` | Section 2.3 | Exclusive borrow + shared observe ownership transitions | `Check_Borrow_Exclusive`, `Check_Observe_Shared` |
 | `template_fp_safety` | Rule 5 | FP narrowing: not-NaN, not-infinity, safe FP division | `FP_Not_NaN`, `FP_Not_Infinity`, `FP_Safe_Div` |
 | `template_select_polling` | Section 4.4 | Select-to-polling-loop lowering with bounded iteration | `Check_Channel_Not_Empty` |
-| `template_narrow_conversion` | Rule 1 | Type-conversion narrowing with wide intermediate | `Narrow_Conversion` |
+| `template_narrow_conversion` | Rule 1 | Type-conversion narrowing from 64-bit integer arithmetic | `Narrow_Conversion` |
 
 Each `.ads` file carries clause IDs in its header comment tracing to the
 frozen spec commit (`468cf72`).
@@ -66,9 +66,6 @@ Templates depend only on packages from `companion/spark/`:
   bounds, task-variable maps)
 - **`Safe_PO`** -- Proof obligation procedures that the emitter inserts at
   runtime-check sites
-- **`Safe_Runtime`** -- `Wide_Integer` type definition for wide intermediate
-  arithmetic
-
 No external Alire dependencies are required. The project file
 (`templates.gpr`) pulls in `companion/spark/` via `Source_Dirs`.
 

@@ -59,7 +59,7 @@ The script below writes this package:
 ```safe
 package typed_channel_demo
 
-   type message is range 0 to 1000;
+   subtype message is integer (0 to 1000);
 
    channel data_ch : message capacity 1;
    result : message = 0;
@@ -107,7 +107,7 @@ mkdir -p "$OUT_DIR" "$IFACE_DIR" "$ADA_DIR"
 cat > "$SOURCE" <<'SAFE'
 package typed_channel_demo
 
-   type message is range 0 to 1000;
+   subtype message is integer (0 to 1000);
 
    channel data_ch : message capacity 1;
 
@@ -146,7 +146,9 @@ with Typed_Channel_Demo;
 procedure Main is
 begin
    delay 0.2;
-   Put_Line ("Typed channel result =" & Integer'Image (Integer (Typed_Channel_Demo.Result)));
+   Put_Line
+     ("Typed channel result ="
+      & Long_Long_Integer'Image (Long_Long_Integer (Typed_Channel_Demo.Result)));
    GNAT.OS_Lib.OS_Exit (0);
 end Main;
 ADA
@@ -194,7 +196,6 @@ $WORK/out/typed_channel_demo.mir.json
 $WORK/iface/typed_channel_demo.safei.json
 $WORK/ada/typed_channel_demo.ads
 $WORK/ada/typed_channel_demo.adb
-$WORK/ada/safe_runtime.ads
 $WORK/ada/gnat.adc
 $WORK/ada/main.adb
 $WORK/ada/build.gpr

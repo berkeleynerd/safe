@@ -480,6 +480,7 @@ package body Safe_Frontend.Check_Parse is
             Start_Paren : constant FL.Token := Expect (State, "(");
             Assoc       : CM.Constraint_Association;
             Ender       : FL.Token;
+            Closed_Constraint : Boolean := False;
          begin
             loop
                Assoc := (others => <>);
@@ -496,6 +497,33 @@ package body Safe_Frontend.Check_Parse is
                   Require (State, "=");
                end if;
                Assoc.Value := Parse_Expression (State);
+               if Current_Lower (State) = "to" then
+                  if Assoc.Is_Named then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path_String (State),
+                           Span    => Current (State).Span,
+                           Message => "range constraints do not use named associations"));
+                  elsif not Result.Constraints.Is_Empty then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path_String (State),
+                           Span    => Current (State).Span,
+                           Message => "range constraints accept exactly one low/high pair"));
+                  end if;
+                  Result.Has_Range_Constraint := True;
+                  Result.Range_Low := Assoc.Value;
+                  Require_Range_Keyword (State);
+                  Result.Range_High := Parse_Expression (State);
+                  if FT.To_String (Current (State).Lexeme) = ")" then
+                     Ender := Expect (State, ")");
+                     End_Span := Ender.Span;
+                  else
+                     End_Span := CM.Join (Start_Paren.Span, Result.Range_High.Span);
+                  end if;
+                  Closed_Constraint := True;
+                  exit;
+               end if;
                Assoc.Span :=
                  (if Assoc.Value = null then Start_Paren.Span
                   else
@@ -505,8 +533,10 @@ package body Safe_Frontend.Check_Parse is
                Result.Constraints.Append (Assoc);
                exit when not Match (State, ",");
             end loop;
-            Ender := Expect (State, ")");
-            End_Span := Ender.Span;
+            if not Closed_Constraint then
+               Ender := Expect (State, ")");
+               End_Span := Ender.Span;
+            end if;
          end;
       end if;
 

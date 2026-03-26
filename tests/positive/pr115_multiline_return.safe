@@ -1,6 +1,6 @@
 package pr115_multiline_return
 
-   type counter is range 0 to 10;
+   subtype counter is integer (0 to 10);
 
    function identity (input : counter) returns counter
 

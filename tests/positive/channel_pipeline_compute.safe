@@ -12,8 +12,8 @@
 
 package channel_pipeline_compute
 
-   type sample is range 0 to 100;
-   type running_total is range 0 to 1000;
+   subtype sample is integer (0 to 100);
+   subtype running_total is integer (0 to 1000);
 
    channel raw_ch      : sample capacity 2;
    channel filtered_ch : sample capacity 2;

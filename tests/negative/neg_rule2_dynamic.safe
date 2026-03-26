@@ -8,7 +8,7 @@
 
 package dynamic_index_test
 
-   type idx is range 1 to 50;
+   subtype idx is integer (1 to 50);
    type table is array (idx) of integer;
 
    --  Compute_Index: returns some value; the compiler cannot determine range.

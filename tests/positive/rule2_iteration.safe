@@ -7,8 +7,8 @@
 
 package safe_iteration
 
-   type slot is range 0 to 15;
-   type value is range 0 to 1000;
+   subtype slot is integer (0 to 15);
+   subtype value is integer (0 to 1000);
    type register_bank is array (slot) of value;
 
    --  Find_Max: iterates over all slots to find the maximum value.

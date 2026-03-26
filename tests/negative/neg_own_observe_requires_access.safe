@@ -6,7 +6,7 @@
 package observe_requires_access_test
 
    type config is record
-      rate : natural;
+      rate : integer;
 
    type config_ptr is access config;
 

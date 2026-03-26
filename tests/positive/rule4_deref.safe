@@ -6,7 +6,7 @@
 
 package safe_deref
 
-   type data is range 0 to 1000;
+   subtype data is integer (0 to 1000);
    type data_ptr is not null access data;
 
    --  Read_Value: dereferences a not-null pointer.

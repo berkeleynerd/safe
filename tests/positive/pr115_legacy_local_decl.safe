@@ -1,6 +1,6 @@
 package pr115_legacy_local_decl
 
-   type counter is range 0 to 10;
+   subtype counter is integer (0 to 10);
 
    function build returns counter
 

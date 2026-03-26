@@ -6,10 +6,10 @@
 --  Reference: compiler/translation_rules.md Section 8.3 (row 4)
 --
 --  Demonstrates narrowing at the type-conversion point — the fifth
---  narrowing point from Section 8.3 of translation_rules.md.  This is
+--  narrowing point from Section 8.3 of translation_rules.md. This is
 --  distinct from narrowing at assignment (Narrow_Assignment) or return
---  (Narrow_Return); here the Narrow_Conversion hook fires when a wide
---  intermediate is explicitly converted to a narrower target type.
+--  (Narrow_Return); here the Narrow_Conversion hook fires when a 64-bit
+--  integer result is explicitly converted to a narrower target type.
 --
 --  PO hooks exercised: Narrow_Conversion
 
@@ -44,8 +44,8 @@ is
      with Post => Percent_To_Ratio'Result =
                   Long_Long_Integer (P) * 100;
 
-   --  Pattern 2: Scale and convert with wide intermediate.
-   --  Compute Value * Scale in wide intermediate, divide by 100,
+   --  Pattern 2: Scale and convert with 64-bit integer arithmetic.
+   --  Compute Value * Scale in Long_Long_Integer, divide by 100,
    --  narrow to Percentage via type conversion at assignment.
    procedure Scale_And_Convert
      (Value  : Percentage;
@@ -54,7 +54,7 @@ is
      with Post => Result = (Long_Long_Integer (Value)
                             * Long_Long_Integer (Scale)) / 100;
 
-   --  Pattern 3: Wide input narrowed by explicit precondition.
+   --  Pattern 3: Long_Long_Integer input narrowed by explicit precondition.
    --  Demonstrates a conversion that would fail without a guard:
    --  Long_Long_Integer has range far exceeding Percentage, so the
    --  Pre is the only thing making the Narrow_Conversion hook provable.

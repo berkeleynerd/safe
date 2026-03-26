@@ -208,7 +208,6 @@ package body Safe_Frontend.Check_Resolve is
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
       Put_Type (Type_Env, "integer", BT.Integer_Type);
-      Put_Type (Type_Env, "natural", BT.Natural_Type);
       Put_Type (Type_Env, "boolean", BT.Boolean_Type);
       Put_Type (Type_Env, "character", BT.Character_Type);
       Put_Type (Type_Env, "string", BT.String_Type);
@@ -598,8 +597,22 @@ package body Safe_Frontend.Check_Resolve is
    function Is_Builtin_Name (Name : String) return Boolean is
    begin
       return Name in
-        "integer" | "natural" | "boolean" | "character" | "string" | "float" | "long_float" | "duration" | "result";
+        "integer" | "boolean" | "character" | "string" | "float" | "long_float" | "duration" | "result";
    end Is_Builtin_Name;
+
+   function Is_Removed_Integer_Builtin_Name (Name : String) return Boolean is
+   begin
+      return Name in
+        "natural" | "positive" | "short" | "byte" | "long_long_integer" | "long_long_long_integer";
+   end Is_Removed_Integer_Builtin_Name;
+
+   function Removed_Integer_Builtin_Message (Name : String) return String is
+   begin
+      return
+        "PR11.8 removed predefined integer-family type `"
+        & Name
+        & "`; use `integer` or a constrained subtype";
+   end Removed_Integer_Builtin_Message;
 
    function Qualify_Name
      (Package_Name : String;
@@ -831,9 +844,9 @@ package body Safe_Frontend.Check_Resolve is
       elsif Value.Kind = CM.Static_Value_Character then
          return Is_Character_Type (Base, Type_Env);
       elsif Value.Kind = CM.Static_Value_Integer then
-         return Is_Integerish (Base, Type_Env)
-           and then (not Base.Has_Low or else Long_Long_Integer (Value.Int_Value) >= Base.Low)
-           and then (not Base.Has_High or else Long_Long_Integer (Value.Int_Value) <= Base.High)
+         return Is_Integerish (Disc_Type, Type_Env)
+           and then (not Disc_Type.Has_Low or else Long_Long_Integer (Value.Int_Value) >= Disc_Type.Low)
+           and then (not Disc_Type.Has_High or else Long_Long_Integer (Value.Int_Value) <= Disc_Type.High)
            and then not Is_Boolean_Type (Base, Type_Env)
            and then not Is_Character_Type (Base, Type_Env);
       end if;
@@ -870,6 +883,14 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Has_Type (Type_Env, Name) then
          return Get_Type (Type_Env, Name);
+      end if;
+
+      if Is_Removed_Integer_Builtin_Name (Name) then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Span,
+               Message => Removed_Integer_Builtin_Message (Name)));
       end if;
 
       if FT.Lowercase (Name) = "exception" then
@@ -996,7 +1017,67 @@ package body Safe_Frontend.Check_Resolve is
    begin
       case Spec.Kind is
          when CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication =>
-            if not Spec.Constraints.Is_Empty then
+            if Spec.Has_Range_Constraint then
+               Base := Resolve_Type (UString_Value (Spec.Name), Type_Env, Path, Spec.Span);
+               if not Is_Integerish (Base, Type_Env)
+                 or else Is_Boolean_Type (Base, Type_Env)
+                 or else Is_Character_Type (Base, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Spec.Span,
+                        Message => "range constraints require an integer type"));
+               end if;
+
+               Result.Name :=
+                 FT.To_UString
+                   ("__constraint_"
+                    & Sanitize_Type_Name_Component (UString_Value (Base.Name))
+                    & "_"
+                    & Sanitize_Type_Name_Component (Expr_Text (Spec.Range_Low))
+                    & "_"
+                    & Sanitize_Type_Name_Component (Expr_Text (Spec.Range_High)));
+               Result.Kind := FT.To_UString ("subtype");
+               Result.Has_Base := True;
+               Result.Base := Base.Name;
+               Result.Has_Low := True;
+               Result.Low :=
+                 Long_Long_Integer
+                   (Literal_Value
+                      (Spec.Range_Low,
+                       Const_Env,
+                       Path,
+                       "range bounds must be integer literals or constant references"));
+               Result.Has_High := True;
+               Result.High :=
+                 Long_Long_Integer
+                   (Literal_Value
+                      (Spec.Range_High,
+                       Const_Env,
+                       Path,
+                       "range bounds must be integer literals or constant references"));
+               if Result.Low > Result.High then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Spec.Span,
+                        Message => "range constraint lower bound exceeds upper bound"));
+               elsif Base.Has_Low and then Result.Low < Base.Low then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Spec.Range_Low.Span,
+                        Message => "range constraint lower bound is outside the base type range"));
+               elsif Base.Has_High and then Result.High > Base.High then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Spec.Range_High.Span,
+                        Message => "range constraint upper bound is outside the base type range"));
+               end if;
+               return Result;
+            elsif not Spec.Constraints.Is_Empty then
                Base := Resolve_Type (UString_Value (Spec.Name), Type_Env, Path, Spec.Span);
                if Base.Discriminants.Is_Empty then
                   Raise_Diag
@@ -1453,7 +1534,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Kind := CM.Expr_Conversion;
             Result.Target := Expr.Callee;
             Result.Inner := Expr.Args (Expr.Args.First_Index);
-         elsif UString_Value (Callee_Name) in "integer" | "natural" | "float" | "long_float"
+         elsif UString_Value (Callee_Name) in "integer" | "float" | "long_float"
            and then Natural (Expr.Args.Length) = 1
          then
             Result.Kind := CM.Expr_Conversion;
@@ -2582,7 +2663,9 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Type_Decl_Incomplete =>
             Result.Kind := FT.To_UString ("incomplete");
          when CM.Type_Decl_Integer =>
-            Result.Kind := FT.To_UString ("integer");
+            Result.Kind := FT.To_UString ("subtype");
+            Result.Has_Base := True;
+            Result.Base := FT.To_UString ("integer");
             Result.Has_Low := True;
             Result.Low :=
               Long_Long_Integer
@@ -2599,6 +2682,13 @@ package body Safe_Frontend.Check_Resolve is
                     Const_Env,
                     Path,
                     "type bounds must be integer literals or constant references"));
+            if Result.Low > Result.High then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Decl.Span,
+                     Message => "type lower bound exceeds upper bound"));
+            end if;
          when CM.Type_Decl_Float =>
             Result.Kind := FT.To_UString ("float");
             Result.Has_Digits_Text := True;
@@ -2611,6 +2701,40 @@ package body Safe_Frontend.Check_Resolve is
             Result.Kind := FT.To_UString ("array");
             for Index_Item of Decl.Indexes loop
                if Index_Item.Name_Expr /= null then
+                  declare
+                     Index_Type : constant GM.Type_Descriptor :=
+                       Resolve_Type
+                         (Flatten_Name (Index_Item.Name_Expr),
+                          Type_Env,
+                          Path,
+                          Index_Item.Span);
+                     Index_Base : constant GM.Type_Descriptor := Base_Type (Index_Type, Type_Env);
+                     Is_Constrained : constant Boolean :=
+                       Is_Boolean_Type (Index_Type, Type_Env)
+                       or else Is_Character_Type (Index_Type, Type_Env)
+                       or else
+                         ((Index_Type.Has_Low and then Index_Type.Has_High)
+                          and then not
+                            (FT.Lowercase (UString_Value (Index_Type.Kind)) = "integer"
+                             and then UString_Value (Index_Type.Name) = "integer"))
+                       or else
+                         ((Index_Base.Has_Low and then Index_Base.Has_High)
+                          and then UString_Value (Index_Base.Name) /= "integer");
+                  begin
+                     if not Is_Discrete_Case_Type (Index_Type, Type_Env) then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Index_Item.Span,
+                              Message => "array index type must be discrete"));
+                     elsif not Is_Constrained then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Index_Item.Span,
+                              Message => "array index type must be constrained"));
+                     end if;
+                  end;
                   Result.Index_Types.Append
                     (FT.To_UString (Flatten_Name (Index_Item.Name_Expr)));
                end if;
@@ -3155,16 +3279,25 @@ package body Safe_Frontend.Check_Resolve is
                begin
                   Info.Name := Item.Sub_Data.Name;
                   Info.Kind := FT.To_UString ("subtype");
-                  if Base.Has_Low then
+                  if Base.Has_Low
+                    and then not
+                      (FT.Lowercase (UString_Value (Base.Kind)) = "integer"
+                       and then UString_Value (Base.Name) = "integer")
+                  then
                      Info.Has_Low := True;
                      Info.Low := Base.Low;
                   end if;
-                  if Base.Has_High then
+                  if Base.Has_High
+                    and then not
+                      (FT.Lowercase (UString_Value (Base.Kind)) = "integer"
+                       and then UString_Value (Base.Name) = "integer")
+                  then
                      Info.Has_High := True;
                      Info.High := Base.High;
                   end if;
+                  Info.Discriminant_Constraints := Base.Discriminant_Constraints;
                   Info.Has_Base := True;
-                  Info.Base := Base.Name;
+                  Info.Base := (if Base.Has_Base then Base.Base else Base.Name);
                   Put_Type (Type_Env, UString_Value (Info.Name), Info);
                   Put_Type (Package_Vars, UString_Value (Info.Name), Info);
                   Result.Types.Append (Info);

@@ -1,0 +1,5 @@
+package neg_pr118_integer_add_overflow
+
+   function bump (x : integer) returns integer
+
+      return x + 1;

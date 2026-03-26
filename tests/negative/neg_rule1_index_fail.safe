@@ -8,7 +8,7 @@
 
 package index_narrow_fail
 
-   type idx is range 1 to 10;
+   subtype idx is integer (1 to 10);
    type values is array (idx) of integer;
 
    --  Index_From_Computation: uses result of arbitrary arithmetic as index.

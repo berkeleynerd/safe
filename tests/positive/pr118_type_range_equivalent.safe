@@ -1,0 +1,13 @@
+package pr118_type_range_equivalent
+
+   type legacy_count is range 0 to 10;
+
+   function clamp (x : integer) returns legacy_count
+
+      if x < legacy_count.first
+         return 0
+      else if x > legacy_count.last
+         return 10
+
+      return legacy_count (x)
+

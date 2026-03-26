@@ -4,9 +4,8 @@ package client_imported_borrow_observe
 
    function run
       owner : provider_imported_call_ownership.payload_ptr = new ((value = 5) as provider_imported_call_ownership.payload);
-      seen  : integer;
+      seen  : provider_imported_call_ownership.payload_value;
 
       provider_imported_call_ownership.bump (owner);
       seen = provider_imported_call_ownership.read_value (owner);
       owner.all.value = seen;
-

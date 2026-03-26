@@ -9,8 +9,8 @@
 
 package narrow_fail
 
-   type wide is range -1_000_000 to 1_000_000;
-   type narrow is range -100 to 100;
+   subtype wide is integer (-1_000_000 to 1_000_000);
+   subtype narrow is integer (-100 to 100);
 
    --  Unsafe_Assign: assigns a Wide value directly to a Narrow variable.
    --  The compiler cannot prove that V is in -100..100.

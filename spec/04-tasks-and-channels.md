@@ -286,7 +286,7 @@ delay_arm ::=
 
 package pipeline
 
-    public type measurement is range 0 to 65535;
+    public subtype measurement is integer (0 to 65535);
 
     channel raw_data : measurement capacity 16;
     channel processed : measurement capacity 8;
@@ -312,7 +312,7 @@ package pipeline
     function process (m : measurement) returns measurement
 
         return (m + 1) / 2;
-        -- D27 Rule 1: wide intermediate, max (65535+1)/2 = 32768
+        -- D27 Rule 1: max (65535+1)/2 = 32768
         -- D27 Rule 3(b): literal 2 is static nonzero
         -- D27 proof: result in 0..65535
 
@@ -332,7 +332,7 @@ package pipeline
 
 package router
 
-    public type job_id is range 1 to 1000;
+    public subtype job_id is integer (1 to 1000);
     public type job is record
         id   : job_id;
         data : integer;
@@ -350,7 +350,7 @@ package router
 
         loop
             j : job = (id = count, data = integer (count) * 10);
-            -- D27 proof: count * 10 fits in integer (wide intermediate)
+            -- D27 proof: count * 10 fits within signed 64-bit integer range
             ok : boolean;
             try_send jobs_a, j, ok;
             if not ok
@@ -363,7 +363,7 @@ package router
             j : job;
             receive jobs_a, j;
             send results, (id = j.id, value = j.data + 1);
-            -- D27 proof: j.data + 1 may overflow integer; wide intermediate handles it
+            -- D27 proof: j.data + 1 is rejected unless it is provably within signed 64-bit integer range
 
     task worker_b with priority = 5
 

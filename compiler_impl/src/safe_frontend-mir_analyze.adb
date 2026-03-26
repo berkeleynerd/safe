@@ -805,7 +805,6 @@ package body Safe_Frontend.Mir_Analyze is
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
       Type_Env.Include ("integer", BT.Integer_Type);
-      Type_Env.Include ("natural", BT.Natural_Type);
       Type_Env.Include ("boolean", BT.Boolean_Type);
       Type_Env.Include ("character", BT.Character_Type);
       Type_Env.Include ("string", BT.String_Type);
@@ -858,7 +857,6 @@ package body Safe_Frontend.Mir_Analyze is
       elsif Type_Env.Contains (Name) then
          return Type_Env.Element (Name);
       elsif Name = "integer"
-        or else Name = "natural"
         or else Name = "boolean"
         or else Name = "float"
         or else Name = "long_float"
@@ -928,8 +926,6 @@ package body Safe_Frontend.Mir_Analyze is
             Excludes_Zero => Info.Low > 0 or else Info.High < 0);
       elsif UString_Value (Info.Name) = "integer" then
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-      elsif UString_Value (Info.Name) = "natural" then
-         return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
       elsif UString_Value (Info.Name) = "boolean" then
          return (Low => 0, High => 1, Excludes_Zero => False);
       elsif UString_Value (Info.Name) = "character" then
@@ -3380,7 +3376,7 @@ package body Safe_Frontend.Mir_Analyze is
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
             if Var_Types.Contains (UString_Value (Name)) then
                return Range_Interval (Var_Types.Element (UString_Value (Name)));
-            elsif UString_Value (Name) = "natural" or else UString_Value (Name) = "integer" then
+            elsif UString_Value (Name) = "integer" then
                return Eval_Int_Expr (Expr.Args (Expr.Args.First_Index), Current, Var_Types, Type_Env, Functions);
             end if;
             return Range_Interval (Resolve_Type ("integer", Type_Env));
@@ -3402,7 +3398,7 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Expr_Unary =>
             Inner := Eval_Int_Expr (Expr.Inner, Current, Var_Types, Type_Env, Functions);
             if UString_Value (Expr.Operator) = "-" then
-               return (Low => -Inner.High, High => -Inner.Low, Excludes_Zero => Inner.Excludes_Zero);
+               return Overflow_Checked (Expr, -Inner.High, -Inner.Low, Inner, Inner);
             end if;
             return Inner;
          when GM.Expr_Binary =>
@@ -3412,25 +3408,10 @@ package body Safe_Frontend.Mir_Analyze is
             Left := Eval_Int_Expr (Expr.Left, Current, Var_Types, Type_Env, Functions);
             Right := Eval_Int_Expr (Expr.Right, Current, Var_Types, Type_Env, Functions);
             if UString_Value (Expr.Operator) = "+" then
-               if Left.Low = INT64_LOW and then Left.High = INT64_HIGH then
-                  return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-               elsif Right.Low = INT64_LOW and then Right.High = INT64_HIGH then
-                  return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-               end if;
                return Overflow_Checked (Expr, Left.Low + Right.Low, Left.High + Right.High, Left, Right);
             elsif UString_Value (Expr.Operator) = "-" then
-               if Left.Low = INT64_LOW and then Left.High = INT64_HIGH then
-                  return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-               elsif Right.Low = INT64_LOW and then Right.High = INT64_HIGH then
-                  return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-               end if;
                return Overflow_Checked (Expr, Left.Low - Right.High, Left.High - Right.Low, Left, Right);
             elsif UString_Value (Expr.Operator) = "*" then
-               if Left.Low = INT64_LOW and then Left.High = INT64_HIGH then
-                  return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-               elsif Right.Low = INT64_LOW and then Right.High = INT64_HIGH then
-                  return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-               end if;
                Values (1) := Left.Low * Right.Low;
                Values (2) := Left.Low * Right.High;
                Values (3) := Left.High * Right.Low;

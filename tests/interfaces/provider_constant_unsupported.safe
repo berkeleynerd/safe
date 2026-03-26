@@ -1,6 +1,6 @@
 package provider_constant_unsupported
 
-   public type count is range 0 to 10;
+   public subtype count is integer (0 to 10);
    public base : constant count = 3;
    public limit : constant count = base + 1;
 

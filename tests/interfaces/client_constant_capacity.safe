@@ -2,6 +2,6 @@ with provider_constant_int;
 
 package client_constant_capacity
 
-   type message is range 0 to 10;
+   subtype message is integer (0 to 10);
    channel data_ch : message capacity provider_constant_int.max_count;
 

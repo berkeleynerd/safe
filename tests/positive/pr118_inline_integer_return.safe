@@ -1,0 +1,7 @@
+package pr118_inline_integer_return
+
+   function clamp (x : integer (0 to 10)) returns integer (0 to 10)
+
+      var y : integer (0 to 10) = x
+      return y
+

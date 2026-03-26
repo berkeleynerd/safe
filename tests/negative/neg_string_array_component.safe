@@ -4,6 +4,6 @@
 
 package neg_string_array_component
 
-   type slot is range 1 to 4;
+   subtype slot is integer (1 to 4);
    type name_table is array (slot) of string;
 

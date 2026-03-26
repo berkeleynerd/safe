@@ -6,7 +6,7 @@
 
 package emitter_surface_record
 
-   type counter is range 0 to 10;
+   subtype counter is integer (0 to 10);
 
    type pair is record
       left  : counter;

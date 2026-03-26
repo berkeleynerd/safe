@@ -76,7 +76,6 @@ package body Safe_Frontend.Check_Lower is
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
       Type_Env.Include ("integer", BT.Integer_Type);
-      Type_Env.Include ("natural", BT.Natural_Type);
       Type_Env.Include ("boolean", BT.Boolean_Type);
       Type_Env.Include ("character", BT.Character_Type);
       Type_Env.Include ("string", BT.String_Type);

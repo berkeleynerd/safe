@@ -10,7 +10,7 @@
 
 package multi_task_channel
 
-   type event_code is range 0 to 10_000;
+   subtype event_code is integer (0 to 10_000);
 
    channel event_ch : event_code capacity 8;
 
@@ -40,8 +40,8 @@ package multi_task_channel
    --  Channel atomicity guarantees each code is received intact.
    task consumer
       e : event_code = 0;
-      count_a : natural = 0;
-      count_b : natural = 0;
+      count_a : integer = 0;
+      count_b : integer = 0;
 
       loop
          receive event_ch, e;

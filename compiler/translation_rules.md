@@ -20,7 +20,7 @@ This document defines the translation rules for lowering Safe AST nodes to Ada 2
 5. [Select Lowering to Ada Select Patterns](#5-select-lowering)
 6. [Task Emission](#6-task-emission)
 7. [Ownership Emission](#7-ownership-emission)
-8. [Wide Intermediate Arithmetic Emission](#8-wide-intermediate-arithmetic)
+8. [64-Bit Integer Arithmetic Emission](#8-64-bit-integer-arithmetic)
 9. [Automatic Deallocation Emission](#9-automatic-deallocation)
 10. [Effect Summary Generation](#10-effect-summary-generation)
 11. [Package Structure Emission](#11-package-structure-emission)
@@ -51,12 +51,12 @@ The following table maps each Safe construct to its Ada/SPARK emission pattern. 
 | `(expr as t)` (type annotation) | `T'(Expr)` (qualified expression) | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p113 | AST: `AnnotatedExpression`. Reverse annotation to qualified expr |
 | `new (expr as t)` (allocator) | `new T'(Expr)` | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=Annotated`. Combined with dot-to-tick |
 | `new t` (allocator, default init) | `new T` | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=SubtypeOnly`. Direct pass-through |
-| `type t is range l .. h;` | `type T is range L .. H;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `SignedIntegerTypeDefinition`. Direct pass-through |
+| `type t is range l to h;` | `subtype T is Long_Long_Integer range L .. H;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `SignedIntegerTypeDefinition`. Normalized to a constrained integer subtype |
 | `type t is access t2;` | `type T is access T2;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `AccessToObjectDefinition`. Direct pass-through |
 | `subtype t_ref is not null t_ptr;` | `subtype T_Ref is not null T_Ptr;` | SAFE@468cf72:spec/02-restrictions.md#2.3.1.p95 | AST: `SubtypeDeclaration`. Direct pass-through |
-| Integer arithmetic `A + B` | `Wide_Integer(A) + Wide_Integer(B)` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 | AST: `Expression` with `wide_arithmetic=true`. Wide intermediate lifting |
-| Narrowing: `return Expr` | `return T(Wide_Expr)` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `SimpleReturnStatement`. Range check at narrowing point |
-| Narrowing: `X = Expr` | `X := T(Wide_Expr);` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `AssignmentStatement`. Range check at narrowing point |
+| Integer arithmetic `A + B` | `Long_Long_Integer(A) + Long_Long_Integer(B)` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 | AST: `Expression`. Direct 64-bit integer arithmetic |
+| Narrowing: `return Expr` | `return T(Expr_64);` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `SimpleReturnStatement`. Range check at narrowing point |
+| Narrowing: `X = Expr` | `X := T(Expr_64);` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `AssignmentStatement`. Range check at narrowing point |
 | `task T ... end T;` | Ada task type + single instance | SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p1 | AST: `TaskDeclaration`. See Section 6 |
 | `channel C : T capacity N;` | Protected object with bounded buffer | SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p12 | AST: `ChannelDeclaration`. See Section 4 |
 | `send C, Expr;` | `C.Send(Expr);` (entry call) | SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p27 | AST: `SendStatement`. Blocking entry call |
@@ -170,19 +170,27 @@ P := new Integer'(42);
 Foo (T'(X));
 ```
 
-### 3.4 Interaction with Wide Intermediate Arithmetic
+### 3.4 Interaction with 64-Bit Integer Arithmetic
 
-When the expression inside a type annotation involves integer arithmetic, the emitter first lifts to `Wide_Integer`, then narrows via the type conversion. The outer qualified expression is retained for disambiguation only when the context requires it (e.g., overloaded predefined operators for universal types). In most cases, the type conversion alone is sufficient since it performs the range check:
+When the expression inside a type annotation involves integer arithmetic, the
+emitter performs the computation in `Long_Long_Integer`, then narrows via the
+type conversion. The outer qualified expression is retained for disambiguation
+only when the context requires it. In most cases, the type conversion alone is
+sufficient since it performs the range check:
 
 ```
 -- Safe source:
 y = ((a + b) as reading);
 
 -- Emitted Ada (standard case):
-y := reading(safe_runtime.wide_integer(a) + safe_runtime.wide_integer(b));
+y := reading(Long_Long_Integer(a) + Long_Long_Integer(b));
 ```
 
-**Decision:** The outer qualified expression `Reading'(...)` is omitted when the context is unambiguous. The type conversion `Reading(Wide_Expr)` performs the required range check. If the context is ambiguous (e.g., as a parameter to an overloaded predefined operator), the qualified expression form `Reading'(Reading(Wide_Expr))` is used. Since Safe has no user-defined overloading, this ambiguity arises only with universal types.
+**Decision:** The outer qualified expression `Reading'(...)` is omitted when
+the context is unambiguous. The type conversion `Reading(Expr_64)` performs the
+required range check. If the context is ambiguous, the qualified expression
+form `Reading'(Reading(Expr_64))` is used. Since Safe has no user-defined
+overloading, this ambiguity arises only with universal types.
 
 ---
 
@@ -560,26 +568,23 @@ no additional `pragma annotate` directives are required.
 
 ---
 
-## 8. wide intermediate arithmetic
+## 8. 64-bit integer arithmetic
 
 **clause:** safe@468cf72:spec/02-restrictions.md#2.8.1.p126-130
 
-**ast node:** `expression` (with `wide_arithmetic` field)
+**ast node:** `expression`
 
-### 8.1 wide_integer type declaration
+### 8.1 Integer Model
 
-the emitter produces a wide integer type in a support package:
+The emitted Ada uses `Long_Long_Integer` as the target representation for Safe
+`integer`. Constrained Safe integer spellings become Ada subtypes of
+`Long_Long_Integer`.
 
-```ada
--- safe_runtime.ads
-package safe_runtime is
-   type wide_integer is range -(2**63) .. (2**63 - 1);
-end safe_runtime;
-```
+### 8.2 Direct 64-Bit Evaluation
 
-### 8.2 Lifting Rule
-
-Every integer subexpression is lifted to `Wide_Integer` before evaluation. The lifting occurs at the leaves (operands) of arithmetic expressions:
+Every emitted integer subexpression is evaluated directly in
+`Long_Long_Integer`. There is no generated `safe_runtime.ads` support package
+and no `Safe_Runtime.Wide_Integer` lifting stage:
 
 ```
 -- Safe source:
@@ -588,7 +593,7 @@ return (a + b) / 2;
 
 -- Emitted Ada:
 return Reading(
-   (Safe_Runtime.Wide_Integer(A) + Safe_Runtime.Wide_Integer(B)) / 2
+   (Long_Long_Integer(A) + Long_Long_Integer(B)) / 2
 );
 ```
 
@@ -606,40 +611,47 @@ Narrowing (conversion back to the target type) occurs at exactly five points (SA
 
 ### 8.4 Non-Integer Expressions
 
-Wide intermediate arithmetic applies only to integer types. Floating-point and Boolean expressions pass through without lifting.
+This rule applies only to integer types. Floating-point and Boolean expressions
+pass through without integer-specific rewriting.
 
-**Modular types:** Modular types use modular arithmetic with well-defined wrapping semantics (SAFE@468cf72:spec/08-syntax-summary.md#8.4). Modular operations are NOT lifted to wide intermediate. Modular arithmetic wraps at the modulus boundary by definition, and lifting would change the semantics. For example, `Mod_Type'Last + 1` wraps to 0 in modular arithmetic but would be `Mod_Type'Last + 1` in wide arithmetic. The emitter passes modular expressions through unchanged.
+**Modular types:** Modular types use modular arithmetic with well-defined
+wrapping semantics (SAFE@468cf72:spec/08-syntax-summary.md#8.4). Modular
+operations are not rewritten through the signed integer path; the emitter
+passes them through unchanged.
 
 ### 8.5 Static Expressions
 
-Static expressions (compile-time evaluable) may be evaluated by the compiler rather than emitted as wide-intermediate code. The result must fit in the target type.
+Static expressions (compile-time evaluable) may be evaluated by the compiler
+rather than emitted as explicit `Long_Long_Integer` code. The result must fit
+in the target type.
 
 ### 8.6 Intermediate Overflow Rejection
 
 **Clause:** SAFE@468cf72:spec/02-restrictions.md#2.8.1.p129
 
-If the compiler's interval analysis determines that an intermediate subexpression could exceed 64-bit signed range, the program is rejected at compile time. No runtime wide-integer overflow is possible in emitted code.
+If the compiler's interval analysis determines that an integer subexpression
+could exceed signed 64-bit range, the program is rejected at compile time.
 
 ### 8.7 Example: Full Emission
 
 ```
 -- Safe source:
-public type reading is range 0 .. 4095;
+public subtype reading is integer (0 to 4095);
 
-public function average (a, b : reading) return reading is
-begin
+public function average (a, b : reading) returns reading
    return (a + b) / 2;
-end average;
 
 -- Emitted Ada (in .adb):
-function average (a, b : reading) return reading is
+subtype Reading is Long_Long_Integer range 0 .. 4095;
+
+function Average (A, B : Reading) return Reading is
 begin
-   return reading(
-      (safe_runtime.wide_integer(a) + safe_runtime.wide_integer(b)) / 2
+   return Reading(
+      (Long_Long_Integer(A) + Long_Long_Integer(B)) / 2
    );
-   -- GNATprove: Wide_Integer range [0 .. 8190] / 2 = [0 .. 4095]
+   -- GNATprove: Long_Long_Integer range [0 .. 8190] / 2 = [0 .. 4095]
    -- Narrowing to Reading (0 .. 4095): provably safe
-end average;
+end Average;
 ```
 
 ---
@@ -846,7 +858,7 @@ The emitter produces two files from each Safe compilation unit:
 
 **`.adb` (body):**
 - `pragma SPARK_Mode;`
-- `with Safe_Runtime; use type Safe_Runtime.Wide_Integer;` (if wide arithmetic is used)
+- no numeric support package; integer emission uses `Long_Long_Integer` directly
 - Package body
 - Subprogram bodies
 - Task type declarations and bodies
@@ -1008,7 +1020,7 @@ the following table lists semantics that are underspecified or implementation-de
 | Runtime abort handler | Behaviour on Assert failure or allocation failure | Call `GNAT.OS_Lib.OS_Exit(1)` with source-location diagnostic to stderr | Deterministic, observable failure behavior | SAFE@468cf72:spec/06-conformance.md#6.7.p22(g) |
 | Deallocation order at scope exit | When multiple owners exit simultaneously | Reverse declaration order | Spec mandates this | SAFE@468cf72:spec/02-restrictions.md#2.3.5.p105 |
 | Anonymous access reassignment | Whether anonymous access vars can be reassigned after init | Rejected at compile time (initialisation-only restriction) | Spec mandates this | SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a |
-| Wide_Integer type name | Name of the 64-bit intermediate type in emitted Ada | `Safe_Runtime.Wide_Integer` in a dedicated support package | Avoids name collision with user types | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 |
+| Emitted integer base type | Name of the 64-bit integer type in emitted Ada | `Long_Long_Integer` | Matches the PR11.8 single-`integer` model | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 |
 | Constant_After_Elaboration | Whether to emit this GNATprove aspect | Emit for all package-level variables not written by any task body | Conservative: helps GNATprove verify task-safe reads | SAFE@468cf72:spec/05-assurance.md#5.2.4.p11 |
 | Tasking profile | Which Ada tasking profile to use | `pragma Profile(Jorvik);` | Provides static task/protected object model compatible with Safe's restrictions | SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p59 |
 | elaboration policy | partition elaboration policy | `pragma partition_elaboration_policy(sequential);` | ensures elaboration before task activation | SAFE@468cf72:spec/04-tasks-and-channels.md#4.7.p59 |
@@ -1038,8 +1050,7 @@ identifiers and attributes during emission.
 
 | Safe source spelling | Emitted Ada spelling | Kind |
 |---|---|---|
-| `integer` | `Integer` | predefined type |
-| `natural` | `Natural` | predefined subtype |
+| `integer` | `Long_Long_Integer` | predefined type |
 | `boolean` | `Boolean` | predefined type |
 | `character` | `Character` | predefined type |
 | `string` | `String` | predefined type |
@@ -1085,21 +1096,21 @@ order, aspect order, import order) must be deterministic.
 
 ## 15. End-to-End Examples
 
-### 15.1 Example A: Sensor Averaging with Wide Intermediate Arithmetic (D27 Rule 1)
+### 15.1 Example A: Sensor Averaging with 64-Bit Integer Arithmetic (D27 Rule 1)
 
-This example demonstrates wide intermediate arithmetic emission for a simple averaging computation.
+This example demonstrates PR11.8 integer emission for a simple averaging computation.
 
 #### Safe Source (`averaging.safe`)
 
 ```
 package averaging
 
-   public type reading is range 0 to 4095;
+   public subtype reading is integer (0 to 4095);
 
    public function average (a, b : reading) returns reading
 
       return (a + b) / 2;
-      -- D27 Rule 1: wide intermediate, max (4095+4095)/2 = 4095
+      -- D27 Rule 1: max (4095+4095)/2 = 4095
       -- D27 Rule 3(b): literal 2 is static nonzero
 
    public function weighted_avg (a, b : reading; w : reading) returns reading
@@ -1133,26 +1144,25 @@ end Averaging;
 
 ```ada
 pragma SPARK_Mode;
-with Safe_Runtime; use type Safe_Runtime.Wide_Integer;
 
 package body Averaging is
 
    function Average (A, B : Reading) return Reading is
    begin
       return Reading(
-         (Safe_Runtime.Wide_Integer(A) + Safe_Runtime.Wide_Integer(B)) / 2
+         (Long_Long_Integer(A) + Long_Long_Integer(B)) / 2
       );
-      -- GNATprove: Wide_Integer range [0 .. 8190] / 2 = [0 .. 4095]
+      -- GNATprove: Long_Long_Integer range [0 .. 8190] / 2 = [0 .. 4095]
       -- Narrowing to Reading (0 .. 4095): provably safe
    end Average;
 
    function Weighted_Avg (A, B : Reading; W : Reading) return Reading is
    begin
       return Reading(
-         (Safe_Runtime.Wide_Integer(A) * 3 +
-          Safe_Runtime.Wide_Integer(B) * 1) / 4
+         (Long_Long_Integer(A) * 3 +
+          Long_Long_Integer(B) * 1) / 4
       );
-      -- GNATprove: Wide_Integer range [0 .. 16380] / 4 = [0 .. 4095]
+      -- GNATprove: Long_Long_Integer range [0 .. 16380] / 4 = [0 .. 4095]
       -- Narrowing to Reading (0 .. 4095): provably safe
    end Weighted_Avg;
 
@@ -1170,7 +1180,7 @@ This example demonstrates channel lowering, task emission, and select lowering.
 ```
 package pipeline
 
-   public type measurement is range 0 to 65535;
+   public subtype measurement is integer (0 to 65535);
 
    channel raw_data : measurement capacity 16;
    public channel processed : measurement capacity 8;
@@ -1230,7 +1240,6 @@ end Pipeline;
 
 ```ada
 pragma SPARK_Mode;
-with Safe_Runtime; use type Safe_Runtime.Wide_Integer;
 
 package body Pipeline is
 
@@ -1292,7 +1301,7 @@ package body Pipeline is
             Raw_Data.Receive(M);
             declare
                Result : Measurement := Measurement(
-                  (Safe_Runtime.Wide_Integer(M) + 1) / 2
+                  (Long_Long_Integer(M) + 1) / 2
                );
             begin
                Processed.Send(Result);
@@ -1530,22 +1539,6 @@ end Ownership;
 ---
 
 ### Emitted Support Files
-
-#### `safe_runtime.ads`
-
-```ada
-pragma SPARK_Mode;
-
-package Safe_Runtime is
-   type Wide_Integer is range -(2**63) .. (2**63 - 1);
-
-   -- Monotonic elapsed time for select statement delay arms
-   function Elapsed_Since (Start : Duration) return Duration;
-
-   -- Select polling interval (configurable)
-   Select_Poll_Interval : constant Duration := 0.001;
-end Safe_Runtime;
-```
 
 #### `gnat.adc` (configuration file)
 

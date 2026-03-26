@@ -112,6 +112,9 @@ package Safe_Frontend.Check_Model is
       Anonymous   : Boolean := False;
       Target_Name : Expr_Access := null;
       Tuple_Elements : Type_Spec_Access_Vectors.Vector;
+      Has_Range_Constraint : Boolean := False;
+      Range_Low            : Expr_Access := null;
+      Range_High           : Expr_Access := null;
       Constraints : Constraint_Association_Vectors.Vector;
    end record;
 

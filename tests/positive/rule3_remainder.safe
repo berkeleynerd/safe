@@ -7,8 +7,8 @@
 
 package safe_remainder
 
-   type signed_value is range -10_000 to 10_000;
-   type positive_mod is range 1 to 100;
+   subtype signed_value is integer (-10_000 to 10_000);
+   subtype positive_mod is integer (1 to 100);
 
    --  Compute_Remainder: remainder with a positive modulus.
    --  The divisor is of type Positive_Mod (1..100), provably nonzero.

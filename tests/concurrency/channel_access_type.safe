@@ -5,7 +5,7 @@
 
 package channel_access_type
 
-   type payload_value is range 0 to 1;
+   subtype payload_value is integer (0 to 1);
 
    type payload is record
       value : payload_value;

@@ -4,7 +4,7 @@
 
 package neg_write_to_constant_index
 
-   type index is range 1 to 3;
+   subtype index is integer (1 to 3);
    type buffer is array (index) of integer;
 
    function make_buffer returns buffer

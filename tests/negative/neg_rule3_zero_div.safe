@@ -7,7 +7,7 @@
 
 package zero_div_test
 
-   type value is range -100 to 100;
+   subtype value is integer (-100 to 100);
    function divide (a, b : value) returns value
 
       return a / b;  -- ERROR: B may be zero

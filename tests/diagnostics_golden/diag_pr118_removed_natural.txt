@@ -1,0 +1,11 @@
+Diagnostics Golden: Removed Natural
+Source: tests/negative/neg_pr118_removed_natural.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr118_removed_natural.safe:3:8: error: PR11.8 removed predefined integer-family type `natural`; use `integer` or a constrained subtype
+  |
+  | 3 |    x : natural = 0;
+  |   |        ^~~~~~~
+  |
+------------------------------------------------------------------------

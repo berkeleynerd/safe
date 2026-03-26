@@ -8,7 +8,7 @@ with remote_package;
 
 package qualified_channel_reference_test
 
-   type message is range 0 to 100;
+   subtype message is integer (0 to 100);
 
    task worker
 

@@ -8,7 +8,7 @@
 
 package double_move_test
 
-   type payload is range 0 to 100;
+   subtype payload is integer (0 to 100);
    type payload_ptr is access payload;
 
    --  Double_Move: moves Source twice.

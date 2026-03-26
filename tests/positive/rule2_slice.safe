@@ -8,8 +8,8 @@
 
 package safe_slice
 
-   type index is range 1 to 100;
-   type element is range 0 to 255;
+   subtype index is integer (1 to 100);
+   subtype element is integer (0 to 255);
    type buffer is array (index) of element;
 
    --  Last_In_Subrange: walks the selected subrange and retains the last seen element.

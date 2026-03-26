@@ -8,9 +8,9 @@
 
 package safe_parameters
 
-   type percentage is range 0 to 100;
-   type angle is range 0 to 359;
-   type wide_int is range -10_000 to 10_000;
+   subtype percentage is integer (0 to 100);
+   subtype angle is integer (0 to 359);
+   subtype wide_int is integer (-10_000 to 10_000);
 
    --  Apply_Percentage: accepts a percentage value. Caller must
    --  ensure the actual parameter is in 0..100.

@@ -7,7 +7,7 @@
 package try_send_ownership
 
    type payload is record
-      id    : natural;
+      id    : integer;
       value : integer;
 
    type payload_ptr is access payload;
@@ -17,7 +17,7 @@ package try_send_ownership
    task sender
       p       : payload_ptr;
       success : boolean;
-      counter : natural = 0;
+      counter : integer = 0;
 
       loop
          p = new ((id = counter, value = counter * 10) as payload);

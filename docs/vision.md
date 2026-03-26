@@ -117,7 +117,7 @@ programmer wants the tightest possible guarantees.
 | Casual | Formal | Trade-off |
 |--------|--------|-----------|
 | `string` | `string_buffer (64)` | Formal gives bounded capacity proof |
-| `integer` | `type count is range 0 .. 1024` | Formal gives tight overflow proof |
+| `integer` | `subtype count is integer (0 to 1024)` | Formal gives tight overflow proof |
 | `(boolean, string)` | Discriminated record with variants | Formal prevents accessing fields that don't exist for this variant |
 | Multiple returns | Named out parameters | Formal documents intent at the call site |
 
@@ -282,7 +282,7 @@ the compiler can credibly claim that its output is trustworthy.
 Above that baseline, critical components have higher targets:
 
 **Emitter (Gold target for critical transforms).** The emitter's core
-transforms -- ownership lowering, arithmetic widening/narrowing, postcondition
+transforms -- ownership lowering, integer-range checking and narrowing, postcondition
 generation, cleanup ordering -- are where correctness matters most. These are
 finite, well-defined transforms from MIR to Ada text. Proving that a transform
 preserves semantics is tractable and high-value. Gold contracts on these

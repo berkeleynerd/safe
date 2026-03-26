@@ -1,4 +1,4 @@
---  Verified Emission Template: Wide Intermediate Arithmetic + Narrowing
+--  Verified Emission Template: 64-Bit Integer Arithmetic + Narrowing
 --
 --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126:812b54a8
 --  Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127:d5d93439
@@ -7,13 +7,12 @@
 --  Reference: compiler/translation_rules.md Section 8
 --  Reference: tests/golden/golden_sensors/
 --
---  Demonstrates the compiler emission pattern for wide intermediate
---  arithmetic. All integer operands are lifted to
---  Safe_Runtime.Wide_Integer before computation. Narrowing occurs at:
+--  Demonstrates the compiler emission pattern for PR11.8 integer
+--  arithmetic. Safe `integer` emits directly as `Long_Long_Integer`.
+--  Narrowing occurs at:
 --    - Assignment (Narrow_Assignment)
 --    - Return (Narrow_Return)
---  The explicit Wide_Integer type matches the compiler's emitted code
---  shape per translation_rules.md Section 8.1.
+--  No support-package lifting step remains in emitted Ada.
 --
 --  PO hooks exercised: Narrow_Return, Narrow_Assignment
 
@@ -38,14 +37,14 @@ is
    type Sensor_Array is array (1 .. 10) of Sensor_Value;
 
    --  Pattern 1: Accumulate-and-average.
-   --  Sum is computed in Wide_Integer (wide intermediate).
+   --  Sum is computed in Long_Long_Integer.
    --  Division result is narrowed to Sensor_Value at return.
    function Average (Data : Sensor_Array) return Sensor_Value
      with Post => Average'Result >= 0
                   and then Average'Result <= 1000;
 
    --  Pattern 2: Simple addition with narrowing at assignment.
-   --  Operands are lifted to Wide_Integer, result narrowed on
+   --  Operands are evaluated directly in Long_Long_Integer, result narrowed on
    --  assignment back to Sensor_Value.
    procedure Add_Clamped
      (A      : Sensor_Value;

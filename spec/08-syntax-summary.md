@@ -134,7 +134,7 @@ enumeration_literal ::=
     defining_identifier | defining_character_literal
 
 signed_integer_type_definition ::=
-    'range' static_simple_expression '..' static_simple_expression
+    'range' static_simple_expression 'to' static_simple_expression
 
 modular_type_definition ::=
     'mod' static_expression
@@ -149,7 +149,7 @@ decimal_fixed_point_definition ::=
     'delta' static_expression 'digits' static_expression [ real_range_constraint ]
 
 real_range_constraint ::=
-    'range' simple_expression '..' simple_expression
+    'range' simple_expression 'to' simple_expression
 
 array_type_definition ::=
     unconstrained_array_definition
@@ -246,7 +246,7 @@ allocator ::=
 
 ```
 subtype_indication ::=
-    [ 'not' 'null' ] subtype_mark [ constraint ]
+    [ 'not' 'null' ] subtype_mark [ constraint | inline_range_constraint ]
 
 subtype_mark ::=
     name
@@ -261,11 +261,14 @@ scalar_constraint ::=
   | digits_constraint
   | delta_constraint
 
+inline_range_constraint ::=
+    '(' simple_expression 'to' simple_expression ')'
+
 range_constraint ::=
     'range' range
 
 range ::=
-    simple_expression '..' simple_expression
+    simple_expression 'to' simple_expression
   | name '.' 'range' [ '(' static_expression ')' ]
 
 index_constraint ::=
@@ -601,14 +604,14 @@ subprogram_specification ::=
     function_specification
 
 function_specification ::=
-    'function' defining_identifier [ formal_part ] [ 'returns' subtype_mark ]
+    'function' defining_identifier [ formal_part ] [ 'returns' subtype_indication ]
   | 'function' defining_identifier [ formal_part ] [ 'returns' access_definition ]
 
 formal_part ::=
     '(' parameter_specification { ';' parameter_specification } ')'
 
 parameter_specification ::=
-    defining_identifier_list ':' mode subtype_mark
+    defining_identifier_list ':' mode subtype_indication
         [ '=' default_expression ]
   | defining_identifier_list ':' access_definition
         [ '=' default_expression ]

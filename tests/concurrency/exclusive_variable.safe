@@ -9,7 +9,7 @@
 
 package exclusive_variable
 
-   type counter is range 0 to 1_000_000;
+   subtype counter is integer (0 to 1_000_000);
 
    --  Each task has its own private counter variable.
    --  No variable is shared between Task_A and Task_B.

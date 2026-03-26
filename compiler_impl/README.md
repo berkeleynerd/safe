@@ -65,7 +65,6 @@ Ada/SPARK artifacts:
 
 - `<unit>.ads`
 - `<unit>.adb`
-- optional `safe_runtime.ads`
 - optional `gnat.adc`
 
 Useful repo-local validators from the repository root:

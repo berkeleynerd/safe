@@ -44,11 +44,6 @@ package body Safe_Frontend.Builtin_Types is
       return Make_Integer_Range_Type ("integer", -(2 ** 63), (2 ** 63) - 1);
    end Integer_Type;
 
-   function Natural_Type return GM.Type_Descriptor is
-   begin
-      return Make_Integer_Range_Type ("natural", 0, (2 ** 63) - 1);
-   end Natural_Type;
-
    function Boolean_Type return GM.Type_Descriptor is
    begin
       return Make_Integer_Range_Type ("boolean", 0, 1);

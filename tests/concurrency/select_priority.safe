@@ -9,8 +9,8 @@
 
 package select_priority
 
-   type command is range 0 to 10;
-   type status is range 0 to 255;
+   subtype command is integer (0 to 10);
+   subtype status is integer (0 to 255);
 
    channel high_ch : command capacity 2;
    channel low_ch  : status capacity 2;
@@ -40,7 +40,7 @@ package select_priority
    --  Dispatcher: uses select to receive from multiple channels.
    --  High_Ch arm appears first, so it has priority when both are ready.
    task dispatcher
-      processed : natural = 0;
+      processed : integer = 0;
 
       loop
          select

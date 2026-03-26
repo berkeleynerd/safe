@@ -7,7 +7,7 @@
 
 package zero_rem_test
 
-   type signed is range -50 to 50;
+   subtype signed is integer (-50 to 50);
 
    --  Remainder_Unsafe: computes A rem B, but B may be zero.
    function remainder_unsafe (a, b : signed) returns signed

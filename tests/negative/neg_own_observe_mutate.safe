@@ -8,7 +8,7 @@
 package observe_mutate_test
 
    type config is record
-      rate : natural;
+      rate : integer;
 
    type config_ptr is access config;
 

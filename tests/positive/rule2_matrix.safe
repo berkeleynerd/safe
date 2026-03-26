@@ -8,10 +8,10 @@
 
 package safe_matrix
 
-   type row_index is range 1 to 4;
-   type col_index is range 1 to 4;
-   type cell is range -1_000_000 to 1_000_000;
-   type trace_total is range -4_000_000 to 4_000_000;
+   subtype row_index is integer (1 to 4);
+   subtype col_index is integer (1 to 4);
+   subtype cell is integer (-1_000_000 to 1_000_000);
+   subtype trace_total is integer (-4_000_000 to 4_000_000);
    type matrix_4x4 is array (row_index, col_index) of cell;
 
    --  Trace: sum of diagonal elements. Both Row and Col indices

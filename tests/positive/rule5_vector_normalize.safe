@@ -10,7 +10,7 @@
 package safe_vector_normalize
 
    type component is digits 6 range 0.0 to 100.0;
-   type positive_count is range 1 to 4;
+   subtype positive_count is integer (1 to 4);
    type vector3 is record
       x : component;
       y : component;

@@ -6,5 +6,5 @@ package constant_range_bound
 
    max_count : constant integer = 4;
 
-   type index is range 0 to max_count;
+   subtype index is integer (0 to max_count);
 

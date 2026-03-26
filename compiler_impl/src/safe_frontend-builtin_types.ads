@@ -4,7 +4,6 @@ package Safe_Frontend.Builtin_Types is
    package GM renames Safe_Frontend.Mir_Model;
 
    function Integer_Type return GM.Type_Descriptor;
-   function Natural_Type return GM.Type_Descriptor;
    function Boolean_Type return GM.Type_Descriptor;
    function Character_Type return GM.Type_Descriptor;
    function String_Type return GM.Type_Descriptor;

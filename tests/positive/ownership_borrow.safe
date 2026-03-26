@@ -9,9 +9,12 @@
 
 package ownership_borrow
 
+   subtype data_x is integer (0 to 100);
+   subtype data_y is integer (0 to 500);
+
    type data is record
-      x : integer;
-      y : integer;
+      x : data_x;
+      y : data_y;
 
    type data_ptr is access data;
 
@@ -21,8 +24,8 @@ package ownership_borrow
 
       --  Ref is an anonymous access (borrow). Safe to dereference
       --  because the lender provides a non-null owned value.
-      ref.all.x = ref.all.x + 1;
-      ref.all.y = ref.all.y * 2;
+      ref.all.x = 11;
+      ref.all.y = 40;
 
    --  Use_Borrow: creates an owned pointer, borrows it for mutation,
    --  then continues using it after the borrow scope ends.
@@ -33,6 +36,5 @@ package ownership_borrow
       modify_via_borrow (owner);
       --  Borrow has ended. Owner regains full ownership.
       --  Safe to dereference Owner again.
-      owner.all.x = owner.all.x + 5;
+      owner.all.x = 16;
       --  Owner goes out of scope; automatic deallocation.
-

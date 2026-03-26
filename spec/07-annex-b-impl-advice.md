@@ -106,7 +106,7 @@ This annex provides implementation guidance for Safe conforming implementations.
 
    (e) For channels, emit synchronisation constructs (e.g., protected objects) with ceiling priority assignment derived from channel-access summaries (Section 3, §3.3.1(i)) and task priorities (Section 4, §4.2, paragraph 21a).
 
-   (f) Emit wide intermediate arithmetic using a 64-bit signed type for integer subexpressions.
+   (f) Emit integer arithmetic directly in a 64-bit signed type and preserve explicit subtype-narrowing checks at the Safe narrowing points.
 
    (g) Ensure the target platform's floating-point implementation provides IEEE 754 non-trapping semantics (`Machine_Overflows = False` for all predefined floating-point types), as required by D27 Rule 5 (Section 2, §2.8.5). If the target Ada compiler's `Machine_Overflows` is `True` by default, the implementation should configure the floating-point unit for non-trapping mode or document the incompatibility.
 
@@ -120,7 +120,7 @@ This annex provides implementation guidance for Safe conforming implementations.
 
    (b) Emit range checks as runtime assertions or abort-on-violation checks.
 
-   (c) Emit wide intermediate arithmetic using `int64_t` for integer subexpressions.
+   (c) Emit integer arithmetic using `int64_t` and preserve explicit subtype-narrowing checks at the Safe narrowing points.
 
    (d) For tasking, emit thread creation using platform-appropriate threading primitives.
 

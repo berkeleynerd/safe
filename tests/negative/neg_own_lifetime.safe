@@ -8,7 +8,7 @@
 
 package lifetime_test
 
-   type value is range 0 to 100;
+   subtype value is integer (0 to 100);
    type value_ptr is access value;
 
    --  Leak_Borrow: returns a borrow tied to a local owner.

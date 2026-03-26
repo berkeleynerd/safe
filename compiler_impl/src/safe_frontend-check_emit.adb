@@ -348,7 +348,18 @@ package body Safe_Frontend.Check_Emit is
      (Spec : CM.Type_Spec) return String is
       Items : String_Vectors.Vector;
    begin
-      if Spec.Constraints.Is_Empty then
+      if Spec.Has_Range_Constraint then
+         return
+           "{""node_type"":""RangeConstraint"",""range"":{""node_type"":""Range"",""kind"":""Explicit"",""low"":"
+           & Expression_Node (Spec.Range_Low)
+           & ",""high"":"
+           & Expression_Node (Spec.Range_High)
+           & ",""prefix_name"":null,""dimension"":null,""span"":"
+           & JS.Span_Object (CM.Join (Spec.Range_Low.Span, Spec.Range_High.Span))
+           & "},""span"":"
+           & JS.Span_Object (CM.Join (Spec.Range_Low.Span, Spec.Range_High.Span))
+           & "}";
+      elsif Spec.Constraints.Is_Empty then
          return "null";
       end if;
       for Item of Spec.Constraints loop
@@ -364,7 +375,7 @@ package body Safe_Frontend.Check_Emit is
             & "}");
       end loop;
       return
-        "{""node_type"":""DiscriminantConstraint"",""items"":"
+        "{""node_type"":""DiscriminantConstraint"",""associations"":"
         & Json_List (Items)
         & ",""span"":"
         & JS.Span_Object (Spec.Span)

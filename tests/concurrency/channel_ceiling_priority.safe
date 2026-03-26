@@ -6,7 +6,7 @@
 
 package channel_ceiling_priority
 
-   type message is range 0 to 1_000;
+   subtype message is integer (0 to 1_000);
 
    channel data_ch : message capacity 2;
 

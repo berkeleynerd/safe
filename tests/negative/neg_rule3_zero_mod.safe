@@ -7,7 +7,7 @@
 
 package zero_mod_test
 
-   type counter is range 0 to 255;
+   subtype counter is integer (0 to 255);
 
    --  Wrap: computes Counter mod N, but N may be zero.
    function wrap (c : counter; n : counter) returns counter

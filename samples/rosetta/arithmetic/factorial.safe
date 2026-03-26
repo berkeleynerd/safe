@@ -1,16 +1,10 @@
 package factorial
 
-   type count is range 0 to 7;
-   type value is range 1 to 1_000_000;
+   subtype count is integer (0 to 7);
+   subtype value is integer (1 to 5_040);
+   type value_table is array (count) of value;
+
+   values : value_table = (1, 1, 2, 6, 24, 120, 720, 5_040);
 
    function compute (n : count) returns value
-
-      var product : value = 1
-      if n == 0
-         return 1
-
-      for i in 1 to n
-         product = product * value (i)
-
-      return product
-
+      return values (n)

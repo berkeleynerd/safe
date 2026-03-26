@@ -9,7 +9,7 @@
 
 package try_ops
 
-   type item is range 0 to 100;
+   subtype item is integer (0 to 100);
 
    channel data_ch : item capacity 2;
 
@@ -31,12 +31,12 @@ package try_ops
    task consumer
       value : item = 0;
       got   : boolean = false;
-      total : natural = 0;
+      total : integer = 0;
 
       loop
          try_receive data_ch, value, got;
          if got
-            total = total + natural (value);
+            total = total + integer (value);
          else
             delay 0.01;
 

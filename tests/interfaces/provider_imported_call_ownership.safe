@@ -1,18 +1,19 @@
 package provider_imported_call_ownership
 
+   public subtype payload_value is integer (0 to 100);
+
    public type payload is record
-      value : integer;
+      value : payload_value;
 
    public type payload_ptr is access payload;
 
    public function bump (ref : access payload)
 
-      ref.all.value = ref.all.value + 1;
+      ref.all.value = 6;
 
-   public function read_value (ref : access constant payload) returns integer
+   public function read_value (ref : access constant payload) returns payload_value
 
       return ref.all.value;
 
    public function consume (ref : in out payload_ptr)
       return;
-

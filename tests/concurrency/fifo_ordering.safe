@@ -10,7 +10,7 @@
 
 package fifo_ordering
 
-   type sequence_number is range 0 to 999;
+   subtype sequence_number is integer (0 to 999);
 
    channel seq_ch : sequence_number capacity 8;
 

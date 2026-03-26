@@ -8,8 +8,8 @@
 
 package safe_lookup
 
-   type sensor_id is range 1 to 8;
-   type calibration is range -100 to 100;
+   subtype sensor_id is integer (1 to 8);
+   subtype calibration is integer (-100 to 100);
    type cal_table is array (sensor_id) of calibration;
 
    --  Lookup: retrieves calibration value for a given sensor.

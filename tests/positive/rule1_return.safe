@@ -8,8 +8,8 @@
 
 package safe_return
 
-   type bounded is range -500 to 500;
-   type small is range -10 to 10;
+   subtype bounded is integer (-500 to 500);
+   subtype small is integer (-10 to 10);
 
    --  Signum: returns -1, 0, or 1 depending on sign.
    --  Every return path yields a value in -10..10.

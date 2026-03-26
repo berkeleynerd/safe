@@ -9,19 +9,19 @@
 package ownership_observe
 
    type config is record
-      rate  : natural;
-      limit : natural;
+      rate  : integer;
+      limit : integer;
 
    type config_ptr is access config;
 
    --  Read_Rate: observes the config through a constant access parameter.
    --  The observer does not mutate the designated object.
-   function read_rate (ref : access constant config) returns natural
+   function read_rate (ref : access constant config) returns integer
 
       return ref.all.rate;
 
    --  Read_Limit: another observer on the same object.
-   function read_limit (ref : access constant config) returns natural
+   function read_limit (ref : access constant config) returns integer
 
       return ref.all.limit;
 
@@ -29,8 +29,8 @@ package ownership_observe
    --  Multiple observations of the same owned object are safe.
    function use_observe
       owner : config_ptr = new ((rate = 100, limit = 500) as config);
-      r     : natural;
-      l     : natural;
+      r     : integer;
+      l     : integer;
 
       r = read_rate (owner);
       l = read_limit (owner);

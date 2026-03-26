@@ -340,36 +340,35 @@ end Temperatures;
 
 **Conforming Example.**
 
-```ada
+```safe
 -- buffers.safe
 
-package Buffers is
+package buffers
 
-    public type Buffer_Size is range 1 .. 4096;
-    public subtype Buffer_Index is Buffer_Size;
+    public subtype buffer_size is integer (1 to 4096);
+    public subtype buffer_index is buffer_size;
 
-    public type Buffer is private record
-        Data   : array (Buffer_Index) of Character = (others = ' ');
-        Length : Buffer_Size = 1;
-    end record;
+    public type buffer is private record
+        data   : array (buffer_index) of character = (others = ' ');
+        length : buffer_size = 1;
 
-    public function Create (Size : Buffer_Size) return Buffer is
+    public function create (size : buffer_size) returns buffer
     begin
-        return (Data = (others = ' '), Length = Size);
+        return (data = (others = ' '), length = size);
         -- D27 proof: aggregate values in range
-    end Create;
+    end create;
 
-    public function Get (B : Buffer; I : Buffer_Index) return Character is
+    public function get (b : buffer; i : buffer_index) returns character
     begin
-        return B.Data(I);
-        -- D27 proof: I is Buffer_Index, same as array index type (Rule 2)
-    end Get;
+        return b.data(i);
+        -- D27 proof: i is buffer_index, same as array index type (Rule 2)
+    end get;
 
-    public function Length (B : Buffer) return Buffer_Size
-    is (B.Length);
-    -- D27 proof: B.Length is Buffer_Size by declaration
+    public function length (b : buffer) returns buffer_size
+        return b.length
+    -- D27 proof: b.length is buffer_size by declaration
 
-end Buffers;
+end buffers;
 ```
 
 ### 3.6.3 Example: Inter-Package Dependency
@@ -396,30 +395,30 @@ end Units;
 
 **Conforming Example — Client package.**
 
-```ada
+```safe
 -- navigation.safe
 
-with Units;
+with units;
 
-package Navigation is
+package navigation
 
-    public type Heading is range 0 .. 359;
+    public subtype heading is integer (0 to 359);
 
-    Current_Speed : Units.Metres_Per_Second = 0.0;
-    Current_Heading : Heading = 0;
+    current_speed : units.metres_per_second = 0.0;
+    current_heading : heading = 0;
 
-    public procedure Update (D : Units.Metres; T : Units.Seconds;
-                             H : Heading) is
+    public procedure update (d : units.metres; t : units.seconds;
+                             h : heading)
     begin
-        Current_Speed = Units.Speed(D, T);
-        Current_Heading = H;
-    end Update;
+        current_speed = units.speed(d, t);
+        current_heading = h;
+    end update;
 
-    public function Get_Speed return Units.Metres_Per_Second
-    is (Current_Speed);
+    public function get_speed returns units.metres_per_second
+        return current_speed
     -- D27 proof: return type matches declaration type
 
-end Navigation;
+end navigation;
 ```
 
 ### 3.6.4 Example: Interleaved Declarations, Dot Notation, Type Annotation
@@ -431,9 +430,9 @@ end Navigation;
 
 package sensors
 
-    public type reading is range 0 to 4095;
-    public type channel_id is range 0 to 7;
-    public subtype channel_count is integer range 1 to 8;
+    public subtype reading is integer (0 to 4095);
+    public subtype channel_id is integer (0 to 7);
+    public subtype channel_count is integer (1 to 8);
 
     type calibration is private record
         scale  : float = 1.0;
@@ -459,7 +458,7 @@ package sensors
     public function average (a, b : reading) returns reading
 
         return (a + b) / 2;
-        -- D27 Rule 1: wide intermediate, max (4095+4095)/2 = 4095
+        -- D27 Rule 1: max (4095+4095)/2 = 4095
         -- D27 Rule 3(b): literal 2 is a static nonzero expression
         -- D27 proof: result in 0..4095
 

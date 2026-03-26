@@ -6,7 +6,7 @@
 
 package emitter_surface_proc
 
-   type small is range 0 to 5;
+   subtype small is integer (0 to 5);
 
    function copy (input : small; output : out small)
       local : small = input;

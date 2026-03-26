@@ -1,20 +1,10 @@
 package fibonacci
 
-   type count is range 1 to 12;
-   type value is range 0 to 10_000;
+   subtype count is integer (1 to 12);
+   subtype value is integer (0 to 89);
+   type value_table is array (count) of value;
+
+   values : value_table = (0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89);
 
    function nth (n : count) returns value
-
-      var previous : value = 0
-      var current  : value = 1
-      var next     : value = 0
-      if n == 1
-         return 0
-
-      for step in 2 to n
-         next = previous + current
-         previous = current
-         current = next
-
-      return current
-
+      return values (n)

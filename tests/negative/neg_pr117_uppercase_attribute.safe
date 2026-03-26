@@ -4,7 +4,7 @@
 
 package neg_pr117_uppercase_attribute
 
-   type index is range 1 to 3;
+   subtype index is integer (1 to 3);
 
    function run returns integer
 

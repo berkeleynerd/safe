@@ -7,7 +7,7 @@
 
 package negative_index_test
 
-   type nat_index is range 0 to 15;
+   subtype nat_index is integer (0 to 15);
    type buffer is array (nat_index) of integer;
 
    --  Access_Offset: accesses Arr(Base - Offset).
@@ -15,7 +15,7 @@ package negative_index_test
    --  is below the array's lower bound of 0.
    function access_offset (arr : buffer;
                            base : nat_index;
-                           offset : natural) returns integer
+                           offset : integer) returns integer
 
       return arr (nat_index (integer (base) - offset));  -- ERROR: may be negative
 

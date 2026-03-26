@@ -8,8 +8,8 @@
 
 package safe_divide
 
-   type positive_divisor is range 1 to 1000;
-   type result_value is range -10_000 to 10_000;
+   subtype positive_divisor is integer (1 to 1000);
+   subtype result_value is integer (-10_000 to 10_000);
 
    --  Safe_Div: the divisor type excludes zero by its range 1..1000.
    function safe_div (dividend : result_value;

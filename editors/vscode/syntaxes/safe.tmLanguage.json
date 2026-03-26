@@ -107,7 +107,7 @@
       "patterns": [
         {
           "name": "support.type.builtin.safe",
-          "match": "\\b(boolean|integer|natural|character|string|float|long_float|duration|result)\\b"
+          "match": "\\b(boolean|integer|character|string|float|long_float|duration|result)\\b"
         }
       ]
     },

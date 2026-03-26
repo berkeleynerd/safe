@@ -2,5 +2,5 @@ with provider_constant_unsupported;
 
 package client_constant_missing_value
 
-   type index is range 0 to provider_constant_unsupported.limit;
+   subtype index is integer (0 to provider_constant_unsupported.limit);
 

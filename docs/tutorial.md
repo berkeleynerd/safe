@@ -52,7 +52,7 @@ In Safe, a package is a single `.safe` file containing declarations and bodies. 
 -- demo.safe
 package demo
 
-   public type index is range 0 to 15;
+   public subtype index is integer (0 to 15);
    public type buf is array (index) of integer;
 
    hidden : integer = 0;  -- not public, not visible to clients
@@ -76,7 +76,7 @@ Safe uses `private record` (not Ada's package `private` part) to express an opaq
 
 ```safe
 package buffers
-   public type buffer_size is range 1 to 4096;
+   public subtype buffer_size is integer (1 to 4096);
    public subtype buffer_index is buffer_size;
 
    public type buffer is private record
@@ -131,7 +131,8 @@ See: `spec/02-restrictions.md` (qualified expressions and allocators) and `spec/
 
 Safe's Silver level is built around a simple premise:
 
-- intermediate integer arithmetic is evaluated "wide" (no overflow),
+- `integer` is a signed 64-bit type, and every integer arithmetic result must
+  be statically provable within that range,
 - and any narrowing back into a constrained type must be statically provable safe,
 - and other runtime-check sources (division by zero, bounds, null deref) are similarly eliminated by type/range discipline.
 
@@ -188,7 +189,7 @@ Example sketch:
 
 ```safe
 package pipeline
-   public type measurement is range 0 to 65535;
+   public subtype measurement is integer (0 to 65535);
 
    channel raw : measurement capacity 16;
    channel out : measurement capacity 8;
@@ -253,7 +254,9 @@ Why this is attractive in a SPARK/Safe world:
 - The discriminant makes it illegal to access `.value` when `ok == false` (a property SPARK can prove).
 - It nudges you toward exhaustive handling and away from "ignore the error and keep going" bugs.
 
-Tradeoff: without generics, you will likely define many small `result_*` types, one per value/error pairing, until the language or standard library provides a better abstraction.
+Tradeoff: without generics, you will likely define many small `result_*`
+types, one per value/error pairing, until the language or standard library
+provides a better abstraction.
 
 Also note: Safe draws a sharp line between recoverable and non-recoverable failures. At least today, a failed `pragma Assert` or an allocation failure is defined to abort the program via a runtime abort handler, not to be handled in-user-code like an exception.
 

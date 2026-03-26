@@ -1,5 +1,5 @@
 package neg_pr1162_removed_representation_clause
 
-   type byte is range 0 to 255;
+   subtype byte is integer (0 to 255);
 
    for byte'size use 8;

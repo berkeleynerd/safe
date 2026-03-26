@@ -192,6 +192,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "negative" / "neg_pr117_uppercase_identifier.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_lowercase_spelling.txt",
     ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr118_removed_natural.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr118_removed_natural.txt",
+    ),
 ]
 
 

@@ -794,9 +794,9 @@ annotated_expression ::= '(' expression 'as' subtype_mark ')'
 
 125. The following five legality and semantic rules are new to Safe — they have no 8652:2023 precedent. Together they guarantee that every conforming Safe program is free of runtime errors within the scope defined by Section 5, §5.3.1, paragraph 12a (D26, D27).
 
-### 2.8.1 Rule 1: Wide Intermediate Arithmetic
+### 2.8.1 Rule 1: 64-Bit Integer Arithmetic
 
-126. All integer arithmetic expressions shall be evaluated in a mathematical integer type with no overflow. This modifies the dynamic semantics of 8652:2023 §4.5 (Operators and Expression Evaluation): intermediate integer results are not bounded by the base range of the operand types.
+126. All integer arithmetic expressions shall be evaluated in Safe's single predefined `integer` model, which has at least signed 64-bit range. This modifies the dynamic semantics of 8652:2023 §4.5 (Operators and Expression Evaluation): every integer arithmetic result shall be statically provable to remain within the signed 64-bit range.
 
 127. Range checks shall be performed only at the following **narrowing points**:
 
@@ -814,19 +814,19 @@ annotated_expression ::= '(' expression 'as' subtype_mark ')'
 
 129. **Intermediate overflow legality rule.** If a conforming implementation cannot establish, by sound static range analysis, that every intermediate subexpression of an integer arithmetic expression stays within the 64-bit signed range, the expression shall be rejected with a diagnostic.
 
-130. Narrowing checks at all five categories of narrowing point — assignment, parameter passing, return, type conversion, and type annotation — shall be discharged via sound static range analysis on the wide result. Interval analysis is one permitted technique; no specific analysis algorithm is mandated.
+130. Narrowing checks at all five categories of narrowing point — assignment, parameter passing, return, type conversion, and type annotation — shall be discharged via sound static range analysis on the computed integer result. Interval analysis is one permitted technique; no specific analysis algorithm is mandated.
 
 **Example (conforming):**
 
-```ada
-public type Reading is range 0 .. 4095;
+```safe
+public subtype reading is integer (0 to 4095);
 
-public function Average (A, B : Reading) return Reading is
+public function average (a, b : reading) returns reading
 begin
-    return (A + B) / 2;  -- wide intermediate: max (4095+4095)/2 = 4095
-                          -- range check at return: provably in 0..4095
-                          -- D27 proof: Reading.First <= result <= Reading.Last
-end Average;
+    return (a + b) / 2;  -- max (4095+4095)/2 = 4095
+                         -- range check at return: provably in 0..4095
+                         -- D27 proof: reading.first <= result <= reading.last
+end average;
 ```
 
 ### 2.8.2 Rule 2: Provable Index Safety
@@ -1059,8 +1059,8 @@ end Unsafe_Scale;
 
 | Check | How Discharged |
 |-------|---------------|
-| Integer overflow | Impossible — wide intermediate arithmetic (Rule 1) |
-| Range on assignment/return/parameter/conversion/annotation (integer) | Sound static range analysis on wide intermediates at all narrowing points (Rule 1) |
+| Integer overflow | Rejected unless every integer arithmetic result is provably within signed 64-bit range (Rule 1) |
+| Range on assignment/return/parameter/conversion/annotation (integer) | Sound static range analysis on integer results at all narrowing points (Rule 1) |
 | Range on assignment/return/parameter/conversion/annotation (float) | Sound static range analysis; non-trapping arithmetic eliminates exception sources; NaN/infinity caught at narrowing points (Rule 5) |
 | Floating-point overflow | Non-exceptional — produces ±infinity under IEEE 754 non-trapping mode (Rule 5); caught at narrowing points |
 | Floating-point division by zero | Non-exceptional — produces ±infinity under IEEE 754 non-trapping mode (Rule 5); caught at narrowing points |

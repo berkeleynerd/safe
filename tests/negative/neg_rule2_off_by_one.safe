@@ -7,7 +7,7 @@
 
 package off_by_one_test
 
-   type idx is range 1 to 10;
+   subtype idx is integer (1 to 10);
    type data is array (idx) of integer;
 
    --  Sum_Plus_One: iterates from 1 to 11, but array only goes to 10.

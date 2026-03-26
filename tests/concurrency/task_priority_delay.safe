@@ -9,7 +9,7 @@
 package task_priority_delay
 
    task worker with priority = 5
-      ticks : natural = 0;
+      ticks : integer = 0;
 
       loop
          delay 0.25;

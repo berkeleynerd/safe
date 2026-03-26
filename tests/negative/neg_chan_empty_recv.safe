@@ -8,7 +8,7 @@
 
 package empty_recv_test
 
-   type msg is range 0 to 255;
+   subtype msg is integer (0 to 255);
 
    --  No_Sender_Ch: declared but no task ever sends to it.
    channel no_sender_ch : msg capacity 1;

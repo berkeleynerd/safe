@@ -6,14 +6,14 @@
 package ownership_observe_access
 
    type config is record
-      rate : natural;
+      rate : integer;
 
    type config_ptr is access config;
 
    function read_with_local_observer
       owner    : config_ptr = new ((rate = 100) as config);
       observer : access constant config = owner.access;
-      rate     : natural;
+      rate     : integer;
 
       rate = observer.all.rate;
 

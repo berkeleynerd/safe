@@ -7,7 +7,7 @@
 
 package safe_conditional
 
-   type config_value is range 0 to 1000;
+   subtype config_value is integer (0 to 1000);
    type config_ptr is access config_value;
 
    --  Max_Of_Two: returns the maximum of two optional values.

@@ -9,14 +9,14 @@
 package safe_factory
 
    type sensor_data is record
-      id    : natural;
+      id    : integer;
       value : integer;
 
    type sensor_ptr is not null access sensor_data;
 
    --  Create_Sensor: allocates a new Sensor_Data.
    --  The allocator returns a not-null value by construction.
-   function create_sensor (id : natural;
+   function create_sensor (id : integer;
                            initial_value : integer) returns sensor_ptr
 
       return new ((id = id, value = initial_value) as sensor_data);

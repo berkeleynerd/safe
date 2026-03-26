@@ -8,8 +8,8 @@
 package use_after_move_test
 
    type item is record
-      id    : natural;
-      count : natural;
+      id    : integer;
+      count : integer;
 
    type item_ptr is access item;
 
@@ -17,7 +17,7 @@ package use_after_move_test
    function read_after_move
       source : item_ptr = new ((id = 1, count = 10) as item);
       target : item_ptr = null;
-      v      : natural;
+      v      : integer;
 
       target = source;
       --  Source is now moved (null).

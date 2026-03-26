@@ -8,7 +8,7 @@
 
 package oob_test
 
-   type slot is range 0 to 7;
+   subtype slot is integer (0 to 7);
    type data is array (slot) of integer;
    function access_with_integer (arr : data; idx : integer) returns integer
 
