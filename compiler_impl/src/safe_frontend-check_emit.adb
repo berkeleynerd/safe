@@ -363,16 +363,21 @@ package body Safe_Frontend.Check_Emit is
          return "null";
       end if;
       for Item of Spec.Constraints loop
-         Items.Append
-           ("{""node_type"":""DiscriminantConstraintAssociation"",""is_named"":"
-            & JS.Bool_Literal (Item.Is_Named)
-            & ",""name"":"
-            & (if Item.Is_Named then JS.Quote (Item.Name) else "null")
-            & ",""value"":"
-            & Expression_Node (Item.Value)
-            & ",""span"":"
-            & JS.Span_Object (Item.Span)
-            & "}");
+         declare
+            Selector_Names : String_Vectors.Vector;
+         begin
+            if Item.Is_Named then
+               Selector_Names.Append (JS.Quote (Item.Name));
+            end if;
+            Items.Append
+              ("{""node_type"":""DiscriminantAssociation"",""selector_names"":"
+               & Json_List (Selector_Names)
+               & ",""expression"":"
+               & Expression_Node (Item.Value)
+               & ",""span"":"
+               & JS.Span_Object (Item.Span)
+               & "}");
+         end;
       end loop;
       return
         "{""node_type"":""DiscriminantConstraint"",""associations"":"
