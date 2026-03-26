@@ -662,7 +662,7 @@ conforming implementation shall reject them.
 task_declaration ::=
     'task' defining_identifier
         [ 'with' 'priority' '=' static_expression ]
-        [ ',' task_channel_clause { [ ',' ] task_channel_clause } ]
+        [ [ ',' ] task_channel_clause { [ ',' ] task_channel_clause } ]
         indented_task_body
 
 task_channel_clause ::=

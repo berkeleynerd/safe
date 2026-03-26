@@ -822,7 +822,13 @@ package body Safe_Frontend.Check_Lower is
       Result : CM.Expr_Access;
       Field  : CM.Aggregate_Field;
    begin
-      if Kind = "subtype" and then Has_Text (Info.Base) then
+      if Kind = "subtype"
+        and then Has_Text (Info.Base)
+        and then not Info.Has_Low
+        and then not Info.Has_High
+        and then not Info.Has_Float_Low_Text
+        and then not Info.Has_Float_High_Text
+      then
          return Default_Initializer_Expr (Resolve_Type (UString_Value (Info.Base), Type_Env), Type_Env, Span);
       elsif Kind = "access" then
          return Null_Expr (Span, UString_Value (Info.Name));
