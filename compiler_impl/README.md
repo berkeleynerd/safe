@@ -64,11 +64,14 @@ Ada/SPARK artifacts:
 - optional `safe_runtime.ads`
 - optional `gnat.adc`
 
-Useful repo-local validators:
+Useful repo-local validators from the repository root:
 
 - `python3 scripts/validate_ast_output.py`
 - `python3 scripts/validate_mir_output.py`
 - `python3 scripts/validate_output_contracts.py`
+
+If you are already inside `compiler_impl/`, use the same commands as
+`python3 ../scripts/...`.
 
 ## Development Workflow
 
