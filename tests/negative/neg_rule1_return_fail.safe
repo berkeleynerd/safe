@@ -17,5 +17,3 @@ package Return_Fail
 
       return V * 2;  -- ERROR: V * 2 may exceed 100
 
-
-

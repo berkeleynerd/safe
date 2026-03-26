@@ -10,7 +10,6 @@ package Channel_Access_Type
    type Payload is record
       Value : Payload_Value;
 
-
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
@@ -33,8 +32,6 @@ package Channel_Access_Type
 
          Toggle = not Toggle;
 
-
-
    task Receiver with Priority = 10
 
       loop
@@ -44,6 +41,4 @@ package Channel_Access_Type
             delay 0.001;
          else
             delay 0.002;
-
-
 

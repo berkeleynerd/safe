@@ -9,15 +9,11 @@ package Provider_Transitive_Channel
          var Item : Message = 0;
          receive Data_Ch, Item;
 
-
-
    function Push_Internal
 
       send Data_Ch, 1;
 
-
    public function Push
 
       Push_Internal;
-
 

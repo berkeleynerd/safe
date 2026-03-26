@@ -16,12 +16,9 @@ package Safe_Deref
       --  P is of type Data_Ptr (not null access). Provably not null.
       return P.all;
 
-
    --  Write_Value: writes through a not-null pointer.
    function Write_Value (P : Data_Ptr; V : Data)
 
       --  P is provably not null.
       P.all = V;
-
-
 

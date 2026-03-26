@@ -13,5 +13,3 @@ package Return_Move_Test
 
       return Source;  -- ERROR: return move source not provably non-null
 
-
-

@@ -16,7 +16,6 @@ package Safe_Vector_Normalize
       Y : Component;
       Z : Component;
 
-
    function Normalize_X (Input : Vector3) returns Float
       Divisor : Positive_Count = 1;
 
@@ -30,6 +29,4 @@ package Safe_Vector_Normalize
          Divisor = Divisor + 1;
 
       return Float (Input.X) / Float (Divisor);
-
-
 

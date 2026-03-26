@@ -18,5 +18,3 @@ package Infinity_Test
 
       return Bounded_Float (Big / Small);  -- ERROR: result may be infinity
 
-
-

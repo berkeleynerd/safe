@@ -12,13 +12,10 @@ package Emitter_Surface_Record
       Left  : Counter;
       Right : Counter;
 
-
    Seed : Counter = 3;
 
    function Current returns Counter
       Value : Counter = Seed;
 
       return Value;
-
-
 

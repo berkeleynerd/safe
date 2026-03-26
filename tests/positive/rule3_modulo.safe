@@ -17,7 +17,6 @@ package Safe_Modulo
       --  360 is a nonzero literal. Provably nonzero.
       return Angle (Raw mod 360);
 
-
    --  Ring_Index: maps a counter to a circular buffer position.
    --  Buffer_Size is constrained to 1..256.
    type Buffer_Size is range 1 to 256;
@@ -27,6 +26,4 @@ package Safe_Modulo
 
       --  Size is of type Buffer_Size (1..256), provably nonzero.
       return Counter mod Natural (Size);
-
-
 

@@ -8,7 +8,6 @@ package Move_Target_Not_Null_Test
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    function Bad_Move
@@ -16,6 +15,4 @@ package Move_Target_Not_Null_Test
       Target : Payload_Ptr = new ((Value = 2) as Payload);
 
       Target = Source;  -- ERROR: target is not provably null
-
-
 

@@ -12,8 +12,6 @@ package PR113_Variant_Guard
             when others
                Beta : Integer;
 
-
-
    Sample : Packet ('A') = (Alpha = 1);
 
    function Read_Alpha (P : in Packet) returns Integer
@@ -23,7 +21,6 @@ package PR113_Variant_Guard
 
       return 0;
 
-
    function Read_Alpha_With_Case (P : in Packet) returns Integer
 
       case P.Kind
@@ -32,8 +29,4 @@ package PR113_Variant_Guard
 
          when others
             return 0;
-
-
-
-
 

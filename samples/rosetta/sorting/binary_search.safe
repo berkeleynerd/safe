@@ -31,7 +31,3 @@ package Binary_Search
 
             Hi = Mid - 1
 
-
-
-
-

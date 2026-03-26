@@ -18,5 +18,3 @@ package Empty_Array_Test
 
       return Arr (1);  -- ERROR: Arr may be empty
 
-
-

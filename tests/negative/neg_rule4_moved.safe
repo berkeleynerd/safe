@@ -10,7 +10,6 @@ package Moved_Deref_Test
    type Data is record
       Value : Integer;
 
-
    type Data_Ptr is access Data;
 
    --  Use_After_Move: dereferences Source after it has been moved to Target.
@@ -22,6 +21,4 @@ package Moved_Deref_Test
       Target = Source;
       --  Source is now null (moved).
       V = Source.all.Value;  -- ERROR: Source has been moved (is null)
-
-
 

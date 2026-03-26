@@ -18,7 +18,6 @@ package Safe_Divide
       --  Divisor is of type Positive_Divisor (1..1000), provably nonzero.
       return Dividend / Result_Value (Divisor);
 
-
    --  Guarded_Div: uses a runtime check to ensure nonzero.
    function Guarded_Div (A, B : Result_Value) returns Result_Value
 
@@ -27,7 +26,4 @@ package Safe_Divide
          return A / B;
       else
          return 0;
-
-
-
 

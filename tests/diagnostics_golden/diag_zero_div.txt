@@ -3,9 +3,9 @@ Source: tests/negative/neg_rule3_zero_div.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_rule3_zero_div.safe:14:16: error: divisor not provably nonzero
+neg_rule3_zero_div.safe:13:16: error: divisor not provably nonzero
   |
-  | 14 |       return A / B;  -- ERROR: B may be zero
+  | 13 |       return A / B;  -- ERROR: B may be zero
   |    |                  ^
   |
   note: right operand 'B' has type Value (range -100 .. 100),

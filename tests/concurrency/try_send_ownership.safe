@@ -10,7 +10,6 @@ package Try_Send_Ownership
       Id    : Natural;
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 2;
@@ -32,9 +31,6 @@ package Try_Send_Ownership
          if Counter > 1_000_000
             Counter = 0;
 
-
-
-
    task Receiver
 
       loop
@@ -42,7 +38,4 @@ package Try_Send_Ownership
          receive Data_Ch, Item;
          if Item != null
             Item.all.Value = 0;
-
-
-
 

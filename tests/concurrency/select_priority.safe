@@ -26,9 +26,6 @@ package Select_Priority
          else
             Cmd = 1;
 
-
-
-
    --  Feeder_Low: sends status on the low-priority channel.
    task Feeder_Low
       S : Status = 0;
@@ -39,9 +36,6 @@ package Select_Priority
             S = S + 1;
          else
             S = 0;
-
-
-
 
    --  Dispatcher: uses select to receive from multiple channels.
    --  High_Ch arm appears first, so it has priority when both are ready.
@@ -60,8 +54,4 @@ package Select_Priority
 
          if Processed > 1_000_000
             Processed = 0;
-
-
-
-
 

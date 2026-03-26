@@ -15,7 +15,6 @@ package Binary_Search_Function
       Found    : Boolean;
       Found_At : Index;
 
-
    function Search (Arr : Sorted_Array;
                     Key : Element) returns Search_Result
       Lo  : Index = Index.First;
@@ -37,8 +36,5 @@ package Binary_Search_Function
 
             Hi = Mid - 1;
 
-
       return ((Found = False, Found_At = Index.First) as Search_Result);
-
-
 

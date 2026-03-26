@@ -4,4 +4,3 @@ package Provider_Constant_Unsupported
    public Base : constant Count = 3;
    public Limit : constant Count = Base + 1;
 
-

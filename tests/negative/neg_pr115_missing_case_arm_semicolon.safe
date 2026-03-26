@@ -11,6 +11,3 @@ package Neg_PR115_Missing_Case_Arm_Semicolon
          when others
             return True;
 
-
-
-

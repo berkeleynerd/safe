@@ -20,8 +20,5 @@ package Collatz_Bounded
 
          Total = Total + 1
 
-
       return Total
-
-
 

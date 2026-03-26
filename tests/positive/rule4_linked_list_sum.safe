@@ -18,7 +18,6 @@ package Safe_Linked_List_Sum
       Value : Node_Value;
       Next  : Node_Ptr;
 
-
    function Summarize_Prefix (Head : Node_Ptr) returns Total_Value
       Count : Visit_Count = 0;
       Total : Total_Value = 0;
@@ -29,14 +28,12 @@ package Safe_Linked_List_Sum
          if Count == 3
             return Total_Value (Total);
 
-
          if Head.all.Next != null
             var Second : access constant Node = Head.all.Next.Access;
             Count = Count + 1;
             Total = Total + Total_Value (Second.all.Value);
             if Count == 3
                return Total_Value (Total);
-
 
             if Second.all.Next != null
                var Third : access constant Node = Second.all.Next.Access;
@@ -45,8 +42,5 @@ package Safe_Linked_List_Sum
                if Count == 3
                   return Total_Value (Total);
 
-
-
       return Total_Value (Total);
-
 

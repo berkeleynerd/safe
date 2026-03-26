@@ -13,7 +13,6 @@ package Ownership_Move
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    --  Transfer: moves ownership from Source to Target.
@@ -28,6 +27,4 @@ package Ownership_Move
       --  Target is now the owner and can be safely dereferenced.
       Target.all.Value = 100;
       --  Target goes out of scope; automatic deallocation occurs.
-
-
 

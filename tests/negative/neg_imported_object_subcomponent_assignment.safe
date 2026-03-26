@@ -11,6 +11,3 @@ package Imported_Object_Subcomponent_Assignment_Test
       loop
          Provider_Record_Object.State.Value = 4;
 
-
-
-

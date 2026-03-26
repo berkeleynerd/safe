@@ -7,7 +7,6 @@ package Neg_Try_Send_Success_Overwrite
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
@@ -19,6 +18,4 @@ package Neg_Try_Send_Success_Overwrite
       try_send Data_Ch, Source, Success;
       Success = False;
       Source = new ((Value = 2) as Payload);
-
-
 

@@ -12,7 +12,3 @@ package Lookup_Result
          when others
             return (fail ("unknown"), 0)
 
-
-
-
-

@@ -19,5 +19,3 @@ package Off_By_One_Test
 
       return Total;
 
-
-

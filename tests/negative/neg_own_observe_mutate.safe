@@ -10,7 +10,6 @@ package Observe_Mutate_Test
    type Config is record
       Rate : Natural;
 
-
    type Config_Ptr is access Config;
 
    --  Mutate_Through_Observer: attempts to write via a constant access.
@@ -20,6 +19,4 @@ package Observe_Mutate_Test
 
       --  Observer is access constant; writing through it is illegal.
       Observer.all.Rate = 200;  -- ERROR: mutation through observer
-
-
 

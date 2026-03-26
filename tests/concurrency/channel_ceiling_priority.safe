@@ -14,7 +14,6 @@ package Channel_Ceiling_Priority
 
       send Data_Ch, Value;
 
-
    task Fast with Priority = 20
       Next : Message = 0;
 
@@ -22,15 +21,10 @@ package Channel_Ceiling_Priority
          Push (Next);
          Next = Next + 1;
 
-
-
    task Slow with Priority = 10
       Next : Message = 100;
 
       loop
          Push (Next);
          Next = Next + 1;
-
-
-
 

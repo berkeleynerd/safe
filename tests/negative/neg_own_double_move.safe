@@ -21,5 +21,3 @@ package Double_Move_Test
       --  Source is now null (moved).
       Target2 = Source;  -- ERROR: Source has already been moved
 
-
-

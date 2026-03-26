@@ -19,5 +19,3 @@ package FP_Overflow_Test
       return Small_Float (Long_Float (A) * Long_Float (B));
       -- ERROR: product may exceed target range -1000..1000
 
-
-

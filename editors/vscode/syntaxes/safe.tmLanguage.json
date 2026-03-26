@@ -69,15 +69,11 @@
       "patterns": [
         {
           "name": "invalid.deprecated.safe",
-          "match": "\\b(then)\\b"
-        },
-        {
-          "name": "keyword.control.declare.safe",
-          "match": "\\b(begin|end)\\b"
+          "match": "\\b(begin|end|then)\\b"
         },
         {
           "name": "keyword.control.safe",
-          "match": "\\b(package|is|if|else|loop|while|for|return|returns|record|type|range|to|access|function|task|channel|send|receive|try_send|try_receive|select|delay|new|with|constant|var|null|and|or|not|mod|rem|case|when|others)\\b"
+          "match": "\\b(package|public|is|if|else|loop|while|for|return|returns|record|type|subtype|range|to|access|function|task|channel|capacity|from|send|receive|try_send|try_receive|select|delay|new|with|constant|var|null|and|or|not|mod|rem|case|when|others|exit|digits)\\b"
         },
         {
           "name": "storage.modifier.safe",

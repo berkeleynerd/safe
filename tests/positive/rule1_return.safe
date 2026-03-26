@@ -25,14 +25,10 @@ package Safe_Return
          --  Narrowing point (return): 0 is in -10..10.
          return 0;
 
-
-
    --  Bounded_Add: adds two Small values. The sum of two values
    --  each in -10..10 is in -20..20, which fits in Bounded.
    function Bounded_Add (A, B : Small) returns Bounded
 
       --  Narrowing point (return): A + B is in -20..20, within -500..500.
       return Bounded (A) + Bounded (B);
-
-
 

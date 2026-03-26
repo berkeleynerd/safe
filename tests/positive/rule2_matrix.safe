@@ -26,7 +26,6 @@ package Safe_Matrix
 
       return Sum;
 
-
    --  Transpose: swap rows and columns in-place.
    function Transpose (M : in out Matrix_4x4)
       Temp : Cell;
@@ -38,9 +37,4 @@ package Safe_Matrix
                Temp = M (I, J);
                M (I, J) = M (Row_Index (J), Col_Index (I));
                M (Row_Index (J), Col_Index (I)) = Temp;
-
-
-
-
-
 

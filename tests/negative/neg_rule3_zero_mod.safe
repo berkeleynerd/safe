@@ -14,5 +14,3 @@ package Zero_Mod_Test
 
       return C mod N;  -- ERROR: N may be zero
 
-
-

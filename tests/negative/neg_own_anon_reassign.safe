@@ -8,7 +8,6 @@ package Anonymous_Reassign_Test
    type Data is record
       Value : Integer;
 
-
    type Data_Ptr is access Data;
 
    function Reassign_Borrow
@@ -17,6 +16,4 @@ package Anonymous_Reassign_Test
       Ref   : access Data = Owner;
 
       Ref = Other;  -- ERROR: anonymous access reassignment after declaration
-
-
 

@@ -8,11 +8,8 @@ package Neg_Channel_Access_Component
    type Payload is record
       Value : Integer;
 
-
    type Envelope is record
       Item : access Payload;
 
-
    channel Data_Ch : Envelope capacity 1;
-
 

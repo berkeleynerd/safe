@@ -13,5 +13,3 @@ package PR09_Emitter_Discriminant
          when False
             Error_Code : Integer;
 
-
-

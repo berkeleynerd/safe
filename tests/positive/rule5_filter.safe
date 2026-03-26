@@ -15,13 +15,11 @@ package Low_Pass_Filter
       Output : Signal;
       Alpha  : Alpha_Range;
 
-
    --  Init_Filter: create a filter with initial output and coefficient.
    function Init_Filter (Initial : Signal;
                          Coeff   : Alpha_Range) returns Filter_State
 
       return ((Output = Initial, Alpha = Coeff) as Filter_State);
-
 
    --  Update: output = Alpha * input + (1 - Alpha) * previous_output.
    --  Alpha in 0.01..0.99, input in -100..100, output in -100..100.

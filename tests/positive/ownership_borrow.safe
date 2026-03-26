@@ -13,7 +13,6 @@ package Ownership_Borrow
       X : Integer;
       Y : Integer;
 
-
    type Data_Ptr is access Data;
 
    --  Modify_Via_Borrow: borrows the designated object via anonymous
@@ -24,7 +23,6 @@ package Ownership_Borrow
       --  because the lender provides a non-null owned value.
       Ref.all.X = Ref.all.X + 1;
       Ref.all.Y = Ref.all.Y * 2;
-
 
    --  Use_Borrow: creates an owned pointer, borrows it for mutation,
    --  then continues using it after the borrow scope ends.
@@ -37,6 +35,4 @@ package Ownership_Borrow
       --  Safe to dereference Owner again.
       Owner.all.X = Owner.all.X + 5;
       --  Owner goes out of scope; automatic deallocation.
-
-
 

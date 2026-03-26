@@ -7,5 +7,3 @@ package Neg_String_Field
    type Person is record
       Name : String;
 
-
-

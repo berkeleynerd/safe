@@ -27,7 +27,3 @@ package Select_Delay_Local_Scope
                Temp = Temp + 1;
                Count = Count + Temp;
 
-
-
-
-

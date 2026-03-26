@@ -18,5 +18,3 @@ package Narrow_Fail
 
       Result = Narrow (V);  -- ERROR: V may not be in -100..100
 
-
-

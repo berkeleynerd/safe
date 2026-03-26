@@ -3,4 +3,3 @@ package Provider_Constant_Int
    public type Count is range 0 to 10;
    public Max_Count : constant Count = 4;
 
-

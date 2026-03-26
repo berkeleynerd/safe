@@ -29,5 +29,3 @@ package Sensor_Average
       --  Narrowing point (return): Sum / 10 is in 0..1000.
       return Sum / 10;
 
-
-

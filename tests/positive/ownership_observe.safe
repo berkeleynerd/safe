@@ -12,7 +12,6 @@ package Ownership_Observe
       Rate  : Natural;
       Limit : Natural;
 
-
    type Config_Ptr is access Config;
 
    --  Read_Rate: observes the config through a constant access parameter.
@@ -21,12 +20,10 @@ package Ownership_Observe
 
       return Ref.all.Rate;
 
-
    --  Read_Limit: another observer on the same object.
    function Read_Limit (Ref : access constant Config) returns Natural
 
       return Ref.all.Limit;
-
 
    --  Use_Observe: creates an owned config, then observes it twice.
    --  Multiple observations of the same owned object are safe.
@@ -39,6 +36,4 @@ package Ownership_Observe
       L = Read_Limit (Owner);
       --  Owner regains full ownership after observations end.
       --  Owner goes out of scope; automatic deallocation.
-
-
 

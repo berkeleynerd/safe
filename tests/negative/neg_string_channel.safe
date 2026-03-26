@@ -6,4 +6,3 @@ package Neg_String_Channel
 
    channel Text_Ch : String capacity 1;
 
-

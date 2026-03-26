@@ -13,13 +13,8 @@ package Neg_Task_Shared_Variable
       loop
          Shared = Shared + 1;
 
-
-
    task B
 
       loop
          Shared = Shared + 1;
-
-
-
 

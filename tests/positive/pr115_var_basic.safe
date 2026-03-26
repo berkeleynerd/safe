@@ -8,5 +8,3 @@ package PR115_Var_Basic
       Local = Input
       return Local
 
-
-

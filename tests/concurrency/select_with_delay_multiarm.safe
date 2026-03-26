@@ -23,8 +23,6 @@ package Select_With_Delay_Multiarm
          send Low_Ch, 2;
          delay 0.01;
 
-
-
    task Poller with Priority = 10
       Seen : Counter = 0;
 
@@ -47,13 +45,8 @@ package Select_With_Delay_Multiarm
             delay 0.05
                Seen = 0;
 
-
          if Seen > 95
             Seen = 0;
          else
             delay 0.001;
-
-
-
-
 

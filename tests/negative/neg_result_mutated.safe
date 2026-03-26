@@ -18,16 +18,12 @@ package Neg_Result_Mutated
          when False
             Error : Error_Code;
 
-
-
    function Try_Parse (Input : Integer) returns Parse_Result
 
       if Input >= 0
          return (OK = True, Value = Input);
       else
          return (OK = False, Error = 1);
-
-
 
    --  NONCONFORMING: R.OK = True is established by the guard, but
    --  the assignment R = Try_Parse(Other) invalidates the fact.
@@ -41,7 +37,4 @@ package Neg_Result_Mutated
          return R.Value;          -- REJECTED: R.OK no longer established
       else
          return 0;
-
-
-
 

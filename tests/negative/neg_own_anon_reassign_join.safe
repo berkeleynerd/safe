@@ -8,7 +8,6 @@ package Anonymous_Reassign_Join_Test
    type Data is record
       Value : Integer;
 
-
    type Data_Ptr is access Data;
 
    function Reassign_After_Join (Pick : Integer)
@@ -20,7 +19,5 @@ package Anonymous_Reassign_Join_Test
          Ref = Owner;
       else
 
-
       Ref = Other;  -- ERROR: merge must not reset init-only tracking
-
 

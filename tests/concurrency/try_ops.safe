@@ -28,9 +28,6 @@ package Try_Ops
          else
             delay 0.01;
 
-
-
-
    task Consumer
       Value : Item = 0;
       Got   : Boolean = False;
@@ -45,8 +42,4 @@ package Try_Ops
 
          if Total > 10_000
             Total = 0;
-
-
-
-
 

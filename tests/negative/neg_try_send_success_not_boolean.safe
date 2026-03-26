@@ -16,6 +16,3 @@ package Try_Send_Success_Not_Boolean_Test
       loop
          try_send Data_Ch, Value, Success;
 
-
-
-

@@ -3,7 +3,5 @@ package Provider_Record_Object
    public type Seed_Info is record
       Value : Integer;
 
-
    public State : Seed_Info;
-
 

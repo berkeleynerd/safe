@@ -8,7 +8,6 @@ package Select_Ownership_Binding
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
@@ -21,8 +20,6 @@ package Select_Ownership_Binding
          send Data_Ch, Item;
          Counter = Counter + 1;
 
-
-
    task Receiver
 
       loop
@@ -31,7 +28,4 @@ package Select_Ownership_Binding
                Item.all.Value = Item.all.Value + 1;
          or
             delay 1.0
-
-
-
 

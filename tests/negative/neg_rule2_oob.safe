@@ -14,5 +14,3 @@ package OOB_Test
 
       return Arr (Slot (Idx));  -- ERROR: Idx may not be in 0..7
 
-
-

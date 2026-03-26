@@ -14,7 +14,6 @@ package Param_Fail
    function Use_Percent (P : Percentage)
       return;
 
-
    --  Pass_Unchecked: passes a Wide_Int to a Percentage parameter
    --  without verifying the value is in 0..100.
    function Pass_Unchecked (V : Wide_Int)

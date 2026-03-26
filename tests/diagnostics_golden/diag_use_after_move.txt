@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_use_after_move.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_use_after_move.safe:25:11: error: dereference of moved access value
+neg_own_use_after_move.safe:24:11: error: dereference of moved access value
   |
-  | 25 |       V = Source.all.Count;  -- ERROR: dereference of moved variable
+  | 24 |       V = Source.all.Count;  -- ERROR: dereference of moved variable
   |    |           ^~~~~~~~~~
   |
   note: the access value was moved before this dereference.

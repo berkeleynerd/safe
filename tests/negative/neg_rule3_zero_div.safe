@@ -10,7 +10,5 @@ package Zero_Div_Test
    type Value is range -100 to 100;
    function Divide (A, B : Value) returns Value
 
-
       return A / B;  -- ERROR: B may be zero
-
 

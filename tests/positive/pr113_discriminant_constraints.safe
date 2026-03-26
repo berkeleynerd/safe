@@ -11,7 +11,6 @@ package PR113_Discriminant_Constraints
       record
          Value : Integer;
 
-
    Defaulted : Packet = (Active = True, Kind = 'A', Count = 0, Value = 1);
    Positional : Packet (True, 'A', 1) = (Value = 2);
    Named : Packet (Active = True, Kind = Default_Kind, Count = Default_Count) = (Value = 3);
@@ -22,6 +21,4 @@ package PR113_Discriminant_Constraints
       Local : Packet (Active = True, Kind = Default_Kind, Count = Limit) = Item;
 
       return Local;
-
-
 

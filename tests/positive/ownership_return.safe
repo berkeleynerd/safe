@@ -13,11 +13,8 @@ package Ownership_Return
 
       return Source;
 
-
    function Use_Return
       Target : Payload_Ptr = null;
 
       Target = Build ();
-
-
 

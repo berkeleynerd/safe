@@ -9,13 +9,10 @@ package Constant_Access_Deref_Write
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    function Mutate_Through_Constant_Access
       Ptr : constant Payload_Ptr = new ((Value = 1) as Payload);
 
       Ptr.all.Value = 2;
-
-
 

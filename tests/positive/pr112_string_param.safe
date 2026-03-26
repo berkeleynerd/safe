@@ -8,10 +8,7 @@ package PR112_String_Param
 
       return Name;
 
-
    function Greeting returns String
 
       return Echo ("hello");
-
-
 

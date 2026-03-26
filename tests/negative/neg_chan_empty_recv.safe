@@ -21,6 +21,3 @@ package Empty_Recv_Test
       loop
          receive No_Sender_Ch, V;  -- ERROR: no sender exists for this channel
 
-
-
-

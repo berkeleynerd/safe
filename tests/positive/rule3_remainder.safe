@@ -18,12 +18,9 @@ package Safe_Remainder
       --  M is provably nonzero (range 1..100).
       return V rem Signed_Value (M);
 
-
    --  Is_Even: checks whether a value is even using rem 2.
    --  The literal 2 is provably nonzero.
    function Is_Even (V : Signed_Value) returns Boolean
 
       return (V rem 2) == 0;
-
-
 

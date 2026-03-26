@@ -15,8 +15,3 @@ package Bubble_Sort
                Data (Index (J)) = Data (Index (J + 1))
                Data (Index (J + 1)) = Temp
 
-
-
-
-
-

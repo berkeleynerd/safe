@@ -9,4 +9,3 @@ package Neg_Imported_Inout_Double_Move
       Provider_Imported_Call_Ownership.Consume (Owner);
       Provider_Imported_Call_Ownership.Consume (Owner);
 
-

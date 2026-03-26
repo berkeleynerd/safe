@@ -13,7 +13,3 @@ package Neg_Case_Multi_Choice
          when others
             return 0;
 
-
-
-
-

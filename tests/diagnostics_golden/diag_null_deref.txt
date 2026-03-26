@@ -3,9 +3,9 @@ Source: tests/negative/neg_rule4_null_deref.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_rule4_null_deref.safe:14:14: error: dereference of possibly null access value
+neg_rule4_null_deref.safe:13:14: error: dereference of possibly null access value
   |
-  | 14 |       return P.all;  -- ERROR: P may be null
+  | 13 |       return P.all;  -- ERROR: P may be null
   |    |              ^~~~~
   |
   note: P is of type Value_Ptr (access Value), which does not exclude null.

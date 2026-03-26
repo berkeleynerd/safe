@@ -30,7 +30,3 @@ package Safe_Conditional
       else
          return 0;
 
-
-
-
-

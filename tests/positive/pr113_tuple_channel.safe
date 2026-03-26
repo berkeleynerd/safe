@@ -13,8 +13,6 @@ package PR113_Tuple_Channel
          send Pair_Ch, (True, 41);
          delay 0.05;
 
-
-
    task Consumer with Priority = 10
       Payload : (Boolean, Integer);
 
@@ -22,8 +20,4 @@ package PR113_Tuple_Channel
          receive Pair_Ch, Payload;
          if Payload.1
             Result = Payload.2;
-
-
-
-
 

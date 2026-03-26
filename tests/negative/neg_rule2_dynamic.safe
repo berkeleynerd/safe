@@ -16,12 +16,9 @@ package Dynamic_Index_Test
 
       return Seed * 7 + 3;
 
-
    --  Lookup_Dynamic: uses the result of Compute_Index as array index.
    --  The result of Compute_Index is not provably in 1..50.
    function Lookup_Dynamic (T : Table; Seed : Integer) returns Integer
 
       return T (Idx (Compute_Index (Seed)));  -- ERROR: not provably in 1..50
-
-
 

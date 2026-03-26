@@ -13,4 +13,3 @@ package Constant_Shadow_Mutable
       var Value : Integer = 0;
       Value = 2;
 
-

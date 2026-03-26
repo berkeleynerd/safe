@@ -20,7 +20,6 @@ package Safe_Lookup
       --  array index range exactly. Provably within bounds.
       return Table (Id);
 
-
    --  Lookup_With_Default: safe lookup with a clamped index.
    function Lookup_With_Default (Table : Cal_Table;
                                  Raw_Id : Integer) returns Calibration
@@ -30,7 +29,4 @@ package Safe_Lookup
          return Table (Sensor_Id (Raw_Id));
       else
          return 0;
-
-
-
 

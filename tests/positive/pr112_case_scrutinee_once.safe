@@ -8,7 +8,6 @@ package PR112_Case_Scrutinee_Once
 
       return 2;
 
-
    function Label returns String
 
       case Read_Opcode ()
@@ -20,8 +19,4 @@ package PR112_Case_Scrutinee_Once
 
          when others
             return "other";
-
-
-
-
 

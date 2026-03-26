@@ -22,12 +22,9 @@ package Temperature_Conv
       --  Narrowing point (return): result is finite and in Fahrenheit range.
       return Fahrenheit (Long_Float (C) * 9.0 / 5.0 + 32.0);
 
-
    --  To_Celsius: (F - 32.0) * 5.0 / 9.0
    --  9.0 is a nonzero literal, so no division by zero.
    function To_Celsius (F : Fahrenheit) returns Celsius
 
       return Celsius ((Long_Float (F) - 32.0) * 5.0 / 9.0);
-
-
 

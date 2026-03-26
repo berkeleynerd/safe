@@ -17,8 +17,5 @@ package Gcd
          A = B
          B = T
 
-
       return A
-
-
 

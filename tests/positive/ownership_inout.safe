@@ -8,12 +8,10 @@ package Ownership_Inout
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    function Consume (Ref : in out Payload_Ptr)
       return;
-
 
    function Use_Inout
       Owner : Payload_Ptr = new ((Value = 5) as Payload);

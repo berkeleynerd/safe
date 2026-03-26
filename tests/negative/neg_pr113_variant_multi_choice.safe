@@ -5,5 +5,3 @@ package Neg_PR113_Variant_Multi_Choice
             when 'A', 'B'
                Value : Integer;
 
-
-

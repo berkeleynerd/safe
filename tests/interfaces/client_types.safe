@@ -8,4 +8,3 @@ package Client_Types
    Value      : provider_types.sMALL_cOUNT = 1;
    Next_Value : PROVIDER_TYPES.cOUNT = Provider_Types.nEXT (Value);
 
-

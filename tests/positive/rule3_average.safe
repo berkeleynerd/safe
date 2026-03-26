@@ -14,5 +14,3 @@ package Safe_Average
 
       return Measurement (Total / 2);
 
-
-

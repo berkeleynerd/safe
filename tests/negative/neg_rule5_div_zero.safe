@@ -19,5 +19,3 @@ package FP_Div_Zero_Test
       return Measurement (Long_Float (Value) / Long_Float (Scale));
       -- ERROR: Scale may be 0.0, yielding infinity
 
-
-

@@ -3,4 +3,3 @@ package Neg_PR113_Float_Discriminant
       record
          Value : Integer;
 
-

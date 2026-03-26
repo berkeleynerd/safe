@@ -14,5 +14,3 @@ package Zero_Rem_Test
 
       return A rem B;  -- ERROR: B may be zero
 
-
-

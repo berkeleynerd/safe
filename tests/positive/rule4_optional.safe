@@ -21,12 +21,8 @@ package Safe_Optional
       else
          return Default;
 
-
-
    --  Has_Value: checks if the pointer is non-null.
    function Has_Value (P : Value_Ptr) returns Boolean
 
       return P != null;
-
-
 

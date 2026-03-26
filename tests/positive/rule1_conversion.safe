@@ -28,7 +28,6 @@ package Safe_Conversion
       --  Narrowing point (conversion): Clamped is in -1000..1000.
       return Narrow_Value (Clamped);
 
-
    --  Absolute_To_Positive: converts absolute value when known nonzero.
    function Absolute_To_Positive (V : Narrow_Value) returns Positive_Value
 
@@ -40,7 +39,4 @@ package Safe_Conversion
          return Positive_Value (-V);
       else
          return 1;
-
-
-
 

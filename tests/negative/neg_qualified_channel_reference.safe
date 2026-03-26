@@ -15,6 +15,3 @@ package Qualified_Channel_Reference_Test
       loop
          send Remote_Package.Data_Ch, 1;
 
-
-
-

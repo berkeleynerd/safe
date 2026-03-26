@@ -11,12 +11,10 @@ package Ownership_Early_Return
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    function Read_And_Exit returns Integer
       Outer : Payload_Ptr = new ((Value = 7) as Payload);
       Inner : Payload_Ptr = new ((Value = 9) as Payload);
       return Outer.all.Value;
-
 

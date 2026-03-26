@@ -26,8 +26,5 @@ package Safe_Slice
             --  Provably within Buffer's bounds.
             Current = Buf (I);
 
-
       return Current;
-
-
 

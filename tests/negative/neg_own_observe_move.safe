@@ -8,7 +8,6 @@ package Observe_Move_Test
    type Config is record
       Rate : Natural;
 
-
    type Config_Ptr is access Config;
 
    function Move_While_Observed
@@ -17,6 +16,4 @@ package Observe_Move_Test
       Observer : access constant Config = Owner.Access;
 
       Target = Owner;  -- ERROR: move while observe is active
-
-
 

@@ -10,7 +10,6 @@ package Borrow_Conflict_Test
    type Data is record
       Value : Integer;
 
-
    type Data_Ptr is access Data;
 
    --  Modify_Both: borrows Owner to Ref, then tries to read Owner
@@ -23,6 +22,4 @@ package Borrow_Conflict_Test
       Ref.all.Value = 20;
       --  Owner is frozen while Ref (the borrow) is active.
       V = Owner.all.Value;  -- ERROR: lender accessed during active borrow
-
-
 

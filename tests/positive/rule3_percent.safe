@@ -22,6 +22,3 @@ package Safe_Percent
       else
          return 0;
 
-
-
-

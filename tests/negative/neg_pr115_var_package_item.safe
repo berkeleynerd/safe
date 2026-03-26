@@ -4,4 +4,3 @@ package Neg_PR115_Var_Package_Item
 
    var Value : Counter = 0;
 
-

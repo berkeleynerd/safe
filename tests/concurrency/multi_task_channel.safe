@@ -25,9 +25,6 @@ package Multi_Task_Channel
          else
             Seq = 0;
 
-
-
-
    --  Producer_B: sends high-range event codes.
    task Producer_B
       Seq : Event_Code = 5_000;
@@ -38,9 +35,6 @@ package Multi_Task_Channel
             Seq = Seq + 1;
          else
             Seq = 5_000;
-
-
-
 
    --  Consumer: receives events from both producers.
    --  Channel atomicity guarantees each code is received intact.
@@ -61,8 +55,4 @@ package Multi_Task_Channel
 
          if Count_B > 1_000
             Count_B = 0;
-
-
-
-
 

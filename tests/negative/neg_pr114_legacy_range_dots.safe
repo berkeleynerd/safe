@@ -6,4 +6,3 @@ package Neg_PR114_Legacy_Range_Dots
 
    type Small is range 0 .. 10;
 
-

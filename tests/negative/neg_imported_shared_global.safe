@@ -8,13 +8,8 @@ package Neg_Imported_Shared_Global
       loop
          Provider_Transitive_Global.Touch;
 
-
-
    task B
 
       loop
          Provider_Transitive_Global.Touch;
-
-
-
 

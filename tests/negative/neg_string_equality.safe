@@ -8,5 +8,3 @@ package Neg_String_Equality
 
       return Left == Right;
 
-
-

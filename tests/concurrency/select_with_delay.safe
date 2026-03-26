@@ -17,8 +17,6 @@ package Select_With_Delay
       loop
          delay 0.01;
 
-
-
    task Poller with Priority = 10
 
       loop
@@ -32,8 +30,4 @@ package Select_With_Delay
          or
             delay 0.05
                delay 0.001;
-
-
-
-
 

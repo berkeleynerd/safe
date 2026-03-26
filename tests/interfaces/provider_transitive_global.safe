@@ -6,10 +6,7 @@ package Provider_Transitive_Global
 
       Shared = Shared + 1;
 
-
    public function Touch
 
       Touch_Internal;
-
-
 

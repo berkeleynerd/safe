@@ -10,7 +10,6 @@ package Uninitialized_Test
    type Rec is record
       X : Integer;
 
-
    type Rec_Ptr is access Rec;
 
    --  Read_Uninitialized: declares P (default null), then dereferences.
@@ -19,6 +18,4 @@ package Uninitialized_Test
 
       --  P is null (default for access types).
       return P.all.X;  -- ERROR: P is null (uninitialized = null)
-
-
 

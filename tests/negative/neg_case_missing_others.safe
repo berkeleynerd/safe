@@ -10,7 +10,3 @@ package Neg_Case_Missing_Others
          when 1
             return 1;
 
-
-
-
-

@@ -7,7 +7,6 @@ package Neg_Send_Use_After_Move
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
@@ -17,6 +16,4 @@ package Neg_Send_Use_After_Move
 
       send Data_Ch, Source;
       Source.all.Value = 2;
-
-
 

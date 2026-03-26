@@ -11,6 +11,3 @@ package Imported_Object_Assignment_Test
       loop
          Provider_Object.Seed = 4;
 
-
-
-

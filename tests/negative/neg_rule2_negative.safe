@@ -19,5 +19,3 @@ package Negative_Index_Test
 
       return Arr (Nat_Index (Integer (Base) - Offset));  -- ERROR: may be negative
 
-
-

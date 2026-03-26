@@ -7,4 +7,3 @@ package PR115_Local_Decl_Terminator
       var Temp : Counter = 1
       return Temp
 
-

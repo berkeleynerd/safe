@@ -7,6 +7,3 @@ package Client_Transitive_Channel_Provider_Ceiling
       loop
          Provider_Transitive_Channel.Push;
 
-
-
-

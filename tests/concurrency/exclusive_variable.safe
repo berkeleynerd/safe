@@ -26,9 +26,6 @@ package Exclusive_Variable
             send Sync_Ch, Counter_A;
             Counter_A = 0;
 
-
-
-
    --  Task_B: owns Counter_B exclusively. Receives via channel.
    task Task_B
       Counter_B : Counter = 0;
@@ -39,8 +36,4 @@ package Exclusive_Variable
          Counter_B = Counter_B + Received;
          if Counter_B > 500_000
             Counter_B = 0;
-
-
-
-
 

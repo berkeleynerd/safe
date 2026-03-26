@@ -13,7 +13,3 @@ package Neg_Case_String_Choice
          when others
             return "ok";
 
-
-
-
-

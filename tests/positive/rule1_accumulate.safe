@@ -31,5 +31,3 @@ package Accumulator
       --  Narrowing point (return): Sum is in 0..2000.
       return Sum;
 
-
-

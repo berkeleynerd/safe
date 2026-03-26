@@ -5,5 +5,3 @@ package Client_Constant_Bool
    type Result (Active : Boolean = Provider_Constant_Bool.Default_Active) is record
       Value : Integer;
 
-
-

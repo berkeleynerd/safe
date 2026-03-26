@@ -12,8 +12,5 @@ package PR115_Case_Terminator
          when others
             Result = True;
 
-
       return Result
-
-
 

@@ -16,5 +16,3 @@ package Expression_Div_Test
       Denom = Integer (X) * Integer (X) - Integer (Y) * Integer (Y);
       return Integer (N) / Denom;  -- ERROR: Denom may be zero
 
-
-

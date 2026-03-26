@@ -11,5 +11,3 @@ package Statement_Label_Assignment_Test
 
       Label_1: Value = 1;
 
-
-

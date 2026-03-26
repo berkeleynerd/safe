@@ -9,6 +9,3 @@ package Channel_Package_Not_Withd_Test
       loop
          send Missing_Package.Data_Ch, 1;
 
-
-
-

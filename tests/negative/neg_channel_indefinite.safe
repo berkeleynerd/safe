@@ -10,4 +10,3 @@ package Channel_Indefinite_Test
 
    channel Data_Ch : Buffer capacity 1;
 
-

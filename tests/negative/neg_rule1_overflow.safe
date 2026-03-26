@@ -15,8 +15,5 @@ package Overflow_Test
    --  A conforming implementation shall reject this expression.
    function Multiply (A, B : Big) returns Big
 
-
       return A * B;  -- ERROR: intermediate may exceed 64-bit range
-
-
 

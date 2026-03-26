@@ -13,9 +13,6 @@ package PR112_Discrete_Case
          when others
             return 0;
 
-
-
-
    function Opcode_Name (Opcode : in Integer) returns String
 
       case Opcode
@@ -30,8 +27,4 @@ package PR112_Discrete_Case
 
          when others
             return "unknown";
-
-
-
-
 

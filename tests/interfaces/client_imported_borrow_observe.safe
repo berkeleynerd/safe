@@ -10,4 +10,3 @@ package Client_Imported_Borrow_Observe
       Seen = Provider_Imported_Call_Ownership.Read_Value (Owner);
       Owner.all.Value = Seen;
 
-

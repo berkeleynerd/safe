@@ -18,5 +18,3 @@ package Lifetime_Test
 
       return Ref;  -- ERROR: borrowed value outlives local owner
 
-
-

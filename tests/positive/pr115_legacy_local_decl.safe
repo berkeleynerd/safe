@@ -8,5 +8,3 @@ package PR115_Legacy_Local_Decl
       Current = 1
       return Current
 
-
-

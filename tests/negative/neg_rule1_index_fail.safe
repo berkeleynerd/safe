@@ -18,5 +18,3 @@ package Index_Narrow_Fail
 
       return Arr (Idx (A + B));  -- ERROR: A + B may not be in 1..10
 
-
-

@@ -7,7 +7,6 @@ package Neg_Try_Send_Compound_Else_Use
    type Payload is record
       Value : Integer;
 
-
    type Payload_Ptr is access Payload;
 
    channel Data_Ch : Payload_Ptr capacity 1;
@@ -21,6 +20,4 @@ package Neg_Try_Send_Compound_Else_Use
       if Success and then Ready
       else
          send Data_Ch, Source;
-
-
 

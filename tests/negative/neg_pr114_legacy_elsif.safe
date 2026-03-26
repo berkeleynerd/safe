@@ -13,6 +13,3 @@ package Neg_PR114_Legacy_Elsif
       else
          return 0;
 
-
-
-

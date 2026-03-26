@@ -1,17 +1,17 @@
 # Safe
 
-A systems programming language defined subtractively from Ada 2022, designed so programs can be proven free of runtime errors without developer annotations.
+A systems programming language built around SPARK-class safety guarantees, with a smaller surface designed to avoid sharp edges rather than expose them.
 
-[![CI](https://github.com/agentc1/safe/actions/workflows/ci.yml/badge.svg)](https://github.com/agentc1/safe/actions/workflows/ci.yml)
+[![CI](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml/badge.svg)](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml)
 ![Spec version](https://img.shields.io/badge/spec-v0.1_working_draft-blue)
 
 ---
 
 ## What Is Safe?
 
-Safe is built on ISO/IEC 8652:2023 (Ada 2022). It is a curated subset -- removing exceptions, tagged types, and generics -- augmented with new constructs including static tasks and typed channels. Conforming Safe programs compile via any conforming Ada 2022 compiler after translation.
+Safe is a language in its own right. The current toolchain compiles it through Ada/SPARK-oriented artifacts, but the user-facing goal is not to preserve Ada as a source language. The design keeps the parts that support proof-oriented systems programming and removes or redesigns the parts that create avoidable sharp edges.
 
-The language provides two assurance levels without annotations, contracts, or proof hints. **Bronze** (flow analysis) guarantees no data races and no uninitialised reads. **Silver** (absence of runtime errors) guarantees no overflow, no division by zero, no out-of-bounds indexing, no null dereference, and no double ownership. Programs that cannot be proved safe are rejected -- never accepted with warnings.
+Safe inherits its safety posture from the SPARK tradition: the compiler and proof tooling are expected to establish strong safety properties without developer-authored verification scaffolding. The language provides two assurance levels without annotations, contracts, or proof hints. **Bronze** (flow analysis) guarantees no data races and no uninitialised reads. **Silver** (absence of runtime errors) guarantees no overflow, no division by zero, no out-of-bounds indexing, no null dereference, and no double ownership. Programs that cannot be proved safe are rejected -- never accepted with warnings.
 
 These guarantees are enforced by five D27 rules constraining arithmetic, indexing, division, dereference, and floating-point so that every runtime check is provably safe from static type and range information alone. See [`spec/05-assurance.md`](spec/05-assurance.md) for the D27 rules and [`spec/04-tasks-and-channels.md`](spec/04-tasks-and-channels.md) for the concurrency model.
 
@@ -33,7 +33,7 @@ The `compiler_impl/` directory contains the reference compiler workspace and the
 
 ### Proof Artifacts
 
-The `companion/` directory contains the SPARK companion and verified emission templates used by the proof workflow.
+The `companion/` directory contains the SPARK companion and emission templates used by the proof workflow.
 
 ### Tests and Samples
 
@@ -81,19 +81,14 @@ See `spec/` for the language specification and `docs/` for the current design di
 | Looking for... | Go to |
 |----------------|-------|
 | Language specification | [`spec/00-front-matter.md`](spec/00-front-matter.md) |
+| Tutorial | [`docs/tutorial.md`](docs/tutorial.md) |
+| Design direction | [`docs/vision.md`](docs/vision.md) |
+| Current roadmap notes | [`docs/PR11.x-series-proposed.md`](docs/PR11.x-series-proposed.md) |
 | Safe-to-Ada translation rules | [`compiler/translation_rules.md`](compiler/translation_rules.md) |
-| Current frontend boundary | [`docs/frontend_architecture_baseline.md`](docs/frontend_architecture_baseline.md) |
 | Frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
-| Frontend scale limits | [`docs/frontend_scale_limits.md`](docs/frontend_scale_limits.md) |
-| Emitted output verification matrix | [`docs/emitted_output_verification_matrix.md`](docs/emitted_output_verification_matrix.md) |
-| PR10.1 refinement audit | [`docs/pr10_refinement_audit.md`](docs/pr10_refinement_audit.md) |
-| Post-PR10 residual ledger | [`docs/post_pr10_scope.md`](docs/post_pr10_scope.md) |
+| End-to-end CLI walkthrough | [`docs/safec_end_to_end_cli_tutorial.md`](docs/safec_end_to_end_cli_tutorial.md) |
+| VS Code extension | [`editors/vscode/README.md`](editors/vscode/README.md) |
 | SPARK companion overview | [`release/COMPANION_README.md`](release/COMPANION_README.md) |
-| Full traceability | [`docs/traceability_matrix.md`](docs/traceability_matrix.md) |
-| PO procedure index | [`docs/po_index.md`](docs/po_index.md) |
-| GNATprove configuration | [`docs/gnatprove_profile.md`](docs/gnatprove_profile.md) |
-| Template inventory | [`docs/template_inventory.md`](docs/template_inventory.md) |
-| Template roadmap | [`docs/template_plan.md`](docs/template_plan.md) |
 
 ---
 

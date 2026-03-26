@@ -25,9 +25,6 @@ package FIFO_Ordering
          else
             N = 0;
 
-
-
-
    --  Consumer: receives values and verifies ordering.
    --  Each received value should equal the expected next sequence number.
    task Consumer
@@ -42,8 +39,4 @@ package FIFO_Ordering
             Expected = Expected + 1;
          else
             Expected = 0;
-
-
-
-
 

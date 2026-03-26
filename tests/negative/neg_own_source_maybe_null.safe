@@ -14,5 +14,3 @@ package Move_Source_Maybe_Null_Test
 
       Target = Source;  -- ERROR: source is not provably non-null
 
-
-

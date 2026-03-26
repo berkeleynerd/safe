@@ -25,8 +25,6 @@ package Channel_Pipeline_Compute
          send Raw_Ch, Seed;
          delay 0.001;
 
-
-
    task Filter with Priority = 10
       Input  : Sample;
       Output : Sample;
@@ -35,8 +33,6 @@ package Channel_Pipeline_Compute
          receive Raw_Ch, Input;
          Output = Input / 2 + 1;
          send Filtered_Ch, Output;
-
-
 
    task Consumer with Priority = 10
       Data     : Sample;
@@ -49,8 +45,4 @@ package Channel_Pipeline_Compute
             delay 0.001;
          else
             delay 0.002;
-
-
-
-
 

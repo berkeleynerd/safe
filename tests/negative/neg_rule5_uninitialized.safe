@@ -18,5 +18,3 @@ package FP_Uninit_Test
 
       return Bounded (X);  -- ERROR: X is uninitialized, may be NaN/infinity
 
-
-

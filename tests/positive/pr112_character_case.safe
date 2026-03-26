@@ -19,7 +19,3 @@ package PR112_Character_Case
          when others
             return Fallback;
 
-
-
-
-

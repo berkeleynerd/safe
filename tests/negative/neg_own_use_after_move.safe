@@ -11,7 +11,6 @@ package Use_After_Move_Test
       Id    : Natural;
       Count : Natural;
 
-
    type Item_Ptr is access Item;
 
    --  Read_After_Move: reads Source.all after moving Source to Target.
@@ -23,6 +22,4 @@ package Use_After_Move_Test
       Target = Source;
       --  Source is now moved (null).
       V = Source.all.Count;  -- ERROR: dereference of moved variable
-
-
 

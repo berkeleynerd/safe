@@ -10,6 +10,3 @@ package Delay_Until_Test
       loop
          delay until 1.0;
 
-
-
-

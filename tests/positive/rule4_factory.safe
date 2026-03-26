@@ -12,7 +12,6 @@ package Safe_Factory
       Id    : Natural;
       Value : Integer;
 
-
    type Sensor_Ptr is not null access Sensor_Data;
 
    --  Create_Sensor: allocates a new Sensor_Data.
@@ -22,13 +21,10 @@ package Safe_Factory
 
       return new ((Id = Id, Value = Initial_Value) as Sensor_Data);
 
-
    --  Read_Sensor: dereferences the factory-created pointer.
    --  The return type Sensor_Ptr is not null access, so
    --  dereference is always safe.
    function Read_Sensor (S : Sensor_Ptr) returns Integer
 
       return S.all.Value;
-
-
 

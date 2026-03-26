@@ -8,5 +8,3 @@ package Neg_Character_Return_Type
 
       return 999;
 
-
-

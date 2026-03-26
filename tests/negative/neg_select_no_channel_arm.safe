@@ -11,6 +11,3 @@ package Select_No_Channel_Arm_Test
          select
             delay 0.10
 
-
-
-

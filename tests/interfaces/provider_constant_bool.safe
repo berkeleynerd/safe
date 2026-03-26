@@ -2,4 +2,3 @@ package Provider_Constant_Bool
 
    public Default_Active : constant Boolean = True;
 
-

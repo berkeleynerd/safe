@@ -23,6 +23,3 @@ package Full_Send_Test
          send Ch, 1;
          send Ch, 2;  -- ERROR: channel is full, no receiver to drain it
 
-
-
-

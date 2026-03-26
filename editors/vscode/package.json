@@ -1,8 +1,8 @@
 {
   "name": "safe-language-eval",
   "displayName": "Safe Language Eval",
-  "description": "Safe editor tooling for the shipped PR11.6 meaningful-whitespace surface plus disposable diagnostics.",
-  "version": "0.0.1",
+  "description": "Safe editor tooling for the shipped PR11.6.2 surface plus disposable diagnostics.",
+  "version": "0.0.2",
   "publisher": "agentc1",
   "license": "UNLICENSED",
   "engines": {

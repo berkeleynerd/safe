@@ -3,18 +3,15 @@ package Provider_Imported_Call_Ownership
    public type Payload is record
       Value : Integer;
 
-
    public type Payload_Ptr is access Payload;
 
    public function Bump (Ref : access Payload)
 
       Ref.all.Value = Ref.all.Value + 1;
 
-
    public function Read_Value (Ref : access constant Payload) returns Integer
 
       return Ref.all.Value;
-
 
    public function Consume (Ref : in out Payload_Ptr)
       return;

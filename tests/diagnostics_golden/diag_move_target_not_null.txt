@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_target_not_null.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_target_not_null.safe:18:7: error: move target 'Target' is not provably null
+neg_own_target_not_null.safe:17:7: error: move target 'Target' is not provably null
   |
-  | 18 |       Target = Source;  -- ERROR: target is not provably null
+  | 17 |       Target = Source;  -- ERROR: target is not provably null
   |    |       ^~~~~~~~~~~~~~~~
   |
   note: static analysis determined state 'NonNull' for the move target.

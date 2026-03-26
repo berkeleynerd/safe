@@ -22,16 +22,11 @@ package Safe_Iteration
          if Bank (I) > Max_Val
             Max_Val = Bank (I);
 
-
       return Max_Val;
-
 
    --  Zero_All: sets every element to zero.
    function Zero_All (Bank : out Register_Bank)
 
       for I in Slot
          Bank (I) = 0;
-
-
-
 

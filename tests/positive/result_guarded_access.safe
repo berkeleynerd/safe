@@ -17,16 +17,12 @@ package Result_Guarded_Access
          when False
             Error : Error_Code;
 
-
-
    function Try_Parse (Input : Integer) returns Parse_Result
 
       if Input >= 0
          return (OK = True, Value = Input);
       else
          return (OK = False, Error = 1);
-
-
 
    --  Get_Or_Default: guarded access to variant fields.
    --  The branch on R.OK establishes the discriminant in each arm.
@@ -38,7 +34,4 @@ package Result_Guarded_Access
          return R.Value;   -- legal: R.OK = True established
       else
          return Default;
-
-
-
 

@@ -19,5 +19,3 @@ package NaN_Test
 
       return Temp (X / Y);  -- ERROR: 0.0/0.0 = NaN, cannot narrow
 
-
-

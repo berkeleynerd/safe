@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_observe_requires_access.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_observe_requires_access.safe:16:7: error: observer 'Observer' must be initialized from X.Access
+neg_own_observe_requires_access.safe:15:7: error: observer 'Observer' must be initialized from X.Access
   |
-  | 16 |       Observer : access constant Config = Owner;  -- ERROR: must use Owner.Access
+  | 15 |       Observer : access constant Config = Owner;  -- ERROR: must use Owner.Access
   |    |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   |
   note: local observe uses anonymous access constant and requires an explicit .Access attribute.

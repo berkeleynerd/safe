@@ -6,4 +6,3 @@ package Neg_Named_Number_Unsupported
 
    Limit : constant = 4;
 
-

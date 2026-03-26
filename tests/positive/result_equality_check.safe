@@ -13,10 +13,7 @@ package Result_Equality_Check
 
       return S == 0;
 
-
    function Is_Error (S : Status) returns Boolean
 
       return S != 0;
-
-
 

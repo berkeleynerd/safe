@@ -12,7 +12,3 @@ package Lookup_Pair
          when others
             return (False, 0)
 
-
-
-
-

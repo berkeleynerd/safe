@@ -10,8 +10,5 @@ package Null_Deref_Test
    type Value_Ptr is access Value;
    function Read_Unsafe (P : Value_Ptr) returns Value
 
-
       return P.all;  -- ERROR: P may be null
-
-
 

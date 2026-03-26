@@ -4,4 +4,3 @@ package Client_Constant_Range
 
    type Index is range 0 to Provider_Constant_Int.Max_Count;
 
-

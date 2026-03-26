@@ -15,11 +15,8 @@ package Neg_Write_To_Constant_Index
 
       return Result;
 
-
    function Run
       Data : constant Buffer = Make_Buffer;
 
       Data (1) = 0;
-
-
 

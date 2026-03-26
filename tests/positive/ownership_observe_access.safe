@@ -8,7 +8,6 @@ package Ownership_Observe_Access
    type Config is record
       Rate : Natural;
 
-
    type Config_Ptr is access Config;
 
    function Read_With_Local_Observer
@@ -17,6 +16,4 @@ package Ownership_Observe_Access
       Rate     : Natural;
 
       Rate = Observer.all.Rate;
-
-
 

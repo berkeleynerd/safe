@@ -3,4 +3,3 @@ package Neg_PR113_String_Discriminant
       record
          Value : Integer;
 
-

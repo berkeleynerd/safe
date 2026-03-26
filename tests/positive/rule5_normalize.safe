@@ -22,5 +22,3 @@ package Vector_Normalize
       Result = Long_Float (Value) / 1000.0;
       return Ratio (Result);
 
-
-

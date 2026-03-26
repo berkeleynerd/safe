@@ -14,12 +14,8 @@ package Task_Global_Owner
 
       Shared = Shared + 1;
 
-
    task Worker
 
       loop
          Bump;
-
-
-
 

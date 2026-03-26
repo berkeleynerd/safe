@@ -14,7 +14,6 @@ package Safe_Linked_List
       Value : Integer;
       Next  : Node_Ptr;
 
-
    --  Last_Value: traverses to the tail and returns its value.
    --  The traversal uses a local observer derived from Head.Access.
    function Last_Value (Head : Node_Ptr) returns Integer
@@ -30,7 +29,6 @@ package Safe_Linked_List
             Current = Current.all.Next.Access;
 
       return 0;
-
 
    --  Has_Tail: proves nested null guards before traversing further.
    function Has_Tail (Head : Node_Ptr) returns Boolean
@@ -48,5 +46,4 @@ package Safe_Linked_List
             Current = Current.all.Next.Access;
 
       return False;
-
 

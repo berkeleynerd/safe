@@ -9,5 +9,3 @@ package Constant_Discriminant_Default
    type Result (Active : Boolean = Default_Active) is record
       Value : Integer;
 
-
-

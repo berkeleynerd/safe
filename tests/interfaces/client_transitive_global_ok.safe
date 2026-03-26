@@ -7,6 +7,3 @@ package Client_Transitive_Global_Ok
       loop
          Provider_Transitive_Global.Touch;
 
-
-
-

@@ -8,11 +8,9 @@ package Observe_Requires_Access_Test
    type Config is record
       Rate : Natural;
 
-
    type Config_Ptr is access Config;
 
    function Bad_Observe
       Owner    : Config_Ptr = new ((Rate = 100) as Config);
       Observer : access constant Config = Owner;  -- ERROR: must use Owner.Access
-
 

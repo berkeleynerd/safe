@@ -31,8 +31,6 @@ package Ping_Pong
 
          delay 0.001;
 
-
-
    --  Pong_Task: background task used to keep multiple task bodies in the proof corpus.
    task Pong_Task with Priority = 10
       Received : Message;
@@ -41,7 +39,4 @@ package Ping_Pong
          receive Ping_Ch, Received;
          send Pong_Ch, Received;
          delay 0.001;
-
-
-
 

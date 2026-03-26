@@ -29,7 +29,6 @@ package Safe_Statistics
 
       return Running_Mean;
 
-
    --  Variance: average of squared deviations from the mean.
    function Variance (Data : Sample_Array) returns Long_Float
       M       : Long_Float;

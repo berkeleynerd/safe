@@ -9,14 +9,11 @@ package Bounded_Stack
       Data : Storage;
       Size : Depth;
 
-
    function Reset (S : out Stack)
 
       S.Size = 0
       for I in Slot
          S.Data (I) = 0
-
-
 
    function Push (S : in out Stack; Value : Item)
 
@@ -25,8 +22,6 @@ package Bounded_Stack
          Next_Size = S.Size + 1
          S.Size = Next_Size
          S.Data (Slot (Next_Size)) = Value
-
-
 
    function Pop (S : in out Stack; Value : out Item)
 
@@ -65,8 +60,4 @@ package Bounded_Stack
 
          when others
             Value = 0
-
-
-
-
 

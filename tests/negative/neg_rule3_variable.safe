@@ -14,5 +14,3 @@ package Variable_Div_Test
 
       return Integer (A) / (Integer (B) - Integer (C));  -- ERROR: B - C may be zero
 
-
-

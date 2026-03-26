@@ -6,4 +6,3 @@ package Neg_String_Initializer_Type
 
    Name : constant String = 1;
 
-

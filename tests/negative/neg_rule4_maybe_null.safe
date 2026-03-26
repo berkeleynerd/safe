@@ -21,5 +21,3 @@ package Maybe_Null_Test
       --  If Flag was False, P is still null.
       return P.all;  -- ERROR: P may be null when Flag = False
 
-
-
