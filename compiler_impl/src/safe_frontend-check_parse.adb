@@ -515,12 +515,8 @@ package body Safe_Frontend.Check_Parse is
                   Result.Range_Low := Assoc.Value;
                   Require_Range_Keyword (State);
                   Result.Range_High := Parse_Expression (State);
-                  if FT.To_String (Current (State).Lexeme) = ")" then
-                     Ender := Expect (State, ")");
-                     End_Span := Ender.Span;
-                  else
-                     End_Span := CM.Join (Start_Paren.Span, Result.Range_High.Span);
-                  end if;
+                  Ender := Expect (State, ")");
+                  End_Span := Ender.Span;
                   Closed_Constraint := True;
                   exit;
                end if;
