@@ -1310,8 +1310,6 @@ package body Safe_Frontend.Ada_Emit is
    begin
       if Type_Name = "boolean" then
          return "false";
-      elsif Type_Name = "integer" then
-         return "Long_Long_Integer'First";
       elsif Type_Name = "float" or else Type_Name = "long_float" then
          return "0.0";
       elsif Starts_With (Type_Name, "access ")
@@ -1321,7 +1319,7 @@ package body Safe_Frontend.Ada_Emit is
       then
          return "null";
       end if;
-      return Type_Name & "'First";
+      return Ada_Safe_Name (Type_Name) & "'First";
    end Default_Value_Expr;
 
    function Default_Value_Expr (Info : GM.Type_Descriptor) return String is

@@ -11,8 +11,8 @@ package exclusive_variable
 
    subtype counter is integer (0 to 1_000_000);
 
-   --  Each task has its own private counter variable.
-   --  No variable is shared between Task_A and Task_B.
+   --  Each task has its own private working counter variable.
+   --  The package-global Task_B_Total is updated only by Task_B.
 
    channel sync_ch : counter capacity 1;
    task_b_total : counter = 0;
