@@ -5,16 +5,16 @@
 --   emission. A floating-point convergence condition does not fit either form.
 -- Expected: REJECT loop_variant_not_derivable
 
-package While_Variant_Not_Derivable
+package while_variant_not_derivable
 
-   type Fraction is digits 6 range 0.0 to 1.0;
+   type fraction is digits 6 range 0.0 to 1.0;
 
-   function Converge (Start : Fraction;
-                      Goal  : Fraction) returns Fraction
-      Value : Fraction = Start;
+   function converge (start : fraction;
+                      goal  : fraction) returns fraction
+      value : fraction = start;
 
-      while Value < Goal
-         Value = Fraction ((Long_Float (Value) + Long_Float (Goal)) / 2.0);
+      while value < goal
+         value = fraction ((long_float (value) + long_float (goal)) / 2.0);
 
-      return Value;
+      return value;
 

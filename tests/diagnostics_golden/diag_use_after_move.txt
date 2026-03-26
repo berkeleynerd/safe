@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_use_after_move.safe:24:11: error: dereference of moved access value
   |
-  | 24 |       V = Source.all.Count;  -- ERROR: dereference of moved variable
+  | 24 |       v = source.all.count;  -- ERROR: dereference of moved variable
   |    |           ^~~~~~~~~~
   |
   note: the access value was moved before this dereference.

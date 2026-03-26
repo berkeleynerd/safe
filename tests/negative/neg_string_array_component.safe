@@ -2,8 +2,8 @@
 -- Description: Array component types of String remain outside PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_String_Array_Component
+package neg_string_array_component
 
-   type Slot is range 1 to 4;
-   type Name_Table is array (Slot) of String;
+   type slot is range 1 to 4;
+   type name_table is array (slot) of string;
 

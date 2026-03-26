@@ -1,16 +1,15 @@
 -- Test: neg_own_observe_requires_access
--- Description: Local observe must use the .Access attribute.
+-- Description: Local observe must use the .access attribute.
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4.p101a:ef2d8fd1
 -- Expected: REJECT observe_requires_access
 
-package Observe_Requires_Access_Test
+package observe_requires_access_test
 
-   type Config is record
-      Rate : Natural;
+   type config is record
+      rate : natural;
 
-   type Config_Ptr is access Config;
+   type config_ptr is access config;
 
-   function Bad_Observe
-      Owner    : Config_Ptr = new ((Rate = 100) as Config);
-      Observer : access constant Config = Owner;  -- ERROR: must use Owner.Access
-
+   function bad_observe
+      owner    : config_ptr = new ((rate = 100) as config);
+      observer : access constant config = owner;  -- ERROR: must use owner.access

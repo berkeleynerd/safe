@@ -3,17 +3,17 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.4a.p102a-a:ae729065
 -- Expected: REJECT observe_mutation
 
-package Observe_Move_Test
+package observe_move_test
 
-   type Config is record
-      Rate : Natural;
+   type config is record
+      rate : natural;
 
-   type Config_Ptr is access Config;
+   type config_ptr is access config;
 
-   function Move_While_Observed
-      Owner    : Config_Ptr = new ((Rate = 100) as Config);
-      Target   : Config_Ptr = null;
-      Observer : access constant Config = Owner.Access;
+   function move_while_observed
+      owner    : config_ptr = new ((rate = 100) as config);
+      target   : config_ptr = null;
+      observer : access constant config = owner.access;
 
-      Target = Owner;  -- ERROR: move while observe is active
+      target = owner;  -- ERROR: move while observe is active
 

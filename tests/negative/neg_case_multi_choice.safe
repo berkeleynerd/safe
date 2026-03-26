@@ -2,11 +2,11 @@
 -- Description: Multi-choice case arms are outside the PR11.2 case subset.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_Case_Multi_Choice
+package neg_case_multi_choice
 
-   function Classify (Value : in Integer) returns Integer
+   function classify (value : in integer) returns integer
 
-      case Value
+      case value
          when 1, 2
             return 1;
 

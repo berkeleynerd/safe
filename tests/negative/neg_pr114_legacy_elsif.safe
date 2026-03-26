@@ -2,13 +2,13 @@
 -- Description: PR11.4 requires else if and rejects legacy elsif chains.
 -- Expected: REJECT source_frontend_error
 
-package Neg_PR114_Legacy_Elsif
+package neg_pr114_legacy_elsif
 
-   function Classify (Value : Integer) returns Integer
+   function classify (value : integer) returns integer
 
-      if Value > 0
+      if value > 0
          return 1;
-      elsif Value < 0 then
+      elsif value < 0 then
          return -1;
       else
          return 0;

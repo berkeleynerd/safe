@@ -12,6 +12,9 @@ do not run a separate verifier, attach contracts to their code, or hope that a
 prover converges. The safety guarantee is a property of compilation, not an
 optional add-on.
 
+The admitted source surface is fully lowercase, with underscores as the word
+separator for multiword spellings.
+
 ## Developer Experience Doctrine
 
 ### Guards are contracts
@@ -26,17 +29,17 @@ control flow.
 When a programmer writes:
 
 ```
-function Insert (Table : store.Map, k : string, v : string) returns boolean
+function insert (table : store.map, k : string, v : string) returns boolean
    if k.length == 0 or k.length > max_key_len
       return false
-   if store.length (Table) >= max_entries
+   if store.length (table) >= max_entries
       return false
-   store.insert (Table, k, v)
+   store.insert (table, k, v)
    return true
 ```
 
 The compiler sees the early returns as path constraints. After the guards pass,
-it knows `k.length` is in `1..max_key_len` and `store.length(Table)` is less
+it knows `k.length` is in `1..max_key_len` and `store.length(table)` is less
 than `max_entries`. Those facts close the proof obligations on the `insert`
 call without the programmer writing a single annotation.
 
@@ -74,15 +77,15 @@ report what failed — they must suggest what to do about it. The target quality
 level is:
 
 ```
-safedb.safe:14:7: error: cannot prove store.length(Table) < max_entries
+safedb.safe:14:7: error: cannot prove store.length(table) < max_entries
   after insert on line 16
   |
-  | 14 |      store.insert (Table, k, v)
+  | 14 |      store.insert (table, k, v)
   |    |      ^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   help: add a guard before this call:
   |
-  | 13 |      if store.length (Table) >= max_entries
+  | 13 |      if store.length (table) >= max_entries
   | 14 |         return false
   |
 ```
@@ -423,8 +426,8 @@ VSCode syntax highlighting, diagnostics LSP shim, Rosetta sample corpus.
 First real-program feedback loop.
 
 **PR11.2-PR11.7**: language surface expansion and syntax stabilization. Strings,
-case statements, discriminated records, syntax proposals, block syntax, reference
-surface experiments. First proof checkpoint after PR11.3.
+case statements, discriminated records, syntax proposals, block syntax, and the
+lowercase-source cutover. First proof checkpoint after PR11.3.
 
 **PR11.8-PR11.8g**: numeric and value-type model reset. Unified integer type
 (superseding the earlier three-tier model), simplified predefined type names,

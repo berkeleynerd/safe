@@ -70,9 +70,9 @@ interleaved_item ::=
 7. A type may be public in name but private in structure:
 
 ```
-public type T is private record
-    Field1 : Type1;
-    Field2 : Type2;
+public type t is private record
+    field1 : type1;
+    field2 : type2;
 end record;
 ```
 
@@ -162,7 +162,7 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.2.7 Dot Notation for Attributes
 
-25. All attribute references in Safe use dot notation (`X.First`) instead of tick notation (`X'First`). See Section 2, §2.4.1 for the complete resolution rule.
+25. All attribute references in Safe use dot notation (`x.first`) instead of tick notation (`X'First`). See Section 2, §2.4.1 for the complete resolution rule.
 
 26. When `X.Name` appears in source, the implementation resolves it as follows:
 
@@ -426,58 +426,53 @@ end Navigation;
 
 **Conforming Example.**
 
-```ada
+```safe
 -- sensors.safe
 
-package Sensors is
+package sensors
 
-    public type Reading is range 0 .. 4095;
-    public type Channel_Id is range 0 .. 7;
-    public subtype Channel_Count is Integer range 1 .. 8;
+    public type reading is range 0 to 4095;
+    public type channel_id is range 0 to 7;
+    public subtype channel_count is integer range 1 to 8;
 
-    type Calibration is private record
-        Scale  : Float = 1.0;
-        Bias   : Integer = 0;
-    end record;
+    type calibration is private record
+        scale  : float = 1.0;
+        bias   : integer = 0;
 
-    Cal_Table : array (Channel_Id) of Calibration =
-        (others = (Scale = 1.0, Bias = 0));
+    cal_table : array (channel_id) of calibration =
+        (others = (scale = 1.0, bias = 0));
 
-    Initialized : Boolean = False;
+    initialized : boolean = false;
 
-    public function Is_Initialized return Boolean
-    is (Initialized);
+    public function is_initialized returns boolean
 
-    public procedure Initialize is
-    begin
-        Default_Cal : constant Calibration = (Scale = 1.0, Bias = 0);
-        -- Interleaved declaration after begin
-        for I in Channel_Id.First .. Channel_Id.Last loop
-            -- Dot notation for attributes: Channel_Id.First, Channel_Id.Last
-            Cal_Table (I) = Default_Cal;
-        end loop;
-        Initialized = True;
-    end Initialize;
+        return initialized;
 
-    public function Average (A, B : Reading) return Reading is
-    begin
-        return (A + B) / 2;
+    public procedure initialize
+        default_cal : constant calibration = (scale = 1.0, bias = 0);
+        -- Interleaved declaration near the top of the body
+        for i in channel_id.first .. channel_id.last loop
+            -- Dot notation for attributes: channel_id.first, channel_id.last
+            cal_table (i) = default_cal;
+        initialized = true;
+
+    public function average (a, b : reading) returns reading
+
+        return (a + b) / 2;
         -- D27 Rule 1: wide intermediate, max (4095+4095)/2 = 4095
         -- D27 Rule 3(b): literal 2 is a static nonzero expression
         -- D27 proof: result in 0..4095
-    end Average;
 
-    public function Scale (R : Reading; Divisor : Channel_Count) return Integer is
-    begin
-        return Integer(R) / Divisor;
+    public function scale (r : reading; divisor : channel_count) returns integer
+
+        return integer (r) / divisor;
         -- D27 Rule 3(a): Channel_Count range 1..8 excludes zero
         -- D27 proof: division is safe
-    end Scale;
 
-    function Read_ADC (Channel : Channel_Id) return Reading is separate;
+    function read_adc (channel : channel_id) returns reading is separate;
 
-end Sensors;
 ```
+
 
 ---
 

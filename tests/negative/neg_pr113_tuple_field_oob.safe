@@ -1,4 +1,4 @@
-package Neg_PR113_Tuple_Field_Oob
-   Pair : (Boolean, Integer) = (True, 1);
-   Value : Integer = Pair.3;
+package neg_pr113_tuple_field_oob
+   pair : (boolean, integer) = (true, 1);
+   value : integer = pair.3;
 

@@ -7,33 +7,33 @@
 -- Clause: SAFE@468cf72:spec/05-assurance.md#5.4.1.p33:0fc25399
 -- Expected: ACCEPT
 
-package Exclusive_Variable
+package exclusive_variable
 
-   type Counter is range 0 to 1_000_000;
+   type counter is range 0 to 1_000_000;
 
    --  Each task has its own private counter variable.
    --  No variable is shared between Task_A and Task_B.
 
-   channel Sync_Ch : Counter capacity 1;
+   channel sync_ch : counter capacity 1;
 
    --  Task_A: owns Counter_A exclusively. Sends result via channel.
-   task Task_A
-      Counter_A : Counter = 0;
+   task task_a
+      counter_a : counter = 0;
 
       loop
-         Counter_A = Counter_A + 1;
-         if Counter_A >= 1000
-            send Sync_Ch, Counter_A;
-            Counter_A = 0;
+         counter_a = counter_a + 1;
+         if counter_a >= 1000
+            send sync_ch, counter_a;
+            counter_a = 0;
 
    --  Task_B: owns Counter_B exclusively. Receives via channel.
-   task Task_B
-      Counter_B : Counter = 0;
-      Received  : Counter;
+   task task_b
+      counter_b : counter = 0;
+      received  : counter;
 
       loop
-         receive Sync_Ch, Received;
-         Counter_B = Counter_B + Received;
-         if Counter_B > 500_000
-            Counter_B = 0;
+         receive sync_ch, received;
+         counter_b = counter_b + received;
+         if counter_b > 500_000
+            counter_b = 0;
 

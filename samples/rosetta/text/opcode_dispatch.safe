@@ -1,8 +1,8 @@
-package Opcode_Dispatch
+package opcode_dispatch
 
-   function Render (Opcode : in Integer) returns String
+   function render (opcode : in integer) returns string
 
-      case Opcode
+      case opcode
          when 0
             return "nop"
 

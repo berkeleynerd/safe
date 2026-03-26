@@ -2,13 +2,13 @@
 -- Description: String formals in mode in are accepted and can round-trip to a String result.
 -- Expected: ACCEPT
 
-package PR112_String_Param
+package pr112_string_param
 
-   function Echo (Name : in String) returns String
+   function echo (name : in string) returns string
 
-      return Name;
+      return name;
 
-   function Greeting returns String
+   function greeting returns string
 
-      return Echo ("hello");
+      return echo ("hello");
 

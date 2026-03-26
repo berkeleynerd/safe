@@ -6,9 +6,15 @@
 
 2. All syntax, legality rules, static semantics, dynamic semantics, and implementation requirements of 8652:2023 apply to Safe programs except where explicitly excluded or modified by this specification.
 
-3. A construct that appears in 8652:2023 but is not mentioned in Section 2 (Restrictions and Modifications) is retained in Safe with its 8652:2023 semantics, subject to the notation changes specified in Section 2, §2.4 (dot notation for attributes, type annotation syntax).
+3. Safe source spellings are case-sensitive and lowercase-only. This overrides
+   Ada's case-insensitive source convention for identifiers, reserved words,
+   predefined names, admitted attribute selectors, and admitted aspect / pragma
+   names. Uppercase `E` in exponents and uppercase `A` .. `F` in based numerals
+   remain permitted as part of numeric literal syntax.
 
-4. **Retained feature set summary.** The following features of 8652:2023 are explicitly retained and form the core of the Safe language:
+4. A construct that appears in 8652:2023 but is not mentioned in Section 2 (Restrictions and Modifications) is retained in Safe with its 8652:2023 semantics, subject to the notation changes specified in Section 2, §2.4 (dot notation for attributes, type annotation syntax) and the lowercase source-spelling rule above.
+
+5. **Retained feature set summary.** The following features of 8652:2023 are explicitly retained and form the core of the Safe language:
 
    (a) All four numeric type families: signed integer, modular integer, floating point, fixed point.
 
@@ -44,7 +50,7 @@
 
    (r) Target name symbols (`@` in assignment).
 
-5. **Cross-reference.** The following table maps 8652:2023 sections to Safe modifications:
+6. **Cross-reference.** The following table maps 8652:2023 sections to Safe modifications:
 
 | 8652:2023 Section | Safe Treatment |
 |-------------------|---------------|
@@ -65,4 +71,4 @@
 | Annex B | Excluded (D24) |
 | Annexes C–J | Mostly excluded (Section 2, §2.1.13) |
 
-6. Any feature of 8652:2023 not addressed by this specification or its cross-referenced sections is retained with its standard semantics.
+7. Any feature of 8652:2023 not addressed by this specification or its cross-referenced sections is retained with its standard semantics.

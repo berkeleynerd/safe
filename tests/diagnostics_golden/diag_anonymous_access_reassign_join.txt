@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_anon_reassign_join.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_anon_reassign_join.safe:22:7: error: anonymous access 'Ref' may only be assigned at its declaration
+neg_own_anon_reassign_join.safe:22:7: error: anonymous access 'ref' may only be assigned at its declaration
   |
-  | 22 |       Ref = Other;  -- ERROR: merge must not reset init-only tracking
+  | 22 |       ref = other;  -- ERROR: merge must not reset init-only tracking
   |    |       ^~~~~~~~~~~~
   |
   note: borrow and observe locals are initialization-only.

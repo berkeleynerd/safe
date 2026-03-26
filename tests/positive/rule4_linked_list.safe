@@ -5,45 +5,45 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package Safe_Linked_List
+package safe_linked_list
 
-   type Node;
-   type Node_Ptr is access Node;
+   type node;
+   type node_ptr is access node;
 
-   type Node is record
-      Value : Integer;
-      Next  : Node_Ptr;
+   type node is record
+      value : integer;
+      next  : node_ptr;
 
    --  Last_Value: traverses to the tail and returns its value.
    --  The traversal uses a local observer derived from Head.Access.
-   function Last_Value (Head : Node_Ptr) returns Integer
+   function last_value (head : node_ptr) returns integer
 
-      if Head == null
+      if head == null
          return 0;
 
-      var Current : access constant Node = Head.Access;
-      while Current != null
-         if Current.all.Next == null
-            return Current.all.Value;
+      var current : access constant node = head.access;
+      while current != null
+         if current.all.next == null
+            return current.all.value;
          else
-            Current = Current.all.Next.Access;
+            current = current.all.next.access;
 
       return 0;
 
    --  Has_Tail: proves nested null guards before traversing further.
-   function Has_Tail (Head : Node_Ptr) returns Boolean
+   function has_tail (head : node_ptr) returns boolean
 
-      if Head == null
-         return False;
+      if head == null
+         return false;
 
-      var Current : access constant Node = Head.Access;
-      while Current != null
-         if Current.all.Next == null
-            return False;
-         else if Current.all.Next.all.Next == null
-            return True;
+      var current : access constant node = head.access;
+      while current != null
+         if current.all.next == null
+            return false;
+         else if current.all.next.all.next == null
+            return true;
          else
-            Current = Current.all.Next.Access;
+            current = current.all.next.access;
 
-      return False;
+      return false;
 

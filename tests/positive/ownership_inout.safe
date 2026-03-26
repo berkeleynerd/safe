@@ -3,18 +3,18 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package Ownership_Inout
+package ownership_inout
 
-   type Payload is record
-      Value : Integer;
+   type payload is record
+      value : integer;
 
-   type Payload_Ptr is access Payload;
+   type payload_ptr is access payload;
 
-   function Consume (Ref : in out Payload_Ptr)
+   function consume (ref : in out payload_ptr)
       return;
 
-   function Use_Inout
-      Owner : Payload_Ptr = new ((Value = 5) as Payload);
+   function use_inout
+      owner : payload_ptr = new ((value = 5) as payload);
 
-      Consume (Owner);
+      consume (owner);
 

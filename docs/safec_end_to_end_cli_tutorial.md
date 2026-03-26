@@ -57,30 +57,30 @@ mkdir -p "$WORK/out" "$WORK/iface" "$WORK/ada"
 The script below writes this package:
 
 ```safe
-package Typed_Channel_Demo
+package typed_channel_demo
 
-   type Message is range 0 to 1000;
+   type message is range 0 to 1000;
 
-   channel Data_Ch : Message capacity 1;
-   Result : Message = 0;
+   channel data_ch : message capacity 1;
+   result : message = 0;
 
-   task Producer
+   task producer
       loop
-         send Data_Ch, 41
+         send data_ch, 41
          delay 0.05
 
-   task Consumer
+   task consumer
       loop
-         var Input : Message
-         receive Data_Ch, Input
-         Result = Input + 1
+         var input : message
+         receive data_ch, input
+         result = input + 1
 ```
 
 Why this is useful:
 
-- `Data_Ch` is a real typed channel carrying `Message`
+- `data_ch` is a real typed channel carrying `message`
 - the emitted Ada includes `gnat.adc`, so the build uses `pragma Profile(Jorvik);`
-- the package exposes `Result`, so a tiny Ada driver can print the observed
+- the package exposes `result`, so a tiny Ada driver can print the observed
   channel output
 
 ## 4. Write the Automation Script
@@ -105,24 +105,24 @@ SOURCE="$SCRIPT_DIR/typed_channel_demo.safe"
 mkdir -p "$OUT_DIR" "$IFACE_DIR" "$ADA_DIR"
 
 cat > "$SOURCE" <<'SAFE'
-package Typed_Channel_Demo
+package typed_channel_demo
 
-   type Message is range 0 to 1000;
+   type message is range 0 to 1000;
 
-   channel Data_Ch : Message capacity 1;
+   channel data_ch : message capacity 1;
 
-   Result : Message = 0;
+   result : message = 0;
 
-   task Producer
+   task producer
       loop
-         send Data_Ch, 41
+         send data_ch, 41
          delay 0.05
 
-   task Consumer
+   task consumer
       loop
-         var Input : Message
-         receive Data_Ch, Input
-         Result = Input + 1
+         var input : message
+         receive data_ch, input
+         result = input + 1
 SAFE
 
 "$SAFEC" check "$SOURCE"

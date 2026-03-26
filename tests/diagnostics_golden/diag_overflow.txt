@@ -5,15 +5,15 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule1_overflow.safe:18:14: error: intermediate overflow in integer expression
   |
-  | 18 |       return A * B;  -- ERROR: intermediate may exceed 64-bit range
+  | 18 |       return a * b;  -- ERROR: intermediate may exceed 64-bit range
   |    |              ^~~~~
   |
-  note: static range analysis determines that the subexpression (A * B)
+  note: static range analysis determines that the subexpression (a * b)
         has range [0 .. 99_999_999_999_999_980_000_000_000_000_001]
         which exceeds the 64-bit signed range
         [-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807].
-  note: A has range [0 .. 9_999_999_999_999_999]
-  note: B has range [0 .. 9_999_999_999_999_999]
+  note: a has range [0 .. 9_999_999_999_999_999]
+  note: b has range [0 .. 9_999_999_999_999_999]
   note: rule: D27 Rule 1 (Wide Intermediate Arithmetic)
   note: per spec/02-restrictions.md section 2.8.1 paragraph 129:
         "If a conforming implementation cannot establish, by sound static

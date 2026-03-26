@@ -1,5 +1,5 @@
-package Neg_PR116_Mixed_Named_End
+package neg_pr116_mixed_named_end
 
-   function Broken returns Integer
+   function broken returns integer
       return 1
-   end Broken
+   end broken

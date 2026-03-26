@@ -2,14 +2,14 @@
 -- Description: Writes through a selected part rooted in a constant object must be rejected.
 -- Expected: REJECT write_to_constant
 
-package Neg_Write_To_Constant_Field
+package neg_write_to_constant_field
 
-   type Pair is record
-      Left  : Integer;
-      Right : Integer;
+   type pair is record
+      left  : integer;
+      right : integer;
 
-   function Run
-      Value : constant Pair = ((Left = 1, Right = 2) as Pair);
+   function run
+      value : constant pair = ((left = 1, right = 2) as pair);
 
-      Value.Left = 3;
+      value.left = 3;
 

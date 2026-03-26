@@ -1,7 +1,7 @@
-package Neg_PR113_Incomplete_Constraints
-   type Packet (Active : Boolean = True, Kind : Character = 'A', Count : Integer = 0) is
+package neg_pr113_incomplete_constraints
+   type packet (active : boolean = true, kind : character = 'A', count : integer = 0) is
       record
-         Value : Integer;
+         value : integer;
 
-   P : Packet (True, 'A') = (Value = 1);
+   p : packet (true, 'A') = (value = 1);
 

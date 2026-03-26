@@ -4,18 +4,18 @@
 --   object declarations, and literal/identifier returns without arithmetic.
 -- Expected: ACCEPT
 
-package Emitter_Surface_Record
+package emitter_surface_record
 
-   type Counter is range 0 to 10;
+   type counter is range 0 to 10;
 
-   type Pair is record
-      Left  : Counter;
-      Right : Counter;
+   type pair is record
+      left  : counter;
+      right : counter;
 
-   Seed : Counter = 3;
+   seed : counter = 3;
 
-   function Current returns Counter
-      Value : Counter = Seed;
+   function current returns counter
+      value : counter = seed;
 
-      return Value;
+      return value;
 

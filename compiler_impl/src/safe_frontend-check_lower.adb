@@ -75,15 +75,15 @@ package body Safe_Frontend.Check_Lower is
 
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
-      Type_Env.Include ("Integer", BT.Integer_Type);
-      Type_Env.Include ("Natural", BT.Natural_Type);
-      Type_Env.Include ("Boolean", BT.Boolean_Type);
-      Type_Env.Include ("Character", BT.Character_Type);
-      Type_Env.Include ("String", BT.String_Type);
+      Type_Env.Include ("integer", BT.Integer_Type);
+      Type_Env.Include ("natural", BT.Natural_Type);
+      Type_Env.Include ("boolean", BT.Boolean_Type);
+      Type_Env.Include ("character", BT.Character_Type);
+      Type_Env.Include ("string", BT.String_Type);
       Type_Env.Include ("result", BT.Result_Type);
-      Type_Env.Include ("Float", BT.Float_Type);
-      Type_Env.Include ("Long_Float", BT.Long_Float_Type);
-      Type_Env.Include ("Duration", BT.Duration_Type);
+      Type_Env.Include ("float", BT.Float_Type);
+      Type_Env.Include ("long_float", BT.Long_Float_Type);
+      Type_Env.Include ("duration", BT.Duration_Type);
    end Add_Builtins;
 
    function Resolve_Type
@@ -138,9 +138,9 @@ package body Safe_Frontend.Check_Lower is
       if Expr = null then
          return BT.Integer_Type;
       elsif Expr.Kind = CM.Expr_String then
-         return Resolve_Type ("String", Type_Env);
+         return Resolve_Type ("string", Type_Env);
       elsif Expr.Kind = CM.Expr_Char then
-         return Resolve_Type ("Character", Type_Env);
+         return Resolve_Type ("character", Type_Env);
       elsif Expr.Kind = CM.Expr_Real then
          if Name'Length > 0 and then Type_Env.Contains (Name) then
             return Type_Env.Element (Name);
@@ -738,7 +738,7 @@ package body Safe_Frontend.Check_Lower is
            new CM.Expr_Node'
              (Kind      => CM.Expr_Int,
               Span      => Range_Info.Span,
-              Type_Name => FT.To_UString ("Integer"),
+              Type_Name => FT.To_UString ("integer"),
               Text      => FT.To_UString (Trimmed ((if Loop_Type.Has_Low then Loop_Type.Low else INT64_LOW))),
               Int_Value => CM.Wide_Integer ((if Loop_Type.Has_Low then Loop_Type.Low else INT64_LOW)),
               others    => <>);
@@ -746,7 +746,7 @@ package body Safe_Frontend.Check_Lower is
            new CM.Expr_Node'
              (Kind      => CM.Expr_Int,
               Span      => Range_Info.Span,
-              Type_Name => FT.To_UString ("Integer"),
+              Type_Name => FT.To_UString ("integer"),
               Text      => FT.To_UString (Trimmed ((if Loop_Type.Has_High then Loop_Type.High else INT64_HIGH))),
               Int_Value => CM.Wide_Integer ((if Loop_Type.Has_High then Loop_Type.High else INT64_HIGH)),
               others    => <>);
@@ -764,7 +764,7 @@ package body Safe_Frontend.Check_Lower is
         new CM.Expr_Node'
           (Kind      => CM.Expr_Int,
            Span      => Span,
-           Type_Name => FT.To_UString ("Integer"),
+           Type_Name => FT.To_UString ("integer"),
            Text      => FT.To_UString (Trimmed (Value)),
            Int_Value => CM.Wide_Integer (Value),
            others    => <>);
@@ -786,7 +786,7 @@ package body Safe_Frontend.Check_Lower is
    function Ident_Expr
      (Name      : String;
       Span      : FT.Source_Span;
-      Type_Name : String := "Integer") return CM.Expr_Access is
+      Type_Name : String := "integer") return CM.Expr_Access is
    begin
       return
         new CM.Expr_Node'
@@ -803,10 +803,10 @@ package body Safe_Frontend.Check_Lower is
       Right : CM.Expr_Access;
       Span  : FT.Source_Span) return CM.Expr_Access
    is
-      Result_Type : FT.UString := FT.To_UString ("Integer");
+      Result_Type : FT.UString := FT.To_UString ("integer");
    begin
       if Op in "<" | "<=" | ">" | ">=" | "==" | "!=" | "and then" then
-         Result_Type := FT.To_UString ("Boolean");
+         Result_Type := FT.To_UString ("boolean");
       elsif Left /= null and then Has_Text (Left.Type_Name) then
          Result_Type := Left.Type_Name;
       end if;
@@ -1863,7 +1863,7 @@ package body Safe_Frontend.Check_Lower is
             Call_Op.Kind := GM.Op_Delay;
             Call_Op.Span := Stmt.Span;
             Call_Op.Value := Lower_Expr (Stmt.Value, Visible_Types, Type_Env);
-            Call_Op.Type_Name := FT.To_UString ("Duration");
+            Call_Op.Type_Name := FT.To_UString ("duration");
             Call_Op.Ownership_Effect := GM.Ownership_None;
             Add_Op (Work, UString_Value (Current_Id), Call_Op);
             return Current_Id;

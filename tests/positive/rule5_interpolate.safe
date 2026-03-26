@@ -6,10 +6,10 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
 -- Expected: ACCEPT
 
-package Safe_Interpolate
+package safe_interpolate
 
-   type Param is digits 6 range 0.0 to 1.0;
-   type Value is digits 6 range -1000.0 to 1000.0;
+   type param is digits 6 range 0.0 to 1.0;
+   type value is digits 6 range -1000.0 to 1000.0;
 
    --  Lerp: linear interpolation A + T * (B - A).
    --  T in 0.0..1.0, A and B in -1000..1000.
@@ -18,13 +18,13 @@ package Safe_Interpolate
    --  A + T * (B - A) is in -3000..3000 worst case,
    --  but since T in [0,1], result is in [min(A,B)..max(A,B)].
    --  Result is finite and within Value range.
-   function Lerp (A, B : Value; T : Param) returns Value
-      Result : Long_Float;
+   function lerp (a, b : value; t : param) returns value
+      result : long_float;
 
-      Result = (
-         Long_Float (A)
-         + Long_Float (T) * (Long_Float (B) - Long_Float (A))
+      result = (
+         long_float (a)
+         + long_float (t) * (long_float (b) - long_float (a))
       );
       --  Narrowing point (return): result is in -1000..1000 (bounded).
-      return Value (Result);
+      return value (result);
 

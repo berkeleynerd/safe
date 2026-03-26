@@ -7,7 +7,7 @@
   "meta": {
     "note": "Each node definition maps a BNF production to a PascalCase AST node type. Fields specify name, type, and whether the field is optional. source_section references the spec section defining the production. clause_ids (where present) reference normative clauses from clauses/clauses.yaml that the node directly implements.",
     "type_conventions": {
-      "Identifier": "String -- a Safe identifier (letter followed by letters, digits, underscores)",
+      "Identifier": "String -- a lowercase Safe identifier (lowercase letter followed by lowercase letters, digits, underscores)",
       "NodeRef<T>": "Non-null reference to an AST node of type T",
       "Option<T>": "Nullable reference -- field may be absent",
       "List<T>": "Ordered sequence of zero or more AST nodes of type T",

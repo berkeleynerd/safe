@@ -2,12 +2,12 @@
 -- Description: Statement labels before assignments remain unsupported.
 -- Expected: REJECT unsupported_source_construct
 
-package Statement_Label_Assignment_Test
+package statement_label_assignment_test
 
-   type Counter is range 0 to 10;
+   type counter is range 0 to 10;
 
-   function Main
-      Value : Counter = 0;
+   function main
+      value : counter = 0;
 
-      Label_1: Value = 1;
+      label_1: value = 1;
 

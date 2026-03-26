@@ -1,5 +1,5 @@
-package Provider_Channel
+package provider_channel
 
-   public type Message is range 0 to 10;
-   public channel Data_Ch : Message capacity 4;
+   public type message is range 0 to 10;
+   public channel data_ch : message capacity 4;
 

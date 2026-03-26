@@ -5,14 +5,14 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: REJECT division_by_zero
 
-package Expression_Div_Test
+package expression_div_test
 
-   type Value is range -100 to 100;
+   type value is range -100 to 100;
 
    --  Compute: divides by X^2 - Y^2 which is zero when |X| = |Y|.
-   function Compute (N : Value; X, Y : Value) returns Integer
-      Denom : Integer;
+   function compute (n : value; x, y : value) returns integer
+      denom : integer;
 
-      Denom = Integer (X) * Integer (X) - Integer (Y) * Integer (Y);
-      return Integer (N) / Denom;  -- ERROR: Denom may be zero
+      denom = integer (x) * integer (x) - integer (y) * integer (y);
+      return integer (n) / denom;  -- ERROR: Denom may be zero
 

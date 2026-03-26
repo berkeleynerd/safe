@@ -1,18 +1,18 @@
-package Provider_Imported_Call_Ownership
+package provider_imported_call_ownership
 
-   public type Payload is record
-      Value : Integer;
+   public type payload is record
+      value : integer;
 
-   public type Payload_Ptr is access Payload;
+   public type payload_ptr is access payload;
 
-   public function Bump (Ref : access Payload)
+   public function bump (ref : access payload)
 
-      Ref.all.Value = Ref.all.Value + 1;
+      ref.all.value = ref.all.value + 1;
 
-   public function Read_Value (Ref : access constant Payload) returns Integer
+   public function read_value (ref : access constant payload) returns integer
 
-      return Ref.all.Value;
+      return ref.all.value;
 
-   public function Consume (Ref : in out Payload_Ptr)
+   public function consume (ref : in out payload_ptr)
       return;
 

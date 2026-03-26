@@ -5,10 +5,10 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule4_null_deref.safe:13:14: error: dereference of possibly null access value
   |
-  | 13 |       return P.all;  -- ERROR: P may be null
+  | 13 |       return p.all;  -- ERROR: P may be null
   |    |              ^~~~~
   |
-  note: P is of type Value_Ptr (access Value), which does not exclude null.
+  note: p is of type value_ptr (access value), which does not exclude null.
   note: no null check precedes this dereference on all paths reaching
         this program point.
   note: rule: D27 Rule 4 (Not-Null Dereference)
@@ -18,7 +18,7 @@ neg_rule4_null_deref.safe:13:14: error: dereference of possibly null access valu
         dereference where the access subtype at the point of dereference
         does not exclude null."
   suggestion: use a "not null access" subtype, or add an explicit null check:
-        if P /= null then
-           return P.all;
+        if p /= null then
+           return p.all;
         end if;
 ------------------------------------------------------------------------

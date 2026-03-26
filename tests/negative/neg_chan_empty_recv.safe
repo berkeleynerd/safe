@@ -6,18 +6,18 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p15:b5b29b0e
 -- Expected: REJECT channel_deadlock
 
-package Empty_Recv_Test
+package empty_recv_test
 
-   type Msg is range 0 to 255;
+   type msg is range 0 to 255;
 
    --  No_Sender_Ch: declared but no task ever sends to it.
-   channel No_Sender_Ch : Msg capacity 1;
+   channel no_sender_ch : msg capacity 1;
 
    --  Receiver_Task: blocks forever waiting for data on an
    --  always-empty channel.
-   task Receiver_Task
-      V : Msg;
+   task receiver_task
+      v : msg;
 
       loop
-         receive No_Sender_Ch, V;  -- ERROR: no sender exists for this channel
+         receive no_sender_ch, v;  -- ERROR: no sender exists for this channel
 

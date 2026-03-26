@@ -1,7 +1,7 @@
-package Neg_PR113_Variant_Multi_Choice
-   type Packet (Kind : Character = 'A') is
+package neg_pr113_variant_multi_choice
+   type packet (kind : character = 'A') is
       record
-         case Kind
+         case kind
             when 'A', 'B'
-               Value : Integer;
+               value : integer;
 

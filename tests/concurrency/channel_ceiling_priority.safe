@@ -4,27 +4,27 @@
 --   helper subprogram; the local Bronze ceiling should use the max priority.
 -- Expected: ACCEPT
 
-package Channel_Ceiling_Priority
+package channel_ceiling_priority
 
-   type Message is range 0 to 1_000;
+   type message is range 0 to 1_000;
 
-   channel Data_Ch : Message capacity 2;
+   channel data_ch : message capacity 2;
 
-   function Push (Value : Message)
+   function push (value : message)
 
-      send Data_Ch, Value;
+      send data_ch, value;
 
-   task Fast with Priority = 20
-      Next : Message = 0;
-
-      loop
-         Push (Next);
-         Next = Next + 1;
-
-   task Slow with Priority = 10
-      Next : Message = 100;
+   task fast with priority = 20
+      next : message = 0;
 
       loop
-         Push (Next);
-         Next = Next + 1;
+         push (next);
+         next = next + 1;
+
+   task slow with priority = 10
+      next : message = 100;
+
+      loop
+         push (next);
+         next = next + 1;
 

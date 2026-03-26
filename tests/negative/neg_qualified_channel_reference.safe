@@ -4,14 +4,14 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p28:ea6bd13c
 -- Expected: REJECT source_frontend_error
 
-with Remote_Package;
+with remote_package;
 
-package Qualified_Channel_Reference_Test
+package qualified_channel_reference_test
 
-   type Message is range 0 to 100;
+   type message is range 0 to 100;
 
-   task Worker
+   task worker
 
       loop
-         send Remote_Package.Data_Ch, 1;
+         send remote_package.data_ch, 1;
 

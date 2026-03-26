@@ -2,11 +2,11 @@
 -- Description: Case on String remains outside PR11.2.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_Case_On_String
+package neg_case_on_string
 
-   function Lookup (Name : in String) returns Integer
+   function lookup (name : in string) returns integer
 
-      case Name
+      case name
          when 'a'
             return 1;
 

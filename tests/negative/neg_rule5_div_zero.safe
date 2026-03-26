@@ -6,16 +6,16 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139d:56f1f36b
 -- Expected: REJECT fp_division_by_zero
 
-package FP_Div_Zero_Test
+package fp_div_zero_test
 
-   type Measurement is digits 6 range -1000.0 to 1000.0;
+   type measurement is digits 6 range -1000.0 to 1000.0;
 
    --  Normalize: divides Value by Scale without checking Scale != 0.0.
    --  If Scale is 0.0, the result is +/- infinity (IEEE 754).
    --  Infinity cannot survive the narrowing to Measurement.
-   function Normalize (Value : Measurement;
-                       Scale : Measurement) returns Measurement
+   function normalize (value : measurement;
+                       scale : measurement) returns measurement
 
-      return Measurement (Long_Float (Value) / Long_Float (Scale));
+      return measurement (long_float (value) / long_float (scale));
       -- ERROR: Scale may be 0.0, yielding infinity
 

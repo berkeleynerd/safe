@@ -1,12 +1,12 @@
-with Provider_Imported_Call_Ownership;
+with provider_imported_call_ownership;
 
-package Client_Imported_Borrow_Observe
+package client_imported_borrow_observe
 
-   function Run
-      Owner : Provider_Imported_Call_Ownership.Payload_Ptr = new ((Value = 5) as Provider_Imported_Call_Ownership.Payload);
-      Seen  : Integer;
+   function run
+      owner : provider_imported_call_ownership.payload_ptr = new ((value = 5) as provider_imported_call_ownership.payload);
+      seen  : integer;
 
-      Provider_Imported_Call_Ownership.Bump (Owner);
-      Seen = Provider_Imported_Call_Ownership.Read_Value (Owner);
-      Owner.all.Value = Seen;
+      provider_imported_call_ownership.bump (owner);
+      seen = provider_imported_call_ownership.read_value (owner);
+      owner.all.value = seen;
 

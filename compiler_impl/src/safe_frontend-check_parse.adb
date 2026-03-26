@@ -2278,7 +2278,7 @@ package body Safe_Frontend.Check_Parse is
               (CM.Source_Frontend_Error
                  (Path    => Path_String (State),
                   Span    => Current (State).Span,
-                  Message => "only `Priority` is supported in task aspect clauses"));
+                  Message => "only `priority` is supported in task aspect clauses"));
          end if;
          Advance (State);
          Require (State, "=");

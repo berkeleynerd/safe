@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_double_move.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_double_move.safe:22:7: error: use of moved value 'Source'
+neg_own_double_move.safe:22:7: error: use of moved value 'source'
   |
-  | 22 |       Target2 = Source;  -- ERROR: Source has already been moved
+  | 22 |       target2 = source;  -- ERROR: Source has already been moved
   |    |       ^~~~~~~~~~~~~~~~~
   |
   note: the source was already moved earlier on this path.

@@ -6,14 +6,14 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.6.p53:897d5577
 -- Expected: ACCEPT
 
-package Task_Priority_Delay
+package task_priority_delay
 
-   task Worker with Priority = 5
-      Ticks : Natural = 0;
+   task worker with priority = 5
+      ticks : natural = 0;
 
       loop
          delay 0.25;
-         Ticks = Ticks + 1;
-         if Ticks > 1_000
-            Ticks = 0;
+         ticks = ticks + 1;
+         if ticks > 1_000
+            ticks = 0;
 

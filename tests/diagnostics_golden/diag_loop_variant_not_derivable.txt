@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot derive a supported Loop_Variant from this while condition
   |
-  | 16 |       while Value < Goal
+  | 16 |       while value < goal
   |    |             ^~~~~~~~~~~~
   |
   note: supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions.

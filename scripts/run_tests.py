@@ -188,6 +188,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "negative" / "neg_while_variant_not_derivable.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_loop_variant_not_derivable.txt",
     ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr117_uppercase_identifier.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_lowercase_spelling.txt",
+    ),
 ]
 
 

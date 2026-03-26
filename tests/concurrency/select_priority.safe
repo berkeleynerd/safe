@@ -7,51 +7,51 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p35:2ad6e64f
 -- Expected: ACCEPT
 
-package Select_Priority
+package select_priority
 
-   type Command is range 0 to 10;
-   type Status is range 0 to 255;
+   type command is range 0 to 10;
+   type status is range 0 to 255;
 
-   channel High_Ch : Command capacity 2;
-   channel Low_Ch  : Status capacity 2;
+   channel high_ch : command capacity 2;
+   channel low_ch  : status capacity 2;
 
    --  Feeder_High: sends commands on the high-priority channel.
-   task Feeder_High
-      Cmd : Command = 1;
+   task feeder_high
+      cmd : command = 1;
 
       loop
-         send High_Ch, Cmd;
-         if Cmd < 10
-            Cmd = Cmd + 1;
+         send high_ch, cmd;
+         if cmd < 10
+            cmd = cmd + 1;
          else
-            Cmd = 1;
+            cmd = 1;
 
    --  Feeder_Low: sends status on the low-priority channel.
-   task Feeder_Low
-      S : Status = 0;
+   task feeder_low
+      s : status = 0;
 
       loop
-         send Low_Ch, S;
-         if S < 255
-            S = S + 1;
+         send low_ch, s;
+         if s < 255
+            s = s + 1;
          else
-            S = 0;
+            s = 0;
 
    --  Dispatcher: uses select to receive from multiple channels.
    --  High_Ch arm appears first, so it has priority when both are ready.
-   task Dispatcher
-      Processed : Natural = 0;
+   task dispatcher
+      processed : natural = 0;
 
       loop
          select
-            when Cmd : Command from High_Ch
+            when cmd : command from high_ch
                --  High-priority command received.
-               Processed = Processed + 1;
+               processed = processed + 1;
          or
-            when S : Status from Low_Ch
+            when s : status from low_ch
                --  Low-priority status received.
-               Processed = Processed + 1;
+               processed = processed + 1;
 
-         if Processed > 1_000_000
-            Processed = 0;
+         if processed > 1_000_000
+            processed = 0;
 

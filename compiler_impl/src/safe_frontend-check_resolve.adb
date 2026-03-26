@@ -207,15 +207,15 @@ package body Safe_Frontend.Check_Resolve is
 
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
-      Put_Type (Type_Env, "Integer", BT.Integer_Type);
-      Put_Type (Type_Env, "Natural", BT.Natural_Type);
-      Put_Type (Type_Env, "Boolean", BT.Boolean_Type);
-      Put_Type (Type_Env, "Character", BT.Character_Type);
-      Put_Type (Type_Env, "String", BT.String_Type);
+      Put_Type (Type_Env, "integer", BT.Integer_Type);
+      Put_Type (Type_Env, "natural", BT.Natural_Type);
+      Put_Type (Type_Env, "boolean", BT.Boolean_Type);
+      Put_Type (Type_Env, "character", BT.Character_Type);
+      Put_Type (Type_Env, "string", BT.String_Type);
       Put_Type (Type_Env, "result", BT.Result_Type);
-      Put_Type (Type_Env, "Float", BT.Float_Type);
-      Put_Type (Type_Env, "Long_Float", BT.Long_Float_Type);
-      Put_Type (Type_Env, "Duration", BT.Duration_Type);
+      Put_Type (Type_Env, "float", BT.Float_Type);
+      Put_Type (Type_Env, "long_float", BT.Long_Float_Type);
+      Put_Type (Type_Env, "duration", BT.Duration_Type);
    end Add_Builtins;
 
    procedure Add_Builtin_Functions (Functions : in out Function_Maps.Map) is
@@ -393,7 +393,7 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean is
    begin
-      return UString_Value (Base_Type (Info, Type_Env).Name) = "Boolean";
+      return UString_Value (Base_Type (Info, Type_Env).Name) = "boolean";
    end Is_Boolean_Type;
 
    function Is_Tuple_Type
@@ -407,14 +407,14 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean is
    begin
-      return UString_Value (Base_Type (Info, Type_Env).Name) = "Character";
+      return UString_Value (Base_Type (Info, Type_Env).Name) = "character";
    end Is_Character_Type;
 
    function Is_String_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean is
    begin
-      return UString_Value (Base_Type (Info, Type_Env).Name) = "String";
+      return UString_Value (Base_Type (Info, Type_Env).Name) = "string";
    end Is_String_Type;
 
    function Is_Tuple_Element_Type_Allowed
@@ -436,7 +436,7 @@ package body Safe_Frontend.Check_Resolve is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
       Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
    begin
-      return UString_Value (Base.Name) = "Duration"
+      return UString_Value (Base.Name) = "duration"
         or else Kind in "integer" | "float" | "subtype";
    end Is_Duration_Compatible;
 
@@ -598,7 +598,7 @@ package body Safe_Frontend.Check_Resolve is
    function Is_Builtin_Name (Name : String) return Boolean is
    begin
       return Name in
-        "Integer" | "Natural" | "Boolean" | "Character" | "String" | "Float" | "Long_Float" | "Duration" | "result";
+        "integer" | "natural" | "boolean" | "character" | "string" | "float" | "long_float" | "duration" | "result";
    end Is_Builtin_Name;
 
    function Qualify_Name
@@ -702,7 +702,7 @@ package body Safe_Frontend.Check_Resolve is
                return UString_Value (Expr.Text);
             end if;
          when CM.Expr_Bool =>
-            return (if Expr.Bool_Value then "True" else "False");
+            return (if Expr.Bool_Value then "true" else "false");
          when CM.Expr_Ident =>
             return UString_Value (Expr.Name);
          when CM.Expr_Select =>
@@ -1300,7 +1300,7 @@ package body Safe_Frontend.Check_Resolve is
                return Access_Target_Type
                  (Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env),
                   Type_Env);
-            elsif UString_Value (Expr.Selector) = "Access" then
+            elsif UString_Value (Expr.Selector) = "access" then
                Result.Name :=
                  FT.To_UString
                    ("access constant "
@@ -1320,7 +1320,7 @@ package body Safe_Frontend.Check_Resolve is
                Result.Has_Access_Role := True;
                Result.Access_Role := FT.To_UString ("Observe");
                return Result;
-            elsif UString_Value (Expr.Selector) in "First" | "Last" | "Length" then
+            elsif UString_Value (Expr.Selector) in "first" | "last" | "length" then
                return Default_Integer;
             end if;
 
@@ -1348,8 +1348,8 @@ package body Safe_Frontend.Check_Resolve is
                      return Info.Return_Type;
                   end if;
                end;
-            elsif UString_Value (Name) = "Long_Float.Copy_Sign" then
-               return Resolve_Type ("Long_Float", Type_Env, "", FT.Null_Span);
+            elsif UString_Value (Name) = "long_float.copy_sign" then
+               return Resolve_Type ("long_float", Type_Env, "", FT.Null_Span);
             elsif Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
             elsif UString_Value (Expr.Type_Name)'Length > 0
@@ -1453,7 +1453,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Kind := CM.Expr_Conversion;
             Result.Target := Expr.Callee;
             Result.Inner := Expr.Args (Expr.Args.First_Index);
-         elsif UString_Value (Callee_Name) in "Integer" | "Natural" | "Float" | "Long_Float"
+         elsif UString_Value (Callee_Name) in "integer" | "natural" | "float" | "long_float"
            and then Natural (Expr.Args.Length) = 1
          then
             Result.Kind := CM.Expr_Conversion;
@@ -1577,7 +1577,7 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Expr_Select =>
             Validate_Pr112_Expr_Boundaries (Expr.Prefix, Var_Types, Functions, Type_Env, Path);
             Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env);
-            if UString_Value (Expr.Selector) in "First" | "Last" | "Length" | "Access"
+            if UString_Value (Expr.Selector) in "first" | "last" | "length" | "access"
               and then Is_String_Type (Prefix_Type, Type_Env)
             then
                Raise_Diag
@@ -1698,7 +1698,7 @@ package body Safe_Frontend.Check_Resolve is
          end loop;
          return True;
       elsif Expr.Kind = CM.Expr_Select then
-         return UString_Value (Expr.Selector) not in "First" | "Last" | "Length" | "Access";
+         return UString_Value (Expr.Selector) not in "first" | "last" | "length" | "access";
       end if;
       return False;
    end Is_Assignable_Target;
@@ -2247,7 +2247,7 @@ package body Safe_Frontend.Check_Resolve is
                Result.Loop_Range.High_Expr :=
                  Normalize_Expr_Checked
                    (Stmt.Loop_Range.High_Expr, Var_Types, Functions, Type_Env, Path);
-               Loop_Type.Name := FT.To_UString ("Integer");
+               Loop_Type.Name := FT.To_UString ("integer");
                Loop_Type.Kind := FT.To_UString ("integer");
             else
                Result.Loop_Range.Name_Expr :=

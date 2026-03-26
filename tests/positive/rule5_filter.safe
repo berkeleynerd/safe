@@ -6,35 +6,35 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.5.p139b:5e20032b
 -- Expected: ACCEPT
 
-package Low_Pass_Filter
+package low_pass_filter
 
-   type Signal is digits 6 range -100.0 to 100.0;
-   type Alpha_Range is digits 6 range 0.01 to 0.99;
+   type signal is digits 6 range -100.0 to 100.0;
+   type alpha_range is digits 6 range 0.01 to 0.99;
 
-   type Filter_State is record
-      Output : Signal;
-      Alpha  : Alpha_Range;
+   type filter_state is record
+      output : signal;
+      alpha  : alpha_range;
 
    --  Init_Filter: create a filter with initial output and coefficient.
-   function Init_Filter (Initial : Signal;
-                         Coeff   : Alpha_Range) returns Filter_State
+   function init_filter (initial : signal;
+                         coeff   : alpha_range) returns filter_state
 
-      return ((Output = Initial, Alpha = Coeff) as Filter_State);
+      return ((output = initial, alpha = coeff) as filter_state);
 
    --  Update: output = Alpha * input + (1 - Alpha) * previous_output.
    --  Alpha in 0.01..0.99, input in -100..100, output in -100..100.
    --  Weighted sum of two values each in -100..100 is in -100..100 (convex).
    --  No NaN or infinity possible with bounded finite inputs.
-   function Update (State : in out Filter_State;
-                     Input : Signal)
-      A : Long_Float;
-      Result : Long_Float;
+   function update (state : in out filter_state;
+                     input : signal)
+      a : long_float;
+      result : long_float;
 
-      A = Long_Float (State.Alpha);
-      Result = (
-         A * Long_Float (Input)
-         + (1.0 - A) * Long_Float (State.Output)
+      a = long_float (state.alpha);
+      result = (
+         a * long_float (input)
+         + (1.0 - a) * long_float (state.output)
       );
       --  Narrowing point (assignment): Result is in -100..100, finite.
-      State.Output = Signal (Result);
+      state.output = signal (result);
 

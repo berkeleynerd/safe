@@ -2,7 +2,7 @@
 -- Description: Named-number syntax remains out of scope for PR08.3a.
 -- Expected: REJECT unsupported_source_construct
 
-package Neg_Named_Number_Unsupported
+package neg_named_number_unsupported
 
-   Limit : constant = 4;
+   limit : constant = 4;
 

@@ -1,8 +1,8 @@
-package Neg_PR116_Legacy_End_If
+package neg_pr116_legacy_end_if
 
-   function Broken returns Integer
+   function broken returns integer
 
-      if True
+      if true
          return 1;
 
       end if

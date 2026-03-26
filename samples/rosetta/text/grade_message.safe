@@ -1,8 +1,8 @@
-package Grade_Message
+package grade_message
 
-   function Render (Grade : in Character) returns String
+   function render (grade : in character) returns string
 
-      case Grade
+      case grade
          when 'A'
             return "excellent"
 

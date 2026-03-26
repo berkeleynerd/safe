@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_observe_mutate.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_observe_mutate.safe:21:7: error: observer 'Observer' provides read-only access
+neg_own_observe_mutate.safe:21:7: error: observer 'observer' provides read-only access
   |
-  | 21 |       Observer.all.Rate = 200;  -- ERROR: mutation through observer
+  | 21 |       observer.all.rate = 200;  -- ERROR: mutation through observer
   |    |       ^~~~~~~~
   |
   note: writes and moves through an active observer are not permitted.

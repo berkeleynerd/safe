@@ -3,8 +3,9 @@
 This is a succinct, opinionated tour of the Safe language as currently specified in `spec/`.
 It is written for readers who want to evaluate the project as it evolves, including both virtues and warts.
 
-Safe is defined subtractively from Ada 2022 (ISO/IEC 8652:2023). If you already know Ada, read this as "the delta plus the new bits".
-If you do not know Ada, you can still follow along, but the full language reference is the Ada RM plus the Safe spec delta.
+Safe is a language in its own right, not a subtractive Ada profile. If you
+already know Ada, many constructs will feel familiar, but the normative
+reference is the Safe spec rather than "Ada plus a delta".
 
 This repo now includes an Ada-native `safec` frontend plus a minimal
 test/sample/proof workflow. The spec and curated tests remain the authoritative
@@ -38,8 +39,8 @@ Safe keeps most Ada surface syntax, but changes a few high-impact parts:
 | Area | Safe choice | What it buys | What it costs |
 |------|-------------|--------------|---------------|
 | Visibility | `public` keyword, default-private | simple interface model, simpler separate compilation | surprising if you expect Ada's spec/body + private part model |
-| Attributes | dot notation: `T.First` not `T'First` | uniform "selected" syntax | breaks muscle memory; `'` reserved for character literals |
-| Qualified exprs | no `T'(Expr)`; use type annotation `(Expr as T)` | makes narrowing points explicit | extra parentheses; more "ceremony" in aggregates and allocators |
+| Attributes | dot notation: `t.first` not `t'First` | uniform "selected" syntax | breaks muscle memory; `'` reserved for character literals |
+| Qualified exprs | no `t'(expr)`; use type annotation `(expr as t)` | makes narrowing points explicit | extra parentheses; more "ceremony" in aggregates and allocators |
 | Exceptions | none (no handlers, no `raise`) | control-flow stays explicit; proof story is cleaner | error handling becomes explicit and sometimes verbose |
 | Tasking | static tasks + typed channels | analyzable concurrency | less expressive than full Ada tasking/protected objects |
 
@@ -49,18 +50,18 @@ In Safe, a package is a single `.safe` file containing declarations and bodies. 
 
 ```safe
 -- demo.safe
-package Demo
+package demo
 
-   public type Index is range 0 to 15;
-   public type Buf is array (Index) of Integer;
+   public type index is range 0 to 15;
+   public type buf is array (index) of integer;
 
-   Hidden : Integer = 0;  -- not public, not visible to clients
+   hidden : integer = 0;  -- not public, not visible to clients
 
-   public function Sum (B : Buf) returns Integer
-      var Total : Integer = 0
-      for I in Index.First to Index.Last
-         Total = Total + B(I)
-      return Total
+   public function sum (b : buf) returns integer
+      var total : integer = 0
+      for i in index.first to index.last
+         total = total + b(i)
+      return total
 ```
 
 Virtue: you can read a package top-to-bottom without jumping between spec/body, and public API is visually obvious.
@@ -74,13 +75,13 @@ See: `spec/03-single-file-packages.md`.
 Safe uses `private record` (not Ada's package `private` part) to express an opaque type:
 
 ```safe
-package Buffers
-   public type Buffer_Size is range 1 to 4096;
-   public subtype Buffer_Index is Buffer_Size;
+package buffers
+   public type buffer_size is range 1 to 4096;
+   public subtype buffer_index is buffer_size;
 
-   public type Buffer is private record
-      Data   : array (Buffer_Index) of Character = (others = ' ');
-      Length : Buffer_Size = 1;
+   public type buffer is private record
+      data   : array (buffer_index) of character = (others = ' ');
+      length : buffer_size = 1;
 ```
 
 Virtue: clients can name and pass the type, but cannot depend on its representation.
@@ -91,9 +92,9 @@ Wart: the syntax is novel if you are used to Ada's spec/body + `private` section
 
 Safe forbids tick-based attribute references. Use dot notation instead:
 
-- `T.First`, `T.Last`
-- `T.Range` (and `T.Range(N)` where Ada permits it)
-- `X.Image` and `T.Image(X)` (image attributes are retained)
+- `t.first`, `t.last`
+- `t.range` (and `t.range(n)` where Ada permits it)
+- `x.image` and `t.image(x)` (image attributes are retained)
 
 Virtue: removes an irregular syntax form from the core language and makes attribute access look like other selection.
 
@@ -106,18 +107,18 @@ See: `spec/02-restrictions.md` (tick restriction) and `spec/03-single-file-packa
 Ada uses `T'(Expr)` to qualify an expression (often an aggregate). Safe replaces this with:
 
 ```safe
-(Expr as T)
+(expr as t)
 ```
 
 This matters in allocators and aggregates. In Safe, you would write:
 
 ```safe
-type Payload is record
-   Value : Integer;
+type payload is record
+   value : integer;
 
-type Payload_Ptr is access Payload;
+type payload_ptr is access payload;
 
-P : Payload_Ptr = new ((Value = 42) as Payload);
+p : payload_ptr = new ((value = 42) as payload);
 ```
 
 Virtue: qualification becomes a consistent surface form, and (more importantly) narrowing points become easier to identify and reason about.
@@ -142,7 +143,7 @@ Practically, this pushes you toward:
 
 Virtue: you can get very strong safety properties without writing contracts.
 
-Wart: you end up designing your numeric types up front. "Just use Integer everywhere" fights the language.
+Wart: you end up designing your numeric types up front. "Just use integer everywhere" fights the language.
 
 See: `spec/05-assurance.md`.
 
@@ -157,15 +158,15 @@ Safe retains access-to-object types, but adopts SPARK's ownership model:
 Example sketch (move):
 
 ```safe
-type Node is record
-   V : Integer;
-type Node_Ptr is access Node;
+type node is record
+   v : integer;
+type node_ptr is access node;
 
-function Demo_Move
-   var A : Node_Ptr = new ((V = 1) as Node)
-   var B : Node_Ptr = null
-   B = A        -- move A into B; A becomes null
-   B.all.V = 2  -- safe dereference through the new owner
+function demo_move
+   var a : node_ptr = new ((v = 1) as node)
+   var b : node_ptr = null
+   b = a        -- move A into B; A becomes null
+   b.all.v = 2  -- safe dereference through the new owner
 ```
 
 Virtue: eliminates an entire class of aliasing and lifetime bugs, while staying in an Ada-like surface syntax.
@@ -186,36 +187,36 @@ Safe replaces most of Ada's tasking surface features with:
 Example sketch:
 
 ```safe
-package Pipeline
-   public type Measurement is range 0 to 65535;
+package pipeline
+   public type measurement is range 0 to 65535;
 
-   channel Raw : Measurement capacity 16;
-   channel Out : Measurement capacity 8;
+   channel raw : measurement capacity 16;
+   channel out : measurement capacity 8;
 
-   task Producer with Priority = 10
+   task producer with priority = 10
       loop
-         var M : Measurement = Read_Sensor
-         send Raw, M
+         var m : measurement = read_sensor
+         send raw, m
          delay 0.01
 
-   task Consumer with Priority = 5
+   task consumer with priority = 5
       loop
-         var M : Measurement
-         receive Raw, M
-         send Out, Process(M)
+         var m : measurement
+         receive raw, m
+         send out, process(m)
 ```
 
 Example sketch (`select`):
 
 ```safe
-task Control with Priority = 10
+task control with priority = 10
    loop
       select
-         when Cmd : Command from Commands
-            Handle(Cmd)
+         when cmd : command from commands
+            handle(cmd)
       or
          delay 1.0
-            Tick
+            tick
 ```
 
 Virtue: concurrency is structured around explicit communication points, which is easier to analyze and makes "what can race" more tractable.
@@ -237,22 +238,22 @@ One strong candidate idiom (from upstream GitHub Discussions
 [#12](https://github.com/berkeleynerd/safe/discussions/12)) is a discriminated "result" record:
 
 ```safe
-type Error_Code is (Invalid_Input, Overflow, Not_Found);
+type error_code is (invalid_input, overflow, not_found);
 
-type Result (OK : Boolean = False) is record
-   case OK
-      when True
-         Value : Integer;
-      when False
-         Error : Error_Code;
+type result (ok : boolean = false) is record
+   case ok
+      when true
+         value : integer;
+      when false
+         error : error_code;
 ```
 
 Why this is attractive in a SPARK/Safe world:
 
-- The discriminant makes it illegal to access `.Value` when `OK == False` (a property SPARK can prove).
+- The discriminant makes it illegal to access `.value` when `ok == false` (a property SPARK can prove).
 - It nudges you toward exhaustive handling and away from "ignore the error and keep going" bugs.
 
-Tradeoff: without generics, you will likely define many small `Result_*` types, one per value/error pairing, until the language or standard library provides a better abstraction.
+Tradeoff: without generics, you will likely define many small `result_*` types, one per value/error pairing, until the language or standard library provides a better abstraction.
 
 Also note: Safe draws a sharp line between recoverable and non-recoverable failures. At least today, a failed `pragma Assert` or an allocation failure is defined to abort the program via a runtime abort handler, not to be handled in-user-code like an exception.
 

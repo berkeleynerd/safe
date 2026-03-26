@@ -11,6 +11,12 @@ closing keywords. Statement-level `declare`, `declare_expression`, source
 `null`, `goto`, named `exit`, `aliased`, and legacy representation clauses are
 not part of the admitted Safe source grammar.
 
+For the post-PR11.7 surface, all Safe source spellings are lowercase-only.
+Identifiers, reserved words, predefined names, attribute selectors, and
+admitted aspect / pragma names use lowercase spelling. Uppercase `E` in
+exponents and uppercase `A` .. `F` in based numerals remain permitted as part
+of numeric literal syntax.
+
 ---
 
 ## 8.1 Compilation Units
@@ -260,7 +266,7 @@ range_constraint ::=
 
 range ::=
     simple_expression '..' simple_expression
-  | name '.' 'Range' [ '(' static_expression ')' ]
+  | name '.' 'range' [ '(' static_expression ')' ]
 
 index_constraint ::=
     '(' discrete_range { ',' discrete_range } ')'
@@ -652,7 +658,7 @@ conforming implementation shall reject them.
 ```
 task_declaration ::=
     'task' defining_identifier
-        [ 'with' 'Priority' '=' static_expression ]
+        [ 'with' 'priority' '=' static_expression ]
         indented_task_body
 
 indented_task_body ::=
@@ -721,10 +727,10 @@ identifier ::=
     identifier_start { identifier_extend }
 
 identifier_start ::=
-    letter
+    lowercase_letter
 
 identifier_extend ::=
-    letter | digit | '_'
+    lowercase_letter | digit | '_'
 
 numeric_literal ::=
     decimal_literal | based_literal
@@ -763,8 +769,8 @@ string_element ::=
 comment ::=
     '--' { character }
 
-letter ::=
-    'A' .. 'Z' | 'a' .. 'z'
+lowercase_letter ::=
+    'a' .. 'z'
 
 digit ::=
     '0' .. '9'

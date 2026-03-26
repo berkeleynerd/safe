@@ -1,5 +1,5 @@
-package Neg_PR1162_Removed_Representation_Clause
+package neg_pr1162_removed_representation_clause
 
-   type Byte is range 0 to 255;
+   type byte is range 0 to 255;
 
-   for Byte'Size use 8;
+   for byte'size use 8;

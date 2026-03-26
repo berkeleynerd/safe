@@ -7,32 +7,32 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.3.p100a:ba849e66
 -- Expected: ACCEPT
 
-package Ownership_Borrow
+package ownership_borrow
 
-   type Data is record
-      X : Integer;
-      Y : Integer;
+   type data is record
+      x : integer;
+      y : integer;
 
-   type Data_Ptr is access Data;
+   type data_ptr is access data;
 
    --  Modify_Via_Borrow: borrows the designated object via anonymous
    --  access parameter. The lender (P) is frozen during this call.
-   function Modify_Via_Borrow (Ref : access Data)
+   function modify_via_borrow (ref : access data)
 
       --  Ref is an anonymous access (borrow). Safe to dereference
       --  because the lender provides a non-null owned value.
-      Ref.all.X = Ref.all.X + 1;
-      Ref.all.Y = Ref.all.Y * 2;
+      ref.all.x = ref.all.x + 1;
+      ref.all.y = ref.all.y * 2;
 
    --  Use_Borrow: creates an owned pointer, borrows it for mutation,
    --  then continues using it after the borrow scope ends.
-   function Use_Borrow
-      Owner : Data_Ptr = new ((X = 10, Y = 20) as Data);
+   function use_borrow
+      owner : data_ptr = new ((x = 10, y = 20) as data);
 
       --  Borrow: Owner is frozen during the call.
-      Modify_Via_Borrow (Owner);
+      modify_via_borrow (owner);
       --  Borrow has ended. Owner regains full ownership.
       --  Safe to dereference Owner again.
-      Owner.all.X = Owner.all.X + 5;
+      owner.all.x = owner.all.x + 5;
       --  Owner goes out of scope; automatic deallocation.
 

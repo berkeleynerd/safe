@@ -804,15 +804,15 @@ package body Safe_Frontend.Mir_Analyze is
 
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
-      Type_Env.Include ("Integer", BT.Integer_Type);
-      Type_Env.Include ("Natural", BT.Natural_Type);
-      Type_Env.Include ("Boolean", BT.Boolean_Type);
-      Type_Env.Include ("Character", BT.Character_Type);
-      Type_Env.Include ("String", BT.String_Type);
+      Type_Env.Include ("integer", BT.Integer_Type);
+      Type_Env.Include ("natural", BT.Natural_Type);
+      Type_Env.Include ("boolean", BT.Boolean_Type);
+      Type_Env.Include ("character", BT.Character_Type);
+      Type_Env.Include ("string", BT.String_Type);
       Type_Env.Include ("result", BT.Result_Type);
-      Type_Env.Include ("Float", BT.Float_Type (With_Analysis_Metadata => True));
-      Type_Env.Include ("Long_Float", BT.Long_Float_Type (With_Analysis_Metadata => True));
-      Type_Env.Include ("Duration", BT.Duration_Type (With_Analysis_Metadata => True));
+      Type_Env.Include ("float", BT.Float_Type (With_Analysis_Metadata => True));
+      Type_Env.Include ("long_float", BT.Long_Float_Type (With_Analysis_Metadata => True));
+      Type_Env.Include ("duration", BT.Duration_Type (With_Analysis_Metadata => True));
    end Add_Builtins;
 
    function Parse_Anonymous_Access
@@ -854,14 +854,14 @@ package body Safe_Frontend.Mir_Analyze is
       Result : GM.Type_Descriptor;
    begin
       if Name = "" then
-         return Type_Env.Element ("Integer");
+         return Type_Env.Element ("integer");
       elsif Type_Env.Contains (Name) then
          return Type_Env.Element (Name);
-      elsif Name = "Integer"
-        or else Name = "Natural"
-        or else Name = "Boolean"
-        or else Name = "Float"
-        or else Name = "Long_Float"
+      elsif Name = "integer"
+        or else Name = "natural"
+        or else Name = "boolean"
+        or else Name = "float"
+        or else Name = "long_float"
       then
          return Type_Env.Element (Name);
       elsif Name'Length >= 7 and then Name (Name'First .. Name'First + 6) = "access " then
@@ -926,13 +926,13 @@ package body Safe_Frontend.Mir_Analyze is
            (Low           => Wide_Integer (Info.Low),
             High          => Wide_Integer (Info.High),
             Excludes_Zero => Info.Low > 0 or else Info.High < 0);
-      elsif UString_Value (Info.Name) = "Integer" then
+      elsif UString_Value (Info.Name) = "integer" then
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
-      elsif UString_Value (Info.Name) = "Natural" then
+      elsif UString_Value (Info.Name) = "natural" then
          return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
-      elsif UString_Value (Info.Name) = "Boolean" then
+      elsif UString_Value (Info.Name) = "boolean" then
          return (Low => 0, High => 1, Excludes_Zero => False);
-      elsif UString_Value (Info.Name) = "Character" then
+      elsif UString_Value (Info.Name) = "character" then
          return (Low => 0, High => 255, Excludes_Zero => False);
       end if;
       return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
@@ -1034,7 +1034,7 @@ package body Safe_Frontend.Mir_Analyze is
                Index_Value := Natural'Value (Field_Name);
             exception
                when Constraint_Error =>
-                  return Resolve_Type ("Integer", Type_Env);
+                  return Resolve_Type ("integer", Type_Env);
             end;
             if Index_Value in 1 .. Natural (Base.Tuple_Element_Types.Length) then
                return Resolve_Type
@@ -1043,7 +1043,7 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
          end;
       end if;
-      return Resolve_Type ("Integer", Type_Env);
+      return Resolve_Type ("integer", Type_Env);
    end Field_Type;
 
    function Interval_Contains
@@ -1455,7 +1455,7 @@ package body Safe_Frontend.Mir_Analyze is
       Result      : GM.Type_Descriptor;
    begin
       if Expr = null then
-         return Resolve_Type ("Integer", Type_Env);
+         return Resolve_Type ("integer", Type_Env);
       end if;
 
       case Expr.Kind is
@@ -1478,11 +1478,11 @@ package body Safe_Frontend.Mir_Analyze is
             if Has_Text (Expr.Type_Name) then
                return Resolve_Type (UString_Value (Expr.Type_Name), Var_Types, Type_Env);
             end if;
-            return Resolve_Type ("Long_Float", Type_Env);
+            return Resolve_Type ("long_float", Type_Env);
          when GM.Expr_Select =>
             if UString_Value (Expr.Selector) = "all" then
                return Access_Target_Type (Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions), Type_Env);
-            elsif UString_Value (Expr.Selector) = "Access" then
+            elsif UString_Value (Expr.Selector) = "access" then
                Prefix_Type := Access_Target_Type (Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions), Type_Env);
                Result.Name := FT.To_UString ("access constant " & UString_Value (Prefix_Type.Name));
                Result.Kind := FT.To_UString ("access");
@@ -1494,10 +1494,10 @@ package body Safe_Frontend.Mir_Analyze is
                Result.Has_Access_Role := True;
                Result.Access_Role := FT.To_UString ("Observe");
                return Result;
-            elsif UString_Value (Expr.Selector) = "First"
-              or else UString_Value (Expr.Selector) = "Last"
+            elsif UString_Value (Expr.Selector) = "first"
+              or else UString_Value (Expr.Selector) = "last"
             then
-               return Resolve_Type ("Integer", Type_Env);
+               return Resolve_Type ("integer", Type_Env);
             end if;
             Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
             return Field_Type (Prefix_Type, UString_Value (Expr.Selector), Type_Env);
@@ -1520,8 +1520,8 @@ package body Safe_Frontend.Mir_Analyze is
                end;
             elsif Var_Types.Contains (UString_Value (Callee_Name)) then
                return Var_Types.Element (UString_Value (Callee_Name));
-            elsif UString_Value (Callee_Name) = "Long_Float.Copy_Sign" then
-               return Resolve_Type ("Long_Float", Type_Env);
+            elsif UString_Value (Callee_Name) = "long_float.copy_sign" then
+               return Resolve_Type ("long_float", Type_Env);
             end if;
          when GM.Expr_Allocator =>
             if Expr.Value /= null and then Expr.Value.Kind = GM.Expr_Annotated then
@@ -1535,7 +1535,7 @@ package body Safe_Frontend.Mir_Analyze is
                return Result;
             end if;
          when GM.Expr_Bool =>
-            return Resolve_Type ("Boolean", Type_Env);
+            return Resolve_Type ("boolean", Type_Env);
          when others =>
             null;
       end case;
@@ -1543,7 +1543,7 @@ package body Safe_Frontend.Mir_Analyze is
       if Has_Text (Expr.Type_Name) then
          return Resolve_Type (UString_Value (Expr.Type_Name), Var_Types, Type_Env);
       end if;
-      return Resolve_Type ("Integer", Type_Env);
+      return Resolve_Type ("integer", Type_Env);
    end Expr_Type;
 
    function Has_Constant_Value
@@ -1588,11 +1588,11 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Expr_Conversion =>
             return Constant_Value (Expr.Inner, Current, Var_Types, Type_Env);
          when GM.Expr_Select =>
-            if UString_Value (Expr.Selector) = "First" or else UString_Value (Expr.Selector) = "Last" then
+            if UString_Value (Expr.Selector) = "first" or else UString_Value (Expr.Selector) = "last" then
                Prefix := FT.To_UString (Flatten_Name (Expr.Prefix));
                Type_Info := Resolve_Type (UString_Value (Prefix), Var_Types, Type_Env);
                if Type_Info.Has_Low and then Type_Info.Has_High then
-                  if UString_Value (Expr.Selector) = "First" then
+                  if UString_Value (Expr.Selector) = "first" then
                      return Wide_Integer (Type_Info.Low);
                   end if;
                   return Wide_Integer (Type_Info.High);
@@ -1760,7 +1760,7 @@ package body Safe_Frontend.Mir_Analyze is
       elsif Reason = "anonymous_access_reassign" then
          return "rule: Safe §2.3.3 / §2.3.4a (anonymous access is initialization-only)";
       elsif Reason = "observe_requires_access" then
-         return "rule: Safe §2.3.4 (local observe must use .Access)";
+         return "rule: Safe §2.3.4 (local observe must use .access)";
       end if;
       return "";
    end Ownership_Note;
@@ -1858,7 +1858,7 @@ package body Safe_Frontend.Mir_Analyze is
       Index_Type      : GM.Type_Descriptor :=
         (if not Prefix_Type.Index_Types.Is_Empty then
             Resolve_Type (UString_Value (Prefix_Type.Index_Types (Prefix_Type.Index_Types.First_Index)), Type_Env)
-         else Resolve_Type ("Integer", Type_Env));
+         else Resolve_Type ("integer", Type_Env));
       Base_Index_Type : constant GM.Type_Descriptor :=
         Expr_Type (Strip_Conversion (Index_Expr), Var_Types, Type_Env, Functions);
       Low_Text        : constant String := Format_Int (Range_Interval (Index_Type).Low);
@@ -2375,7 +2375,7 @@ package body Safe_Frontend.Mir_Analyze is
                   end;
                end if;
                return Fact;
-            elsif UString_Value (Expr.Selector) = "Access" then
+            elsif UString_Value (Expr.Selector) = "access" then
                Name := FT.To_UString (Root_Name (Expr.Prefix));
                if not Has_Text (Name) then
                   return (State => Access_NonNull, others => <>);
@@ -2851,7 +2851,7 @@ package body Safe_Frontend.Mir_Analyze is
             if UString_Value (Expr.Selector) = "all" then
                Ensure_Access_Safe (Expr.Prefix, Expr.Span, Current, Var_Types, Type_Env, Functions);
                return Float_Interval_For (Access_Target_Type (Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions), Type_Env));
-            elsif UString_Value (Expr.Selector) = "First" or else UString_Value (Expr.Selector) = "Last" then
+            elsif UString_Value (Expr.Selector) = "first" or else UString_Value (Expr.Selector) = "last" then
                Prefix := Resolve_Type (Flatten_Name (Expr.Prefix), Var_Types, Type_Env);
                return Float_Interval_For (Prefix);
             end if;
@@ -2879,9 +2879,9 @@ package body Safe_Frontend.Mir_Analyze is
             end;
          when GM.Expr_Call =>
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
-            if UString_Value (Name) = "Float" or else UString_Value (Name) = "Long_Float" then
+            if UString_Value (Name) = "float" or else UString_Value (Name) = "long_float" then
                return Numeric_As_Float (Expr.Args (Expr.Args.First_Index));
-            elsif UString_Value (Name) = "Long_Float.Copy_Sign"
+            elsif UString_Value (Name) = "long_float.copy_sign"
               and then Expr.Args.Length = 2
             then
                declare
@@ -2924,7 +2924,7 @@ package body Safe_Frontend.Mir_Analyze is
                   end if;
                end;
             end if;
-            return Float_Interval_For (Resolve_Type ("Long_Float", Type_Env));
+            return Float_Interval_For (Resolve_Type ("long_float", Type_Env));
          when GM.Expr_Annotated =>
             declare
                Target : constant GM.Type_Descriptor :=
@@ -3015,7 +3015,7 @@ package body Safe_Frontend.Mir_Analyze is
          Diag.Span := Expr.Span;
          Raise_Diag (Diag);
       end;
-      return Float_Interval_For (Resolve_Type ("Long_Float", Type_Env));
+      return Float_Interval_For (Resolve_Type ("long_float", Type_Env));
    end Eval_Float_Expr;
 
    function While_Variant_Derivable
@@ -3141,7 +3141,7 @@ package body Safe_Frontend.Mir_Analyze is
       when Diagnostic_Failure =>
          Has_Diag := True;
          Diagnostic := Raised_Diagnostic;
-         return Float_Interval_For (Resolve_Type ("Long_Float", Type_Env));
+         return Float_Interval_For (Resolve_Type ("long_float", Type_Env));
    end Eval_Float_Expr_With_Diag;
 
    function Numerator_Factor
@@ -3326,10 +3326,10 @@ package body Safe_Frontend.Mir_Analyze is
                Raise_Diag (Diag);
             end;
          when GM.Expr_Select =>
-            if UString_Value (Expr.Selector) = "First" or else UString_Value (Expr.Selector) = "Last" then
+            if UString_Value (Expr.Selector) = "first" or else UString_Value (Expr.Selector) = "last" then
                Prefix := Resolve_Type (Flatten_Name (Expr.Prefix), Var_Types, Type_Env);
                if Prefix.Has_Low and then Prefix.Has_High then
-                  if UString_Value (Expr.Selector) = "First" then
+                  if UString_Value (Expr.Selector) = "first" then
                      return (Low => Wide_Integer (Prefix.Low), High => Wide_Integer (Prefix.Low), Excludes_Zero => Prefix.Low /= 0);
                   end if;
                   return (Low => Wide_Integer (Prefix.High), High => Wide_Integer (Prefix.High), Excludes_Zero => Prefix.High /= 0);
@@ -3380,10 +3380,10 @@ package body Safe_Frontend.Mir_Analyze is
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
             if Var_Types.Contains (UString_Value (Name)) then
                return Range_Interval (Var_Types.Element (UString_Value (Name)));
-            elsif UString_Value (Name) = "Natural" or else UString_Value (Name) = "Integer" then
+            elsif UString_Value (Name) = "natural" or else UString_Value (Name) = "integer" then
                return Eval_Int_Expr (Expr.Args (Expr.Args.First_Index), Current, Var_Types, Type_Env, Functions);
             end if;
-            return Range_Interval (Resolve_Type ("Integer", Type_Env));
+            return Range_Interval (Resolve_Type ("integer", Type_Env));
          when GM.Expr_Annotated =>
             return Eval_Int_Expr (Expr.Inner, Current, Var_Types, Type_Env, Functions);
          when GM.Expr_Aggregate =>
@@ -3860,7 +3860,7 @@ package body Safe_Frontend.Mir_Analyze is
          return;
       end if;
       Disc_Type := Field_Type (Prefix_Type, UString_Value (Disc_Name_Text), Type_Env);
-      if UString_Value (Disc_Type.Name) /= "Boolean" then
+      if UString_Value (Disc_Type.Name) /= "boolean" then
          return;
       end if;
       Fact_Value.Kind := GM.Scalar_Value_Boolean;
@@ -3897,7 +3897,7 @@ package body Safe_Frontend.Mir_Analyze is
               Allow_Pending_Move_Refinement);
       elsif Expr.Kind = GM.Expr_Ident
         and then Var_Types.Contains (UString_Value (Expr.Name))
-        and then UString_Value (Var_Types.Element (UString_Value (Expr.Name)).Name) = "Boolean"
+        and then UString_Value (Var_Types.Element (UString_Value (Expr.Name)).Name) = "boolean"
       then
          Result.Ranges.Include
            (UString_Value (Expr.Name),
@@ -4480,7 +4480,7 @@ package body Safe_Frontend.Mir_Analyze is
               Skip_Constant_Check
               or else UString_Value (Expr.Selector) = "all"
               or else Is_All_Dereference (Expr.Prefix));
-         if UString_Value (Expr.Selector) = "Access" then
+         if UString_Value (Expr.Selector) = "access" then
             declare
                Result : MD.Diagnostic := Null_Diagnostic;
             begin
@@ -4532,7 +4532,7 @@ package body Safe_Frontend.Mir_Analyze is
          return "";
       elsif Expr.Kind = GM.Expr_Ident then
          return UString_Value (Expr.Name);
-      elsif Expr.Kind = GM.Expr_Select and then UString_Value (Expr.Selector) = "Access" then
+      elsif Expr.Kind = GM.Expr_Select and then UString_Value (Expr.Selector) = "access" then
          return Root_Name (Expr.Prefix);
       end if;
       return "";
@@ -4541,7 +4541,7 @@ package body Safe_Frontend.Mir_Analyze is
    function Observe_Lender_Name
      (Expr : GM.Expr_Access) return String is
    begin
-      if Expr /= null and then Expr.Kind = GM.Expr_Select and then UString_Value (Expr.Selector) = "Access" then
+      if Expr /= null and then Expr.Kind = GM.Expr_Select and then UString_Value (Expr.Selector) = "access" then
          return Root_Name (Expr.Prefix);
       end if;
       return "";
@@ -4564,11 +4564,11 @@ package body Safe_Frontend.Mir_Analyze is
          Lender := FT.To_UString (Observe_Lender_Name (Value));
          if not Has_Text (Lender) then
             return
-              Ownership_Diagnostic
-                ("observe_requires_access",
-                 Span,
-                 "observer '" & Target_Name & "' must be initialized from X.Access",
-                 "local observe uses anonymous access constant and requires an explicit .Access attribute.");
+                 Ownership_Diagnostic
+                   ("observe_requires_access",
+                    Span,
+                    "observer '" & Target_Name & "' must be initialized from X.access",
+                    "local observe uses anonymous access constant and requires an explicit .access attribute.");
          end if;
       end if;
 
@@ -4664,7 +4664,7 @@ package body Safe_Frontend.Mir_Analyze is
                Current.Float_Facts.Include (Target_Name, Float_Value);
             end if;
             return Null_Diagnostic;
-         elsif UString_Value (Target_Type.Name) = "String" then
+         elsif UString_Value (Target_Type.Name) = "string" then
             return Null_Diagnostic;
          elsif Lower (UString_Value (Target_Type.Kind)) in "record" | "tuple" then
             return Null_Diagnostic;
@@ -5281,9 +5281,9 @@ package body Safe_Frontend.Mir_Analyze is
             end loop;
          end;
          return Null_Diagnostic;
-      elsif UString_Value (Return_Type.Name) = "Boolean"
-        or else UString_Value (Return_Type.Name) = "Character"
-        or else UString_Value (Return_Type.Name) = "String"
+      elsif UString_Value (Return_Type.Name) = "boolean"
+        or else UString_Value (Return_Type.Name) = "character"
+        or else UString_Value (Return_Type.Name) = "string"
       then
          declare
             Actual_Type : constant GM.Type_Descriptor :=
@@ -5886,7 +5886,7 @@ package body Safe_Frontend.Mir_Analyze is
                                       Owner_Vars,
                                       Type_Env,
                                       Functions,
-                                      "Duration");
+                                      "duration");
                               begin
                                  if Has_Text (Arm_Diag.Reason) then
                                     Append_Diagnostic

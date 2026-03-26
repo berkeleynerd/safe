@@ -587,7 +587,7 @@ package body Safe_Frontend.Mir_Bronze is
                Expr.Span,
                Binding);
          when GM.Expr_Select =>
-            if UString_Value (Expr.Selector) = "Access" then
+            if UString_Value (Expr.Selector) = "access" then
                Root := FT.To_UString (Root_Name (Expr.Prefix));
                Full := FT.To_UString (Flatten_Name (Expr.Prefix));
                if UString_Value (Root) /= "" and then Locals.Contains (UString_Value (Root)) then

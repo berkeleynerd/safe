@@ -1,16 +1,16 @@
-package Factorial
+package factorial
 
-   type Count is range 0 to 7;
-   type Value is range 1 to 1_000_000;
+   type count is range 0 to 7;
+   type value is range 1 to 1_000_000;
 
-   function Compute (N : Count) returns Value
+   function compute (n : count) returns value
 
-      var Product : Value = 1
-      if N == 0
+      var product : value = 1
+      if n == 0
          return 1
 
-      for I in 1 to N
-         Product = Product * Value (I)
+      for i in 1 to n
+         product = product * value (i)
 
-      return Product
+      return product
 

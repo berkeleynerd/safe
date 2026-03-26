@@ -2,12 +2,12 @@
 -- Description: Reject package-qualified references that are absent from the imported interface.
 -- Expected: REJECT source_frontend_error
 
-with Provider_Channel;
+with provider_channel;
 
-package Unknown_Imported_Member_Test
+package unknown_imported_member_test
 
-   task Sender
+   task sender
 
       loop
-         send Provider_Channel.Unknown_Ch, 1;
+         send provider_channel.unknown_ch, 1;
 

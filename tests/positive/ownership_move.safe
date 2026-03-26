@@ -8,23 +8,23 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p97a:8d0214d5
 -- Expected: ACCEPT
 
-package Ownership_Move
+package ownership_move
 
-   type Payload is record
-      Value : Integer;
+   type payload is record
+      value : integer;
 
-   type Payload_Ptr is access Payload;
+   type payload_ptr is access payload;
 
    --  Transfer: moves ownership from Source to Target.
    --  After the move, Source is null and only Target is used.
-   function Transfer
-      Source : Payload_Ptr = new ((Value = 42) as Payload);
-      Target : Payload_Ptr = null;
+   function transfer
+      source : payload_ptr = new ((value = 42) as payload);
+      target : payload_ptr = null;
 
       --  Target is provably null before the move (just declared null).
-      Target = Source;
+      target = source;
       --  Source is now null (moved). Do not dereference Source.
       --  Target is now the owner and can be safely dereferenced.
-      Target.all.Value = 100;
+      target.all.value = 100;
       --  Target goes out of scope; automatic deallocation occurs.
 

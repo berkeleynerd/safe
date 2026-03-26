@@ -3,9 +3,9 @@ Source: tests/negative/neg_own_anon_reassign.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_anon_reassign.safe:18:7: error: anonymous access 'Ref' may only be assigned at its declaration
+neg_own_anon_reassign.safe:18:7: error: anonymous access 'ref' may only be assigned at its declaration
   |
-  | 18 |       Ref = Other;  -- ERROR: anonymous access reassignment after declaration
+  | 18 |       ref = other;  -- ERROR: anonymous access reassignment after declaration
   |    |       ^~~~~~~~~~~~
   |
   note: borrow and observe locals are initialization-only.

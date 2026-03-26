@@ -7,6 +7,10 @@ The old milestone pipeline and execution-report workflow are not part of this
 branch. The active development loop is build the compiler, run the fixture
 suite, run the sample sweep, and run proofs.
 
+The current Safe source surface is lowercase-only. Keywords, predefined names,
+aspect names, and user-defined identifiers are all written in lowercase, with
+underscores as the word separator for multiword spellings.
+
 ## Build
 
 From the repository root:

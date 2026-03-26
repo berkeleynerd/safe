@@ -6,41 +6,41 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.3.2.p96a:0eaf48aa
 -- Expected: ACCEPT
 
-package Safe_Linked_List_Sum
+package safe_linked_list_sum
 
-   type Node;
-   type Node_Ptr is access Node;
-   type Visit_Count is range 0 to 3;
-   type Node_Value is range 0 to 100;
-   type Total_Value is range 0 to 300;
+   type node;
+   type node_ptr is access node;
+   type visit_count is range 0 to 3;
+   type node_value is range 0 to 100;
+   type total_value is range 0 to 300;
 
-   type Node is record
-      Value : Node_Value;
-      Next  : Node_Ptr;
+   type node is record
+      value : node_value;
+      next  : node_ptr;
 
-   function Summarize_Prefix (Head : Node_Ptr) returns Total_Value
-      Count : Visit_Count = 0;
-      Total : Total_Value = 0;
+   function summarize_prefix (head : node_ptr) returns total_value
+      count : visit_count = 0;
+      total : total_value = 0;
 
-      if Head != null
-         Count = Count + 1;
-         Total = Total + Total_Value (Head.all.Value);
-         if Count == 3
-            return Total_Value (Total);
+      if head != null
+         count = count + 1;
+         total = total + total_value (head.all.value);
+         if count == 3
+            return total_value (total);
 
-         if Head.all.Next != null
-            var Second : access constant Node = Head.all.Next.Access;
-            Count = Count + 1;
-            Total = Total + Total_Value (Second.all.Value);
-            if Count == 3
-               return Total_Value (Total);
+         if head.all.next != null
+            var second : access constant node = head.all.next.access;
+            count = count + 1;
+            total = total + total_value (second.all.value);
+            if count == 3
+               return total_value (total);
 
-            if Second.all.Next != null
-               var Third : access constant Node = Second.all.Next.Access;
-               Count = Count + 1;
-               Total = Total + Total_Value (Third.all.Value);
-               if Count == 3
-                  return Total_Value (Total);
+            if second.all.next != null
+               var third : access constant node = second.all.next.access;
+               count = count + 1;
+               total = total + total_value (third.all.value);
+               if count == 3
+                  return total_value (total);
 
-      return Total_Value (Total);
+      return total_value (total);
 

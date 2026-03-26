@@ -5,20 +5,20 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.4.p136:fa5e94b7
 -- Expected: REJECT use_after_move
 
-package Moved_Deref_Test
+package moved_deref_test
 
-   type Data is record
-      Value : Integer;
+   type data is record
+      value : integer;
 
-   type Data_Ptr is access Data;
+   type data_ptr is access data;
 
    --  Use_After_Move: dereferences Source after it has been moved to Target.
-   function Use_After_Move
-      Source : Data_Ptr = new ((Value = 42) as Data);
-      Target : Data_Ptr = null;
-      V      : Integer;
+   function use_after_move
+      source : data_ptr = new ((value = 42) as data);
+      target : data_ptr = null;
+      v      : integer;
 
-      Target = Source;
+      target = source;
       --  Source is now null (moved).
-      V = Source.all.Value;  -- ERROR: Source has been moved (is null)
+      v = source.all.value;  -- ERROR: Source has been moved (is null)
 

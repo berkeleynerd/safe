@@ -6,19 +6,19 @@
 -- Clause: SAFE@468cf72:spec/05-assurance.md#5.3.6.p25:e8253bd7
 -- Expected: ACCEPT
 
-package Safe_Return
+package safe_return
 
-   type Bounded is range -500 to 500;
-   type Small is range -10 to 10;
+   type bounded is range -500 to 500;
+   type small is range -10 to 10;
 
    --  Signum: returns -1, 0, or 1 depending on sign.
    --  Every return path yields a value in -10..10.
-   function Signum (V : Bounded) returns Small
+   function signum (v : bounded) returns small
 
-      if V > 0
+      if v > 0
          --  Narrowing point (return): 1 is in -10..10.
          return 1;
-      else if V < 0
+      else if v < 0
          --  Narrowing point (return): -1 is in -10..10.
          return -1;
       else
@@ -27,8 +27,8 @@ package Safe_Return
 
    --  Bounded_Add: adds two Small values. The sum of two values
    --  each in -10..10 is in -20..20, which fits in Bounded.
-   function Bounded_Add (A, B : Small) returns Bounded
+   function bounded_add (a, b : small) returns bounded
 
       --  Narrowing point (return): A + B is in -20..20, within -500..500.
-      return Bounded (A) + Bounded (B);
+      return bounded (a) + bounded (b);
 

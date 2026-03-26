@@ -2,6 +2,9 @@
 
 A systems programming language built around SPARK-class safety guarantees, with a smaller surface designed to avoid sharp edges rather than expose them.
 
+The current admitted source surface is fully lowercase, with underscores as the
+word separator for multiword spellings.
+
 [![CI](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml/badge.svg)](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml)
 ![Spec version](https://img.shields.io/badge/spec-v0.1_working_draft-blue)
 

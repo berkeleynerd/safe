@@ -1,6 +1,6 @@
-with Provider_Object;
+with provider_object;
 
-package Client_Object
+package client_object
 
-   Value : Provider_Object.Count = Provider_Object.Seed;
+   value : provider_object.count = provider_object.seed;
 

@@ -15,11 +15,14 @@ This section specifies Safe's concurrency model. Safe provides concurrency throu
 ```
 task_declaration ::=
     'task' defining_identifier
-        [ 'with' 'Priority' '=' static_expression ] 'is'
-    [ declarative_part ]
-    'begin'
-        handled_sequence_of_statements
-    'end' defining_identifier ';'
+        [ 'with' 'priority' '=' static_expression ]
+        indented_task_body
+
+indented_task_body ::=
+    INDENT
+        { basic_declaration }
+        { statement_item }
+    DEDENT
 ```
 
 ### Legality Rules
@@ -28,9 +31,9 @@ task_declaration ::=
 
 3. Each task declaration creates exactly one task. There are no task types, no dynamic task creation, no task arrays.
 
-4. The `defining_identifier` after `end` shall match the `defining_identifier` after `task`. A conforming implementation shall reject any task where the end identifier does not match.
+4. Task bodies use indentation rather than legacy `begin` / `end` delimiters. A conforming implementation shall reject legacy explicit closing keywords in task declarations.
 
-5. If a `Priority` aspect is specified, the static expression shall evaluate to a value in the range `System.Any_Priority`. A conforming implementation shall reject a priority value outside this range.
+5. If a `priority` aspect is specified, the static expression shall evaluate to a value in the range `System.Any_Priority`. A conforming implementation shall reject a priority value outside this range.
 
 6. A task declaration shall not bear the `public` keyword. Tasks are execution entities internal to the package.
 
@@ -40,13 +43,13 @@ task_declaration ::=
 
 8. The `defining_identifier` of a task declaration introduces a name in the enclosing package's declarative region. This name is not a type name and cannot be used as a type mark.
 
-9. If no `Priority` is specified, the task has the default priority defined by the implementation. The default priority shall be documented by the implementation.
+9. If no `priority` is specified, the task has the default priority defined by the implementation. The default priority shall be documented by the implementation.
 
 ### Dynamic Semantics
 
 10. Each task declaration creates a single task that begins execution after all package-level initialisation completes (see §4.7).
 
-11. The task executes its `handled_sequence_of_statements` as an independent thread of control. Scheduling among tasks is preemptive priority-based. Tasks of equal priority are scheduled in implementation-defined order.
+11. The task executes its indented body as an independent thread of control. Scheduling among tasks is preemptive priority-based. Tasks of equal priority are scheduled in implementation-defined order.
 
 ---
 
@@ -124,7 +127,7 @@ try_receive_statement ::=
 
 24. The `name` in a `receive` or `try_receive` shall denote a variable of the channel's element type or a subtype thereof.
 
-25. The final `name` in `try_send` and `try_receive` shall denote a variable of type `Boolean`.
+25. The final `name` in `try_send` and `try_receive` shall denote a variable of type `boolean`.
 
 26. Channel operations may appear in subprogram bodies, task bodies, and other statement contexts. They shall not appear at the package level (no package-level statements, §3.2.4).
 
@@ -138,13 +141,13 @@ try_receive_statement ::=
 
 28a. **Copy-only dequeue.** Because channel element types exclude access types and composite types containing access-type subcomponents (Section 4, §4.2, paragraph 14), `receive` never transfers ownership of a designated object through the channel. The dequeued element is copied into `Variable`.
 
-29. **`try_send Ch, Value, Success;`** — Attempt to enqueue `Value` into channel `Ch` without blocking. The operation is performed atomically: the implementation acquires the channel, evaluates the channel's fullness, and if not full, enqueues `Value` and sets `Success` to `True`. If `Ch` is full, no element is enqueued and `Success` is set to `False`.
+29. **`try_send ch, value, success;`** — Attempt to enqueue `value` into channel `ch` without blocking. The operation is performed atomically: the implementation acquires the channel, evaluates the channel's fullness, and if not full, enqueues `value` and sets `success` to `true`. If `ch` is full, no element is enqueued and `success` is set to `false`.
 
-29a. **Copy-only-on-success.** Because channel element types exclude access-bearing elements (Section 4, §4.2, paragraph 14), `try_send` never conditionally transfers ownership. When `Success` is `True`, a copy of `Value` is enqueued. When `Success` is `False`, no element is enqueued and the source expression's ownership state is unchanged.
+29a. **Copy-only-on-success.** Because channel element types exclude access-bearing elements (Section 4, §4.2, paragraph 14), `try_send` never conditionally transfers ownership. When `success` is `true`, a copy of `value` is enqueued. When `success` is `false`, no element is enqueued and the source expression's ownership state is unchanged.
 
-29b. **Evaluation order for `try_send`.** The expression `Value` is evaluated before the atomic fullness check. If the channel is not full, the already-evaluated value is enqueued. If the channel is full, the evaluated value is discarded. No ownership transfer occurs because access-bearing channel element types are illegal.
+29b. **Evaluation order for `try_send`.** The expression `value` is evaluated before the atomic fullness check. If the channel is not full, the already-evaluated value is enqueued. If the channel is full, the evaluated value is discarded. No ownership transfer occurs because access-bearing channel element types are illegal.
 
-30. **`try_receive Ch, Variable, Success;`** — Attempt to dequeue the front element of channel `Ch` without blocking. If `Ch` is not empty, the element is dequeued into `Variable` and `Success` is set to `True`. If `Ch` is empty, `Variable` is unchanged and `Success` is set to `False`. Because channel element types exclude access-bearing values (Section 4, §4.2, paragraph 14), `try_receive` never transfers ownership through the channel.
+30. **`try_receive ch, variable, success;`** — Attempt to dequeue the front element of channel `ch` without blocking. If `ch` is not empty, the element is dequeued into `variable` and `success` is set to `true`. If `ch` is empty, `variable` is unchanged and `success` is set to `false`. Because channel element types exclude access-bearing values (Section 4, §4.2, paragraph 14), `try_receive` never transfers ownership through the channel.
 
 31. Channel operations are atomic with respect to other channel operations on the same channel. The implementation shall ensure that concurrent `send` and `receive` operations on the same channel do not corrupt the channel state.
 
@@ -161,20 +164,25 @@ try_receive_statement ::=
 ```
 select_statement ::=
     'select'
+        indented_select_arm
+    { 'or'
+        indented_select_arm }
+
+indented_select_arm ::=
+    INDENT
         select_arm
-    { 'or' select_arm }
-    'end' 'select' ';'
+    DEDENT
 
 select_arm ::=
     channel_arm | delay_arm
 
 channel_arm ::=
-    'when' defining_identifier ':' subtype_mark 'from' channel_name 'then'
-        sequence_of_statements
+    'when' defining_identifier ':' subtype_mark 'from' channel_name
+        indented_statement_suite
 
 delay_arm ::=
-    'delay' expression 'then'
-        sequence_of_statements
+    'delay' expression
+        indented_statement_suite
 ```
 
 ### Legality Rules
@@ -189,7 +197,7 @@ delay_arm ::=
 
 37. The `defining_identifier` in a `channel_arm` introduces a new variable, scoped to the statements of that arm.
 
-38. The `expression` in a `delay_arm` shall be of type `Duration` or a type convertible to `Duration`.
+38. The `expression` in a `delay_arm` shall be of type `duration` or a type convertible to `duration`.
 
 ### Dynamic Semantics
 
@@ -241,7 +249,7 @@ delay_arm ::=
 
 53. Tasks shall not terminate. A conforming implementation shall enforce the following constraints on every task body:
 
-   (a) The outermost statement of the task body's `handled_sequence_of_statements` shall be an unconditional `loop` statement (`loop ... end loop;`). Declarations may precede the loop.
+   (a) The outermost statement of the task body's executable region shall be an unconditional `loop` statement (`loop ...`). Declarations may precede the loop.
 
    (b) A `return` statement shall not appear anywhere within a task body. A conforming implementation shall reject any `return` statement within a task body.
 
@@ -249,7 +257,7 @@ delay_arm ::=
 
 54. These constraints are syntactic restrictions checkable without control-flow analysis or whole-program analysis.
 
-55. Some theoretically non-terminating forms (e.g., `while True loop ... end loop;`) are not accepted. The unconditional `loop` form is trivially verifiable by any implementation.
+55. Some theoretically non-terminating forms (e.g., `while true ...`) are not accepted. The unconditional `loop` form is trivially verifiable by any implementation.
 
 ---
 
@@ -273,164 +281,143 @@ delay_arm ::=
 
 **Conforming Example.**
 
-```ada
+```safe
 -- pipeline.safe
 
-package Pipeline is
+package pipeline
 
-    public type Measurement is range 0 .. 65535;
+    public type measurement is range 0 to 65535;
 
-    channel Raw_Data : Measurement capacity 16;
-    channel Processed : Measurement capacity 8;
+    channel raw_data : measurement capacity 16;
+    channel processed : measurement capacity 8;
 
-    task Producer with Priority = 10 is
-    begin
+    task producer with priority = 10
+
         loop
-            Sample : Measurement = Read_Sensor;
-            send Raw_Data, Sample;
+            sample : measurement = read_sensor;
+            send raw_data, sample;
             delay 0.01;
-        end loop;
-    end Producer;
 
-    task Consumer with Priority = 5 is
-    begin
+    task consumer with priority = 5
+
         loop
-            M : Measurement;
-            receive Raw_Data, M;
-            Result : Measurement = Process(M);
-            send Processed, Result;
+            m : measurement;
+            receive raw_data, m;
+            result : measurement = process (m);
+            send processed, result;
             -- D27 proof: all types match; no runtime errors
-        end loop;
-    end Consumer;
 
-    function Read_Sensor return Measurement is separate;
+    function read_sensor returns measurement is separate;
 
-    function Process (M : Measurement) return Measurement is
-    begin
-        return (M + 1) / 2;
+    function process (m : measurement) returns measurement
+
+        return (m + 1) / 2;
         -- D27 Rule 1: wide intermediate, max (65535+1)/2 = 32768
         -- D27 Rule 3(b): literal 2 is static nonzero
         -- D27 proof: result in 0..65535
-    end Process;
 
-    public function Get_Result return Measurement is
-    begin
-        R : Measurement;
-        receive Processed, R;
-        return R;
-    end Get_Result;
+    public function get_result returns measurement
+        r : measurement;
+        receive processed, r;
+        return r;
 
-end Pipeline;
 ```
 
 ### 4.8.2 Example: Router/Worker
 
 **Conforming Example.**
 
-```ada
+```safe
 -- router.safe
 
-package Router is
+package router
 
-    public type Job_Id is range 1 .. 1000;
-    public type Job is record
-        Id   : Job_Id;
-        Data : Integer;
-    end record;
+    public type job_id is range 1 to 1000;
+    public type job is record
+        id   : job_id;
+        data : integer;
 
-    public type Result is record
-        Id    : Job_Id;
-        Value : Integer;
-    end record;
+    public type result is record
+        id    : job_id;
+        value : integer;
 
-    channel Jobs_A : Job capacity 4;
-    channel Jobs_B : Job capacity 4;
-    public channel Results : Result capacity 8;
+    channel jobs_a : job capacity 4;
+    channel jobs_b : job capacity 4;
+    public channel results : result capacity 8;
 
-    task Dispatcher with Priority = 8 is
-        Count : Job_Id = 1;
-    begin
+    task dispatcher with priority = 8
+        count : job_id = 1;
+
         loop
-            J : Job = (Id = Count, Data = Integer(Count) * 10);
-            -- D27 proof: Count * 10 fits in Integer (wide intermediate)
-            Ok : Boolean;
-            try_send Jobs_A, J, Ok;
-            if not Ok then
-                send Jobs_B, J;
-            end if;
-            Count = (if Count == Job_Id.Last then Job_Id.First else Count + 1);
-        end loop;
-    end Dispatcher;
+            j : job = (id = count, data = integer (count) * 10);
+            -- D27 proof: count * 10 fits in integer (wide intermediate)
+            ok : boolean;
+            try_send jobs_a, j, ok;
+            if not ok
+                send jobs_b, j;
+            count = (if count == job_id.last then job_id.first else count + 1);
 
-    task Worker_A with Priority = 5 is
-    begin
+    task worker_a with priority = 5
+
         loop
-            J : Job;
-            receive Jobs_A, J;
-            send Results, (Id = J.Id, Value = J.Data + 1);
-            -- D27 proof: J.Data + 1 may overflow Integer; wide intermediate handles it
-        end loop;
-    end Worker_A;
+            j : job;
+            receive jobs_a, j;
+            send results, (id = j.id, value = j.data + 1);
+            -- D27 proof: j.data + 1 may overflow integer; wide intermediate handles it
 
-    task Worker_B with Priority = 5 is
-    begin
+    task worker_b with priority = 5
+
         loop
-            J : Job;
-            receive Jobs_B, J;
-            send Results, (Id = J.Id, Value = J.Data + 2);
-        end loop;
-    end Worker_B;
+            j : job;
+            receive jobs_b, j;
+            send results, (id = j.id, value = j.data + 2);
 
-end Router;
 ```
 
 ### 4.8.3 Example: Command/Response with Select
 
 **Conforming Example.**
 
-```ada
+```safe
 -- controller.safe
 
-package Controller is
+package controller
 
-    public type Command is (Start, Stop, Reset);
-    public type Status  is (Running, Stopped, Error);
+    public type command is (start, stop, reset);
+    public type status  is (running, stopped, error);
 
-    public channel Commands : Command capacity 4;
-    public channel Responses : Status capacity 4;
-    channel Heartbeats : Boolean capacity 1;
+    public channel commands : command capacity 4;
+    public channel responses : status capacity 4;
+    channel heartbeats : boolean capacity 1;
 
-    Current_State : Status = Stopped;  -- owned by Control_Loop
+    current_state : status = stopped;  -- owned by control_loop
 
-    task Control_Loop with Priority = 10 is
-    begin
+    task control_loop with priority = 10
+
         loop
             select
-                when Cmd : Command from Commands then
-                    case Cmd is
-                        when Start then
-                            Current_State = Running;
-                            send Responses, Running;
-                        when Stop then
-                            Current_State = Stopped;
-                            send Responses, Stopped;
-                        when Reset then
-                            Current_State = Stopped;
-                            send Responses, Stopped;
-                    end case;
-                or delay 5.0 then
-                    send Heartbeats, True;
-            end select;
-        end loop;
-    end Control_Loop;
+                when cmd : command from commands
+                    case cmd
+                        when start
+                            current_state = running;
+                            send responses, running;
+                        when stop
+                            current_state = stopped;
+                            send responses, stopped;
+                        when reset
+                            current_state = stopped;
+                            send responses, stopped;
+                or
+                    delay 5.0
+                        send heartbeats, true;
 
-    public function Get_Status return Status
-    is (Current_State);
-    -- Note: this is callable only from the task that owns Current_State
+    public function get_status returns status
+
+        return current_state;
+    -- Note: this is callable only from the task that owns current_state
     -- or from non-task context during initialisation.
-    -- D27 proof: Status is an enumeration; no runtime error possible.
+    -- D27 proof: status is an enumeration; no runtime error possible.
 
-end Controller;
 ```
 
 ---

@@ -3,9 +3,9 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.1.p6:be85291b
 -- Expected: REJECT source_frontend_error
 
-package Public_Task_Test
+package public_task_test
 
-   public task Worker
+   public task worker
 
       loop
 

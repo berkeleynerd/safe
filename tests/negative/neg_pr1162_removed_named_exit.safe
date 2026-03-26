@@ -1,7 +1,7 @@
-package Neg_PR1162_Removed_Named_Exit
+package neg_pr1162_removed_named_exit
 
-   function Build returns Integer
+   function build returns integer
 
       loop
-         exit Outer;
+         exit outer;
       return 0;

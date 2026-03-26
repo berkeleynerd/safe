@@ -6,27 +6,27 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.2.p132:8613ecf4
 -- Expected: ACCEPT
 
-package Safe_Lookup
+package safe_lookup
 
-   type Sensor_Id is range 1 to 8;
-   type Calibration is range -100 to 100;
-   type Cal_Table is array (Sensor_Id) of Calibration;
+   type sensor_id is range 1 to 8;
+   type calibration is range -100 to 100;
+   type cal_table is array (sensor_id) of calibration;
 
    --  Lookup: retrieves calibration value for a given sensor.
    --  The index type Sensor_Id is 1..8, matching the array bounds.
-   function Lookup (Table : Cal_Table; Id : Sensor_Id) returns Calibration
+   function lookup (table : cal_table; id : sensor_id) returns calibration
 
       --  Index Id is of type Sensor_Id (1..8), which matches the
       --  array index range exactly. Provably within bounds.
-      return Table (Id);
+      return table (id);
 
    --  Lookup_With_Default: safe lookup with a clamped index.
-   function Lookup_With_Default (Table : Cal_Table;
-                                 Raw_Id : Integer) returns Calibration
+   function lookup_with_default (table : cal_table;
+                                 raw_id : integer) returns calibration
 
-      if Raw_Id >= 1 and then Raw_Id <= 8
+      if raw_id >= 1 and then raw_id <= 8
          --  Index Raw_Id is proven in 1..8 by the guard.
-         return Table (Sensor_Id (Raw_Id));
+         return table (sensor_id (raw_id));
       else
          return 0;
 

@@ -739,81 +739,81 @@ package body Safe_Frontend.Ada_Emit is
    function Is_Attribute_Selector (Name : String) return Boolean is
    begin
       return
-        Name = "Access"
-        or else Name = "Address"
-        or else Name = "Adjacent"
-        or else Name = "Aft"
-        or else Name = "Alignment"
-        or else Name = "Base"
-        or else Name = "Bit_Order"
-        or else Name = "Ceiling"
-        or else Name = "Component_Size"
-        or else Name = "Compose"
-        or else Name = "Constrained"
-        or else Name = "Copy_Sign"
-        or else Name = "Definite"
-        or else Name = "Delta"
-        or else Name = "Denorm"
-        or else Name = "Digits"
-        or else Name = "Enum_Rep"
-        or else Name = "Enum_Val"
-        or else Name = "Exponent"
-        or else Name = "First"
-        or else Name = "First_Valid"
-        or else Name = "Floor"
-        or else Name = "Fore"
-        or else Name = "Fraction"
-        or else Name = "Image"
-        or else Name = "Last"
-        or else Name = "Last_Valid"
-        or else Name = "Leading_Part"
-        or else Name = "Length"
-        or else Name = "Machine"
-        or else Name = "Machine_Emax"
-        or else Name = "Machine_Emin"
-        or else Name = "Machine_Mantissa"
-        or else Name = "Machine_Overflows"
-        or else Name = "Machine_Radix"
-        or else Name = "Machine_Rounds"
-        or else Name = "Max"
-        or else Name = "Max_Alignment_For_Allocation"
-        or else Name = "Max_Size_In_Storage_Elements"
-        or else Name = "Min"
-        or else Name = "Mod"
-        or else Name = "Model"
-        or else Name = "Model_Emin"
-        or else Name = "Model_Epsilon"
-        or else Name = "Model_Mantissa"
-        or else Name = "Model_Small"
-        or else Name = "Modulus"
-        or else Name = "Object_Size"
-        or else Name = "Overlaps_Storage"
-        or else Name = "Pos"
-        or else Name = "Pred"
-        or else Name = "Range"
-        or else Name = "Remainder"
-        or else Name = "Round"
-        or else Name = "Rounding"
-        or else Name = "Safe_First"
-        or else Name = "Safe_Last"
-        or else Name = "Scale"
-        or else Name = "Scaling"
-        or else Name = "Size"
-        or else Name = "Small"
-        or else Name = "Storage_Size"
-        or else Name = "Succ"
-        or else Name = "Truncation"
-        or else Name = "Unbiased_Rounding"
-        or else Name = "Val"
-        or else Name = "Valid"
-        or else Name = "Value"
-        or else Name = "Wide_Image"
-        or else Name = "Wide_Value"
-        or else Name = "Wide_Wide_Image"
-        or else Name = "Wide_Wide_Value"
-        or else Name = "Wide_Wide_Width"
-        or else Name = "Wide_Width"
-        or else Name = "Width";
+        Name = "access"
+        or else Name = "address"
+        or else Name = "adjacent"
+        or else Name = "aft"
+        or else Name = "alignment"
+        or else Name = "base"
+        or else Name = "bit_order"
+        or else Name = "ceiling"
+        or else Name = "component_size"
+        or else Name = "compose"
+        or else Name = "constrained"
+        or else Name = "copy_sign"
+        or else Name = "definite"
+        or else Name = "delta"
+        or else Name = "denorm"
+        or else Name = "digits"
+        or else Name = "enum_rep"
+        or else Name = "enum_val"
+        or else Name = "exponent"
+        or else Name = "first"
+        or else Name = "first_valid"
+        or else Name = "floor"
+        or else Name = "fore"
+        or else Name = "fraction"
+        or else Name = "image"
+        or else Name = "last"
+        or else Name = "last_valid"
+        or else Name = "leading_part"
+        or else Name = "length"
+        or else Name = "machine"
+        or else Name = "machine_emax"
+        or else Name = "machine_emin"
+        or else Name = "machine_mantissa"
+        or else Name = "machine_overflows"
+        or else Name = "machine_radix"
+        or else Name = "machine_rounds"
+        or else Name = "max"
+        or else Name = "max_alignment_for_allocation"
+        or else Name = "max_size_in_storage_elements"
+        or else Name = "min"
+        or else Name = "mod"
+        or else Name = "model"
+        or else Name = "model_emin"
+        or else Name = "model_epsilon"
+        or else Name = "model_mantissa"
+        or else Name = "model_small"
+        or else Name = "modulus"
+        or else Name = "object_size"
+        or else Name = "overlaps_storage"
+        or else Name = "pos"
+        or else Name = "pred"
+        or else Name = "range"
+        or else Name = "remainder"
+        or else Name = "round"
+        or else Name = "rounding"
+        or else Name = "safe_first"
+        or else Name = "safe_last"
+        or else Name = "scale"
+        or else Name = "scaling"
+        or else Name = "size"
+        or else Name = "small"
+        or else Name = "storage_size"
+        or else Name = "succ"
+        or else Name = "truncation"
+        or else Name = "unbiased_rounding"
+        or else Name = "val"
+        or else Name = "valid"
+        or else Name = "value"
+        or else Name = "wide_image"
+        or else Name = "wide_value"
+        or else Name = "wide_wide_image"
+        or else Name = "wide_wide_value"
+        or else Name = "wide_wide_width"
+        or else Name = "wide_width"
+        or else Name = "width";
    end Is_Attribute_Selector;
 
    function Root_Name (Expr : CM.Expr_Access) return String is
@@ -994,14 +994,14 @@ package body Safe_Frontend.Ada_Emit is
 
    function Is_Builtin_Integer_Name (Name : String) return Boolean is
    begin
-      return Name in "Integer" | "Natural" | "Positive"
-        | "Long_Long_Integer" | "Long_Long_Long_Integer"
-        | "Safe_Runtime.Wide_Integer";
+      return Name in "integer" | "natural" | "positive"
+        | "long_long_integer" | "long_long_long_integer"
+        | "safe_runtime.wide_integer";
    end Is_Builtin_Integer_Name;
 
    function Is_Builtin_Float_Name (Name : String) return Boolean is
    begin
-      return Name in "Float" | "Long_Float";
+      return Name in "float" | "long_float";
    end Is_Builtin_Float_Name;
 
    function Base_Type
@@ -1153,7 +1153,7 @@ package body Safe_Frontend.Ada_Emit is
          when GM.Scalar_Value_Integer =>
             return Trim_Image (Value.Int_Value);
          when GM.Scalar_Value_Boolean =>
-            return (if Value.Bool_Value then "True" else "False");
+            return (if Value.Bool_Value then "true" else "false");
          when GM.Scalar_Value_Character =>
             return FT.To_String (Value.Text);
          when others =>
@@ -1294,9 +1294,9 @@ package body Safe_Frontend.Ada_Emit is
 
    function Default_Value_Expr (Type_Name : String) return String is
    begin
-      if Type_Name = "Boolean" then
-         return "False";
-      elsif Type_Name = "Float" or else Type_Name = "Long_Float" then
+      if Type_Name = "boolean" then
+         return "false";
+      elsif Type_Name = "float" or else Type_Name = "long_float" then
          return "0.0";
       elsif Starts_With (Type_Name, "access ")
         or else Starts_With (Type_Name, "not null access ")
@@ -1735,7 +1735,7 @@ package body Safe_Frontend.Ada_Emit is
                       & " : "
                       & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Type))
                       & (if Type_Item.Has_Discriminant_Default
-                         then " := " & (if Type_Item.Discriminant_Default_Bool then "True" else "False")
+                         then " := " & (if Type_Item.Discriminant_Default_Bool then "true" else "false")
                          else "")
                       & ")");
             end if;
@@ -1886,7 +1886,7 @@ package body Safe_Frontend.Ada_Emit is
                Expr.Span,
                "text literal missing source text");
          when CM.Expr_Bool =>
-            return (if Expr.Bool_Value then "True" else "False");
+            return (if Expr.Bool_Value then "true" else "false");
          when CM.Expr_Null =>
             return "null";
          when CM.Expr_Ident =>
@@ -1902,7 +1902,7 @@ package body Safe_Frontend.Ada_Emit is
                Prefix_Image  : constant String := Render_Expr (Unit, Document, Expr.Prefix, State);
                Selector_Name : constant String := FT.To_String (Expr.Selector);
             begin
-               if Selector_Name = "Access"
+               if Selector_Name = "access"
                  and then Expr.Prefix /= null
                  and then Has_Text (Expr.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
@@ -1975,7 +1975,7 @@ package body Safe_Frontend.Ada_Emit is
                Callee_Image : constant String :=
                  (if Expr.Callee /= null
                    and then Expr.Callee.Kind = CM.Expr_Select
-                   and then FT.To_String (Expr.Callee.Selector) = "Access"
+                   and then FT.To_String (Expr.Callee.Selector) = "access"
                    and then Expr.Callee.Prefix /= null
                    and then Has_Text (Expr.Callee.Prefix.Type_Name)
                    and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
@@ -2872,7 +2872,7 @@ package body Safe_Frontend.Ada_Emit is
       Type_Name : constant String :=
         (if Is_Integer_Type (Unit, Document, Type_Info)
            and then Names_Use_Wide_Storage (State, Names)
-         then "Safe_Runtime.Wide_Integer"
+         then "safe_runtime.wide_integer"
          elsif Local_Context
            and then Is_Access_Type (Type_Info)
            and then not Is_Owner_Access (Type_Info)
@@ -2887,7 +2887,7 @@ package body Safe_Frontend.Ada_Emit is
          if Initializer /= null
            and then Initializer.Kind = CM.Expr_Aggregate
            and then not Type_Info.Discriminant_Constraints.Is_Empty
-           and then Type_Name /= "Safe_Runtime.Wide_Integer"
+           and then Type_Name /= "safe_runtime.wide_integer"
          then
             return
               Type_Name
@@ -2896,14 +2896,14 @@ package body Safe_Frontend.Ada_Emit is
                   (Unit, Document, Initializer, Type_Info, State);
          elsif Initializer /= null
            and then Initializer.Kind in CM.Expr_Aggregate | CM.Expr_Tuple
-           and then Type_Name /= "Safe_Runtime.Wide_Integer"
+           and then Type_Name /= "safe_runtime.wide_integer"
          then
             return Type_Name & "'" & Render_Expr (Unit, Document, Initializer, State);
          end if;
          return Render_Expr (Unit, Document, Initializer, State);
       end Render_Initializer;
    begin
-      if Type_Name = "Safe_Runtime.Wide_Integer" then
+      if Type_Name = "safe_runtime.wide_integer" then
          State.Needs_Safe_Runtime := True;
       end if;
       for Index in Names.First_Index .. Names.Last_Index loop
@@ -2918,7 +2918,7 @@ package body Safe_Frontend.Ada_Emit is
                 & (if Is_Constant then "constant " else "")
                 & Type_Name);
          if Has_Initializer then
-            if Type_Name = "Safe_Runtime.Wide_Integer" then
+            if Type_Name = "safe_runtime.wide_integer" then
                Result :=
                  Result
                  & SU.To_Unbounded_String
@@ -3753,7 +3753,7 @@ package body Safe_Frontend.Ada_Emit is
             begin
                if not Supported then
                   return "";
-               elsif Selector_Name = "Access"
+               elsif Selector_Name = "access"
                  and then Expr.Prefix /= null
                  and then Has_Text (Expr.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
@@ -3827,7 +3827,7 @@ package body Safe_Frontend.Ada_Emit is
             begin
                if Expr.Callee /= null
                  and then Expr.Callee.Kind = CM.Expr_Select
-                 and then FT.To_String (Expr.Callee.Selector) = "Access"
+                 and then FT.To_String (Expr.Callee.Selector) = "access"
                  and then Expr.Callee.Prefix /= null
                  and then Has_Text (Expr.Callee.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))

@@ -7,39 +7,39 @@
 -- Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.3.p30:62619161
 -- Expected: ACCEPT
 
-package Try_Ops
+package try_ops
 
-   type Item is range 0 to 100;
+   type item is range 0 to 100;
 
-   channel Data_Ch : Item capacity 2;
+   channel data_ch : item capacity 2;
 
-   task Producer
-      Next : Item = 0;
-      Sent : Boolean = False;
+   task producer
+      next : item = 0;
+      sent : boolean = false;
 
       loop
-         try_send Data_Ch, Next, Sent;
-         if Sent
-            if Next < 100
-               Next = Next + 1;
+         try_send data_ch, next, sent;
+         if sent
+            if next < 100
+               next = next + 1;
             else
-               Next = 0;
+               next = 0;
 
          else
             delay 0.01;
 
-   task Consumer
-      Value : Item = 0;
-      Got   : Boolean = False;
-      Total : Natural = 0;
+   task consumer
+      value : item = 0;
+      got   : boolean = false;
+      total : natural = 0;
 
       loop
-         try_receive Data_Ch, Value, Got;
-         if Got
-            Total = Total + Natural (Value);
+         try_receive data_ch, value, got;
+         if got
+            total = total + natural (value);
          else
             delay 0.01;
 
-         if Total > 10_000
-            Total = 0;
+         if total > 10_000
+            total = 0;
 

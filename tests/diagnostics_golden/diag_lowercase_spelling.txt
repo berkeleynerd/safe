@@ -1,0 +1,12 @@
+Diagnostics Golden: Lowercase Source Spelling
+Source: tests/negative/neg_pr117_uppercase_identifier.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr117_uppercase_identifier.safe:7:13: error: Safe source spellings must be lowercase
+  |
+  | 7 |    function mixed_Name returns integer
+  |   |             ^~~~~~~~~~
+  |
+  suggestion: Rewrite `mixed_Name` as `mixed_name`.
+------------------------------------------------------------------------

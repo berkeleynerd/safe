@@ -1,0 +1,10 @@
+-- Test: neg_pr117_uppercase_builtin
+-- Description: Predefined names must use the lowercase Safe surface.
+-- Expected: REJECT source_frontend_error
+
+package neg_pr117_uppercase_builtin
+
+   function run returns integer
+      value : Integer = 1;
+
+      return value

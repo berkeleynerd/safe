@@ -216,7 +216,7 @@ package body Safe_Frontend.Check_Emit is
       Selector_Kind : constant String :=
         (if Expr /= null
             and then Expr.Kind = CM.Expr_Select
-            and then FT.To_String (Expr.Selector) in "First" | "Last" | "Length" | "Access"
+            and then FT.To_String (Expr.Selector) in "first" | "last" | "length" | "access"
          then JS.Quote ("Attribute")
          elsif Expr /= null
            and then Expr.Kind = CM.Expr_Select
@@ -730,7 +730,7 @@ package body Safe_Frontend.Check_Emit is
       Expr : constant CM.Expr_Access := new CM.Expr_Node'
         (Kind       => CM.Expr_Bool,
          Span       => Span,
-         Type_Name  => FT.To_UString ("Boolean"),
+         Type_Name  => FT.To_UString ("boolean"),
          Text       => FT.To_UString (""),
          Int_Value  => 0,
          Bool_Value => Value,
@@ -782,7 +782,7 @@ package body Safe_Frontend.Check_Emit is
                    else new CM.Expr_Node'
                      (Kind       => CM.Expr_Bool,
                       Span       => Alternative.Span,
-                      Type_Name  => FT.To_UString ("Boolean"),
+                      Type_Name  => FT.To_UString ("boolean"),
                       Bool_Value => Alternative.When_Value,
                       others     => <>))))
             & ",""span"":"
@@ -870,7 +870,7 @@ package body Safe_Frontend.Check_Emit is
             return
               "{""node_type"":""Primary"",""kind"":""Literal"",""value"":"
               & Enum_Literal_Node
-                  ((if Expr.Bool_Value then "True" else "False"), Expr.Span)
+                  ((if Expr.Bool_Value then "true" else "false"), Expr.Span)
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";

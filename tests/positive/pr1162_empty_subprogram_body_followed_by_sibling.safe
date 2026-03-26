@@ -2,9 +2,9 @@
 -- Description: Empty subprogram bodies do not consume later sibling package items.
 -- Expected: ACCEPT
 
-package Pr1162_Empty_Subprogram_Body_Followed_By_Sibling
+package pr1162_empty_subprogram_body_followed_by_sibling
 
-   function Skip
+   function skip
 
-   function Value returns Integer
+   function value returns integer
       return 1;

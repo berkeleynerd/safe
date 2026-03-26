@@ -1,14 +1,12 @@
 # PR11.x Rosetta Corpus
 
-This directory started as the PR11.1 language-evaluation corpus and now carries
-the PR11.2 text/control-flow additions plus the first PR11.3 structured-return
-examples.
+This directory holds the Rosetta-style sample corpus that the stripped-down
+development workflow checks with `scripts/run_samples.py`.
 
-The milestone boundary is compile-only:
+All samples use the current lowercase Safe surface and stay in the
+compile-only lane:
 
 - `safec check`
-- `safec emit --ada-out-dir`
-- `gprbuild -c`
 
 PR11.1, PR11.2, and PR11.3 do not treat this corpus as a proof-bearing
 milestone. Proof coverage re-enters later through `PR11.3a`, `PR11.8a`, and
@@ -48,32 +46,13 @@ PR11.3 structured-return additions:
 - `text/lookup_pair.safe`
 - `text/lookup_result.safe`
 
-## Running the Corpus Gate
+## Running the Corpus
 
 Use:
 
 ```bash
-python3 scripts/run_rosetta_corpus.py
+python3 scripts/run_samples.py
 ```
 
-That gate validates the eight starter programs through the PR11.1 compile-only
-chain. The separate `safe build` smoke in `scripts/run_pr111_language_evaluation_harness.py`
-covers executable production on one sequential and one concurrency starter.
-
-For the PR11.2 text/control-flow slice, use:
-
-```bash
-python3 scripts/run_pr112_parser_completeness_phase1.py
-```
-
-That gate keeps the new string/character literal and strict `case` samples in
-the same `safec check` -> `safec emit --ada-out-dir` -> `gprbuild -c` compile-only chain.
-
-For the PR11.3 discriminant/tuple/result slice, use:
-
-```bash
-python3 scripts/run_pr113_discriminated_types_tuples_structured_returns.py
-```
-
-That gate keeps the new discriminant constraints, tuples, tuple channels,
-destructuring, and builtin `result` samples in the same compile-only chain.
+That runner builds the compiler once and runs `safec check` on every
+`samples/rosetta/**/*.safe` file in stable order.

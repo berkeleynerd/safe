@@ -6,24 +6,24 @@
 -- Clause: SAFE@468cf72:spec/02-restrictions.md#2.8.3.p134:90a17a3b
 -- Expected: ACCEPT
 
-package Safe_Divide
+package safe_divide
 
-   type Positive_Divisor is range 1 to 1000;
-   type Result_Value is range -10_000 to 10_000;
+   type positive_divisor is range 1 to 1000;
+   type result_value is range -10_000 to 10_000;
 
    --  Safe_Div: the divisor type excludes zero by its range 1..1000.
-   function Safe_Div (Dividend : Result_Value;
-                      Divisor  : Positive_Divisor) returns Result_Value
+   function safe_div (dividend : result_value;
+                      divisor  : positive_divisor) returns result_value
 
       --  Divisor is of type Positive_Divisor (1..1000), provably nonzero.
-      return Dividend / Result_Value (Divisor);
+      return dividend / result_value (divisor);
 
    --  Guarded_Div: uses a runtime check to ensure nonzero.
-   function Guarded_Div (A, B : Result_Value) returns Result_Value
+   function guarded_div (a, b : result_value) returns result_value
 
-      if B != 0
+      if b != 0
          --  B is provably nonzero by the guard.
-         return A / B;
+         return a / b;
       else
          return 0;
 

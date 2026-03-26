@@ -12,6 +12,9 @@
       "include": "#characters"
     },
     {
+      "include": "#invalid_uppercase"
+    },
+    {
       "include": "#keywords"
     },
     {
@@ -22,6 +25,9 @@
     },
     {
       "include": "#builtins"
+    },
+    {
+      "include": "#attributes"
     },
     {
       "include": "#tuple_selectors"
@@ -65,6 +71,14 @@
         }
       ]
     },
+    "invalid_uppercase": {
+      "patterns": [
+        {
+          "name": "invalid.illegal.safe",
+          "match": "(?<![#\\w])(?=[A-Za-z_]*[A-Z])[A-Za-z][A-Za-z0-9_]*\\b(?!#)"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
@@ -77,7 +91,7 @@
         },
         {
           "name": "storage.modifier.safe",
-          "match": "\\b(out|in|in\\s+out|Priority|pragma)\\b"
+          "match": "\\b(out|in|in\\s+out|priority|pragma)\\b"
         }
       ]
     },
@@ -85,7 +99,7 @@
       "patterns": [
         {
           "name": "constant.language.boolean.safe",
-          "match": "\\b(True|False)\\b"
+          "match": "\\b(true|false)\\b"
         }
       ]
     },
@@ -93,7 +107,7 @@
       "patterns": [
         {
           "name": "support.type.builtin.safe",
-          "match": "\\b(Boolean|Integer|Natural|Character|String|result)\\b"
+          "match": "\\b(boolean|integer|natural|character|string|float|long_float|duration|result)\\b"
         }
       ]
     },
@@ -102,6 +116,14 @@
         {
           "name": "support.function.builtin.safe",
           "match": "\\b(ok|fail)\\b"
+        }
+      ]
+    },
+    "attributes": {
+      "patterns": [
+        {
+          "name": "support.function.attribute.safe",
+          "match": "(?<!\\d)\\.(access|first|last|length|range|image|valid)\\b"
         }
       ]
     },
@@ -125,7 +147,7 @@
       "patterns": [
         {
           "name": "keyword.operator.safe",
-          "match": "==|!=|<=|>=|:=|=>|[-+*/<>=]"
+          "match": "==|!=|<=|>=|[-+*/<>=]"
         }
       ]
     }

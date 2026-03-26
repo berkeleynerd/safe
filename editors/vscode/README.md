@@ -1,7 +1,7 @@
 # Safe VSCode Extension
 
 This is the minimal editor surface for Safe, with static grammar updates
-through the current PR11.6.2 compiler subset.
+through the current PR11.7 compiler surface.
 
 - Static syntax highlighting comes from [`syntaxes/safe.tmLanguage.json`](syntaxes/safe.tmLanguage.json).
 - Diagnostics come from the disposable Python shim at [`../../scripts/safe_lsp.py`](../../scripts/safe_lsp.py).
@@ -9,11 +9,11 @@ through the current PR11.6.2 compiler subset.
 
 Important boundary:
 
-- The grammar statically highlights the current PR11.6.2 surface, including
-  the PR11.4 keyword cutovers, PR11.5 optional semicolons and statement-local
-  `var`, PR11.6 indentation-structured blocks, and PR11.6.2 deprecated legacy
-  block keywords. It is still editor-only tokenization rather than semantic
-  analysis.
+- The grammar statically highlights the current PR11.7 lowercase surface,
+  including the PR11.4 keyword cutovers, PR11.5 optional semicolons and
+  statement-local `var`, PR11.6 indentation-structured blocks, PR11.6.2
+  deprecated legacy block keywords, and the PR11.7 lowercase-only source
+  convention. Mixed-case Safe spellings are highlighted as invalid.
 - Tuple selectors like `.1` and `.2` are highlighted syntactically only; the
   extension does not validate tuple arity or selector legality.
 - This extension is intentionally disposable and may be replaced by a real post-v1.0 language server.
