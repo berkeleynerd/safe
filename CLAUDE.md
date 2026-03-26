@@ -19,7 +19,7 @@ intentionally gone.
 
 ```bash
 # Build the compiler
-cd compiler_impl && alr build
+(cd compiler_impl && alr build)
 
 # Run tests
 python3 scripts/run_tests.py

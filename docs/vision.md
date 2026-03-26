@@ -426,10 +426,10 @@ First real-program feedback loop.
 case statements, discriminated records, syntax proposals, block syntax, reference
 surface experiments. First proof checkpoint after PR11.3.
 
-**PR11.8-PR11.8g**: numeric and value-type model reset. Three-tier integers,
-simplified predefined type names, modular arithmetic, value-type strings,
-copy-by-default value/reference semantics, a value-model proof checkpoint, and
-value-only channel elements.
+**PR11.8-PR11.8g**: numeric and value-type model reset. Unified integer type
+(superseding the earlier three-tier model), simplified predefined type names,
+modular arithmetic, value-type strings, copy-by-default value/reference
+semantics, a value-model proof checkpoint, and value-only channel elements.
 
 **PR11.9**: artifact contract stabilization. Machine interfaces freeze for
 ecosystem consumers after the recovered PR11.8 proof and channel milestones.

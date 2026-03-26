@@ -79,7 +79,7 @@ Build once, then run the top-level workflow scripts from the repository root:
 
 ```bash
 # Build the compiler
-cd compiler_impl && alr build
+(cd compiler_impl && alr build)
 
 # Run fixture tests
 python3 scripts/run_tests.py
