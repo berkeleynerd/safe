@@ -1280,12 +1280,7 @@ package body Safe_Frontend.Ada_Emit is
         and then Info.Has_Low
         and then Info.Has_High
       then
-         return
-           Ada_Safe_Name (FT.To_String (Info.Base))
-           & " range "
-           & Trim_Image (Info.Low)
-           & " .. "
-           & Trim_Image (Info.High);
+         return Ada_Safe_Name (FT.To_String (Info.Name));
       end if;
       return Ada_Safe_Name (FT.To_String (Info.Name));
    end Render_Type_Name;
@@ -1455,6 +1450,11 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
 
          if (FT.To_String (Info.Kind) = "subtype" and then not Info.Discriminant_Constraints.Is_Empty)
+           or else (FT.To_String (Info.Kind) = "subtype"
+                    and then Starts_With (FT.To_String (Info.Name), "__constraint")
+                    and then Info.Has_Base
+                    and then Info.Has_Low
+                    and then Info.Has_High)
            or else Is_Tuple_Type (Info)
            or else Is_Result_Builtin (Info)
          then
