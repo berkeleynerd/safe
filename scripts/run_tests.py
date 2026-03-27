@@ -249,6 +249,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "negative" / "neg_pr118c_binary_to_integer_oob.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr118c_binary_to_integer_oob.txt",
     ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr118c_mixed_logical_operators.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr118c_mixed_logical_operators.txt",
+    ),
 ]
 
 

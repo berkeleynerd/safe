@@ -1,0 +1,11 @@
+Diagnostics Golden: PR11.8c Mixed Logical Operators
+Source: tests/negative/neg_pr118c_mixed_logical_operators.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr118c_mixed_logical_operators.safe:2:37: error: mixed logical operators require parentheses
+  |
+  | 2 |    value : boolean = true and false or true;
+  |   |                                     ^~
+  |
+------------------------------------------------------------------------

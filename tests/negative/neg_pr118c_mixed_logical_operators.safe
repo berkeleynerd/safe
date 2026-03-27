@@ -1,0 +1,2 @@
+package neg_pr118c_mixed_logical_operators
+   value : boolean = true and false or true;

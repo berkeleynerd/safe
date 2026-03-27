@@ -498,6 +498,9 @@ package body Safe_Frontend.Check_Parse is
       Close_Paren : FL.Token;
       Result      : CM.Type_Spec;
    begin
+      Result.Kind := CM.Type_Spec_Binary;
+      Result.Binary_Width_Expr := Width_Expr;
+
       if Width_Expr = null or else Width_Expr.Kind /= CM.Expr_Int then
          Raise_Diag
            (CM.Source_Frontend_Error
@@ -505,11 +508,10 @@ package body Safe_Frontend.Check_Parse is
                Span    => Open_Paren.Span,
                Message => "binary width must be an integer literal",
                Note    => "use one of `binary (8)`, `binary (16)`, `binary (32)`, or `binary (64)`"));
+      else
+         Result.Name := Binary_Internal_Name (State, Width_Expr.Int_Value);
       end if;
 
-      Result.Kind := CM.Type_Spec_Binary;
-      Result.Binary_Width_Expr := Width_Expr;
-      Result.Name := Binary_Internal_Name (State, Width_Expr.Int_Value);
       Close_Paren := Expect (State, ")");
       Result.Span := CM.Join (Start.Span, Close_Paren.Span);
       return Result;
@@ -2285,14 +2287,16 @@ package body Safe_Frontend.Check_Parse is
    end Parse_Relation;
 
    function Match_Logical_Operator
-     (State    : in out Parser_State;
-      Operator : out FT.UString) return Boolean
+     (State         : in out Parser_State;
+      Operator      : out FT.UString;
+      Operator_Span : out FT.Source_Span) return Boolean
    is
       Lower : constant String := Current_Lower (State);
    begin
       if Lower = "and"
         and then FT.Lowercase (FT.To_String (Next (State).Lexeme)) = "then"
       then
+         Operator_Span := CM.Join (Current (State).Span, Next (State).Span);
          Advance (State);
          Advance (State);
          Operator := FT.To_UString ("and then");
@@ -2300,27 +2304,41 @@ package body Safe_Frontend.Check_Parse is
       elsif Lower = "or"
         and then FT.Lowercase (FT.To_String (Next (State).Lexeme)) = "else"
       then
+         Operator_Span := CM.Join (Current (State).Span, Next (State).Span);
          Advance (State);
          Advance (State);
          Operator := FT.To_UString ("or else");
          return True;
       elsif Lower in "and" | "or" | "xor" then
+         Operator_Span := Current (State).Span;
          Operator := FT.To_UString (Lower);
          Advance (State);
          return True;
       end if;
+      Operator_Span := FT.Null_Span;
       return False;
    end Match_Logical_Operator;
 
    function Parse_Logical_Expr
      (State : in out Parser_State) return CM.Expr_Access
    is
-      Result : CM.Expr_Access := Parse_Relation (State);
-      Right  : CM.Expr_Access;
-      Next_Result : CM.Expr_Access;
-      Operator : FT.UString;
+      Result         : CM.Expr_Access := Parse_Relation (State);
+      Right          : CM.Expr_Access;
+      Next_Result    : CM.Expr_Access;
+      Operator       : FT.UString;
+      Chain_Operator : FT.UString := FT.To_UString ("");
+      Operator_Span  : FT.Source_Span := FT.Null_Span;
    begin
-      while Match_Logical_Operator (State, Operator) loop
+      while Match_Logical_Operator (State, Operator, Operator_Span) loop
+         if Chain_Operator = FT.To_UString ("") then
+            Chain_Operator := Operator;
+         elsif Operator /= Chain_Operator then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Operator_Span,
+                  Message => "mixed logical operators require parentheses"));
+         end if;
          Right := Parse_Relation (State);
          Next_Result := New_Expr;
          Next_Result.Kind := CM.Expr_Binary;

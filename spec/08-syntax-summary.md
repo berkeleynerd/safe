@@ -351,6 +351,8 @@ logical_operator ::=
   | 'or' 'else'
   | 'xor'
 
+Mixed logical operators at the same nesting level require parentheses.
+
 relation ::=
     shift_expression [ relational_operator shift_expression ]
   | shift_expression [ 'not' ] 'in' membership_choice_list
