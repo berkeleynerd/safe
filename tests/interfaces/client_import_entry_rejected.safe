@@ -1,0 +1,5 @@
+with entry_helper;
+
+package client_import_entry_rejected
+
+   value : integer = 0;

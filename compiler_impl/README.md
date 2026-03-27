@@ -51,6 +51,20 @@ The repo also keeps a small wrapper CLI at `../scripts/safe_cli.py`:
 - `python3 ../scripts/safe_cli.py check ...`
 - `python3 ../scripts/safe_cli.py emit ...`
 
+`safe build` is still a single-file wrapper in this branch. It supports:
+
+- explicit-package roots with no leading `with` clauses, built through the
+  existing generated-driver path
+- packageless entry roots with no leading `with` clauses, built through an
+  emitted `main.adb`
+
+If the root file begins with `with`, the wrapper rejects it and points users to
+`safec emit` plus manual `gprbuild` for the current multi-file flow.
+
+The repo also now includes a prototype single-file REPL:
+
+- `python3 ../scripts/safe_repl.py`
+
 ## Compiler Outputs
 
 `safec emit` always writes four machine-readable artifacts:
@@ -69,6 +83,7 @@ Ada/SPARK artifacts:
 
 - `<unit>.ads`
 - `<unit>.adb`
+- optional `main.adb` for packageless entry roots
 - optional `<unit>_safe_io.ads`
 - optional `<unit>_safe_io.adb`
 - optional `gnat.adc`
@@ -114,6 +129,10 @@ python3 scripts/run_proofs.py
 - `safec emit`
 - emitted Ada build through `gprbuild`
 - native execution of the produced binary
+
+For packageless entry samples, the sweep uses the emitted `main.adb` directly.
+For explicit-package samples, it still generates the small Ada driver needed to
+run the unit.
 
 `run_proofs.py` covers:
 

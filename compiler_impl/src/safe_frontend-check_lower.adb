@@ -16,6 +16,7 @@ package body Safe_Frontend.Check_Lower is
    use type CM.Expr_Access;
    use type CM.Expr_Kind;
    use type CM.Select_Arm_Kind;
+   use type CM.Unit_Kind;
    use type GM.Select_Arm_Kind;
    use type CM.Statement_Kind;
    use type GM.Terminator_Kind;
@@ -2347,6 +2348,117 @@ package body Safe_Frontend.Check_Lower is
       return Result;
    end Lower_Subprogram;
 
+   function Lower_Unit_Init
+     (Unit          : CM.Resolved_Unit;
+      All_Functions : CM.Resolved_Subprogram_Vectors.Vector;
+      Type_Env      : Type_Maps.Map) return GM.Graph_Entry
+   is
+      Result      : GM.Graph_Entry;
+      Visible     : Type_Maps.Map := Type_Env;
+      Work        : Builder;
+      Root_Scope  : constant GM.Scope_Entry := New_Scope ("scope0", "", "unit");
+      Entry_Id    : FT.UString;
+      End_Id      : FT.UString;
+      Assign_Op   : GM.Op_Entry;
+      Terminator  : GM.Terminator_Entry;
+   begin
+      Result.Name := FT.To_UString (UString_Value (Unit.Package_Name) & ".__unit_init");
+      Result.Kind := FT.To_UString ("unit_init");
+      Result.Has_Span := True;
+      Result.Span := Unit.Statements (Unit.Statements.First_Index).Span;
+
+      Register_Scope (Work, Root_Scope);
+
+      for Decl of Unit.Objects loop
+         for Name of Decl.Names loop
+            Visible.Include (UString_Value (Name), Decl.Type_Info);
+            declare
+               Global_Local_Id : constant FT.UString :=
+                 Append_Local
+                   (Result.Locals,
+                    UString_Value (Name),
+                    "global",
+                    "in",
+                    Decl.Type_Info,
+                    Decl.Span,
+                    "scope0",
+                    Is_Constant => Decl.Is_Constant);
+            begin
+               Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+                 (Global_Local_Id);
+            end;
+         end loop;
+      end loop;
+
+      Collect_Scopes (Unit.Statements, Visible, "scope0", Work, Result.Locals);
+      Work.Locals := Result.Locals;
+
+      Entry_Id := New_Block (Work, FT.Null_Span, "entry", "scope0");
+      Register_Scope_Entry (Work, "scope0", UString_Value (Entry_Id));
+      Result.Entry_BB := Entry_Id;
+
+      for Decl of Unit.Objects loop
+         for Name of Decl.Names loop
+            if Decl.Has_Initializer and then Decl.Initializer /= null then
+               Assign_Op := (others => <>);
+               Assign_Op.Kind := GM.Op_Assign;
+               Assign_Op.Span := Decl.Span;
+               Assign_Op.Target :=
+                 Lower_Target
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Visible,
+                    Type_Env);
+               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+               Assign_Op.Type_Name := Decl.Type_Info.Name;
+               Assign_Op.Ownership_Effect :=
+                 Ownership_Assignment_Effect
+                   (Ident_Expr
+                      (UString_Value (Name),
+                       Decl.Span,
+                       UString_Value (Decl.Type_Info.Name)),
+                    Decl.Initializer,
+                    Visible,
+                    Type_Env);
+               Assign_Op.Declaration_Init := True;
+               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+            end if;
+         end loop;
+      end loop;
+
+      End_Id :=
+        Lower_Statement_List
+          (Work,
+           Entry_Id,
+           Unit.Statements,
+           Visible,
+           Type_Env,
+           "scope0",
+           All_Functions);
+
+      if Has_Block (End_Id)
+        and then not Block_Terminated (Work, UString_Value (End_Id))
+      then
+         Terminator.Kind := GM.Terminator_Return;
+         Terminator.Span := FT.Null_Span;
+         Terminator.Ownership_Effect := GM.Ownership_None;
+         Set_Terminator (Work, UString_Value (End_Id), Terminator);
+         Register_Scope_Chain_Exits
+           (Work,
+            UString_Value
+              (Work.Blocks (Block_Index (Work, UString_Value (End_Id))).Active_Scope_Id),
+            UString_Value (End_Id));
+      end if;
+
+      Finalize_Unknown_Terminators (Work, UString_Value (Result.Entry_BB));
+      Result.Locals := Work.Locals;
+      Result.Scopes := Work.Scopes;
+      Result.Blocks := Work.Blocks;
+      return Result;
+   end Lower_Unit_Init;
+
    function Lower_Task
      (Task_Item       : CM.Resolved_Task;
       All_Functions   : CM.Resolved_Subprogram_Vectors.Vector;
@@ -2532,6 +2644,7 @@ package body Safe_Frontend.Check_Lower is
       Result.Format := GM.Mir_V2;
       Result.Has_Source_Path := True;
       Result.Source_Path := Unit.Path;
+      Result.Unit_Kind := FT.To_UString ((if Unit.Kind = CM.Unit_Entry then "entry" else "package"));
       Result.Package_Name := Unit.Package_Name;
 
       for Channel_Item of Unit.Channels loop
@@ -2557,6 +2670,14 @@ package body Safe_Frontend.Check_Lower is
       for Item of Unit.Imported_Subprograms loop
          Result.Externals.Append (Item);
       end loop;
+
+      if not Unit.Statements.Is_Empty then
+         Result.Graphs.Append
+           (Lower_Unit_Init
+              (Unit,
+               Unit.Subprograms,
+               Type_Env));
+      end if;
 
       for Subprogram of Unit.Subprograms loop
          Result.Graphs.Append

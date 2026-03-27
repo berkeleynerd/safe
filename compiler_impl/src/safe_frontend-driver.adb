@@ -21,7 +21,6 @@ with Safe_Frontend.Mir_Model;
 with Safe_Frontend.Mir_Validate;
 with Safe_Frontend.Mir_Write;
 with Safe_Frontend.Source;
-with Safe_Frontend.Types;
 
 package body Safe_Frontend.Driver is
    package AE renames Safe_Frontend.Ada_Emit;
@@ -35,6 +34,7 @@ package body Safe_Frontend.Driver is
    package MB renames Safe_Frontend.Mir_Bronze;
    package MD renames Safe_Frontend.Mir_Diagnostics;
    package FS renames Safe_Frontend.Source;
+   use type CP.CM.Unit_Kind;
    type Lex_Result is record
       Input       : FS.Source_File;
       Tokens      : FL.Token_Vectors.Vector;
@@ -65,6 +65,24 @@ package body Safe_Frontend.Driver is
         Ada.Characters.Handling.To_Lower
           (Simple (Simple'First .. Dot - 1));
    end Source_Stem;
+
+   function Main_Text (Unit_Name : String) return String is
+   begin
+      return
+        "with "
+        & Unit_Name
+        & ";"
+        & ASCII.LF
+        & ASCII.LF
+        & "procedure Main is"
+        & ASCII.LF
+        & "begin"
+        & ASCII.LF
+        & "   null;"
+        & ASCII.LF
+        & "end Main;"
+        & ASCII.LF;
+   end Main_Text;
 
    procedure Write_File (Path : String; Contents : String) is
       package AS renames Ada.Streams;
@@ -161,6 +179,7 @@ package body Safe_Frontend.Driver is
    procedure Cleanup_Ada_Artifacts
      (Ada_Out_Dir : String;
       Ada_Stem    : String;
+      Has_Main    : Boolean;
       Cleanup_Failed : in out Boolean) is
    begin
       Delete_If_Exists
@@ -169,6 +188,11 @@ package body Safe_Frontend.Driver is
       Delete_If_Exists
         (Ada_Out_Dir & "/" & Ada_Stem & ".adb",
          Cleanup_Failed);
+      if Has_Main then
+         Delete_If_Exists
+           (Ada_Out_Dir & "/main.adb",
+            Cleanup_Failed);
+      end if;
    end Cleanup_Ada_Artifacts;
 
    function Failure_Exit_Code (Result : Lex_Result) return Integer is
@@ -438,7 +462,7 @@ package body Safe_Frontend.Driver is
       Search_Dirs : FT.UString_Vectors.Vector := FT.UString_Vectors.Empty_Vector)
       return Integer
    is
-      Result : Source_Result := Run_Source_Pipeline (Path, Search_Dirs);
+      Result : constant Source_Result := Run_Source_Pipeline (Path, Search_Dirs);
    begin
       if not Result.Lexed.Success then
          FD.Print (Result.Lexed.Diagnostics);
@@ -547,7 +571,7 @@ package body Safe_Frontend.Driver is
       Search_Dirs   : FT.UString_Vectors.Vector := FT.UString_Vectors.Empty_Vector)
       return Integer
    is
-      Pipeline : Source_Result := Run_Source_Pipeline (Path, Search_Dirs);
+      Pipeline : constant Source_Result := Run_Source_Pipeline (Path, Search_Dirs);
    begin
       if not Pipeline.Lexed.Success then
          FD.Print (Pipeline.Lexed.Diagnostics);
@@ -618,6 +642,12 @@ package body Safe_Frontend.Driver is
               (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Gnat_Adc
                then AE.Gnat_Adc_Text
                else "");
+            Entry_Main   : constant String :=
+              (if Ada_Out_Dir'Length > 0
+                  and then Ada_Result.Success
+                  and then Pipeline.Resolved.Kind = CP.CM.Unit_Entry
+               then Main_Text (FT.To_String (Ada_Result.Unit_Name))
+               else "");
          begin
             if not Ada_Result.Success then
                return
@@ -656,6 +686,11 @@ package body Safe_Frontend.Driver is
                      Write_File
                        (Ada_Out_Dir & "/" & Ada_Stem & ".adb",
                         FT.To_String (Ada_Result.Body_Text));
+                     if Pipeline.Resolved.Kind = CP.CM.Unit_Entry then
+                        Write_File
+                          (Ada_Out_Dir & "/main.adb",
+                           Entry_Main);
+                     end if;
                      if Ada_Result.Needs_Safe_IO then
                         Write_Shared_Support_File
                           (Ada_Out_Dir
@@ -685,7 +720,11 @@ package body Safe_Frontend.Driver is
                         declare
                            Cleanup_Failed : Boolean := False;
                         begin
-                           Cleanup_Ada_Artifacts (Ada_Out_Dir, Ada_Stem, Cleanup_Failed);
+                           Cleanup_Ada_Artifacts
+                             (Ada_Out_Dir,
+                              Ada_Stem,
+                              Pipeline.Resolved.Kind = CP.CM.Unit_Entry,
+                              Cleanup_Failed);
                            if Cleanup_Failed then
                               Ada.Text_IO.Put_Line
                                 (Ada.Text_IO.Current_Error,

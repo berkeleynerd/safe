@@ -817,6 +817,17 @@ package body Safe_Frontend.Interfaces is
          raise Constraint_Error with File_Path & ": format must be safei-v1";
       end if;
 
+      if Has_Field (Root, "unit_kind") then
+         declare
+            Unit_Kind : constant String := Require_String (Root, "unit_kind", File_Path);
+         begin
+            if Unit_Kind not in "package" | "entry" then
+               raise Constraint_Error with File_Path & ": unit_kind must be `package` or `entry`";
+            end if;
+            Result.Unit_Kind := FT.To_UString (Unit_Kind);
+         end;
+      end if;
+
       Result.Package_Name := FT.To_UString (Require_String (Root, "package_name", File_Path));
 
       Validate_Name_List (Require_Array (Root, "dependencies", File_Path), "dependencies", File_Path);
@@ -1053,6 +1064,20 @@ package body Safe_Frontend.Interfaces is
                      Item  : constant Loaded_Interface := Parse_Interface_File (File_Path, Path);
                      Canon : constant String := Canonical (FT.To_String (Item.Package_Name));
                   begin
+                     if FT.To_String (Item.Unit_Kind) = "entry" then
+                        return
+                          (Success => False,
+                           Diagnostic =>
+                             CM.Source_Frontend_Error
+                               (Path    => Path,
+                                Span    => Required.Element (Canon),
+                                Message =>
+                                  "cannot import packageless entry unit `"
+                                  & FT.To_String (Item.Package_Name)
+                                  & "`",
+                                Note =>
+                                  "entry-unit interfaces are not importable; use an explicit `package` declaration for library code"));
+                     end if;
                      if Dir_Items.Contains (Canon) then
                         return
                           (Success => False,

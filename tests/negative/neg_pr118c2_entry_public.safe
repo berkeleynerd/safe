@@ -1,0 +1,2 @@
+public function run returns integer
+   return 1

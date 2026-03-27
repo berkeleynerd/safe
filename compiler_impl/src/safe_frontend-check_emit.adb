@@ -4,7 +4,6 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Json;
-with Safe_Frontend.Mir_Bronze;
 with Safe_Frontend.Mir_Model;
 with Safe_Frontend.Types;
 
@@ -14,6 +13,7 @@ package body Safe_Frontend.Check_Emit is
    package JS renames Safe_Frontend.Json;
    package US renames Ada.Strings.Unbounded;
 
+   use type CM.Unit_Kind;
    package String_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type   => Positive,
       Element_Type => String);
@@ -41,6 +41,9 @@ package body Safe_Frontend.Check_Emit is
    function Statement_Node
      (Parsed   : CM.Statement_Access;
       Resolved : CM.Statement_Access) return String;
+   function Statement_List_Json
+     (Parsed_Statements   : CM.Statement_Access_Vectors.Vector;
+      Resolved_Statements : CM.Statement_Access_Vectors.Vector) return String;
 
    function Expression_Node (Expr : CM.Expr_Access) return String;
    function Object_Type_Node (Spec : CM.Type_Spec) return String;
@@ -2096,6 +2099,31 @@ package body Safe_Frontend.Check_Emit is
       return Json_List (Items);
    end Public_Declarations;
 
+   function Statement_List_Json
+     (Parsed_Statements   : CM.Statement_Access_Vectors.Vector;
+      Resolved_Statements : CM.Statement_Access_Vectors.Vector) return String
+   is
+      Items : String_Vectors.Vector;
+   begin
+      if not Parsed_Statements.Is_Empty then
+         for Index in Parsed_Statements.First_Index .. Parsed_Statements.Last_Index loop
+            declare
+               Resolved_Stmt : constant CM.Statement_Access :=
+                 (if not Resolved_Statements.Is_Empty
+                   and then Index in Resolved_Statements.First_Index .. Resolved_Statements.Last_Index
+                  then Resolved_Statements (Index)
+                  else Parsed_Statements (Index));
+            begin
+               Items.Append
+                 (Statement_Node
+                    (Parsed_Statements (Index),
+                     Resolved_Stmt));
+            end;
+         end loop;
+      end if;
+      return Json_List (Items);
+   end Statement_List_Json;
+
    function Executables (Resolved : CM.Resolved_Unit) return String is
       Items : String_Vectors.Vector;
    begin
@@ -2734,10 +2762,12 @@ package body Safe_Frontend.Check_Emit is
 
    function Ast_Json
      (Parsed   : CM.Parsed_Unit;
-      Resolved : CM.Resolved_Unit) return String
+     Resolved : CM.Resolved_Unit) return String
    is
       Withs            : String_Vectors.Vector;
       Items            : String_Vectors.Vector;
+      Statements       : constant String :=
+        Statement_List_Json (Parsed.Statements, Resolved.Statements);
       Object_Index     : Natural := 0;
       Subprogram_Index : Natural := 0;
       Task_Index       : Natural := 0;
@@ -2779,15 +2809,37 @@ package body Safe_Frontend.Check_Emit is
         & Json_List (Withs)
         & "},"
         & """node_type"":""CompilationUnit"","
-        & """package_unit"":{""node_type"":""PackageUnit"",""name"":"
-        & JS.Quote (Parsed.Package_Name)
-        & ",""items"":"
-        & Json_List (Items)
-        & ",""end_name"":"
-        & JS.Quote (Parsed.End_Name)
-        & ",""span"":"
-        & JS.Span_Object (Parsed.Span)
-        & "},"
+        & """unit_kind"":"
+        & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))
+        & ","
+        & """package_unit"":"
+        & (if Parsed.Kind = CM.Unit_Package
+           then "{""node_type"":""PackageUnit"",""name"":" 
+                & JS.Quote (Parsed.Package_Name)
+                & ",""items"":"
+                & Json_List (Items)
+                & ",""statements"":"
+                & Statements
+                & ",""end_name"":"
+                & JS.Quote (Parsed.End_Name)
+                & ",""span"":"
+                & JS.Span_Object (Parsed.Span)
+                & "}"
+           else "null")
+        & ","
+        & """entry_unit"":"
+        & (if Parsed.Kind = CM.Unit_Entry
+           then "{""node_type"":""EntryUnit"",""name"":"
+                & JS.Quote (Parsed.Package_Name)
+                & ",""items"":"
+                & Json_List (Items)
+                & ",""statements"":"
+                & Statements
+                & ",""span"":"
+                & JS.Span_Object (Parsed.Span)
+                & "}"
+           else "null")
+        & ","
         & """span"":"
         & JS.Span_Object (Parsed.Span)
         & "}"
@@ -2803,11 +2855,14 @@ package body Safe_Frontend.Check_Emit is
       return
         "{"
         & """format"":""typed-v2"","
+        & """unit_kind"":"
+        & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))
+        & ","
         & """package_name"":"
         & JS.Quote (Parsed.Package_Name)
         & ","
         & """package_end_name"":"
-        & JS.Quote (Parsed.End_Name)
+        & (if Parsed.Has_End_Name then JS.Quote (Parsed.End_Name) else "null")
         & ","
         & """types"":"
         & Types_Json (Resolved)
@@ -2838,6 +2893,9 @@ package body Safe_Frontend.Check_Emit is
       return
         "{"
         & """format"":""safei-v1"","
+        & """unit_kind"":"
+        & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))
+        & ","
         & """package_name"":"
         & JS.Quote (Parsed.Package_Name)
         & ","

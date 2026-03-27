@@ -172,8 +172,10 @@ safe test  <file.safe>       test runner (post-v1.0)
 ```
 
 Internally, `safe build` calls `safec emit` then `gprbuild` on the emitted Ada.
-The user never interacts with GNAT, gprbuild, or Alire directly. Error messages
-are in Safe terms, pointing at Safe source lines.
+The current repo-local prototype is intentionally single-file only; roots with
+leading `with` clauses still fall back to manual `safec emit` plus `gprbuild`.
+The user-facing goal remains a fully integrated `safe build` experience with
+Safe-oriented diagnostics.
 
 ### What ships, what does not
 
@@ -459,16 +461,15 @@ type system, emission rules.
 
 ## Interactive REPL
 
-Once `print` (PR11.8c.1) and package-level statements (PR11.8c.2) land,
-Safe has everything needed for a compile-and-run REPL. The REPL is a
-tool (`scripts/safe_repl.py` or later `safe repl`), not a language
+Now that `print` (PR11.8c.1) and package-level statements (PR11.8c.2) have
+landed, Safe has the minimal surface needed for a compile-and-run REPL. The
+REPL is a tool (`scripts/safe_repl.py` or later `safe repl`), not a language
 feature.
 
-The REPL accumulates declarations and statements into a growing package
-buffer. Each time the user presses enter, the tool wraps the buffer in
-a packageless entry file, runs `safec check` + `safec emit` + `gprbuild`,
-and executes the result. Compilation latency is under a second for the
-small packages typical of interactive exploration.
+The current prototype accumulates declarations and statements into a growing
+single-file buffer. Each time the user presses enter, the tool rebuilds that
+buffer as a packageless entry file, runs `safec check` + `safec emit` +
+`gprbuild`, and executes the result.
 
 The proof story carries into the REPL: if the accumulated program can't
 be proven safe, the REPL shows the compiler diagnostic instead of running.

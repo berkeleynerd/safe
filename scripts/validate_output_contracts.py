@@ -343,6 +343,19 @@ def validate_ast_payload(ast_payload: Any, *, path: str) -> dict[str, Any]:
         fail(f"{path} must remain untagged")
     if ast_obj.get("node_type") != "CompilationUnit":
         fail(f"{path}.node_type must be CompilationUnit")
+    unit_kind = require_string(ast_obj.get("unit_kind"), f"{path}.unit_kind")
+    if unit_kind not in {"package", "entry"}:
+        fail(f"{path}.unit_kind must be `package` or `entry`")
+    package_unit = ast_obj.get("package_unit")
+    entry_unit = ast_obj.get("entry_unit")
+    if unit_kind == "package":
+        require_mapping(package_unit, f"{path}.package_unit")
+        if entry_unit is not None:
+            fail(f"{path}.entry_unit must be null for package compilation units")
+    else:
+        require_mapping(entry_unit, f"{path}.entry_unit")
+        if package_unit is not None:
+            fail(f"{path}.package_unit must be null for entry compilation units")
     validate_span(ast_obj.get("span"), f"{path}.span")
     return ast_obj
 
@@ -352,6 +365,7 @@ def validate_typed_payload(payload: Any, *, path: str, ast_payload: dict[str, An
     if typed.get("format") != "typed-v2":
         fail(f"{path}.format must be typed-v2")
     for field in (
+        "unit_kind",
         "package_name",
         "package_end_name",
         "types",
@@ -362,9 +376,15 @@ def validate_typed_payload(payload: Any, *, path: str, ast_payload: dict[str, An
         if field not in typed:
             fail(f"{path}.{field} is required")
 
+    unit_kind = require_string(typed.get("unit_kind"), f"{path}.unit_kind")
+    if unit_kind not in {"package", "entry"}:
+        fail(f"{path}.unit_kind must be `package` or `entry`")
     require_string(typed.get("package_name"), f"{path}.package_name")
-    require_string(typed.get("package_end_name"), f"{path}.package_end_name")
-    if typed["package_end_name"] != typed["package_name"]:
+    if unit_kind == "package":
+        require_string(typed.get("package_end_name"), f"{path}.package_end_name")
+    elif typed.get("package_end_name") is not None:
+        fail(f"{path}.package_end_name must be null for entry units")
+    if unit_kind == "package" and typed["package_end_name"] != typed["package_name"]:
         fail(
             f"{path}.package_end_name must match package_name: "
             f"{typed['package_end_name']!r} != {typed['package_name']!r}"
@@ -384,7 +404,7 @@ def validate_mir_payload(payload: Any, *, path: str, expected_source_path: str) 
     mir = require_mapping(payload, path)
     if mir.get("format") != "mir-v2":
         fail(f"{path}.format must be mir-v2")
-    for field in ("source_path", "package_name", "types", "graphs"):
+    for field in ("source_path", "unit_kind", "package_name", "types", "graphs"):
         if field not in mir:
             fail(f"{path}.{field} is required")
 
@@ -394,6 +414,9 @@ def validate_mir_payload(payload: Any, *, path: str, expected_source_path: str) 
             f"{path}.source_path must preserve the exact emit CLI path: "
             f"expected {expected_source_path!r}, saw {source_path!r}"
         )
+    unit_kind = require_string(mir.get("unit_kind"), f"{path}.unit_kind")
+    if unit_kind not in {"package", "entry"}:
+        fail(f"{path}.unit_kind must be `package` or `entry`")
     require_string(mir.get("package_name"), f"{path}.package_name")
     require_list(mir.get("types"), f"{path}.types")
     validate_optional_mir_channels(mir.get("channels"), f"{path}.channels")
@@ -512,6 +535,7 @@ def validate_safei_payload(payload: Any, *, path: str) -> dict[str, Any]:
     if safei.get("format") != "safei-v1":
         fail(f"{path}.format must be safei-v1")
     for field in (
+        "unit_kind",
         "package_name",
         "dependencies",
         "executables",
@@ -527,6 +551,9 @@ def validate_safei_payload(payload: Any, *, path: str) -> dict[str, Any]:
         if field not in safei:
             fail(f"{path}.{field} is required")
 
+    unit_kind = require_string(safei.get("unit_kind"), f"{path}.unit_kind")
+    if unit_kind not in {"package", "entry"}:
+        fail(f"{path}.unit_kind must be `package` or `entry`")
     require_string(safei.get("package_name"), f"{path}.package_name")
     validate_string_list(safei.get("dependencies"), f"{path}.dependencies")
     executables = validate_decl_list(safei.get("executables"), f"{path}.executables")
@@ -555,6 +582,8 @@ def validate_safei_payload(payload: Any, *, path: str) -> dict[str, Any]:
     for entry in public_declarations:
         if "signature" not in entry:
             fail(f"{path}.public_declarations entries must include signatures")
+    if unit_kind == "entry" and public_declarations:
+        fail(f"{path}.public_declarations must be empty for entry units")
     return safei
 
 
@@ -578,6 +607,16 @@ def main() -> int:
         fail(
             f"package_name mismatch: typed={typed_payload['package_name']!r}, "
             f"mir={mir_payload['package_name']!r}"
+        )
+    if typed_payload["unit_kind"] != mir_payload["unit_kind"]:
+        fail(
+            f"unit_kind mismatch: typed={typed_payload['unit_kind']!r}, "
+            f"mir={mir_payload['unit_kind']!r}"
+        )
+    if typed_payload["unit_kind"] != safei_payload["unit_kind"]:
+        fail(
+            f"unit_kind mismatch: typed={typed_payload['unit_kind']!r}, "
+            f"safei={safei_payload['unit_kind']!r}"
         )
     if typed_payload["package_name"] != safei_payload["package_name"]:
         fail(

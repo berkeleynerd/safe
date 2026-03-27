@@ -2,7 +2,11 @@
 
 **This section is normative.**
 
-This section specifies Safe's concurrency model. Safe provides concurrency through static tasks and typed channels as first-class language constructs. Tasks are declared at package level and create exactly one task each. Channels are typed, bounded-capacity, blocking FIFO queues. Tasks communicate exclusively through channels — no shared mutable state between tasks.
+This section specifies Safe's concurrency model. Safe provides concurrency
+through static tasks and typed channels as first-class language constructs.
+Tasks are declared at unit scope and create exactly one task each. Channels are
+typed, bounded-capacity, blocking FIFO queues. Tasks communicate exclusively
+through channels — no shared mutable state between tasks.
 
 ---
 
@@ -10,7 +14,7 @@ This section specifies Safe's concurrency model. Safe provides concurrency throu
 
 ### Syntax
 
-1. A task is declared at the top level of a package:
+1. A task is declared at unit scope:
 
 ```
 task_declaration ::=
@@ -32,7 +36,10 @@ indented_task_body ::=
 
 ### Legality Rules
 
-2. A task declaration shall appear only at the top level of a package (as a `package_item`). A conforming implementation shall reject any task declaration appearing within a subprogram body, block statement, or nested scope.
+2. A task declaration shall appear only at unit scope (as a top-level
+declaration before any unit-scope statements). A conforming implementation
+shall reject any task declaration appearing within a subprogram body, block
+statement, or nested scope.
 
 3. Each task declaration creates exactly one task. There are no task types, no dynamic task creation, no task arrays.
 
@@ -40,7 +47,8 @@ indented_task_body ::=
 
 5. If a `priority` aspect is specified, the static expression shall evaluate to a value in the range `System.Any_Priority`. A conforming implementation shall reject a priority value outside this range.
 
-6. A task declaration shall not bear the `public` keyword. Tasks are execution entities internal to the package.
+6. A task declaration shall not bear the `public` keyword. Tasks are execution
+entities internal to the enclosing compilation unit.
 
 7. Task declarations shall not be nested. A task body shall not contain another task declaration. A conforming implementation shall reject any task declaration appearing within a task body.
 
@@ -56,13 +64,16 @@ indented_task_body ::=
 
 ### Static Semantics
 
-8. The `defining_identifier` of a task declaration introduces a name in the enclosing package's declarative region. This name is not a type name and cannot be used as a type mark.
+8. The `defining_identifier` of a task declaration introduces a name in the
+enclosing unit's declarative region. This name is not a type name and cannot be
+used as a type mark.
 
 9. If no `priority` is specified, the task has the default priority defined by the implementation. The default priority shall be documented by the implementation.
 
 ### Dynamic Semantics
 
-10. Each task declaration creates a single task that begins execution after all package-level initialisation completes (see §4.7).
+10. Each task declaration creates a single task that begins execution after all
+unit-scope initialisation and unit-scope statements complete (see §4.7).
 
 11. The task executes its indented body as an independent thread of control. Scheduling among tasks is preemptive priority-based. Tasks of equal priority are scheduled in implementation-defined order.
 
@@ -72,7 +83,7 @@ indented_task_body ::=
 
 ### Syntax
 
-12. A channel is a typed, bounded FIFO queue declared at the top level of a package:
+12. A channel is a typed, bounded FIFO queue declared at unit scope:
 
 ```
 channel_declaration ::=
@@ -82,7 +93,9 @@ channel_declaration ::=
 
 ### Legality Rules
 
-13. A channel declaration shall appear only at the top level of a package. A conforming implementation shall reject any channel declaration appearing within a subprogram body, task body, or nested scope.
+13. A channel declaration shall appear only at unit scope. A conforming
+implementation shall reject any channel declaration appearing within a
+subprogram body, task body, or nested scope.
 
 14. The element type (`subtype_mark`) shall be a definite type (not an unconstrained array or unconstrained discriminated type). A channel element type shall not be an access type, and shall not be a composite type that contains an access-type subcomponent. A conforming implementation shall reject a channel whose element type is indefinite or access-bearing.
 
@@ -92,13 +105,16 @@ channel_declaration ::=
 
 ### Static Semantics
 
-17. A channel declaration introduces a name in the enclosing package's declarative region. This name denotes a channel object, not a type.
+17. A channel declaration introduces a name in the enclosing unit's declarative
+region. This name denotes a channel object, not a type.
 
 18. The storage required for a channel is bounded: element size multiplied by capacity, plus implementation-defined overhead for the queue structure. The allocation strategy (static, pre-allocated, or other) is implementation-defined.
 
 ### Dynamic Semantics
 
-19. A channel is initially empty. Its lifetime is the lifetime of the enclosing package (i.e., the lifetime of the program, since packages are not deallocated).
+19. A channel is initially empty. Its lifetime is the lifetime of the
+enclosing compilation unit (i.e., the lifetime of the program, since
+compilation units are not deallocated).
 
 20. A channel is a FIFO queue: elements are dequeued in the order they were enqueued.
 
@@ -149,7 +165,8 @@ try_receive_statement ::=
 
 25. The final `name` in `try_send` and `try_receive` shall denote a variable of type `boolean`.
 
-26. Channel operations may appear in subprogram bodies, task bodies, and other statement contexts. They shall not appear at the package level (no package-level statements, §3.2.4).
+26. Channel operations may appear in subprogram bodies, task bodies, unit-scope
+statement suites, and other statement contexts.
 
 ### Dynamic Semantics
 
@@ -239,25 +256,42 @@ delay_arm ::=
 
 ### Legality Rules
 
-45. **No shared mutable state between tasks.** Each package-level variable shall be accessed by at most one task. The implementation shall verify this at compile time. A conforming implementation shall reject any program where a package-level variable is accessed by more than one task.
+45. **No shared mutable state between tasks.** Each unit-level variable shall
+be accessed by at most one task. The implementation shall verify this at
+compile time. A conforming implementation shall reject any program where a
+unit-level variable is accessed by more than one task.
 
-46. **Access determination.** A task accesses a package-level variable if:
+46. **Access determination.** A task accesses a unit-level variable if:
 
    (a) The variable appears directly in the task body.
 
    (b) The variable appears in a subprogram called (directly or transitively) from the task body.
 
-47. **Cross-package transitivity.** For subprograms in `with`'d packages, the implementation shall use the effect summaries from dependency interface information (Section 3, §3.3.1(d)) to determine which package-level variables are accessed. The ownership check shall be completable from the compilation unit's source plus its direct and transitive dependency interface information, without access to dependency source code.
+47. **Cross-package transitivity.** For subprograms in `with`'d packages, the
+implementation shall use the effect summaries from dependency interface
+information (Section 3, §3.3.1(d)) to determine which unit-level variables are
+accessed. The ownership check shall be completable from the compilation unit's
+source plus its direct and transitive dependency interface information, without
+access to dependency source code.
 
-48. **Variables not accessed by any task** remain accessible to non-task subprograms (package-level initialisation expressions and subprograms not called from any task body).
+48. **Variables not accessed by any task** remain accessible to non-task
+subprograms (unit-level initialisation expressions, unit-scope statements, and
+subprograms not called from any task body).
 
-49. **Subprograms callable from multiple tasks.** A subprogram shall not access any package-level variable if it is callable from more than one task. A conforming implementation shall reject any subprogram that accesses a package-level variable and is callable from multiple task bodies.
+49. **Subprograms callable from multiple tasks.** A subprogram shall not access
+any unit-level variable if it is callable from more than one task. A conforming
+implementation shall reject any subprogram that accesses a unit-level variable
+and is callable from multiple task bodies.
 
-50. **Channels are not variables.** Channel operations do not constitute "access to a package-level variable" for the purposes of this ownership rule. Channels are the designated mechanism for inter-task communication.
+50. **Channels are not variables.** Channel operations do not constitute
+"access to a unit-level variable" for the purposes of this ownership rule.
+Channels are the designated mechanism for inter-task communication.
 
 ### Static Semantics
 
-51. The task-variable ownership analysis produces a mapping from each package-level variable to at most one task. This mapping is a static property of the program.
+51. The task-variable ownership analysis produces a mapping from each
+unit-level variable to at most one task. This mapping is a static property of
+the program.
 
 52. For mutually recursive subprograms, the implementation may use a fixed-point computation to determine the complete set of variables accessed.
 
@@ -285,7 +319,9 @@ delay_arm ::=
 
 ### Dynamic Semantics
 
-56. All package-level declarations and initialisations across all compilation units complete before any task begins executing. This is a language-level sequencing guarantee.
+56. All unit-scope declarations, initialisations, and unit-scope statements
+across all compilation units complete before any task begins executing. This is
+a language-level sequencing guarantee.
 
 57. The order of package initialisation across compilation units is a topological sort of the `with` dependency graph (Section 3, §3.4.2).
 

@@ -1,10 +1,11 @@
 package opcode_dispatch
 
    type opcode is binary (8);
+   code : opcode = opcode (1);
 
-   function render (code : in opcode) returns string
+   function render (op : opcode) returns string
 
-      case code
+      case op
          when opcode (0)
             return "nop"
 
@@ -13,3 +14,5 @@ package opcode_dispatch
 
          when others
             return "unknown"
+
+   print (render (code))

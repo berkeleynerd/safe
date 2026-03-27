@@ -392,6 +392,7 @@ package Safe_Frontend.Mir_Model is
       Format          : Mir_Format_Kind := Mir_V1;
       Has_Source_Path : Boolean := False;
       Source_Path     : FT.UString := FT.To_UString ("");
+      Unit_Kind       : FT.UString := FT.To_UString ("package");
       Package_Name    : FT.UString := FT.To_UString ("");
       Types           : Type_Descriptor_Vectors.Vector;
       Channels        : Channel_Vectors.Vector;

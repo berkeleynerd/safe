@@ -44,9 +44,11 @@ Safe keeps most Ada surface syntax, but changes a few high-impact parts:
 | Exceptions | none (no handlers, no `raise`) | control-flow stays explicit; proof story is cleaner | error handling becomes explicit and sometimes verbose |
 | Tasking | static tasks + typed channels | analyzable concurrency | less expressive than full Ada tasking/protected objects |
 
-## 3. Program Shape: Single-File Packages + `public`
+## 3. Program Shape: Single-File Units + `public`
 
-In Safe, a package is a single `.safe` file containing declarations and bodies. There is no separate spec and body file.
+In Safe, an explicit package is a single `.safe` file containing declarations,
+bodies, and any admitted unit-scope statements. There is no separate spec and
+body file.
 
 ```safe
 -- demo.safe
@@ -69,6 +71,28 @@ Virtue: you can read a package top-to-bottom without jumping between spec/body, 
 Wart: large packages can get large fast; Safe intentionally leans on tooling and structure rather than the spec/body split.
 
 See: `spec/03-single-file-packages.md`.
+
+### 3.1 Packageless Entry Files and Top-Level Statements
+
+Safe also admits executable statements at unit scope after declarations, and a
+single-file executable root may omit `package` entirely:
+
+```safe
+value : integer = 41;
+
+print (value + 1)
+```
+
+That is a packageless entry file. The unit name comes from the filename stem,
+and its unit-scope statements execute in source order before any tasks declared
+in the same file start.
+
+The current `safe build` prototype is intentionally narrower than the language:
+
+- single-file explicit-package roots work
+- single-file packageless entry roots work
+- roots with leading `with` clauses still use `safec emit` plus manual
+  `gprbuild` for now
 
 ### 3.1 Opaque Types With `private record`
 
@@ -278,8 +302,10 @@ Also note: Safe draws a sharp line between recoverable and non-recoverable failu
 ## 10. Known Friction Points (Read Before You Commit)
 
 - No user-extensible I/O standard library. The current output surface is only
-  statement-only `print (expr)` for `integer`, `string`, and `boolean`, and
-  package-level executable statements still wait on the next milestone.
+  statement-only `print (expr)` for `integer`, `string`, and `boolean`.
+- No multi-file `safe build` yet. The current wrapper is intentionally
+  single-file; roots with `with` clauses still use `safec emit` plus manual
+  `gprbuild`.
 - No generics, no tagged types, no overloading: abstraction techniques are intentionally limited.
 - The "Silver by construction" story means you will spend effort on numeric subtype design.
 - Some Ada habits are invalid in Safe (`'` attributes and qualified expressions, exceptions).

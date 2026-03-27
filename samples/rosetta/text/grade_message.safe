@@ -1,14 +1,17 @@
 package grade_message
 
-   function render (grade : in character) returns string
+   subtype grade is integer (0 to 2);
 
-      case grade
-         when 'A'
+   function render (value : in grade) returns string
+
+      case value
+         when 0
             return "excellent"
 
-         when 'B'
+         when 1
             return "good"
 
          when others
-            return "needs work"
+            return "poor"
 
+   print (render (1))

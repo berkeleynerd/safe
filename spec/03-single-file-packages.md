@@ -1,20 +1,30 @@
-# Section 3 — Single-File Packages
+# Section 3 — Single-File Units
 
 **This section is normative.**
 
-This section specifies the Safe package model. A Safe package is a single source file containing all declarations and subprogram bodies. There are no separate specification and body files. A conforming implementation shall make the public interface available to dependent compilation units for separate compilation; the mechanism is implementation-defined.
+This section specifies the Safe compilation-unit model. A Safe unit is a single
+source file containing all declarations, subprogram bodies, and any admitted
+unit-scope statements. There are no separate specification and body files. A
+conforming implementation shall make the public interface of explicit package
+units available to dependent compilation units for separate compilation; the
+mechanism is implementation-defined.
 
 ---
 
 ## 3.1 Syntax
 
-### 3.1.1 Package Unit
+### 3.1.1 Compilation Units
 
-1. A Safe compilation unit consists of a context clause followed by a package unit:
+1. A Safe compilation unit consists of a context clause followed by either an
+explicit package unit or a packageless entry unit:
 
 ```
 compilation_unit ::=
-    context_clause package_unit
+    context_clause unit
+
+unit ::=
+    package_unit
+  | entry_unit
 
 context_clause ::=
     { with_clause }
@@ -23,14 +33,25 @@ with_clause ::=
     'with' package_name { ',' package_name } ';'
 
 package_unit ::=
-    'package' defining_identifier 'is'
-        { package_item }
-    'end' defining_identifier ';'
+    'package' defining_identifier
+        INDENT
+            unit_item_list
+        DEDENT
+
+entry_unit ::=
+    unit_item_list
+
+unit_item_list ::=
+    { package_item }
+    { unit_statement }
 ```
 
-### 3.1.2 Package Items
+2. In an entry unit, the unit name is inferred from the source filename stem.
 
-2. A package is a flat sequence of declarations. The following items may appear at the top level of a package:
+### 3.1.2 Unit Declarations and Statements
+
+3. The following declarations may appear at unit scope before any unit-scope
+statement:
 
 ```
 package_item ::=
@@ -40,17 +61,27 @@ package_item ::=
   | use_type_clause
   | representation_item
   | pragma
+
+unit_statement ::=
+    statement
 ```
 
-3. There is no `package body` wrapper, no `begin...end` initialisation block, and no package-level executable statements.
+4. Safe has no separate package body file. For explicit package units, any
+unit-scope statements execute in source order at package elaboration. For entry
+units, unit-scope statements form the executable root of the single source
+file.
 
 ### 3.1.3 Subprogram Bodies
 
-4. Subprogram bodies appear at the point of declaration. A subprogram is declared and defined in one place, except for forward declarations for mutual recursion.
+5. Subprogram bodies appear at the point of declaration. A subprogram is
+declared and defined in one place, except for forward declarations for mutual
+recursion.
 
 ### 3.1.4 Interleaved Declarations in Subprogram Bodies
 
-5. Inside subprogram bodies, declarations and statements may interleave freely after `begin`. A declaration is visible from its point of declaration to the end of the enclosing scope:
+6. Inside subprogram bodies, declarations and statements may interleave
+freely. A declaration is visible from its point of declaration to the end of
+the enclosing scope:
 
 ```
 sequence_of_statements ::=
@@ -63,11 +94,16 @@ interleaved_item ::=
 
 ### 3.1.5 Visibility Annotation
 
-6. The `public` keyword may precede any top-level declaration to make it visible to client packages. Declarations without `public` are private to the package.
+7. In an explicit package unit, the `public` keyword may precede an admitted
+top-level declaration to make it visible to client packages. Declarations
+without `public` are private to the package.
+
+8. A packageless entry unit is not a library unit. It shall not contain any
+`public` declaration.
 
 ### 3.1.6 Opaque Type Syntax
 
-7. A type may be public in name but private in structure:
+9. A type may be public in name but private in structure:
 
 ```
 public type t is private record
@@ -82,35 +118,61 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ## 3.2 Legality Rules
 
-### 3.2.1 Matching End Identifier
+### 3.2.1 Entry Unit Naming
 
-8. The `defining_identifier` after `end` in a package unit shall match the `defining_identifier` after `package`. A conforming implementation shall reject any package where the end identifier does not match.
+10. The filename stem of a packageless entry unit shall be a valid lowercase
+Safe identifier. A conforming implementation shall reject an entry unit whose
+filename stem is not a valid defining identifier.
 
 ### 3.2.2 Declaration-Before-Use
 
-9. Every name used in a declaration or statement shall have been declared earlier in the same scope or in a `with`'d package. A conforming implementation shall reject any reference to a name that has not been declared at or before the point of use.
+11. Every name used in a declaration or statement shall have been declared
+earlier in the same scope or in a `with`'d package. A conforming implementation
+shall reject any reference to a name that has not been declared at or before
+the point of use.
 
-10. This rule applies within package declarations, within subprogram bodies, and to names from `with`'d packages.
+12. This rule applies within unit declarations, within unit-scope statements,
+within subprogram bodies, and to names from `with`'d packages.
 
 ### 3.2.3 Forward Declarations for Mutual Recursion
 
-11. Forward declarations are permitted for subprograms to enable mutual recursion. A forward declaration consists of a subprogram specification followed by a semicolon, without a body.
+13. Forward declarations are permitted for subprograms to enable mutual
+recursion. A forward declaration consists of a subprogram specification
+followed by a semicolon, without a body.
 
-12. The body completing a forward declaration shall appear later in the same declarative region. The subprogram specification of the body shall conform to the forward declaration.
+14. The body completing a forward declaration shall appear later in the same
+declarative region. The subprogram specification of the body shall conform to
+the forward declaration.
 
-13. A conforming implementation shall reject a forward declaration with no completing body in the same declarative region.
+15. A conforming implementation shall reject a forward declaration with no
+completing body in the same declarative region.
 
-14. If the subprogram is public, the `public` keyword shall appear on the forward declaration. The completing body shall not repeat the `public` keyword. A conforming implementation shall reject a completing body that bears `public` when a forward declaration for the same subprogram exists.
+16. If the subprogram is public, the `public` keyword shall appear on the
+forward declaration. The completing body shall not repeat the `public` keyword.
+A conforming implementation shall reject a completing body that bears `public`
+when a forward declaration for the same subprogram exists.
 
-### 3.2.4 No Package-Level Statements
+### 3.2.4 Unit-Scope Statements
 
-15. A package shall not contain executable statements at the package level. All executable code shall appear within subprogram bodies or task bodies. A conforming implementation shall reject any executable statement appearing directly in the package item list.
+17. Unit-scope statements are permitted after declarations in both explicit
+package units and packageless entry units.
 
-16. Variable initialisation uses expressions or function calls at the point of declaration. These initialising expressions are evaluated at load time (see §3.4).
+18. Once the first unit-scope statement appears, later unit-scope declarations
+are illegal. A conforming implementation shall reject any declaration appearing
+after a unit-scope statement.
+
+19. Unit-scope statements use the same statement forms and name-resolution
+rules as subprogram-body statements, except that statement-local declarations do
+not appear at unit scope.
+
+20. Variable initialisation uses expressions or function calls at the point of
+declaration. These initialising expressions are evaluated before any later
+unit-scope statements in the same compilation unit (see §3.4).
 
 ### 3.2.5 Public Keyword Visibility Rules
 
-17. The `public` keyword may appear before the following declarations:
+21. In an explicit package unit, the `public` keyword may appear before the
+following declarations:
 
    (a) Type declarations (including incomplete type declarations).
 
@@ -128,9 +190,11 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
    (h) Renaming declarations.
 
-18. The `public` keyword shall not appear before:
+22. The `public` keyword shall not appear before:
 
-   (a) Task declarations. Tasks are execution entities internal to the package; their effects are exposed through channels and subprograms.
+   (a) Task declarations. Tasks are execution entities internal to the
+       enclosing compilation unit; their effects are exposed through channels
+       and subprograms.
 
    (b) Pragmas.
 
@@ -138,15 +202,21 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
    (d) `use type` clauses.
 
-19. A conforming implementation shall reject any `public` annotation on a declaration kind not listed in paragraph 17.
+23. A conforming implementation shall reject any `public` annotation on a
+declaration kind not listed in paragraph 21, and shall reject all `public`
+annotations in a packageless entry unit.
 
-20. A declaration without the `public` keyword is private to the declaring package and shall not be directly visible to any other compilation unit.
+24. A declaration without the `public` keyword is private to the declaring
+explicit package unit and shall not be directly visible to any other
+compilation unit.
 
 ### 3.2.6 Opaque Types
 
-21. A declaration of the form `public type T is private record ... end record;` declares an opaque type. The type name `T` is visible to clients; the record structure is not.
+25. A declaration of the form `public type T is private record ... end record;`
+declares an opaque type. The type name `T` is visible to clients; the record
+structure is not.
 
-22. Client capabilities for an opaque type:
+26. Client capabilities for an opaque type:
 
    (a) Declare objects of type `T`.
 
@@ -156,15 +226,20 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
    (d) Test equality of objects of type `T` (predefined `==` and `!=`).
 
-23. Clients shall not access individual fields of an opaque type. A conforming implementation shall reject any selected component on an opaque type that names a record field, when the reference occurs outside the declaring package.
+27. Clients shall not access individual fields of an opaque type. A conforming
+implementation shall reject any selected component on an opaque type that names
+a record field, when the reference occurs outside the declaring package.
 
-24. The implementation shall export sufficient information for clients to allocate objects of the opaque type (size and alignment).
+28. The implementation shall export sufficient information for clients to
+allocate objects of the opaque type (size and alignment).
 
 ### 3.2.7 Dot Notation for Attributes
 
-25. All attribute references in Safe use dot notation (`x.first`) instead of tick notation (`X'First`). See Section 2, §2.4.1 for the complete resolution rule.
+29. All attribute references in Safe use dot notation (`x.first`) instead of
+tick notation (`X'First`). See Section 2, §2.4.1 for the complete resolution
+rule.
 
-26. When `X.Name` appears in source, the implementation resolves it as follows:
+30. When `X.Name` appears in source, the implementation resolves it as follows:
 
    (a) If `X` denotes a record object, `Name` is resolved as a record component.
 
@@ -174,15 +249,19 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
    (d) If `X` denotes an access value, `Name` is resolved as implicit dereference followed by component selection.
 
-27. This resolution is unambiguous because Safe has no overloading and no tagged types. The type or kind of `X` is always known at the point of use due to declaration-before-use.
+31. This resolution is unambiguous because Safe has no overloading and no
+tagged types. The type or kind of `X` is always known at the point of use due
+to declaration-before-use.
 
 ### 3.2.8 Type Annotation Syntax
 
-28. Ada's qualified expression syntax `T'(Expr)` is replaced by type annotation syntax `(Expr as T)`.
+32. Ada's qualified expression syntax `T'(Expr)` is replaced by type
+annotation syntax `(Expr as T)`.
 
-29. Parentheses are always required around type annotation expressions. The keyword `as` binds looser than any operator.
+33. Parentheses are always required around type annotation expressions. The
+keyword `as` binds looser than any operator.
 
-30. Examples:
+34. Examples:
 
    (a) Aggregate disambiguation: `((others = 0) as Buffer_Type)`
 
@@ -192,11 +271,16 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.2.9 Circular Dependencies Prohibited
 
-31. Circular `with` dependencies among compilation units are prohibited. A conforming implementation shall reject any set of compilation units forming a cycle in the `with` dependency graph.
+35. Circular `with` dependencies among compilation units are prohibited. A
+conforming implementation shall reject any set of compilation units forming a
+cycle in the `with` dependency graph.
 
 ### 3.2.10 Library Units
 
-32. A library unit shall be a package. Library-level subprograms are not permitted as compilation units. A conforming implementation shall reject any library-level subprogram declaration or body.
+36. An explicit package unit is an importable library unit. A packageless entry
+unit is an executable root, not a library unit. A conforming implementation
+shall reject any attempt to import an entry unit, and shall reject any
+library-level subprogram declaration or body as a compilation unit.
 
 ---
 
@@ -204,7 +288,11 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.3.1 Dependency Interface Information
 
-33. A conforming implementation shall make the following information available for each package, to support separate compilation and cross-unit legality checking:
+37. A conforming implementation shall make the following information available
+for each separately compiled unit, to support cross-unit legality checking. For
+explicit package units, this information supports separate compilation. For
+entry units, the information may be emitted for regularity, but entry-unit
+interfaces are not importable:
 
    (a) **Visibility:** Which declarations bear the `public` keyword.
 
@@ -212,7 +300,13 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
    (c) **Subprogram signatures:** Parameter profiles (names, types, modes, default values) for all public subprograms.
 
-   (d) **Effect summaries:** For each public subprogram, a conservative interprocedural summary (including transitive callees) of the package-level variables read and written. This information is needed for callers to compute their own flow information and for task-variable ownership checking across packages. The summary may be conservatively over-approximate; precision may improve over time without affecting conformance.
+   (d) **Effect summaries:** For each public subprogram, a conservative
+       interprocedural summary (including transitive callees) of the unit-level
+       variables read and written. This information is needed for callers to
+       compute their own flow information and for task-variable ownership
+       checking across packages. The summary may be conservatively
+       over-approximate; precision may improve over time without affecting
+       conformance.
 
    (e) **Constants and named numbers:** Values of public constants and named numbers, to the extent needed for static expression evaluation.
 
@@ -224,19 +318,25 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
    (i) **Channel-access summaries:** For each public subprogram, a conservative interprocedural summary (including transitive callees) of the channels accessed by `send`, `receive`, `try_send`, or `try_receive` — directly or transitively. This information is needed for ceiling priority computation across packages (Section 4, §4.2, paragraph 21a). The summary may be conservatively over-approximate; an over-approximate summary may raise ceiling priorities above the necessary minimum but does not compromise correctness.
 
-34. The mechanism for conveying this information (e.g., symbol files, compiler databases) is implementation-defined.
+38. The mechanism for conveying this information (e.g., symbol files, compiler
+databases) is implementation-defined.
 
-35. If required dependency interface information is unavailable for a `with`'d package, the program shall be rejected.
+39. If required dependency interface information is unavailable for a `with`'d
+package, the program shall be rejected.
 
 ### 3.3.2 Client Visibility
 
-36. A client package that `with`s a provider package has visibility of all public declarations of the provider. Non-public declarations of the provider are not visible to the client.
+40. A client package that `with`s a provider package has visibility of all
+public declarations of the provider. Non-public declarations of the provider
+are not visible to the client.
 
-37. Qualified naming is required: `Provider.Name`. General `use` clauses are excluded (Section 2, §2.1.7). `use type` clauses are retained.
+41. Qualified naming is required: `Provider.Name`. General `use` clauses are
+excluded (Section 2, §2.1.7). `use type` clauses are retained.
 
 ### 3.3.3 Opaque Type Visibility
 
-38. For a public opaque type `T` declared as `public type T is private record ... end record;`:
+42. For a public opaque type `T` declared as `public type T is private record
+... end record;`:
 
    (a) Within the declaring package: the full record structure is visible; fields may be accessed.
 
@@ -244,13 +344,17 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.3.4 Child Packages
 
-39. Child packages and hierarchical package names are retained. A child package `Parent.Child` has visibility into the public declarations of its parent.
+43. Child packages and hierarchical package names are retained. A child package
+`Parent.Child` has visibility into the public declarations of its parent.
 
-40. A child package does not have additional visibility into the non-public declarations of its parent beyond what `with Parent;` provides. This is a consequence of Safe's single-file model: there is no separate "private part" that child packages could see.
+44. A child package does not have additional visibility into the non-public
+declarations of its parent beyond what `with Parent;` provides. This is a
+consequence of Safe's single-file model: there is no separate "private part"
+that child packages could see.
 
 ### 3.3.5 Name Resolution
 
-41. Name resolution in Safe is unambiguous. When a name `X` appears in source:
+45. Name resolution in Safe is unambiguous. When a name `X` appears in source:
 
    (a) The implementation searches the current declarative region for a declaration of `X`.
 
@@ -268,19 +372,34 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.4.1 Package Initialisation
 
-42. Package-level variable initialisers are evaluated at load time in declaration order (top to bottom), as in Ada. An initialiser may reference previously declared variables and call previously declared functions within the same package.
+46. Unit-level variable initialisers are evaluated at load time in declaration
+order (top to bottom), as in Ada. An initialiser may reference previously
+declared variables and call previously declared functions within the same
+compilation unit.
 
-43. Referencing a not-yet-declared entity in an initialiser is a legality error (declaration-before-use, paragraph 9).
+47. After all unit-level declarations have been elaborated, any unit-scope
+statements execute in source order.
+
+48. Referencing a not-yet-declared entity in an initialiser or unit-scope
+statement is a legality error (declaration-before-use, paragraph 11).
 
 ### 3.4.2 Cross-Package Initialisation Order
 
-44. If package A `with`s package B, then B's initialisers complete before A's initialisers begin. This matches Ada's elaboration semantics but is trivially satisfiable because Safe packages have no circular `with` dependencies (paragraph 31).
+49. If package A `with`s package B, then B's initialisers and unit-scope
+statements complete before A's initialisers begin. This matches Ada's
+elaboration semantics but is trivially satisfiable because Safe compilation
+units have no circular `with` dependencies (paragraph 35).
 
-45. The initialisation order across all compilation units is a topological sort of the `with` dependency graph. The order among packages with no direct or transitive dependency is implementation-defined but deterministic for a given program.
+50. The initialisation order across all compilation units is a topological sort
+of the `with` dependency graph. The order among units with no direct or
+transitive dependency is implementation-defined but deterministic for a given
+program.
 
 ### 3.4.3 Task Startup Sequencing
 
-46. All package-level initialisation across all compilation units completes before any task begins executing. See Section 4 for task startup semantics.
+51. All unit-level initialisation and unit-scope statements across all
+compilation units complete before any task begins executing. See Section 4 for
+task startup semantics.
 
 ---
 
@@ -288,9 +407,11 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.5.1 Dependency Interface Mechanism
 
-47. A conforming implementation shall provide a mechanism for conveying dependency interface information (paragraph 33) between separately compiled units. The mechanism is implementation-defined.
+52. A conforming implementation shall provide a mechanism for conveying
+dependency interface information (paragraph 37) between separately compiled
+units. The mechanism is implementation-defined.
 
-48. The mechanism shall be sufficient to support:
+53. The mechanism shall be sufficient to support:
 
    (a) Legality checking of client code against provider interfaces.
 
@@ -300,7 +421,14 @@ Clients can declare variables of type `T` (the implementation exports size and a
 
 ### 3.5.2 Separate Compilation
 
-49. A conforming implementation shall support separate compilation of packages. Each package shall be compilable independently, given only its source and the dependency interface information of its `with`'d packages.
+54. A conforming implementation shall support separate compilation of explicit
+package units. Each explicit package unit shall be compilable independently,
+given only its source and the dependency interface information of its `with`'d
+packages.
+
+55. A conforming implementation shall support separate checking and emission of
+packageless entry units. Entry units are executable roots, not importable
+libraries.
 
 ---
 

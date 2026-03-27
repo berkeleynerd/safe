@@ -769,6 +769,9 @@ package body Safe_Frontend.Mir_Write is
         & """source_path"":"
         & (if Document.Has_Source_Path then JS.Quote (Document.Source_Path) else "null")
         & ","
+        & """unit_kind"":"
+        & JS.Quote (Document.Unit_Kind)
+        & ","
         & """package_name"":"
         & JS.Quote (Document.Package_Name)
         & ","

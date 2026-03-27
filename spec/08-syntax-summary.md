@@ -24,8 +24,12 @@ logical zero-fill right shift.
 
 For the post-PR11.8c.1 surface, `print (expression)` is admitted as a
 statement-only built-in. It prints exactly one line of normalized text for
-`integer`, `string`, and `boolean` expressions. Package-level execution
-semantics remain deferred to PR11.8c.2.
+`integer`, `string`, and `boolean` expressions.
+
+For the post-PR11.8c.2 surface, a compilation unit may be either an explicit
+package unit or a packageless entry unit. Executable statements are admitted at
+unit scope after declarations. Once the first unit-scope statement appears,
+later unit-scope declarations are illegal.
 
 ---
 
@@ -33,7 +37,11 @@ semantics remain deferred to PR11.8c.2.
 
 ```
 compilation_unit ::=
-    context_clause package_unit
+    context_clause unit
+
+unit ::=
+    package_unit
+  | entry_unit
 
 context_clause ::=
     { with_clause }
@@ -46,13 +54,25 @@ package_name ::=
 
 package_unit ::=
     'package' defining_identifier
-        indented_package_item_list
+        indented_unit_item_list
 
-indented_package_item_list ::=
+entry_unit ::=
+    unit_item_list
+
+indented_unit_item_list ::=
     INDENT
-        { package_item }
+        unit_item_list
     DEDENT
+
+unit_item_list ::=
+    { package_item }
+    { unit_statement }
+
+unit_statement ::=
+    statement
 ```
+
+For an entry unit, the unit name is inferred from the source filename stem.
 
 ## 8.2 Package Items
 

@@ -6,5 +6,4 @@ package factorial
 
    values : value_table = (1, 1, 2, 6, 24, 120, 720, 5_040);
 
-   function compute (n : count) returns value
-      return values (n)
+   print (values (5))

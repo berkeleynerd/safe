@@ -82,7 +82,16 @@ def prepare_safe_build_root(source: Path) -> dict[str, Path]:
 
 
 def emitted_primary_unit(ada_dir: Path) -> str:
-    return emitted_body_file(ada_dir).stem
+    body = emitted_body_file(ada_dir)
+    if body.stem == "main":
+        candidates = sorted(
+            path
+            for path in ada_dir.glob("*.adb")
+            if path.stem != "main" and not path.name.endswith("_safe_io.adb")
+        )
+        require(candidates, f"safe build: missing primary emitted body in {ada_dir}")
+        body = candidates[0]
+    return body.stem
 
 
 def safe_build_main_text(unit_name: str) -> str:
@@ -123,8 +132,10 @@ def safe_build_project_text(
 
 
 def write_safe_build_support_files(paths: dict[str, Path]) -> None:
-    unit_name = emitted_primary_unit(paths["ada"])
-    paths["main"].write_text(safe_build_main_text(unit_name), encoding="utf-8")
+    ada_main = paths["ada"] / "main.adb"
+    if not paths["main"].exists() and not ada_main.exists():
+        unit_name = emitted_primary_unit(paths["ada"])
+        paths["main"].write_text(safe_build_main_text(unit_name), encoding="utf-8")
     paths["gpr"].write_text(
         safe_build_project_text(
             has_gnat_adc=(paths["ada"] / "gnat.adc").exists(),

@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Safe_Frontend.Types;
 
 package body Safe_Frontend.Check_Parse is
@@ -253,6 +254,20 @@ package body Safe_Frontend.Check_Parse is
       end case;
    end Item_End_Span;
 
+   function Unit_End_Span
+     (Items       : CM.Package_Item_Vectors.Vector;
+      Statements  : CM.Statement_Access_Vectors.Vector;
+      Fallback    : FT.Source_Span) return FT.Source_Span is
+      Item_Span : constant FT.Source_Span := Item_End_Span (Items, Fallback);
+   begin
+      if Statements.Is_Empty then
+         return Item_Span;
+      elsif Items.Is_Empty then
+         return Suite_End_Span (Statements, Fallback);
+      end if;
+      return Suite_End_Span (Statements, Item_Span);
+   end Unit_End_Span;
+
    procedure Reject_Removed_Source_Spelling
      (State   : Parser_State;
       Lexeme  : String;
@@ -324,7 +339,6 @@ package body Safe_Frontend.Check_Parse is
      (State : in out Parser_State) return FL.Token
    is
       Token : constant FL.Token := Current (State);
-      use type FL.Token_Kind;
    begin
       if Token.Kind = FL.Identifier or else Token.Kind = FL.Keyword then
          Advance (State);
@@ -363,6 +377,10 @@ package body Safe_Frontend.Check_Parse is
      (State : in out Parser_State) return CM.Expr_Access;
    function Parse_Case_Statement
      (State : in out Parser_State) return CM.Statement_Access;
+   function Parse_Statement
+     (State : in out Parser_State) return CM.Statement_Access;
+   function Parse_Package_Item
+     (State : in out Parser_State) return CM.Package_Item;
    function Case_Choice_Is_Literal
      (Expr : CM.Expr_Access) return Boolean;
    procedure Parse_Object_Declaration_Tail
@@ -407,6 +425,177 @@ package body Safe_Frontend.Check_Parse is
       end if;
       return "";
    end Name_To_String;
+
+   function Source_Stem (State : Parser_State) return String is
+      Simple : constant String := Ada.Directories.Simple_Name (Path_String (State));
+      Dot    : constant Natural := Ada.Directories.Extension (Simple)'Length;
+   begin
+      if Dot = 0 then
+         return Simple;
+      end if;
+      return Ada.Directories.Base_Name (Simple);
+   end Source_Stem;
+
+   function Is_Lowercase_Identifier (Text : String) return Boolean is
+   begin
+      if Text'Length = 0 then
+         return False;
+      elsif Text (Text'First) not in 'a' .. 'z' then
+         return False;
+      end if;
+
+      for Index in Text'First + 1 .. Text'Last loop
+         if Text (Index) not in 'a' .. 'z' | '0' .. '9' | '_' then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Is_Lowercase_Identifier;
+
+   function Looks_Like_Object_Declaration (State : Parser_State) return Boolean is
+      Probe : Natural := State.Index;
+      Token : FL.Token;
+   begin
+      Token := Current (State);
+      if Token.Kind /= FL.Identifier then
+         return False;
+      end if;
+
+      loop
+         Probe := Probe + 1;
+         exit when State.Tokens.Is_Empty
+           or else Probe > Natural (State.Tokens.Last_Index);
+         Token := State.Tokens (Positive (Probe));
+         if FT.To_String (Token.Lexeme) = ":" then
+            return True;
+         elsif Token.Kind = FL.Identifier or else FT.To_String (Token.Lexeme) = "," then
+            null;
+         else
+            return False;
+         end if;
+      end loop;
+      return False;
+   end Looks_Like_Object_Declaration;
+
+   function Starts_Package_Item (State : Parser_State) return Boolean is
+      Lower : constant String := Current_Lower (State);
+   begin
+      if Lower = "public" then
+         return True;
+      elsif Lower in "type" | "subtype" | "function" | "procedure" | "task" | "channel" then
+         return True;
+      elsif Current (State).Kind = FL.Identifier then
+         return Looks_Like_Object_Declaration (State);
+      end if;
+      return False;
+   end Starts_Package_Item;
+
+   procedure Parse_Unit_Suite
+     (State      : in out Parser_State;
+      Result     : in out CM.Parsed_Unit;
+      Terminated : Boolean := False) is
+      Parsed_Statements : Boolean := False;
+      procedure Validate_Unit_Statement (Stmt : CM.Statement_Access);
+
+      procedure Validate_Unit_Statement (Stmt : CM.Statement_Access) is
+      begin
+         if Stmt = null then
+            return;
+         end if;
+
+         case Stmt.Kind is
+            when CM.Stmt_Object_Decl | CM.Stmt_Destructure_Decl =>
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Stmt.Span,
+                     Message => "unit-scope statements must not contain local declarations"));
+            when CM.Stmt_Return =>
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Stmt.Span,
+                     Message => "unit-scope statements must not contain return statements"));
+            when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
+               if not Stmt.Decl.Names.Is_Empty then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path_String (State),
+                        Span    => Stmt.Span,
+                        Message => "unit-scope statements must not contain local declarations"));
+               end if;
+            when CM.Stmt_If =>
+               for Nested of Stmt.Then_Stmts loop
+                  Validate_Unit_Statement (Nested);
+               end loop;
+               for Part of Stmt.Elsifs loop
+                  for Nested of Part.Statements loop
+                     Validate_Unit_Statement (Nested);
+                  end loop;
+               end loop;
+               if Stmt.Has_Else then
+                  for Nested of Stmt.Else_Stmts loop
+                     Validate_Unit_Statement (Nested);
+                  end loop;
+               end if;
+            when CM.Stmt_Case =>
+               for Arm of Stmt.Case_Arms loop
+                  for Nested of Arm.Statements loop
+                     Validate_Unit_Statement (Nested);
+                  end loop;
+               end loop;
+            when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+               for Nested of Stmt.Body_Stmts loop
+                  Validate_Unit_Statement (Nested);
+               end loop;
+            when CM.Stmt_Select =>
+               for Arm of Stmt.Arms loop
+                  case Arm.Kind is
+                     when CM.Select_Arm_Channel =>
+                        for Nested of Arm.Channel_Data.Statements loop
+                           Validate_Unit_Statement (Nested);
+                        end loop;
+                     when CM.Select_Arm_Delay =>
+                        for Nested of Arm.Delay_Data.Statements loop
+                           Validate_Unit_Statement (Nested);
+                        end loop;
+                     when others =>
+                        null;
+                  end case;
+               end loop;
+            when others =>
+               null;
+         end case;
+      end Validate_Unit_Statement;
+   begin
+      loop
+         exit when Current (State).Kind = FL.End_Of_File
+           or else (Terminated and then Current (State).Kind = FL.Dedent);
+
+         if not Parsed_Statements and then Starts_Package_Item (State) then
+            Result.Items.Append (Parse_Package_Item (State));
+         else
+            if Parsed_Statements
+              and then
+                (Starts_Package_Item (State)
+                 or else Current_Lower (State) = "var")
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Current (State).Span,
+                     Message => "top-level declarations must appear before top-level statements"));
+            end if;
+            Parsed_Statements := True;
+            declare
+               Stmt : constant CM.Statement_Access := Parse_Statement (State);
+            begin
+               Validate_Unit_Statement (Stmt);
+               Result.Statements.Append (Stmt);
+            end;
+         end if;
+      end loop;
+   end Parse_Unit_Suite;
 
    function Parse_Access_Definition
      (State                : in out Parser_State;
@@ -1235,9 +1424,6 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Destructure_Declaration_Statement;
 
-   function Parse_Statement
-     (State : in out Parser_State) return CM.Statement_Access;
-
    function Direct_Name_Expr
      (Name : FT.UString;
       Span : FT.Source_Span) return CM.Expr_Access
@@ -1290,32 +1476,6 @@ package body Safe_Frontend.Check_Parse is
       end if;
       return False;
    end Case_Choice_Is_Literal;
-
-   function Parse_Statement_Sequence
-     (State        : in out Parser_State;
-      End_Keywords : FT.UString_Vectors.Vector)
-      return CM.Statement_Access_Vectors.Vector
-   is
-      Result    : CM.Statement_Access_Vectors.Vector;
-      Match_End : Boolean;
-   begin
-      loop
-         declare
-            Lower : constant String := Current_Lower (State);
-         begin
-         Match_End := False;
-         for Keyword of End_Keywords loop
-            if Lower = FT.Lowercase (FT.To_String (Keyword)) then
-               Match_End := True;
-               exit;
-            end if;
-         end loop;
-         exit when Match_End or else Current (State).Kind = FL.End_Of_File;
-         Append_Parsed_Statement (Result, Parse_Statement (State));
-         end;
-      end loop;
-      return Result;
-   end Parse_Statement_Sequence;
 
    function Parse_Indented_Statement_Sequence
      (State    : in out Parser_State;
@@ -2085,7 +2245,6 @@ package body Safe_Frontend.Check_Parse is
    is
       Token  : constant FL.Token := Current (State);
       Result : constant CM.Expr_Access := New_Expr;
-      use type FL.Token_Kind;
       Lower : constant String := FT.Lowercase (FT.To_String (Token.Lexeme));
    begin
       if Token.Kind = FL.Integer_Literal then
@@ -2203,16 +2362,16 @@ package body Safe_Frontend.Check_Parse is
             Lower : constant String := Current_Lower (State);
          begin
             exit when Lower not in "*" | "/" | "mod" | "rem";
-         Op := Current (State).Lexeme;
-         Advance (State);
-         Right := Parse_Factor (State);
-         Next_Result := New_Expr;
-         Next_Result.Kind := CM.Expr_Binary;
-         Next_Result.Operator := Op;
-         Next_Result.Left := Result;
-         Next_Result.Right := Right;
-         Next_Result.Span := CM.Join (Result.Span, Right.Span);
-         Result := Next_Result;
+            Op := Current (State).Lexeme;
+            Advance (State);
+            Right := Parse_Factor (State);
+            Next_Result := New_Expr;
+            Next_Result.Kind := CM.Expr_Binary;
+            Next_Result.Operator := Op;
+            Next_Result.Left := Result;
+            Next_Result.Right := Right;
+            Next_Result.Span := CM.Join (Result.Span, Right.Span);
+            Result := Next_Result;
          end;
       end loop;
       return Result;
@@ -2248,19 +2407,19 @@ package body Safe_Frontend.Check_Parse is
             Lower : constant String := FT.To_String (Current (State).Lexeme);
          begin
             exit when Lower not in "+" | "-";
-         declare
-            Op : constant FT.UString := Current (State).Lexeme;
-         begin
-            Advance (State);
-            Right := Parse_Term (State);
-            Next_Result := New_Expr;
-            Next_Result.Kind := CM.Expr_Binary;
-            Next_Result.Operator := Op;
-            Next_Result.Left := Result;
-            Next_Result.Right := Right;
-            Next_Result.Span := CM.Join (Result.Span, Right.Span);
-            Result := Next_Result;
-         end;
+            declare
+               Op : constant FT.UString := Current (State).Lexeme;
+            begin
+               Advance (State);
+               Right := Parse_Term (State);
+               Next_Result := New_Expr;
+               Next_Result.Kind := CM.Expr_Binary;
+               Next_Result.Operator := Op;
+               Next_Result.Left := Result;
+               Next_Result.Right := Right;
+               Next_Result.Span := CM.Join (Result.Span, Right.Span);
+               Result := Next_Result;
+            end;
          end;
       end loop;
 
@@ -2745,6 +2904,8 @@ package body Safe_Frontend.Check_Parse is
       Ends         : FL.Token;
       Package_Name : CM.Expr_Access;
       Clause       : CM.With_Clause;
+      Unit_Start   : FT.Source_Span := FT.Null_Span;
+      Entry_Name   : constant String := Source_Stem (State);
    begin
       Result.Path := Input.Path;
       while Current_Lower (State) = "with" loop
@@ -2766,28 +2927,57 @@ package body Safe_Frontend.Check_Parse is
             "generic units are outside the current PR05/PR06 check subset");
       end if;
 
-      Start_Token := Expect (State, "package");
-      Package_Name := Parse_Package_Name (State);
-      Result.Package_Name := FT.To_UString (Name_To_String (Package_Name));
-      Result.End_Name := Result.Package_Name;
-      Require_Indent
-        (State,
-         "package bodies require an indented suite after the package declaration");
-      while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
-         Result.Items.Append (Parse_Package_Item (State));
-      end loop;
-      Require_Dedent
-        (State,
-         "package items must dedent back to column 1 at the end of the unit");
-      if Current (State).Kind /= FL.End_Of_File then
-         Raise_Diag
-           (CM.Source_Frontend_Error
-              (Path    => Path_String (State),
-               Span    => Current (State).Span,
-               Message => "unexpected trailing tokens after package body",
-               Note    => "covered block syntax no longer uses explicit `end Package_Name;`"));
+      if Current_Lower (State) = "package" then
+         Start_Token := Expect (State, "package");
+         Package_Name := Parse_Package_Name (State);
+         Result.Kind := CM.Unit_Package;
+         Result.Package_Name := FT.To_UString (Name_To_String (Package_Name));
+         Result.Has_End_Name := True;
+         Result.End_Name := Result.Package_Name;
+         Unit_Start := Start_Token.Span;
+         Require_Indent
+           (State,
+            "package bodies require an indented suite after the package declaration");
+         Parse_Unit_Suite (State, Result, Terminated => True);
+         Require_Dedent
+           (State,
+            "package items and top-level statements must dedent back to column 1 at the end of the unit");
+         if Current (State).Kind /= FL.End_Of_File then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message => "unexpected trailing tokens after package body",
+                  Note    => "covered block syntax no longer uses explicit `end Package_Name;`"));
+         end if;
+      else
+         if not Is_Lowercase_Identifier (Entry_Name) then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message =>
+                    "packageless entry filename must be a lowercase Safe identifier",
+                  Note    => "rename the file so its stem matches `[a-z][a-z0-9_]*`"));
+         end if;
+         Result.Kind := CM.Unit_Entry;
+         Result.Package_Name := FT.To_UString (Entry_Name);
+         Result.Has_End_Name := False;
+         if Current (State).Kind = FL.End_Of_File then
+            Unit_Start := Current (State).Span;
+         else
+            Unit_Start := Current (State).Span;
+         end if;
+         Parse_Unit_Suite (State, Result);
       end if;
-      Result.Span := CM.Join (Start_Token.Span, Item_End_Span (Result.Items, Package_Name.Span));
+
+      Result.Span :=
+        CM.Join
+          (Unit_Start,
+           Unit_End_Span
+             (Result.Items,
+              Result.Statements,
+              (if Result.Has_End_Name then Package_Name.Span else Unit_Start)));
       return (Success => True, Unit => Result);
    exception
       when Parse_Failure =>
