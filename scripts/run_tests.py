@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import signal
 import shutil
 import subprocess
 import sys
@@ -617,29 +616,33 @@ def run_safe_run_case(
             return False, f"unexpected build banner in stdout {completed.stdout!r}"
         return True, ""
 
-    process = subprocess.Popen(
-        argv,
+    build = run_command(
+        [sys.executable, str(SAFE_CLI), "build", repo_rel(source)],
         cwd=REPO_ROOT,
-        env=os.environ.copy(),
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        start_new_session=(os.name != "nt"),
     )
+    if build.returncode != 0:
+        return False, f"safe build failed: {first_message(build)}"
+
+    executable = safe_build_executable(source)
+    if not executable.exists():
+        return False, f"missing executable {executable}"
+
     try:
-        stdout, stderr = process.communicate(timeout=0.3)
-    except subprocess.TimeoutExpired:
-        if os.name == "nt":
-            process.kill()
-        else:
-            os.killpg(process.pid, signal.SIGTERM)
-        stdout, stderr = process.communicate()
-    else:
-        if process.returncode != 0:
-            detail = first_message(
-                subprocess.CompletedProcess(argv, process.returncode, stdout=stdout, stderr=stderr)
-            )
-            return False, f"safe run failed: {detail}"
+        run = run_command(
+            [str(executable)],
+            cwd=executable.parent,
+            timeout=0.3,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout or ""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        if not stdout.startswith(expected_stdout):
+            return False, f"unexpected stdout before timeout {stdout!r}"
+        return True, ""
+    if run.returncode != 0:
+        return False, f"executable failed: {first_message(run)}"
+    stdout = run.stdout
     if not stdout.startswith(expected_stdout):
         return False, f"unexpected stdout before timeout {stdout!r}"
     if "safe build: OK (" in stdout:
