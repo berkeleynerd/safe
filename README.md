@@ -111,7 +111,7 @@ See `spec/` for the language specification and `docs/` for the current design di
 | Frontend workspace + output formats | [`compiler_impl/README.md`](compiler_impl/README.md) |
 | End-to-end CLI walkthrough | [`docs/safec_end_to_end_cli_tutorial.md`](docs/safec_end_to_end_cli_tutorial.md) |
 | VS Code extension | [`editors/vscode/README.md`](editors/vscode/README.md) |
-| SPARK companion overview | [`release/COMPANION_README.md`](release/COMPANION_README.md) |
+| SPARK companion overview | [`companion/release/COMPANION_README.md`](companion/release/COMPANION_README.md) |
 
 ---
 

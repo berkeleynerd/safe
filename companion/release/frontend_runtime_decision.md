@@ -31,14 +31,14 @@ Current environment policy:
 - Portability-sensitive shell-free glue scripts do not rely on `shell=True` or `os.system`.
 - Active Python glue/orchestration remains argv-based validation only.
 - Glue scripts may read `.safe` files only for fixture metadata extraction or inline temporary negative/control cases, never to duplicate compiler semantics.
-- The note in `../docs/macos_alire_toolchain_repair.md` is archived historical guidance for an unsupported host, not a compiler runtime dependency.
+- The note in `../../archive/docs/macos_alire_toolchain_repair.md` is archived historical guidance for an unsupported host, not a compiler runtime dependency.
 - No-Python runtime enforcement covers `python`, `python3`, `python3.11`, `python3.<minor>`, and path-qualified Python invocations in compiler runtime sources.
 
 The old shallow `Ast` / `Parser` / `Semantics` / `Mir` chain was deleted in PR06.9.8.
 
 The only live compiler frontend path is the Ada-native `Check_*` plus `Mir_*` pipeline, with `Lexer`, `Source`, `Types`, `Diagnostics`, and `Json` supporting that path.
 
-See [`../docs/frontend_architecture_baseline.md`](../docs/frontend_architecture_baseline.md) for the canonical boundary statement and [`../docs/frontend_scale_limits.md`](../docs/frontend_scale_limits.md) for the current scale policy.
+See [`../../docs/frontend_architecture_baseline.md`](../../docs/frontend_architecture_baseline.md) for the canonical boundary statement and [`../../docs/frontend_scale_limits.md`](../../docs/frontend_scale_limits.md) for the current scale policy.
 
 ## PR07 Baseline
 

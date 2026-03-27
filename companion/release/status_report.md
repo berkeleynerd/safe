@@ -29,7 +29,7 @@ The Safe Language Annotated SPARK Companion has completed all 13 tasks (T0-T12) 
 | T9 | Test suite | `tests/` (79 files across 5 dirs) | COMPLETE | 31 positive, 35 negative, 3 golden, 5 concurrency, 5 diagnostics |
 | T10 | Documentation | `docs/` (4 files) | COMPLETE | Traceability, GNATprove profile |
 | T11 | CI pipeline | `scripts/` (13 files) | COMPLETE | Execution guard, frontend smoke, and 5-step SPARK pipeline |
-| T12 | Release bundle | `release/COMPANION_README.md`, `release/status_report.md` | COMPLETE | This document |
+| T12 | Release bundle | `companion/release/COMPANION_README.md`, `companion/release/status_report.md` | COMPLETE | This document |
 
 ---
 
@@ -143,8 +143,8 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 
 | File | Description |
 |------|-------------|
-| `release/COMPANION_README.md` | User-facing overview, quickstart, and artifact guide |
-| `release/status_report.md` | This document |
+| `companion/release/COMPANION_README.md` | User-facing overview, quickstart, and artifact guide |
+| `companion/release/status_report.md` | This document |
 
 ### 4.8 Metadata
 
@@ -263,8 +263,8 @@ These process-level recommendations have been addressed in the CI workflow.
 | # | Check | Status |
 |---|-------|--------|
 | 1 | All 13 tasks (T0-T12) have deliverables in the repository | PASS |
-| 2 | `release/COMPANION_README.md` accurately describes the bundle | PASS |
-| 3 | `release/status_report.md` statistics match actual artifacts | PASS |
+| 2 | `companion/release/COMPANION_README.md` accurately describes the bundle | PASS |
+| 3 | `companion/release/status_report.md` statistics match actual artifacts | PASS |
 | 4 | All tracked SHA references across README, release docs, and CI are consistent (`468cf72...`) | PASS |
 | 5 | No phantom file references in CSV or po_map.yaml | PASS |
 | 6 | Traceability matrix is complete: 205 clauses, no orphans | PASS |

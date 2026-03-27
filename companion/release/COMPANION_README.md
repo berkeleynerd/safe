@@ -70,6 +70,9 @@ safe/
 │   ├── gen/
 │   │   ├── companion.gpr      # GNAT project file (31 lines)
 │   │   └── prove_golden.txt   # Golden proof baseline (19 lines)
+│   ├── release/
+│   │   ├── COMPANION_README.md    # This file
+│   │   └── status_report.md       # Quantitative status report
 │   └── spark/
 │       ├── safe_model.ads     # Ghost type/function models (319 lines)
 │       ├── safe_model.adb     # Ghost expression-function bodies (55 lines)
@@ -83,9 +86,6 @@ safe/
 ├── meta/
 │   ├── commit.txt             # Frozen spec SHA
 │   └── generator_version.txt  # Generator version (spec2spark v0.1.0)
-├── release/
-│   ├── COMPANION_README.md    # This file
-│   └── status_report.md       # Quantitative status report
 ├── scripts/
 │   ├── diff_assumptions.sh    # Assumption budget enforcement (156 lines)
 │   ├── extract_assumptions.sh # GNATprove output parser (128 lines)
@@ -216,13 +216,13 @@ GNATprove uses Why3 internally as its intermediate VC language and dispatches to
 
 ### Deferred Scoping Documents
 
-The `docs/` directory also contains three supplementary scoping documents that analyze potential future verification approaches. These are **reference material only** -- not active deliverables and not included in the artifact inventory counts:
+The `archive/docs/` directory also contains three supplementary scoping documents that analyze potential future verification approaches. These are **reference material only** -- not active deliverables and not included in the artifact inventory counts:
 
 | Document | Scope | Status |
 |----------|-------|--------|
-| `docs/why3_alignment.md` | Why3 intermediate VC alignment analysis | Deferred -- GNATprove uses Why3 internally |
-| `docs/mechanized_scope.md` | Coq/Isabelle mechanized proof scoping | Deferred -- requires compiler to verify |
-| `docs/k_semantics_scope.md` | K-Framework executable semantics scoping | Deferred -- requires compiler output to cross-check |
+| `archive/docs/why3_alignment.md` | Why3 intermediate VC alignment analysis | Deferred -- GNATprove uses Why3 internally |
+| `archive/docs/mechanized_scope.md` | Coq/Isabelle mechanized proof scoping | Deferred -- requires compiler to verify |
+| `archive/docs/k_semantics_scope.md` | K-Framework executable semantics scoping | Deferred -- requires compiler output to cross-check |
 
 ---
 

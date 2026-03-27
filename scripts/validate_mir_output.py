@@ -31,7 +31,7 @@ def main() -> int:
 
     print(
         "validate_mir_output.py is deprecated; use `safec validate-mir <file.mir.json>` "
-        "directly. See release/frontend_runtime_decision.md for the staged runtime plan.",
+        "directly. See companion/release/frontend_runtime_decision.md for the staged runtime plan.",
         file=sys.stderr,
     )
 

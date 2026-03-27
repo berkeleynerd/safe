@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from _lib.harness_common import ensure_sdkroot, run_passthrough
+from _lib.harness_common import ensure_sdkroot, run_capture, run_passthrough
 from _lib.pr111_language_eval import (
     COMPILER_ROOT,
     REPO_ROOT,
@@ -40,6 +40,22 @@ def run_subprocess(argv: list[str], *, cwd: Path, env: dict[str, str]) -> int:
     return run_passthrough(argv, cwd=cwd, env=env)
 
 
+def replay_completed_output(completed: object) -> None:
+    stdout = getattr(completed, "stdout", "")
+    stderr = getattr(completed, "stderr", "")
+    if stdout:
+        print(stdout, end="", file=sys.stdout)
+    if stderr:
+        print(stderr, end="", file=sys.stderr)
+
+
+def run_quiet_stage(argv: list[str], *, cwd: Path, env: dict[str, str]) -> int:
+    completed = run_capture(argv, cwd=cwd, env=env)
+    if completed.returncode != 0:
+        replay_completed_output(completed)
+    return completed.returncode
+
+
 def source_has_leading_with_clause(source: Path) -> bool:
     with source.open("r", encoding="utf-8") as handle:
         for raw_line in handle:
@@ -56,7 +72,7 @@ def pass_through(command: str, args: list[str]) -> int:
     return run_subprocess([str(safec), command, *args], cwd=Path.cwd(), env=env)
 
 
-def build_single_file(source_arg: str, *, quiet_build: bool = False) -> tuple[dict[str, str], Path] | int:
+def build_single_file(source_arg: str) -> tuple[dict[str, str], Path] | int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
     source = require_source_file(resolve_source_arg(source_arg))
@@ -69,11 +85,11 @@ def build_single_file(source_arg: str, *, quiet_build: bool = False) -> tuple[di
         return 1
     paths = prepare_safe_build_root(source)
 
-    check_code = run_subprocess([str(safec), "check", str(source)], cwd=REPO_ROOT, env=env)
+    check_code = run_quiet_stage([str(safec), "check", str(source)], cwd=REPO_ROOT, env=env)
     if check_code != 0:
         return check_code
 
-    emit_code = run_subprocess(
+    emit_code = run_quiet_stage(
         [
             str(safec),
             "emit",
@@ -93,10 +109,7 @@ def build_single_file(source_arg: str, *, quiet_build: bool = False) -> tuple[di
 
     write_safe_build_support_files(paths)
     build_argv = safe_build_command(paths)
-    if quiet_build:
-        gprbuild_index = build_argv.index("gprbuild")
-        build_argv.insert(gprbuild_index + 1, "-q")
-    build_code = run_subprocess(build_argv, cwd=COMPILER_ROOT, env=env)
+    build_code = run_quiet_stage(build_argv, cwd=COMPILER_ROOT, env=env)
     if build_code != 0:
         return build_code
 
@@ -114,7 +127,7 @@ def safe_build(source_arg: str) -> int:
 
 
 def safe_run(source_arg: str) -> int:
-    built = build_single_file(source_arg, quiet_build=True)
+    built = build_single_file(source_arg)
     if isinstance(built, int):
         return built
     env, executable = built

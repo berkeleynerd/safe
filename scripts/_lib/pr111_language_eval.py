@@ -42,7 +42,7 @@ def safe_launcher_path() -> Path:
 
 
 def safe_build_root(source: Path) -> Path:
-    return source.parent / ".safe-build" / source.stem
+    return source.parent / "obj" / source.stem
 
 
 def safe_build_paths(source: Path) -> dict[str, Path]:
@@ -151,9 +151,13 @@ def safe_build_command(paths: dict[str, Path]) -> list[str]:
         "exec",
         "--",
         "gprbuild",
+        "-q",
+        "-ws",
         "-P",
         str(paths["gpr"]),
         "main.adb",
+        "-cargs:Ada",
+        "-gnatws",
     ]
 
 

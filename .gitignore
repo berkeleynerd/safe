@@ -14,9 +14,10 @@ editors/vscode/*.vsix
 *.ali
 *.bexch
 
-# GNATprove build output (Object_Dir)
+# Generated build output
 companion/gen/obj/
 companion/templates/obj/
+obj/
 .safe-build/
 
 # Alire

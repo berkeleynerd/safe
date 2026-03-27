@@ -540,7 +540,7 @@ def executable_name() -> str:
 
 
 def safe_build_executable(source: Path) -> Path:
-    return source.parent / ".safe-build" / source.stem / executable_name()
+    return source.parent / "obj" / source.stem / executable_name()
 
 
 def run_safe_build_case(
@@ -559,6 +559,11 @@ def run_safe_build_case(
     executable = safe_build_executable(source)
     if not executable.exists():
         return False, f"missing executable {executable}"
+    expected_banner = f"safe build: OK ({repo_rel(executable)})\n"
+    if build.stdout != expected_banner:
+        return False, f"unexpected build stdout {build.stdout!r}"
+    if build.stderr:
+        return False, f"unexpected build stderr {build.stderr!r}"
 
     try:
         run = run_command(
@@ -612,6 +617,8 @@ def run_safe_run_case(
             return False, f"safe run failed: {first_message(completed)}"
         if completed.stdout != expected_stdout:
             return False, f"unexpected stdout {completed.stdout!r}"
+        if completed.stderr:
+            return False, f"unexpected stderr {completed.stderr!r}"
         if "safe build: OK (" in completed.stdout:
             return False, f"unexpected build banner in stdout {completed.stdout!r}"
         return True, ""
