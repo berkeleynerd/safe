@@ -1,0 +1,4 @@
+package pr118c1_print_string
+
+   function log
+      print ("hello")

@@ -1,0 +1,6 @@
+package hello_print
+
+   function run
+      print ("hello")
+      print (42)
+      print (true)

@@ -184,6 +184,13 @@ This section specifies the language-level assurance guarantees provided by Safe.
 
 31. There is no "developer must restructure" advisory — failure to satisfy any Silver-level proof obligation is a compilation error, not a warning.
 
+31a. The built-in `print` statement is permitted even though it causes visible
+output. A conforming implementation may realize `print` through generated
+support code marked `SPARK_Mode => Off`, and may emit the immediately enclosing
+Ada subprogram with `SPARK_Mode => Off`, so the I/O side effect is isolated
+from the proved Safe body. This does not admit `Ada.Text_IO` into Safe source,
+and for concurrent tasks the relative ordering of printed lines is unspecified.
+
 ---
 
 ## 5.4 Concurrency Assurance

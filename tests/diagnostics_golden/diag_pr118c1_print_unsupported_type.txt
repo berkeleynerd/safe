@@ -1,0 +1,11 @@
+Diagnostics Golden: PR11.8c.1 Unsupported Print Argument
+Source: tests/negative/neg_pr118c1_print_unsupported_type.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr118c1_print_unsupported_type.safe:8:14: error: `print` supports only integer, string, or boolean arguments
+  |
+  | 8 |       print (value)
+  |   |              ^~~~~
+  |
+------------------------------------------------------------------------

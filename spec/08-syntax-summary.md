@@ -22,6 +22,11 @@ For the post-PR11.8c surface, fixed-width binary values are written
 operators `<<` and `>>` are admitted for binary operands only, and `>>` is a
 logical zero-fill right shift.
 
+For the post-PR11.8c.1 surface, `print (expression)` is admitted as a
+statement-only built-in. It prints exactly one line of normalized text for
+`integer`, `string`, and `boolean` expressions. Package-level execution
+semantics remain deferred to PR11.8c.2.
+
 ---
 
 ## 8.1 Compilation Units
@@ -526,6 +531,7 @@ indented_statement_suite ::=
 simple_statement ::=
     assignment_statement
   | procedure_call_statement
+  | print_statement
   | return_statement
   | exit_statement
   | delay_statement
@@ -540,6 +546,9 @@ assignment_statement ::=
 
 procedure_call_statement ::=
     name [ actual_parameter_part ] statement_terminator
+
+print_statement ::=
+    'print' '(' expression ')' statement_terminator
 
 return_statement ::=
     simple_return_statement | extended_return_statement
@@ -842,7 +851,7 @@ when        while       with        xor
 ```
 public      channel     send        receive
 try_send    try_receive sends       receives
-capacity    from        binary
+capacity    from        binary      print
 ```
 
 ## 8.16 Grammar Summary

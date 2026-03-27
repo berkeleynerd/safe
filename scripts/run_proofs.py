@@ -111,6 +111,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/ownership_observe.safe",
     "tests/positive/ownership_observe_access.safe",
     "tests/positive/ownership_return.safe",
+    "tests/positive/pr118c1_print.safe",
     "tests/positive/rule4_conditional.safe",
     "tests/positive/rule4_deref.safe",
     "tests/positive/rule4_factory.safe",
@@ -203,7 +204,9 @@ def validate_manifests() -> None:
 
 def emitted_body_file(ada_dir: Path) -> Path:
     candidates = sorted(
-        path for path in ada_dir.glob("*.adb") if path.name != "safe_runtime.adb"
+        path
+        for path in ada_dir.glob("*.adb")
+        if path.name not in {"safe_runtime.adb", "safe_io.adb"}
     )
     if not candidates:
         raise FileNotFoundError(f"{ada_dir}: expected emitted .adb file")

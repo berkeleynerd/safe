@@ -1,0 +1,4 @@
+package pr118c1_print_boolean
+
+   function log
+      print (true)

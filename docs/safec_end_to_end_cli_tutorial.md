@@ -12,6 +12,11 @@ It is intentionally practical rather than portable:
 The walkthrough below uses a small typed-channel package so the emitted Ada
 includes `gnat.adc` and actually exercises the local Jorvik link path.
 
+Safe now has a built-in statement-only `print (expr)` surface for `integer`,
+`string`, and `boolean`, but package-level execution semantics are still
+deferred. This tutorial therefore still uses a handwritten Ada driver to run
+the emitted package.
+
 Instead of asking you to type every command by hand, it writes a small
 host-local build script that does the full flow:
 
@@ -233,9 +238,10 @@ end to end on this host:
   which checks, emits, builds, and executes the sample corpus. This tutorial is
   still useful when you want to inspect the emitted artifacts and native driver
   steps manually on a local host.
+- For a checked-in print example, see `samples/rosetta/text/hello_print.safe`,
+  which the sample sweep now emits, builds, runs, and checks for exact stdout.
 - For a checked-in binary-surface example, see
-  `samples/rosetta/text/opcode_dispatch.safe`, which the sample sweep now
-  checks, emits, builds, and runs end to end.
+  `samples/rosetta/text/opcode_dispatch.safe`.
 - This tutorial assumes a supported Linux host with the local Alire GNAT
   toolchain available on `PATH`.
 - If you want a minimal emission-only sample instead, use

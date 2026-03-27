@@ -1,0 +1,4 @@
+package pr118c1_print_integer
+
+   function log
+      print (42)

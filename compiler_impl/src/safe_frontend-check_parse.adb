@@ -1885,6 +1885,32 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Simple_Statement;
 
+   function Parse_Print_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Print_Tok : constant FL.Token := Expect (State, "print");
+      Open_Tok  : constant FL.Token := Expect (State, "(");
+      Result    : constant CM.Statement_Access := new CM.Statement;
+      Call_Expr : constant CM.Expr_Access := New_Expr;
+      Ender     : FL.Token;
+      Semi      : FT.Source_Span;
+   begin
+      Result.Kind := CM.Stmt_Call;
+      Call_Expr.Kind := CM.Expr_Call;
+      Call_Expr.Callee := Direct_Name_Expr (Print_Tok.Lexeme, Print_Tok.Span);
+      if FT.To_String (Current (State).Lexeme) /= ")" then
+         Call_Expr.Args.Append (Parse_Expression (State));
+      end if;
+      Ender := Expect (State, ")");
+      Call_Expr.Has_Call_Span := True;
+      Call_Expr.Call_Span := CM.Join (Open_Tok.Span, Ender.Span);
+      Call_Expr.Span := CM.Join (Print_Tok.Span, Ender.Span);
+      Result.Call := Call_Expr;
+      Semi := Expect_Statement_Terminator (State);
+      Result.Span := CM.Join (Print_Tok.Span, Semi);
+      return Result;
+   end Parse_Print_Statement;
+
    function Parse_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
@@ -1923,6 +1949,8 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Select_Statement (State);
       elsif Lower = "var" then
          return Parse_Var_Declaration_Statement (State);
+      elsif Lower = "print" then
+         return Parse_Print_Statement (State);
       elsif Lower in "begin" | "end" | "then" then
          Raise_Diag
            (CM.Source_Frontend_Error

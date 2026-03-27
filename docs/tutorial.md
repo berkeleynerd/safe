@@ -277,7 +277,9 @@ Also note: Safe draws a sharp line between recoverable and non-recoverable failu
 
 ## 10. Known Friction Points (Read Before You Commit)
 
-- No I/O standard library (by design). A future "system sublanguage" may address this.
+- No user-extensible I/O standard library. The current output surface is only
+  statement-only `print (expr)` for `integer`, `string`, and `boolean`, and
+  package-level executable statements still wait on the next milestone.
 - No generics, no tagged types, no overloading: abstraction techniques are intentionally limited.
 - The "Silver by construction" story means you will spend effort on numeric subtype design.
 - Some Ada habits are invalid in Safe (`'` attributes and qualified expressions, exceptions).

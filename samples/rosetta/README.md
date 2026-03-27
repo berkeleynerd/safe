@@ -41,6 +41,7 @@ Deferred:
 PR11.2 text/control-flow additions:
 
 - `text/grade_message.safe`
+- `text/hello_print.safe` (built-in `print` sample with exact stdout checks)
 - `text/opcode_dispatch.safe` (`binary (8)` opcode dispatch)
 
 PR11.3 structured-return additions:
@@ -68,3 +69,12 @@ That runner builds the compiler once and, for every
 `concurrency/producer_consumer.safe` uses a custom driver that waits briefly
 for channel traffic, checks `producer_consumer.result = 42`, and then exits
 explicitly so the sweep does not hang on the package's library-level tasks.
+
+`text/hello_print.safe` uses a custom driver that calls `hello_print.run` and
+asserts exact stdout:
+
+```text
+hello
+42
+true
+```

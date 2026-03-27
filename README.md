@@ -22,6 +22,11 @@ For fixed-width word-oriented work, the current surface also admits
 `binary (8|16|32|64)` with explicit `integer` conversion boundaries, bitwise
 operators, and `<<` / `>>` shifts.
 
+For simple visible output, the current surface also admits statement-only
+`print (expr)` for `integer`, `string`, and `boolean`. Package-level execution
+semantics are still deferred; today the sample and CLI flows run emitted Ada
+through generated drivers.
+
 ---
 
 ## What Does This Repository Contain?

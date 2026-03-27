@@ -598,8 +598,17 @@ package body Safe_Frontend.Driver is
                      Unit_Name => FT.To_UString (""),
                      Spec_Text => FT.To_UString (""),
                      Body_Text => FT.To_UString (""),
+                     Needs_Safe_IO => False,
                      Needs_Safe_Runtime => False,
                      Needs_Gnat_Adc => False));
+            Safe_IO_Spec : constant String :=
+              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_IO
+               then AE.Safe_IO_Spec_Text
+               else "");
+            Safe_IO_Body : constant String :=
+              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_IO
+               then AE.Safe_IO_Body_Text
+               else "");
             Safe_Runtime : constant String :=
               (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_Runtime
                then AE.Safe_Runtime_Text
@@ -646,6 +655,14 @@ package body Safe_Frontend.Driver is
                      Write_File
                        (Ada_Out_Dir & "/" & Ada_Stem & ".adb",
                         FT.To_String (Ada_Result.Body_Text));
+                     if Ada_Result.Needs_Safe_IO then
+                        Write_Shared_Support_File
+                          (Ada_Out_Dir & "/safe_io.ads",
+                           Safe_IO_Spec);
+                        Write_Shared_Support_File
+                          (Ada_Out_Dir & "/safe_io.adb",
+                           Safe_IO_Body);
+                     end if;
                      if Ada_Result.Needs_Safe_Runtime then
                         Write_Shared_Support_File
                           (Ada_Out_Dir & "/safe_runtime.ads",

@@ -178,6 +178,10 @@ This annex walks through 8652:2023 Annex A (Predefined Language Environment) and
 
 44. Rationale: all I/O packages in the standard library depend on exceptions for error reporting (End_Error, Status_Error, Mode_Error, Name_Error, Use_Error) and many require generics. I/O is outside the scope of the safe language; a future system sublanguage may provide I/O facilities.
 
+45. The built-in `print` statement does not change this status. `print` is a
+language-defined statement lowered through implementation-generated support
+code; it is not a retained Safe-source admission of `Ada.Text_IO`.
+
 ---
 
 ## A.14 File Sharing

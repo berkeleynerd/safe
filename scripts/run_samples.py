@@ -17,6 +17,9 @@ SAMPLES_ROOT = REPO_ROOT / "samples" / "rosetta"
 SAFEC_PATH = COMPILER_ROOT / "bin" / "safec"
 ALR_FALLBACK = Path.home() / "bin" / "alr"
 RUN_TIMEOUT_SECONDS = 2.0
+PRINT_SAMPLE = "samples/rosetta/text/hello_print.safe"
+PRODUCER_CONSUMER_SAMPLE = "samples/rosetta/concurrency/producer_consumer.safe"
+SUPPORT_BODY_NAMES = {"safe_io.adb"}
 
 
 def repo_rel(path: Path) -> str:
@@ -77,7 +80,9 @@ def print_summary(*, passed: int, failures: list[tuple[str, str]]) -> None:
 
 
 def emitted_primary_unit(ada_dir: Path) -> str:
-    candidates = sorted(path for path in ada_dir.glob("*.adb"))
+    candidates = sorted(
+        path for path in ada_dir.glob("*.adb") if path.name not in SUPPORT_BODY_NAMES
+    )
     if not candidates:
         raise FileNotFoundError(f"expected emitted Ada body in {ada_dir}")
     return candidates[0].stem
@@ -137,11 +142,34 @@ def producer_consumer_driver_text(unit_name: str) -> str:
     )
 
 
+def hello_print_driver_text(unit_name: str) -> str:
+    return (
+        f"with {unit_name};\n"
+        "\n"
+        "procedure Main is\n"
+        "begin\n"
+        f"   {unit_name}.Run;\n"
+        "end Main;\n"
+    )
+
+
 def driver_text(sample: Path, unit_name: str) -> str:
     relative = repo_rel(sample)
-    if relative == "samples/rosetta/concurrency/producer_consumer.safe":
+    if relative == PRODUCER_CONSUMER_SAMPLE:
         return producer_consumer_driver_text(unit_name)
+    if relative == PRINT_SAMPLE:
+        return hello_print_driver_text(unit_name)
     return default_driver_text(unit_name)
+
+
+def expected_stdout(sample: Path) -> str | None:
+    if repo_rel(sample) == PRINT_SAMPLE:
+        return "hello\n42\ntrue\n"
+    return None
+
+
+def expects_safe_io(sample: Path) -> bool:
+    return repo_rel(sample) == PRINT_SAMPLE
 
 
 def project_text(paths: dict[str, Path]) -> str:
@@ -210,6 +238,14 @@ def run_sample(
     except FileNotFoundError as exc:
         return stage_error("emit", str(exc))
 
+    safe_io_spec = paths["ada"] / "safe_io.ads"
+    safe_io_body = paths["ada"] / "safe_io.adb"
+    if expects_safe_io(sample):
+        if not safe_io_spec.exists() or not safe_io_body.exists():
+            return stage_error("emit", "missing generated safe_io support files")
+    elif safe_io_spec.exists() or safe_io_body.exists():
+        return stage_error("emit", "unexpected generated safe_io support files")
+
     paths["main"].write_text(driver_text(sample, unit_name), encoding="utf-8")
     paths["gpr"].write_text(project_text(paths), encoding="utf-8")
 
@@ -238,6 +274,10 @@ def run_sample(
         return stage_error("run", f"timed out after {RUN_TIMEOUT_SECONDS:.1f}s")
     if completed.returncode != 0:
         return stage_error("run", first_message(completed))
+
+    expected = expected_stdout(sample)
+    if expected is not None and completed.stdout != expected:
+        return stage_error("run", f"unexpected stdout {completed.stdout!r}")
 
     return None
 

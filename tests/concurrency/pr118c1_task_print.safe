@@ -1,0 +1,7 @@
+package pr118c1_task_print
+
+   task logger with priority = 10
+
+      loop
+         print ("tick")
+         delay 0.01

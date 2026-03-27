@@ -17,6 +17,7 @@ package Safe_Frontend.Ada_Emit is
             Unit_Name           : FT.UString := FT.To_UString ("");
             Spec_Text           : FT.UString := FT.To_UString ("");
             Body_Text           : FT.UString := FT.To_UString ("");
+            Needs_Safe_IO       : Boolean := False;
             Needs_Safe_Runtime  : Boolean := False;
             Needs_Gnat_Adc      : Boolean := False;
          when False =>
@@ -30,6 +31,8 @@ package Safe_Frontend.Ada_Emit is
       Bronze   : MB.Bronze_Result) return Artifact_Result;
 
    function Safe_Runtime_Text return String;
+   function Safe_IO_Spec_Text return String;
+   function Safe_IO_Body_Text return String;
    function Gnat_Adc_Text return String;
    function Unit_File_Stem (Unit_Name : String) return String;
 end Safe_Frontend.Ada_Emit;

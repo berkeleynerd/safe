@@ -87,7 +87,7 @@
         },
         {
           "name": "keyword.control.safe",
-          "match": "\\b(package|public|is|if|else|loop|while|for|return|returns|record|type|subtype|range|to|access|function|task|channel|capacity|from|send|receive|try_send|try_receive|sends|receives|select|delay|new|with|constant|var|null|and|or|xor|not|mod|rem|case|when|others|exit|digits|binary)\\b"
+          "match": "\\b(package|public|is|if|else|loop|while|for|return|returns|record|type|subtype|range|to|access|function|task|channel|capacity|from|send|receive|try_send|try_receive|sends|receives|select|delay|new|with|constant|var|null|and|or|xor|not|mod|rem|case|when|others|exit|digits|binary|print)\\b"
         },
         {
           "name": "storage.modifier.safe",

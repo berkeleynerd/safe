@@ -1,0 +1,4 @@
+package neg_pr118c1_print_wrong_arity
+
+   function log
+      print ()

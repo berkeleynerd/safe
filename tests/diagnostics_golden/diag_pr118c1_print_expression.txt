@@ -1,0 +1,11 @@
+Diagnostics Golden: PR11.8c.1 Print Is Statement-Only
+Source: tests/negative/neg_pr118c1_print_expression.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr118c1_print_expression.safe:3:28: error: `print` is a statement, not an expression
+  |
+  | 3 |    value : integer = print (1);
+  |   |                            ^~~
+  |
+------------------------------------------------------------------------

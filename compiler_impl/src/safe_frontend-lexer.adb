@@ -76,7 +76,7 @@ package body Safe_Frontend.Lexer is
           --  Safe additional reserved words (spec §8.15)
           | "public" | "channel" | "send" | "receive"
           | "try_send" | "try_receive" | "capacity" | "from"
-          | "binary"
+          | "binary" | "print"
           | "returns";
    end Is_Keyword;
 

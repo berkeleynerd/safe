@@ -110,7 +110,7 @@ def ensure_emit_success(
     adb_files = sorted(
         path
         for path in (root / "ada").glob("*.adb")
-        if path.name != "safe_runtime.adb"
+        if path.name not in {"safe_runtime.adb", "safe_io.adb"}
     )
     require(adb_files, f"{source}: expected emitted .adb file")
     return paths
@@ -134,14 +134,20 @@ def emitted_ada_files(ada_dir: Path) -> list[str]:
 
 def emitted_body_file(ada_dir: Path) -> Path:
     candidates = sorted(
-        path for path in ada_dir.glob("*.adb") if path.name != "safe_runtime.adb"
+        path
+        for path in ada_dir.glob("*.adb")
+        if path.name not in {"safe_runtime.adb", "safe_io.adb"}
     )
     require(candidates, f"{display_path(ada_dir)}: expected emitted .adb file")
     return candidates[0]
 
 
 def emitted_spec_file(ada_dir: Path) -> Path:
-    candidates = sorted(path for path in ada_dir.glob("*.ads") if path.name != "safe_runtime.ads")
+    candidates = sorted(
+        path
+        for path in ada_dir.glob("*.ads")
+        if path.name not in {"safe_runtime.ads", "safe_io.ads"}
+    )
     require(candidates, f"{display_path(ada_dir)}: expected emitted .ads file")
     return candidates[0]
 

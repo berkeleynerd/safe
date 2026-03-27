@@ -243,6 +243,17 @@ package body Safe_Frontend.Check_Resolve is
       Symbol.Type_Info := BT.String_Type;
       Info.Params.Append (Symbol);
       Put_Function (Functions, "fail", Info);
+
+      Info := (others => <>);
+      Info.Name := FT.To_UString ("print");
+      Info.Kind := FT.To_UString ("function");
+      Symbol := (others => <>);
+      Symbol.Name := FT.To_UString ("value");
+      Symbol.Kind := FT.To_UString ("param");
+      Symbol.Mode := FT.To_UString ("in");
+      Symbol.Type_Info := BT.String_Type;
+      Info.Params.Append (Symbol);
+      Put_Function (Functions, "print", Info);
    end Add_Builtin_Functions;
 
    procedure Raise_Diag (Item : CM.MD.Diagnostic) is
@@ -1594,6 +1605,134 @@ package body Safe_Frontend.Check_Resolve is
       return Expr;
    end Set_Type;
 
+   function Is_Print_Call (Expr : CM.Expr_Access) return Boolean is
+   begin
+      return
+        Expr /= null
+        and then Expr.Kind = CM.Expr_Call
+        and then FT.Lowercase (Flatten_Name (Expr.Callee)) = "print";
+   end Is_Print_Call;
+
+   procedure Validate_Print_Call_Context
+     (Expr             : CM.Expr_Access;
+      Var_Types        : Type_Maps.Map;
+      Functions        : Function_Maps.Map;
+      Type_Env         : Type_Maps.Map;
+      Path             : String;
+      Allow_Root_Print : Boolean := False)
+   is
+      procedure Recurse
+        (Item             : CM.Expr_Access;
+         Allow_Print_Here : Boolean := False) is
+      begin
+         Validate_Print_Call_Context
+           (Item,
+            Var_Types,
+            Functions,
+            Type_Env,
+            Path,
+            Allow_Root_Print => Allow_Print_Here);
+      end Recurse;
+   begin
+      if Expr = null then
+         return;
+      end if;
+
+      if Is_Print_Call (Expr) and then not Allow_Root_Print then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+               Message => "`print` is a statement, not an expression"));
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Select =>
+            Recurse (Expr.Prefix);
+         when CM.Expr_Resolved_Index =>
+            Recurse (Expr.Prefix);
+            for Item of Expr.Args loop
+               Recurse (Item);
+            end loop;
+         when CM.Expr_Conversion =>
+            Recurse (Expr.Inner);
+         when CM.Expr_Call =>
+            Recurse (Expr.Callee);
+            for Item of Expr.Args loop
+               Recurse (Item);
+            end loop;
+         when CM.Expr_Allocator =>
+            Recurse (Expr.Value);
+         when CM.Expr_Aggregate =>
+            for Item of Expr.Fields loop
+               Recurse (Item.Expr);
+            end loop;
+         when CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               Recurse (Item);
+            end loop;
+         when CM.Expr_Annotated =>
+            Recurse (Expr.Inner);
+         when CM.Expr_Unary =>
+            Recurse (Expr.Inner);
+         when CM.Expr_Binary =>
+            Recurse (Expr.Left);
+            Recurse (Expr.Right);
+         when others =>
+            null;
+      end case;
+   end Validate_Print_Call_Context;
+
+   procedure Validate_Print_Procedure_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Path      : String)
+   is
+      Argument_Type : GM.Type_Descriptor;
+      Base_Argument : GM.Type_Descriptor;
+      Base_Kind     : FT.UString;
+      Base_Name     : FT.UString;
+   begin
+      if not Is_Print_Call (Expr) then
+         return;
+      end if;
+
+      if Natural (Expr.Args.Length) /= 1 then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+               Message => "`print` expects exactly one argument"));
+      end if;
+
+      Argument_Type :=
+        Expr_Type
+          (Expr.Args (Expr.Args.First_Index),
+           Var_Types,
+           Functions,
+           Type_Env);
+      Base_Argument := Base_Type (Argument_Type, Type_Env);
+      Base_Kind := FT.To_UString (FT.Lowercase (UString_Value (Base_Argument.Kind)));
+      Base_Name := FT.To_UString (FT.Lowercase (UString_Value (Base_Argument.Name)));
+      if Base_Kind = FT.To_UString ("integer")
+        or else Base_Name = FT.To_UString ("integer")
+        or else Base_Kind = FT.To_UString ("string")
+        or else Base_Name = FT.To_UString ("string")
+        or else Base_Kind = FT.To_UString ("boolean")
+        or else Base_Name = FT.To_UString ("boolean")
+      then
+         return;
+      end if;
+
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => Path,
+            Span    => Expr.Args (Expr.Args.First_Index).Span,
+            Message => "`print` supports only integer, string, or boolean arguments"));
+   end Validate_Print_Procedure_Call;
+
    function Resolve_Apply
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
@@ -1947,6 +2086,7 @@ package body Safe_Frontend.Check_Resolve is
         Normalize_Expr (Expr, Var_Types, Functions, Type_Env);
    begin
       Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
+      Validate_Print_Call_Context (Result, Var_Types, Functions, Type_Env, Path);
       return Result;
    end Normalize_Expr_Checked;
 
@@ -2314,7 +2454,9 @@ package body Safe_Frontend.Check_Resolve is
 
    function Normalize_Procedure_Call
      (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
       Path      : String) return CM.Expr_Access
    is
       Result : CM.Expr_Access := Expr;
@@ -2331,6 +2473,7 @@ package body Safe_Frontend.Check_Resolve is
          if Has_Function (Functions, UString_Value (Name))
            and then not Get_Function (Functions, UString_Value (Name)).Has_Return_Type
          then
+            Validate_Print_Procedure_Call (Expr, Var_Types, Functions, Type_Env, Path);
             return Expr;
          end if;
       elsif Expr.Kind = CM.Expr_Ident or else Expr.Kind = CM.Expr_Select then
@@ -2343,6 +2486,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Callee := Expr;
             Result.Has_Call_Span := True;
             Result.Call_Span := Expr.Span;
+            Validate_Print_Procedure_Call (Result, Var_Types, Functions, Type_Env, Path);
             return Set_Type (Result, Default_Integer);
          end if;
       end if;
@@ -2354,6 +2498,33 @@ package body Safe_Frontend.Check_Resolve is
             Message => "expected assignment or call to a no-result function"));
       return Expr;
    end Normalize_Procedure_Call;
+
+   function Normalize_Procedure_Call_Checked
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Path      : String) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access :=
+        Normalize_Expr (Expr, Var_Types, Functions, Type_Env);
+   begin
+      Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
+      Validate_Print_Call_Context
+        (Result,
+         Var_Types,
+         Functions,
+         Type_Env,
+         Path,
+         Allow_Root_Print => True);
+      return
+        Normalize_Procedure_Call
+          (Result,
+           Var_Types,
+           Functions,
+           Type_Env,
+           Path);
+   end Normalize_Procedure_Call_Checked;
 
    function Channel_Element_Type
      (Expr        : CM.Expr_Access;
@@ -2889,9 +3060,11 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Call =>
             Result.Call :=
-              Normalize_Procedure_Call
-                (Normalize_Expr_Checked (Stmt.Call, Var_Types, Functions, Type_Env, Path),
+              Normalize_Procedure_Call_Checked
+                (Stmt.Call,
+                 Var_Types,
                  Functions,
+                 Type_Env,
                  Path);
 
          when CM.Stmt_Send | CM.Stmt_Try_Send =>
