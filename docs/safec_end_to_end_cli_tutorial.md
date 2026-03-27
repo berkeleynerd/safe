@@ -15,10 +15,11 @@ includes `gnat.adc` and actually exercises the local Jorvik link path.
 Safe now has a built-in statement-only `print (expr)` surface for `integer`,
 `string`, and `boolean`, plus unit-scope statements and packageless entry
 files. For single-file roots with no leading `with` clauses, the repo-local
-wrapper can now build directly:
+wrapper can now build or run directly:
 
 ```bash
 python3 scripts/safe_cli.py build samples/rosetta/text/hello_print.safe
+python3 scripts/safe_cli.py run samples/rosetta/text/hello_print.safe
 ```
 
 This tutorial still uses the raw `safec emit` path and a handwritten Ada driver
@@ -251,9 +252,9 @@ end to end on this host:
   builds, runs, and checks for exact stdout through the emitted `main.adb`.
 - For a checked-in binary-surface example, see
   `samples/rosetta/text/opcode_dispatch.safe`.
-- `safe build` in this repo is still single-file only. Roots with leading
-  `with` clauses still use the manual `safec emit` plus `gprbuild` flow shown
-  in this tutorial.
+- `safe build` and `safe run` in this repo are still single-file only. Roots
+  with leading `with` clauses still use the manual `safec emit` plus
+  `gprbuild` flow shown in this tutorial.
 - This tutorial assumes a supported Linux host with the local Alire GNAT
   toolchain available on `PATH`.
 - If you want a minimal emission-only sample instead, use

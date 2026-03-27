@@ -87,7 +87,8 @@ That is a packageless entry file. The unit name comes from the filename stem,
 and its unit-scope statements execute in source order before any tasks declared
 in the same file start.
 
-The current `safe build` prototype is intentionally narrower than the language:
+The current `safe build` / `safe run` prototype is intentionally narrower than
+the language:
 
 - single-file explicit-package roots work
 - single-file packageless entry roots work

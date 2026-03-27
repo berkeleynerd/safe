@@ -25,6 +25,7 @@ from _lib.pr111_language_eval import (
 
 USAGE = """usage:
   safe build <file.safe>
+  safe run   <file.safe>
   safe check <safec check args...>
   safe emit  <safec emit args...>
 """
@@ -55,7 +56,7 @@ def pass_through(command: str, args: list[str]) -> int:
     return run_subprocess([str(safec), command, *args], cwd=Path.cwd(), env=env)
 
 
-def safe_build(source_arg: str) -> int:
+def build_single_file(source_arg: str, *, quiet_build: bool = False) -> tuple[dict[str, str], Path] | int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
     source = require_source_file(resolve_source_arg(source_arg))
@@ -91,13 +92,33 @@ def safe_build(source_arg: str) -> int:
         return emit_code
 
     write_safe_build_support_files(paths)
-    build_code = run_subprocess(safe_build_command(paths), cwd=COMPILER_ROOT, env=env)
+    build_argv = safe_build_command(paths)
+    if quiet_build:
+        gprbuild_index = build_argv.index("gprbuild")
+        build_argv.insert(gprbuild_index + 1, "-q")
+    build_code = run_subprocess(build_argv, cwd=COMPILER_ROOT, env=env)
     if build_code != 0:
         return build_code
 
     executable = ensure_safe_build_executable(paths)
+    return env, executable
+
+
+def safe_build(source_arg: str) -> int:
+    built = build_single_file(source_arg)
+    if isinstance(built, int):
+        return built
+    _, executable = built
     print(f"safe build: OK ({repo_rel_or_abs(executable)})")
     return 0
+
+
+def safe_run(source_arg: str) -> int:
+    built = build_single_file(source_arg, quiet_build=True)
+    if isinstance(built, int):
+        return built
+    env, executable = built
+    return run_subprocess([str(executable)], cwd=executable.parent, env=env)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -113,6 +134,10 @@ def main(argv: list[str] | None = None) -> int:
         if len(args) != 2:
             return print_usage()
         return safe_build(args[1])
+    if command == "run":
+        if len(args) != 2:
+            return print_usage()
+        return safe_run(args[1])
     if command in {"check", "emit"}:
         if len(args) < 2:
             return print_usage()

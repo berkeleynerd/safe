@@ -174,8 +174,9 @@ safe test  <file.safe>       test runner (post-v1.0)
 Internally, `safe build` calls `safec emit` then `gprbuild` on the emitted Ada.
 The current repo-local prototype is intentionally single-file only; roots with
 leading `with` clauses still fall back to manual `safec emit` plus `gprbuild`.
-The user-facing goal remains a fully integrated `safe build` experience with
-Safe-oriented diagnostics.
+`safe run` reuses that same single-file build flow, then launches the produced
+binary. The user-facing goal remains a fully integrated `safe build` experience
+with Safe-oriented diagnostics.
 
 ### What ships, what does not
 

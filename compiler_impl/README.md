@@ -48,10 +48,11 @@ The current repo-local compiler commands are:
 The repo also keeps a small wrapper CLI at `../scripts/safe_cli.py`:
 
 - `python3 ../scripts/safe_cli.py build <file.safe>`
+- `python3 ../scripts/safe_cli.py run <file.safe>`
 - `python3 ../scripts/safe_cli.py check ...`
 - `python3 ../scripts/safe_cli.py emit ...`
 
-`safe build` is still a single-file wrapper in this branch. It supports:
+`safe build` and `safe run` are still single-file wrappers in this branch. They support:
 
 - explicit-package roots with no leading `with` clauses, built through the
   existing generated-driver path
