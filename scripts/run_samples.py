@@ -19,6 +19,15 @@ ALR_FALLBACK = Path.home() / "bin" / "alr"
 RUN_TIMEOUT_SECONDS = 2.0
 PRINT_SAMPLE = "samples/rosetta/text/hello_print.safe"
 PRODUCER_CONSUMER_SAMPLE = "samples/rosetta/concurrency/producer_consumer.safe"
+PRINTING_SAMPLES = {
+    "samples/rosetta/arithmetic/collatz_bounded.safe",
+    "samples/rosetta/arithmetic/factorial.safe",
+    "samples/rosetta/arithmetic/fibonacci.safe",
+    "samples/rosetta/arithmetic/gcd.safe",
+    "samples/rosetta/text/grade_message.safe",
+    "samples/rosetta/text/hello_print.safe",
+    "samples/rosetta/text/opcode_dispatch.safe",
+}
 GENERATED_SUPPORT_MARKERS = (
     "--  Generated Safe print support",
     "--  Safe Language Runtime Type Definitions",
@@ -84,7 +93,9 @@ def print_summary(*, passed: int, failures: list[tuple[str, str]]) -> None:
 
 def emitted_primary_unit(ada_dir: Path) -> str:
     candidates = sorted(
-        path for path in ada_dir.glob("*.adb") if not is_generated_support_file(path)
+        path
+        for path in ada_dir.glob("*.adb")
+        if path.stem != "main" and not is_generated_support_file(path)
     )
     if not candidates:
         raise FileNotFoundError(f"expected emitted Ada body in {ada_dir}")
@@ -185,14 +196,24 @@ def driver_text(sample: Path, unit_name: str) -> str:
     return default_driver_text(unit_name)
 
 
+def has_emitted_main(ada_dir: Path) -> bool:
+    return (ada_dir / "main.adb").exists()
+
+
 def expected_stdout(sample: Path) -> str | None:
-    if repo_rel(sample) == PRINT_SAMPLE:
-        return "hello\n42\ntrue\n"
-    return None
+    return {
+        "samples/rosetta/arithmetic/collatz_bounded.safe": "8\n",
+        "samples/rosetta/arithmetic/factorial.safe": "120\n",
+        "samples/rosetta/arithmetic/fibonacci.safe": "89\n",
+        "samples/rosetta/arithmetic/gcd.safe": "6\n",
+        "samples/rosetta/text/grade_message.safe": "good\n",
+        "samples/rosetta/text/hello_print.safe": "hello\n",
+        "samples/rosetta/text/opcode_dispatch.safe": "load\n",
+    }.get(repo_rel(sample))
 
 
 def expects_safe_io(sample: Path) -> bool:
-    return repo_rel(sample) == PRINT_SAMPLE
+    return repo_rel(sample) in PRINTING_SAMPLES
 
 
 def project_text(paths: dict[str, Path]) -> str:
@@ -268,7 +289,8 @@ def run_sample(
     elif support_specs or support_bodies:
         return stage_error("emit", "unexpected generated print support files")
 
-    paths["main"].write_text(driver_text(sample, unit_name), encoding="utf-8")
+    if not has_emitted_main(paths["ada"]):
+        paths["main"].write_text(driver_text(sample, unit_name), encoding="utf-8")
     paths["gpr"].write_text(project_text(paths), encoding="utf-8")
 
     alr = find_command("alr", ALR_FALLBACK)

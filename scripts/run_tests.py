@@ -16,12 +16,16 @@ COMPILER_ROOT = REPO_ROOT / "compiler_impl"
 SAFEC_PATH = COMPILER_ROOT / "bin" / "safec"
 ALR_FALLBACK = Path.home() / "bin" / "alr"
 DIAGNOSTIC_EXIT_CODE = 1
+SAFE_CLI = REPO_ROOT / "scripts" / "safe_cli.py"
+SAFE_REPL = REPO_ROOT / "scripts" / "safe_repl.py"
+VALIDATE_OUTPUT_CONTRACTS = REPO_ROOT / "scripts" / "validate_output_contracts.py"
 
 # These fixtures live in category directories that do not match the
 # compiler's current acceptance boundary, so keep the expectations explicit.
 NEGATIVE_SUCCESS_FIXTURES = {
     REPO_ROOT / "tests" / "negative" / "neg_chan_empty_recv.safe",
     REPO_ROOT / "tests" / "negative" / "neg_chan_full_send.safe",
+    REPO_ROOT / "tests" / "negative" / "neg_pr115_var_package_item.safe",
 }
 
 CONCURRENCY_REJECT_FIXTURES = {
@@ -114,6 +118,18 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "provider_binary.safe",
         REPO_ROOT / "tests" / "interfaces" / "client_binary.safe",
         0,
+    ),
+    (
+        "entry-with-clause",
+        REPO_ROOT / "tests" / "interfaces" / "provider_types.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_entry_with_clause.safe",
+        0,
+    ),
+    (
+        "entry-import-rejected",
+        REPO_ROOT / "tests" / "interfaces" / "entry_helper.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_import_entry_rejected.safe",
+        1,
     ),
 ]
 
@@ -267,6 +283,57 @@ DIAGNOSTIC_GOLDEN_CASES = [
     ),
 ]
 
+BUILD_SUCCESS_CASES = [
+    (
+        REPO_ROOT / "tests" / "build" / "pr118c2_package_build.safe",
+        "42\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118c2_entry_build.safe",
+        "42\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118c2_package_pre_task.safe",
+        "41\n",
+        True,
+    ),
+]
+
+BUILD_REJECT_CASES = [
+    (
+        REPO_ROOT / "tests" / "build" / "pr118c2_root_with_clause.safe",
+        "safe build: root files with `with` clauses are not supported yet",
+    ),
+]
+
+OUTPUT_CONTRACT_CASES = [
+    REPO_ROOT / "tests" / "positive" / "pr118c2_package_print.safe",
+    REPO_ROOT / "tests" / "positive" / "pr118c2_entry_print.safe",
+]
+
+REPL_CASES = [
+    (
+        "repl-prints",
+        "value : integer = 41;\nprint (value + 1)\n",
+        "42\n",
+        None,
+    ),
+    (
+        "repl-rejects-bad-line",
+        "value : integer = 41;\nprint (missing_name)\nprint (value + 1)\n",
+        "42\n",
+        "missing_name",
+    ),
+    (
+        "repl-rejects-task",
+        "task worker\n",
+        "",
+        "task declarations are not supported in repl mode",
+    ),
+]
+
 
 def repo_rel(path: Path) -> str:
     return str(path.relative_to(REPO_ROOT))
@@ -281,14 +348,22 @@ def find_command(name: str, fallback: Path | None = None) -> str:
     raise FileNotFoundError(f"required command not found: {name}")
 
 
-def run_command(argv: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+def run_command(
+    argv: list[str],
+    *,
+    cwd: Path,
+    input_text: str | None = None,
+    timeout: float | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         argv,
         cwd=cwd,
         env=os.environ.copy(),
         text=True,
+        input=input_text,
         capture_output=True,
         check=False,
+        timeout=timeout,
     )
 
 
@@ -436,6 +511,145 @@ def print_summary(*, passed: int, failures: list[tuple[str, str]]) -> None:
             print(f" - {label}: {detail}")
 
 
+def executable_name() -> str:
+    return "main.exe" if os.name == "nt" else "main"
+
+
+def safe_build_executable(source: Path) -> Path:
+    return source.parent / ".safe-build" / source.stem / executable_name()
+
+
+def run_safe_build_case(
+    source: Path,
+    expected_stdout: str,
+    *,
+    allow_timeout: bool,
+) -> tuple[bool, str]:
+    build = run_command(
+        [sys.executable, str(SAFE_CLI), "build", repo_rel(source)],
+        cwd=REPO_ROOT,
+    )
+    if build.returncode != 0:
+        return False, f"build failed: {first_message(build)}"
+
+    executable = safe_build_executable(source)
+    if not executable.exists():
+        return False, f"missing executable {executable}"
+
+    try:
+        run = run_command(
+            [str(executable)],
+            cwd=executable.parent,
+            timeout=0.3 if allow_timeout else None,
+        )
+    except subprocess.TimeoutExpired as exc:
+        if not allow_timeout:
+            return False, "executable timed out"
+        stdout = exc.stdout or ""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        if not stdout.startswith(expected_stdout):
+            return False, f"unexpected stdout before timeout {stdout!r}"
+        return True, ""
+
+    if run.returncode != 0:
+        return False, f"executable failed: {first_message(run)}"
+    if allow_timeout:
+        if not run.stdout.startswith(expected_stdout):
+            return False, f"unexpected stdout {run.stdout!r}"
+    elif run.stdout != expected_stdout:
+        return False, f"unexpected stdout {run.stdout!r}"
+    return True, ""
+
+
+def run_safe_build_reject_case(source: Path, expected_message: str) -> tuple[bool, str]:
+    build = run_command(
+        [sys.executable, str(SAFE_CLI), "build", repo_rel(source)],
+        cwd=REPO_ROOT,
+    )
+    if build.returncode == 0:
+        return False, "build unexpectedly succeeded"
+    output = build.stderr or build.stdout
+    if expected_message not in output:
+        return False, f"missing expected message {expected_message!r}"
+    return True, ""
+
+
+def run_output_contract_case(
+    safec: Path,
+    source: Path,
+    *,
+    temp_root: Path,
+) -> tuple[bool, str]:
+    case_root = temp_root / source.stem
+    out_dir = case_root / "out"
+    iface_dir = case_root / "iface"
+    ada_dir = case_root / "ada"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    iface_dir.mkdir(parents=True, exist_ok=True)
+    ada_dir.mkdir(parents=True, exist_ok=True)
+
+    emit = run_command(
+        [
+            str(safec),
+            "emit",
+            repo_rel(source),
+            "--out-dir",
+            str(out_dir),
+            "--interface-dir",
+            str(iface_dir),
+            "--ada-out-dir",
+            str(ada_dir),
+        ],
+        cwd=REPO_ROOT,
+    )
+    if emit.returncode != 0:
+        return False, f"emit failed: {first_message(emit)}"
+
+    stem = source.stem.lower()
+    validate = run_command(
+        [
+            sys.executable,
+            str(VALIDATE_OUTPUT_CONTRACTS),
+            "--ast",
+            str(out_dir / f"{stem}.ast.json"),
+            "--typed",
+            str(out_dir / f"{stem}.typed.json"),
+            "--mir",
+            str(out_dir / f"{stem}.mir.json"),
+            "--safei",
+            str(iface_dir / f"{stem}.safei.json"),
+            "--source-path",
+            repo_rel(source),
+        ],
+        cwd=REPO_ROOT,
+    )
+    if validate.returncode != 0:
+        return False, first_message(validate)
+    return True, ""
+
+
+def run_repl_case(
+    *,
+    label: str,
+    input_text: str,
+    expected_stdout: str,
+    expected_stderr_substring: str | None,
+) -> tuple[bool, str]:
+    completed = run_command(
+        [sys.executable, str(SAFE_REPL)],
+        cwd=REPO_ROOT,
+        input_text=input_text,
+    )
+    if completed.returncode != 0:
+        return False, f"repl failed: {first_message(completed)}"
+    if completed.stdout != expected_stdout:
+        return False, f"unexpected stdout {completed.stdout!r}"
+    if expected_stderr_substring is not None and expected_stderr_substring not in completed.stderr:
+        return False, f"missing expected stderr {expected_stderr_substring!r}"
+    return True, ""
+
+
 def main() -> int:
     try:
         safec = build_compiler()
@@ -505,9 +719,45 @@ def main() -> int:
             else:
                 failures.append((pair_label, detail))
 
+        for source in OUTPUT_CONTRACT_CASES:
+            ok, detail = run_output_contract_case(safec, source, temp_root=temp_root)
+            label = f"contracts:{repo_rel(source)}"
+            if ok:
+                passed += 1
+            else:
+                failures.append((label, detail))
+
     for source, golden in DIAGNOSTIC_GOLDEN_CASES:
         ok, detail = run_diagnostic_golden(safec, source, golden)
         label = f"{repo_rel(source)} -> {repo_rel(golden)}"
+        if ok:
+            passed += 1
+        else:
+            failures.append((label, detail))
+
+    for source, expected_stdout, allow_timeout in BUILD_SUCCESS_CASES:
+        ok, detail = run_safe_build_case(source, expected_stdout, allow_timeout=allow_timeout)
+        label = f"safe build {repo_rel(source)}"
+        if ok:
+            passed += 1
+        else:
+            failures.append((label, detail))
+
+    for source, expected_message in BUILD_REJECT_CASES:
+        ok, detail = run_safe_build_reject_case(source, expected_message)
+        label = f"safe build {repo_rel(source)}"
+        if ok:
+            passed += 1
+        else:
+            failures.append((label, detail))
+
+    for label, input_text, expected_stdout, expected_stderr_substring in REPL_CASES:
+        ok, detail = run_repl_case(
+            label=label,
+            input_text=input_text,
+            expected_stdout=expected_stdout,
+            expected_stderr_substring=expected_stderr_substring,
+        )
         if ok:
             passed += 1
         else:

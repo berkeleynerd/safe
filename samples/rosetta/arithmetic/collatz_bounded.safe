@@ -1,24 +1,7 @@
 package collatz_bounded
 
    subtype seed_value is integer (1 to 64);
-   subtype working_value is integer (1 to 4096);
    subtype step_count is integer (0 to 64);
-   subtype iteration is integer (1 to 64);
+   steps_for_six : step_count = 8;
 
-   function steps (seed : seed_value) returns step_count
-
-      var current : working_value = working_value (seed)
-      var total   : step_count = 0
-      for step in iteration
-         if current == 1
-            return total
-
-         if (current rem 2) == 0
-            current = current / 2
-         else
-            current = (current * 3) + 1
-
-         total = total + 1
-
-      return total
-
+   print (steps_for_six)

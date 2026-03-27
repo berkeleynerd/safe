@@ -6970,6 +6970,7 @@ package body Safe_Frontend.Ada_Emit is
       Bronze   : MB.Bronze_Result) return Artifact_Result
    is
       State      : Emit_State;
+      Unit_Uses_Print : constant Boolean := Statements_Use_Print (Unit.Statements);
       Spec_Inner : SU.Unbounded_String;
       Body_Inner : SU.Unbounded_String;
       Spec_Text  : SU.Unbounded_String;
@@ -7073,7 +7074,10 @@ package body Safe_Frontend.Ada_Emit is
 
       Append_Line
         (Body_Inner,
-         "package body " & FT.To_String (Unit.Package_Name) & " with SPARK_Mode => On is");
+         "package body "
+         & FT.To_String (Unit.Package_Name)
+         & (if Unit_Uses_Print then " with SPARK_Mode => Off" else " with SPARK_Mode => On")
+         & " is");
       Append_Line (Body_Inner);
 
       for Channel of Unit.Channels loop
@@ -7087,6 +7091,12 @@ package body Safe_Frontend.Ada_Emit is
       for Task_Item of Unit.Tasks loop
          Render_Task_Body (Body_Inner, Unit, Document, Task_Item, State);
       end loop;
+
+      if not Unit.Statements.Is_Empty then
+         Append_Line (Body_Inner, "begin");
+         Render_Required_Statement_Suite
+           (Body_Inner, Unit, Document, Unit.Statements, State, 1, "");
+      end if;
 
       Append_Line (Body_Inner, "end " & FT.To_String (Unit.Package_Name) & ";");
 

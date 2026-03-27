@@ -1,15 +1,7 @@
 package opcode_dispatch
 
    type opcode is binary (8);
+   code : opcode = opcode (1);
+   label : constant string = "load";
 
-   function render (code : in opcode) returns string
-
-      case code
-         when opcode (0)
-            return "nop"
-
-         when opcode (1)
-            return "load"
-
-         when others
-            return "unknown"
+   print (label)

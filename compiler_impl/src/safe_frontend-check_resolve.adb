@@ -19,6 +19,7 @@ package body Safe_Frontend.Check_Resolve is
    use type CM.Static_Value_Kind;
    use type CM.Type_Decl_Kind;
    use type CM.Type_Spec_Kind;
+   use type CM.Unit_Kind;
    use type CM.Wide_Integer;
    use type GM.Scalar_Value_Kind;
    use type FT.UString;
@@ -2483,12 +2484,33 @@ package body Safe_Frontend.Check_Resolve is
                Span    => FT.Null_Span,
                Message => "expected assignment or call to a no-result function"));
       elsif Expr.Kind = CM.Expr_Call then
-         Name := FT.To_UString (Flatten_Name (Expr.Callee));
+         Result := new CM.Expr_Node'(Expr.all);
+         if Expr.Callee /= null then
+            Result.Callee :=
+              Normalize_Expr
+                (Expr.Callee,
+                 Var_Types,
+                 Functions,
+                 Type_Env);
+         end if;
+         if not Expr.Args.Is_Empty then
+            Result.Args.Clear;
+            for Arg of Expr.Args loop
+               Result.Args.Append
+                 (Normalize_Expr_Checked
+                    (Arg,
+                     Var_Types,
+                     Functions,
+                     Type_Env,
+                     Path));
+            end loop;
+         end if;
+         Name := FT.To_UString (Flatten_Name (Result.Callee));
          if Has_Function (Functions, UString_Value (Name))
            and then not Get_Function (Functions, UString_Value (Name)).Has_Return_Type
          then
-            Validate_Print_Procedure_Call (Expr, Var_Types, Functions, Type_Env, Path);
-            return Expr;
+            Validate_Print_Procedure_Call (Result, Var_Types, Functions, Type_Env, Path);
+            return Result;
          end if;
       elsif Expr.Kind = CM.Expr_Ident or else Expr.Kind = CM.Expr_Select then
          Name := FT.To_UString (Flatten_Name (Expr));
@@ -3850,6 +3872,69 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
    end Validate_Task_Nontermination;
 
+   function Item_Is_Public (Item : CM.Package_Item) return Boolean is
+   begin
+      case Item.Kind is
+         when CM.Item_Type_Decl =>
+            return Item.Type_Data.Is_Public;
+         when CM.Item_Subtype_Decl =>
+            return Item.Sub_Data.Is_Public;
+         when CM.Item_Object_Decl =>
+            return Item.Obj_Data.Is_Public;
+         when CM.Item_Subprogram =>
+            return Item.Subp_Data.Is_Public;
+         when CM.Item_Task =>
+            return False;
+         when CM.Item_Channel =>
+            return Item.Chan_Data.Is_Public;
+         when others =>
+            return False;
+      end case;
+   end Item_Is_Public;
+
+   procedure Validate_Unit_Statements
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Path       : String) is
+   begin
+      for Stmt of Statements loop
+         case Stmt.Kind is
+            when CM.Stmt_Return =>
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Stmt.Span,
+                     Message => "package-level statements must not contain return statements"));
+            when CM.Stmt_If =>
+               Validate_Unit_Statements (Stmt.Then_Stmts, Path);
+               for Part of Stmt.Elsifs loop
+                  Validate_Unit_Statements (Part.Statements, Path);
+               end loop;
+               if Stmt.Has_Else then
+                  Validate_Unit_Statements (Stmt.Else_Stmts, Path);
+               end if;
+            when CM.Stmt_Case =>
+               for Arm of Stmt.Case_Arms loop
+                  Validate_Unit_Statements (Arm.Statements, Path);
+               end loop;
+            when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+               Validate_Unit_Statements (Stmt.Body_Stmts, Path);
+            when CM.Stmt_Select =>
+               for Arm of Stmt.Arms loop
+                  case Arm.Kind is
+                     when CM.Select_Arm_Channel =>
+                        Validate_Unit_Statements (Arm.Channel_Data.Statements, Path);
+                     when CM.Select_Arm_Delay =>
+                        Validate_Unit_Statements (Arm.Delay_Data.Statements, Path);
+                     when others =>
+                        null;
+                  end case;
+               end loop;
+            when others =>
+               null;
+         end case;
+      end loop;
+   end Validate_Unit_Statements;
+
    function Resolve
      (Unit        : CM.Parsed_Unit;
       Search_Dirs : FT.UString_Vectors.Vector := FT.UString_Vectors.Empty_Vector)
@@ -3971,7 +4056,10 @@ package body Safe_Frontend.Check_Resolve is
       Add_Builtins (Type_Env);
       Add_Builtin_Functions (Functions);
       Result.Path := Unit.Path;
+      Result.Kind := Unit.Kind;
       Result.Package_Name := Unit.Package_Name;
+      Result.Has_End_Name := Unit.Has_End_Name;
+      Result.End_Name := Unit.End_Name;
 
       if not Unit.Withs.Is_Empty then
          declare
@@ -4001,6 +4089,21 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       for Item of Unit.Items loop
+         if Unit.Kind = CM.Unit_Entry and then Item_Is_Public (Item) then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => UString_Value (Unit.Path),
+                  Span    => (case Item.Kind is
+                                when CM.Item_Type_Decl => Item.Type_Data.Span,
+                                when CM.Item_Subtype_Decl => Item.Sub_Data.Span,
+                                when CM.Item_Object_Decl => Item.Obj_Data.Span,
+                                when CM.Item_Subprogram => Item.Subp_Data.Span,
+                                when CM.Item_Task => Item.Task_Data.Span,
+                                when CM.Item_Channel => Item.Chan_Data.Span,
+                                when others => FT.Null_Span),
+                  Message => "packageless entry files must not contain public declarations"));
+         end if;
+
          case Item.Kind is
             when CM.Item_Type_Decl =>
                declare
@@ -4170,6 +4273,36 @@ package body Safe_Frontend.Check_Resolve is
                null;
          end case;
       end loop;
+
+      declare
+         Visible : Type_Maps.Map := Package_Vars;
+         Visible_Constants : Type_Maps.Map;
+         Visible_Static_Constants : Static_Value_Maps.Map := Const_Env;
+      begin
+         for Object_Decl of Result.Objects loop
+            if Object_Decl.Is_Constant then
+               for Name of Object_Decl.Names loop
+                  Put_Type
+                    (Visible_Constants,
+                     UString_Value (Name),
+                     Object_Decl.Type_Info);
+               end loop;
+            end if;
+         end loop;
+
+         Result.Statements :=
+           Normalize_Statement_List
+             (Unit.Statements,
+              Visible,
+              Functions,
+              Type_Env,
+              Channel_Env,
+              Imported_Objects,
+              Visible_Constants,
+              Visible_Static_Constants,
+              UString_Value (Unit.Path));
+         Validate_Unit_Statements (Result.Statements, UString_Value (Unit.Path));
+      end;
 
       for Item of Unit.Items loop
          if Item.Kind = CM.Item_Subprogram then

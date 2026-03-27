@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -38,6 +39,16 @@ def run_subprocess(argv: list[str], *, cwd: Path, env: dict[str, str]) -> int:
     return run_passthrough(argv, cwd=cwd, env=env)
 
 
+def source_has_leading_with_clause(source: Path) -> bool:
+    with source.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith("--"):
+                continue
+            return bool(re.match(r"with\b", line))
+    return False
+
+
 def pass_through(command: str, args: list[str]) -> int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
@@ -48,6 +59,13 @@ def safe_build(source_arg: str) -> int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
     source = require_source_file(resolve_source_arg(source_arg))
+    if source_has_leading_with_clause(source):
+        print(
+            "safe build: root files with `with` clauses are not supported yet; "
+            "use `safec emit` plus manual `gprbuild` for multi-file programs",
+            file=sys.stderr,
+        )
+        return 1
     paths = prepare_safe_build_root(source)
 
     check_code = run_subprocess([str(safec), "check", str(source)], cwd=REPO_ROOT, env=env)

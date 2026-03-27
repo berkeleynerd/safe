@@ -445,12 +445,17 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => With_Clause);
 
+   type Unit_Kind is (Unit_Package, Unit_Entry);
+
    type Parsed_Unit is record
       Path         : FT.UString := FT.To_UString ("");
+      Kind         : Unit_Kind := Unit_Package;
       Package_Name : FT.UString := FT.To_UString ("");
+      Has_End_Name : Boolean := False;
       End_Name     : FT.UString := FT.To_UString ("");
       Withs        : With_Clause_Vectors.Vector;
       Items        : Package_Item_Vectors.Vector;
+      Statements   : Statement_Access_Vectors.Vector;
       Span         : FT.Source_Span := FT.Null_Span;
    end record;
 
@@ -530,7 +535,10 @@ package Safe_Frontend.Check_Model is
 
    type Resolved_Unit is record
       Path         : FT.UString := FT.To_UString ("");
+      Kind         : Unit_Kind := Unit_Package;
       Package_Name : FT.UString := FT.To_UString ("");
+      Has_End_Name : Boolean := False;
+      End_Name     : FT.UString := FT.To_UString ("");
       Types        : GM.Type_Descriptor_Vectors.Vector;
       Imported_Types : GM.Type_Descriptor_Vectors.Vector;
       Objects      : Resolved_Object_Decl_Vectors.Vector;
@@ -539,6 +547,7 @@ package Safe_Frontend.Check_Model is
       Subprograms  : Resolved_Subprogram_Vectors.Vector;
       Imported_Subprograms : GM.External_Vectors.Vector;
       Tasks        : Resolved_Task_Vectors.Vector;
+      Statements   : Statement_Access_Vectors.Vector;
    end record;
 
    type Parse_Result (Success : Boolean := False) is record

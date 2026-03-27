@@ -23,9 +23,11 @@ For fixed-width word-oriented work, the current surface also admits
 operators, and `<<` / `>>` shifts.
 
 For simple visible output, the current surface also admits statement-only
-`print (expr)` for `integer`, `string`, and `boolean`. Package-level execution
-semantics are still deferred; today the sample and CLI flows run emitted Ada
-through generated drivers.
+`print (expr)` for `integer`, `string`, and `boolean`. Executable statements are
+also admitted at unit scope, and a `.safe` file may omit `package` to act as a
+packageless entry unit. The repo-local `safe build` wrapper currently supports
+single-file roots only; roots with `with` clauses still use `safec emit` plus
+manual `gprbuild`.
 
 ---
 
@@ -80,6 +82,12 @@ python3 scripts/run_proofs.py
 
 # Check, build, and run samples
 python3 scripts/run_samples.py
+
+# Build a single-file Safe program
+python3 scripts/safe_cli.py build samples/rosetta/text/hello_print.safe
+
+# Prototype single-file REPL
+python3 scripts/safe_repl.py
 ```
 
 ## Roadmap

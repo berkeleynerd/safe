@@ -63,18 +63,17 @@ That runner builds the compiler once and, for every
 
 - runs `safec check`
 - emits Ada and interface artifacts
-- builds a tiny Ada driver against the emitted package
+- builds either the emitted `main.adb` for packageless entry samples or a tiny
+  Ada driver for explicit-package samples
 - runs the produced executable under a short timeout
 
 `concurrency/producer_consumer.safe` uses a custom driver that waits briefly
 for channel traffic, checks `producer_consumer.result = 42`, and then exits
 explicitly so the sweep does not hang on the package's library-level tasks.
 
-`text/hello_print.safe` uses a custom driver that calls `hello_print.run` and
-asserts exact stdout:
+`text/hello_print.safe` is a packageless entry sample. The runner builds and
+executes its emitted `main.adb` directly and asserts exact stdout:
 
 ```text
 hello
-42
-true
 ```

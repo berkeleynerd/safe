@@ -13,9 +13,17 @@ The walkthrough below uses a small typed-channel package so the emitted Ada
 includes `gnat.adc` and actually exercises the local Jorvik link path.
 
 Safe now has a built-in statement-only `print (expr)` surface for `integer`,
-`string`, and `boolean`, but package-level execution semantics are still
-deferred. This tutorial therefore still uses a handwritten Ada driver to run
-the emitted package.
+`string`, and `boolean`, plus unit-scope statements and packageless entry
+files. For single-file roots with no leading `with` clauses, the repo-local
+wrapper can now build directly:
+
+```bash
+python3 scripts/safe_cli.py build samples/rosetta/text/hello_print.safe
+```
+
+This tutorial still uses the raw `safec emit` path and a handwritten Ada driver
+because it is focused on emitted artifacts and on a tasking example that needs
+an explicit host-side exit.
 
 Instead of asking you to type every command by hand, it writes a small
 host-local build script that does the full flow:
@@ -238,10 +246,14 @@ end to end on this host:
   which checks, emits, builds, and executes the sample corpus. This tutorial is
   still useful when you want to inspect the emitted artifacts and native driver
   steps manually on a local host.
-- For a checked-in print example, see `samples/rosetta/text/hello_print.safe`,
-  which the sample sweep now emits, builds, runs, and checks for exact stdout.
+- For a checked-in single-file runnable print example, see
+  `samples/rosetta/text/hello_print.safe`, which the sample sweep now emits,
+  builds, runs, and checks for exact stdout through the emitted `main.adb`.
 - For a checked-in binary-surface example, see
   `samples/rosetta/text/opcode_dispatch.safe`.
+- `safe build` in this repo is still single-file only. Roots with leading
+  `with` clauses still use the manual `safec emit` plus `gprbuild` flow shown
+  in this tutorial.
 - This tutorial assumes a supported Linux host with the local Alire GNAT
   toolchain available on `PATH`.
 - If you want a minimal emission-only sample instead, use

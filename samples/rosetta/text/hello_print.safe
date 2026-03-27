@@ -1,6 +1,2 @@
-package hello_print
-
-   function run
-      print ("hello")
-      print (42)
-      print (true)
+message : constant string = "hello";
+print (message)

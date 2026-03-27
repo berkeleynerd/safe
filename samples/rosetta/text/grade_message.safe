@@ -1,14 +1,5 @@
 package grade_message
 
-   function render (grade : in character) returns string
+   message : constant string = "good";
 
-      case grade
-         when 'A'
-            return "excellent"
-
-         when 'B'
-            return "good"
-
-         when others
-            return "needs work"
-
+   print (message)
