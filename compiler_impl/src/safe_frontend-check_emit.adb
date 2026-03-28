@@ -47,6 +47,7 @@ package body Safe_Frontend.Check_Emit is
 
    function Expression_Node (Expr : CM.Expr_Access) return String;
    function Object_Type_Node (Spec : CM.Type_Spec) return String;
+   function Component_Definition_Node (Spec : CM.Type_Spec) return String;
    function Shift_Expression_Node (Expr : CM.Expr_Access) return String;
 
    function Type_Json (Info : GM.Type_Descriptor) return String;
@@ -388,7 +389,7 @@ package body Safe_Frontend.Check_Emit is
       elsif Spec.Kind = CM.Type_Spec_Growable_Array then
          return
            "{""node_type"":""GrowableArrayTypeSpec"",""element_type"":"
-           & Object_Type_Node (Spec.Element_Type.all)
+           & Component_Definition_Node (Spec.Element_Type.all)
            & ",""span"":"
            & JS.Span_Object (Spec.Span)
            & "}";
@@ -527,6 +528,16 @@ package body Safe_Frontend.Check_Emit is
       end if;
       return Subtype_Indication_Node (Spec);
    end Object_Type_Node;
+
+   function Component_Definition_Node (Spec : CM.Type_Spec) return String is
+   begin
+      return
+        "{""node_type"":""ComponentDefinition"",""is_aliased"":false,""type_spec"":"
+        & Object_Type_Node (Spec)
+        & ",""span"":"
+        & JS.Span_Object (Spec.Span)
+        & "}";
+   end Component_Definition_Node;
 
    function Primary_Node (Expr : CM.Expr_Access) return String;
 
@@ -821,6 +832,22 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Tuple_Aggregate_Node;
 
+   function Bracket_Aggregate_Node (Expr : CM.Expr_Access) return String is
+      Elements : String_Vectors.Vector;
+   begin
+      if Expr /= null and then not Expr.Elements.Is_Empty then
+         for Item of Expr.Elements loop
+            Elements.Append (Expression_Node (Item));
+         end loop;
+      end if;
+      return
+        "{""node_type"":""BracketAggregate"",""expressions"":"
+        & Json_List (Elements)
+        & ",""span"":"
+        & JS.Span_Object ((if Expr = null then FT.Null_Span else Expr.Span))
+        & "}";
+   end Bracket_Aggregate_Node;
+
    function Real_Range_Constraint_Node (Decl : CM.Type_Decl) return String is
    begin
       return
@@ -1066,7 +1093,7 @@ package body Safe_Frontend.Check_Emit is
          when CM.Expr_Array_Literal =>
             return
               "{""node_type"":""Primary"",""kind"":""BracketAggregate"",""value"":"
-              & Tuple_Aggregate_Node (Expr)
+              & Bracket_Aggregate_Node (Expr)
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
@@ -1260,7 +1287,7 @@ package body Safe_Frontend.Check_Emit is
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""GrowableArrayDefinition"",""element_type"":"
-              & Object_Type_Node (Decl.Component_Type)
+              & Component_Definition_Node (Decl.Component_Type)
               & ",""span"":"
               & JS.Span_Object (Decl.Span)
               & "},""span"":"

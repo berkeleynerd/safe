@@ -2352,12 +2352,19 @@ package body Safe_Frontend.Check_Parse is
          Result.Kind := CM.Expr_String;
          declare
             Literal_Text : constant String := FT.To_String (Token.Lexeme);
+            Inner_Text   : constant String :=
+              Literal_Text (Literal_Text'First + 1 .. Literal_Text'Last - 1);
+            Quote        : constant Character := Character'Val (34);
          begin
-            Result.Text :=
-              FT.To_UString
-                (Character'Val (34)
-                 & Literal_Text (Literal_Text'First + 1 .. Literal_Text'Last - 1)
-                 & Character'Val (34));
+            if Inner_Text = String'(1 => Quote) then
+               Result.Text :=
+                 FT.To_UString
+                   (Quote
+                    & String'(1 => Quote, 2 => Quote)
+                    & Quote);
+            else
+               Result.Text := FT.To_UString (Quote & Inner_Text & Quote);
+            end if;
          end;
          Result.Span := Token.Span;
          return Result;

@@ -2160,6 +2160,13 @@ package body Safe_Frontend.Check_Resolve is
                Validate_Pr112_Expr_Boundaries (Item.Expr, Var_Types, Functions, Type_Env, Path);
             end loop;
          when CM.Expr_Array_Literal =>
+            if Expr.Elements.Is_Empty then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "empty growable-array literals are not yet supported"));
+            end if;
             for Item of Expr.Elements loop
                Validate_Pr112_Expr_Boundaries (Item, Var_Types, Functions, Type_Env, Path);
             end loop;
