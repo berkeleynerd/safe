@@ -2531,7 +2531,22 @@ package body Safe_Frontend.Mir_Analyze is
       Value       : Interval;
       Prefix_Name : FT.UString := FT.To_UString ("");
    begin
-      if Lower (UString_Value (Prefix_Type.Kind)) /= "array" or else Prefix_Type.Index_Types.Is_Empty then
+      if Lower (UString_Value (Prefix_Type.Kind)) /= "array" then
+         declare
+            Result : MD.Diagnostic := Null_Diagnostic;
+         begin
+            Result.Reason := FT.To_UString ("index_out_of_bounds");
+            Result.Message := FT.To_UString ("indexed object is not an array");
+            Result.Span := Expr.Span;
+            Raise_Diag (Result);
+         end;
+      end if;
+      if Prefix_Type.Growable then
+         if Prefix_Type.Has_Component_Type then
+            return Range_Interval (Resolve_Type (UString_Value (Prefix_Type.Component_Type), Type_Env));
+         end if;
+         return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
+      elsif Prefix_Type.Index_Types.Is_Empty then
          declare
             Result : MD.Diagnostic := Null_Diagnostic;
          begin
@@ -3398,6 +3413,10 @@ package body Safe_Frontend.Mir_Analyze is
                return Range_Interval (Field_Type (Prefix, UString_Value (Expr.Selector), Type_Env));
             elsif Lower (UString_Value (Prefix.Kind)) = "tuple" then
                return Range_Interval (Field_Type (Prefix, UString_Value (Expr.Selector), Type_Env));
+            elsif UString_Value (Expr.Selector) = "length"
+              and then Lower (UString_Value (Prefix.Kind)) in "string" | "array"
+            then
+               return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
             elsif Lower (UString_Value (Prefix.Kind)) = "access" then
                Fact := Eval_Access_Expr (Expr.Prefix, Current, Var_Types, Type_Env, Functions);
                pragma Unreferenced (Fact);
@@ -4742,9 +4761,9 @@ package body Safe_Frontend.Mir_Analyze is
                Current.Float_Facts.Include (Target_Name, Float_Value);
             end if;
             return Null_Diagnostic;
-         elsif UString_Value (Target_Type.Name) = "string" then
+         elsif Lower (UString_Value (Target_Type.Kind)) = "string" then
             return Null_Diagnostic;
-         elsif Lower (UString_Value (Target_Type.Kind)) in "record" | "tuple" then
+         elsif Lower (UString_Value (Target_Type.Kind)) in "record" | "tuple" | "array" then
             return Null_Diagnostic;
          end if;
          Interval_Value :=
@@ -5360,13 +5379,13 @@ package body Safe_Frontend.Mir_Analyze is
          end;
          return Null_Diagnostic;
       elsif UString_Value (Return_Type.Name) = "boolean"
-        or else UString_Value (Return_Type.Name) = "string"
+        or else Lower (UString_Value (Return_Type.Kind)) = "string"
       then
          declare
             Actual_Type : constant GM.Type_Descriptor :=
               Expr_Type (Expr, Var_Types, Type_Env, Functions);
          begin
-            if UString_Value (Actual_Type.Name) /= UString_Value (Return_Type.Name) then
+            if Lower (UString_Value (Actual_Type.Kind)) /= Lower (UString_Value (Return_Type.Kind)) then
                Diag.Reason := FT.To_UString ("type_check_failure");
                Diag.Message := FT.To_UString ("return expression type does not match function result type");
                Diag.Span := Expr.Span;

@@ -1,8 +1,0 @@
--- Test: pr118d_string_field
--- Description: Record fields may use String in PR11.8d.
--- Expected: ACCEPT
-
-package pr118d_string_field
-
-   type person is record
-      name : string;

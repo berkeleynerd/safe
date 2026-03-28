@@ -1,0 +1,10 @@
+package pr118d_growable_array_component_runtime_build
+
+   type int_list is array of integer;
+   subtype slot is integer (1 to 2);
+   type grid is array (slot) of int_list;
+
+   data : grid = ([1, 2], [3, 4]);
+   row  : int_list = data (2);
+
+   print (row (1))

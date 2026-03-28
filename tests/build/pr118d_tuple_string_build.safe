@@ -1,0 +1,5 @@
+package pr118d_tuple_string_build
+
+   pair : (boolean, string) = (true, "ok");
+
+   print (pair.2)

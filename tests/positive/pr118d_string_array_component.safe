@@ -1,8 +1,0 @@
--- Test: pr118d_string_array_component
--- Description: Fixed arrays may use String components in PR11.8d.
--- Expected: ACCEPT
-
-package pr118d_string_array_component
-
-   subtype slot is integer (1 to 4);
-   type name_table is array (slot) of string;

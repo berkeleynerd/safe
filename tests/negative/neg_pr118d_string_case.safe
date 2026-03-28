@@ -1,0 +1,14 @@
+-- Test: neg_pr118d_string_case
+-- Description: String case expressions remain deferred after the PR11.8d runtime/lifetime chunk.
+-- Expected: REJECT unsupported_source_construct
+
+package neg_pr118d_string_case
+
+   name : string = "Ada";
+   code : integer = 0;
+
+   case name
+      when "Ada"
+         code = 1;
+      when others
+         code = 2;

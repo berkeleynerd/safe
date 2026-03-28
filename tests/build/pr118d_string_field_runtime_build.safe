@@ -1,0 +1,10 @@
+package pr118d_string_field_runtime_build
+
+   type person is record
+      name : string;
+
+   user : person;
+
+   user.name = "Ada";
+
+   print (user.name)

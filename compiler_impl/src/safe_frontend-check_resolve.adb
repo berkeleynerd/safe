@@ -344,6 +344,10 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
+   function Is_Bounded_String_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
    function Is_Growable_Array_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
@@ -353,6 +357,19 @@ package body Safe_Frontend.Check_Resolve is
 
    function Make_Growable_Array_Type
      (Component_Type : GM.Type_Descriptor) return GM.Type_Descriptor;
+
+   procedure Reject_Unsupported_Pr118d_Composite_Storage_Use
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Path     : String;
+      Span     : FT.Source_Span);
+
+   procedure Reject_Unsupported_Pr118d_Growable_Signature_Use
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Path     : String;
+      Span     : FT.Source_Span;
+      Context  : String);
 
    function Is_Discrete_Case_Type
      (Info     : GM.Type_Descriptor;
@@ -464,6 +481,25 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return FT.Lowercase (UString_Value (Base_Type (Info, Type_Env).Kind)) = "string";
    end Is_String_Type;
+
+   function Is_Bounded_String_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Current : GM.Type_Descriptor := Info;
+   begin
+      loop
+         if FT.Lowercase (UString_Value (Current.Kind)) = "string"
+           and then Current.Has_Length_Bound
+         then
+            return True;
+         end if;
+         exit when not Current.Has_Base
+           or else not Has_Type (Type_Env, UString_Value (Current.Base));
+         Current := Get_Type (Type_Env, UString_Value (Current.Base));
+      end loop;
+      return False;
+   end Is_Bounded_String_Type;
 
    function Is_Growable_Array_Type
      (Info     : GM.Type_Descriptor;
@@ -998,9 +1034,29 @@ package body Safe_Frontend.Check_Resolve is
       Path     : String;
       Span     : FT.Source_Span) return GM.Type_Descriptor
    is
+      Bounded_String_Prefix : constant String := "__bounded_string_";
    begin
       if Has_Type (Type_Env, Name) then
          return Get_Type (Type_Env, Name);
+      elsif Name'Length >= Bounded_String_Prefix'Length
+        and then
+          Name (Name'First .. Name'First + Bounded_String_Prefix'Length - 1) = Bounded_String_Prefix
+      then
+         declare
+            Bound_Text : constant String := Name (Name'First + Bounded_String_Prefix'Length .. Name'Last);
+         begin
+            if Bound_Text'Length > 0 then
+               for Ch of Bound_Text loop
+                  if Ch not in '0' .. '9' then
+                     raise Constraint_Error;
+                  end if;
+               end loop;
+               return Make_Bounded_String_Type (Natural'Value (Bound_Text));
+            end if;
+         exception
+            when Constraint_Error =>
+               null;
+         end;
       end if;
 
       if Is_Removed_Integer_Builtin_Name (Name) then
@@ -1221,7 +1277,12 @@ package body Safe_Frontend.Check_Resolve is
                            Span    => Spec.Span,
                            Message => "string bounds must be non-negative"));
                   end if;
-                  return Make_Bounded_String_Type (Natural (Bound));
+                  declare
+                     Result : constant GM.Type_Descriptor :=
+                       Make_Bounded_String_Type (Natural (Bound));
+                  begin
+                     return Result;
+                  end;
                end;
             elsif not Spec.Constraints.Is_Empty then
                Base := Resolve_Type (UString_Value (Spec.Name), Type_Env, Path, Spec.Span);
@@ -1412,9 +1473,13 @@ package body Safe_Frontend.Check_Resolve is
                      Span    => Spec.Span,
                      Message => "growable array type is missing an element type"));
             end if;
-            return
-              Make_Growable_Array_Type
-                (Resolve_Type_Spec (Spec.Element_Type.all, Type_Env, Const_Env, Path));
+            declare
+               Result : constant GM.Type_Descriptor :=
+                 Make_Growable_Array_Type
+                   (Resolve_Type_Spec (Spec.Element_Type.all, Type_Env, Const_Env, Path));
+            begin
+               return Result;
+            end;
          when CM.Type_Spec_Access_Def =>
             Target := Resolve_Type (Flatten_Name (Spec.Target_Name), Type_Env, Path, Spec.Span);
             Result.Name := FT.To_UString ("access " & UString_Value (Target.Name));
@@ -2160,13 +2225,6 @@ package body Safe_Frontend.Check_Resolve is
                Validate_Pr112_Expr_Boundaries (Item.Expr, Var_Types, Functions, Type_Env, Path);
             end loop;
          when CM.Expr_Array_Literal =>
-            if Expr.Elements.Is_Empty then
-               Raise_Diag
-                 (CM.Unsupported_Source_Construct
-                    (Path    => Path,
-                     Span    => Expr.Span,
-                     Message => "empty growable-array literals are not yet supported"));
-            end if;
             for Item of Expr.Elements loop
                Validate_Pr112_Expr_Boundaries (Item, Var_Types, Functions, Type_Env, Path);
             end loop;
@@ -2696,9 +2754,52 @@ package body Safe_Frontend.Check_Resolve is
            (CM.Unsupported_Source_Construct
               (Path    => Path,
                Span    => Span,
-               Message => Message));
+              Message => Message));
       end if;
    end Reject_Unsupported_Indefinite_Channel_Use;
+
+   procedure Reject_Unsupported_Pr118d_Composite_Storage_Use
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Path     : String;
+      Span     : FT.Source_Span)
+   is
+   begin
+      if Is_String_Type (Info, Type_Env) and then not Is_Bounded_String_Type (Info, Type_Env) then
+         Raise_Diag
+           (CM.Unsupported_Source_Construct
+              (Path    => Path,
+               Span    => Span,
+               Message =>
+                 "plain `string` composite storage is deferred until the PR11.8d runtime/lifetime follow-up; use `string (N)` here"));
+      elsif Is_Growable_Array_Type (Info, Type_Env) then
+         Raise_Diag
+           (CM.Unsupported_Source_Construct
+              (Path    => Path,
+               Span    => Span,
+               Message =>
+                 "growable-array composite storage is deferred until the PR11.8d runtime/lifetime follow-up"));
+      end if;
+   end Reject_Unsupported_Pr118d_Composite_Storage_Use;
+
+   procedure Reject_Unsupported_Pr118d_Growable_Signature_Use
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Path     : String;
+      Span     : FT.Source_Span;
+      Context  : String) is
+   begin
+      if Is_Growable_Array_Type (Info, Type_Env) then
+         Raise_Diag
+           (CM.Unsupported_Source_Construct
+              (Path    => Path,
+               Span    => Span,
+               Message =>
+                 "growable-array "
+                 & Context
+                 & " are deferred until the PR11.8d runtime/lifetime follow-up"));
+      end if;
+   end Reject_Unsupported_Pr118d_Growable_Signature_Use;
 
    function Normalize_Procedure_Call
      (Expr      : CM.Expr_Access;
@@ -3737,7 +3838,7 @@ package body Safe_Frontend.Check_Resolve is
                Result.Component_Type := Component_Type.Name;
             end;
             Result.Unconstrained := Decl.Kind = CM.Type_Decl_Unconstrained_Array;
-         when CM.Type_Decl_Growable_Array =>
+        when CM.Type_Decl_Growable_Array =>
             Result :=
               Make_Growable_Array_Type
                 (Resolve_Type_Spec (Decl.Component_Type, Type_Env, Const_Env, Path));

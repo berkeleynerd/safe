@@ -15,6 +15,18 @@ The current numeric surface is split between signed `integer` and fixed-width
 `binary (8|16|32|64)`. Emitted Ada maps binary values to
 `Interfaces.Unsigned_*`.
 
+The current PR11.8d text/array subset is intentionally narrower than the full
+roadmap milestone:
+
+- `string (N)` is the supported composite-storage text form
+- plain `string` remains supported for locals, params/results, out formals,
+  tuple elements, and non-composite operations like `.length` and `==`
+- `array of T` is currently limited to named/object-level use with literals,
+  indexing, slicing, and `.length`
+- plain `string` record fields/fixed-array components and growable-array
+  params/results/composite storage remain deferred to the later runtime/lifetime
+  follow-up
+
 ## Build
 
 From the repository root:

@@ -1,0 +1,11 @@
+package pr118d_bounded_string_field_build
+
+   type person is record
+      name : string (5);
+
+   name_value : string (5) = "hello";
+   user : person;
+
+   user.name = name_value;
+
+   print (user.name.length)

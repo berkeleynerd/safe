@@ -1,0 +1,9 @@
+-- Test: pr118d_string_length_attribute
+-- Description: String `.length` is part of the PR11.8d buildable subset.
+-- Expected: ACCEPT
+
+package pr118d_string_length_attribute
+
+   function measure (name : in string) returns integer
+
+      return name.length;

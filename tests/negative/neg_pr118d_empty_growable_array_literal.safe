@@ -1,8 +1,0 @@
--- Test: neg_pr118d_empty_growable_array_literal
--- Description: Empty growable-array literals are rejected until emission/runtime support exists.
--- Expected: REJECT unsupported_source_construct
-
-package neg_pr118d_empty_growable_array_literal
-
-   type int_list is array of integer;
-   values : int_list = [];

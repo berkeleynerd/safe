@@ -1,0 +1,9 @@
+-- Test: pr118d_bounded_string_field
+-- Description: Record fields may use bounded String storage in the buildable PR11.8d subset.
+-- Expected: ACCEPT
+
+package pr118d_bounded_string_field
+
+   type person is record
+      name : string (5);
+
