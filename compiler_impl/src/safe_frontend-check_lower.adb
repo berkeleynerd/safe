@@ -78,7 +78,6 @@ package body Safe_Frontend.Check_Lower is
    begin
       Type_Env.Include ("integer", BT.Integer_Type);
       Type_Env.Include ("boolean", BT.Boolean_Type);
-      Type_Env.Include ("character", BT.Character_Type);
       Type_Env.Include ("string", BT.String_Type);
       Type_Env.Include ("result", BT.Result_Type);
       Type_Env.Include ("float", BT.Float_Type);
@@ -109,6 +108,21 @@ package body Safe_Frontend.Check_Lower is
       return Resolve_Type (Name, Type_Env);
    end Resolve_Type;
 
+   function Base_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor
+   is
+      Current : GM.Type_Descriptor := Info;
+   begin
+      while UString_Value (Current.Kind) = "subtype"
+        and then Current.Has_Base
+        and then Type_Env.Contains (UString_Value (Current.Base))
+      loop
+         Current := Type_Env.Element (UString_Value (Current.Base));
+      end loop;
+      return Current;
+   end Base_Type;
+
    function Type_Access_Role (Info : GM.Type_Descriptor) return String is
    begin
       if UString_Value (Info.Kind) /= "access" then
@@ -127,6 +141,35 @@ package body Safe_Frontend.Check_Lower is
       return "Owner";
    end Type_Access_Role;
 
+   function Sanitize_Type_Name_Component (Value : String) return String is
+      Result : FT.UString := FT.To_UString ("");
+   begin
+      for Ch of Value loop
+         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
+            Result := Result & FT.To_UString ((1 => Ch));
+         else
+            Result := Result & FT.To_UString ("_");
+         end if;
+      end loop;
+      return UString_Value (Result);
+   end Sanitize_Type_Name_Component;
+
+   function Make_Growable_Array_Type
+     (Component_Type : GM.Type_Descriptor) return GM.Type_Descriptor
+   is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name :=
+        FT.To_UString
+          ("__growable_array_"
+           & Sanitize_Type_Name_Component (UString_Value (Component_Type.Name)));
+      Result.Kind := FT.To_UString ("array");
+      Result.Growable := True;
+      Result.Has_Component_Type := True;
+      Result.Component_Type := Component_Type.Name;
+      return Result;
+   end Make_Growable_Array_Type;
+
    function Expr_Type
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
@@ -139,8 +182,18 @@ package body Safe_Frontend.Check_Lower is
          return BT.Integer_Type;
       elsif Expr.Kind = CM.Expr_String then
          return Resolve_Type ("string", Type_Env);
-      elsif Expr.Kind = CM.Expr_Char then
-         return Resolve_Type ("character", Type_Env);
+      elsif Expr.Kind = CM.Expr_Array_Literal then
+         if Name'Length > 0 and then Type_Env.Contains (Name) then
+            return Type_Env.Element (Name);
+         elsif not Expr.Elements.Is_Empty then
+            return
+              Make_Growable_Array_Type
+                (Expr_Type
+                   (Expr.Elements (Expr.Elements.First_Index),
+                    Var_Types,
+                    Type_Env));
+         end if;
+         return Make_Growable_Array_Type (BT.Integer_Type);
       elsif Expr.Kind = CM.Expr_Real then
          if Name'Length > 0 and then Type_Env.Contains (Name) then
             return Type_Env.Element (Name);
@@ -169,8 +222,6 @@ package body Safe_Frontend.Check_Lower is
             return GM.Expr_Real;
          when CM.Expr_String =>
             return GM.Expr_String;
-         when CM.Expr_Char =>
-            return GM.Expr_Char;
          when CM.Expr_Bool =>
             return GM.Expr_Bool;
          when CM.Expr_Null =>
@@ -189,6 +240,8 @@ package body Safe_Frontend.Check_Lower is
             return GM.Expr_Allocator;
          when CM.Expr_Aggregate =>
             return GM.Expr_Aggregate;
+         when CM.Expr_Array_Literal =>
+            return GM.Expr_Array_Literal;
          when CM.Expr_Tuple =>
             return GM.Expr_Tuple;
          when CM.Expr_Annotated =>
@@ -231,7 +284,7 @@ package body Safe_Frontend.Check_Lower is
             end if;
          when CM.Expr_Real =>
             Result.Text := Expr.Text;
-         when CM.Expr_String | CM.Expr_Char =>
+         when CM.Expr_String =>
             Result.Text := Expr.Text;
          when CM.Expr_Bool =>
             Result.Bool_Value := Expr.Bool_Value;
@@ -263,6 +316,10 @@ package body Safe_Frontend.Check_Lower is
                Field.Expr := Lower_Expr (Item.Expr, Var_Types, Type_Env);
                Field.Span := Item.Span;
                Result.Fields.Append (Field);
+            end loop;
+         when CM.Expr_Array_Literal =>
+            for Item of Expr.Elements loop
+               Result.Elements.Append (Lower_Expr (Item, Var_Types, Type_Env));
             end loop;
          when CM.Expr_Tuple =>
             for Item of Expr.Elements loop
@@ -1013,20 +1070,77 @@ package body Safe_Frontend.Check_Lower is
             declare
                Scope_Id  : constant String := "scope" & Trimmed (Natural (Work.Scopes.Length));
                Scope     : GM.Scope_Entry := New_Scope (Scope_Id, Parent_Id, "loop");
-               Loop_Type : constant GM.Type_Descriptor := Static_Loop_Type (Stmt.Loop_Range, Current_Visible, Visible);
                Child     : Type_Maps.Map := Current_Visible;
             begin
                Stmt.Scope_Id := FT.To_UString (Scope_Id);
-               Scope.Local_Ids.Append
-                 (Append_Local
-                    (Locals,
-                     UString_Value (Stmt.Loop_Var),
-                     "local",
-                     "in",
-                     Loop_Type,
-                     Stmt.Span,
-                     Scope_Id));
-               Child.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
+               if Stmt.Loop_Iterable /= null then
+                  declare
+                     Iterable_Type : constant GM.Type_Descriptor :=
+                       Base_Type (Expr_Type (Stmt.Loop_Iterable, Current_Visible, Visible), Visible);
+                     Snapshot_Name : constant String :=
+                       "__safe_for_of_snapshot_" & Trimmed (Natural (Locals.Length));
+                     Index_Name    : constant String :=
+                       "__safe_for_of_index_" & Trimmed (Natural (Locals.Length) + 1);
+                     Index_Type    : constant GM.Type_Descriptor :=
+                       (if Iterable_Type.Growable
+                        then BT.Integer_Type
+                        else Resolve_Type
+                               (UString_Value (Iterable_Type.Index_Types (Iterable_Type.Index_Types.First_Index)),
+                                Visible));
+                     Loop_Type     : constant GM.Type_Descriptor :=
+                       Resolve_Type (UString_Value (Iterable_Type.Component_Type), Visible);
+                  begin
+                     Stmt.Loop_Snapshot_Name := FT.To_UString (Snapshot_Name);
+                     Stmt.Loop_Index_Name := FT.To_UString (Index_Name);
+                     Scope.Local_Ids.Append
+                       (Append_Local
+                          (Locals,
+                           Snapshot_Name,
+                           "local",
+                           "in",
+                           Iterable_Type,
+                           Stmt.Span,
+                           Scope_Id,
+                           Is_Constant => True));
+                     Scope.Local_Ids.Append
+                       (Append_Local
+                          (Locals,
+                           Index_Name,
+                           "local",
+                           "in",
+                           Index_Type,
+                           Stmt.Span,
+                           Scope_Id));
+                     Scope.Local_Ids.Append
+                       (Append_Local
+                          (Locals,
+                           UString_Value (Stmt.Loop_Var),
+                           "local",
+                           "in",
+                           Loop_Type,
+                           Stmt.Span,
+                           Scope_Id));
+                     Child.Include (Snapshot_Name, Iterable_Type);
+                     Child.Include (Index_Name, Index_Type);
+                     Child.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
+                  end;
+               else
+                  declare
+                     Loop_Type : constant GM.Type_Descriptor :=
+                       Static_Loop_Type (Stmt.Loop_Range, Current_Visible, Visible);
+                  begin
+                     Scope.Local_Ids.Append
+                       (Append_Local
+                          (Locals,
+                           UString_Value (Stmt.Loop_Var),
+                           "local",
+                           "in",
+                           Loop_Type,
+                           Stmt.Span,
+                           Scope_Id));
+                     Child.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
+                  end;
+               end if;
                Register_Scope (Work, Scope);
                Collect_Scopes (Stmt.Body_Stmts, Child, Scope_Id, Work, Locals);
             end;
@@ -1073,8 +1187,8 @@ package body Safe_Frontend.Check_Lower is
                elsif Arm.Kind = CM.Select_Arm_Delay then
                   declare
                      Scope_Id : constant String := "scope" & Trimmed (Natural (Work.Scopes.Length));
-                     Scope    : GM.Scope_Entry := New_Scope (Scope_Id, Parent_Id, "select_arm");
-                     Child    : Type_Maps.Map := Current_Visible;
+                     Scope    : constant GM.Scope_Entry := New_Scope (Scope_Id, Parent_Id, "select_arm");
+                     Child    : constant Type_Maps.Map := Current_Visible;
                   begin
                      Arm.Delay_Data.Scope_Id := FT.To_UString (Scope_Id);
                      Register_Scope (Work, Scope);
@@ -1816,6 +1930,177 @@ package body Safe_Frontend.Check_Lower is
                Terminator.Span := Stmt.Span;
                Terminator.Target := Init_Id;
                Set_Terminator (Work, UString_Value (Current_Id), Terminator);
+               if Stmt.Loop_Iterable /= null then
+                  declare
+                     Iterable_Type : constant GM.Type_Descriptor :=
+                       Base_Type (Expr_Type (Stmt.Loop_Iterable, Visible_Types, Type_Env), Type_Env);
+                     Index_Type    : constant GM.Type_Descriptor :=
+                       (if Iterable_Type.Growable
+                        then BT.Integer_Type
+                        else Resolve_Type
+                               (UString_Value (Iterable_Type.Index_Types (Iterable_Type.Index_Types.First_Index)),
+                                Type_Env));
+                     Snapshot_Name : constant String := UString_Value (Stmt.Loop_Snapshot_Name);
+                     Index_Name    : constant String := UString_Value (Stmt.Loop_Index_Name);
+                     Snapshot_Expr : constant CM.Expr_Access :=
+                       Ident_Expr (Snapshot_Name, Stmt.Span, UString_Value (Iterable_Type.Name));
+                     Index_Expr    : constant CM.Expr_Access :=
+                       Ident_Expr (Index_Name, Stmt.Span, UString_Value (Index_Type.Name));
+                     Item_Expr     : constant CM.Expr_Access :=
+                       Ident_Expr (UString_Value (Stmt.Loop_Var), Stmt.Span, UString_Value (Loop_Type.Name));
+                     Element_Expr  : constant CM.Expr_Access :=
+                       new CM.Expr_Node'
+                         (Kind      => CM.Expr_Resolved_Index,
+                          Span      => Stmt.Span,
+                          Type_Name => Loop_Type.Name,
+                          Prefix    => Snapshot_Expr,
+                          Args      => CM.Expr_Access_Vectors.Empty_Vector,
+                          others    => <>);
+                  begin
+                     Loop_Type :=
+                       Resolve_Type (UString_Value (Iterable_Type.Component_Type), Type_Env);
+                     Loop_Types.Include (Snapshot_Name, Iterable_Type);
+                     Loop_Types.Include (Index_Name, Index_Type);
+                     Loop_Types.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
+                     Element_Expr.Args.Append (Index_Expr);
+
+                     Scope_Op.Kind := GM.Op_Scope_Enter;
+                     Scope_Op.Span := Stmt.Span;
+                     Scope_Op.Scope_Id := FT.To_UString (Scope_Id);
+                     Scope_Op.Locals.Append (Stmt.Loop_Snapshot_Name);
+                     Scope_Op.Locals.Append (Stmt.Loop_Index_Name);
+                     Scope_Op.Locals.Append (Stmt.Loop_Var);
+                     Add_Op (Work, UString_Value (Init_Id), Scope_Op);
+
+                     Assign_Op := (others => <>);
+                     Assign_Op.Kind := GM.Op_Assign;
+                     Assign_Op.Span := Stmt.Span;
+                     Assign_Op.Target := Lower_Target (Snapshot_Expr, Loop_Types, Type_Env);
+                     Assign_Op.Value := Lower_Expr (Stmt.Loop_Iterable, Visible_Types, Type_Env);
+                     Assign_Op.Type_Name := Iterable_Type.Name;
+                     Assign_Op.Ownership_Effect := GM.Ownership_None;
+                     Assign_Op.Declaration_Init := True;
+                     Add_Op (Work, UString_Value (Init_Id), Assign_Op);
+
+                     Assign_Op := (others => <>);
+                     Assign_Op.Kind := GM.Op_Assign;
+                     Assign_Op.Span := Stmt.Span;
+                     Assign_Op.Target := Lower_Target (Index_Expr, Loop_Types, Type_Env);
+                     Assign_Op.Value :=
+                       Lower_Expr
+                         ((if Iterable_Type.Growable
+                           then Literal_Expr (1, Stmt.Span)
+                           else
+                             Literal_Expr (Index_Type.Low, Stmt.Span)),
+                          Loop_Types,
+                          Type_Env);
+                     Assign_Op.Type_Name := Index_Type.Name;
+                     Assign_Op.Ownership_Effect := GM.Ownership_None;
+                     Assign_Op.Declaration_Init := True;
+                     Add_Op (Work, UString_Value (Init_Id), Assign_Op);
+
+                     Terminator := (others => <>);
+                     Terminator.Kind := GM.Terminator_Jump;
+                     Terminator.Span := Stmt.Span;
+                     Terminator.Target := Header_Id;
+                     Set_Terminator (Work, UString_Value (Init_Id), Terminator);
+
+                     Cond_Expr :=
+                       Binary_Expr
+                         ("<=",
+                          Index_Expr,
+                          (if Iterable_Type.Growable
+                           then
+                             Selector_Expr
+                               (Snapshot_Expr,
+                                "length",
+                                Stmt.Span,
+                                "integer")
+                           else
+                             Literal_Expr (Index_Type.High, Stmt.Span)),
+                          Stmt.Span);
+
+                     Terminator := (others => <>);
+                     Terminator.Kind := GM.Terminator_Branch;
+                     Terminator.Span := Stmt.Span;
+                     Terminator.Condition := Lower_Expr (Cond_Expr, Loop_Types, Type_Env);
+                     Terminator.True_Target := Body_Id;
+                     Terminator.False_Target := Exit_Id;
+                     Set_Terminator (Work, UString_Value (Header_Id), Terminator);
+                     Set_Loop_Info
+                       (Work,
+                        UString_Value (Header_Id),
+                        "for_of",
+                        UString_Value (Stmt.Loop_Var),
+                        UString_Value (Exit_Id));
+
+                     Assign_Op := (others => <>);
+                     Assign_Op.Kind := GM.Op_Assign;
+                     Assign_Op.Span := Stmt.Span;
+                     Assign_Op.Target := Lower_Target (Item_Expr, Loop_Types, Type_Env);
+                     Assign_Op.Value := Lower_Expr (Element_Expr, Loop_Types, Type_Env);
+                     Assign_Op.Type_Name := Loop_Type.Name;
+                     Assign_Op.Ownership_Effect := GM.Ownership_None;
+                     Assign_Op.Declaration_Init := True;
+                     Add_Op (Work, UString_Value (Body_Id), Assign_Op);
+
+                     Body_End :=
+                       Lower_Statement_List
+                         (Work,
+                          Body_Id,
+                          Stmt.Body_Stmts,
+                          Loop_Types,
+                          Type_Env,
+                          Scope_Id,
+                          Functions,
+                          UString_Value (Exit_Id));
+
+                     if Has_Block (Body_End)
+                       and then not Block_Terminated (Work, UString_Value (Body_End))
+                     then
+                        Terminator := (others => <>);
+                        Terminator.Kind := GM.Terminator_Jump;
+                        Terminator.Span := Stmt.Span;
+                        Terminator.Target := Latch_Id;
+                        Set_Terminator (Work, UString_Value (Body_End), Terminator);
+                     end if;
+
+                     Inc_Expr :=
+                       Binary_Expr
+                         ("+",
+                          Index_Expr,
+                          Literal_Expr (1, Stmt.Span),
+                          Stmt.Span);
+
+                     Assign_Op := (others => <>);
+                     Assign_Op.Kind := GM.Op_Assign;
+                     Assign_Op.Span := Stmt.Span;
+                     Assign_Op.Target := Lower_Target (Index_Expr, Loop_Types, Type_Env);
+                     Assign_Op.Value := Lower_Expr (Inc_Expr, Loop_Types, Type_Env);
+                     Assign_Op.Type_Name := Index_Type.Name;
+                     Assign_Op.Ownership_Effect := GM.Ownership_None;
+                     Assign_Op.Declaration_Init := False;
+                     Add_Op (Work, UString_Value (Latch_Id), Assign_Op);
+
+                     Terminator := (others => <>);
+                     Terminator.Kind := GM.Terminator_Jump;
+                     Terminator.Span := Stmt.Span;
+                     Terminator.Target := Header_Id;
+                     Set_Terminator (Work, UString_Value (Latch_Id), Terminator);
+
+                     Scope_Op := (others => <>);
+                     Scope_Op.Kind := GM.Op_Scope_Exit;
+                     Scope_Op.Span := Stmt.Span;
+                     Scope_Op.Scope_Id := FT.To_UString (Scope_Id);
+                     Scope_Op.Locals.Append (Stmt.Loop_Var);
+                     Scope_Op.Locals.Append (Stmt.Loop_Index_Name);
+                     Scope_Op.Locals.Append (Stmt.Loop_Snapshot_Name);
+                     Add_Op (Work, UString_Value (Exit_Id), Scope_Op);
+                     Register_Scope_Exit (Work, Scope_Id, UString_Value (Exit_Id));
+
+                     return Exit_Id;
+                  end;
+               end if;
 
                Static_Loop_Bounds
                  (Stmt.Loop_Range, Visible_Types, Type_Env, Low_Expr, High_Expr, Loop_Type);

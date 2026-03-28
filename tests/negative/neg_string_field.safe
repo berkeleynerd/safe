@@ -1,9 +1,0 @@
--- Test: neg_string_field
--- Description: Record fields of type String remain outside PR11.2.
--- Expected: REJECT unsupported_source_construct
-
-package neg_string_field
-
-   type person is record
-      name : string;
-

@@ -15,6 +15,21 @@ The current numeric surface is split between signed `integer` and fixed-width
 `binary (8|16|32|64)`. Emitted Ada maps binary values to
 `Interfaces.Unsigned_*`.
 
+The current PR11.8d text/array surface is shipped and buildable end to end
+with these explicit boundaries:
+
+- `string (N)` is the stack-backed bounded string form
+- plain `string` is supported in locals, params/results, out formals, tuple
+  elements, record fields, and fixed-array components
+- `array of T` is supported in locals, params/results, record fields, and
+  fixed-array components
+- `for item of values` is implemented for array object names
+- fixed -> growable array conversion is supported through normal target typing
+- growable -> fixed array narrowing is supported only for bracket literals and
+  static name-based slices
+- string iteration, proof-based exact-length narrowing, string `case`, string
+  discriminants, and string/growable channel elements remain deferred
+
 ## Build
 
 From the repository root:

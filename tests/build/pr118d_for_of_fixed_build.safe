@@ -1,0 +1,12 @@
+package pr118d_for_of_fixed_build
+
+   subtype slot is integer (5 to 7);
+   type triple is array (slot) of integer;
+
+   values : triple = (10, 20, 30);
+   total : integer = 0;
+
+   for item of values
+      total = total + item;
+
+   print (total)

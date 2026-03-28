@@ -302,6 +302,23 @@ package body Safe_Frontend.Interfaces is
          Result.Has_Component_Type := True;
          Result.Component_Type := FT.To_UString (Get (Value, "component_type"));
       end if;
+      if Has_Field (Value, "growable")
+        and then Get (Value, "growable").Kind = JSON_Boolean_Type
+      then
+         Result.Growable := Get (Get (Value, "growable"));
+      end if;
+      if Has_Field (Value, "length_bound")
+        and then Get (Value, "length_bound").Kind = JSON_Int_Type
+      then
+         declare
+            Bound_Value : constant Long_Long_Integer := Get (Get (Value, "length_bound"));
+         begin
+            if Bound_Value >= 0 then
+               Result.Has_Length_Bound := True;
+               Result.Length_Bound := Natural (Bound_Value);
+            end if;
+         end;
+      end if;
       if Has_Field (Value, "target")
         and then Get (Value, "target").Kind = JSON_String_Type
       then

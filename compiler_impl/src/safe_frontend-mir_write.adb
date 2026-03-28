@@ -161,6 +161,12 @@ package body Safe_Frontend.Mir_Write is
       if Info.Unconstrained then
          Items.Append ("""unconstrained"":true");
       end if;
+      if Info.Growable then
+         Items.Append ("""growable"":true");
+      end if;
+      if Info.Has_Length_Bound then
+         Items.Append ("""length_bound"":" & Natural'Image (Info.Length_Bound));
+      end if;
       if not Info.Fields.Is_Empty then
          for Field of Info.Fields loop
             Fields.Append (JS.Quote (Field.Name) & ":" & JS.Quote (Field.Type_Name));
@@ -286,7 +292,7 @@ package body Safe_Frontend.Mir_Write is
             Items.Append ("""value"":" & Long_Long_Integer'Image (Expr.Int_Value));
          when GM.Expr_Real =>
             Items.Append ("""text"":" & JS.Quote (Expr.Text));
-         when GM.Expr_String | GM.Expr_Char =>
+         when GM.Expr_String =>
             Items.Append ("""text"":" & JS.Quote (Expr.Text));
          when GM.Expr_Bool =>
             Items.Append ("""value"":" & JS.Bool_Literal (Expr.Bool_Value));
@@ -340,6 +346,15 @@ package body Safe_Frontend.Mir_Write is
                      & "}");
                end loop;
                Items.Append ("""fields"":" & Json_List (Values));
+            end;
+         when GM.Expr_Array_Literal =>
+            declare
+               Values : String_Vectors.Vector;
+            begin
+               for Item of Expr.Elements loop
+                  Values.Append (Expr_Json (Item));
+               end loop;
+               Items.Append ("""elements"":" & Json_List (Values));
             end;
          when GM.Expr_Tuple =>
             declare

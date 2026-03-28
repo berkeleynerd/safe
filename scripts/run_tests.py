@@ -301,6 +301,121 @@ BUILD_SUCCESS_CASES = [
         "41\n",
         True,
     ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_bounded_string_build.safe",
+        "42\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_bounded_string_field_build.safe",
+        "5\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_bounded_string_array_component_build.safe",
+        "42\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_bounded_string_tick_build.safe",
+        "42\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_bounded_string_index_build.safe",
+        "h\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_array_build.safe",
+        "32\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_string_plain_build.safe",
+        "hello\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
+        "ok\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_string_field_runtime_build.safe",
+        "Ada\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_string_array_component_runtime_build.safe",
+        "Bob\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_param_runtime_build.safe",
+        "7\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_result_runtime_build.safe",
+        "2\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_field_runtime_build.safe",
+        "20\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_array_component_runtime_build.safe",
+        "3\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_empty_growable_array_literal_build.safe",
+        "0\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_runtime_self_assign_build.safe",
+        "Ada\n5\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_for_of_fixed_build.safe",
+        "60\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
+        "60\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_for_of_heap_element_build.safe",
+        "a\nbc\ndef\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_nested_growable_array_literal_build.safe",
+        "4\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_fixed_to_growable_build.safe",
+        "25\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_to_fixed_literal_build.safe",
+        "40\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d_growable_to_fixed_slice_build.safe",
+        "16\n",
+        False,
+    ),
 ]
 
 BUILD_REJECT_CASES = [
@@ -417,6 +532,7 @@ DEPLOY_REJECT_ARGV_CASES = [
 OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr118c2_package_print.safe",
     REPO_ROOT / "tests" / "positive" / "pr118c2_entry_print.safe",
+    REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
 ]
 
 REPL_CASES = [

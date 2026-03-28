@@ -184,6 +184,7 @@ real_range_constraint ::=
 array_type_definition ::=
     unconstrained_array_definition
   | constrained_array_definition
+  | growable_array_definition
 
 unconstrained_array_definition ::=
     'array' '(' index_subtype_definition { ',' index_subtype_definition } ')'
@@ -193,6 +194,9 @@ constrained_array_definition ::=
     'array' '(' discrete_subtype_definition { ',' discrete_subtype_definition } ')'
         'of' component_definition
 
+growable_array_definition ::=
+    'array' 'of' component_definition
+
 index_subtype_definition ::=
     subtype_mark 'range' '<>'
 
@@ -201,7 +205,11 @@ discrete_subtype_definition ::=
 
 component_definition ::=
     subtype_indication
+  | growable_array_type_spec
   | access_definition
+
+growable_array_type_spec ::=
+    'array' 'of' component_definition
 
 record_type_definition ::=
     [ 'limited' ] record_definition
@@ -409,6 +417,7 @@ primary ::=
     numeric_literal
   | string_literal
   | character_literal
+  | bracket_aggregate
   | 'null'
   | name
   | allocator
@@ -419,6 +428,9 @@ primary ::=
 
 annotated_expression ::=
     '(' expression 'as' type_target ')'
+
+bracket_aggregate ::=
+    '[' [ expression { ',' expression } ] ']'
 
 conditional_expression ::=
     if_expression
@@ -627,8 +639,8 @@ loop_statement ::=
 
 iteration_scheme ::=
     'while' condition
-  | 'for' defining_identifier 'in' [ 'reverse' ] discrete_subtype_definition
-  | 'for' defining_identifier 'of' [ 'reverse' ] name
+  | 'for' defining_identifier 'in' discrete_subtype_definition
+  | 'for' defining_identifier 'of' name
 
 handled_sequence_of_statements ::=
     sequence_of_statements

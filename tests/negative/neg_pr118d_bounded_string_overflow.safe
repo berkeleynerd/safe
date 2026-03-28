@@ -1,0 +1,7 @@
+-- Test: neg_pr118d_bounded_string_overflow
+-- Description: A statically oversized string literal is rejected when narrowed into `string (N)`.
+-- Expected: REJECT
+
+package neg_pr118d_bounded_string_overflow
+
+   value : string (3) = "hello";

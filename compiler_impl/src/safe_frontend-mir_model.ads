@@ -21,7 +21,6 @@ package Safe_Frontend.Mir_Model is
       Expr_Int,
       Expr_Real,
       Expr_String,
-      Expr_Char,
       Expr_Bool,
       Expr_Null,
       Expr_Ident,
@@ -31,6 +30,7 @@ package Safe_Frontend.Mir_Model is
       Expr_Call,
       Expr_Allocator,
       Expr_Aggregate,
+      Expr_Array_Literal,
       Expr_Tuple,
       Expr_Annotated,
       Expr_Unary,
@@ -147,6 +147,9 @@ package Safe_Frontend.Mir_Model is
       Has_Component_Type : Boolean := False;
       Component_Type     : FT.UString := FT.To_UString ("");
       Unconstrained      : Boolean := False;
+      Growable           : Boolean := False;
+      Has_Length_Bound   : Boolean := False;
+      Length_Bound       : Natural := 0;
       Fields             : Type_Field_Vectors.Vector;
       Has_Target         : Boolean := False;
       Target             : FT.UString := FT.To_UString ("");

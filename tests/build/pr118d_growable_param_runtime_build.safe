@@ -1,0 +1,10 @@
+package pr118d_growable_param_runtime_build
+
+   type int_list is array of integer;
+
+   function head (values : in int_list) returns integer
+      return values (1);
+
+   values : int_list = [7, 9];
+
+   print (head (values))

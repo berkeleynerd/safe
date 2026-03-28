@@ -1,0 +1,13 @@
+package pr118d_string_plain_build
+
+   function set_name (target : out string)
+      target = "hello";
+      return;
+
+   function echo (input : in string) returns string
+      return input;
+
+   name : string = "hello";
+
+   set_name (name);
+   print (echo (name))

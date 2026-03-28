@@ -1,0 +1,8 @@
+-- Test: pr118d_character_quote_literal
+-- Description: A tick literal containing a double quote lowers to a valid one-character string literal.
+-- Expected: ACCEPT
+
+package pr118d_character_quote_literal
+
+   quote : string = '"';
+   same  : boolean = quote == '"';

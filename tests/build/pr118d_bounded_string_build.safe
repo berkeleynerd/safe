@@ -1,0 +1,12 @@
+package pr118d_bounded_string_build
+
+   name : string (5) = "hello";
+   prefix : string (5) = name (1 to 2);
+   initial : string (1) = 'h';
+   width : integer = name.length;
+   score : integer = 0;
+
+   if prefix == "he" and initial == "h" and width == 5
+      score = 42;
+
+   print (score)

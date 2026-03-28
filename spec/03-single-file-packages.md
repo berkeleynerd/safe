@@ -477,16 +477,16 @@ package buffers
     public subtype buffer_index is buffer_size;
 
     public type buffer is private record
-        data   : array (buffer_index) of character = (others = ' ');
+        data   : string (4096) = "";
         length : buffer_size = 1;
 
     public function create (size : buffer_size) returns buffer
     begin
-        return (data = (others = ' '), length = size);
+        return (data = "", length = size);
         -- D27 proof: aggregate values in range
     end create;
 
-    public function get (b : buffer; i : buffer_index) returns character
+    public function get (b : buffer; i : buffer_index) returns string
     begin
         return b.data(i);
         -- D27 proof: i is buffer_index, same as array index type (Rule 2)

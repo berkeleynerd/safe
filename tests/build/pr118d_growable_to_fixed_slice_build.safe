@@ -1,0 +1,15 @@
+package pr118d_growable_to_fixed_slice_build
+
+   subtype item is integer (0 to 10);
+   type int_list is array of item;
+   subtype slot is integer (3 to 4);
+   type pair is array (slot) of item;
+   subtype total is integer (0 to 20);
+
+   function selected_sum returns total
+
+      var values : int_list = [5, 7, 9]
+      var selected : pair = values (2 to 3)
+      return selected (3) + selected (4)
+
+   print (selected_sum)

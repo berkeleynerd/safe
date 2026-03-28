@@ -1,0 +1,9 @@
+type int_list is array of integer;
+
+values : int_list = [10, 20, 30];
+total : integer = 0;
+
+for item of values
+   total = total + item;
+
+print (total)

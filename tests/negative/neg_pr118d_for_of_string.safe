@@ -1,0 +1,9 @@
+package neg_pr118d_for_of_string
+
+   value : string = "Ada";
+   total : integer = 0;
+
+   for item of value
+      total = total + item.length;
+
+   print (total)

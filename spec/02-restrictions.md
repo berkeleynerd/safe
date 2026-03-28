@@ -16,7 +16,7 @@ This section enumerates every feature of ISO/IEC 8652:2023 (Ada 2022) that Safe 
 
 3. **Additional reserved words.** Safe adds the following reserved words: `public`, `channel`, `send`, `receive`, `try_send`, `try_receive`, `capacity`, `from`. These identifiers shall not be used as user-defined names in Safe programs.
 
-4. **Tick notation (§2.2, §4.1.4).** The tick character (`'`) is used only for character literals (`'A'`). All attribute references use dot notation (see §2.4). Qualified expressions using tick (`T'(Expr)`) are replaced by type annotation syntax (see §2.4.2). A conforming implementation shall reject any use of tick for attribute references or qualified expressions.
+4. **Tick notation (§2.2, §4.1.4).** The tick character (`'`) is used only for single-character string literals (`'A'`). All attribute references use dot notation (see §2.4). Qualified expressions using tick (`T'(Expr)`) are replaced by type annotation syntax (see §2.4.2). A conforming implementation shall reject any use of tick for attribute references or qualified expressions.
 
 ### 2.1.2 Section 3 — Declarations and Types (8652:2023 §3)
 

@@ -1,0 +1,12 @@
+package pr118d_growable_array_build
+
+   type int_list is array of integer;
+
+   values : int_list = [10, 20, 30, 40];
+   prefix : int_list = values (1 to 2);
+   result : integer = 0;
+
+   if values (3) == 30 and prefix.length == 2
+      result = 32;
+
+   print (result)

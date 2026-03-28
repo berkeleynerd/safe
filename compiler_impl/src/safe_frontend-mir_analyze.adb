@@ -260,8 +260,12 @@ package body Safe_Frontend.Mir_Analyze is
      (Info : GM.Type_Descriptor) return Boolean;
    function Is_Float_Type
      (Info : GM.Type_Descriptor) return Boolean;
+   function Is_String_Type
+     (Info : GM.Type_Descriptor) return Boolean;
    function Is_Tuple_Type
      (Info : GM.Type_Descriptor) return Boolean;
+   function String_Index_Bounds
+     (Info : GM.Type_Descriptor) return Interval;
    function Type_Access_Role
      (Info : GM.Type_Descriptor) return Access_Role_Kind;
    function Access_Target_Type
@@ -834,7 +838,6 @@ package body Safe_Frontend.Mir_Analyze is
    begin
       Type_Env.Include ("integer", BT.Integer_Type);
       Type_Env.Include ("boolean", BT.Boolean_Type);
-      Type_Env.Include ("character", BT.Character_Type);
       Type_Env.Include ("string", BT.String_Type);
       Type_Env.Include ("result", BT.Result_Type);
       Type_Env.Include ("float", BT.Float_Type (With_Analysis_Metadata => True));
@@ -948,6 +951,22 @@ package body Safe_Frontend.Mir_Analyze is
       return Result;
    end Make_Tuple_Type;
 
+   function Make_Growable_Array_Type
+     (Component_Type : GM.Type_Descriptor) return GM.Type_Descriptor
+   is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name :=
+        FT.To_UString
+          ("__growable_array_"
+           & Sanitize_Type_Name_Component (UString_Value (Component_Type.Name)));
+      Result.Kind := FT.To_UString ("array");
+      Result.Growable := True;
+      Result.Has_Component_Type := True;
+      Result.Component_Type := Component_Type.Name;
+      return Result;
+   end Make_Growable_Array_Type;
+
    function Range_Interval
      (Info : GM.Type_Descriptor) return Interval
    is
@@ -965,8 +984,6 @@ package body Safe_Frontend.Mir_Analyze is
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
       elsif UString_Value (Info.Name) = "boolean" then
          return (Low => 0, High => 1, Excludes_Zero => False);
-      elsif UString_Value (Info.Name) = "character" then
-         return (Low => 0, High => 255, Excludes_Zero => False);
       elsif (Lower (UString_Value (Info.Kind)) = "binary"
              or else (Lower (UString_Value (Info.Kind)) = "subtype" and then Info.Has_Bit_Width))
         and then Info.Has_Bit_Width
@@ -985,7 +1002,7 @@ package body Safe_Frontend.Mir_Analyze is
 
    function Is_Integer_Type
      (Info : GM.Type_Descriptor) return Boolean is
-     Kind : constant String := Lower (UString_Value (Info.Kind));
+      Kind : constant String := Lower (UString_Value (Info.Kind));
    begin
       return Kind = "integer" or else Kind = "subtype";
    end Is_Integer_Type;
@@ -1004,11 +1021,29 @@ package body Safe_Frontend.Mir_Analyze is
       return Lower (UString_Value (Info.Kind)) = "float";
    end Is_Float_Type;
 
+   function Is_String_Type
+     (Info : GM.Type_Descriptor) return Boolean is
+   begin
+      return Lower (UString_Value (Info.Kind)) = "string";
+   end Is_String_Type;
+
    function Is_Tuple_Type
      (Info : GM.Type_Descriptor) return Boolean is
    begin
       return Lower (UString_Value (Info.Kind)) = "tuple";
    end Is_Tuple_Type;
+
+   function String_Index_Bounds
+     (Info : GM.Type_Descriptor) return Interval is
+   begin
+      if Info.Has_Length_Bound then
+         return
+           (Low           => 1,
+            High          => Wide_Integer (Info.Length_Bound),
+            Excludes_Zero => True);
+      end if;
+      return (Low => 1, High => INT64_HIGH, Excludes_Zero => True);
+   end String_Index_Bounds;
 
    function Type_Access_Role
      (Info : GM.Type_Descriptor) return Access_Role_Kind
@@ -1375,7 +1410,7 @@ package body Safe_Frontend.Mir_Analyze is
             return UString_Value (Expr.Text);
          when GM.Expr_Real =>
             return UString_Value (Expr.Text);
-         when GM.Expr_String | GM.Expr_Char =>
+         when GM.Expr_String =>
             return UString_Value (Expr.Text);
          when GM.Expr_Bool =>
             if Expr.Bool_Value then
@@ -1521,6 +1556,21 @@ package body Safe_Frontend.Mir_Analyze is
                end loop;
                return Make_Tuple_Type (Elements);
             end;
+         when GM.Expr_Array_Literal =>
+            if Has_Text (Expr.Type_Name)
+              and then Type_Env.Contains (UString_Value (Expr.Type_Name))
+            then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Var_Types, Type_Env);
+            elsif not Expr.Elements.Is_Empty then
+               return
+                 Make_Growable_Array_Type
+                   (Expr_Type
+                      (Expr.Elements (Expr.Elements.First_Index),
+                       Var_Types,
+                       Type_Env,
+                       Functions));
+            end if;
+            return Make_Growable_Array_Type (Resolve_Type ("integer", Type_Env));
          when GM.Expr_Ident =>
             if Var_Types.Contains (UString_Value (Expr.Name)) then
                return Var_Types.Element (UString_Value (Expr.Name));
@@ -2533,8 +2583,77 @@ package body Safe_Frontend.Mir_Analyze is
       Bounds      : Interval;
       Value       : Interval;
       Prefix_Name : FT.UString := FT.To_UString ("");
+      Prefix_Kind : constant String := Lower (UString_Value (Prefix_Type.Kind));
    begin
-      if Lower (UString_Value (Prefix_Type.Kind)) /= "array" or else Prefix_Type.Index_Types.Is_Empty then
+      if Prefix_Kind /= "array" and then not Is_String_Type (Prefix_Type) then
+         declare
+            Result : MD.Diagnostic := Null_Diagnostic;
+         begin
+            Result.Reason := FT.To_UString ("index_out_of_bounds");
+            Result.Message := FT.To_UString ("indexed object is not an array");
+            Result.Span := Expr.Span;
+            Raise_Diag (Result);
+         end;
+      end if;
+      if Is_String_Type (Prefix_Type) then
+         if not Prefix_Type.Has_Length_Bound then
+            declare
+               Result : MD.Diagnostic := Null_Diagnostic;
+            begin
+               Result.Reason := FT.To_UString ("index_out_of_bounds");
+               Result.Message := FT.To_UString ("index expression not provably within string bounds");
+               Result.Span := Expr.Span;
+               Result.Has_Highlight_Span := True;
+               Result.Highlight_Span := Expr.Span;
+               Result.Notes.Append
+                 (FT.To_UString
+                    ("string indexing and slicing are only proved for bounded strings in the current MIR analysis."));
+               Raise_Diag (Result);
+            end;
+         end if;
+         Bounds := String_Index_Bounds (Prefix_Type);
+         for Index in Expr.Indices.First_Index .. Expr.Indices.Last_Index loop
+            Value := Eval_Int_Expr (Strip_Conversion (Expr.Indices (Index)), Current, Var_Types, Type_Env, Functions);
+            if not Interval_Contains (Bounds, Value) then
+               declare
+                  Result : MD.Diagnostic := Null_Diagnostic;
+               begin
+                  Result.Reason := FT.To_UString ("index_out_of_bounds");
+                  Result.Message := FT.To_UString ("index expression not provably within string bounds");
+                  Result.Span := Expr.Span;
+                  Result.Has_Highlight_Span := True;
+                  Result.Highlight_Span := Expr.Span;
+                  Result.Notes.Append
+                    (FT.To_UString
+                       ("bounded string index range is [1 .. "
+                        & Format_Int (Bounds.High)
+                        & "]."));
+                  Result.Notes.Append
+                    (FT.To_UString
+                       ("index expression '"
+                        & Source_Text_For_Expr (Expr.Indices (Index))
+                        & "' has range"
+                        & ASCII.LF
+                        & Interval_Display
+                            (Value,
+                             Expr_Type
+                               (Strip_Conversion (Expr.Indices (Index)),
+                                Var_Types,
+                                Type_Env,
+                                Functions))
+                        & "."));
+                  Raise_Diag (Result);
+               end;
+            end if;
+         end loop;
+         return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
+      end if;
+      if Prefix_Type.Growable then
+         if Prefix_Type.Has_Component_Type then
+            return Range_Interval (Resolve_Type (UString_Value (Prefix_Type.Component_Type), Type_Env));
+         end if;
+         return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
+      elsif Prefix_Type.Index_Types.Is_Empty then
          declare
             Result : MD.Diagnostic := Null_Diagnostic;
          begin
@@ -3346,20 +3465,6 @@ package body Safe_Frontend.Mir_Analyze is
                   High          => Value,
                   Excludes_Zero => Value /= 0);
             end;
-         when GM.Expr_Char =>
-            declare
-               Text  : constant String := UString_Value (Expr.Text);
-               Value : Wide_Integer := 0;
-            begin
-               if Text'Length = 3 then
-                  Value := Wide_Integer (Character'Pos (Text (Text'First + 1)));
-                  return
-                    (Low           => Value,
-                     High          => Value,
-                     Excludes_Zero => Value /= 0);
-               end if;
-               return (Low => 0, High => 255, Excludes_Zero => False);
-            end;
          when GM.Expr_Bool =>
             return
               (Low           => (if Expr.Bool_Value then 1 else 0),
@@ -3415,6 +3520,10 @@ package body Safe_Frontend.Mir_Analyze is
                return Range_Interval (Field_Type (Prefix, UString_Value (Expr.Selector), Type_Env));
             elsif Lower (UString_Value (Prefix.Kind)) = "tuple" then
                return Range_Interval (Field_Type (Prefix, UString_Value (Expr.Selector), Type_Env));
+            elsif UString_Value (Expr.Selector) = "length"
+              and then Lower (UString_Value (Prefix.Kind)) in "string" | "array"
+            then
+               return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
             elsif Lower (UString_Value (Prefix.Kind)) = "access" then
                Fact := Eval_Access_Expr (Expr.Prefix, Current, Var_Types, Type_Env, Functions);
                pragma Unreferenced (Fact);
@@ -3894,10 +4003,6 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Expr_Bool =>
             Value.Kind := GM.Scalar_Value_Boolean;
             Value.Bool_Value := Inner.Bool_Value;
-            return True;
-         when GM.Expr_Char =>
-            Value.Kind := GM.Scalar_Value_Character;
-            Value.Text := Inner.Text;
             return True;
          when others =>
             return False;
@@ -4763,9 +4868,9 @@ package body Safe_Frontend.Mir_Analyze is
                Current.Float_Facts.Include (Target_Name, Float_Value);
             end if;
             return Null_Diagnostic;
-         elsif UString_Value (Target_Type.Name) = "string" then
+         elsif Lower (UString_Value (Target_Type.Kind)) = "string" then
             return Null_Diagnostic;
-         elsif Lower (UString_Value (Target_Type.Kind)) in "record" | "tuple" then
+         elsif Lower (UString_Value (Target_Type.Kind)) in "record" | "tuple" | "array" then
             return Null_Diagnostic;
          end if;
          Interval_Value :=
@@ -5381,14 +5486,13 @@ package body Safe_Frontend.Mir_Analyze is
          end;
          return Null_Diagnostic;
       elsif UString_Value (Return_Type.Name) = "boolean"
-        or else UString_Value (Return_Type.Name) = "character"
-        or else UString_Value (Return_Type.Name) = "string"
+        or else Lower (UString_Value (Return_Type.Kind)) = "string"
       then
          declare
             Actual_Type : constant GM.Type_Descriptor :=
               Expr_Type (Expr, Var_Types, Type_Env, Functions);
          begin
-            if UString_Value (Actual_Type.Name) /= UString_Value (Return_Type.Name) then
+            if Lower (UString_Value (Actual_Type.Kind)) /= Lower (UString_Value (Return_Type.Kind)) then
                Diag.Reason := FT.To_UString ("type_check_failure");
                Diag.Message := FT.To_UString ("return expression type does not match function result type");
                Diag.Span := Expr.Span;

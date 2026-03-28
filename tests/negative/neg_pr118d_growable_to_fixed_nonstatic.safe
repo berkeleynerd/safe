@@ -1,0 +1,10 @@
+package neg_pr118d_growable_to_fixed_nonstatic
+
+   type int_list is array of integer;
+   subtype slot is integer (1 to 2);
+   type pair is array (slot) of integer;
+
+   values : int_list = [1, 2, 3];
+   selected : pair = values (1 to values.length);
+
+   print (selected (1))

@@ -1,0 +1,12 @@
+-- Test: pr118d_growable_array
+-- Description: Growable arrays admit named types, bracket literals, indexing, slicing, and length.
+-- Expected: ACCEPT
+
+package pr118d_growable_array
+
+   type int_list is array of integer;
+
+   values : int_list = [1, 2, 3, 4];
+   third : integer = values (3);
+   prefix : int_list = values (1 to 2);
+   width : integer = values.length;

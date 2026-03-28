@@ -1,0 +1,12 @@
+package pr118d_runtime_self_assign_build
+
+   type int_list is array of integer;
+
+   name   : string = "Ada";
+   values : int_list = [5, 6];
+
+   name = name;
+   values = values;
+
+   print (name);
+   print (values (1))

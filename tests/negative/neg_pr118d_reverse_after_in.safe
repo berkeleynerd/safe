@@ -1,0 +1,8 @@
+package neg_pr118d_reverse_after_in
+
+   total : integer = 0;
+
+   for item in reverse 1 to 3
+      total = total + item;
+
+   print (total)

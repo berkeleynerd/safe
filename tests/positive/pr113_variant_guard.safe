@@ -1,22 +1,20 @@
 -- Test: pr113_variant_guard
--- Description: Character-driven variant fields guarded by if and strict case.
+-- Description: Integer-driven variant fields guarded by if and strict case.
 -- Expected: ACCEPT
 
 package pr113_variant_guard
 
-   type packet (kind : character = 'A') is
+   type packet (kind : integer = 0) is
       record
          case kind
-            when 'A'
+            when 0
                alpha : integer;
             when others
                beta : integer;
 
-   sample : packet ('A') = (alpha = 1);
-
    function read_alpha (p : in packet) returns integer
 
-      if p.kind == 'A'
+      if p.kind == 0
          return p.alpha;
 
       return 0;
@@ -24,9 +22,8 @@ package pr113_variant_guard
    function read_alpha_with_case (p : in packet) returns integer
 
       case p.kind
-         when 'A'
+         when 0
             return p.alpha;
 
          when others
             return 0;
-

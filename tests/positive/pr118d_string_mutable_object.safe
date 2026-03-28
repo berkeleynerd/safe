@@ -1,0 +1,8 @@
+-- Test: pr118d_string_mutable_object
+-- Description: Mutable String objects are part of the PR11.8d value-type surface.
+-- Expected: ACCEPT
+
+package pr118d_string_mutable_object
+
+   name : string = "hello";
+

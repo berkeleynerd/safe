@@ -1,9 +1,0 @@
--- Test: neg_string_out_param
--- Description: String formals are restricted to mode in in PR11.2.
--- Expected: REJECT unsupported_source_construct
-
-package neg_string_out_param
-
-   function set_name (name : out string)
-      return;
-

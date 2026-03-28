@@ -15,7 +15,6 @@ package Safe_Frontend.Check_Model is
       Expr_Int,
       Expr_Real,
       Expr_String,
-      Expr_Char,
       Expr_Bool,
       Expr_Null,
       Expr_Ident,
@@ -26,6 +25,7 @@ package Safe_Frontend.Check_Model is
       Expr_Call,
       Expr_Allocator,
       Expr_Aggregate,
+      Expr_Array_Literal,
       Expr_Tuple,
       Expr_Annotated,
       Expr_Unary,
@@ -89,6 +89,7 @@ package Safe_Frontend.Check_Model is
       Type_Spec_Name,
       Type_Spec_Binary,
       Type_Spec_Tuple,
+      Type_Spec_Growable_Array,
       Type_Spec_Subtype_Indication,
       Type_Spec_Access_Def);
 
@@ -113,6 +114,7 @@ package Safe_Frontend.Check_Model is
       Anonymous   : Boolean := False;
       Target_Name : Expr_Access := null;
       Binary_Width_Expr : Expr_Access := null;
+      Element_Type : Type_Spec_Access := null;
       Tuple_Elements : Type_Spec_Access_Vectors.Vector;
       Has_Range_Constraint : Boolean := False;
       Range_Low            : Expr_Access := null;
@@ -226,6 +228,7 @@ package Safe_Frontend.Check_Model is
       Type_Decl_Float,
       Type_Decl_Constrained_Array,
       Type_Decl_Unconstrained_Array,
+      Type_Decl_Growable_Array,
       Type_Decl_Record,
       Type_Decl_Access);
 
@@ -367,6 +370,9 @@ package Safe_Frontend.Check_Model is
       Case_Arms     : Case_Arm_Vectors.Vector;
       Loop_Var      : FT.UString := FT.To_UString ("");
       Loop_Range    : Discrete_Range;
+      Loop_Iterable : Expr_Access := null;
+      Loop_Snapshot_Name : FT.UString := FT.To_UString ("");
+      Loop_Index_Name    : FT.UString := FT.To_UString ("");
       Body_Stmts    : Statement_Access_Vectors.Vector;
       Declarations  : Object_Decl_Vectors.Vector;
       Arms          : Select_Arm_Vectors.Vector;

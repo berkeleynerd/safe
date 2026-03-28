@@ -47,6 +47,7 @@ package body Safe_Frontend.Check_Emit is
 
    function Expression_Node (Expr : CM.Expr_Access) return String;
    function Object_Type_Node (Spec : CM.Type_Spec) return String;
+   function Component_Definition_Node (Spec : CM.Type_Spec) return String;
    function Shift_Expression_Node (Expr : CM.Expr_Access) return String;
 
    function Type_Json (Info : GM.Type_Descriptor) return String;
@@ -385,6 +386,13 @@ package body Safe_Frontend.Check_Emit is
    begin
       if Spec.Kind = CM.Type_Spec_Access_Def then
          return Name_Node (Spec.Target_Name);
+      elsif Spec.Kind = CM.Type_Spec_Growable_Array then
+         return
+           "{""node_type"":""GrowableArrayTypeSpec"",""element_type"":"
+           & Component_Definition_Node (Spec.Element_Type.all)
+           & ",""span"":"
+           & JS.Span_Object (Spec.Span)
+           & "}";
       elsif Spec.Kind = CM.Type_Spec_Tuple then
          declare
             Elements : String_Vectors.Vector;
@@ -513,11 +521,23 @@ package body Safe_Frontend.Check_Emit is
    begin
       if Spec.Kind = CM.Type_Spec_Access_Def then
          return Access_Definition_Node (Spec);
+      elsif Spec.Kind = CM.Type_Spec_Growable_Array then
+         return Type_Spec_Name (Spec);
       elsif Spec.Kind = CM.Type_Spec_Tuple then
          return Type_Spec_Name (Spec);
       end if;
       return Subtype_Indication_Node (Spec);
    end Object_Type_Node;
+
+   function Component_Definition_Node (Spec : CM.Type_Spec) return String is
+   begin
+      return
+        "{""node_type"":""ComponentDefinition"",""is_aliased"":false,""type_spec"":"
+        & Object_Type_Node (Spec)
+        & ",""span"":"
+        & JS.Span_Object (Spec.Span)
+        & "}";
+   end Component_Definition_Node;
 
    function Primary_Node (Expr : CM.Expr_Access) return String;
 
@@ -812,6 +832,22 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Tuple_Aggregate_Node;
 
+   function Bracket_Aggregate_Node (Expr : CM.Expr_Access) return String is
+      Elements : String_Vectors.Vector;
+   begin
+      if Expr /= null and then not Expr.Elements.Is_Empty then
+         for Item of Expr.Elements loop
+            Elements.Append (Expression_Node (Item));
+         end loop;
+      end if;
+      return
+        "{""node_type"":""BracketAggregate"",""expressions"":"
+        & Json_List (Elements)
+        & ",""span"":"
+        & JS.Span_Object ((if Expr = null then FT.Null_Span else Expr.Span))
+        & "}";
+   end Bracket_Aggregate_Node;
+
    function Real_Range_Constraint_Node (Decl : CM.Type_Decl) return String is
    begin
       return
@@ -1033,15 +1069,6 @@ package body Safe_Frontend.Check_Emit is
               & "},""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
-         when CM.Expr_Char =>
-            return
-              "{""node_type"":""Primary"",""kind"":""Literal"",""value"":{""node_type"":""CharacterLiteral"",""text"":"
-              & JS.Quote (Expr.Text)
-              & ",""span"":"
-              & JS.Span_Object (Expr.Span)
-              & "},""span"":"
-              & JS.Span_Object (Expr.Span)
-              & "}";
          when CM.Expr_Allocator =>
             return
               "{""node_type"":""Primary"",""kind"":""Allocator"",""value"":"
@@ -1060,6 +1087,13 @@ package body Safe_Frontend.Check_Emit is
             return
               "{""node_type"":""Primary"",""kind"":""Tuple"",""value"":"
               & Tuple_Aggregate_Node (Expr)
+              & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
+         when CM.Expr_Array_Literal =>
+            return
+              "{""node_type"":""Primary"",""kind"":""BracketAggregate"",""value"":"
+              & Bracket_Aggregate_Node (Expr)
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
@@ -1240,6 +1274,21 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Decl.Component_Type.Span)
               & "},""span"":"
+              & JS.Span_Object (Decl.Span)
+              & "},""span"":"
+              & JS.Span_Object (Decl.Span)
+              & "}";
+         when CM.Type_Decl_Growable_Array =>
+            return
+              "{""node_type"":""TypeDeclaration"",""is_public"":"
+              & JS.Bool_Literal (Decl.Is_Public)
+              & ",""name"":"
+              & JS.Quote (Decl.Name)
+              & ",""discriminant_part"":"
+              & Discriminant_Part_Node (Decl)
+              & ",""type_definition"":{""node_type"":""GrowableArrayDefinition"",""element_type"":"
+              & Component_Definition_Node (Decl.Component_Type)
+              & ",""span"":"
               & JS.Span_Object (Decl.Span)
               & "},""span"":"
               & JS.Span_Object (Decl.Span)
@@ -1645,6 +1694,23 @@ package body Safe_Frontend.Check_Emit is
               & JS.Span_Object (Parsed.Span)
               & "}";
          when CM.Stmt_For =>
+            if Parsed.Loop_Iterable /= null then
+               return
+                 "{""node_type"":""LoopStatement"",""loop_name"":null,""iteration_scheme"":{""node_type"":""IterationScheme"",""kind"":""ForOf"",""condition"":null,""loop_variable"":"
+                 & JS.Quote (Parsed.Loop_Var)
+                 & ",""is_reverse"":false,""discrete_range"":null,""iterable_name"":"
+                 & Name_Node (Resolved_Expr.Loop_Iterable)
+                 & ",""span"":"
+                 & JS.Span_Object (Parsed.Span)
+                 & "},""body"":"
+                 & Sequence_Node
+                     (Parsed.Body_Stmts,
+                      Resolved_Expr.Body_Stmts,
+                      Parsed.Span)
+                 & ",""end_loop_name"":null,""span"":"
+                 & JS.Span_Object (Parsed.Span)
+                 & "}";
+            end if;
             return
               "{""node_type"":""LoopStatement"",""loop_name"":null,""iteration_scheme"":{""node_type"":""IterationScheme"",""kind"":""ForIn"",""condition"":null,""loop_variable"":"
               & JS.Quote (Parsed.Loop_Var)

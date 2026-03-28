@@ -1,0 +1,8 @@
+package pr118d_growable_to_fixed_literal_build
+
+   subtype slot is integer (5 to 7);
+   type window is array (slot) of integer;
+
+   values : window = [10, 20, 30];
+
+   print (values (5) + values (7))

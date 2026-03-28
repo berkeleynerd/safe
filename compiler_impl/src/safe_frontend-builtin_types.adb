@@ -67,10 +67,7 @@ package body Safe_Frontend.Builtin_Types is
       Result : GM.Type_Descriptor;
    begin
       Result.Name := FT.To_UString ("string");
-      Result.Kind := FT.To_UString ("array");
-      Result.Has_Component_Type := True;
-      Result.Component_Type := FT.To_UString ("character");
-      Result.Unconstrained := True;
+      Result.Kind := FT.To_UString ("string");
       return Result;
    end String_Type;
 

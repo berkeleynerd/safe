@@ -1,0 +1,8 @@
+-- Test: neg_pr118d_zero_bounded_string
+-- Description: `string (N)` requires a positive capacity.
+-- Expected: REJECT
+
+package neg_pr118d_zero_bounded_string
+
+   value : string (0) = "";
+

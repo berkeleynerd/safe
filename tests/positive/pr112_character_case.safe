@@ -1,21 +1,20 @@
 -- Test: pr112_character_case
--- Description: Character literals, string literals, and character-based case.
+-- Description: Single-character strings and integer-based case.
 -- Expected: ACCEPT
 
 package pr112_character_case
 
-   marker : constant character = 'A';
+   marker : constant string = 'A';
    fallback : constant string = "needs work";
 
-   function grade_message (grade : in character) returns string
+   function grade_message (grade : in integer (0 to 2)) returns string
 
       case grade
-         when 'A'
+         when 0
             return "excellent";
 
-         when 'B'
+         when 1
             return "good";
 
          when others
             return fallback;
-

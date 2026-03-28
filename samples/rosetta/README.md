@@ -50,6 +50,29 @@ PR11.3 structured-return additions:
 - `text/lookup_pair.safe`
 - `text/lookup_result.safe`
 
+PR11.8d text/array additions:
+
+- `text/bounded_prefix.safe`
+- `data_structures/growable_sum.safe`
+- `data_structures/fixed_to_growable.safe`
+- `data_structures/growable_to_fixed.safe`
+
+The current PR11.8d Rosetta coverage demonstrates:
+
+- bounded strings through `string (N)`
+- growable arrays through `array of T` and bracket literals
+- array-only `for item of values`
+- fixed -> growable widening
+- static-only growable -> fixed narrowing
+
+Still deferred beyond the current corpus:
+
+- string iteration
+- proof-based growable -> fixed narrowing
+- string/growable channel elements
+- string `case`
+- string discriminants
+
 ## Running the Corpus
 
 Use:

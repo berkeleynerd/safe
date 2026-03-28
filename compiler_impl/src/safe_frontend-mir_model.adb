@@ -36,8 +36,6 @@ package body Safe_Frontend.Mir_Model is
             return "real";
          when Expr_String =>
             return "string";
-         when Expr_Char =>
-            return "char";
          when Expr_Bool =>
             return "bool";
          when Expr_Null =>
@@ -56,6 +54,8 @@ package body Safe_Frontend.Mir_Model is
             return "allocator";
          when Expr_Aggregate =>
             return "aggregate";
+         when Expr_Array_Literal =>
+            return "array_literal";
          when Expr_Tuple =>
             return "tuple";
          when Expr_Annotated =>

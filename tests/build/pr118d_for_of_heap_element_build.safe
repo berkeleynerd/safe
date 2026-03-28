@@ -1,0 +1,8 @@
+package pr118d_for_of_heap_element_build
+
+   type text_list is array of string;
+
+   values : text_list = ["a", "bc", "def"];
+
+   for item of values
+      print (item)

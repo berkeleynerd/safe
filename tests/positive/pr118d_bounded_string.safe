@@ -1,0 +1,12 @@
+-- Test: pr118d_bounded_string
+-- Description: Bounded strings support length, indexing, slicing, and equality.
+-- Expected: ACCEPT
+
+package pr118d_bounded_string
+
+   name : string (5) = "hello";
+   prefix : string = name (1 to 2);
+   initial : string = name (1);
+   same_prefix : boolean = prefix == "he";
+   width : integer = name.length;
+

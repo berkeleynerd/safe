@@ -1,0 +1,10 @@
+-- Test: pr118d_string_equality
+-- Description: String equality is supported in PR11.8d.
+-- Expected: ACCEPT
+
+package pr118d_string_equality
+
+   function same (left : in string; right : in string) returns boolean
+
+      return left == right;
+

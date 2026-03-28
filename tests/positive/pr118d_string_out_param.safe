@@ -1,0 +1,9 @@
+-- Test: pr118d_string_out_param
+-- Description: String out formals are accepted in PR11.8d.
+-- Expected: ACCEPT
+
+package pr118d_string_out_param
+
+   function set_name (name : out string)
+      name = "hello";
+      return;

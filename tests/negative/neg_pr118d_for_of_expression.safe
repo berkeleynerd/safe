@@ -1,0 +1,11 @@
+package neg_pr118d_for_of_expression
+
+   type int_list is array of integer;
+
+   values : int_list = [1, 2, 3];
+   total : integer = 0;
+
+   for item of values (1 to 2)
+      total = total + item;
+
+   print (total)
