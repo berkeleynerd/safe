@@ -9,5 +9,4 @@ neg_own_borrow_conflict.safe:17:14: error: mutable borrow actual 'owner' aliases
   |    |              ^~~~~
   |
   note: PR11.8e uses a conservative same-root alias rule for `mut` parameters.
-  note: 
 ------------------------------------------------------------------------

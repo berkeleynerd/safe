@@ -1888,7 +1888,13 @@ package body Safe_Frontend.Mir_Analyze is
       if Note_2 /= "" then
          Result.Notes.Append (FT.To_UString (Note_2));
       end if;
-      Result.Notes.Append (FT.To_UString (Ownership_Note (Reason)));
+      declare
+         Rule_Note : constant String := Ownership_Note (Reason);
+      begin
+         if Rule_Note /= "" then
+            Result.Notes.Append (FT.To_UString (Rule_Note));
+         end if;
+      end;
       return Result;
    end Ownership_Diagnostic;
 
@@ -2139,19 +2145,13 @@ package body Safe_Frontend.Mir_Analyze is
    is
       Result   : FT.UString_Vectors.Vector;
       Info     : constant GM.Type_Descriptor := Expr_Type (Expr, Var_Types, Type_Env, Functions);
-      Target   : constant String :=
-        (if Lower (UString_Value (Info.Kind)) = "access" and then Info.Has_Target then
-            UString_Value (Info.Target)
-         else "Value");
    begin
       Result.Append
         (FT.To_UString
            (Source_Text_For_Expr (Expr)
             & " is of type "
             & UString_Value (Info.Name)
-            & " (access "
-            & Target
-            & "), which does not exclude null."));
+            & ", which is a nullable reference."));
       Result.Append
         (FT.To_UString
            ("no null check precedes this dereference on all paths reaching"
@@ -2162,11 +2162,11 @@ package body Safe_Frontend.Mir_Analyze is
         (FT.To_UString
            ("per spec/02-restrictions.md section 2.8.4 paragraph 136:"
             & ASCII.LF
-            & """Dereference of an access value shall require the access subtype"
+            & """Dereference of a reference value shall require the reference subtype"
             & ASCII.LF
             & "to be not null. A conforming implementation shall reject any"
             & ASCII.LF
-            & "dereference where the access subtype at the point of dereference"
+            & "dereference where the reference subtype at the point of dereference"
             & ASCII.LF
             & "does not exclude null."""));
       return Result;
@@ -2178,17 +2178,18 @@ package body Safe_Frontend.Mir_Analyze is
    is
       Result : FT.UString_Vectors.Vector;
    begin
+      pragma Unreferenced (Deref_Text);
       Result.Append
         (FT.To_UString
-           ("use a ""not null access"" subtype, or add an explicit null check:"
+           ("use a ""not null"" reference subtype, or add an explicit null check:"
             & ASCII.LF
             & "if "
             & Source_Text_For_Expr (Prefix_Expr)
             & " /= null then"
             & ASCII.LF
-            & "   return "
-            & Deref_Text
-            & ";"
+            & "   -- dereference "
+            & Source_Text_For_Expr (Prefix_Expr)
+            & " here"
             & ASCII.LF
             & "end if;"));
       return Result;
@@ -2448,11 +2449,11 @@ package body Safe_Frontend.Mir_Analyze is
                      Result : MD.Diagnostic := Null_Diagnostic;
                   begin
                      Result.Reason := FT.To_UString ("dangling_reference");
-                     Result.Message := FT.To_UString ("dereference of dangling access value");
+                     Result.Message := FT.To_UString ("dereference of dangling reference");
                      Result.Span := Expr.Span;
                      Result.Has_Highlight_Span := True;
                      Result.Highlight_Span := Expr.Span;
-                     Result.Notes.Append (FT.To_UString ("the access value outlives the owner scope that created it."));
+                     Result.Notes.Append (FT.To_UString ("the reference value outlives the owner scope that created it."));
                      Result.Notes.Append (FT.To_UString ("rule: D27 Rule 4 (Not-Null Dereference)"));
                      Raise_Diag (Result);
                   end;
@@ -2461,11 +2462,11 @@ package body Safe_Frontend.Mir_Analyze is
                      Result : MD.Diagnostic := Null_Diagnostic;
                   begin
                      Result.Reason := FT.To_UString ("use_after_move");
-                     Result.Message := FT.To_UString ("dereference of moved access value");
+                     Result.Message := FT.To_UString ("dereference of moved reference");
                      Result.Span := Expr.Span;
                      Result.Has_Highlight_Span := True;
                      Result.Highlight_Span := Expr.Span;
-                     Result.Notes.Append (FT.To_UString ("the access value was moved before this dereference."));
+                     Result.Notes.Append (FT.To_UString ("the reference value was moved before this dereference."));
                      Result.Notes.Append (FT.To_UString ("rule: D27 Rule 4 (Not-Null Dereference)"));
                      Raise_Diag (Result);
                   end;
@@ -2474,7 +2475,7 @@ package body Safe_Frontend.Mir_Analyze is
                      Result : MD.Diagnostic := Null_Diagnostic;
                   begin
                      Result.Reason := FT.To_UString ("null_dereference");
-                     Result.Message := FT.To_UString ("dereference of possibly null access value");
+                     Result.Message := FT.To_UString ("dereference of possibly null reference");
                      Result.Span := Expr.Span;
                      Result.Has_Highlight_Span := True;
                      Result.Highlight_Span := Expr.Span;
@@ -2547,11 +2548,11 @@ package body Safe_Frontend.Mir_Analyze is
             Result : MD.Diagnostic := Null_Diagnostic;
          begin
             Result.Reason := FT.To_UString ("dangling_reference");
-            Result.Message := FT.To_UString ("dereference of dangling access value");
+            Result.Message := FT.To_UString ("dereference of dangling reference");
             Result.Span := Span;
             Result.Has_Highlight_Span := True;
             Result.Highlight_Span := Span;
-            Result.Notes.Append (FT.To_UString ("the access value outlives the owner scope that created it."));
+            Result.Notes.Append (FT.To_UString ("the reference value outlives the owner scope that created it."));
             Result.Notes.Append (FT.To_UString ("rule: D27 Rule 4 (Not-Null Dereference)"));
             Raise_Diag (Result);
          end;
@@ -2560,11 +2561,11 @@ package body Safe_Frontend.Mir_Analyze is
             Result : MD.Diagnostic := Null_Diagnostic;
          begin
             Result.Reason := FT.To_UString ("use_after_move");
-            Result.Message := FT.To_UString ("dereference of moved access value");
+            Result.Message := FT.To_UString ("dereference of moved reference");
             Result.Span := Span;
             Result.Has_Highlight_Span := True;
             Result.Highlight_Span := Span;
-            Result.Notes.Append (FT.To_UString ("the access value was moved before this dereference."));
+            Result.Notes.Append (FT.To_UString ("the reference value was moved before this dereference."));
             Result.Notes.Append (FT.To_UString ("rule: D27 Rule 4 (Not-Null Dereference)"));
             Raise_Diag (Result);
          end;
@@ -2573,12 +2574,12 @@ package body Safe_Frontend.Mir_Analyze is
             Result : MD.Diagnostic := Null_Diagnostic;
          begin
             Result.Reason := FT.To_UString ("null_dereference");
-            Result.Message := FT.To_UString ("dereference of possibly null access value");
+            Result.Message := FT.To_UString ("dereference of possibly null reference");
             Result.Span := Span;
             Result.Has_Highlight_Span := True;
             Result.Highlight_Span := Span;
             Result.Notes := Null_Dereference_Notes (Expr, Var_Types, Type_Env, Functions);
-            Result.Suggestions := Null_Dereference_Suggestions (Expr, Source_Text_For_Expr (Expr) & ".all");
+            Result.Suggestions := Null_Dereference_Suggestions (Expr, Source_Text_For_Expr (Expr));
             Raise_Diag (Result);
          end;
       end if;

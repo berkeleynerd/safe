@@ -3,11 +3,11 @@ Source: tests/negative/neg_own_use_after_move.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_own_use_after_move.safe:18:11: error: dereference of moved access value
+neg_own_use_after_move.safe:18:11: error: dereference of moved reference
   |
   | 18 |       v = source.count;  -- ERROR: dereference of moved variable
   |    |           ^~~~~~~~~~~~
   |
-  note: the access value was moved before this dereference.
+  note: the reference value was moved before this dereference.
   note: rule: D27 Rule 4 (Not-Null Dereference)
 ------------------------------------------------------------------------

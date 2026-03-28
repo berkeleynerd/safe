@@ -490,7 +490,7 @@ package body Safe_Frontend.Mir_Validate is
       Require (Has_Text (Value.Name), Where & ": missing local name");
       Validate_Type_Descriptor (Value.Type_Info, Where & ".type");
       if Has_V2_Features (Format) then
-         Require (Has_Text (Value.Scope_Id), Where & ": mir-v3 locals must have scope_id");
+         Require (Has_Text (Value.Scope_Id), Where & ": mir-v2/v3 locals must have scope_id");
       end if;
    end Validate_Local;
 
@@ -548,7 +548,7 @@ package body Safe_Frontend.Mir_Validate is
       if Has_V2_Features (Format) then
          Require
            (Has_Text (Value.Active_Scope_Id),
-            Where & ": mir-v3 blocks must have active_scope_id");
+            Where & ": mir-v2/v3 blocks must have active_scope_id");
          Require
            (Contains (Valid_Scope_Ids, Text (Value.Active_Scope_Id)),
             Where & ": invalid active_scope_id");
@@ -582,7 +582,7 @@ package body Safe_Frontend.Mir_Validate is
                            Op_Where & ": missing op type");
                         Require
                           (Op.Has_Declaration_Init,
-                           Op_Where & ": mir-v3 assign ops must include declaration_init");
+                           Op_Where & ": mir-v2/v3 assign ops must include declaration_init");
                         Require
                           (Op.Declaration_Init_Valid,
                            Op_Where & ": invalid declaration_init");
@@ -762,7 +762,7 @@ package body Safe_Frontend.Mir_Validate is
       if Has_V2_Features (Format) then
          Require
            (not Value.Scopes.Is_Empty,
-            Where & ": mir-v3 graphs must have a non-empty scopes list");
+            Where & ": mir-v2/v3 graphs must have a non-empty scopes list");
 
          for Index in Value.Scopes.First_Index .. Value.Scopes.Last_Index loop
             if Has_Text (Value.Scopes (Index).Id) then
@@ -815,7 +815,7 @@ package body Safe_Frontend.Mir_Validate is
       if Has_V2_Features (Document.Format) then
          Require
            (Document.Has_Source_Path and then Has_Text (Document.Source_Path),
-            "root: mir-v3 payloads must include source_path");
+            "root: mir-v2/v3 payloads must include source_path");
       end if;
 
       if not Document.Types.Is_Empty then
