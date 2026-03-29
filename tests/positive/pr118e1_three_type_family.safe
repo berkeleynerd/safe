@@ -1,0 +1,18 @@
+-- Test: pr118e1_three_type_family
+-- Description: Three record types in one recursive SCC are inferred as references.
+-- Expected: ACCEPT
+
+package pr118e1_three_type_family
+
+   type alpha;
+   type beta;
+   type gamma;
+
+   type alpha is record
+      next_beta : beta;
+
+   type beta is record
+      next_gamma : gamma;
+
+   type gamma is record
+      next_alpha : alpha;

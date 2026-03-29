@@ -1,0 +1,17 @@
+-- Test: pr118e1_mutual_record_family
+-- Description: Two record types in one recursive family are inferred as references.
+--   PR11.8e.1 admits mutually recursive record families without new syntax.
+-- Expected: ACCEPT
+
+package pr118e1_mutual_record_family
+
+   type expr;
+   type stmt;
+
+   type expr is record
+      tag : integer;
+      next_stmt : stmt;
+
+   type stmt is record
+      tag : integer;
+      next_expr : expr;

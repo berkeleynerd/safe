@@ -241,7 +241,7 @@ See: `spec/05-assurance.md`.
 Safe no longer exposes `access`, `new`, `.all`, or source-level `in` / `out`
 / `in out`. Instead:
 
-- direct self-recursive record types are inferred as reference roots,
+- recursive record families are inferred as reference roots,
 - assignment of inferred references moves ownership,
 - ordinary parameters are immutable borrows,
 - `mut` parameters are mutable borrows,
@@ -270,7 +270,9 @@ mistakes, but the source surface stays simpler because the programmer writes
 ordinary record types and ordinary field selection.
 
 Wart: you still need to think about ownership, moves, and mutable-borrow
-aliasing, and mutually recursive record families remain a later follow-up.
+aliasing. PR11.8e.1 extends the model to mutually recursive record families,
+but the alias rule is still conservative: same-root `mut` actuals remain
+rejected until a later follow-up.
 
 See: `spec/02-restrictions.md` (Section 2.3).
 

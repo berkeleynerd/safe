@@ -1,0 +1,14 @@
+-- Test: pr118e1_not_null_mutual_family
+-- Description: `not null` is accepted across members of one admitted recursive family.
+-- Expected: ACCEPT
+
+package pr118e1_not_null_mutual_family
+
+   type left_node;
+   type right_node;
+
+   type left_node is record
+      peer : not null right_node;
+
+   type right_node is record
+      peer : not null left_node;

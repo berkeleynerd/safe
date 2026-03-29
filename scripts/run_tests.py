@@ -111,6 +111,12 @@ INTERFACE_CASES = [
         0,
     ),
     (
+        "mutual-family",
+        REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_mutual_family.safe",
+        0,
+    ),
+    (
         "directional-channel-receive-only",
         REPO_ROOT / "tests" / "interfaces" / "provider_transitive_channel.safe",
         REPO_ROOT / "tests" / "interfaces" / "client_transitive_channel_receive_only.safe",
@@ -435,6 +441,11 @@ BUILD_SUCCESS_CASES = [
         "16\n",
         False,
     ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118e1_mutual_family_build.safe",
+        "41\n",
+        False,
+    ),
 ]
 
 BUILD_REJECT_CASES = [
@@ -552,6 +563,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr118c2_package_print.safe",
     REPO_ROOT / "tests" / "positive" / "pr118c2_entry_print.safe",
     REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
+    REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [

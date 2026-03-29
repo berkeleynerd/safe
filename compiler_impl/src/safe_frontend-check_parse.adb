@@ -806,7 +806,7 @@ package body Safe_Frontend.Check_Parse is
          Reject_Removed_Source_Construct
            (State,
             "access_definition",
-            "PR11.8e infers references from direct self-recursive record types; source `access` is removed");
+            "PR11.8e infers references from recursive record types; source `access` is removed");
       elsif Current_Lower (State) = "binary" then
          return Parse_Binary_Type_Spec (State);
       elsif Current_Lower (State) = "array"
@@ -841,7 +841,7 @@ package body Safe_Frontend.Check_Parse is
             Reject_Removed_Source_Construct
               (State,
                "access_definition",
-               "PR11.8e infers references from direct self-recursive record types; source `access` is removed");
+               "PR11.8e infers references from recursive record types; source `access` is removed");
          end if;
          Result := Parse_Object_Type_Core (State);
          Result.Not_Null := True;
@@ -861,7 +861,7 @@ package body Safe_Frontend.Check_Parse is
          Reject_Removed_Source_Construct
            (State,
             "access_definition",
-            "PR11.8e infers references from direct self-recursive record types; source `access` is removed");
+            "PR11.8e infers references from recursive record types; source `access` is removed");
       end if;
       if Match (State, "not") then
          Require (State, "null");
@@ -1206,7 +1206,7 @@ package body Safe_Frontend.Check_Parse is
             Reject_Removed_Source_Construct
               (State,
                "access_type_definition",
-               "PR11.8e infers references from direct self-recursive record types; named access types are removed");
+               "PR11.8e infers references from recursive record types; named access types are removed");
          else
             Reject_Unsupported
               (State,

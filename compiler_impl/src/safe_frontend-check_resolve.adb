@@ -73,6 +73,32 @@ package body Safe_Frontend.Check_Resolve is
      (Index_Type   => Positive,
       Element_Type => Task_Priority_Info);
 
+   package String_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => String);
+
+   package Type_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => CM.Type_Decl,
+      "="          => CM."=");
+
+   package String_Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Positive,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   type Recursive_Family_Info is record
+      Members                   : String_Vectors.Vector;
+      Is_Recursive              : Boolean := False;
+      Is_Admitted_Record_Family : Boolean := False;
+      Non_Record_Kinds          : String_Vectors.Vector;
+   end record;
+
+   package Recursive_Family_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Recursive_Family_Info);
+
    Resolve_Failure : exception;
    Raised_Diag     : CM.MD.Diagnostic;
    Documented_Default_Task_Priority : constant Long_Long_Integer := 31;
@@ -86,6 +112,107 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return FT.Lowercase (Value);
    end Canonical_Name;
+
+   procedure Append_Unique_String
+     (Items : in out String_Vectors.Vector;
+      Value : String) is
+   begin
+      for Item of Items loop
+         if Canonical_Name (Item) = Canonical_Name (Value) then
+            return;
+         end if;
+      end loop;
+      Items.Append (Value);
+   end Append_Unique_String;
+
+   function Join_String_Vector
+     (Items     : String_Vectors.Vector;
+      Separator : String := ", ") return String
+   is
+      Result : FT.UString := FT.To_UString ("");
+   begin
+      if Items.Is_Empty then
+         return "";
+      end if;
+      for Index in Items.First_Index .. Items.Last_Index loop
+         if Index /= Items.First_Index then
+            Result := Result & FT.To_UString (Separator);
+         end if;
+         Result := Result & FT.To_UString (Items (Index));
+      end loop;
+      return UString_Value (Result);
+   end Join_String_Vector;
+
+   function Type_Decl_Kind_Label (Kind : CM.Type_Decl_Kind) return String is
+   begin
+      case Kind is
+         when CM.Type_Decl_Record =>
+            return "record";
+         when CM.Type_Decl_Growable_Array =>
+            return "growable array";
+         when CM.Type_Decl_Constrained_Array | CM.Type_Decl_Unconstrained_Array =>
+            return "array";
+         when CM.Type_Decl_Integer =>
+            return "integer";
+         when CM.Type_Decl_Binary =>
+            return "binary";
+         when CM.Type_Decl_Float =>
+            return "float";
+         when CM.Type_Decl_Access =>
+            return "access";
+         when CM.Type_Decl_Incomplete =>
+            return "incomplete";
+         when others =>
+            return "type";
+      end case;
+   end Type_Decl_Kind_Label;
+
+   function Family_Index_Of
+     (Name           : String;
+      Family_By_Name : String_Index_Maps.Map) return Natural is
+      Key : constant String := Canonical_Name (Name);
+   begin
+      if Family_By_Name.Contains (Key) then
+         return Natural (Family_By_Name.Element (Key));
+      end if;
+      return 0;
+   end Family_Index_Of;
+
+   function Is_Admitted_Record_Family_Member
+     (Name           : String;
+      Family_By_Name : String_Index_Maps.Map;
+      Families       : Recursive_Family_Vectors.Vector) return Boolean
+   is
+      Index : constant Natural := Family_Index_Of (Name, Family_By_Name);
+   begin
+      return Index /= 0
+        and then Families (Positive (Index)).Is_Admitted_Record_Family;
+   end Is_Admitted_Record_Family_Member;
+
+   function In_Same_Admitted_Record_Family
+     (Left, Right    : String;
+      Family_By_Name : String_Index_Maps.Map;
+      Families       : Recursive_Family_Vectors.Vector) return Boolean
+   is
+      Left_Index  : constant Natural := Family_Index_Of (Left, Family_By_Name);
+      Right_Index : constant Natural := Family_Index_Of (Right, Family_By_Name);
+   begin
+      return Left_Index /= 0
+        and then Left_Index = Right_Index
+        and then Families (Positive (Left_Index)).Is_Admitted_Record_Family;
+   end In_Same_Admitted_Record_Family;
+
+   function Recursive_Family_Diagnostic_Message
+     (Family : Recursive_Family_Info) return String is
+   begin
+      return
+        "recursive type family ("
+        & Join_String_Vector (Family.Members)
+        & ") is not admitted in PR11.8e.1; all members must be record types"
+        & (if Family.Non_Record_Kinds.Is_Empty
+             then ""
+             else " (found " & Join_String_Vector (Family.Non_Record_Kinds) & ")");
+   end Recursive_Family_Diagnostic_Message;
 
    procedure Put_Type
      (Map  : in out Type_Maps.Map;
@@ -1393,7 +1520,10 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env  : Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map := Static_Value_Maps.Empty_Map;
       Path      : String;
-      Current_Record_Name : String := "") return GM.Type_Descriptor
+      Current_Record_Name : String := "";
+      Family_By_Name      : String_Index_Maps.Map := String_Index_Maps.Empty_Map;
+      Families            : Recursive_Family_Vectors.Vector := Recursive_Family_Vectors.Empty_Vector)
+      return GM.Type_Descriptor
    is
       Result : GM.Type_Descriptor;
       Target : GM.Type_Descriptor;
@@ -1633,13 +1763,16 @@ package body Safe_Frontend.Check_Resolve is
                      Base_Info : constant GM.Type_Descriptor := Base_Type (Resolved, Type_Env);
                      Base_Kind : constant String :=
                        FT.Lowercase (UString_Value (Base_Info.Kind));
-                     Is_Current_Self_Reference : constant Boolean :=
+                     Is_Current_Record_Family_Member : constant Boolean :=
                        Base_Kind = "incomplete"
                        and then Current_Record_Name /= ""
-                       and then Canonical_Name (UString_Value (Base_Info.Name)) =
-                         Canonical_Name (Current_Record_Name);
+                       and then In_Same_Admitted_Record_Family
+                         (Current_Record_Name,
+                          UString_Value (Base_Info.Name),
+                          Family_By_Name,
+                          Families);
                   begin
-                     if Base_Kind = "incomplete" and then not Is_Current_Self_Reference then
+                     if Base_Kind = "incomplete" and then not Is_Current_Record_Family_Member then
                         Raise_Diag
                           (CM.Source_Frontend_Error
                              (Path    => Path,
@@ -1695,7 +1828,14 @@ package body Safe_Frontend.Check_Resolve is
             for Item of Spec.Tuple_Elements loop
                declare
                   Element_Type : constant GM.Type_Descriptor :=
-                    Resolve_Type_Spec (Item.all, Type_Env, Const_Env, Path);
+                    Resolve_Type_Spec
+                      (Item.all,
+                       Type_Env,
+                       Const_Env,
+                       Path,
+                       Current_Record_Name,
+                       Family_By_Name,
+                       Families);
                begin
                   if not Is_Tuple_Element_Type_Allowed (Element_Type, Type_Env) then
                      Raise_Diag
@@ -1719,7 +1859,14 @@ package body Safe_Frontend.Check_Resolve is
             declare
                Result : constant GM.Type_Descriptor :=
                  Make_Growable_Array_Type
-                   (Resolve_Type_Spec (Spec.Element_Type.all, Type_Env, Const_Env, Path));
+                   (Resolve_Type_Spec
+                      (Spec.Element_Type.all,
+                       Type_Env,
+                       Const_Env,
+                       Path,
+                       Current_Record_Name,
+                       Family_By_Name,
+                       Families));
             begin
                return Result;
             end;
@@ -4464,11 +4611,29 @@ package body Safe_Frontend.Check_Resolve is
      (Decl      : CM.Type_Decl;
       Type_Env  : in out Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map;
-      Path      : String) return GM.Type_Descriptor
+      Path      : String;
+      Family_By_Name : String_Index_Maps.Map := String_Index_Maps.Empty_Map;
+      Families       : Recursive_Family_Vectors.Vector := Recursive_Family_Vectors.Empty_Vector)
+      return GM.Type_Descriptor
    is
       Result : GM.Type_Descriptor;
       Item   : GM.Type_Field;
    begin
+      declare
+         Family_Index : constant Natural := Family_Index_Of (UString_Value (Decl.Name), Family_By_Name);
+      begin
+         if Family_Index /= 0
+           and then not Families (Positive (Family_Index)).Is_Admitted_Record_Family
+         then
+            Raise_Diag
+              (CM.Unsupported_Source_Construct
+                 (Path    => Path,
+                  Span    => Decl.Span,
+                  Message =>
+                    Recursive_Family_Diagnostic_Message
+                      (Families (Positive (Family_Index)))));
+         end if;
+      end;
       Result.Name := Decl.Name;
       case Decl.Kind is
          when CM.Type_Decl_Incomplete =>
@@ -4609,7 +4774,11 @@ package body Safe_Frontend.Check_Resolve is
                Record_Result          : GM.Type_Descriptor;
                Self_Name              : constant String := UString_Value (Decl.Name);
                Hidden_Target_Name     : constant String := Hidden_Reference_Target_Name (Self_Name);
-               Inferred_Reference     : Boolean := False;
+               Inferred_Reference     : Boolean :=
+                 Is_Admitted_Record_Family_Member
+                   (Self_Name,
+                    Family_By_Name,
+                    Families);
                Decl_Discriminants     : CM.Discriminant_Spec_Vectors.Vector := Decl.Discriminants;
 
                function Normalize_Record_Field_Type
@@ -4620,13 +4789,18 @@ package body Safe_Frontend.Check_Resolve is
                   Adjusted   : GM.Type_Descriptor := Field_Type;
                begin
                   if FT.Lowercase (UString_Value (Base_Field.Kind)) = "incomplete" then
-                     if UString_Value (Base_Field.Name) = Self_Name then
-                        Inferred_Reference := True;
-                        Adjusted.Name := Decl.Name;
+                     if In_Same_Admitted_Record_Family
+                       (Self_Name,
+                        UString_Value (Base_Field.Name),
+                        Family_By_Name,
+                        Families)
+                     then
+                        Adjusted.Name := Base_Field.Name;
                         if Adjusted.Has_Base
-                          and then UString_Value (Adjusted.Base) = Self_Name
+                          and then Canonical_Name (UString_Value (Adjusted.Base)) =
+                            Canonical_Name (UString_Value (Base_Field.Name))
                         then
-                           Adjusted.Base := Decl.Name;
+                           Adjusted.Base := Base_Field.Name;
                         end if;
                         return Adjusted;
                      end if;
@@ -4636,7 +4810,7 @@ package body Safe_Frontend.Check_Resolve is
                           (Path    => Path,
                            Span    => Span,
                            Message =>
-                             "mutually recursive record families are deferred in PR11.8e"));
+                             "record fields may reference unresolved incomplete types only within an admitted recursive record family"));
                   end if;
                   return Field_Type;
                end Normalize_Record_Field_Type;
@@ -4649,7 +4823,14 @@ package body Safe_Frontend.Check_Resolve is
                for Disc_Spec of Decl_Discriminants loop
                   declare
                      Disc_Type    : constant GM.Type_Descriptor :=
-                       Resolve_Type_Spec (Disc_Spec.Disc_Type, Type_Env, Const_Env, Path);
+                       Resolve_Type_Spec
+                         (Disc_Spec.Disc_Type,
+                          Type_Env,
+                          Const_Env,
+                          Path,
+                          Current_Record_Name => Self_Name,
+                          Family_By_Name      => Family_By_Name,
+                          Families            => Families);
                      Disc_Desc    : GM.Discriminant_Descriptor;
                      Static_Value : CM.Static_Value;
                   begin
@@ -4700,18 +4881,20 @@ package body Safe_Frontend.Check_Resolve is
                      Item.Name := Name;
                      declare
                         Field_Type : constant GM.Type_Descriptor :=
-                       Normalize_Record_Field_Type
-                         (Resolve_Type_Spec
-                            (Field_Decl.Field_Type,
-                             Type_Env,
-                             Const_Env,
-                             Path,
-                             Current_Record_Name => Self_Name),
-                          Field_Decl.Span);
-                  begin
-                     Item.Type_Name := Field_Type.Name;
-                  end;
-                  Record_Result.Fields.Append (Item);
+                          Normalize_Record_Field_Type
+                            (Resolve_Type_Spec
+                               (Field_Decl.Field_Type,
+                                Type_Env,
+                                Const_Env,
+                                Path,
+                                Current_Record_Name => Self_Name,
+                                Family_By_Name      => Family_By_Name,
+                                Families            => Families),
+                             Field_Decl.Span);
+                     begin
+                        Item.Type_Name := Field_Type.Name;
+                     end;
+                     Record_Result.Fields.Append (Item);
                   end loop;
                end loop;
                if not Decl.Variants.Is_Empty then
@@ -4719,88 +4902,90 @@ package body Safe_Frontend.Check_Resolve is
                      Control_Type : GM.Type_Descriptor;
                      Found_Control : Boolean := False;
                   begin
-                  if Record_Result.Discriminants.Is_Empty then
-                     Raise_Diag
-                       (CM.Source_Frontend_Error
-                          (Path    => Path,
-                           Span    => Decl.Span,
-                           Message => "variant parts require declared discriminants"));
-                  end if;
-                  Record_Result.Variant_Discriminant_Name := Decl.Variant_Discriminant_Name;
-                  for Disc of Record_Result.Discriminants loop
-                     if UString_Value (Disc.Name) = UString_Value (Decl.Variant_Discriminant_Name) then
-                        Control_Type :=
-                          Resolve_Type (UString_Value (Disc.Type_Name), Type_Env, Path, Decl.Span);
-                        Found_Control := True;
-                        exit;
+                     if Record_Result.Discriminants.Is_Empty then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Decl.Span,
+                              Message => "variant parts require declared discriminants"));
                      end if;
-                  end loop;
-                  if not Found_Control then
-                     Raise_Diag
-                       (CM.Source_Frontend_Error
-                          (Path    => Path,
-                           Span    => Decl.Span,
-                           Message =>
-                             "variant part discriminant '" & UString_Value (Decl.Variant_Discriminant_Name)
-                             & "' is not declared on the record"));
-                  end if;
-
-                  for Alternative of Decl.Variants loop
-                     declare
-                        Choice_Value : CM.Static_Value := (others => <>);
-                        Variant_Choice : GM.Scalar_Value;
-                     begin
-                        if not Alternative.Is_Others then
-                           if not Try_Static_Value (Alternative.Choice_Expr, Const_Env, Choice_Value) then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Alternative.Span,
-                                    Message => "variant choices must be static scalar values"));
-                           elsif not Scalar_Value_Compatible (Choice_Value, Control_Type, Type_Env) then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Alternative.Span,
-                                    Message => "variant choice does not match discriminant type"));
-                           end if;
-                           Variant_Choice := To_Scalar_Value (Choice_Value);
+                     Record_Result.Variant_Discriminant_Name := Decl.Variant_Discriminant_Name;
+                     for Disc of Record_Result.Discriminants loop
+                        if UString_Value (Disc.Name) = UString_Value (Decl.Variant_Discriminant_Name) then
+                           Control_Type :=
+                             Resolve_Type (UString_Value (Disc.Type_Name), Type_Env, Path, Decl.Span);
+                           Found_Control := True;
+                           exit;
                         end if;
+                     end loop;
+                     if not Found_Control then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Decl.Span,
+                              Message =>
+                                "variant part discriminant '" & UString_Value (Decl.Variant_Discriminant_Name)
+                                & "' is not declared on the record"));
+                     end if;
 
-                        for Field_Decl of Alternative.Components loop
-                           for Name of Field_Decl.Names loop
-                              Item.Name := Name;
-                              declare
-                                 Field_Type : constant GM.Type_Descriptor :=
-                                   Normalize_Record_Field_Type
-                                     (Resolve_Type_Spec
-                                        (Field_Decl.Field_Type,
-                                         Type_Env,
-                                         Const_Env,
-                                         Path,
-                                         Current_Record_Name => Self_Name),
-                                      Field_Decl.Span);
-                              begin
-                                 Item.Type_Name := Field_Type.Name;
-                              end;
-                              Record_Result.Fields.Append (Item);
-                              declare
-                                 Variant_Field : GM.Variant_Field;
-                              begin
-                                 Variant_Field.Name := Name;
-                                 Variant_Field.Type_Name := Item.Type_Name;
-                                 Variant_Field.Is_Others := Alternative.Is_Others;
-                                 Variant_Field.Choice := Variant_Choice;
-                                 if Variant_Choice.Kind = GM.Scalar_Value_Boolean then
-                                    Variant_Field.When_True := Variant_Choice.Bool_Value;
-                                 end if;
-                                 Record_Result.Variant_Fields.Append (Variant_Field);
-                              end;
+                     for Alternative of Decl.Variants loop
+                        declare
+                           Choice_Value : CM.Static_Value := (others => <>);
+                           Variant_Choice : GM.Scalar_Value;
+                        begin
+                           if not Alternative.Is_Others then
+                              if not Try_Static_Value (Alternative.Choice_Expr, Const_Env, Choice_Value) then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Alternative.Span,
+                                       Message => "variant choices must be static scalar values"));
+                              elsif not Scalar_Value_Compatible (Choice_Value, Control_Type, Type_Env) then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Alternative.Span,
+                                       Message => "variant choice does not match discriminant type"));
+                              end if;
+                              Variant_Choice := To_Scalar_Value (Choice_Value);
+                           end if;
+
+                           for Field_Decl of Alternative.Components loop
+                              for Name of Field_Decl.Names loop
+                                 Item.Name := Name;
+                                 declare
+                                    Field_Type : constant GM.Type_Descriptor :=
+                                      Normalize_Record_Field_Type
+                                        (Resolve_Type_Spec
+                                           (Field_Decl.Field_Type,
+                                            Type_Env,
+                                            Const_Env,
+                                            Path,
+                                            Current_Record_Name => Self_Name,
+                                            Family_By_Name      => Family_By_Name,
+                                            Families            => Families),
+                                         Field_Decl.Span);
+                                 begin
+                                    Item.Type_Name := Field_Type.Name;
+                                 end;
+                                 Record_Result.Fields.Append (Item);
+                                 declare
+                                    Variant_Field : GM.Variant_Field;
+                                 begin
+                                    Variant_Field.Name := Name;
+                                    Variant_Field.Type_Name := Item.Type_Name;
+                                    Variant_Field.Is_Others := Alternative.Is_Others;
+                                    Variant_Field.Choice := Variant_Choice;
+                                    if Variant_Choice.Kind = GM.Scalar_Value_Boolean then
+                                       Variant_Field.When_True := Variant_Choice.Bool_Value;
+                                    end if;
+                                    Record_Result.Variant_Fields.Append (Variant_Field);
+                                 end;
+                              end loop;
                            end loop;
-                        end loop;
-                     end;
-                  end loop;
-               end;
+                        end;
+                     end loop;
+                  end;
                end if;
                if Inferred_Reference then
                   Put_Type (Type_Env, Hidden_Target_Name, Record_Result);
@@ -5083,6 +5268,230 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Objects : Type_Maps.Map;
       Task_Priorities  : Task_Priority_Vectors.Vector;
       Result           : CM.Resolved_Unit;
+      Completed_Local_Type_Decls   : Type_Decl_Vectors.Vector;
+      Completed_Local_Type_Names   : String_Vectors.Vector;
+      Completed_Local_Type_Indexes : String_Index_Maps.Map;
+      Pending_Hidden_Targets       : String_Vectors.Vector;
+      Family_By_Name               : String_Index_Maps.Map;
+      Families                     : Recursive_Family_Vectors.Vector;
+
+      procedure Analyze_Recursive_Type_Families is
+         procedure Register_Completed_Local_Type (Decl : CM.Type_Decl) is
+            Name : constant String := UString_Value (Decl.Name);
+            Key  : constant String := Canonical_Name (Name);
+         begin
+            if not Completed_Local_Type_Indexes.Contains (Key) then
+               Completed_Local_Type_Decls.Append (Decl);
+               Completed_Local_Type_Names.Append (Name);
+               Completed_Local_Type_Indexes.Include
+                 (Key,
+                  Positive (Completed_Local_Type_Decls.Last_Index));
+            end if;
+         end Register_Completed_Local_Type;
+
+         procedure Append_Local_Type_Dependency
+           (Deps : in out String_Vectors.Vector;
+            Name : String) is
+            Key : constant String := Canonical_Name (Name);
+         begin
+            if Completed_Local_Type_Indexes.Contains (Key) then
+               Append_Unique_String (Deps, Name);
+            end if;
+         end Append_Local_Type_Dependency;
+
+         procedure Collect_Type_Spec_Dependencies
+           (Spec : CM.Type_Spec;
+            Deps : in out String_Vectors.Vector) is
+         begin
+            case Spec.Kind is
+               when CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication =>
+                  if UString_Value (Spec.Name)'Length > 0 then
+                     Append_Local_Type_Dependency (Deps, UString_Value (Spec.Name));
+                  end if;
+               when CM.Type_Spec_Growable_Array =>
+                  if Spec.Element_Type /= null then
+                     Collect_Type_Spec_Dependencies (Spec.Element_Type.all, Deps);
+                  end if;
+               when CM.Type_Spec_Tuple =>
+                  for Item of Spec.Tuple_Elements loop
+                     Collect_Type_Spec_Dependencies (Item.all, Deps);
+                  end loop;
+               when CM.Type_Spec_Access_Def =>
+                  if Spec.Target_Name /= null then
+                     Append_Local_Type_Dependency
+                       (Deps,
+                        Flatten_Name (Spec.Target_Name));
+                  end if;
+               when others =>
+                  null;
+            end case;
+         end Collect_Type_Spec_Dependencies;
+
+         procedure Collect_Type_Decl_Dependencies
+           (Decl : CM.Type_Decl;
+            Deps : in out String_Vectors.Vector) is
+         begin
+            case Decl.Kind is
+               when CM.Type_Decl_Record =>
+                  if Decl.Has_Discriminant then
+                     Collect_Type_Spec_Dependencies (Decl.Discriminant.Disc_Type, Deps);
+                  end if;
+                  for Disc of Decl.Discriminants loop
+                     Collect_Type_Spec_Dependencies (Disc.Disc_Type, Deps);
+                  end loop;
+                  for Field_Decl of Decl.Components loop
+                     Collect_Type_Spec_Dependencies (Field_Decl.Field_Type, Deps);
+                  end loop;
+                  for Variant of Decl.Variants loop
+                     for Field_Decl of Variant.Components loop
+                        Collect_Type_Spec_Dependencies (Field_Decl.Field_Type, Deps);
+                     end loop;
+                  end loop;
+               when CM.Type_Decl_Growable_Array =>
+                  Collect_Type_Spec_Dependencies (Decl.Component_Type, Deps);
+               when CM.Type_Decl_Constrained_Array | CM.Type_Decl_Unconstrained_Array =>
+                  for Index_Item of Decl.Indexes loop
+                     if Index_Item.Name_Expr /= null then
+                        Append_Local_Type_Dependency
+                          (Deps,
+                           Flatten_Name (Index_Item.Name_Expr));
+                     end if;
+                  end loop;
+                  Collect_Type_Spec_Dependencies (Decl.Component_Type, Deps);
+               when CM.Type_Decl_Access =>
+                  if Decl.Access_Type.Target_Name /= null then
+                     Append_Local_Type_Dependency
+                       (Deps,
+                        Flatten_Name (Decl.Access_Type.Target_Name));
+                  end if;
+               when others =>
+                  null;
+            end case;
+         end Collect_Type_Decl_Dependencies;
+      begin
+         for Item of Unit.Items loop
+            if Item.Kind = CM.Item_Type_Decl
+              and then Item.Type_Data.Kind /= CM.Type_Decl_Incomplete
+            then
+               Register_Completed_Local_Type (Item.Type_Data);
+            end if;
+         end loop;
+
+         if Completed_Local_Type_Decls.Is_Empty then
+            return;
+         end if;
+
+         declare
+            subtype Local_Type_Index is Positive range
+              1 .. Positive (Completed_Local_Type_Decls.Length);
+            type Natural_Array is array (Local_Type_Index) of Natural;
+            type Boolean_Array is array (Local_Type_Index) of Boolean;
+            type Dependency_Array is array (Local_Type_Index) of String_Vectors.Vector;
+
+            Adjacency      : Dependency_Array;
+            Has_Self_Edge  : Boolean_Array := (others => False);
+            Indexes        : Natural_Array := (others => 0);
+            Lowlinks       : Natural_Array := (others => 0);
+            On_Stack       : Boolean_Array := (others => False);
+            Stack          : String_Vectors.Vector;
+            Next_Index     : Natural := 0;
+
+            procedure Strong_Connect (Vertex : Local_Type_Index) is
+            begin
+               Next_Index := Next_Index + 1;
+               Indexes (Vertex) := Next_Index;
+               Lowlinks (Vertex) := Next_Index;
+               Stack.Append (Completed_Local_Type_Names (Vertex));
+               On_Stack (Vertex) := True;
+
+               for Dep of Adjacency (Vertex) loop
+                  declare
+                     Dep_Index : constant Local_Type_Index :=
+                       Local_Type_Index
+                         (Completed_Local_Type_Indexes.Element (Canonical_Name (Dep)));
+                  begin
+                     if Indexes (Dep_Index) = 0 then
+                        Strong_Connect (Dep_Index);
+                        if Lowlinks (Dep_Index) < Lowlinks (Vertex) then
+                           Lowlinks (Vertex) := Lowlinks (Dep_Index);
+                        end if;
+                     elsif On_Stack (Dep_Index)
+                       and then Indexes (Dep_Index) < Lowlinks (Vertex)
+                     then
+                        Lowlinks (Vertex) := Indexes (Dep_Index);
+                     end if;
+                  end;
+               end loop;
+
+               if Lowlinks (Vertex) = Indexes (Vertex) then
+                  declare
+                     Family : Recursive_Family_Info;
+                  begin
+                     loop
+                        declare
+                           Member_Name : constant String := Stack.Last_Element;
+                           Member_Index : constant Local_Type_Index :=
+                             Local_Type_Index
+                               (Completed_Local_Type_Indexes.Element
+                                  (Canonical_Name (Member_Name)));
+                           Member_Decl : constant CM.Type_Decl :=
+                             Completed_Local_Type_Decls (Member_Index);
+                        begin
+                           Stack.Delete_Last;
+                           On_Stack (Member_Index) := False;
+                           Family.Members.Append (Member_Name);
+                           if Member_Decl.Kind /= CM.Type_Decl_Record then
+                              Append_Unique_String
+                                (Family.Non_Record_Kinds,
+                                 Type_Decl_Kind_Label (Member_Decl.Kind));
+                           end if;
+                           exit when Member_Index = Vertex;
+                        end;
+                     end loop;
+
+                     Family.Is_Recursive :=
+                       Natural (Family.Members.Length) > 1
+                       or else Has_Self_Edge (Vertex);
+                     Family.Is_Admitted_Record_Family :=
+                       Family.Is_Recursive and then Family.Non_Record_Kinds.Is_Empty;
+
+                     if Family.Is_Recursive then
+                        Families.Append (Family);
+                        declare
+                           Family_Index : constant Positive := Families.Last_Index;
+                        begin
+                           for Member_Name of Family.Members loop
+                              Family_By_Name.Include
+                                (Canonical_Name (Member_Name),
+                                 Family_Index);
+                           end loop;
+                        end;
+                     end if;
+                  end;
+               end if;
+            end Strong_Connect;
+         begin
+            for Index in Local_Type_Index loop
+               Collect_Type_Decl_Dependencies
+                 (Completed_Local_Type_Decls (Index),
+                  Adjacency (Index));
+               for Dep of Adjacency (Index) loop
+                  if Canonical_Name (Dep) =
+                    Canonical_Name (Completed_Local_Type_Names (Index))
+                  then
+                     Has_Self_Edge (Index) := True;
+                     exit;
+                  end if;
+               end loop;
+            end loop;
+
+            for Index in Local_Type_Index loop
+               if Indexes (Index) = 0 then
+                  Strong_Connect (Index);
+               end if;
+            end loop;
+         end;
+      end Analyze_Recursive_Type_Families;
 
       procedure Add_Imported_Interface (Item : SI.Loaded_Interface) is
          Package_Name : constant String := UString_Value (Item.Package_Name);
@@ -5235,6 +5644,8 @@ package body Safe_Frontend.Check_Resolve is
          end if;
       end loop;
 
+      Analyze_Recursive_Type_Families;
+
       for Item of Unit.Items loop
          if Unit.Kind = CM.Unit_Entry and then Item_Is_Public (Item) then
             Raise_Diag
@@ -5253,33 +5664,44 @@ package body Safe_Frontend.Check_Resolve is
 
          case Item.Kind is
             when CM.Item_Type_Decl =>
-               declare
-                  Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Declaration
-                      (Item.Type_Data,
-                       Type_Env,
-                       Const_Env,
-                       UString_Value (Unit.Path));
-               begin
-                  if not Is_Builtin_Name (UString_Value (Info.Name)) then
-                     declare
-                        Hidden_Target : constant String :=
-                          (if FT.Lowercase (UString_Value (Info.Kind)) = "access" and then Info.Has_Target
-                           then UString_Value (Info.Target)
-                           else "");
-                     begin
-                        Result.Types.Append (Info);
-                        if Hidden_Target'Length > 0
-                          and then Hidden_Target'Length >= 16
-                          and then Hidden_Target (Hidden_Target'First .. Hidden_Target'First + 15) = "safe_ref_target_"
-                          and then Has_Type (Type_Env, Hidden_Target)
-                        then
-                           Result.Types.Append (Get_Type (Type_Env, Hidden_Target));
-                        end if;
-                     end;
-                  end if;
-                  Put_Type (Package_Vars, UString_Value (Info.Name), Info);
-               end;
+               if Item.Type_Data.Kind = CM.Type_Decl_Incomplete
+                 and then Completed_Local_Type_Indexes.Contains
+                   (Canonical_Name (UString_Value (Item.Type_Data.Name)))
+               then
+                  null;
+               else
+                  declare
+                     Info : constant GM.Type_Descriptor :=
+                       Resolve_Type_Declaration
+                         (Item.Type_Data,
+                          Type_Env,
+                          Const_Env,
+                          UString_Value (Unit.Path),
+                          Family_By_Name,
+                          Families);
+                  begin
+                     if not Is_Builtin_Name (UString_Value (Info.Name)) then
+                        declare
+                           Hidden_Target : constant String :=
+                             (if FT.Lowercase (UString_Value (Info.Kind)) = "access" and then Info.Has_Target
+                              then UString_Value (Info.Target)
+                              else "");
+                        begin
+                           Result.Types.Append (Info);
+                           if Hidden_Target'Length > 0
+                             and then Hidden_Target'Length >= 16
+                             and then Hidden_Target (Hidden_Target'First .. Hidden_Target'First + 15) = "safe_ref_target_"
+                             and then Has_Type (Type_Env, Hidden_Target)
+                           then
+                              Append_Unique_String
+                                (Pending_Hidden_Targets,
+                                 Hidden_Target);
+                           end if;
+                        end;
+                     end if;
+                     Put_Type (Package_Vars, UString_Value (Info.Name), Info);
+                  end;
+               end if;
             when CM.Item_Subtype_Decl =>
                declare
                   Base : constant GM.Type_Descriptor :=
@@ -5433,6 +5855,10 @@ package body Safe_Frontend.Check_Resolve is
             when others =>
                null;
          end case;
+      end loop;
+
+      for Hidden_Target of Pending_Hidden_Targets loop
+         Result.Types.Append (Get_Type (Type_Env, Hidden_Target));
       end loop;
 
       declare

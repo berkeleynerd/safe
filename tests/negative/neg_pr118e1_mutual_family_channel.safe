@@ -1,0 +1,16 @@
+-- Test: neg_pr118e1_mutual_family_channel
+-- Description: Mutual-family members are still rejected as channel element types.
+-- Expected: REJECT source_frontend_error
+
+package neg_pr118e1_mutual_family_channel
+
+   type left_node;
+   type right_node;
+
+   type left_node is record
+      peer : right_node;
+
+   type right_node is record
+      peer : left_node;
+
+   channel updates : left_node capacity 1;

@@ -1,0 +1,13 @@
+-- Test: neg_pr118e1_mixed_recursive_family
+-- Description: Recursive families with non-record members remain rejected.
+--   A record/growable-array cycle is not admitted as a reference family.
+-- Expected: REJECT unsupported_source_construct
+
+package neg_pr118e1_mixed_recursive_family
+
+   type node;
+
+   type node_list is array of node;
+
+   type node is record
+      items : node_list;

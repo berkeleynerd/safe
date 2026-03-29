@@ -1,0 +1,25 @@
+package pr118e1_mutual_family_build
+
+   subtype count is integer (0 to 100);
+
+   type left_node;
+   type right_node;
+
+   type left_node is record
+      value : count;
+      peer  : right_node;
+
+   type right_node is record
+      value : count;
+      peer  : left_node;
+
+   function bump (item : mut not null left_node)
+      item.value = item.value + 1;
+
+   source : not null left_node = (value = 40, peer = null);
+   mirror : left_node = null;
+
+   bump (source);
+   mirror = source;
+
+   print (mirror.value)
