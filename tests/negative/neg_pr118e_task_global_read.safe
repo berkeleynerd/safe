@@ -1,0 +1,14 @@
+-- Test: neg_pr118e_task_global_read
+-- Description: A task body may not read a package-scope variable directly.
+--   Direct reads of package globals from task bodies are rejected.
+-- Expected: REJECT task_variable_ownership
+
+package neg_pr118e_task_global_read
+
+   shared : integer = 42;
+
+   task reader
+      local : integer = 0;
+
+      loop
+         local = shared;

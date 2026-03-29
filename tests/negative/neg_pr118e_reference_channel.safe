@@ -1,0 +1,15 @@
+-- Test: neg_pr118e_reference_channel
+-- Description: A channel element type that is a reference-bearing composite is rejected.
+--   An outer record whose field transitively contains an inferred reference root
+--   is itself reference-bearing and cannot be used as a channel element type.
+-- Expected: REJECT source_frontend_error
+
+package neg_pr118e_reference_channel
+
+   type node is record
+      next : node;
+
+   type envelope is record
+      data : node;
+
+   channel data_ch : envelope capacity 1;

@@ -1,0 +1,8 @@
+-- Test: neg_pr118e_null_on_value
+-- Description: null is illegal on a pure value binding.
+--   Only inferred reference-typed bindings may be null in PR11.8e.
+-- Expected: REJECT source_frontend_error
+
+package neg_pr118e_null_on_value
+
+   value : integer = null;

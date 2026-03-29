@@ -1,0 +1,13 @@
+-- Test: neg_pr118e_task_global_write
+-- Description: A task body may not write to a package-scope variable directly.
+--   Direct assignment to package globals from task bodies is rejected.
+-- Expected: REJECT task_variable_ownership
+
+package neg_pr118e_task_global_write
+
+   shared : integer = 0;
+
+   task writer
+
+      loop
+         shared = 1;

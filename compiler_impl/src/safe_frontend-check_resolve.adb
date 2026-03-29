@@ -4572,10 +4572,25 @@ package body Safe_Frontend.Check_Resolve is
             end;
             Result.Unconstrained := Decl.Kind = CM.Type_Decl_Unconstrained_Array;
          when CM.Type_Decl_Growable_Array =>
-            Result :=
-              Make_Growable_Array_Type
-                (Resolve_Type_Spec (Decl.Component_Type, Type_Env, Const_Env, Path));
-            Result.Name := Decl.Name;
+            declare
+               Component : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec (Decl.Component_Type, Type_Env, Const_Env, Path);
+            begin
+               if FT.Lowercase (UString_Value (Component.Kind)) = "incomplete"
+                 and then FT.Lowercase (UString_Value (Component.Name)) =
+                          FT.Lowercase (UString_Value (Decl.Name))
+               then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Decl.Span,
+                        Message =>
+                          "self-recursive array types are not admitted in PR11.8e; "
+                          & "use a self-recursive record to form a reference cycle"));
+               end if;
+               Result := Make_Growable_Array_Type (Component);
+               Result.Name := Decl.Name;
+            end;
          when CM.Type_Decl_Record =>
             declare
                Record_Result          : GM.Type_Descriptor;

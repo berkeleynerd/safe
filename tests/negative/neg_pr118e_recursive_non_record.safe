@@ -1,0 +1,8 @@
+-- Test: neg_pr118e_recursive_non_record
+-- Description: A self-recursive growable array type is rejected in PR11.8e.
+--   Only direct self-recursive record declarations form valid reference cycles.
+-- Expected: REJECT unsupported_source_construct
+
+package neg_pr118e_recursive_non_record
+
+   type node_list is array of node_list;
