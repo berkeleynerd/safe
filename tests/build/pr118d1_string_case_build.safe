@@ -1,0 +1,21 @@
+package pr118d1_string_case_build
+
+   word : string = "Ada";
+   mark : string (1) = 'A';
+   score : integer = 0;
+
+   case word
+      when "Ada"
+         score = score + 1;
+      when "Bob"
+         score = score + 10;
+      when others
+         score = score + 100;
+
+   case mark
+      when 'A'
+         score = score + 2;
+      when others
+         score = score + 20;
+
+   print (score)

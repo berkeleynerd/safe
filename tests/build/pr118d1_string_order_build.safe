@@ -1,0 +1,19 @@
+package pr118d1_string_order_build
+
+   left : string (3) = "ant";
+   right : string = "bee";
+   score : integer = 0;
+
+   if left < right
+      score = score + 1;
+
+   if left <= "ant"
+      score = score + 2;
+
+   if right > left
+      score = score + 4;
+
+   if right >= "bee"
+      score = score + 8;
+
+   print (score)

@@ -1,15 +1,19 @@
 -- Test: neg_case_on_string
--- Description: Case on String remains outside PR11.2.
+-- Description: String case choices reject non-literal call expressions.
 -- Expected: REJECT unsupported_source_construct
 
 package neg_case_on_string
 
-   function lookup (name : in string) returns integer
+   function lookup returns string
+      return "Ada";
 
-      case name
-         when 'a'
-            return 1;
+   name : string = "Ada";
+   code : integer = 0;
 
-         when others
-            return 0;
+   case name
+      when lookup ()
+         code = 1;
+      when others
+         code = 0;
 
+   print (code)

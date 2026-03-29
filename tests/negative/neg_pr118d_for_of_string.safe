@@ -1,9 +1,15 @@
+-- Test: neg_pr118d_for_of_string
+-- Description: String for-of iteration remains limited to string object names.
+-- Expected: REJECT source_frontend_error
+
 package neg_pr118d_for_of_string
 
-   value : string = "Ada";
+   function make_value returns string
+      return "Ada";
+
    total : integer = 0;
 
-   for item of value
+   for item of make_value ()
       total = total + item.length;
 
    print (total)

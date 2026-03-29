@@ -1,0 +1,22 @@
+-- Test: neg_pr118d1_growable_to_fixed_guard_alias
+-- Description: Exact-length narrowing remains limited to direct growable .length guards.
+-- Expected: REJECT source_frontend_error
+
+package neg_pr118d1_growable_to_fixed_guard_alias
+
+   subtype pair_index is integer (1 to 2);
+   type pair is array (pair_index) of integer;
+   type int_list is array of integer;
+
+   function bad_value returns integer
+
+      values : int_list = [10, 20];
+      len : integer = values.length;
+
+      if len == 2
+         fixed : pair = values;
+         return fixed (1);
+
+      return 0;
+
+   print (bad_value ())

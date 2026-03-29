@@ -3316,6 +3316,18 @@ package body Safe_Frontend.Mir_Analyze is
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map) return Boolean
    is
+      function Is_Length_Select (Expr : GM.Expr_Access) return Boolean is
+         Prefix_Type : GM.Type_Descriptor;
+      begin
+         if Expr = null or else Expr.Kind /= GM.Expr_Select then
+            return False;
+         elsif UString_Value (Expr.Selector) /= "length" or else Expr.Prefix = null then
+            return False;
+         end if;
+
+         Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
+         return Lower (UString_Value (Prefix_Type.Kind)) in "string" | "array";
+      end Is_Length_Select;
    begin
       if Condition = null or else Condition.Kind /= GM.Expr_Binary then
          return False;
@@ -3345,6 +3357,15 @@ package body Safe_Frontend.Mir_Analyze is
               and then
               Is_Integer_Type (Expr_Type (Condition.Right, Var_Types, Type_Env, Functions));
          end if;
+      elsif UString_Value (Condition.Operator) = "==" then
+         return
+           (Is_Length_Select (Condition.Left)
+            and then Condition.Right /= null
+            and then Condition.Right.Kind = GM.Expr_Int)
+           or else
+           (Is_Length_Select (Condition.Right)
+            and then Condition.Left /= null
+            and then Condition.Left.Kind = GM.Expr_Int);
       end if;
 
       return False;
@@ -3365,7 +3386,7 @@ package body Safe_Frontend.Mir_Analyze is
       Result.Highlight_Span := Focus;
       Result.Notes.Append
         (FT.To_UString
-           ("supported while-loop proof shapes are structural `Cursor != null` traversal and simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions."));
+           ("supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, and direct exact-length guards like `values.length == N`."));
       Result.Notes.Append
         (FT.To_UString
            ("rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant."));

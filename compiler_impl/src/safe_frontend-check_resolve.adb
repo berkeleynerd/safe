@@ -65,6 +65,12 @@ package body Safe_Frontend.Check_Resolve is
       Equivalent_Keys => "=",
       "="             => Equal_Static_Value);
 
+   package Exact_Length_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Natural,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
    type Task_Priority_Info is record
       Priority : Long_Long_Integer := 0;
    end record;
@@ -514,6 +520,12 @@ package body Safe_Frontend.Check_Resolve is
       Choice    : GM.Type_Descriptor;
       Type_Env  : Type_Maps.Map) return Boolean;
 
+   function Expr_Type
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return GM.Type_Descriptor;
+
    function Resolve_Type
      (Name     : String;
       Type_Env : Type_Maps.Map;
@@ -609,7 +621,8 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types   : Type_Maps.Map;
       Functions   : Function_Maps.Map;
       Type_Env    : Type_Maps.Map;
-      Const_Env   : Static_Value_Maps.Map) return Boolean;
+      Const_Env   : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map) return Boolean;
 
    function Is_Boolean_Type
      (Info     : GM.Type_Descriptor;
@@ -956,6 +969,8 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Is_Boolean_Type (Scrutinee, Type_Env) then
          return Is_Boolean_Type (Choice, Type_Env);
+      elsif Is_String_Type (Scrutinee, Type_Env) then
+         return Is_String_Type (Choice, Type_Env);
       elsif Is_Binary_Type (Scrutinee, Type_Env) then
          return Is_Binary_Type (Choice, Type_Env)
            and then Binary_Bit_Width (Scrutinee, Type_Env) = Binary_Bit_Width (Choice, Type_Env);
@@ -1250,6 +1265,104 @@ package body Safe_Frontend.Check_Resolve is
       end if;
       return "";
    end Root_Name;
+
+   function Exact_Length_Fact_Name (Expr : CM.Expr_Access) return String is
+   begin
+      if Expr = null then
+         return "";
+      elsif Expr.Kind in CM.Expr_Ident | CM.Expr_Select then
+         return Flatten_Name (Expr);
+      elsif Expr.Kind in CM.Expr_Annotated | CM.Expr_Conversion then
+         return Exact_Length_Fact_Name (Expr.Inner);
+      end if;
+      return "";
+   end Exact_Length_Fact_Name;
+
+   procedure Remove_Exact_Length_Fact
+     (Facts : in out Exact_Length_Maps.Map;
+      Name  : String) is
+      Key : constant String := Canonical_Name (Name);
+   begin
+      if Key /= "" and then Facts.Contains (Key) then
+         Facts.Delete (Key);
+      end if;
+   end Remove_Exact_Length_Fact;
+
+   function Try_Direct_Growable_Length_Guard
+     (Condition  : CM.Expr_Access;
+      Var_Types  : Type_Maps.Map;
+      Functions  : Function_Maps.Map;
+      Type_Env   : Type_Maps.Map;
+      Guard_Name : out FT.UString;
+      Length     : out Natural) return Boolean
+   is
+      function Try_Length_Expr
+        (Expr : CM.Expr_Access;
+         Name : out FT.UString) return Boolean
+      is
+         Prefix_Type : GM.Type_Descriptor;
+      begin
+         Name := FT.To_UString ("");
+         if Expr = null
+           or else Expr.Kind /= CM.Expr_Select
+           or else UString_Value (Expr.Selector) /= "length"
+         then
+            return False;
+         end if;
+
+         Name := FT.To_UString (Exact_Length_Fact_Name (Expr.Prefix));
+         if UString_Value (Name) = "" then
+            return False;
+         end if;
+
+         Prefix_Type := Base_Type (Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env), Type_Env);
+         return FT.Lowercase (UString_Value (Prefix_Type.Kind)) = "array"
+           and then Prefix_Type.Growable;
+      end Try_Length_Expr;
+
+      function Try_Length_Literal
+        (Expr : CM.Expr_Access;
+         Value : out Natural) return Boolean
+      is
+      begin
+         Value := 0;
+         if Expr = null or else Expr.Kind /= CM.Expr_Int or else Expr.Int_Value < 0 then
+            return False;
+         end if;
+         if Expr.Int_Value > CM.Wide_Integer (Natural'Last) then
+            return False;
+         end if;
+         Value := Natural (Expr.Int_Value);
+         return True;
+      end Try_Length_Literal;
+
+      Left_Name  : FT.UString := FT.To_UString ("");
+      Right_Name : FT.UString := FT.To_UString ("");
+   begin
+      Guard_Name := FT.To_UString ("");
+      Length := 0;
+
+      if Condition = null
+        or else Condition.Kind /= CM.Expr_Binary
+        or else UString_Value (Condition.Operator) /= "=="
+      then
+         return False;
+      end if;
+
+      if Try_Length_Expr (Condition.Left, Left_Name)
+        and then Try_Length_Literal (Condition.Right, Length)
+      then
+         Guard_Name := Left_Name;
+         return True;
+      elsif Try_Length_Expr (Condition.Right, Right_Name)
+        and then Try_Length_Literal (Condition.Left, Length)
+      then
+         Guard_Name := Right_Name;
+         return True;
+      end if;
+
+      return False;
+   end Try_Direct_Growable_Length_Guard;
 
    function Try_Static_Value
      (Expr      : CM.Expr_Access;
@@ -2766,14 +2879,8 @@ package body Safe_Frontend.Check_Resolve is
                         Raise_Diag
                           (CM.Source_Frontend_Error
                              (Path    => Path,
-                              Span    => Expr.Span,
-                              Message => "string comparison requires string operands"));
-                     elsif Op not in "==" | "!=" then
-                        Raise_Diag
-                          (CM.Unsupported_Source_Construct
-                             (Path    => Path,
-                              Span    => Expr.Span,
-                              Message => "string ordering comparisons are outside PR11.8d"));
+                             Span    => Expr.Span,
+                             Message => "string comparison requires string operands"));
                      end if;
                   end if;
                end if;
@@ -3125,7 +3232,8 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types   : Type_Maps.Map;
       Functions   : Function_Maps.Map;
       Type_Env    : Type_Maps.Map;
-      Const_Env   : Static_Value_Maps.Map) return Boolean
+      Const_Env   : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map) return Boolean
    is
       Target_Base       : constant GM.Type_Descriptor := Base_Type (Target, Type_Env);
       Target_Length     : Natural := 0;
@@ -3209,6 +3317,40 @@ package body Safe_Frontend.Check_Resolve is
             return Source_Length = Target_Length
               and then Compatible_Type (Source_Component, Target_Component, Type_Env);
          end;
+      elsif Source_Expr.Kind in CM.Expr_Ident | CM.Expr_Select then
+         declare
+            Source_Name : constant String := Exact_Length_Fact_Name (Source_Expr);
+         begin
+            if Source_Name = ""
+              or else not Exact_Length_Facts.Contains (Canonical_Name (Source_Name))
+            then
+               return False;
+            end if;
+
+            declare
+               Source_Base : constant GM.Type_Descriptor :=
+                 Base_Type
+                   (Expr_Type (Source_Expr, Var_Types, Functions, Type_Env),
+                    Type_Env);
+            begin
+               if FT.Lowercase (UString_Value (Source_Base.Kind)) /= "array"
+                 or else not Source_Base.Growable
+                 or else not Source_Base.Has_Component_Type
+               then
+                  return False;
+               end if;
+
+               Source_Length := Exact_Length_Facts.Element (Canonical_Name (Source_Name));
+               Source_Component :=
+                 Resolve_Type
+                   (UString_Value (Source_Base.Component_Type),
+                    Type_Env,
+                    "",
+                    FT.Null_Span);
+               return Source_Length = Target_Length
+                 and then Compatible_Type (Source_Component, Target_Component, Type_Env);
+            end;
+         end;
       end if;
 
       return False;
@@ -3268,7 +3410,8 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types   : Type_Maps.Map;
       Functions   : Function_Maps.Map;
       Type_Env    : Type_Maps.Map;
-      Const_Env   : Static_Value_Maps.Map) return Boolean
+      Const_Env   : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map) return Boolean
    is
    begin
       if Static_Growable_To_Fixed_Narrowing_OK
@@ -3277,7 +3420,8 @@ package body Safe_Frontend.Check_Resolve is
          Var_Types,
          Functions,
          Type_Env,
-         Const_Env)
+         Const_Env,
+         Exact_Length_Facts)
       then
          return True;
       end if;
@@ -3643,6 +3787,7 @@ package body Safe_Frontend.Check_Resolve is
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map;
       Path      : String) return CM.Object_Decl
    is
       Result : CM.Object_Decl := Decl;
@@ -3743,7 +3888,8 @@ package body Safe_Frontend.Check_Resolve is
             Var_Types,
             Functions,
             Type_Env,
-            Const_Env)
+            Const_Env,
+            Exact_Length_Facts)
          then
             Result.Initializer.Type_Name := Result.Type_Info.Name;
             Static_Slice_Narrowing_OK := True;
@@ -3760,11 +3906,12 @@ package body Safe_Frontend.Check_Resolve is
            and then not Compatible_Source_Expr_To_Target_Type
            (Result.Initializer,
             Expr_Type (Result.Initializer, Var_Types, Functions, Type_Env),
-            Result.Type_Info,
-            Var_Types,
-            Functions,
-            Type_Env,
-            Const_Env)
+           Result.Type_Info,
+           Var_Types,
+           Functions,
+           Type_Env,
+            Const_Env,
+            Exact_Length_Facts)
          then
             Raise_Diag
               (CM.Source_Frontend_Error
@@ -3872,6 +4019,7 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Objects : Type_Maps.Map;
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map;
       Path        : String) return CM.Statement_Access;
 
    function Normalize_Statement_List
@@ -3883,12 +4031,14 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Objects : Type_Maps.Map;
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map;
       Path        : String) return CM.Statement_Access_Vectors.Vector
    is
       Result      : CM.Statement_Access_Vectors.Vector;
       Local_Types : Type_Maps.Map := Var_Types;
       Current_Constants : Type_Maps.Map := Local_Constants;
       Current_Static_Constants : Static_Value_Maps.Map := Local_Static_Constants;
+      Current_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
    begin
       for Item of Statements loop
          declare
@@ -3902,6 +4052,7 @@ package body Safe_Frontend.Check_Resolve is
                  Imported_Objects,
                  Current_Constants,
                  Current_Static_Constants,
+                 Current_Exact_Length_Facts,
                  Path);
          begin
             Result.Append (Normalized);
@@ -3919,6 +4070,7 @@ package body Safe_Frontend.Check_Resolve is
                      Normalized.Decl.Initializer,
                      Normalized.Decl.Is_Constant,
                      Current_Static_Constants);
+                  Remove_Exact_Length_Fact (Current_Exact_Length_Facts, UString_Value (Name));
                end loop;
             elsif Normalized.Kind = CM.Stmt_Destructure_Decl then
                declare
@@ -3937,8 +4089,36 @@ package body Safe_Frontend.Check_Resolve is
                      Remove_Static_Value
                        (Current_Static_Constants,
                         UString_Value (Normalized.Destructure.Names (Index)));
+                     Remove_Exact_Length_Fact
+                       (Current_Exact_Length_Facts,
+                        UString_Value (Normalized.Destructure.Names (Index)));
                   end loop;
                end;
+            elsif Normalized.Kind = CM.Stmt_Assign then
+               Remove_Exact_Length_Fact
+                 (Current_Exact_Length_Facts,
+                  Exact_Length_Fact_Name (Normalized.Target));
+            elsif Normalized.Kind = CM.Stmt_Call
+              and then Normalized.Call /= null
+              and then Has_Function (Functions, Flatten_Name (Normalized.Call.Callee))
+            then
+               declare
+                  Info : constant Function_Info :=
+                    Get_Function (Functions, Flatten_Name (Normalized.Call.Callee));
+               begin
+                  for Index in Info.Params.First_Index .. Info.Params.Last_Index loop
+                     exit when Index > Normalized.Call.Args.Last_Index;
+                     if UString_Value (Info.Params (Index).Mode) = "mut" then
+                        Remove_Exact_Length_Fact
+                          (Current_Exact_Length_Facts,
+                           Exact_Length_Fact_Name (Normalized.Call.Args (Index)));
+                     end if;
+                  end loop;
+               end;
+            elsif Normalized.Kind in CM.Stmt_Receive | CM.Stmt_Try_Receive then
+               Remove_Exact_Length_Fact
+                 (Current_Exact_Length_Facts,
+                  Exact_Length_Fact_Name (Normalized.Target));
             end if;
          end;
       end loop;
@@ -3954,6 +4134,7 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Objects : Type_Maps.Map;
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
+      Exact_Length_Facts : Exact_Length_Maps.Map;
       Path        : String) return CM.Statement_Access
    is
       Result         : constant CM.Statement_Access := new CM.Statement'(Stmt.all);
@@ -3970,7 +4151,13 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_Object_Decl =>
             Result.Decl :=
               Normalize_Object_Decl
-                (Stmt.Decl, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+                (Stmt.Decl,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Local_Static_Constants,
+                 Exact_Length_Facts,
+                 Path);
 
          when CM.Stmt_Destructure_Decl =>
             Result.Destructure := Stmt.Destructure;
@@ -4007,7 +4194,8 @@ package body Safe_Frontend.Check_Resolve is
                Var_Types,
                Functions,
                Type_Env,
-               Local_Static_Constants)
+               Local_Static_Constants,
+               Exact_Length_Facts)
             then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -4090,7 +4278,8 @@ package body Safe_Frontend.Check_Resolve is
                   Var_Types,
                   Functions,
                   Type_Env,
-                  Local_Static_Constants)
+                  Local_Static_Constants,
+                  Exact_Length_Facts)
                then
                   Result.Value.Type_Name := Target_Info.Name;
                end if;
@@ -4108,7 +4297,8 @@ package body Safe_Frontend.Check_Resolve is
                Var_Types,
                Functions,
                Type_Env,
-               Local_Static_Constants)
+               Local_Static_Constants,
+               Exact_Length_Facts)
             then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -4125,24 +4315,56 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_If =>
             Result.Condition :=
               Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
-            Result.Then_Stmts :=
-              Normalize_Statement_List
-                (Stmt.Then_Stmts,
-                 Var_Types,
-                 Functions,
-                 Type_Env,
-                 Channel_Env,
-                 Imported_Objects,
-                 Local_Constants,
-                 Local_Static_Constants,
-                 Path);
+            declare
+               Then_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
+               Guard_Name : FT.UString := FT.To_UString ("");
+               Guard_Length : Natural := 0;
+            begin
+               if Try_Direct_Growable_Length_Guard
+                 (Result.Condition,
+                  Var_Types,
+                  Functions,
+                  Type_Env,
+                  Guard_Name,
+                  Guard_Length)
+               then
+                  Then_Exact_Length_Facts.Include
+                    (Canonical_Name (UString_Value (Guard_Name)), Guard_Length);
+               end if;
+               Result.Then_Stmts :=
+                 Normalize_Statement_List
+                   (Stmt.Then_Stmts,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    Imported_Objects,
+                    Local_Constants,
+                    Local_Static_Constants,
+                    Then_Exact_Length_Facts,
+                    Path);
+            end;
             Result.Elsifs.Clear;
             for Part of Stmt.Elsifs loop
                declare
                   New_Part : CM.Elsif_Part := Part;
+                  Elsif_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
+                  Guard_Name : FT.UString := FT.To_UString ("");
+                  Guard_Length : Natural := 0;
                begin
                   New_Part.Condition :=
                     Normalize_Expr_Checked (Part.Condition, Var_Types, Functions, Type_Env, Path);
+                  if Try_Direct_Growable_Length_Guard
+                    (New_Part.Condition,
+                     Var_Types,
+                     Functions,
+                     Type_Env,
+                     Guard_Name,
+                     Guard_Length)
+                  then
+                     Elsif_Exact_Length_Facts.Include
+                       (Canonical_Name (UString_Value (Guard_Name)), Guard_Length);
+                  end if;
                   New_Part.Statements :=
                     Normalize_Statement_List
                       (Part.Statements,
@@ -4153,6 +4375,7 @@ package body Safe_Frontend.Check_Resolve is
                        Imported_Objects,
                        Local_Constants,
                        Local_Static_Constants,
+                       Elsif_Exact_Length_Facts,
                        Path);
                   Result.Elsifs.Append (New_Part);
                end;
@@ -4168,23 +4391,42 @@ package body Safe_Frontend.Check_Resolve is
                     Imported_Objects,
                     Local_Constants,
                     Local_Static_Constants,
+                    Exact_Length_Facts,
                     Path);
             end if;
 
          when CM.Stmt_While =>
             Result.Condition :=
               Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
-            Result.Body_Stmts :=
-              Normalize_Statement_List
-                (Stmt.Body_Stmts,
-                 Var_Types,
-                 Functions,
-                 Type_Env,
-                 Channel_Env,
-                 Imported_Objects,
-                 Local_Constants,
-                 Local_Static_Constants,
-                 Path);
+            declare
+               Body_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
+               Guard_Name : FT.UString := FT.To_UString ("");
+               Guard_Length : Natural := 0;
+            begin
+               if Try_Direct_Growable_Length_Guard
+                 (Result.Condition,
+                  Var_Types,
+                  Functions,
+                  Type_Env,
+                  Guard_Name,
+                  Guard_Length)
+               then
+                  Body_Exact_Length_Facts.Include
+                    (Canonical_Name (UString_Value (Guard_Name)), Guard_Length);
+               end if;
+               Result.Body_Stmts :=
+                 Normalize_Statement_List
+                   (Stmt.Body_Stmts,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    Imported_Objects,
+                    Local_Constants,
+                    Local_Static_Constants,
+                    Body_Exact_Length_Facts,
+                    Path);
+            end;
 
          when CM.Stmt_Loop =>
             Result.Body_Stmts :=
@@ -4197,6 +4439,7 @@ package body Safe_Frontend.Check_Resolve is
                  Imported_Objects,
                  Local_Constants,
                  Local_Static_Constants,
+                 Exact_Length_Facts,
                  Path);
 
          when CM.Stmt_Exit =>
@@ -4219,24 +4462,20 @@ package body Safe_Frontend.Check_Resolve is
                        (CM.Source_Frontend_Error
                           (Path    => Path,
                            Span    => Result.Loop_Iterable.Span,
-                           Message => "`for ... of` requires an array object name"));
+                           Message => "`for ... of` requires an array or string object name"));
                   end if;
 
                   Iterable_Type :=
                     Expr_Type (Result.Loop_Iterable, Var_Types, Functions, Type_Env);
                   Base_Type_Info := Base_Type (Iterable_Type, Type_Env);
                   if Is_String_Type (Base_Type_Info, Type_Env) then
-                     Raise_Diag
-                       (CM.Unsupported_Source_Construct
-                          (Path    => Path,
-                           Span    => Result.Loop_Iterable.Span,
-                           Message => "string iteration is deferred to a later PR11.8d chunk"));
+                     Loop_Type := Make_Bounded_String_Type (1);
                   elsif not Is_Array_Type (Base_Type_Info, Type_Env) then
                      Raise_Diag
                        (CM.Source_Frontend_Error
                           (Path    => Path,
                            Span    => Result.Loop_Iterable.Span,
-                           Message => "`for ... of` expects an array object"));
+                           Message => "`for ... of` expects an array or string object"));
                   elsif not Base_Type_Info.Has_Component_Type then
                      Raise_Diag
                        (CM.Source_Frontend_Error
@@ -4265,14 +4504,14 @@ package body Safe_Frontend.Check_Resolve is
                           (Path    => Path,
                            Span    => Result.Loop_Iterable.Span,
                            Message => "`for ... of` currently supports only integer-indexed fixed arrays"));
+                  else
+                     Loop_Type :=
+                       Resolve_Type
+                         (UString_Value (Base_Type_Info.Component_Type),
+                          Type_Env,
+                          Path,
+                          Result.Loop_Iterable.Span);
                   end if;
-
-                  Loop_Type :=
-                    Resolve_Type
-                      (UString_Value (Base_Type_Info.Component_Type),
-                       Type_Env,
-                       Path,
-                       Result.Loop_Iterable.Span);
                end;
             else
                Result.Loop_Range := Stmt.Loop_Range;
@@ -4306,6 +4545,7 @@ package body Safe_Frontend.Check_Resolve is
                  Imported_Objects,
                  Current_Constants,
                  Current_Static_Constants,
+                 Exact_Length_Facts,
                  Path);
 
          when CM.Stmt_Call =>
@@ -4431,13 +4671,15 @@ package body Safe_Frontend.Check_Resolve is
                  Normalize_Expr_Checked (Stmt.Case_Expr, Var_Types, Functions, Type_Env, Path);
                Scrutinee_Type :=
                  Expr_Type (Result.Case_Expr, Var_Types, Functions, Type_Env);
-               if not Is_Discrete_Case_Type (Scrutinee_Type, Type_Env) then
+               if not Is_Discrete_Case_Type (Scrutinee_Type, Type_Env)
+                 and then not Is_String_Type (Scrutinee_Type, Type_Env)
+               then
                   Raise_Diag
                     (CM.Unsupported_Source_Construct
                        (Path    => Path,
                         Span    => Result.Case_Expr.Span,
                         Message =>
-                          "PR11.2 case expressions are limited to Boolean, integer, and Character"));
+                          "case expressions currently require boolean, integer-family, binary, or string scrutinees"));
                end if;
 
                Result.Case_Arms.Clear;
@@ -4451,6 +4693,15 @@ package body Safe_Frontend.Check_Resolve is
                      else
                         New_Arm.Choice :=
                           Normalize_Expr_Checked (Arm.Choice, Var_Types, Functions, Type_Env, Path);
+                        if Is_String_Type (Scrutinee_Type, Type_Env)
+                          and then New_Arm.Choice.Kind /= CM.Expr_String
+                        then
+                           Raise_Diag
+                             (CM.Unsupported_Source_Construct
+                                (Path    => Path,
+                                 Span    => New_Arm.Choice.Span,
+                                 Message => "string case choices currently require string literals"));
+                        end if;
                         Choice_Type :=
                           Expr_Type (New_Arm.Choice, Var_Types, Functions, Type_Env);
                         if not Case_Choice_Compatible (Scrutinee_Type, Choice_Type, Type_Env) then
@@ -4473,6 +4724,7 @@ package body Safe_Frontend.Check_Resolve is
                           Imported_Objects,
                           Local_Constants,
                           Local_Static_Constants,
+                          Exact_Length_Facts,
                           Path);
                      Result.Case_Arms.Append (New_Arm);
                   end;
@@ -4542,6 +4794,7 @@ package body Safe_Frontend.Check_Resolve is
                                    Imported_Objects,
                                    Local_Constants,
                                    Arm_Static_Constants,
+                                   Exact_Length_Facts,
                                    Path);
                            end;
                         when CM.Select_Arm_Delay =>
@@ -4577,6 +4830,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Imported_Objects,
                                 Local_Constants,
                                 Local_Static_Constants,
+                                Exact_Length_Facts,
                                 Path);
                         when others =>
                            null;
@@ -5765,6 +6019,7 @@ package body Safe_Frontend.Check_Resolve is
                        Functions,
                        Type_Env,
                        Const_Env,
+                       Exact_Length_Maps.Empty_Map,
                        UString_Value (Unit.Path));
                   Local_Decl   : CM.Resolved_Object_Decl;
                   Static_Value : CM.Static_Value;
@@ -5887,6 +6142,7 @@ package body Safe_Frontend.Check_Resolve is
               Imported_Objects,
               Visible_Constants,
               Visible_Static_Constants,
+              Exact_Length_Maps.Empty_Map,
               UString_Value (Unit.Path));
          Validate_Unit_Statements (Result.Statements, UString_Value (Unit.Path));
       end;
@@ -5936,6 +6192,7 @@ package body Safe_Frontend.Check_Resolve is
                           Functions,
                           Type_Env,
                           Visible_Static_Constants,
+                          Exact_Length_Maps.Empty_Map,
                           UString_Value (Unit.Path));
                   begin
                      Local_Decl := (others => <>);
@@ -5983,6 +6240,7 @@ package body Safe_Frontend.Check_Resolve is
                     Imported_Objects,
                     Visible_Constants,
                     Visible_Static_Constants,
+                    Exact_Length_Maps.Empty_Map,
                     UString_Value (Unit.Path));
 
                Result.Subprograms.Append (Subprogram);
@@ -6059,6 +6317,7 @@ package body Safe_Frontend.Check_Resolve is
                           Functions,
                           Type_Env,
                           Visible_Static_Constants,
+                          Exact_Length_Maps.Empty_Map,
                           UString_Value (Unit.Path));
                   begin
                      Local_Decl := (others => <>);
@@ -6106,6 +6365,7 @@ package body Safe_Frontend.Check_Resolve is
                     Imported_Objects,
                     Visible_Constants,
                     Visible_Static_Constants,
+                    Exact_Length_Maps.Empty_Map,
                     UString_Value (Unit.Path));
 
                if Natural (Task_Item.Statements.Length) /= 1

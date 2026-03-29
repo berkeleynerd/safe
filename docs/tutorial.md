@@ -182,7 +182,8 @@ The shipped PR11.8d conversion boundary is:
 
 - fixed -> growable works through normal target typing
 - growable -> fixed works only when the RHS length is syntactically exact at
-  the narrowing site, such as a bracket literal or a static name-based slice
+  the narrowing site, such as a bracket literal, a static name-based slice,
+  or a direct guarded exact-length check like `if values.length == 2`
 
 Example:
 
@@ -194,11 +195,15 @@ type pair is array (slot) of item;
 selected : pair = [7, 9];
 ```
 
-Still deferred beyond the current PR11.8d surface:
+The shipped PR11.8d.1 follow-up also adds:
 
-- string iteration
-- proof-based exact-length growable -> fixed narrowing
-- string `case`
+- string iteration with `for ch of s`, where each `ch` is `string (1)`
+- string ordering with `<`, `<=`, `>`, and `>=`
+- string `case` with literal choices
+
+Still deferred beyond the current PR11.8d / PR11.8d.1 surface:
+
+- broader proof-fact exact-length growable -> fixed narrowing
 - string discriminants
 - string and growable-array channel elements
 

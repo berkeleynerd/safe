@@ -442,6 +442,26 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr118d1_for_of_string_build.safe",
+        "5\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d1_string_order_build.safe",
+        "15\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d1_string_case_build.safe",
+        "3\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118d1_growable_to_fixed_guard_build.safe",
+        "10\n20\n10\n20\ndone\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118e1_mutual_family_build.safe",
         "41\n",
         False,
@@ -584,6 +604,11 @@ EMITTED_SHAPE_CASES = [
         "select-delay-no-blanket-warning-suppression",
         REPO_ROOT / "tests" / "concurrency" / "select_delay_local_scope.safe",
         ["pragma Warnings (Off);", "pragma Warnings (On);"],
+    ),
+    (
+        "string-case-no-ada-case",
+        REPO_ROOT / "tests" / "build" / "pr118d1_string_case_build.safe",
+        ["case word is", "case mark is"],
     ),
 ]
 

@@ -1541,7 +1541,7 @@ package body Safe_Frontend.Check_Parse is
    begin
       if Expr = null then
          return False;
-      elsif Expr.Kind in CM.Expr_Int | CM.Expr_Bool then
+      elsif Expr.Kind in CM.Expr_Int | CM.Expr_Bool | CM.Expr_String then
          return True;
       elsif Expr.Kind in CM.Expr_Call | CM.Expr_Apply
         and then Natural (Expr.Args.Length) = 1
@@ -1775,7 +1775,7 @@ package body Safe_Frontend.Check_Parse is
             elsif not Case_Choice_Is_Literal (Arm.Choice) then
                Reject_Unsupported
                  (State,
-                  "case arms currently support exactly one Boolean, integer, Character, or converted binary literal choice per arm");
+                  "case arms currently support exactly one Boolean, integer, string, Character, or converted binary literal choice per arm");
             end if;
          end if;
 

@@ -1,0 +1,24 @@
+package pr118d1_growable_to_fixed_guard_build
+
+   subtype pair_index is integer (5 to 6);
+   type pair is array (pair_index) of integer;
+   type int_list is array of integer;
+
+   function emit_values returns string
+
+      values : int_list = [10, 20];
+
+      if values.length == 2
+         fixed : pair = values;
+         print (fixed (5));
+         print (fixed (6));
+
+      while values.length == 2
+         again : pair = values;
+         print (again (5));
+         print (again (6));
+         values = [1];
+
+      return "done";
+
+   print (emit_values ())

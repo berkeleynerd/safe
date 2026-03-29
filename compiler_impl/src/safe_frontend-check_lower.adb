@@ -85,14 +85,70 @@ package body Safe_Frontend.Check_Lower is
       Type_Env.Include ("duration", BT.Duration_Type);
    end Add_Builtins;
 
+   function Bounded_String_Type (Bound : Natural) return GM.Type_Descriptor is
+      Result : GM.Type_Descriptor;
+   begin
+      Result.Name := FT.To_UString ("__bounded_string_" & Trimmed (Bound));
+      Result.Kind := FT.To_UString ("string");
+      Result.Has_Base := True;
+      Result.Base := FT.To_UString ("string");
+      Result.Has_Length_Bound := True;
+      Result.Length_Bound := Bound;
+      return Result;
+   end Bounded_String_Type;
+
+   function Synthetic_Bounded_String_Type
+     (Name  : String;
+      Found : out Boolean) return GM.Type_Descriptor
+   is
+      Prefix : constant String := "__bounded_string_";
+   begin
+      Found := False;
+      if Name'Length < Prefix'Length
+        or else Name (Name'First .. Name'First + Prefix'Length - 1) /= Prefix
+      then
+         return BT.Integer_Type;
+      end if;
+
+      declare
+         Bound_Text : constant String := Name (Name'First + Prefix'Length .. Name'Last);
+      begin
+         if Bound_Text'Length = 0 then
+            return BT.Integer_Type;
+         end if;
+
+         for Ch of Bound_Text loop
+            if Ch not in '0' .. '9' then
+               return BT.Integer_Type;
+            end if;
+         end loop;
+
+         Found := True;
+         return Bounded_String_Type (Natural'Value (Bound_Text));
+      exception
+         when Constraint_Error =>
+            return BT.Integer_Type;
+      end;
+   end Synthetic_Bounded_String_Type;
+
    function Resolve_Type
      (Name     : String;
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor is
+      Found : Boolean := False;
    begin
       if Name = "" then
          return BT.Integer_Type;
       elsif Type_Env.Contains (Name) then
          return Type_Env.Element (Name);
+      else
+         declare
+            Synthetic : constant GM.Type_Descriptor :=
+              Synthetic_Bounded_String_Type (Name, Found);
+         begin
+            if Found then
+               return Synthetic;
+            end if;
+         end;
       end if;
       return BT.Integer_Type;
    end Resolve_Type;
@@ -205,6 +261,8 @@ package body Safe_Frontend.Check_Lower is
          return Type_Env.Element (Name);
       elsif Name'Length > 0 and then Var_Types.Contains (Name) then
          return Var_Types.Element (Name);
+      elsif Name'Length > 0 then
+         return Resolve_Type (Name, Type_Env);
       end if;
       return BT.Integer_Type;
    end Expr_Type;
@@ -685,19 +743,6 @@ package body Safe_Frontend.Check_Lower is
       return Result;
    end Local_Names;
 
-   function Local_Names
-     (Decls : CM.Object_Decl_Vectors.Vector) return FT.UString_Vectors.Vector
-   is
-      Result : FT.UString_Vectors.Vector;
-   begin
-      for Decl of Decls loop
-         for Name of Decl.Names loop
-            Result.Append (Name);
-         end loop;
-      end loop;
-      return Result;
-   end Local_Names;
-
    function Local_Names_For_Ids
      (Locals : GM.Local_Vectors.Vector;
       Ids    : FT.UString_Vectors.Vector) return FT.UString_Vectors.Vector
@@ -1088,13 +1133,17 @@ package body Safe_Frontend.Check_Lower is
                      Index_Name    : constant String :=
                        "__safe_for_of_index_" & Trimmed (Natural (Locals.Length) + 1);
                      Index_Type    : constant GM.Type_Descriptor :=
-                       (if Iterable_Type.Growable
+                       (if FT.Lowercase (UString_Value (Iterable_Type.Kind)) = "string"
+                        then BT.Integer_Type
+                        elsif Iterable_Type.Growable
                         then BT.Integer_Type
                         else Resolve_Type
                                (UString_Value (Iterable_Type.Index_Types (Iterable_Type.Index_Types.First_Index)),
                                 Visible));
                      Loop_Type     : constant GM.Type_Descriptor :=
-                       Resolve_Type (UString_Value (Iterable_Type.Component_Type), Visible);
+                       (if FT.Lowercase (UString_Value (Iterable_Type.Kind)) = "string"
+                        then Bounded_String_Type (1)
+                        else Resolve_Type (UString_Value (Iterable_Type.Component_Type), Visible));
                   begin
                      Stmt.Loop_Snapshot_Name := FT.To_UString (Snapshot_Name);
                      Stmt.Loop_Index_Name := FT.To_UString (Index_Name);
@@ -1339,7 +1388,6 @@ package body Safe_Frontend.Check_Lower is
       Assign_Op   : GM.Op_Entry;
       Call_Op     : GM.Op_Entry;
       Terminator  : GM.Terminator_Entry;
-      Child_Types : Type_Maps.Map;
    begin
       case Stmt.Kind is
          when CM.Stmt_Object_Decl =>
@@ -1941,11 +1989,17 @@ package body Safe_Frontend.Check_Lower is
                      Iterable_Type : constant GM.Type_Descriptor :=
                        Base_Type (Expr_Type (Stmt.Loop_Iterable, Visible_Types, Type_Env), Type_Env);
                      Index_Type    : constant GM.Type_Descriptor :=
-                       (if Iterable_Type.Growable
+                       (if FT.Lowercase (UString_Value (Iterable_Type.Kind)) = "string"
+                        then BT.Integer_Type
+                        elsif Iterable_Type.Growable
                         then BT.Integer_Type
                         else Resolve_Type
                                (UString_Value (Iterable_Type.Index_Types (Iterable_Type.Index_Types.First_Index)),
                                 Type_Env));
+                     Loop_Item_Type : constant GM.Type_Descriptor :=
+                       (if FT.Lowercase (UString_Value (Iterable_Type.Kind)) = "string"
+                        then Bounded_String_Type (1)
+                        else Resolve_Type (UString_Value (Iterable_Type.Component_Type), Type_Env));
                      Snapshot_Name : constant String := UString_Value (Stmt.Loop_Snapshot_Name);
                      Index_Name    : constant String := UString_Value (Stmt.Loop_Index_Name);
                      Snapshot_Expr : constant CM.Expr_Access :=
@@ -1953,18 +2007,17 @@ package body Safe_Frontend.Check_Lower is
                      Index_Expr    : constant CM.Expr_Access :=
                        Ident_Expr (Index_Name, Stmt.Span, UString_Value (Index_Type.Name));
                      Item_Expr     : constant CM.Expr_Access :=
-                       Ident_Expr (UString_Value (Stmt.Loop_Var), Stmt.Span, UString_Value (Loop_Type.Name));
+                       Ident_Expr (UString_Value (Stmt.Loop_Var), Stmt.Span, UString_Value (Loop_Item_Type.Name));
                      Element_Expr  : constant CM.Expr_Access :=
                        new CM.Expr_Node'
                          (Kind      => CM.Expr_Resolved_Index,
                           Span      => Stmt.Span,
-                          Type_Name => Loop_Type.Name,
+                          Type_Name => Loop_Item_Type.Name,
                           Prefix    => Snapshot_Expr,
                           Args      => CM.Expr_Access_Vectors.Empty_Vector,
                           others    => <>);
                   begin
-                     Loop_Type :=
-                       Resolve_Type (UString_Value (Iterable_Type.Component_Type), Type_Env);
+                     Loop_Type := Loop_Item_Type;
                      Loop_Types.Include (Snapshot_Name, Iterable_Type);
                      Loop_Types.Include (Index_Name, Index_Type);
                      Loop_Types.Include (UString_Value (Stmt.Loop_Var), Loop_Type);
@@ -1994,7 +2047,9 @@ package body Safe_Frontend.Check_Lower is
                      Assign_Op.Target := Lower_Target (Index_Expr, Loop_Types, Type_Env);
                      Assign_Op.Value :=
                        Lower_Expr
-                         ((if Iterable_Type.Growable
+                         ((if FT.Lowercase (UString_Value (Iterable_Type.Kind)) = "string"
+                           then Literal_Expr (1, Stmt.Span)
+                           elsif Iterable_Type.Growable
                            then Literal_Expr (1, Stmt.Span)
                            else
                              Literal_Expr (Index_Type.Low, Stmt.Span)),
@@ -2015,7 +2070,14 @@ package body Safe_Frontend.Check_Lower is
                        Binary_Expr
                          ("<=",
                           Index_Expr,
-                          (if Iterable_Type.Growable
+                          (if FT.Lowercase (UString_Value (Iterable_Type.Kind)) = "string"
+                           then
+                             Selector_Expr
+                               (Snapshot_Expr,
+                                "length",
+                                Stmt.Span,
+                                "integer")
+                           elsif Iterable_Type.Growable
                            then
                              Selector_Expr
                                (Snapshot_Expr,
