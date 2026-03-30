@@ -40,12 +40,6 @@ package body Safe_String_RT is
       Value := Empty;
    end Free;
 
-   procedure Dispose (Value : Safe_String) is
-      Local_Copy : Safe_String := Value;
-   begin
-      Free (Local_Copy);
-   end Dispose;
-
    function To_String (Value : Safe_String) return String is
    begin
       if Value.Data = null then

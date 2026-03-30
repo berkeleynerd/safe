@@ -14,8 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
-STDLIB_ROOT = COMPILER_ROOT / "stdlib"
-STDLIB_ADA_DIR = STDLIB_ROOT / "ada"
+STDLIB_ADA_DIR = COMPILER_ROOT / "stdlib" / "ada"
 SAFEC_PATH = COMPILER_ROOT / "bin" / "safec"
 ALR_FALLBACK = Path.home() / "bin" / "alr"
 GNATPROVE_FALLBACK = Path.home() / ".alire" / "bin" / "gnatprove"

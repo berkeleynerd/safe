@@ -47,12 +47,6 @@ package body Safe_Array_RT is
       Value := Empty;
    end Free;
 
-   procedure Dispose (Value : Safe_Array) is
-      Local_Copy : Safe_Array := Value;
-   begin
-      Free (Local_Copy);
-   end Dispose;
-
    function Element (Value : Safe_Array; Index : Positive) return Element_Type is
    begin
       return Clone_Element (Value.Data (Index));

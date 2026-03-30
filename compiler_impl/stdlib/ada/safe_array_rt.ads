@@ -34,9 +34,7 @@ package Safe_Array_RT is
            Always_Terminates,
            Post => Length (Value) = 0,
            Depends => (Value => Value);
-   procedure Dispose (Value : Safe_Array)
-      with Global => null,
-           Always_Terminates;
+   procedure Dispose (Value : in out Safe_Array) renames Free;
 
    function Length (Value : Safe_Array) return Natural
       with Global => null,

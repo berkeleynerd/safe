@@ -21,9 +21,7 @@ package Safe_String_RT is
       with Global => null,
            Always_Terminates,
            Depends => (Value => Value);
-   procedure Dispose (Value : Safe_String)
-      with Global => null,
-           Always_Terminates;
+   procedure Dispose (Value : in out Safe_String) renames Free;
 
    function To_String (Value : Safe_String) return String
       with Global => null,
