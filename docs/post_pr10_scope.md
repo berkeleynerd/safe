@@ -77,6 +77,7 @@ concurrency obligations are source/runtime concerns such as `PS-007`,
 | `PS-021` | Stabilise and document interchange-format policy for existing `safei-v1` and `mir-v2` artifacts, including compatibility and what is normative versus implementation-defined `TBD-08` | `spec/00-front-matter.md` section `0.8`; `compiler_impl/src/safe_frontend-interfaces.adb`; `compiler_impl/src/safe_frontend-mir_analyze.adb` | `tooling` | `long-term` |
 | `PS-022` | Performance targets `TBD-02` | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
 | `PS-023` | SPARK container library compatibility gaps | `docs/spark_container_compatibility.md` | `tooling` | `long-term` |
+| `PS-034` | Shared-runtime generic contract soundness for clone-based heap-backed helpers, especially `Safe_Array_RT.From_Array` overclaiming elementwise `=` without a formal semantic-equality requirement on `Clone_Element` | `compiler_impl/stdlib/ada/safe_array_rt.ads`; `docs/pr118g2-proof-journal.md` | `stdlib` | `blocking-if-needed` |
 
 ## Spec and Language TBDs
 
@@ -96,10 +97,10 @@ concurrency obligations are source/runtime concerns such as `PS-007`,
 
 | Priority | Count |
 |----------|------:|
-| `blocking-if-needed` | 13 |
+| `blocking-if-needed` | 14 |
 | `nice-to-have` | 3 |
 | `long-term` | 16 |
-| **Total** | **32** |
+| **Total** | **33** |
 
 See [`docs/pr10_refinement_audit.md`](pr10_refinement_audit.md) for the full
 PR10.1 disposition record, including promoted `PR10.2+` work and items closed
