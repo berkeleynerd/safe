@@ -13372,6 +13372,10 @@ package body Safe_Frontend.Ada_Emit is
       Uses_Ghost_Scalar_Model : constant Boolean :=
         Channel_Uses_Sequential_Scalar_Ghost_Model
           (Unit, Document, Channel);
+      --  The direct sequential single-slot string/growable path keeps the
+      --  Value_Length formals even with the Ghost model, because the final
+      --  proof closure still depends on the receive-side equality bridge
+      --  between the returned length and the recomputed post-receive length.
       Uses_Length_Formals : constant Boolean := Has_Length_Model;
       Uses_Runtime_Length_Buffer : constant Boolean :=
         Has_Length_Model and then not Uses_Ghost_Scalar_Model;
@@ -13438,6 +13442,11 @@ package body Safe_Frontend.Ada_Emit is
             1);
          if Uses_Ghost_Scalar_Model then
             Append_Initialization_Warning_Suppression (Buffer, 1);
+            --  These model scalars intentionally remain ordinary runtime
+            --  declarations. On the current GNAT/SPARK toolchain, marking
+            --  them as Ghost makes the protected send/receive bodies reject
+            --  the generated reads/writes as illegal Ghost use in non-Ghost
+            --  contexts.
             Append_Line
               (Buffer,
                Model_Has_Value & " : Boolean := False;",
@@ -13524,6 +13533,9 @@ package body Safe_Frontend.Ada_Emit is
          & ";",
          2);
       if Single_Slot_Length_Model and then not Uses_Ghost_Scalar_Model then
+         --  Keep the Stored_Length fallback for single-slot channels that do
+         --  not qualify for the sequential Ghost-model path, such as the
+         --  broader tasking/subprogram channel surface.
          Append_Line (Buffer, "function " & Stored_Length & " return Natural;", 2);
       end if;
       Append_Line (Buffer, "private", 1);
@@ -13578,6 +13590,9 @@ package body Safe_Frontend.Ada_Emit is
       Uses_Ghost_Scalar_Model : constant Boolean :=
         Channel_Uses_Sequential_Scalar_Ghost_Model
           (Unit, Document, Channel);
+      --  See the matching note in Render_Channel_Spec: the Ghost-model path
+      --  still carries Value_Length until the remaining receive-side bridge
+      --  can be removed without reopening the proof lane.
       Uses_Length_Formals : constant Boolean := Has_Length_Model;
       Uses_Runtime_Length_Buffer : constant Boolean :=
         Has_Length_Model and then not Uses_Ghost_Scalar_Model;

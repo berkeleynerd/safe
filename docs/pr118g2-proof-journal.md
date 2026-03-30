@@ -394,7 +394,12 @@
     - `<channel>_Model_Has_Value : Boolean := False;`
     - `<channel>_Model_Length : Natural := 0;`
   - those scalars are updated **inside** the protected operations, alongside the buffer move/reset logic
-  - the direct scalar protected API keeps `Value_Length` formals
+  - I retried making those scalars true Ghost objects after the lane was green
+    - result: the generated channel units stopped compiling on GNAT 15 because the protected send/receive bodies use those scalars in non-Ghost contexts (`ghost entity cannot appear in this context`)
+    - so the current direct scalar model remains runtime-visible state, not erased Ghost state
+  - the direct scalar protected API still keeps `Value_Length` formals
+    - reason: the remaining receive-side proof bridge still ties the recomputed post-receive actual length to the returned channel length
+    - this is why the current direct scalar path is not yet the “no length formals” endpoint explored earlier
   - the old `Stored_Length` / `Stored_Length_Value` helper path is removed for this direct scalar case
   - the narrow receive-side bridge remains:
     - `pragma Assume (actual_length = returned_length)`
