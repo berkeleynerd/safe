@@ -542,13 +542,13 @@ def build_embedded_image(
 ) -> tuple[bool, str]:
     completed = run_logged(
         [
-        gprbuild,
-        f"--target={triplet}",
-        f"--RTS={runtime}",
-        "-P",
-        str(paths["gpr"]),
-        "-cargs:Ada",
-        "-gnatws",
+            gprbuild,
+            f"--target={triplet}",
+            f"--RTS={runtime}",
+            "-P",
+            str(paths["gpr"]),
+            "-cargs:Ada",
+            "-gnatws",
         ],
         cwd=paths["root"],
         stdout_path=paths["build_stdout"],

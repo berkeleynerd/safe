@@ -10024,7 +10024,31 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Line (Buffer, "pragma Warnings (Off);", Depth);
+      Append_Gnatprove_Warning_Suppression
+        (Buffer,
+         "is set by",
+         "generated local cleanup is intentional",
+         Depth);
+      Append_Gnatprove_Warning_Suppression
+        (Buffer,
+         "unused initial value of",
+         "generated local cleanup is intentional",
+         Depth);
+      Append_Gnatprove_Warning_Suppression
+        (Buffer,
+         "unused assignment",
+         "generated local cleanup is intentional",
+         Depth);
+      Append_Gnatprove_Warning_Suppression
+        (Buffer,
+         "initialization of",
+         "generated local cleanup is intentional",
+         Depth);
+      Append_Gnatprove_Warning_Suppression
+        (Buffer,
+         "statement has no effect",
+         "generated local cleanup is intentional",
+         Depth);
    end Append_Local_Warning_Suppression;
 
    procedure Append_Local_Warning_Restore
@@ -10032,7 +10056,26 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Line (Buffer, "pragma Warnings (On);", Depth);
+      Append_Gnatprove_Warning_Restore
+        (Buffer,
+         "statement has no effect",
+         Depth);
+      Append_Gnatprove_Warning_Restore
+        (Buffer,
+         "unused assignment",
+         Depth);
+      Append_Gnatprove_Warning_Restore
+        (Buffer,
+         "unused initial value of",
+         Depth);
+      Append_Gnatprove_Warning_Restore
+        (Buffer,
+         "initialization of",
+         Depth);
+      Append_Gnatprove_Warning_Restore
+        (Buffer,
+         "is set by",
+         Depth);
    end Append_Local_Warning_Restore;
 
    procedure Append_Initialization_Warning_Suppression
@@ -12956,7 +12999,56 @@ package body Safe_Frontend.Ada_Emit is
                            declare
                               Declared_Channel : constant CM.Resolved_Channel_Decl :=
                                 Channel_Item (Arm.Channel_Data.Channel_Name);
+                              Arm_Value_Name   : constant String :=
+                                FT.To_String (Arm.Channel_Data.Variable_Name);
+                              Arm_Type_Name    : constant String :=
+                                Render_Type_Name (Arm.Channel_Data.Type_Info);
+                              Arm_Has_Heap_Value : constant Boolean :=
+                                Has_Heap_Value_Type
+                                  (Unit,
+                                   Document,
+                                   Declared_Channel.Element_Type);
+                              Arm_Needs_Local_Cleanup_Suppression : constant Boolean :=
+                                Arm_Has_Heap_Value
+                                and then
+                                  (Is_Plain_String_Type
+                                     (Unit,
+                                      Document,
+                                      Declared_Channel.Element_Type)
+                                   or else
+                                   Is_Growable_Array_Type
+                                     (Unit,
+                                      Document,
+                                      Declared_Channel.Element_Type));
+                              Arm_Free_Proc    : constant String :=
+                                (if not Arm_Has_Heap_Value
+                                 then ""
+                                 elsif Is_Plain_String_Type
+                                   (Unit,
+                                    Document,
+                                    Declared_Channel.Element_Type)
+                                 then "Safe_String_RT.Free"
+                                 elsif Is_Growable_Array_Type
+                                   (Unit,
+                                    Document,
+                                    Declared_Channel.Element_Type)
+                                 then
+                                   Array_Runtime_Instance_Name
+                                     (Base_Type
+                                        (Unit,
+                                         Document,
+                                         Declared_Channel.Element_Type))
+                                   & ".Free"
+                                 else Channel_Free_Helper_Name (Declared_Channel));
                            begin
+                              if Arm_Has_Heap_Value then
+                                 Push_Cleanup_Frame (State);
+                                 Add_Cleanup_Item
+                                   (State,
+                                    Arm_Value_Name,
+                                    Arm_Type_Name,
+                                    Arm_Free_Proc);
+                              end if;
                               Append_Line (Buffer, "if not Select_Done then", Depth + 2);
                               Append_Line (Buffer, "declare", Depth + 3);
                               if State.Task_Body_Depth > 0 then
@@ -12965,14 +13057,14 @@ package body Safe_Frontend.Ada_Emit is
                               end if;
                               Append_Line
                                 (Buffer,
-                                 FT.To_String (Arm.Channel_Data.Variable_Name)
+                                 Arm_Value_Name
                                  & " : "
-                                 & Render_Type_Name (Arm.Channel_Data.Type_Info)
+                                 & Arm_Type_Name
                                  & " := "
                                  & Default_Value_Expr (Arm.Channel_Data.Type_Info)
                                  & ";",
                                  Depth + 4);
-                              if Channel_Has_Scalar_Length_Model (Declared_Channel) then
+                              if Channel_Has_Length_Model (Declared_Channel) then
                                  Append_Line (Buffer, "Arm_Length : Natural := 0;", Depth + 4);
                               end if;
                               Append_Line (Buffer, "Arm_Success : Boolean := False;", Depth + 4);
@@ -12993,7 +13085,7 @@ package body Safe_Frontend.Ada_Emit is
                                 (Buffer,
                                  Render_Expr (Unit, Document, Arm.Channel_Data.Channel_Name, State)
                                  & ".Try_Receive ("
-                                 & FT.To_String (Arm.Channel_Data.Variable_Name)
+                                 & Arm_Value_Name
                                  & (if Channel_Has_Length_Model (Declared_Channel)
                                     then ", Arm_Length"
                                     else "")
@@ -13016,7 +13108,7 @@ package body Safe_Frontend.Ada_Emit is
                                     "pragma Assume ("
                                     & Channel_Length_Image
                                         (Declared_Channel,
-                                         FT.To_String (Arm.Channel_Data.Variable_Name))
+                                         Arm_Value_Name)
                                     & " = Arm_Length);",
                                     Depth + 5);
                               elsif Channel_Has_Length_Model (Declared_Channel) then
@@ -13025,13 +13117,13 @@ package body Safe_Frontend.Ada_Emit is
                                     "Arm_Length := "
                                     & Channel_Length_Image
                                         (Declared_Channel,
-                                         FT.To_String (Arm.Channel_Data.Variable_Name))
+                                         Arm_Value_Name)
                                     & ";",
                                     Depth + 5);
                               end if;
                               Append_Channel_Length_Assert
                                 (Declared_Channel,
-                                 FT.To_String (Arm.Channel_Data.Variable_Name),
+                                 Arm_Value_Name,
                                  "Arm_Length",
                                  Depth + 5);
                               Render_Required_Statement_Suite
@@ -13042,12 +13134,26 @@ package body Safe_Frontend.Ada_Emit is
                                  State,
                                  Depth + 5,
                                  Return_Type);
+                              if Arm_Has_Heap_Value
+                                and then Statements_Fall_Through (Arm.Channel_Data.Statements)
+                              then
+                                 if Arm_Needs_Local_Cleanup_Suppression then
+                                    Append_Local_Warning_Suppression (Buffer, Depth + 5);
+                                 end if;
+                                 Render_Current_Cleanup_Frame (Buffer, State, Depth + 5);
+                                 if Arm_Needs_Local_Cleanup_Suppression then
+                                    Append_Local_Warning_Restore (Buffer, Depth + 5);
+                                 end if;
+                              end if;
                               Append_Line (Buffer, "end if;", Depth + 4);
                               if State.Task_Body_Depth > 0 then
                                  Append_Task_If_Warning_Restore (Buffer, Depth + 4);
                               end if;
                               Append_Line (Buffer, "end;", Depth + 3);
                               Append_Line (Buffer, "end if;", Depth + 2);
+                              if Arm_Has_Heap_Value then
+                                 Pop_Cleanup_Frame (State);
+                              end if;
                            end;
                         elsif Arm.Kind /= CM.Select_Arm_Delay then
                            Raise_Unsupported
@@ -13091,7 +13197,56 @@ package body Safe_Frontend.Ada_Emit is
                            declare
                               Declared_Channel : constant CM.Resolved_Channel_Decl :=
                                 Channel_Item (Arm.Channel_Data.Channel_Name);
+                              Arm_Value_Name   : constant String :=
+                                FT.To_String (Arm.Channel_Data.Variable_Name);
+                              Arm_Type_Name    : constant String :=
+                                Render_Type_Name (Arm.Channel_Data.Type_Info);
+                              Arm_Has_Heap_Value : constant Boolean :=
+                                Has_Heap_Value_Type
+                                  (Unit,
+                                   Document,
+                                   Declared_Channel.Element_Type);
+                              Arm_Needs_Local_Cleanup_Suppression : constant Boolean :=
+                                Arm_Has_Heap_Value
+                                and then
+                                  (Is_Plain_String_Type
+                                     (Unit,
+                                      Document,
+                                      Declared_Channel.Element_Type)
+                                   or else
+                                   Is_Growable_Array_Type
+                                     (Unit,
+                                      Document,
+                                      Declared_Channel.Element_Type));
+                              Arm_Free_Proc    : constant String :=
+                                (if not Arm_Has_Heap_Value
+                                 then ""
+                                 elsif Is_Plain_String_Type
+                                   (Unit,
+                                    Document,
+                                    Declared_Channel.Element_Type)
+                                 then "Safe_String_RT.Free"
+                                 elsif Is_Growable_Array_Type
+                                   (Unit,
+                                    Document,
+                                    Declared_Channel.Element_Type)
+                                 then
+                                   Array_Runtime_Instance_Name
+                                     (Base_Type
+                                        (Unit,
+                                         Document,
+                                         Declared_Channel.Element_Type))
+                                   & ".Free"
+                                 else Channel_Free_Helper_Name (Declared_Channel));
                            begin
+                              if Arm_Has_Heap_Value then
+                                 Push_Cleanup_Frame (State);
+                                 Add_Cleanup_Item
+                                   (State,
+                                    Arm_Value_Name,
+                                    Arm_Type_Name,
+                                    Arm_Free_Proc);
+                              end if;
                               Append_Line (Buffer, "if not Select_Done then", Depth + 2);
                               Append_Line (Buffer, "declare", Depth + 3);
                               if State.Task_Body_Depth > 0 then
@@ -13100,14 +13255,14 @@ package body Safe_Frontend.Ada_Emit is
                               end if;
                               Append_Line
                                 (Buffer,
-                                 FT.To_String (Arm.Channel_Data.Variable_Name)
+                                 Arm_Value_Name
                                  & " : "
-                                 & Render_Type_Name (Arm.Channel_Data.Type_Info)
+                                 & Arm_Type_Name
                                  & " := "
                                  & Default_Value_Expr (Arm.Channel_Data.Type_Info)
                                  & ";",
                                  Depth + 4);
-                              if Channel_Has_Scalar_Length_Model (Declared_Channel) then
+                              if Channel_Has_Length_Model (Declared_Channel) then
                                  Append_Line (Buffer, "Arm_Length : Natural := 0;", Depth + 4);
                               end if;
                               Append_Line (Buffer, "Arm_Success : Boolean := False;", Depth + 4);
@@ -13128,7 +13283,7 @@ package body Safe_Frontend.Ada_Emit is
                                 (Buffer,
                                  Render_Expr (Unit, Document, Arm.Channel_Data.Channel_Name, State)
                                  & ".Try_Receive ("
-                                 & FT.To_String (Arm.Channel_Data.Variable_Name)
+                                 & Arm_Value_Name
                                  & (if Channel_Has_Length_Model (Declared_Channel)
                                     then ", Arm_Length"
                                     else "")
@@ -13151,7 +13306,7 @@ package body Safe_Frontend.Ada_Emit is
                                     "pragma Assume ("
                                     & Channel_Length_Image
                                         (Declared_Channel,
-                                         FT.To_String (Arm.Channel_Data.Variable_Name))
+                                         Arm_Value_Name)
                                     & " = Arm_Length);",
                                     Depth + 5);
                               elsif Channel_Has_Length_Model (Declared_Channel) then
@@ -13160,13 +13315,13 @@ package body Safe_Frontend.Ada_Emit is
                                     "Arm_Length := "
                                     & Channel_Length_Image
                                         (Declared_Channel,
-                                         FT.To_String (Arm.Channel_Data.Variable_Name))
+                                         Arm_Value_Name)
                                     & ";",
                                     Depth + 5);
                               end if;
                               Append_Channel_Length_Assert
                                 (Declared_Channel,
-                                 FT.To_String (Arm.Channel_Data.Variable_Name),
+                                 Arm_Value_Name,
                                  "Arm_Length",
                                  Depth + 5);
                               Render_Required_Statement_Suite
@@ -13177,12 +13332,26 @@ package body Safe_Frontend.Ada_Emit is
                                  State,
                                  Depth + 5,
                                  Return_Type);
+                              if Arm_Has_Heap_Value
+                                and then Statements_Fall_Through (Arm.Channel_Data.Statements)
+                              then
+                                 if Arm_Needs_Local_Cleanup_Suppression then
+                                    Append_Local_Warning_Suppression (Buffer, Depth + 5);
+                                 end if;
+                                 Render_Current_Cleanup_Frame (Buffer, State, Depth + 5);
+                                 if Arm_Needs_Local_Cleanup_Suppression then
+                                    Append_Local_Warning_Restore (Buffer, Depth + 5);
+                                 end if;
+                              end if;
                               Append_Line (Buffer, "end if;", Depth + 4);
                               if State.Task_Body_Depth > 0 then
                                  Append_Task_If_Warning_Restore (Buffer, Depth + 4);
                               end if;
                               Append_Line (Buffer, "end;", Depth + 3);
                               Append_Line (Buffer, "end if;", Depth + 2);
+                              if Arm_Has_Heap_Value then
+                                 Pop_Cleanup_Frame (State);
+                              end if;
                            end;
                         elsif Arm.Kind /= CM.Select_Arm_Delay then
                            Raise_Unsupported

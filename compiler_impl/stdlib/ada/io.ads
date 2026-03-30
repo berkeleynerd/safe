@@ -1,6 +1,6 @@
-package IO
-  with SPARK_Mode
-is
+pragma SPARK_Mode (On);
+
+package IO is
    procedure Put_Line (Text : String)
      with Global => null,
           Always_Terminates;
