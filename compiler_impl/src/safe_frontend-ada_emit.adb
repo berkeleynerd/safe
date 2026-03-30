@@ -7063,69 +7063,7 @@ package body Safe_Frontend.Ada_Emit is
      (Unit        : CM.Resolved_Unit;
       Document    : GM.Mir_Document;
       State       : in out Emit_State;
-      Local_Names : FT.UString_Vectors.Vector;
-      Statements  : CM.Statement_Access_Vectors.Vector;
-      In_Loop     : Boolean := False);
-
-   procedure Collect_Local_Names
-     (Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
-      Statements   : CM.Statement_Access_Vectors.Vector;
-      Names        : in out FT.UString_Vectors.Vector) is
-   begin
-      for Decl of Declarations loop
-         for Name of Decl.Names loop
-            if not Contains_Name (Names, FT.To_String (Name)) then
-               Names.Append (Name);
-            end if;
-         end loop;
-      end loop;
-      for Item of Statements loop
-         if Item /= null and then Item.Kind in CM.Stmt_Object_Decl | CM.Stmt_Destructure_Decl then
-            declare
-               Decl_Names : constant FT.UString_Vectors.Vector :=
-                 (if Item.Kind = CM.Stmt_Object_Decl
-                  then Item.Decl.Names
-                  else Item.Destructure.Names);
-            begin
-               for Name of Decl_Names loop
-                  if not Contains_Name (Names, FT.To_String (Name)) then
-                     Names.Append (Name);
-                  end if;
-               end loop;
-            end;
-         end if;
-      end loop;
-   end Collect_Local_Names;
-
-   procedure Collect_Local_Names
-     (Declarations : CM.Object_Decl_Vectors.Vector;
-      Statements   : CM.Statement_Access_Vectors.Vector;
-      Names        : in out FT.UString_Vectors.Vector) is
-   begin
-      for Decl of Declarations loop
-         for Name of Decl.Names loop
-            if not Contains_Name (Names, FT.To_String (Name)) then
-               Names.Append (Name);
-            end if;
-         end loop;
-      end loop;
-      for Item of Statements loop
-         if Item /= null and then Item.Kind in CM.Stmt_Object_Decl | CM.Stmt_Destructure_Decl then
-            declare
-               Decl_Names : constant FT.UString_Vectors.Vector :=
-                 (if Item.Kind = CM.Stmt_Object_Decl
-                  then Item.Decl.Names
-                  else Item.Destructure.Names);
-            begin
-               for Name of Decl_Names loop
-                  if not Contains_Name (Names, FT.To_String (Name)) then
-                     Names.Append (Name);
-                  end if;
-               end loop;
-            end;
-         end if;
-      end loop;
-   end Collect_Local_Names;
+      Statements  : CM.Statement_Access_Vectors.Vector);
 
    procedure Mark_Wide_Declaration
      (Unit      : CM.Resolved_Unit;
@@ -7163,9 +7101,7 @@ package body Safe_Frontend.Ada_Emit is
      (Unit        : CM.Resolved_Unit;
       Document    : GM.Mir_Document;
       State       : in out Emit_State;
-      Local_Names : FT.UString_Vectors.Vector;
-      Statements  : CM.Statement_Access_Vectors.Vector;
-      In_Loop     : Boolean := False) is
+      Statements  : CM.Statement_Access_Vectors.Vector) is
    begin
       for Item of Statements loop
          if Item = null then
@@ -7180,23 +7116,23 @@ package body Safe_Frontend.Ada_Emit is
                   null;
                when CM.Stmt_If =>
                   Collect_Wide_Locals_From_Statements
-                    (Unit, Document, State, Local_Names, Item.Then_Stmts, In_Loop);
+                    (Unit, Document, State, Item.Then_Stmts);
                   for Part of Item.Elsifs loop
                      Collect_Wide_Locals_From_Statements
-                       (Unit, Document, State, Local_Names, Part.Statements, In_Loop);
+                       (Unit, Document, State, Part.Statements);
                   end loop;
                   if Item.Has_Else then
                      Collect_Wide_Locals_From_Statements
-                       (Unit, Document, State, Local_Names, Item.Else_Stmts, In_Loop);
+                       (Unit, Document, State, Item.Else_Stmts);
                   end if;
                when CM.Stmt_Case =>
                   for Arm of Item.Case_Arms loop
                      Collect_Wide_Locals_From_Statements
-                       (Unit, Document, State, Local_Names, Arm.Statements, In_Loop);
+                       (Unit, Document, State, Arm.Statements);
                   end loop;
                when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
                   Collect_Wide_Locals_From_Statements
-                    (Unit, Document, State, Local_Names, Item.Body_Stmts, True);
+                    (Unit, Document, State, Item.Body_Stmts);
                when CM.Stmt_Select =>
                   for Arm of Item.Arms loop
                      case Arm.Kind is
@@ -7205,17 +7141,13 @@ package body Safe_Frontend.Ada_Emit is
                              (Unit,
                               Document,
                               State,
-                              Local_Names,
-                              Arm.Channel_Data.Statements,
-                              In_Loop);
+                              Arm.Channel_Data.Statements);
                         when CM.Select_Arm_Delay =>
                            Collect_Wide_Locals_From_Statements
                              (Unit,
                               Document,
                               State,
-                              Local_Names,
-                              Arm.Delay_Data.Statements,
-                              In_Loop);
+                              Arm.Delay_Data.Statements);
                         when others =>
                            null;
                      end case;
@@ -7233,14 +7165,12 @@ package body Safe_Frontend.Ada_Emit is
       State        : in out Emit_State;
       Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
       Statements   : CM.Statement_Access_Vectors.Vector) is
-      Local_Names : FT.UString_Vectors.Vector;
    begin
-      Collect_Local_Names (Declarations, Statements, Local_Names);
       for Decl of Declarations loop
          Mark_Wide_Declaration (Unit, Document, State, Decl);
       end loop;
       Collect_Wide_Locals_From_Statements
-        (Unit, Document, State, Local_Names, Statements);
+        (Unit, Document, State, Statements);
    end Collect_Wide_Locals;
 
    procedure Collect_Wide_Locals
@@ -7249,14 +7179,12 @@ package body Safe_Frontend.Ada_Emit is
       State        : in out Emit_State;
       Declarations : CM.Object_Decl_Vectors.Vector;
       Statements   : CM.Statement_Access_Vectors.Vector) is
-      Local_Names : FT.UString_Vectors.Vector;
    begin
-      Collect_Local_Names (Declarations, Statements, Local_Names);
       for Decl of Declarations loop
          Mark_Wide_Declaration (Unit, Document, State, Decl);
       end loop;
       Collect_Wide_Locals_From_Statements
-        (Unit, Document, State, Local_Names, Statements);
+        (Unit, Document, State, Statements);
    end Collect_Wide_Locals;
 
    function Render_Wide_Expr
