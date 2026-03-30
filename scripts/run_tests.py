@@ -641,7 +641,7 @@ SOURCE_SHAPE_CASES = [
     (
         "ada-emit-no-skip-proof-fallback",
         REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-ada_emit.adb",
-        ["Annotate => (GNATprove, Skip_Proof)"],
+        ["Skip_Proof"],
     ),
 ]
 
