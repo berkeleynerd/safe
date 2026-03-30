@@ -32,7 +32,6 @@ package body Safe_Frontend.Ada_Emit is
    --  Keep the quantum named here so the emitted shape, spec text, and
    --  blocking Jorvik evidence lane stay aligned.
    Select_Poll_Quantum_Seconds : constant String := "0.001";
-   Select_Polls_Per_Second     : constant String := "1000.0";
 
    type Cleanup_Action is (Cleanup_Deallocate, Cleanup_Reset_Null);
 
@@ -720,7 +719,10 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       for Graph of Bronze.Graphs loop
-         if not Graph.Is_Task then
+         --  Bronze summaries already fold transitive callees into the unit
+         --  initializer graph, so restricting this check to unit_init avoids
+         --  over-raising ceilings for task-only helper subprograms.
+         if FT.To_String (Graph.Kind) = "unit_init" then
             for Channel_Name of Graph.Channels loop
                if FT.To_String (Channel_Name) = Name then
                   return True;
@@ -12527,10 +12529,11 @@ package body Safe_Frontend.Ada_Emit is
                               & ASCII.LF
                               & Indentation (Depth + 3)
                               & "else Positive (Long_Float'Ceiling ("
-                              & Select_Polls_Per_Second
-                              & " * Long_Float ("
+                              & "Long_Float ("
                               & Render_Expr (Unit, Document, Arm.Delay_Data.Duration_Expr, State)
-                              & "))));",
+                              & ") / "
+                              & Select_Poll_Quantum_Seconds
+                              & ")));",
                               Depth + 1);
                            exit;
                         end if;

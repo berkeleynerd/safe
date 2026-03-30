@@ -26,7 +26,6 @@ from _lib.embedded_eval import (
     result_channel_driver_text,
     result_driver_text,
     run_under_renode,
-    startup_driver_text,
     temporary_root,
     verify_runtime_available,
     work_paths,
@@ -237,8 +236,12 @@ def write_jorvik_probe_source(path: Path) -> None:
         """
         package embedded_jorvik_probe
 
-           task worker with priority = 10
+           public subtype result_value is integer (1 to 1);
+           public channel result_ch : result_value capacity 1;
+
+           task worker with priority = 10, sends result_ch
               loop
+                 send result_ch, 1
                  delay 0.05
         """,
     )
@@ -269,7 +272,7 @@ def run_jorvik_probe(
     unit_name = emitted_primary_unit(paths["ada"])
     write_support_files(
         paths=paths,
-        driver_source=startup_driver_text(unit_name),
+        driver_source=result_channel_driver_text(unit_name, 1),
         board=board,
     )
 

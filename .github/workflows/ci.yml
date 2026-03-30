@@ -65,10 +65,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          renode_version="1.16.1"
+          renode_sha256="1a532d4b5b82de0dd154970c401e0c7b0e498d17304b2cecc007e306c8f9617c"
           renode_root="${RUNNER_TEMP}/renode"
-          archive="${RUNNER_TEMP}/renode-latest.linux-portable.tar.gz"
+          archive="${RUNNER_TEMP}/renode-${renode_version}.linux-portable.tar.gz"
           mkdir -p "${renode_root}"
-          curl -fsSL "https://builds.renode.io/renode-latest.linux-portable.tar.gz" -o "${archive}"
+          curl -fsSL "https://builds.renode.io/renode-${renode_version}.linux-portable.tar.gz" -o "${archive}"
+          printf '%s  %s\n' "${renode_sha256}" "${archive}" | sha256sum -c -
           tar xf "${archive}" -C "${renode_root}" --strip-components=1
           echo "${renode_root}" >> "${GITHUB_PATH}"
       - run: python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency
