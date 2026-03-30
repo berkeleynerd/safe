@@ -1,0 +1,16 @@
+package pr118g_record_string_channel_build
+
+   type packet is record
+      text : string;
+
+   source : packet;
+   received : packet;
+   channel data_ch : packet capacity 1;
+
+   source.text = "Ada"
+   send data_ch, source
+   source.text = "Bob"
+   receive data_ch, received
+
+   print (received.text)
+   print (source.text)

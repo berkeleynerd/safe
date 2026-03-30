@@ -1,0 +1,21 @@
+package pr118g_try_string_channel_build
+
+   channel text_ch : string capacity 1;
+   source : string = "Ada";
+   received : string;
+   sent : boolean = false;
+   got : boolean = false;
+
+   try_send text_ch, source, sent
+   source = "Bob"
+   try_receive text_ch, received, got
+
+   if sent
+      print (1)
+   else
+      print (0)
+
+   if got
+      print (received)
+   else
+      print ("no")

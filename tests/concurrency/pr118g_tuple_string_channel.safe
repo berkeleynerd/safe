@@ -1,0 +1,18 @@
+-- Test: pr118g_tuple_string_channel
+-- Description: Tuple channel elements may transitively contain strings and still copy by value.
+-- Expected: ACCEPT
+
+package pr118g_tuple_string_channel
+
+   channel pair_ch : (boolean, string) capacity 1;
+   seed : (boolean, string);
+
+   task worker with priority = 10, sends pair_ch, receives pair_ch
+      loop
+         receive pair_ch, value : (boolean, string)
+         send pair_ch, value
+         delay 0.05
+
+   seed.1 = true
+   seed.2 = "Ada"
+   send pair_ch, seed

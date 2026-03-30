@@ -442,11 +442,6 @@ package body Safe_Frontend.Mir_Analyze is
       Var_Types   : Type_Maps.Map;
       Span        : FT.Source_Span;
       Require_Null_Target : Boolean := True) return MD.Diagnostic;
-   function Channel_Send_Precondition
-     (Source_Name : String;
-      Current     : State;
-      Var_Types   : Type_Maps.Map;
-      Span        : FT.Source_Span) return MD.Diagnostic;
    function Has_Pending_Move_For_Source
      (Current : State;
       Name    : String) return Boolean;
@@ -454,11 +449,6 @@ package body Safe_Frontend.Mir_Analyze is
      (Current   : State;
       Name      : String;
       Var_Types : Type_Maps.Map) return Boolean;
-   function Receive_Target_Precondition
-     (Target_Name : String;
-      Current     : State;
-      Var_Types   : Type_Maps.Map;
-      Span        : FT.Source_Span) return MD.Diagnostic;
    procedure Clear_Pending_Move
      (Current : in out State;
       Name    : String);
@@ -2393,37 +2383,6 @@ package body Safe_Frontend.Mir_Analyze is
       return Null_Diagnostic;
    end Owner_Move_Precondition;
 
-   function Channel_Send_Precondition
-     (Source_Name : String;
-      Current     : State;
-      Var_Types   : Type_Maps.Map;
-      Span        : FT.Source_Span) return MD.Diagnostic
-   is
-      Diag        : constant MD.Diagnostic := Owner_Write_Conflict (Source_Name, Current, Span);
-      Source_Fact : Access_Fact;
-   begin
-      if Has_Text (Diag.Reason) then
-         return Diag;
-      end if;
-      Source_Fact := Access_Fact_For_Name (Source_Name, Current, Var_Types);
-      if Source_Fact.State = Access_Moved then
-         return
-           Ownership_Diagnostic
-             ("use_after_move",
-              Span,
-              "use of moved value '" & Source_Name & "'",
-              "the source was already moved earlier on this path.");
-      elsif Source_Fact.State /= Access_NonNull then
-         return
-           Ownership_Diagnostic
-             ("move_source_not_nonnull",
-              Span,
-              "move source '" & Source_Name & "' is not provably non-null",
-              "static analysis determined state '" & Image (Source_Fact.State) & "' at this move site.");
-      end if;
-      return Null_Diagnostic;
-   end Channel_Send_Precondition;
-
    function Has_Pending_Move_For_Source
      (Current : State;
       Name    : String) return Boolean
@@ -2452,26 +2411,6 @@ package body Safe_Frontend.Mir_Analyze is
           (Target_Fact.State = Access_Moved
            and then not Has_Pending_Move_For_Source (Current, Name));
    end Target_Is_Provably_Null;
-
-   function Receive_Target_Precondition
-     (Target_Name : String;
-      Current     : State;
-      Var_Types   : Type_Maps.Map;
-      Span        : FT.Source_Span) return MD.Diagnostic
-   is
-      Target_Fact : Access_Fact;
-   begin
-      Target_Fact := Access_Fact_For_Name (Target_Name, Current, Var_Types);
-      if not Target_Is_Provably_Null (Current, Target_Name, Var_Types) then
-         return
-           Ownership_Diagnostic
-             ("move_target_not_null",
-              Span,
-              "move target '" & Target_Name & "' is not provably null",
-              "static analysis determined state '" & Image (Target_Fact.State) & "' for the move target.");
-      end if;
-      return Null_Diagnostic;
-   end Receive_Target_Precondition;
 
    procedure Clear_Pending_Move
      (Current : in out State;
@@ -5870,61 +5809,12 @@ package body Safe_Frontend.Mir_Analyze is
                  UString_Value (Op.Type_Name));
             if Has_Text (Diag.Reason) then
                Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
-            elsif Op.Value /= null
-              and then Type_Access_Role (Expr_Type (Op.Value, Var_Types, Type_Env, Functions)) = Role_Owner
-            then
-               declare
-                  Source_Name : constant String := Assignment_Lender_Name (Op.Value);
-                  Move_Diag   : MD.Diagnostic := Null_Diagnostic;
-               begin
-                  if Source_Name /= "" then
-                     Move_Diag :=
-                       Channel_Send_Precondition
-                         (Source_Name,
-                          Current,
-                          Var_Types,
-                          Op.Span);
-                     if Has_Text (Move_Diag.Reason) then
-                        Append_Diagnostic (Diagnostics, With_Path (Move_Diag, Path_String), Sequence);
-                     else
-                        Current.Access_Facts.Include
-                          (Source_Name,
-                           (State => Access_Moved, others => <>));
-                     end if;
-                  end if;
-               end;
             end if;
          when GM.Op_Channel_Receive =>
             begin
                Validate_Assignment_Target
                  (Op.Target, Current, Local_Meta, Var_Types, Type_Env, Functions);
-               declare
-                  Target_Name : constant String := Root_Name (Op.Target);
-               begin
-                  if Target_Name /= ""
-                    and then Var_Types.Contains (Target_Name)
-                    and then Type_Access_Role (Var_Types.Element (Target_Name)) = Role_Owner
-                  then
-                     --  Safe spec 4.3 p30 requires try_receive targets to be
-                     --  treated conservatively as non-null after the operation
-                     --  unless later control flow re-establishes null.
-                     Diag :=
-                       Receive_Target_Precondition
-                         (Target_Name,
-                          Current,
-                          Var_Types,
-                          Op.Span);
-                     if Has_Text (Diag.Reason) then
-                        Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
-                     else
-                        Current.Access_Facts.Include
-                          (Target_Name,
-                           (State => Access_NonNull, others => <>));
-                     end if;
-                  else
-                     Initialize_Target_Conservatively (Op.Target);
-                  end if;
-               end;
+               Initialize_Target_Conservatively (Op.Target);
             exception
                when Diagnostic_Failure =>
                   Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
@@ -5951,39 +5841,6 @@ package body Safe_Frontend.Mir_Analyze is
                   Type_Env,
                   Functions);
                Initialize_Target_Conservatively (Op.Success_Target);
-               if Op.Value /= null
-                 and then Type_Access_Role (Expr_Type (Op.Value, Var_Types, Type_Env, Functions)) = Role_Owner
-               then
-                  declare
-                     Source_Name  : constant String := Assignment_Lender_Name (Op.Value);
-                     Success_Name : constant String := Root_Name (Op.Success_Target);
-                     Saved_Fact   : Access_Fact;
-                     Move_Diag    : MD.Diagnostic := Null_Diagnostic;
-                  begin
-                     if Source_Name /= "" then
-                        Move_Diag :=
-                          Channel_Send_Precondition
-                            (Source_Name,
-                             Current,
-                             Var_Types,
-                             Op.Span);
-                        if Has_Text (Move_Diag.Reason) then
-                           Append_Diagnostic (Diagnostics, With_Path (Move_Diag, Path_String), Sequence);
-                        else
-                           Saved_Fact := Access_Fact_For_Name (Source_Name, Current, Var_Types);
-                           Current.Access_Facts.Include
-                             (Source_Name,
-                              (State => Access_Moved, others => <>));
-                           if Success_Name /= "" then
-                              Current.Pending_Moves.Include
-                                (Success_Name,
-                                 (Source_Name => FT.To_UString (Source_Name),
-                                  Saved_Fact  => Saved_Fact));
-                           end if;
-                        end if;
-                     end if;
-                  end;
-               end if;
             exception
                when Diagnostic_Failure =>
                   Append_Diagnostic (Diagnostics, With_Path (Raised_Diagnostic, Path_String), Sequence);
@@ -5999,30 +5856,7 @@ package body Safe_Frontend.Mir_Analyze is
                   Var_Types,
                   Type_Env,
                   Functions);
-               declare
-                  Target_Name : constant String := Root_Name (Op.Target);
-               begin
-                  if Target_Name /= ""
-                    and then Var_Types.Contains (Target_Name)
-                    and then Type_Access_Role (Var_Types.Element (Target_Name)) = Role_Owner
-                  then
-                     Diag :=
-                       Receive_Target_Precondition
-                         (Target_Name,
-                          Current,
-                          Var_Types,
-                          Op.Span);
-                     if Has_Text (Diag.Reason) then
-                        Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
-                     else
-                        Current.Access_Facts.Include
-                          (Target_Name,
-                           (State => Access_NonNull, others => <>));
-                     end if;
-                  else
-                     Initialize_Target_Conservatively (Op.Target);
-                  end if;
-               end;
+               Initialize_Target_Conservatively (Op.Target);
                Initialize_Target_Conservatively (Op.Success_Target);
             exception
                when Diagnostic_Failure =>
@@ -6295,15 +6129,10 @@ package body Safe_Frontend.Mir_Analyze is
                         begin
                            if Arm.Kind = GM.Select_Arm_Channel then
                               if Var_Types.Contains (UString_Value (Arm.Channel_Data.Variable_Name)) then
-                                 if Type_Access_Role (Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name))) = Role_Owner then
-                                    Arm_State.Pending_Bindings.Include
-                                      (UString_Value (Arm.Channel_Data.Variable_Name));
-                                 else
-                                    Initialize_Symbol
-                                      (Arm_State,
-                                       UString_Value (Arm.Channel_Data.Variable_Name),
-                                       Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name)));
-                                 end if;
+                                 Initialize_Symbol
+                                   (Arm_State,
+                                    UString_Value (Arm.Channel_Data.Variable_Name),
+                                    Var_Types.Element (UString_Value (Arm.Channel_Data.Variable_Name)));
                               end if;
                               Enqueue_Target (UString_Value (Arm.Channel_Data.Target), Arm_State);
                            elsif Arm.Kind = GM.Select_Arm_Delay then

@@ -205,7 +205,6 @@ Still deferred beyond the current PR11.8d / PR11.8d.1 surface:
 
 - broader proof-fact exact-length growable -> fixed narrowing
 - string discriminants
-- string and growable-array channel elements
 
 ## 6. "Silver By Construction": D27 In One Page
 
@@ -289,6 +288,8 @@ Safe replaces most of Ada's tasking surface features with:
 - static task declarations (typically at package level),
 - optional task `sends` / `receives` clauses for channel-direction legality,
 - typed bounded FIFO channels,
+- value-only channel elements, including `string`, growable arrays, and
+  definite tuples/records/fixed arrays that contain them transitively,
 - `send`, `receive`, and non-blocking `try_send` / `try_receive`,
 - scoped-binding `receive` / `try_receive` forms such as
   `receive raw, msg : measurement`,

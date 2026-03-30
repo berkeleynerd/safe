@@ -1,0 +1,10 @@
+-- Test: neg_pr118g_direct_reference_channel
+-- Description: Direct inferred-reference channel element types remain rejected.
+-- Expected: REJECT source_frontend_error
+
+package neg_pr118g_direct_reference_channel
+
+   type node is record
+      next : node;
+
+   channel updates : node capacity 1;
