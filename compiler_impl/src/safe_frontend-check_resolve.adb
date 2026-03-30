@@ -1020,7 +1020,7 @@ package body Safe_Frontend.Check_Resolve is
       return True;
    end Is_Definite_Type;
 
-   function Contains_Channel_Access_Subcomponent
+   function Contains_Channel_Reference_Subcomponent
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
    is
@@ -1057,7 +1057,7 @@ package body Safe_Frontend.Check_Resolve is
          if not Has_Type (Type_Env, Name) then
             return False;
          end if;
-         return Contains_Channel_Access_Subcomponent (Get_Type (Type_Env, Name), Type_Env);
+         return Contains_Channel_Reference_Subcomponent (Get_Type (Type_Env, Name), Type_Env);
       end Named_Type_Contains_Access;
    begin
       if Kind = "access" then
@@ -1089,7 +1089,7 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
 
       return False;
-   end Contains_Channel_Access_Subcomponent;
+   end Contains_Channel_Reference_Subcomponent;
 
    function Contains_Dot (Name : String) return Boolean is
    begin
@@ -3575,24 +3575,6 @@ package body Safe_Frontend.Check_Resolve is
       return Resolve_Type_Spec (Decl.Decl_Type, Type_Env, Const_Env, Path);
    end Resolve_Decl_Type;
 
-   procedure Reject_Unsupported_Indefinite_Channel_Use
-     (Info     : GM.Type_Descriptor;
-      Type_Env : Type_Maps.Map;
-      Path     : String;
-      Span     : FT.Source_Span;
-      Message  : String) is
-   begin
-      if Is_String_Type (Info, Type_Env)
-        or else Is_Growable_Array_Type (Info, Type_Env)
-      then
-         Raise_Diag
-           (CM.Unsupported_Source_Construct
-              (Path    => Path,
-               Span    => Span,
-              Message => Message));
-      end if;
-   end Reject_Unsupported_Indefinite_Channel_Use;
-
    function Normalize_Procedure_Call
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
@@ -5326,13 +5308,6 @@ package body Safe_Frontend.Check_Resolve is
       Type_Info : constant GM.Type_Descriptor :=
         Resolve_Type_Spec (Decl.Element_Type, Type_Env, Const_Env, Path);
    begin
-      Reject_Unsupported_Indefinite_Channel_Use
-        (Type_Info,
-         Type_Env,
-         Path,
-         Decl.Element_Type.Span,
-         "channel element types of string and growable array are deferred to PR11.8g");
-
       if not Is_Definite_Type (Type_Info, Type_Env) then
          Raise_Diag
            (CM.Source_Frontend_Error
@@ -5341,13 +5316,13 @@ package body Safe_Frontend.Check_Resolve is
                Message => "channel element type must be definite"));
       end if;
 
-      if Contains_Channel_Access_Subcomponent (Type_Info, Type_Env) then
+      if Contains_Channel_Reference_Subcomponent (Type_Info, Type_Env) then
          Raise_Diag
            (CM.Source_Frontend_Error
               (Path    => Path,
                Span    => Decl.Element_Type.Span,
                Message =>
-                 "channel element type shall not be an access type or a composite type containing an access-type subcomponent"));
+                 "channel element type must be a value type; reference-bearing channel elements are not admitted"));
       end if;
 
       Result.Is_Public := Decl.Is_Public;

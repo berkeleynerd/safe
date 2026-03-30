@@ -462,6 +462,31 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        "Ada\nBob\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
+        "1\n2\n9\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118g_tuple_string_channel_build.safe",
+        "Ada\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118g_record_string_channel_build.safe",
+        "Ada\nBob\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
+        "1\nAda\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118e1_mutual_family_build.safe",
         "41\n",
         False,

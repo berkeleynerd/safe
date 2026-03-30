@@ -1039,12 +1039,17 @@ package body Safe_Frontend.Ada_Emit is
       Bronze     : MB.Bronze_Result;
       State      : in out Emit_State) return String;
    procedure Render_Channel_Spec
-     (Buffer  : in out SU.Unbounded_String;
-      Channel : CM.Resolved_Channel_Decl;
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl;
       Bronze  : MB.Bronze_Result);
    procedure Render_Channel_Body
-     (Buffer  : in out SU.Unbounded_String;
-      Channel : CM.Resolved_Channel_Decl);
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl;
+      State    : in out Emit_State);
    procedure Render_Free_Declarations
      (Buffer       : in out SU.Unbounded_String;
       Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
@@ -2878,6 +2883,137 @@ package body Safe_Frontend.Ada_Emit is
       Access_Constant_Prefix          : constant String := "access constant ";
       Not_Null_Access_Prefix          : constant String := "not null access ";
       Access_Prefix                   : constant String := "access ";
+
+      function Find_Local_Synthetic_Type
+        (Target_Name : String;
+         Found       : out Boolean) return GM.Type_Descriptor
+      is
+         Match : GM.Type_Descriptor := (others => <>);
+
+         procedure Check_Info (Info : GM.Type_Descriptor);
+         procedure Check_Decls (Decls : CM.Resolved_Object_Decl_Vectors.Vector);
+         procedure Check_Decls (Decls : CM.Object_Decl_Vectors.Vector);
+         procedure Check_Statements
+           (Statements : CM.Statement_Access_Vectors.Vector);
+
+         procedure Check_Info (Info : GM.Type_Descriptor) is
+         begin
+            if Found or else not Has_Text (Info.Name) then
+               return;
+            end if;
+
+            if FT.To_String (Info.Name) = Target_Name then
+               Match := Info;
+               Found := True;
+            end if;
+         end Check_Info;
+
+         procedure Check_Decls (Decls : CM.Resolved_Object_Decl_Vectors.Vector) is
+         begin
+            for Decl of Decls loop
+               Check_Info (Decl.Type_Info);
+               exit when Found;
+            end loop;
+         end Check_Decls;
+
+         procedure Check_Decls (Decls : CM.Object_Decl_Vectors.Vector) is
+         begin
+            for Decl of Decls loop
+               Check_Info (Decl.Type_Info);
+               exit when Found;
+            end loop;
+         end Check_Decls;
+
+         procedure Check_Statements
+           (Statements : CM.Statement_Access_Vectors.Vector)
+         is
+         begin
+            for Item of Statements loop
+               exit when Found;
+               if Item = null then
+                  null;
+               else
+                  case Item.Kind is
+                     when CM.Stmt_Object_Decl =>
+                        Check_Info (Item.Decl.Type_Info);
+                     when CM.Stmt_Destructure_Decl =>
+                        Check_Info (Item.Destructure.Type_Info);
+                     when CM.Stmt_If =>
+                        Check_Statements (Item.Then_Stmts);
+                        for Part of Item.Elsifs loop
+                           exit when Found;
+                           Check_Statements (Part.Statements);
+                        end loop;
+                        if Item.Has_Else then
+                           Check_Statements (Item.Else_Stmts);
+                        end if;
+                     when CM.Stmt_Case =>
+                        for Arm of Item.Case_Arms loop
+                           exit when Found;
+                           Check_Statements (Arm.Statements);
+                        end loop;
+                     when CM.Stmt_While | CM.Stmt_Loop | CM.Stmt_For =>
+                        Check_Decls (Item.Declarations);
+                        Check_Statements (Item.Body_Stmts);
+                     when CM.Stmt_Select =>
+                        for Arm of Item.Arms loop
+                           exit when Found;
+                           case Arm.Kind is
+                              when CM.Select_Arm_Channel =>
+                                 Check_Info (Arm.Channel_Data.Type_Info);
+                                 Check_Statements (Arm.Channel_Data.Statements);
+                              when CM.Select_Arm_Delay =>
+                                 Check_Statements (Arm.Delay_Data.Statements);
+                              when others =>
+                                 null;
+                           end case;
+                        end loop;
+                     when others =>
+                        null;
+                  end case;
+               end if;
+            end loop;
+         end Check_Statements;
+      begin
+         Found := False;
+
+         for Item of Unit.Types loop
+            Check_Info (Item);
+            exit when Found;
+         end loop;
+         for Item of Unit.Objects loop
+            exit when Found;
+            Check_Info (Item.Type_Info);
+         end loop;
+         for Item of Unit.Channels loop
+            exit when Found;
+            Check_Info (Item.Element_Type);
+         end loop;
+         for Item of Unit.Subprograms loop
+            exit when Found;
+            for Param of Item.Params loop
+               Check_Info (Param.Type_Info);
+               exit when Found;
+            end loop;
+            if not Found and then Item.Has_Return_Type then
+               Check_Info (Item.Return_Type);
+            end if;
+            if not Found then
+               Check_Decls (Item.Declarations);
+               Check_Statements (Item.Statements);
+            end if;
+         end loop;
+         for Item of Unit.Tasks loop
+            exit when Found;
+            Check_Decls (Item.Declarations);
+            Check_Statements (Item.Statements);
+         end loop;
+         if not Found then
+            Check_Statements (Unit.Statements);
+         end if;
+
+         return Match;
+      end Find_Local_Synthetic_Type;
    begin
       if Name'Length = 0 then
          return (others => <>);
@@ -2885,6 +3021,15 @@ package body Safe_Frontend.Ada_Emit is
 
       if Has_Type (Unit, Document, Name) then
          return Lookup_Type (Unit, Document, Name);
+      elsif Starts_With (Name, "__tuple") then
+         declare
+            Found_Local_Synthetic : Boolean := False;
+         begin
+            Result := Find_Local_Synthetic_Type (Name, Found_Local_Synthetic);
+            if Found_Local_Synthetic then
+               return Result;
+            end if;
+         end;
       elsif Starts_With (Lower_Name, "not null access constant ") then
          Result.Kind := FT.To_UString ("access");
          Result.Name := FT.To_UString (Name);
@@ -11065,9 +11210,11 @@ package body Safe_Frontend.Ada_Emit is
    end Render_Required_Statement_Suite;
 
    procedure Render_Channel_Spec
-     (Buffer  : in out SU.Unbounded_String;
-      Channel : CM.Resolved_Channel_Decl;
-      Bronze  : MB.Bronze_Result)
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl;
+      Bronze   : MB.Bronze_Result)
    is
       Name          : constant String := FT.To_String (Channel.Name);
       Element_Type  : constant String := Render_Type_Name (Channel.Element_Type);
@@ -11076,8 +11223,10 @@ package body Safe_Frontend.Ada_Emit is
       Index_Subtype : constant String := Name & "_Index";
       Count_Subtype : constant String := Name & "_Count";
       Buffer_Type   : constant String := Name & "_Buffer";
-      Send_Mode     : constant String :=
-        (if Is_Owner_Access (Channel.Element_Type) then "in out " else "in ");
+      Heap_Value    : constant Boolean :=
+        Has_Heap_Value_Type (Unit, Document, Channel.Element_Type);
+      Receive_Mode  : constant String :=
+        (if Heap_Value then "in out " else "out ");
       Ceiling       : Long_Long_Integer :=
         (if Channel.Has_Required_Ceiling then Channel.Required_Ceiling else 0);
    begin
@@ -11106,19 +11255,17 @@ package body Safe_Frontend.Ada_Emit is
          & " with Priority => " & Trim_Image (Ceiling)
          & " is",
          1);
-      Append_Line (Buffer, "entry Send (Value : " & Send_Mode & Element_Type & ");", 2);
-      Append_Line (Buffer, "entry Receive (Value : out " & Element_Type & ");", 2);
+      Append_Line (Buffer, "entry Send (Value : in " & Element_Type & ");", 2);
+      Append_Line (Buffer, "entry Receive (Value : " & Receive_Mode & Element_Type & ");", 2);
       Append_Line
         (Buffer,
-         "procedure Try_Send (Value : " & Send_Mode & Element_Type & "; Success : out Boolean);",
+         "procedure Try_Send (Value : in " & Element_Type & "; Success : out Boolean);",
          2);
       Append_Line
         (Buffer,
          "procedure Try_Receive (Value : in out "
          & Element_Type
-         & "; Success : out Boolean)"
-         & (if Is_Owner_Access (Channel.Element_Type) then " with Pre => Value = null" else "")
-         & ";",
+         & "; Success : out Boolean);",
          2);
       Append_Line (Buffer, "private", 1);
       Append_Line
@@ -11126,7 +11273,7 @@ package body Safe_Frontend.Ada_Emit is
           "Buffer : "
           & Buffer_Type
           & " := (others => "
-          & Default_Value_Expr (Channel.Element_Type)
+          & Default_Value_Expr (Unit, Document, Channel.Element_Type)
           & ");",
           2);
       Append_Line (Buffer, "Head   : " & Index_Subtype & " := " & Index_Subtype & "'First;", 2);
@@ -11138,42 +11285,631 @@ package body Safe_Frontend.Ada_Emit is
    end Render_Channel_Spec;
 
    procedure Render_Channel_Body
-     (Buffer  : in out SU.Unbounded_String;
-      Channel : CM.Resolved_Channel_Decl)
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl;
+      State    : in out Emit_State)
    is
       Name          : constant String := FT.To_String (Channel.Name);
       Element_Type  : constant String := Render_Type_Name (Channel.Element_Type);
       Capacity      : constant String := Trim_Image (Channel.Capacity);
       Type_Name     : constant String := Name & "_Channel";
       Index_Subtype : constant String := Name & "_Index";
-      Move_Helper   : constant String := Name & "_Move_From_Buffer";
-      Is_Owner      : constant Boolean := Is_Owner_Access (Channel.Element_Type);
-   begin
-      if Is_Owner then
+      Heap_Value    : constant Boolean :=
+        Has_Heap_Value_Type (Unit, Document, Channel.Element_Type);
+      Receive_Mode  : constant String :=
+        (if Heap_Value then "in out " else "out ");
+      Buffer_Default : constant String :=
+        Default_Value_Expr (Unit, Document, Channel.Element_Type);
+      Copy_Helper   : constant String := Name & "_Copy_Value";
+      Free_Helper   : constant String := Name & "_Free_Value";
+      Generated_Channel_Helpers : FT.UString_Vectors.Vector;
+      Runtime_Dependency_Types  : FT.UString_Vectors.Vector;
+
+      function Channel_Helper_Key (Info : GM.Type_Descriptor) return String is
+      begin
+         return Render_Type_Name (Info);
+      end Channel_Helper_Key;
+
+      function Channel_Helper_Base_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return Name & "_" & Sanitized_Helper_Name (Channel_Helper_Key (Info));
+      end Channel_Helper_Base_Name;
+
+      function Channel_Clone_Helper_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return Channel_Helper_Base_Name (Info) & "_Clone";
+      end Channel_Clone_Helper_Name;
+
+      function Channel_Free_Helper_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return Channel_Helper_Base_Name (Info) & "_Free";
+      end Channel_Free_Helper_Name;
+
+      function Needs_Generated_Channel_Helper
+        (Info : GM.Type_Descriptor) return Boolean
+      is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+      begin
+         return Has_Heap_Value_Type (Unit, Document, Base)
+           and then not Is_Plain_String_Type (Unit, Document, Base)
+           and then not Is_Growable_Array_Type (Unit, Document, Base)
+           and then (Kind = "array" or else Kind = "record" or else Is_Tuple_Type (Base));
+      end Needs_Generated_Channel_Helper;
+
+      procedure Mark_Channel_Runtime_Dependencies (Info : GM.Type_Descriptor);
+
+      procedure Mark_Channel_Runtime_Dependencies (Info : GM.Type_Descriptor) is
+         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Type_Key : constant String := Channel_Helper_Key (Info);
+
+         procedure Add_From_Name (Name_Text : String) is
+         begin
+            if Name_Text'Length = 0 then
+               return;
+            end if;
+
+            Mark_Channel_Runtime_Dependencies
+              (Resolve_Type_Name (Unit, Document, Name_Text));
+         end Add_From_Name;
+      begin
+         if Contains_Name (Runtime_Dependency_Types, Type_Key) then
+            return;
+         end if;
+
+         Runtime_Dependency_Types.Append (FT.To_UString (Type_Key));
+
+         if Is_Plain_String_Type (Unit, Document, Base) then
+            State.Needs_Safe_String_RT := True;
+            return;
+         elsif Is_Growable_Array_Type (Unit, Document, Base) then
+            State.Needs_Safe_Array_RT := True;
+            Add_From_Name (FT.To_String (Base.Component_Type));
+            return;
+         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "array"
+           and then Base.Has_Component_Type
+         then
+            Add_From_Name (FT.To_String (Base.Component_Type));
+         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "record" then
+            for Field of Base.Fields loop
+               Add_From_Name (FT.To_String (Field.Type_Name));
+            end loop;
+            for Field of Base.Variant_Fields loop
+               Add_From_Name (FT.To_String (Field.Type_Name));
+            end loop;
+         elsif Is_Tuple_Type (Base) then
+            for Item of Base.Tuple_Element_Types loop
+               Add_From_Name (FT.To_String (Item));
+            end loop;
+         end if;
+      end Mark_Channel_Runtime_Dependencies;
+
+      function Clone_Value_Expr
+        (Info        : GM.Type_Descriptor;
+         Source_Text : String) return String
+      is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      begin
+         if Is_Plain_String_Type (Unit, Document, Base) then
+            return "Safe_String_RT.Clone (" & Source_Text & ")";
+         elsif Is_Growable_Array_Type (Unit, Document, Base) then
+            return Array_Runtime_Instance_Name (Base) & ".Clone (" & Source_Text & ")";
+         elsif Needs_Generated_Channel_Helper (Info) then
+            return Channel_Clone_Helper_Name (Info) & " (" & Source_Text & ")";
+         end if;
+         return Source_Text;
+      end Clone_Value_Expr;
+
+      procedure Append_Free_Value
+        (Target_Text : String;
+         Info        : GM.Type_Descriptor;
+         Depth       : Natural)
+      is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      begin
+         if Is_Plain_String_Type (Unit, Document, Base) then
+            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Text & ");", Depth);
+         elsif Is_Growable_Array_Type (Unit, Document, Base) then
+            Append_Line
+              (Buffer,
+               Array_Runtime_Instance_Name (Base) & ".Free (" & Target_Text & ");",
+               Depth);
+         elsif Needs_Generated_Channel_Helper (Info) then
+            Append_Line
+              (Buffer,
+               Channel_Free_Helper_Name (Info) & " (" & Target_Text & ");",
+               Depth);
+         end if;
+      end Append_Free_Value;
+
+      procedure Render_Channel_Value_Helpers (Info : GM.Type_Descriptor);
+
+      procedure Render_Channel_Value_Helpers (Info : GM.Type_Descriptor) is
+         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind     : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+         Type_Key : constant String := Channel_Helper_Key (Info);
+         Type_Name : constant String := Render_Type_Name (Info);
+
+         procedure Ensure_Helper (Name_Text : String) is
+         begin
+            if Name_Text'Length = 0 then
+               return;
+            end if;
+
+            Render_Channel_Value_Helpers
+              (Resolve_Type_Name (Unit, Document, Name_Text));
+         end Ensure_Helper;
+
+         function Same_Choice
+           (Left, Right : GM.Variant_Field) return Boolean is
+         begin
+            return Left.Is_Others = Right.Is_Others
+              and then
+                (if Left.Is_Others
+                 then True
+                 else Left.Choice.Kind = Right.Choice.Kind
+                   and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
+         end Same_Choice;
+
+         procedure Append_Record_Clone_Assignments (Depth : Natural) is
+         begin
+            for Field of Base.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                     Append_Line
+                       (Buffer,
+                        "Result."
+                        & FT.To_String (Field.Name)
+                        & " := "
+                        & Clone_Value_Expr
+                            (Field_Info,
+                             "Source." & FT.To_String (Field.Name))
+                        & ";",
+                        Depth);
+                  end if;
+               end;
+            end loop;
+
+            if not Base.Variant_Fields.Is_Empty then
+               declare
+                  Disc_Name : constant String :=
+                    FT.To_String
+                      ((if Has_Text (Base.Variant_Discriminant_Name)
+                        then Base.Variant_Discriminant_Name
+                        else Base.Discriminant_Name));
+                  Index : Positive := Base.Variant_Fields.First_Index;
+               begin
+                  if Disc_Name'Length = 0 then
+                     return;
+                  end if;
+
+                  Append_Line (Buffer, "case Source." & Disc_Name & " is", Depth);
+                  while Index <= Base.Variant_Fields.Last_Index loop
+                     declare
+                        First_Field : constant GM.Variant_Field :=
+                          Base.Variant_Fields (Index);
+                        Emitted_Statements : Boolean := False;
+                     begin
+                        Append_Line
+                          (Buffer,
+                           "when "
+                           & (if First_Field.Is_Others
+                              then "others"
+                              else Render_Scalar_Value (First_Field.Choice))
+                           & " =>",
+                           Depth + 1);
+                        loop
+                           declare
+                              Variant_Field : constant GM.Variant_Field :=
+                                Base.Variant_Fields (Index);
+                              Field_Info : constant GM.Type_Descriptor :=
+                                Resolve_Type_Name
+                                  (Unit,
+                                   Document,
+                                   FT.To_String (Variant_Field.Type_Name));
+                           begin
+                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                                 Append_Line
+                                   (Buffer,
+                                    "Result."
+                                    & FT.To_String (Variant_Field.Name)
+                                    & " := "
+                                    & Clone_Value_Expr
+                                        (Field_Info,
+                                         "Source." & FT.To_String (Variant_Field.Name))
+                                    & ";",
+                                    Depth + 2);
+                                 Emitted_Statements := True;
+                              end if;
+                           end;
+                           exit when Index = Base.Variant_Fields.Last_Index;
+                           exit when not Same_Choice
+                             (First_Field,
+                              Base.Variant_Fields (Index + 1));
+                           Index := Index + 1;
+                        end loop;
+                        if not Emitted_Statements then
+                           Append_Line (Buffer, "null;", Depth + 2);
+                        end if;
+                        Index := Index + 1;
+                     end;
+                  end loop;
+                  Append_Line (Buffer, "end case;", Depth);
+               end;
+            end if;
+         end Append_Record_Clone_Assignments;
+
+         procedure Append_Record_Free_Statements (Depth : Natural) is
+         begin
+            for Field of Base.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                     Append_Free_Value
+                       ("Value." & FT.To_String (Field.Name), Field_Info, Depth);
+                  end if;
+               end;
+            end loop;
+
+            if not Base.Variant_Fields.Is_Empty then
+               declare
+                  Disc_Name : constant String :=
+                    FT.To_String
+                      ((if Has_Text (Base.Variant_Discriminant_Name)
+                        then Base.Variant_Discriminant_Name
+                        else Base.Discriminant_Name));
+                  Index : Positive := Base.Variant_Fields.First_Index;
+               begin
+                  if Disc_Name'Length = 0 then
+                     return;
+                  end if;
+
+                  Append_Line (Buffer, "case Value." & Disc_Name & " is", Depth);
+                  while Index <= Base.Variant_Fields.Last_Index loop
+                     declare
+                        First_Field : constant GM.Variant_Field :=
+                          Base.Variant_Fields (Index);
+                        Emitted_Statements : Boolean := False;
+                     begin
+                        Append_Line
+                          (Buffer,
+                           "when "
+                           & (if First_Field.Is_Others
+                              then "others"
+                              else Render_Scalar_Value (First_Field.Choice))
+                           & " =>",
+                           Depth + 1);
+                        loop
+                           declare
+                              Variant_Field : constant GM.Variant_Field :=
+                                Base.Variant_Fields (Index);
+                              Field_Info : constant GM.Type_Descriptor :=
+                                Resolve_Type_Name
+                                  (Unit,
+                                   Document,
+                                   FT.To_String (Variant_Field.Type_Name));
+                           begin
+                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                                 Append_Free_Value
+                                   ("Value." & FT.To_String (Variant_Field.Name),
+                                    Field_Info,
+                                    Depth + 2);
+                                 Emitted_Statements := True;
+                              end if;
+                           end;
+                           exit when Index = Base.Variant_Fields.Last_Index;
+                           exit when not Same_Choice
+                             (First_Field,
+                              Base.Variant_Fields (Index + 1));
+                           Index := Index + 1;
+                        end loop;
+                        if not Emitted_Statements then
+                           Append_Line (Buffer, "null;", Depth + 2);
+                        end if;
+                        Index := Index + 1;
+                     end;
+                  end loop;
+                  Append_Line (Buffer, "end case;", Depth);
+               end;
+            end if;
+         end Append_Record_Free_Statements;
+      begin
+         if not Needs_Generated_Channel_Helper (Info)
+           or else Contains_Name (Generated_Channel_Helpers, Type_Key)
+         then
+            return;
+         end if;
+
+         if Kind = "array" and then Base.Has_Component_Type then
+            Ensure_Helper (FT.To_String (Base.Component_Type));
+         elsif Kind = "record" then
+            for Field of Base.Fields loop
+               Ensure_Helper (FT.To_String (Field.Type_Name));
+            end loop;
+            for Field of Base.Variant_Fields loop
+               Ensure_Helper (FT.To_String (Field.Type_Name));
+            end loop;
+         elsif Is_Tuple_Type (Base) then
+            for Item of Base.Tuple_Element_Types loop
+               Ensure_Helper (FT.To_String (Item));
+            end loop;
+         end if;
+
+         Generated_Channel_Helpers.Append (FT.To_UString (Type_Key));
+
+         Append_Line
+           (Buffer,
+            "function "
+            & Channel_Clone_Helper_Name (Info)
+            & " (Source : "
+            & Type_Name
+            & ") return "
+            & Type_Name,
+            1);
+         Append_Line (Buffer, "with Global => null,", 2);
+         Append_Line
+           (Buffer,
+            "Depends => ("
+            & Channel_Clone_Helper_Name (Info)
+            & "'Result => Source);",
+            2);
+         Append_Line
+           (Buffer,
+            "pragma Annotate (GNATprove, Skip_Flow_And_Proof, "
+            & Channel_Clone_Helper_Name (Info)
+            & ");",
+            1);
+         Append_Line
+           (Buffer,
+            "function "
+            & Channel_Clone_Helper_Name (Info)
+            & " (Source : "
+            & Type_Name
+            & ") return "
+            & Type_Name
+            & " is",
+            1);
+         Append_Line (Buffer, "Result : " & Type_Name & " := Source;", 2);
+         Append_Line (Buffer, "begin", 1);
+         if Kind = "array" and then Base.Has_Component_Type then
+            declare
+               Component_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
+            begin
+               if Has_Heap_Value_Type (Unit, Document, Component_Info) then
+                  Append_Line (Buffer, "for Index in Source'Range loop", 2);
+                  Append_Line
+                    (Buffer,
+                     "Result (Index) := "
+                     & Clone_Value_Expr (Component_Info, "Source (Index)")
+                     & ";",
+                     3);
+                  Append_Line (Buffer, "end loop;", 2);
+               end if;
+            end;
+         elsif Kind = "record" then
+            Append_Record_Clone_Assignments (2);
+         elsif Is_Tuple_Type (Base) then
+            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
+               declare
+                  Item_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name
+                      (Unit,
+                       Document,
+                       FT.To_String (Base.Tuple_Element_Types (Index)));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
+                     Append_Line
+                       (Buffer,
+                        "Result."
+                        & Tuple_Field_Name (Positive (Index))
+                        & " := "
+                        & Clone_Value_Expr
+                            (Item_Info,
+                             "Source." & Tuple_Field_Name (Positive (Index)))
+                        & ";",
+                        2);
+                  end if;
+               end;
+            end loop;
+         end if;
+         Append_Line (Buffer, "return Result;", 2);
+         Append_Line (Buffer, "end " & Channel_Clone_Helper_Name (Info) & ";", 1);
+         Append_Line (Buffer);
+
          Append_Line
            (Buffer,
             "procedure "
-            & Move_Helper
-            & " (Source : in out "
-            & Element_Type
-            & "; Target : out "
-            & Element_Type
-            & ") with Global => null is",
+            & Channel_Free_Helper_Name (Info)
+            & " (Value : in out "
+            & Type_Name
+            & ")",
+            1);
+         Append_Line (Buffer, "with Global => null,", 2);
+         Append_Line (Buffer, "Depends => (Value => Value);", 2);
+         Append_Line
+           (Buffer,
+            "pragma Annotate (GNATprove, Skip_Flow_And_Proof, "
+            & Channel_Free_Helper_Name (Info)
+            & ");",
+            1);
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Channel_Free_Helper_Name (Info)
+            & " (Value : in out "
+            & Type_Name
+            & ") is",
             1);
          Append_Line (Buffer, "begin", 1);
-         Append_Line (Buffer, "Target := Source;", 2);
-         Append_Line (Buffer, "Source := null;", 2);
-         Append_Line (Buffer, "end " & Move_Helper & ";", 1);
+         if Kind = "array" and then Base.Has_Component_Type then
+            declare
+               Component_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
+            begin
+               if Has_Heap_Value_Type (Unit, Document, Component_Info) then
+                  Append_Line (Buffer, "for Index in Value'Range loop", 2);
+                  Append_Free_Value ("Value (Index)", Component_Info, 3);
+                  Append_Line (Buffer, "end loop;", 2);
+               end if;
+            end;
+         elsif Kind = "record" then
+            Append_Record_Free_Statements (2);
+         elsif Is_Tuple_Type (Base) then
+            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
+               declare
+                  Item_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name
+                      (Unit,
+                       Document,
+                       FT.To_String (Base.Tuple_Element_Types (Index)));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
+                     Append_Free_Value
+                       ("Value." & Tuple_Field_Name (Positive (Index)),
+                        Item_Info,
+                        2);
+                  end if;
+               end;
+            end loop;
+         end if;
+         Append_Line
+           (Buffer,
+            "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
+            2);
+         Append_Line (Buffer, "end " & Channel_Free_Helper_Name (Info) & ";", 1);
+         Append_Line (Buffer);
+      end Render_Channel_Value_Helpers;
+   begin
+      if Heap_Value then
+         Mark_Channel_Runtime_Dependencies (Channel.Element_Type);
+         Render_Channel_Value_Helpers (Channel.Element_Type);
+
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Copy_Helper
+            & " (Target : in out "
+            & Element_Type
+            & "; Source : "
+            & Element_Type
+            & ")",
+            1);
+         Append_Line (Buffer, "with Global => null,", 2);
+         Append_Line
+           (Buffer,
+            "Depends => (Target => (Target, Source));",
+            2);
+         Append_Line
+           (Buffer,
+            "pragma Annotate (GNATprove, Skip_Flow_And_Proof, "
+            & Copy_Helper
+            & ");",
+            1);
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Copy_Helper
+            & " (Target : in out "
+            & Element_Type
+            & "; Source : "
+            & Element_Type
+            & ") is",
+            1);
+         if Is_Plain_String_Type (Unit, Document, Channel.Element_Type) then
+            Append_Line
+              (Buffer,
+               "Snapshot : constant "
+               & Element_Type
+               & " := Safe_String_RT.Clone (Source);",
+               2);
+            Append_Line (Buffer, "begin", 1);
+            Append_Line (Buffer, "Safe_String_RT.Free (Target);", 2);
+            Append_Line (Buffer, "Target := Snapshot;", 2);
+         elsif Is_Growable_Array_Type (Unit, Document, Channel.Element_Type) then
+            Append_Line
+              (Buffer,
+               "Snapshot : constant "
+               & Element_Type
+               & " := "
+               & Array_Runtime_Instance_Name
+                   (Base_Type (Unit, Document, Channel.Element_Type))
+               & ".Clone (Source);",
+               2);
+            Append_Line (Buffer, "begin", 1);
+            Append_Line
+              (Buffer,
+               Array_Runtime_Instance_Name
+                 (Base_Type (Unit, Document, Channel.Element_Type))
+               & ".Free (Target);",
+               2);
+            Append_Line (Buffer, "Target := Snapshot;", 2);
+         else
+            Append_Line
+              (Buffer,
+               "Snapshot : constant "
+               & Element_Type
+               & " := "
+               & Clone_Value_Expr (Channel.Element_Type, "Source")
+               & ";",
+               2);
+            Append_Line (Buffer, "begin", 1);
+            Append_Free_Value ("Target", Channel.Element_Type, 2);
+            Append_Line (Buffer, "Target := Snapshot;", 2);
+         end if;
+         Append_Line (Buffer, "end " & Copy_Helper & ";", 1);
+         Append_Line (Buffer);
+
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Free_Helper
+            & " (Value : in out "
+            & Element_Type
+            & ")",
+            1);
+         Append_Line (Buffer, "with Global => null,", 2);
+         Append_Line (Buffer, "Depends => (Value => Value);", 2);
+         Append_Line
+           (Buffer,
+            "pragma Annotate (GNATprove, Skip_Flow_And_Proof, "
+            & Free_Helper
+            & ");",
+            1);
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Free_Helper
+            & " (Value : in out "
+            & Element_Type
+            & ") is",
+            1);
+         Append_Line (Buffer, "begin", 1);
+         if Is_Plain_String_Type (Unit, Document, Channel.Element_Type) then
+            Append_Line (Buffer, "Safe_String_RT.Free (Value);", 2);
+         elsif Is_Growable_Array_Type (Unit, Document, Channel.Element_Type) then
+            Append_Line
+              (Buffer,
+               Array_Runtime_Instance_Name
+                 (Base_Type (Unit, Document, Channel.Element_Type))
+               & ".Free (Value);",
+               2);
+         else
+            Append_Free_Value ("Value", Channel.Element_Type, 2);
+         end if;
+         Append_Line (Buffer, "end " & Free_Helper & ";", 1);
          Append_Line (Buffer);
       end if;
+
       Append_Line (Buffer, "protected body " & Type_Name & " is", 1);
-      Append_Line
-        (Buffer,
-         "entry Send (Value : "
-         & (if Is_Owner then "in out " else "in ")
-         & Render_Type_Name (Channel.Element_Type)
-         & ")",
-         2);
+      Append_Line (Buffer, "entry Send (Value : in " & Element_Type & ")", 2);
       Append_Line
         (Buffer,
          "when Count < "
@@ -11181,8 +11917,8 @@ package body Safe_Frontend.Ada_Emit is
          & " is",
          3);
       Append_Line (Buffer, "begin", 2);
-      if Is_Owner then
-         Append_Line (Buffer, Move_Helper & " (Value, Buffer (Tail));", 3);
+      if Heap_Value then
+         Append_Line (Buffer, Copy_Helper & " (Buffer (Tail), Value);", 3);
       else
          Append_Line (Buffer, "Buffer (Tail) := Value;", 3);
       end if;
@@ -11194,21 +11930,19 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "Count := Count + 1;", 3);
       Append_Line (Buffer, "end Send;", 2);
       Append_Line (Buffer);
-      Append_Line (Buffer, "entry Receive (Value : out " & Render_Type_Name (Channel.Element_Type) & ")", 2);
+      Append_Line (Buffer, "entry Receive (Value : " & Receive_Mode & Element_Type & ")", 2);
       Append_Line
         (Buffer,
          "when Count > 0"
          & " is",
          3);
       Append_Line (Buffer, "begin", 2);
-      if Is_Owner then
-         Append_Line (Buffer, Move_Helper & " (Buffer (Head), Value);", 3);
+      if Heap_Value then
+         Append_Line (Buffer, Copy_Helper & " (Value, Buffer (Head));", 3);
+         Append_Line (Buffer, Free_Helper & " (Buffer (Head));", 3);
       else
          Append_Line (Buffer, "Value := Buffer (Head);", 3);
-         Append_Line
-           (Buffer,
-            "Buffer (Head) := " & Default_Value_Expr (Channel.Element_Type) & ";",
-            3);
+         Append_Line (Buffer, "Buffer (Head) := " & Buffer_Default & ";", 3);
       end if;
       Append_Line (Buffer, "if Head = " & Index_Subtype & "'Last then", 3);
       Append_Line (Buffer, "Head := " & Index_Subtype & "'First;", 4);
@@ -11220,8 +11954,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer);
       Append_Line
         (Buffer,
-         "procedure Try_Send (Value : "
-         & (if Is_Owner then "in out " else "in ")
+         "procedure Try_Send (Value : in "
          & Element_Type
          & "; Success : out Boolean) is",
          2);
@@ -11232,8 +11965,8 @@ package body Safe_Frontend.Ada_Emit is
          & Capacity
          & " then",
          3);
-      if Is_Owner then
-         Append_Line (Buffer, Move_Helper & " (Value, Buffer (Tail));", 4);
+      if Heap_Value then
+         Append_Line (Buffer, Copy_Helper & " (Buffer (Tail), Value);", 4);
       else
          Append_Line (Buffer, "Buffer (Tail) := Value;", 4);
       end if;
@@ -11254,24 +11987,13 @@ package body Safe_Frontend.Ada_Emit is
          "procedure Try_Receive (Value : in out " & Element_Type & "; Success : out Boolean) is",
          2);
       Append_Line (Buffer, "begin", 2);
-      Append_Line
-        (Buffer,
-         "if Count > 0"
-         & (if Is_Owner
-              then
-                " and then Value = "
-                & Default_Value_Expr (Channel.Element_Type)
-              else "")
-         & " then",
-         3);
-      if Is_Owner then
-         Append_Line (Buffer, Move_Helper & " (Buffer (Head), Value);", 4);
+      Append_Line (Buffer, "if Count > 0 then", 3);
+      if Heap_Value then
+         Append_Line (Buffer, Copy_Helper & " (Value, Buffer (Head));", 4);
+         Append_Line (Buffer, Free_Helper & " (Buffer (Head));", 4);
       else
          Append_Line (Buffer, "Value := Buffer (Head);", 4);
-         Append_Line
-           (Buffer,
-            "Buffer (Head) := " & Default_Value_Expr (Channel.Element_Type) & ";",
-            4);
+         Append_Line (Buffer, "Buffer (Head) := " & Buffer_Default & ";", 4);
       end if;
       Append_Line (Buffer, "if Head = " & Index_Subtype & "'Last then", 4);
       Append_Line (Buffer, "Head := " & Index_Subtype & "'First;", 5);
@@ -12187,7 +12909,7 @@ package body Safe_Frontend.Ada_Emit is
 
       if not Unit.Channels.Is_Empty then
          for Channel of Unit.Channels loop
-            Render_Channel_Spec (Spec_Inner, Channel, Bronze);
+            Render_Channel_Spec (Spec_Inner, Unit, Document, Channel, Bronze);
          end loop;
       end if;
 
@@ -12249,7 +12971,7 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
 
       for Channel of Unit.Channels loop
-         Render_Channel_Body (Body_Inner, Channel);
+         Render_Channel_Body (Body_Inner, Unit, Document, Channel, State);
       end loop;
 
       for Subprogram of Unit.Subprograms loop

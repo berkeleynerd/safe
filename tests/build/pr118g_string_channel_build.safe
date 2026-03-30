@@ -1,0 +1,12 @@
+package pr118g_string_channel_build
+
+   channel text_ch : string capacity 1;
+   source : string = "Ada";
+   received : string;
+
+   send text_ch, source
+   source = "Bob"
+   receive text_ch, received
+
+   print (received)
+   print (source)

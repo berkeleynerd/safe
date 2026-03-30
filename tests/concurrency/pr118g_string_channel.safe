@@ -1,0 +1,16 @@
+-- Test: pr118g_string_channel
+-- Description: Direct string channel elements use value-copy semantics.
+-- Expected: ACCEPT
+
+package pr118g_string_channel
+
+   channel text_ch : string capacity 1;
+   seed : string = "Ada";
+
+   task worker with priority = 10, sends text_ch, receives text_ch
+      loop
+         receive text_ch, value : string
+         send text_ch, value
+         delay 0.05
+
+   send text_ch, seed

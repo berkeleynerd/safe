@@ -1,0 +1,15 @@
+package pr118g_growable_channel_build
+
+   type values is array of integer;
+
+   channel data_ch : values capacity 1;
+   source : values = [1, 2];
+   received : values;
+
+   send data_ch, source
+   source = [9]
+   receive data_ch, received
+
+   print (received (1))
+   print (received.length)
+   print (source (1))
