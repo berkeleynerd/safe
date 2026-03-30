@@ -15,6 +15,7 @@ from pathlib import Path
 from .harness_common import COMPILER_ROOT, REPO_ROOT, require
 
 
+STDLIB_ADA_DIR = COMPILER_ROOT / "stdlib" / "ada"
 ALR_FALLBACK = Path.home() / "bin" / "alr"
 RENODE_ASSETS_ROOT = REPO_ROOT / "tools" / "embedded" / "renode"
 OPENOCD_ASSETS_ROOT = REPO_ROOT / "tools" / "embedded" / "openocd"
@@ -354,7 +355,7 @@ def project_text(*, has_gnat_adc: bool, gnat_adc_path: Path) -> str:
     return "\n".join(
         [
             "project Build is",
-            '   for Source_Dirs use (".", "ada");',
+            f'   for Source_Dirs use (".", "ada", "{STDLIB_ADA_DIR}");',
             '   for Object_Dir use "obj";',
             '   for Exec_Dir use ".";',
             '   for Main use ("embedded_main.adb");',

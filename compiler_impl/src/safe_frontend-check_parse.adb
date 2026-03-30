@@ -1370,6 +1370,9 @@ package body Safe_Frontend.Check_Parse is
          Result.Names.Append (Expect_Identifier (State).Lexeme);
       end loop;
       Parse_Object_Declaration_Tail (State, Result);
+      if not Result.Is_Constant and then not Result.Has_Initializer then
+         Result.Has_Implicit_Default_Init := True;
+      end if;
       Semi := Expect (State, ";");
       Result.Span := CM.Join (First.Span, Semi.Span);
       return Result;

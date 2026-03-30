@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -635,6 +636,97 @@ EMITTED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "build" / "pr118d1_string_case_build.safe",
         ["case word is", "case mark is"],
     ),
+    (
+        "print-no-local-io-suppressions",
+        REPO_ROOT / "tests" / "positive" / "pr118c1_print.safe",
+        ["SPARK_Mode => Off", "Skip_Flow_And_Proof", "_safe_io"],
+    ),
+    (
+        "value-channel-no-local-suppressions",
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        ["SPARK_Mode => Off", "Skip_Flow_And_Proof", "_safe_io"],
+    ),
+    (
+        "string-channel-direct-scalar-no-length-plumbing",
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        ["Stored_Length"],
+    ),
+    (
+        "growable-channel-direct-scalar-no-length-plumbing",
+        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
+        ["Stored_Length"],
+    ),
+    (
+        "try-string-channel-direct-scalar-no-length-plumbing",
+        REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
+        ["Stored_Length"],
+    ),
+]
+
+EMITTED_REQUIRED_SHAPE_CASES = [
+    (
+        "string-channel-direct-scalar-ghost-model",
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        [
+            "text_ch_Model_Has_Value : Boolean := False;",
+            "text_ch_Model_Length : Natural := 0;",
+        ],
+    ),
+    (
+        "growable-channel-direct-scalar-ghost-model",
+        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
+        [
+            "data_ch_Model_Has_Value : Boolean := False;",
+            "data_ch_Model_Length : Natural := 0;",
+        ],
+    ),
+    (
+        "try-string-channel-direct-scalar-ghost-model",
+        REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
+        [
+            "text_ch_Model_Has_Value : Boolean := False;",
+            "text_ch_Model_Length : Natural := 0;",
+        ],
+    ),
+]
+
+EMITTED_PROTECTED_BODY_SHAPE_CASES = [
+    (
+        "string-channel-protected-body-no-heap-runtime",
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        "text_ch_Channel",
+        ["Safe_String_RT.Clone", "Safe_String_RT.Copy", "Safe_String_RT.Free"],
+    ),
+    (
+        "growable-channel-protected-body-no-heap-runtime",
+        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
+        "data_ch_Channel",
+        ["values_RT.Clone", "values_RT.Copy", "values_RT.Free"],
+    ),
+    (
+        "tuple-channel-protected-body-no-heap-runtime",
+        REPO_ROOT / "tests" / "build" / "pr118g_tuple_string_channel_build.safe",
+        "pair_ch_Channel",
+        [
+            "pair_ch_Copy_Value",
+            "pair_ch_Free_Value",
+            "Safe_String_RT.Clone",
+            "Safe_String_RT.Copy",
+            "Safe_String_RT.Free",
+        ],
+    ),
+    (
+        "record-channel-protected-body-no-heap-runtime",
+        REPO_ROOT / "tests" / "build" / "pr118g_record_string_channel_build.safe",
+        "data_ch_Channel",
+        [
+            "data_ch_Copy_Value",
+            "data_ch_Free_Value",
+            "Safe_String_RT.Clone",
+            "Safe_String_RT.Copy",
+            "Safe_String_RT.Free",
+        ],
+    ),
 ]
 
 SOURCE_SHAPE_CASES = [
@@ -642,6 +734,36 @@ SOURCE_SHAPE_CASES = [
         "ada-emit-no-skip-proof-fallback",
         REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-ada_emit.adb",
         ["Skip_Proof"],
+    ),
+    (
+        "ada-emit-no-channel-proof-suppression",
+        REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-ada_emit.adb",
+        ["Skip_Flow_And_Proof"],
+    ),
+    (
+        "run-proofs-no-stdlib-project-import",
+        REPO_ROOT / "scripts" / "run_proofs.py",
+        ['SAFE_STDLIB_OBJECT_DIR', 'with "{STDLIB_GPR}";'],
+    ),
+    (
+        "pr09-emit-no-stdlib-project-import",
+        REPO_ROOT / "scripts" / "_lib" / "pr09_emit.py",
+        ['SAFE_STDLIB_OBJECT_DIR', 'with "{STDLIB_GPR}";'],
+    ),
+    (
+        "pr111-eval-no-stdlib-project-import",
+        REPO_ROOT / "scripts" / "_lib" / "pr111_language_eval.py",
+        ['SAFE_STDLIB_OBJECT_DIR', 'with "{STDLIB_GPR}";'],
+    ),
+    (
+        "embedded-eval-no-stdlib-project-import",
+        REPO_ROOT / "scripts" / "_lib" / "embedded_eval.py",
+        ['SAFE_STDLIB_OBJECT_DIR', 'with "{STDLIB_GPR}";'],
+    ),
+    (
+        "run-samples-no-stdlib-project-import",
+        REPO_ROOT / "scripts" / "run_samples.py",
+        ['SAFE_STDLIB_OBJECT_DIR', 'with "{STDLIB_GPR}";'],
     ),
 ]
 
@@ -1178,6 +1300,29 @@ def run_emitted_shape_case(
     forbidden_snippets: list[str],
     temp_root: Path,
 ) -> tuple[bool, str]:
+    try:
+        _, emitted_text = emit_case_ada_text(
+            safec,
+            label=label,
+            source=source,
+            temp_root=temp_root,
+        )
+    except RuntimeError as exc:
+        return False, str(exc)
+
+    for snippet in forbidden_snippets:
+        if snippet in emitted_text:
+            return False, f"found forbidden emitted snippet {snippet!r}"
+    return True, ""
+
+
+def emit_case_ada_text(
+    safec: Path,
+    *,
+    label: str,
+    source: Path,
+    temp_root: Path,
+) -> tuple[Path, str]:
     case_root = temp_root / f"{source.stem}-{label}"
     out_dir = case_root / "out"
     iface_dir = case_root / "iface"
@@ -1201,7 +1346,7 @@ def run_emitted_shape_case(
         cwd=REPO_ROOT,
     )
     if emit.returncode != 0:
-        return False, f"emit failed: {first_message(emit)}"
+        raise RuntimeError(f"emit failed: {first_message(emit)}")
 
     emitted_text = ""
     ada_file_found = False
@@ -1211,12 +1356,76 @@ def run_emitted_shape_case(
             emitted_text += path.read_text(encoding="utf-8")
 
     if not ada_file_found:
-        return False, f"emit produced no Ada sources in {ada_dir}"
+        raise RuntimeError(f"emit produced no Ada sources in {ada_dir}")
 
-    for snippet in forbidden_snippets:
-        if snippet in emitted_text:
-            return False, f"found forbidden emitted snippet {snippet!r}"
+    return ada_dir, emitted_text
+
+
+def run_emitted_required_shape_case(
+    safec: Path,
+    *,
+    label: str,
+    source: Path,
+    required_snippets: list[str],
+    temp_root: Path,
+) -> tuple[bool, str]:
+    try:
+        _, emitted_text = emit_case_ada_text(
+            safec,
+            label=label,
+            source=source,
+            temp_root=temp_root,
+        )
+    except RuntimeError as exc:
+        return False, str(exc)
+
+    for snippet in required_snippets:
+        if snippet not in emitted_text:
+            return False, f"missing required emitted snippet {snippet!r}"
     return True, ""
+
+
+def run_emitted_protected_body_shape_case(
+    safec: Path,
+    *,
+    label: str,
+    source: Path,
+    protected_name: str,
+    forbidden_snippets: list[str],
+    temp_root: Path,
+) -> tuple[bool, str]:
+    try:
+        ada_dir, _ = emit_case_ada_text(
+            safec,
+            label=label,
+            source=source,
+            temp_root=temp_root,
+        )
+    except RuntimeError as exc:
+        return False, str(exc)
+
+    body_pattern = re.compile(
+        rf"protected body {re.escape(protected_name)} is(.*?)end {re.escape(protected_name)};",
+        re.DOTALL,
+    )
+
+    for path in sorted(ada_dir.iterdir()):
+        if path.suffix != ".adb":
+            continue
+        emitted_text = path.read_text(encoding="utf-8")
+        match = body_pattern.search(emitted_text)
+        if not match:
+            continue
+        protected_body = match.group(1)
+        for snippet in forbidden_snippets:
+            if snippet in protected_body:
+                return (
+                    False,
+                    f"found forbidden protected-body snippet {snippet!r} in {path.name}",
+                )
+        return True, ""
+
+    return False, f"missing protected body {protected_name!r} in emitted Ada sources"
 
 
 def run_source_shape_case(
@@ -1380,6 +1589,35 @@ def main() -> int:
                 temp_root=temp_root,
             )
             case_label = f"emitted-shape:{label}:{repo_rel(source)}"
+            if ok:
+                passed += 1
+            else:
+                failures.append((case_label, detail))
+
+        for label, source, required_snippets in EMITTED_REQUIRED_SHAPE_CASES:
+            ok, detail = run_emitted_required_shape_case(
+                safec,
+                label=label,
+                source=source,
+                required_snippets=required_snippets,
+                temp_root=temp_root,
+            )
+            case_label = f"emitted-required-shape:{label}:{repo_rel(source)}"
+            if ok:
+                passed += 1
+            else:
+                failures.append((case_label, detail))
+
+        for label, source, protected_name, forbidden_snippets in EMITTED_PROTECTED_BODY_SHAPE_CASES:
+            ok, detail = run_emitted_protected_body_shape_case(
+                safec,
+                label=label,
+                source=source,
+                protected_name=protected_name,
+                forbidden_snippets=forbidden_snippets,
+                temp_root=temp_root,
+            )
+            case_label = f"emitted-protected-shape:{label}:{repo_rel(source)}"
             if ok:
                 passed += 1
             else:

@@ -622,49 +622,7 @@ package body Safe_Frontend.Driver is
                      Unit_Name => FT.To_UString (""),
                      Spec_Text => FT.To_UString (""),
                      Body_Text => FT.To_UString (""),
-                     Safe_IO_Unit_Name => FT.To_UString (""),
-                     Needs_Safe_IO => False,
-                     Needs_Safe_String_RT => False,
-                     Needs_Safe_Array_RT => False,
-                     Needs_Safe_Bounded_Strings => False,
-                     Needs_Safe_Runtime => False,
                      Needs_Gnat_Adc => False));
-            Safe_IO_Spec : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_IO
-               then AE.Safe_IO_Spec_Text (FT.To_String (Ada_Result.Unit_Name))
-               else "");
-            Safe_IO_Body : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_IO
-               then AE.Safe_IO_Body_Text (FT.To_String (Ada_Result.Unit_Name))
-               else "");
-            Safe_Runtime : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_Runtime
-               then AE.Safe_Runtime_Text
-               else "");
-            Safe_String_RT_Spec : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_String_RT
-               then AE.Safe_String_RT_Spec_Text
-               else "");
-            Safe_String_RT_Body : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_String_RT
-               then AE.Safe_String_RT_Body_Text
-               else "");
-            Safe_Array_RT_Spec : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_Array_RT
-               then AE.Safe_Array_RT_Spec_Text
-               else "");
-            Safe_Array_RT_Body : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_Array_RT
-               then AE.Safe_Array_RT_Body_Text
-               else "");
-            Safe_Bounded_Strings_Spec : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_Bounded_Strings
-               then AE.Safe_Bounded_Strings_Spec_Text
-               else "");
-            Safe_Bounded_Strings_Body : constant String :=
-              (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Safe_Bounded_Strings
-               then AE.Safe_Bounded_Strings_Body_Text
-               else "");
             Gnat_Adc     : constant String :=
               (if Ada_Out_Dir'Length > 0 and then Ada_Result.Success and then Ada_Result.Needs_Gnat_Adc
                then AE.Gnat_Adc_Text
@@ -717,49 +675,6 @@ package body Safe_Frontend.Driver is
                         Write_File
                           (Ada_Out_Dir & "/main.adb",
                            Entry_Main);
-                     end if;
-                     if Ada_Result.Needs_Safe_IO then
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir
-                           & "/"
-                           & AE.Unit_File_Stem (FT.To_String (Ada_Result.Safe_IO_Unit_Name))
-                           & ".ads",
-                           Safe_IO_Spec);
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir
-                           & "/"
-                           & AE.Unit_File_Stem (FT.To_String (Ada_Result.Safe_IO_Unit_Name))
-                           & ".adb",
-                           Safe_IO_Body);
-                     end if;
-                     if Ada_Result.Needs_Safe_Runtime then
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_runtime.ads",
-                           Safe_Runtime);
-                     end if;
-                     if Ada_Result.Needs_Safe_String_RT then
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_string_rt.ads",
-                           Safe_String_RT_Spec);
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_string_rt.adb",
-                           Safe_String_RT_Body);
-                     end if;
-                     if Ada_Result.Needs_Safe_Array_RT then
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_array_rt.ads",
-                           Safe_Array_RT_Spec);
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_array_rt.adb",
-                           Safe_Array_RT_Body);
-                     end if;
-                     if Ada_Result.Needs_Safe_Bounded_Strings then
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_bounded_strings.ads",
-                           Safe_Bounded_Strings_Spec);
-                        Write_Shared_Support_File
-                          (Ada_Out_Dir & "/safe_bounded_strings.adb",
-                           Safe_Bounded_Strings_Body);
                      end if;
                      if Ada_Result.Needs_Gnat_Adc then
                         Write_Shared_Support_File

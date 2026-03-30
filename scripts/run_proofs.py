@@ -14,6 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
+STDLIB_ADA_DIR = COMPILER_ROOT / "stdlib" / "ada"
 SAFEC_PATH = COMPILER_ROOT / "bin" / "safec"
 ALR_FALLBACK = Path.home() / "bin" / "alr"
 GNATPROVE_FALLBACK = Path.home() / ".alire" / "bin" / "gnatprove"
@@ -152,6 +153,26 @@ PR11_8G1_CHECKPOINT_FIXTURES = [
     "tests/build/pr118d_for_of_heap_element_build.safe",
 ]
 
+PR11_8G2_CHECKPOINT_FIXTURES = [
+    "tests/positive/pr118c1_print.safe",
+    "tests/positive/pr118d_bounded_string.safe",
+    "tests/positive/pr118d_character_quote_literal.safe",
+    "tests/positive/pr118d_growable_array.safe",
+    "tests/positive/pr118d_string_length_attribute.safe",
+    "tests/positive/pr118d_string_mutable_object.safe",
+    "tests/build/pr118d1_growable_to_fixed_guard_build.safe",
+    "tests/build/pr118d_bounded_string_build.safe",
+    "tests/build/pr118d_bounded_string_field_build.safe",
+    "tests/build/pr118d_fixed_to_growable_build.safe",
+    "tests/build/pr118d_growable_to_fixed_literal_build.safe",
+    "tests/build/pr118d_growable_to_fixed_slice_build.safe",
+    "tests/build/pr118g_string_channel_build.safe",
+    "tests/build/pr118g_growable_channel_build.safe",
+    "tests/build/pr118g_tuple_string_channel_build.safe",
+    "tests/build/pr118g_record_string_channel_build.safe",
+    "tests/build/pr118g_try_string_channel_build.safe",
+]
+
 EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/concurrency/select_with_delay.safe",
     "tests/concurrency/select_with_delay_multiarm.safe",
@@ -161,7 +182,6 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/constant_shadow_mutable.safe",
     "tests/positive/emitter_surface_proc.safe",
     "tests/positive/emitter_surface_record.safe",
-    "tests/positive/pr118c1_print.safe",
 ]
 
 EMITTED_PROOF_FIXTURES = (
@@ -170,6 +190,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_8E_CHECKPOINT_FIXTURES
     + PR11_8F_CHECKPOINT_FIXTURES
     + PR11_8G1_CHECKPOINT_FIXTURES
+    + PR11_8G2_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 
@@ -259,6 +280,7 @@ def validate_manifests() -> None:
     validate_manifest("PR11.8e checkpoint manifest", PR11_8E_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8f checkpoint manifest", PR11_8F_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8g.1 checkpoint manifest", PR11_8G1_CHECKPOINT_FIXTURES)
+    validate_manifest("PR11.8g.2 checkpoint manifest", PR11_8G2_CHECKPOINT_FIXTURES)
     validate_manifest("emitted proof regression manifest", EMITTED_PROOF_REGRESSION_FIXTURES)
     validate_manifest("emitted proof manifest", EMITTED_PROOF_FIXTURES)
 
@@ -287,7 +309,7 @@ def is_generated_support_file(path: Path) -> bool:
 def write_emitted_project(ada_dir: Path) -> Path:
     lines = [
         "project Build is",
-        '   for Source_Dirs use (".");',
+        f'   for Source_Dirs use (".", "{STDLIB_ADA_DIR}");',
         '   for Object_Dir use "obj";',
     ]
     if (ada_dir / "gnat.adc").exists():
@@ -462,7 +484,15 @@ def run_emitted_fixture(
     prove_args = PROVE_SWITCHES if prove_switches is None else prove_switches
 
     for mode, switches in (("flow", FLOW_SWITCHES), ("prove", prove_args)):
-        argv = [alr, "exec", "--", gnatprove, "-P", str(gpr_path), *switches]
+        argv = [
+            alr,
+            "exec",
+            "--",
+            gnatprove,
+            "-P",
+            str(gpr_path),
+            *switches,
+        ]
         if adc_path.exists():
             argv.extend(["-cargs", f"-gnatec={adc_path}"])
         completed = run_command(argv, cwd=COMPILER_ROOT, timeout=command_timeout)
@@ -551,6 +581,8 @@ def main() -> int:
     checkpoint_f_failures: list[tuple[str, str]] = []
     checkpoint_g1_passed = 0
     checkpoint_g1_failures: list[tuple[str, str]] = []
+    checkpoint_g2_passed = 0
+    checkpoint_g2_failures: list[tuple[str, str]] = []
     regression_passed = 0
     regression_failures: list[tuple[str, str]] = []
 
@@ -605,6 +637,13 @@ def main() -> int:
             alr=alr,
             gnatprove=gnatprove,
         )
+        checkpoint_g2_passed, checkpoint_g2_failures = run_fixture_group(
+            safec=safec,
+            fixtures=PR11_8G2_CHECKPOINT_FIXTURES,
+            temp_root=temp_root,
+            alr=alr,
+            gnatprove=gnatprove,
+        )
         regression_passed, regression_failures = run_fixture_group(
             safec=safec,
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
@@ -620,6 +659,7 @@ def main() -> int:
         + checkpoint_e_passed
         + checkpoint_f_passed
         + checkpoint_g1_passed
+        + checkpoint_g2_passed
         + regression_passed
     )
     total_failures = (
@@ -629,6 +669,7 @@ def main() -> int:
         + checkpoint_e_failures
         + checkpoint_f_failures
         + checkpoint_g1_failures
+        + checkpoint_g2_failures
         + regression_failures
     )
 
@@ -666,6 +707,12 @@ def main() -> int:
         passed=checkpoint_g1_passed,
         failures=checkpoint_g1_failures,
         title="PR11.8g.1 checkpoint",
+        trailing_blank_line=True,
+    )
+    print_summary(
+        passed=checkpoint_g2_passed,
+        failures=checkpoint_g2_failures,
+        title="PR11.8g.2 checkpoint",
         trailing_blank_line=True,
     )
     print_summary(

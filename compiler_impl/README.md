@@ -114,9 +114,14 @@ Ada/SPARK artifacts:
 - `<unit>.ads`
 - `<unit>.adb`
 - optional `main.adb` for packageless entry roots
-- optional `<unit>_safe_io.ads`
-- optional `<unit>_safe_io.adb`
 - optional `gnat.adc`
+
+Emitted Ada builds and proof runs must include the shared stdlib support
+source directory `compiler_impl/stdlib/ada` rather than expecting copied
+runtime or `_safe_io` files in each output directory. The repository still
+ships `compiler_impl/stdlib/safe_stdlib.gpr` for manual integration, but the
+repo-local validation harnesses build emitted units and shared stdlib sources
+in one flat project.
 
 Useful repo-local validators from the repository root:
 

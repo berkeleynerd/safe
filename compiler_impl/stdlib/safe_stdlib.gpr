@@ -1,0 +1,4 @@
+project Safe_Stdlib is
+   for Source_Dirs use ("ada");
+   for Object_Dir use external ("SAFE_STDLIB_OBJECT_DIR", "obj");
+end Safe_Stdlib;

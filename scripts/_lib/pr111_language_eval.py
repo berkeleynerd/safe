@@ -10,6 +10,7 @@ from pathlib import Path
 from .harness_common import REPO_ROOT, require
 from .pr09_emit import COMPILER_ROOT, alr_command, emitted_body_file, require_safec
 
+STDLIB_ADA_DIR = COMPILER_ROOT / "stdlib" / "ada"
 
 STARTER_CORPUS = (
     "samples/rosetta/arithmetic/fibonacci.safe",
@@ -87,7 +88,7 @@ def emitted_primary_unit(ada_dir: Path) -> str:
         candidates = sorted(
             path
             for path in ada_dir.glob("*.adb")
-            if path.stem != "main" and not path.name.endswith("_safe_io.adb")
+            if path.stem != "main"
         )
         require(candidates, f"safe build: missing primary emitted body in {ada_dir}")
         body = candidates[0]
@@ -114,7 +115,7 @@ def safe_build_project_text(
     del platform_name
     lines = [
         "project Build is",
-        '   for Source_Dirs use (".", "ada");',
+        f'   for Source_Dirs use (".", "ada", "{STDLIB_ADA_DIR}");',
         '   for Object_Dir use "obj";',
         '   for Exec_Dir use ".";',
         '   for Main use ("main.adb");',
