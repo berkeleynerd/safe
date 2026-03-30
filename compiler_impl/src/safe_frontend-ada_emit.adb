@@ -28,6 +28,12 @@ package body Safe_Frontend.Ada_Emit is
      "pragma Partition_Elaboration_Policy(Sequential);" & ASCII.LF
      & "pragma Profile(Jorvik);" & ASCII.LF;
 
+   --  The shipped select-with-delay lowering is a fixed-quantum poll loop.
+   --  Keep the quantum named here so the emitted shape, spec text, and
+   --  blocking Jorvik evidence lane stay aligned.
+   Select_Poll_Quantum_Seconds : constant String := "0.001";
+   Select_Polls_Per_Second     : constant String := "1000.0";
+
    type Cleanup_Action is (Cleanup_Deallocate, Cleanup_Reset_Null);
 
    type Cleanup_Item is record
@@ -665,6 +671,9 @@ package body Safe_Frontend.Ada_Emit is
       Subprogram : CM.Resolved_Subprogram;
       Bronze     : MB.Bronze_Result;
       State      : in out Emit_State) return String;
+   function Channel_Uses_Environment_Task
+     (Bronze : MB.Bronze_Result;
+      Name   : String) return Boolean;
    procedure Render_Channel_Spec
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;
@@ -700,6 +709,28 @@ package body Safe_Frontend.Ada_Emit is
 
    function Gnat_Adc_Text return String is
      (Gnat_Adc_Contents);
+
+   function Channel_Uses_Environment_Task
+     (Bronze : MB.Bronze_Result;
+      Name   : String) return Boolean
+   is
+   begin
+      if Bronze.Graphs.Is_Empty then
+         return False;
+      end if;
+
+      for Graph of Bronze.Graphs loop
+         if not Graph.Is_Task then
+            for Channel_Name of Graph.Channels loop
+               if FT.To_String (Channel_Name) = Name then
+                  return True;
+               end if;
+            end loop;
+         end if;
+      end loop;
+
+      return False;
+   end Channel_Uses_Environment_Task;
 
    procedure Raise_Internal (Message : String) is
    begin
@@ -12495,7 +12526,9 @@ package body Safe_Frontend.Ada_Emit is
                               & "then 1"
                               & ASCII.LF
                               & Indentation (Depth + 3)
-                              & "else Positive (Long_Float'Ceiling (1000.0 * Long_Float ("
+                              & "else Positive (Long_Float'Ceiling ("
+                              & Select_Polls_Per_Second
+                              & " * Long_Float ("
                               & Render_Expr (Unit, Document, Arm.Delay_Data.Duration_Expr, State)
                               & "))));",
                               Depth + 1);
@@ -12506,7 +12539,10 @@ package body Safe_Frontend.Ada_Emit is
                      Append_Line (Buffer, "for Select_Iter in 0 .. Select_Polls loop", Depth + 1);
                      Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
                      Append_Line (Buffer, "if Select_Iter > 0 then", Depth + 2);
-                     Append_Line (Buffer, "delay 0.001;", Depth + 3);
+                     Append_Line
+                       (Buffer,
+                        "delay " & Select_Poll_Quantum_Seconds & ";",
+                        Depth + 3);
                      Append_Line (Buffer, "end if;", Depth + 2);
 
                      for Arm of Item.Arms loop
@@ -12877,7 +12913,10 @@ package body Safe_Frontend.Ada_Emit is
                      end loop;
 
                      Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
-                     Append_Line (Buffer, "delay 0.001;", Depth + 2);
+                     Append_Line
+                       (Buffer,
+                        "delay " & Select_Poll_Quantum_Seconds & ";",
+                        Depth + 2);
                      Append_Line (Buffer, "end loop;", Depth + 1);
                      Append_Line (Buffer, "end;", Depth);
                   end if;
@@ -12978,6 +13017,8 @@ package body Safe_Frontend.Ada_Emit is
         & ") and then "
         & Model_Length
         & " = 0";
+      Uses_Environment_Ceiling : constant Boolean :=
+        Channel.Is_Public or else Channel_Uses_Environment_Task (Bronze, Name);
       Ceiling       : Long_Long_Integer :=
         (if Channel.Has_Required_Ceiling then Channel.Required_Ceiling else 0);
    begin
@@ -13036,7 +13077,10 @@ package body Safe_Frontend.Ada_Emit is
         (Buffer,
         "protected type "
         & Type_Name
-        & " with Priority => " & Trim_Image (Ceiling)
+        & " with Priority => "
+        & (if Uses_Environment_Ceiling
+           then "System.Any_Priority'Last"
+           else Trim_Image (Ceiling))
         & " is",
         1);
       Append_Line
@@ -15082,6 +15126,8 @@ package body Safe_Frontend.Ada_Emit is
            State.Needs_Ada_Strings_Unbounded;
          Spec_Needs_Interfaces : constant Boolean :=
            Ada.Strings.Fixed.Index (Original_Spec, "Interfaces.") > 0;
+         Spec_Needs_System : constant Boolean :=
+           Ada.Strings.Fixed.Index (Original_Spec, "System.") > 0;
       begin
          if (Spec_Needs_Safe_Runtime
              or else Spec_Needs_Safe_String_RT
@@ -15089,6 +15135,7 @@ package body Safe_Frontend.Ada_Emit is
              or else Spec_Needs_Safe_Bounded_Strings
              or else Spec_Needs_Ada_Strings_Unbounded
              or else Spec_Needs_Interfaces
+             or else Spec_Needs_System
              or else State.Needs_Unevaluated_Use_Of_Old)
            and then Original_Spec'Length >= Pragma_Block'Length
            and then
@@ -15118,6 +15165,9 @@ package body Safe_Frontend.Ada_Emit is
                Append_Line (Spec_Text, "use type Interfaces.Unsigned_16;");
                Append_Line (Spec_Text, "use type Interfaces.Unsigned_32;");
                Append_Line (Spec_Text, "use type Interfaces.Unsigned_64;");
+            end if;
+            if Spec_Needs_System then
+               Append_Line (Spec_Text, "with System;");
             end if;
             if Spec_Needs_Safe_Runtime then
                Append_Line (Spec_Text, "with Safe_Runtime;");

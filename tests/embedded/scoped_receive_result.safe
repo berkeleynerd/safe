@@ -5,15 +5,18 @@
 package scoped_receive_result
 
    subtype message is integer (0 to 10);
+   public subtype result_value is message;
 
    channel data_ch : message capacity 1;
-   result : message = 0;
+   public channel result_ch : result_value capacity 1;
 
    task producer with priority = 10, sends data_ch
       loop
          send data_ch, 4
+         delay 0.05
 
-   task consumer with priority = 10, receives data_ch
+   task consumer with priority = 10, receives data_ch, sends result_ch
       loop
          receive data_ch, item : message
-         result = item
+         send result_ch, item
+         delay 0.05

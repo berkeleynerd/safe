@@ -1,0 +1,16 @@
+-- Test: string_channel_result
+-- Description: Heap-backed string channel values preserve the sent payload under Jorvik emission.
+-- Expected embedded result: 3
+
+package string_channel_result
+
+   channel text_ch : string capacity 1;
+   subtype result_value is integer;
+   public result : result_value = 0;
+   source : string = "Ada";
+   received : string;
+
+   send text_ch, source
+   source = "B"
+   receive text_ch, received
+   result = received.length

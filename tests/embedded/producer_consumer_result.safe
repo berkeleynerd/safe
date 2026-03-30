@@ -4,17 +4,19 @@
 
 package producer_consumer_result
 
-   subtype message is integer (0 to 1000);
+   subtype message is integer (41 to 41);
+   public subtype result_value is integer (0 to 42);
 
    channel data_ch : message capacity 1;
-   result : integer (0 to 42) = 0;
+   public channel result_ch : result_value capacity 1;
 
    task producer with priority = 10, sends data_ch
       loop
          send data_ch, 41
          delay 0.05
 
-   task consumer with priority = 10, receives data_ch
+   task consumer with priority = 10, receives data_ch, sends result_ch
       loop
          receive data_ch, input : message
-         result = input + 1
+         send result_ch, result_value (input + 1)
+         delay 0.05

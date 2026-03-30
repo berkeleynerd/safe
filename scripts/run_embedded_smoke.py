@@ -23,8 +23,10 @@ from _lib.embedded_eval import (
     ensure_work_dirs,
     require_embedded_commands,
     resolve_board,
+    result_channel_driver_text,
     result_driver_text,
     run_under_renode,
+    startup_driver_text,
     temporary_root,
     verify_runtime_available,
     work_paths,
@@ -41,6 +43,7 @@ class EmbeddedCase:
     name: str
     source: Path
     expected_result: int
+    driver_mode: str = "result"
 
 
 CASES = {
@@ -63,17 +66,43 @@ CASES = {
         name="scoped_receive_result",
         source=EMBEDDED_TESTS_ROOT / "scoped_receive_result.safe",
         expected_result=4,
+        driver_mode="channel",
     ),
     "producer_consumer_result": EmbeddedCase(
         name="producer_consumer_result",
         source=EMBEDDED_TESTS_ROOT / "producer_consumer_result.safe",
         expected_result=42,
+        driver_mode="channel",
     ),
     "delay_scope_result": EmbeddedCase(
         name="delay_scope_result",
         source=EMBEDDED_TESTS_ROOT / "delay_scope_result.safe",
         expected_result=2,
+        driver_mode="channel",
     ),
+    "select_priority_result": EmbeddedCase(
+        name="select_priority_result",
+        source=EMBEDDED_TESTS_ROOT / "select_priority_result.safe",
+        expected_result=1,
+        driver_mode="channel",
+    ),
+    "string_channel_result": EmbeddedCase(
+        name="string_channel_result",
+        source=EMBEDDED_TESTS_ROOT / "string_channel_result.safe",
+        expected_result=3,
+    ),
+}
+
+
+SUITES = {
+    "all": sorted(CASES),
+    "concurrency": [
+        "delay_scope_result",
+        "producer_consumer_result",
+        "scoped_receive_result",
+        "select_priority_result",
+        "string_channel_result",
+    ],
 }
 
 
@@ -94,6 +123,12 @@ def parse_args() -> argparse.Namespace:
         help="Limit the run to one or more named cases.",
     )
     parser.add_argument(
+        "--suite",
+        choices=sorted(SUITES),
+        default="all",
+        help="Run one named case suite (default: all).",
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=DEFAULT_TIMEOUT_SECONDS,
@@ -109,12 +144,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the available embedded smoke cases and exit.",
     )
+    parser.add_argument(
+        "--list-suites",
+        action="store_true",
+        help="Print the available embedded smoke suites and exit.",
+    )
     return parser.parse_args()
 
 
-def selected_cases(names: list[str] | None) -> list[EmbeddedCase]:
+def suite_case_names(suite_name: str) -> list[str]:
+    return SUITES[suite_name]
+
+
+def selected_cases(names: list[str] | None, suite_name: str) -> list[EmbeddedCase]:
     if not names:
-        return [CASES[name] for name in sorted(CASES)]
+        return [CASES[name] for name in suite_case_names(suite_name)]
     return [CASES[name] for name in names]
 
 
@@ -131,6 +175,12 @@ def preserve_or_cleanup(root: Path, *, keep_temp: bool, success: bool) -> Path |
 
 def write_case_source(path: Path, contents: str) -> None:
     path.write_text(textwrap.dedent(contents).lstrip(), encoding="utf-8")
+
+
+def driver_text_for_case(case: EmbeddedCase, unit_name: str) -> str:
+    if case.driver_mode == "channel":
+        return result_channel_driver_text(unit_name, case.expected_result)
+    return result_driver_text(unit_name, case.expected_result)
 
 
 def run_case(
@@ -157,7 +207,7 @@ def run_case(
     unit_name = emitted_primary_unit(paths["ada"])
     write_support_files(
         paths=paths,
-        driver_source=result_driver_text(unit_name, case.expected_result),
+        driver_source=driver_text_for_case(case, unit_name),
         board=board,
     )
 
@@ -187,11 +237,8 @@ def write_jorvik_probe_source(path: Path) -> None:
         """
         package embedded_jorvik_probe
 
-           result : integer (0 to 1) = 0;
-
            task worker with priority = 10
               loop
-                 result = 1
                  delay 0.05
         """,
     )
@@ -222,7 +269,7 @@ def run_jorvik_probe(
     unit_name = emitted_primary_unit(paths["ada"])
     write_support_files(
         paths=paths,
-        driver_source=result_driver_text(unit_name, 1),
+        driver_source=startup_driver_text(unit_name),
         board=board,
     )
 
@@ -246,8 +293,14 @@ def run_jorvik_probe(
     return ok, detail, preserve_or_cleanup(root, keep_temp=keep_temp, success=ok)
 
 
-def print_case_list() -> int:
-    for name in sorted(CASES):
+def print_case_list(*, suite_name: str) -> int:
+    for name in suite_case_names(suite_name):
+        print(name)
+    return 0
+
+
+def print_suite_list() -> int:
+    for name in sorted(SUITES):
         print(name)
     return 0
 
@@ -258,10 +311,12 @@ def print_summary(*, target_name: str, passed: int, total: int) -> None:
 
 def main() -> int:
     args = parse_args()
+    if args.list_suites:
+        return print_suite_list()
     if args.list_cases:
-        return print_case_list()
+        return print_case_list(suite_name=args.suite)
 
-    cases = selected_cases(args.case)
+    cases = selected_cases(args.case, args.suite)
     env = os.environ.copy()
 
     boards = selected_boards(args.target)

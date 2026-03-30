@@ -118,7 +118,7 @@ compilation units are not deallocated).
 
 20. A channel is a FIFO queue: elements are dequeued in the order they were enqueued.
 
-21. **Ceiling priority.** When the implementation maps channels to underlying synchronisation mechanisms, it shall assign a ceiling priority to each channel. The ceiling priority of a channel shall be at least the maximum of the priorities of all tasks that access that channel (directly or transitively through subprogram calls). This is required to prevent priority inversion.
+21. **Ceiling priority.** When the implementation maps channels to underlying synchronisation mechanisms, it shall assign a ceiling priority to each channel. The ceiling priority of a channel shall be at least the maximum of the priorities of all tasks that access that channel (directly or transitively through subprogram calls). This is required to prevent priority inversion. An implementation may conservatively raise a channel ceiling above that minimum when the channel is also accessed from non-task code (for example, package elaboration code or direct public-channel use by external callers). Such an over-approximation is permitted when it is needed to keep the emitted synchronisation boundary safe for the admitted runtime contract.
 
 21a. **Ceiling computation across packages.** A conforming implementation shall compute each channel's ceiling priority from the priorities of all tasks that access the channel, using channel-access summaries from dependency interface information (Section 3, §3.3.1(i)) for cross-package calls. Specifically:
 
@@ -238,13 +238,13 @@ delay_arm ::=
 
 ### Dynamic Semantics
 
-39. **Arm selection semantics.** When the `select` statement is evaluated, the implementation tests each arm in declaration order (top to bottom). The first arm whose channel has data available is selected. If no channel arm is ready and a delay arm is present, the implementation waits until either a channel arm becomes ready or the delay expires, whichever occurs first.
+39. **Arm selection semantics.** When the `select` statement is evaluated, the implementation tests each channel arm in declaration order (top to bottom). If one or more channel arms are ready at that check, the first ready channel arm is selected. If no channel arm is ready and a delay arm is present, the implementation establishes a delay deadline and repeats that ordered readiness check at an implementation-defined documented polling quantum until either a channel arm is observed ready at a polling check or the delay deadline expires.
 
-40. If the delay expires before any channel arm becomes ready, the delay arm is selected.
+40. If the delay deadline expires before any channel arm is observed ready at a polling check, the delay arm is selected. The implementation is not required to resume the `select` immediately when a channel becomes ready between polling checks.
 
-41. If multiple channels become ready simultaneously (e.g., data arrives on two channels between scheduling quanta), the first listed channel arm is selected. This is deterministic — arm ordering in source code determines priority. There is no random selection.
+41. If multiple channels are ready at the same polling check (for example, data arrives on two channels between polling quanta), the first listed channel arm is selected. This is deterministic — arm ordering in source code determines priority. There is no random selection.
 
-42. If no channel arm is ready and no delay arm is present, the `select` blocks until one channel arm becomes ready.
+42. If no channel arm is ready and no delay arm is present, the `select` blocks by repeating the same ordered readiness checks until one channel arm is observed ready.
 
 43. Once an arm is selected, its `sequence_of_statements` is executed. For a channel arm, the received value is bound to the `defining_identifier` before the statements execute. Channel-arm binding copies the dequeued element; it does not establish ownership of a designated object through the channel.
 

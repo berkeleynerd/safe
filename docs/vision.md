@@ -381,8 +381,8 @@ than being deferred to one massive catch-up:
 Some obligations are inherently outside GNATprove's reach and require different
 verification approaches (testing, runtime analysis, or separate formal methods):
 
-- Jorvik/Ravenscar runtime scheduling and ceiling-locking (PS-031)
-- Source-level select blocking fairness and timing semantics (PS-007)
+- Broader runtime-model guarantees beyond the admitted STM32F4/Jorvik subset (`PS-036`)
+- Broader select fairness and latency semantics beyond the admitted polling contract (`PS-035`)
 - I/O seam wrapper contracts (PS-019)
 
 These are post-v1.0 concerns that do not block the core safety guarantee for

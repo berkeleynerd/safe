@@ -24,8 +24,11 @@ claim. After that checkpoint, `PS-002` and `PS-026` remain deferred, and
 PR11.8b closes the retained emitted concurrency checkpoint without widening the
 language surface. After that concurrency checkpoint, `PS-018` no longer
 denotes backlog inside the current retained emitted corpus; the remaining open
-concurrency obligations are source/runtime concerns such as `PS-007`,
-`PS-019`, and `PS-031`.
+concurrency obligations were source/runtime concerns such as `PS-007`,
+`PS-019`, and `PS-031`. `PR11.8g.3` closes `PS-007` and `PS-031` for the
+shipped STM32F4/Jorvik-backed subset; the remaining open concurrency/runtime
+residuals are the broader-than-admitted follow-ons `PS-019`, `PS-035`, and
+`PS-036`.
 
 ## Legend
 
@@ -50,9 +53,9 @@ concurrency obligations are source/runtime concerns such as `PS-007`,
 | `PS-004` | Imported package-qualified writes with sound cross-package mutability rules | `PR08.3` boundary; `compiler_impl/README.md` | `resolver` | `long-term` |
 | `PS-005` | Channel deadlock analysis `TBD-09` | `spec/00-front-matter.md` section `0.8` | `analyzer` | `long-term` |
 | `PS-006` | `Constant_After_Elaboration` for concurrency analysis `TBD-06` | `spec/00-front-matter.md` section `0.8` | `analyzer` | `blocking-if-needed` |
-| `PS-007` | Faithful source-level `select ... or delay ...` semantics beyond the current emitted polling-based lowering | `docs/emitted_output_verification_matrix.md`; `spec/04-tasks-and-channels.md` section `4.4` | `spec` | `long-term` |
 | `PS-008` | Task-level fault containment and restart intensity | `spec/02-restrictions.md` paragraphs `151a`-`151g` | `spec` | `long-term` |
 | `PS-009` | Clarify and standardise spec text for constant access objects versus access-to-constant and observe writes through `.all` | `PR08.3a` review fallout; `compiler_impl/src/safe_frontend-check_resolve.adb`; `compiler_impl/src/safe_frontend-mir_analyze.adb` | `spec` | `long-term` |
+| `PS-035` | Broader `select ... or delay ...` fairness and latency semantics beyond the admitted source-order fixed-quantum polling contract shipped after `PR11.8g.3` | `docs/jorvik_concurrency_contract.md`; `spec/04-tasks-and-channels.md` section `4.4` | `spec` | `long-term` |
 
 ## Language Surface and Semantic Coverage
 
@@ -89,7 +92,7 @@ concurrency obligations are source/runtime concerns such as `PS-007`,
 | `PS-027` | Abort handler behaviour `TBD-07` | `spec/00-front-matter.md` section `0.8` | `spec` | `blocking-if-needed` |
 | `PS-028` | Numeric model: required ranges for predefined integer types `TBD-10` | `spec/00-front-matter.md` section `0.8` | `spec` | `blocking-if-needed` |
 | `PS-029` | Automatic deallocation semantics and ordering at scope exit beyond the covered nested early-return capture-ordering regression `TBD-11` | `spec/00-front-matter.md` section `0.8` | `spec` | `blocking-if-needed` |
-| `PS-031` | Jorvik/Ravenscar runtime scheduling, ceiling-locking, and polling-timing obligations beyond direct emitted-package proof | `docs/emitted_output_verification_matrix.md`; `spec/04-tasks-and-channels.md` | `spec` | `long-term` |
+| `PS-036` | Runtime-model claims beyond the admitted STM32F4/Jorvik-backed concurrency subset, including broader scheduling, ceiling-locking, and polling-timing guarantees across unsupported targets or runtimes | `docs/jorvik_concurrency_contract.md`; `docs/emitted_output_verification_matrix.md`; `spec/04-tasks-and-channels.md` | `spec` | `long-term` |
 | `PS-032` | Limited/private type views across packages `TBD-13` | `spec/00-front-matter.md` section `0.8` | `language-design` | `long-term` |
 | `PS-033` | Partial initialisation facility `TBD-14` | `spec/00-front-matter.md` section `0.8` | `language-design` | `long-term` |
 

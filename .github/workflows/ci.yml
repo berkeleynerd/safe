@@ -39,3 +39,36 @@ jobs:
           python-version: "3.12"
       - uses: ./.github/actions/setup-alire
       - run: python3 scripts/run_proofs.py
+
+  embedded:
+    name: Embedded
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+      - uses: ./.github/actions/setup-alire
+      - name: Install ARM cross toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          alr install gnat_arm_elf
+          arm_gnatls="$(find "${HOME}/.local/share/alire/toolchains" -path '*gnat_arm_elf*' -type f \( -name 'arm-eabi-gnatls' -o -name 'arm-elf-gnatls' \) | head -n 1)"
+          if [[ -z "${arm_gnatls}" ]]; then
+            echo "failed to locate gnat_arm_elf triplet tools" >&2
+            exit 1
+          fi
+          echo "$(dirname "${arm_gnatls}")" >> "${GITHUB_PATH}"
+      - name: Install Renode portable
+        shell: bash
+        run: |
+          set -euo pipefail
+          renode_root="${RUNNER_TEMP}/renode"
+          archive="${RUNNER_TEMP}/renode-latest.linux-portable.tar.gz"
+          mkdir -p "${renode_root}"
+          curl -fsSL "https://builds.renode.io/renode-latest.linux-portable.tar.gz" -o "${archive}"
+          tar xf "${archive}" -C "${renode_root}" --strip-components=1
+          echo "${renode_root}" >> "${GITHUB_PATH}"
+      - run: python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency

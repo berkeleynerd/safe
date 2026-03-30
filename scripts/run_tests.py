@@ -795,6 +795,21 @@ EMBEDDED_SMOKE_CASES = [
     "package_integer_result",
     "producer_consumer_result",
     "scoped_receive_result",
+    "select_priority_result",
+    "string_channel_result",
+]
+
+EMBEDDED_SMOKE_CONCURRENCY_CASES = [
+    "delay_scope_result",
+    "producer_consumer_result",
+    "scoped_receive_result",
+    "select_priority_result",
+    "string_channel_result",
+]
+
+EMBEDDED_SMOKE_SUITES = [
+    "all",
+    "concurrency",
 ]
 
 
@@ -1461,18 +1476,37 @@ def run_repl_case(
     return True, ""
 
 
-def run_embedded_case_listing() -> tuple[bool, str]:
+def run_embedded_case_listing(
+    *,
+    suite_name: str,
+    expected_cases: list[str],
+) -> tuple[bool, str]:
     completed = run_command(
-        [sys.executable, str(EMBEDDED_SMOKE), "--list-cases"],
+        [sys.executable, str(EMBEDDED_SMOKE), "--list-cases", "--suite", suite_name],
         cwd=REPO_ROOT,
     )
     if completed.returncode != 0:
-        return False, f"embedded case listing failed: {first_message(completed)}"
-    expected = "".join(f"{name}\n" for name in EMBEDDED_SMOKE_CASES)
+        return False, f"embedded case listing failed for {suite_name}: {first_message(completed)}"
+    expected = "".join(f"{name}\n" for name in expected_cases)
     if completed.stdout != expected:
-        return False, f"unexpected embedded case list {completed.stdout!r}"
+        return False, f"unexpected embedded case list for {suite_name} {completed.stdout!r}"
     if completed.stderr:
-        return False, f"unexpected embedded case stderr {completed.stderr!r}"
+        return False, f"unexpected embedded case stderr for {suite_name} {completed.stderr!r}"
+    return True, ""
+
+
+def run_embedded_suite_listing() -> tuple[bool, str]:
+    completed = run_command(
+        [sys.executable, str(EMBEDDED_SMOKE), "--list-suites"],
+        cwd=REPO_ROOT,
+    )
+    if completed.returncode != 0:
+        return False, f"embedded suite listing failed: {first_message(completed)}"
+    expected = "".join(f"{name}\n" for name in EMBEDDED_SMOKE_SUITES)
+    if completed.stdout != expected:
+        return False, f"unexpected embedded suite list {completed.stdout!r}"
+    if completed.stderr:
+        return False, f"unexpected embedded suite stderr {completed.stderr!r}"
     return True, ""
 
 
@@ -1711,11 +1745,29 @@ def main() -> int:
         else:
             failures.append((label, detail))
 
-    ok, detail = run_embedded_case_listing()
+    ok, detail = run_embedded_suite_listing()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("embedded smoke suite listing", detail))
+
+    ok, detail = run_embedded_case_listing(
+        suite_name="all",
+        expected_cases=EMBEDDED_SMOKE_CASES,
+    )
     if ok:
         passed += 1
     else:
         failures.append(("embedded smoke case listing", detail))
+
+    ok, detail = run_embedded_case_listing(
+        suite_name="concurrency",
+        expected_cases=EMBEDDED_SMOKE_CONCURRENCY_CASES,
+    )
+    if ok:
+        passed += 1
+    else:
+        failures.append(("embedded smoke concurrency listing", detail))
 
     ok, detail = run_embedded_monitor_parsing_checks()
     if ok:

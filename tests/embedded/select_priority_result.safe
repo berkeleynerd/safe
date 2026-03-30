@@ -1,0 +1,26 @@
+-- Test: select_priority_result
+-- Description: Multiarm select honors declaration order under the shipped polling contract.
+-- Expected embedded result: 1
+
+package select_priority_result
+
+   subtype message is integer (0 to 10);
+   public subtype result_value is message;
+
+   channel high_ch : message capacity 1;
+   channel low_ch  : message capacity 1;
+   public channel result_ch : result_value capacity 1;
+
+   task poller with priority = 10, receives high_ch, low_ch, sends result_ch
+      loop
+         select
+            when high_item : message from high_ch
+               send result_ch, high_item
+               delay 5.0
+         or
+            when low_item : message from low_ch
+               send result_ch, low_item
+               delay 5.0
+
+   send low_ch, 2
+   send high_ch, 1

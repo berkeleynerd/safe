@@ -6,9 +6,11 @@ The repository now includes a local embedded smoke harness:
 python3 scripts/run_embedded_smoke.py
 ```
 
-This lane is intentionally separate from `scripts/run_tests.py`,
-`scripts/run_samples.py`, and `scripts/run_proofs.py`. It is local tooling, not
-blocking CI.
+This lane is intentionally separate from `scripts/run_proofs.py`. The full
+corpus remains available for local/manual runs, and the named concurrency suite
+is also used by the blocking CI `embedded` job as part of the admitted
+Jorvik-backed concurrency contract. See
+[`jorvik_concurrency_contract.md`](jorvik_concurrency_contract.md).
 
 If you want to deploy an arbitrary single-file Safe program instead of running
 the fixed smoke corpus, see [`embedded_deploy.md`](embedded_deploy.md).
@@ -17,7 +19,6 @@ the fixed smoke corpus, see [`embedded_deploy.md`](embedded_deploy.md).
 
 - Linux host only
 - Renode only
-- local/manual execution only
 - current emitted `pragma Profile (Jorvik)` must work unchanged
 - built-in STM32F4 runtime only:
   - `light-tasking-stm32f4`
@@ -53,10 +54,22 @@ List the available cases:
 python3 scripts/run_embedded_smoke.py --list-cases
 ```
 
+List the available suites:
+
+```bash
+python3 scripts/run_embedded_smoke.py --list-suites
+```
+
 Run the STM32F4 target:
 
 ```bash
 python3 scripts/run_embedded_smoke.py --target stm32f4
+```
+
+Run only the blocking concurrency suite:
+
+```bash
+python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency
 ```
 
 Run the STM32F4 target and one case:
@@ -82,6 +95,16 @@ print-heavy Rosetta samples:
 - `scoped_receive_result.safe`
 - `producer_consumer_result.safe`
 - `delay_scope_result.safe`
+- `select_priority_result.safe`
+- `string_channel_result.safe`
+
+The blocking concurrency suite is the bounded subset:
+
+- `scoped_receive_result.safe`
+- `producer_consumer_result.safe`
+- `delay_scope_result.safe`
+- `select_priority_result.safe`
+- `string_channel_result.safe`
 
 Before running the corpus for a target, the harness also builds and runs a tiny
 generated Jorvik startup probe under Renode. That probe proves both:
@@ -106,7 +129,8 @@ through the Renode monitor with `sysbus ReadDoubleWord`. It does not rely on
 
 - No timing or cycle-accuracy claims
 - No peripheral validation beyond runtime startup/elaboration
-- No CI workflow yet
 - No GNATemulator backend in this first lane
 - No `print`-based embedded assertions
 - No F0/G0 crate-based runtime path anymore; the harness is currently F4-only
+- The blocking CI job covers only the named concurrency suite; the remaining
+  embedded cases stay local/manual hardening coverage

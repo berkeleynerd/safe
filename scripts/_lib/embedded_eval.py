@@ -348,6 +348,34 @@ def result_driver_text(unit_name: str, expected_result: int) -> str:
     )
 
 
+def result_channel_driver_text(unit_name: str, expected_result: int) -> str:
+    return (
+        "with Interfaces;\n"
+        "with Safe_Embedded_Status;\n"
+        f"with {unit_name};\n"
+        "\n"
+        "procedure Embedded_Main is\n"
+        f"   Expected_Result : constant Long_Long_Integer := {expected_result};\n"
+        f"   Pass_Status : constant Interfaces.Unsigned_32 := {STATUS_PASS};\n"
+        f"   Fail_Status : constant Interfaces.Unsigned_32 := {STATUS_FAIL};\n"
+        f"   Current : {unit_name}.Result_Value := {unit_name}.Result_Value'First;\n"
+        "   Success : Boolean := False;\n"
+        "begin\n"
+        "   loop\n"
+        f"      {unit_name}.Result_Ch.Try_Receive (Current, Success);\n"
+        "      if Success then\n"
+        "         if Long_Long_Integer (Current) = Expected_Result then\n"
+        "            Safe_Embedded_Status.Value := Pass_Status;\n"
+        "         elsif Long_Long_Integer (Current) > Expected_Result then\n"
+        "            Safe_Embedded_Status.Value := Fail_Status;\n"
+        "         end if;\n"
+        "      end if;\n"
+        f"      delay {STATUS_POLL_DELAY_SECONDS:.2f};\n"
+        "   end loop;\n"
+        "end Embedded_Main;\n"
+    )
+
+
 def project_text(*, has_gnat_adc: bool, gnat_adc_path: Path) -> str:
     ada_switches = '("-gnatws")'
     if has_gnat_adc:
@@ -920,6 +948,7 @@ __all__ = [
     "resolve_symbol_info",
     "resolve_symbol_address",
     "run_under_renode_observe",
+    "result_channel_driver_text",
     "result_driver_text",
     "reset_root",
     "run_capture",
