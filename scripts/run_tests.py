@@ -646,6 +646,48 @@ EMITTED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
         ["SPARK_Mode => Off", "Skip_Flow_And_Proof", "_safe_io"],
     ),
+    (
+        "string-channel-direct-scalar-no-length-plumbing",
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        ["Stored_Length"],
+    ),
+    (
+        "growable-channel-direct-scalar-no-length-plumbing",
+        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
+        ["Stored_Length"],
+    ),
+    (
+        "try-string-channel-direct-scalar-no-length-plumbing",
+        REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
+        ["Stored_Length"],
+    ),
+]
+
+EMITTED_REQUIRED_SHAPE_CASES = [
+    (
+        "string-channel-direct-scalar-ghost-model",
+        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
+        [
+            "text_ch_Model_Has_Value : Boolean := False;",
+            "text_ch_Model_Length : Natural := 0;",
+        ],
+    ),
+    (
+        "growable-channel-direct-scalar-ghost-model",
+        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
+        [
+            "data_ch_Model_Has_Value : Boolean := False;",
+            "data_ch_Model_Length : Natural := 0;",
+        ],
+    ),
+    (
+        "try-string-channel-direct-scalar-ghost-model",
+        REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
+        [
+            "text_ch_Model_Has_Value : Boolean := False;",
+            "text_ch_Model_Length : Natural := 0;",
+        ],
+    ),
 ]
 
 EMITTED_PROTECTED_BODY_SHAPE_CASES = [
@@ -1299,6 +1341,55 @@ def run_emitted_shape_case(
     return True, ""
 
 
+def run_emitted_required_shape_case(
+    safec: Path,
+    *,
+    label: str,
+    source: Path,
+    required_snippets: list[str],
+    temp_root: Path,
+) -> tuple[bool, str]:
+    case_root = temp_root / f"{source.stem}-{label}"
+    out_dir = case_root / "out"
+    iface_dir = case_root / "iface"
+    ada_dir = case_root / "ada"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    iface_dir.mkdir(parents=True, exist_ok=True)
+    ada_dir.mkdir(parents=True, exist_ok=True)
+
+    emit = run_command(
+        [
+            str(safec),
+            "emit",
+            repo_rel(source),
+            "--out-dir",
+            str(out_dir),
+            "--interface-dir",
+            str(iface_dir),
+            "--ada-out-dir",
+            str(ada_dir),
+        ],
+        cwd=REPO_ROOT,
+    )
+    if emit.returncode != 0:
+        return False, f"emit failed: {first_message(emit)}"
+
+    emitted_text = ""
+    ada_file_found = False
+    for path in sorted(ada_dir.iterdir()):
+        if path.suffix in {".adb", ".ads"}:
+            ada_file_found = True
+            emitted_text += path.read_text(encoding="utf-8")
+
+    if not ada_file_found:
+        return False, f"emit produced no Ada sources in {ada_dir}"
+
+    for snippet in required_snippets:
+        if snippet not in emitted_text:
+            return False, f"missing required emitted snippet {snippet!r}"
+    return True, ""
+
+
 def run_emitted_protected_body_shape_case(
     safec: Path,
     *,
@@ -1518,6 +1609,20 @@ def main() -> int:
                 temp_root=temp_root,
             )
             case_label = f"emitted-shape:{label}:{repo_rel(source)}"
+            if ok:
+                passed += 1
+            else:
+                failures.append((case_label, detail))
+
+        for label, source, required_snippets in EMITTED_REQUIRED_SHAPE_CASES:
+            ok, detail = run_emitted_required_shape_case(
+                safec,
+                label=label,
+                source=source,
+                required_snippets=required_snippets,
+                temp_root=temp_root,
+            )
+            case_label = f"emitted-required-shape:{label}:{repo_rel(source)}"
             if ok:
                 passed += 1
             else:

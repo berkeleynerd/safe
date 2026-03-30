@@ -303,3 +303,135 @@
   - send-side trust bridges that mention the protected function directly inside `pragma Assume` are not legal in SPARK
 - So the frontmost blocker is now narrower still:
   - finding a legal way to carry the previously sent positive length across the single-slot protected channel boundary without reintroducing wrapper churn or hitting the GNATprove bug
+
+### Rejected: package-level sent-length mirror
+
+- Rejected idea:
+  - add a package-level scalar like `data_ch_Sent_Length : Natural := 0;`
+  - write it after `Send`
+  - then use it in receive-side `pragma Assume` facts
+- Reason for rejection:
+  - the mirror is outside the protected object, so it is not synchronized with the actual channel state
+  - `capacity 1` does not make that safe
+- Concrete bad interleaving:
+  - task A completes `data_ch.Send (...)`
+  - task B immediately executes `data_ch.Receive (...)` and empties the channel
+  - task A then executes `data_ch_Sent_Length := Sent_Length`
+  - the package scalar now says the channel holds a positive-length value even though the channel is empty
+- Consequence:
+  - the mirror can drift from the protected state
+  - any receive-side assumption like `Recv_Length = data_ch_Sent_Length` would be trusting a caller-maintained mirror, not the protected transition itself
+- Additional reason to reject:
+  - it introduces a new shared mutable package variable and therefore new concurrency/global proof obligations instead of narrowing the seam
+- Conclusion:
+  - do not pursue caller-side package mirrors for channel length facts
+  - any trusted bridge must stay tied to the protected receive/send event itself or another hand-off that is atomic with the protected operation
+
+### Rejected: receive-side-only positivity assume
+
+- Rejected idea:
+  - strengthen the existing receive-side bridge from:
+    - `pragma Assume (actual_length = returned_length)`
+  - to:
+    - `pragma Assume (returned_length > 0 and then actual_length = returned_length)`
+- Reason for rejection:
+  - a successful receive means only that the channel held a value
+  - it does **not** mean the value length was positive
+- Counterexample:
+  - the language permits empty strings and empty growable arrays
+  - a sender can legally enqueue `""` or `[]`
+  - the channel is non-empty (`Count > 0`) but the stored `Value_Length` is still `0`
+- Consequence:
+  - `Recv_Length > 0` would be an unsound assumption for the admitted direct string/growable channel surface
+  - it would “fix” the current fixture only by overclaiming a property that is false for valid programs
+- Conclusion:
+  - keep the receive-side equality bridge as the only currently legal receive-local assumption
+  - the missing fact is specifically the send-to-receive preservation of the original length, not non-emptiness of the receive event itself
+
+### Rejected: synthesized receive-site defensive guard
+
+- Rejected idea:
+  - emit a program-specific Ada guard at the receive site, for example:
+    - `if values_RT.Length (received) >= 1 then ... end if;`
+  - so the emitted Ada defensively checks the condition that the Safe source relied on implicitly
+- Reason for rejection:
+  - this is not semantics-preserving at the compiler level
+  - if the condition is false, the emitted Ada would silently skip work that the Safe source did not guard
+- Why this is not acceptable here:
+  - the whole issue is that the compiler currently lacks a discharged proof of the fact
+  - synthesizing control flow to satisfy the prover would turn a proof gap into a runtime behavior change
+- Even for the current fixture:
+  - the branch may be dead in the intended execution
+  - but the compiler cannot justify changing emitted semantics based on that unproved assumption
+- Conclusion:
+  - do not pursue ad hoc emitted receive-site guards as a proof workaround
+  - if a guard is ever appropriate, it must come from source-level Safe syntax or an explicit source assertion, not from compiler-injected control flow
+
+### Clarification: internal move semantics are already in place
+
+- Useful observation:
+  - the current heap-backed channel lowering already uses ownership-transfer style moves internally
+  - this is **not** a remaining “copy vs move inside the protected body” problem
+- Current emitted shape already does the structurally right thing:
+  - clone the user value at the send site
+  - move that staged clone into the protected buffer
+  - reset the staged local
+  - move from the protected buffer into the receive-side staged local
+  - free the old user target and move the staged value into it
+- So at the emitted Ada level:
+  - the protected body is already heap-op free
+  - the staged channel path already behaves like a single-owner move chain
+  - the Safe-level value-copy semantics are preserved because the user source is cloned before send
+- Conclusion:
+  - the open blocker is narrower than “use ownership transfer internally”
+  - that part is already done
+  - the remaining unsolved seam is the proof-visible hand-off of the length fact attached to the moved staged value, especially across the `Value_Length` scalar and the protected boundary
+
+### Final PR11.8g.2 channel closure path
+
+- The direct scalar channel seam was closed with the following emitted shape:
+  - direct sequential single-slot string/growable channels now emit synchronized package-level model scalars:
+    - `<channel>_Model_Has_Value : Boolean := False;`
+    - `<channel>_Model_Length : Natural := 0;`
+  - those scalars are updated **inside** the protected operations, alongside the buffer move/reset logic
+  - the direct scalar protected API keeps `Value_Length` formals
+  - the old `Stored_Length` / `Stored_Length_Value` helper path is removed for this direct scalar case
+  - the narrow receive-side bridge remains:
+    - `pragma Assume (actual_length = returned_length)`
+- Important honesty note:
+  - this is **not** the pure Ghost/no-assumption endpoint that we explored
+  - the final direct scalar closure still relies on the receive-side equality `pragma Assume`
+  - what changed is that the protected/body-side handoff is now simple enough that the remaining trusted fact is narrow and stable
+- What this closed:
+  - `pr118g_string_channel_build.safe`
+  - `pr118g_growable_channel_build.safe`
+  - `pr118g_try_string_channel_build.safe`
+  - the wider heap-backed channel batch also reclosed:
+    - `pr118g_tuple_string_channel_build.safe`
+    - `pr118g_record_string_channel_build.safe`
+
+### Full-lane follow-up outside the channel seam
+
+- Once the channel checkpoint was green, the full `run_proofs.py` lane exposed one older emitted-surface failure in `PR11.8a`:
+  - `tests/positive/pr113_discriminant_constraints.safe`
+- Root cause:
+  - package-level non-constant object declarations without `=` were not being marked for implicit default initialization
+  - the fix could not be a blanket “always emit a default initializer,” because that immediately reopened `pr118d_bounded_string_field_build.safe` with a no-effect initialization warning on a self-defaulting record
+- Final fix:
+  - package-level object declarations now opt into implicit default initialization at parse time
+  - the emitter only materializes an explicit default initializer when the resolved type **needs** one to avoid uninitialized state
+  - discriminated record/subtype default values now render as valid qualified aggregates instead of falling back to invalid `'First` forms
+- Concrete effect:
+  - `pr113_discriminant_constraints.safe` reclosed in isolation
+  - `pr118d_bounded_string_field_build.safe` stayed green after narrowing the emitter-side default-init rule
+
+### Current verified state
+
+- `cd compiler_impl && alr build` is green
+- `python3 scripts/run_tests.py` is green:
+  - `434 passed, 0 failed`
+- `python3 scripts/run_samples.py` is green:
+  - `18 passed, 0 failed`
+- full proof lane is green:
+  - `python3 scripts/run_proofs.py`
+  - `120 proved, 0 failed`

@@ -664,6 +664,14 @@ package body Safe_Frontend.Ada_Emit is
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean;
+   function Is_Plain_String_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
+   function Is_Growable_Array_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
    function Is_Tuple_Type (Info : GM.Type_Descriptor) return Boolean;
    function Is_Result_Builtin (Info : GM.Type_Descriptor) return Boolean;
    function Render_Result_Empty_Aggregate return String;
@@ -770,6 +778,10 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return String;
    function Default_Value_Expr (Info : GM.Type_Descriptor) return String;
+   function Needs_Explicit_Default_Initializer
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
    function Binary_Ada_Name (Bit_Width : Positive) return String;
    function Render_Type_Name (Info : GM.Type_Descriptor) return String;
    function Render_Subtype_Indication
@@ -1870,6 +1882,77 @@ package body Safe_Frontend.Ada_Emit is
 
       return False;
    end Statements_Use_Name;
+
+   function Statements_Have_Select
+     (Statements : CM.Statement_Access_Vectors.Vector) return Boolean
+   is
+   begin
+      for Item of Statements loop
+         if Item = null then
+            null;
+         else
+            case Item.Kind is
+               when CM.Stmt_If =>
+                  if Statements_Have_Select (Item.Then_Stmts) then
+                     return True;
+                  end if;
+                  for Part of Item.Elsifs loop
+                     if Statements_Have_Select (Part.Statements) then
+                        return True;
+                     end if;
+                  end loop;
+                  if Item.Has_Else
+                    and then Statements_Have_Select (Item.Else_Stmts)
+                  then
+                     return True;
+                  end if;
+               when CM.Stmt_Case =>
+                  for Arm of Item.Case_Arms loop
+                     if Statements_Have_Select (Arm.Statements) then
+                        return True;
+                     end if;
+                  end loop;
+               when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+                  if Statements_Have_Select (Item.Body_Stmts) then
+                     return True;
+                  end if;
+               when CM.Stmt_Select =>
+                  return True;
+               when others =>
+                  null;
+            end case;
+         end if;
+      end loop;
+
+      return False;
+   end Statements_Have_Select;
+
+   function Channel_Model_Has_Value_Name
+     (Channel : CM.Resolved_Channel_Decl) return String is
+   begin
+      return FT.To_String (Channel.Name) & "_Model_Has_Value";
+   end Channel_Model_Has_Value_Name;
+
+   function Channel_Model_Length_Name
+     (Channel : CM.Resolved_Channel_Decl) return String is
+   begin
+      return FT.To_String (Channel.Name) & "_Model_Length";
+   end Channel_Model_Length_Name;
+
+   function Channel_Uses_Sequential_Scalar_Ghost_Model
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl) return Boolean
+   is
+   begin
+      return Channel.Capacity = 1
+        and then
+          (Is_Plain_String_Type (Unit, Document, Channel.Element_Type)
+           or else Is_Growable_Array_Type (Unit, Document, Channel.Element_Type))
+        and then Unit.Tasks.Is_Empty
+        and then Unit.Subprograms.Is_Empty
+        and then not Statements_Have_Select (Unit.Statements);
+   end Channel_Uses_Sequential_Scalar_Ghost_Model;
 
    function Statements_Assign_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
@@ -4411,27 +4494,79 @@ package body Safe_Frontend.Ada_Emit is
             Result := Result & SU.To_Unbounded_String (")");
          end loop;
          return SU.To_String (Result);
-      elsif Kind = "record" then
-         Result := SU.To_Unbounded_String ("(");
-         for Index in Info.Fields.First_Index .. Info.Fields.Last_Index loop
-            if Index /= Info.Fields.First_Index then
-               Result := Result & SU.To_Unbounded_String (", ");
+      elsif Kind = "record"
+        or else
+          (Kind = "subtype"
+           and then not Info.Discriminant_Constraints.Is_Empty
+           and then FT.To_String (Base_Type (Unit, Document, Info).Kind) = "record")
+      then
+         declare
+            Base_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+            Qualified_Name : constant String :=
+              (if Kind = "subtype"
+               then Render_Type_Name (Base_Info)
+               elsif Has_Text (Info.Name)
+               then Ada_Safe_Name (FT.To_String (Info.Name))
+               else Render_Type_Name (Info));
+            First_Association : Boolean := True;
+
+            procedure Append_Association (Name, Value : String) is
+            begin
+               if not First_Association then
+                  Result := Result & SU.To_Unbounded_String (", ");
+               end if;
+               Result :=
+                 Result & SU.To_Unbounded_String (Name & " => " & Value);
+               First_Association := False;
+            end Append_Association;
+         begin
+            Result := SU.To_Unbounded_String (Qualified_Name & "'(");
+            if Kind = "subtype" then
+               for Constraint of Info.Discriminant_Constraints loop
+                  if not First_Association then
+                     Result := Result & SU.To_Unbounded_String (", ");
+                  end if;
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        ((if Constraint.Is_Named
+                          then FT.To_String (Constraint.Name) & " => "
+                          else "")
+                         & Render_Scalar_Value (Constraint.Value));
+                  First_Association := False;
+               end loop;
+            elsif Kind = "record" then
+               for Disc of Base_Info.Discriminants loop
+                  if Disc.Has_Default then
+                     Append_Association
+                       (FT.To_String (Disc.Name),
+                        Render_Scalar_Value (Disc.Default_Value));
+                  end if;
+               end loop;
+               if Base_Info.Discriminants.Is_Empty
+                 and then Base_Info.Has_Discriminant
+                 and then Base_Info.Has_Discriminant_Default
+               then
+                  Append_Association
+                    (FT.To_String (Base_Info.Discriminant_Name),
+                     (if Base_Info.Discriminant_Default_Bool then "true" else "false"));
+               end if;
             end if;
-            Result :=
-              Result
-              & SU.To_Unbounded_String
-                  (FT.To_String (Info.Fields (Index).Name)
-                   & " => "
-                   & Default_Value_Expr
+
+            for Index in Base_Info.Fields.First_Index .. Base_Info.Fields.Last_Index loop
+               Append_Association
+                 (FT.To_String (Base_Info.Fields (Index).Name),
+                  Default_Value_Expr
+                    (Unit,
+                     Document,
+                     Resolve_Type_Name
                        (Unit,
                         Document,
-                        Resolve_Type_Name
-                          (Unit,
-                           Document,
-                           FT.To_String (Info.Fields (Index).Type_Name))));
-         end loop;
-         Result := Result & SU.To_Unbounded_String (")");
-         return SU.To_String (Result);
+                        FT.To_String (Base_Info.Fields (Index).Type_Name))));
+            end loop;
+            Result := Result & SU.To_Unbounded_String (")");
+            return SU.To_String (Result);
+         end;
       elsif Is_Tuple_Type (Info) then
          declare
             First_Association : Boolean := True;
@@ -4489,21 +4624,69 @@ package body Safe_Frontend.Ada_Emit is
             Result := Result & SU.To_Unbounded_String (")");
          end loop;
          return SU.To_String (Result);
-      elsif Kind = "record" then
-         Result := SU.To_Unbounded_String ("(");
-         for Index in Info.Fields.First_Index .. Info.Fields.Last_Index loop
-            if Index /= Info.Fields.First_Index then
-               Result := Result & SU.To_Unbounded_String (", ");
+      elsif Kind = "record"
+        or else (Kind = "subtype" and then not Info.Discriminant_Constraints.Is_Empty)
+      then
+         declare
+            Qualified_Name : constant String :=
+              (if Kind = "subtype" and then Info.Has_Base
+               then Ada_Safe_Name (FT.To_String (Info.Base))
+               elsif Has_Text (Info.Name)
+               then Ada_Safe_Name (FT.To_String (Info.Name))
+               else Type_Name);
+            First_Association : Boolean := True;
+
+            procedure Append_Association (Name, Value : String) is
+            begin
+               if not First_Association then
+                  Result := Result & SU.To_Unbounded_String (", ");
+               end if;
+               Result :=
+                 Result & SU.To_Unbounded_String (Name & " => " & Value);
+               First_Association := False;
+            end Append_Association;
+         begin
+            Result := SU.To_Unbounded_String (Qualified_Name & "'(");
+            if Kind = "subtype" then
+               for Constraint of Info.Discriminant_Constraints loop
+                  if not First_Association then
+                     Result := Result & SU.To_Unbounded_String (", ");
+                  end if;
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        ((if Constraint.Is_Named
+                          then FT.To_String (Constraint.Name) & " => "
+                          else "")
+                         & Render_Scalar_Value (Constraint.Value));
+                  First_Association := False;
+               end loop;
+            elsif Kind = "record" then
+               for Disc of Info.Discriminants loop
+                  if Disc.Has_Default then
+                     Append_Association
+                       (FT.To_String (Disc.Name),
+                        Render_Scalar_Value (Disc.Default_Value));
+                  end if;
+               end loop;
+               if Info.Discriminants.Is_Empty
+                 and then Info.Has_Discriminant
+                 and then Info.Has_Discriminant_Default
+               then
+                  Append_Association
+                    (FT.To_String (Info.Discriminant_Name),
+                     (if Info.Discriminant_Default_Bool then "true" else "false"));
+               end if;
             end if;
-            Result :=
-              Result
-              & SU.To_Unbounded_String
-                  (FT.To_String (Info.Fields (Index).Name)
-                   & " => "
-                   & Default_Value_Expr (FT.To_String (Info.Fields (Index).Type_Name)));
-         end loop;
-         Result := Result & SU.To_Unbounded_String (")");
-         return SU.To_String (Result);
+
+            for Index in Info.Fields.First_Index .. Info.Fields.Last_Index loop
+               Append_Association
+                 (FT.To_String (Info.Fields (Index).Name),
+                  Default_Value_Expr (FT.To_String (Info.Fields (Index).Type_Name)));
+            end loop;
+            Result := Result & SU.To_Unbounded_String (")");
+            return SU.To_String (Result);
+         end;
       elsif Is_Tuple_Type (Info) then
          declare
             First_Association : Boolean := True;
@@ -4529,6 +4712,65 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       return Default_Value_Expr (Type_Name);
    end Default_Value_Expr;
+
+   function Needs_Explicit_Default_Initializer
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean
+   is
+      Base_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind      : constant String := FT.Lowercase (FT.To_String (Base_Info.Kind));
+      Name      : constant String := FT.Lowercase (FT.To_String (Base_Info.Name));
+   begin
+      if Is_Bounded_String_Type (Base_Info)
+        or else Kind = "string"
+        or else (Kind = "array" and then Base_Info.Growable)
+        or else Kind = "access"
+        or else Is_Result_Builtin (Base_Info)
+      then
+         return False;
+      elsif Kind = "integer"
+        or else Kind = "binary"
+        or else Kind = "float"
+        or else Name = "boolean"
+      then
+         return True;
+      elsif Kind = "array" and then not Base_Info.Index_Types.Is_Empty then
+         return
+           Needs_Explicit_Default_Initializer
+             (Unit,
+              Document,
+              Resolve_Type_Name
+                (Unit,
+                 Document,
+                 FT.To_String (Base_Info.Component_Type)));
+      elsif Kind = "record" then
+         for Field of Base_Info.Fields loop
+            if Needs_Explicit_Default_Initializer
+              (Unit,
+               Document,
+               Resolve_Type_Name
+                 (Unit, Document, FT.To_String (Field.Type_Name)))
+            then
+               return True;
+            end if;
+         end loop;
+         return False;
+      elsif Is_Tuple_Type (Base_Info) then
+         for Element_Type of Base_Info.Tuple_Element_Types loop
+            if Needs_Explicit_Default_Initializer
+              (Unit,
+               Document,
+               Resolve_Type_Name (Unit, Document, FT.To_String (Element_Type)))
+            then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end if;
+
+      return False;
+   end Needs_Explicit_Default_Initializer;
 
    function Lookup_Channel
      (Unit : CM.Resolved_Unit;
@@ -7250,6 +7492,14 @@ package body Safe_Frontend.Ada_Emit is
         and then not Is_Constant
         and then not Is_Owner_Access (Type_Info)
         and then Has_Heap_Value_Type (Unit, Document, Type_Info);
+      Needs_Explicit_Default_Init : constant Boolean :=
+        Has_Implicit_Default_Init
+        and then Initializer = null
+        and then Needs_Explicit_Default_Initializer (Unit, Document, Type_Info);
+      Emit_Initializer : constant Boolean :=
+        Has_Initializer
+        or else Needs_Explicit_Default_Init
+        or else Implicit_Heap_Default_Init;
    begin
       if Type_Name = "safe_runtime.wide_integer" then
          State.Needs_Safe_Runtime := True;
@@ -7265,10 +7515,7 @@ package body Safe_Frontend.Ada_Emit is
                 & " : "
                 & Constant_Qualifier
                 & Type_Name);
-         if Has_Initializer
-           or else Has_Implicit_Default_Init
-           or else Implicit_Heap_Default_Init
-         then
+         if Emit_Initializer then
             if Type_Name = "safe_runtime.wide_integer" then
                Result :=
                  Result
@@ -7280,7 +7527,7 @@ package body Safe_Frontend.Ada_Emit is
                  & SU.To_Unbounded_String
                      (" := " & Default_Value_Expr (Unit, Document, Type_Info));
             elsif
-              (Has_Implicit_Default_Init or else Implicit_Heap_Default_Init)
+              (Needs_Explicit_Default_Init or else Implicit_Heap_Default_Init)
               and then Initializer = null
             then
                Result :=
@@ -7608,6 +7855,12 @@ package body Safe_Frontend.Ada_Emit is
 
       for Channel of Unit.Channels loop
          Add_Unique (FT.To_String (Channel.Name));
+         if Channel_Uses_Sequential_Scalar_Ghost_Model
+           (Unit, Document, Channel)
+         then
+            Add_Unique (Channel_Model_Has_Value_Name (Channel));
+            Add_Unique (Channel_Model_Length_Name (Channel));
+         end if;
       end loop;
 
       for Task_Item of Unit.Tasks loop
@@ -10723,6 +10976,12 @@ package body Safe_Frontend.Ada_Emit is
            and then Channel_Item.Capacity = 1;
       end Channel_Has_Scalar_Length_Model;
 
+      function Channel_Uses_Runtime_Length_Formals
+        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+      begin
+         return Channel_Has_Length_Model (Channel_Item);
+      end Channel_Uses_Runtime_Length_Formals;
+
       function Channel_Length_Image
         (Channel_Item : CM.Resolved_Channel_Decl;
          Value_Image  : String) return String
@@ -12252,7 +12511,7 @@ package body Safe_Frontend.Ada_Emit is
                                       Declared_Channel.Element_Type)
                                  & ";",
                                  Depth + 1);
-                        if Channel_Has_Length_Model (Declared_Channel) then
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
                            Append_Line
                              (Buffer,
                               Length_Name & " : Natural := 0;",
@@ -12265,7 +12524,7 @@ package body Safe_Frontend.Ada_Emit is
                            Append_Task_Channel_Call_Warning_Suppression
                              (Buffer, Depth + 1);
                         end if;
-                        if Channel_Has_Length_Model (Declared_Channel) then
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
                            Append_Channel_Staged_Call_Warning_Suppression
                              (Buffer, Depth + 1);
                         end if;
@@ -12274,12 +12533,12 @@ package body Safe_Frontend.Ada_Emit is
                            Render_Expr (Unit, Document, Item.Channel_Name, State)
                            & ".Receive ("
                            & Staged_Name
-                           & (if Channel_Has_Length_Model (Declared_Channel)
+                           & (if Channel_Uses_Runtime_Length_Formals (Declared_Channel)
                               then ", " & Length_Name
                               else "")
                            & ");",
                            Depth + 1);
-                        if Channel_Has_Length_Model (Declared_Channel) then
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
                            Append_Channel_Staged_Call_Warning_Restore
                              (Buffer, Depth + 1);
                         end if;
@@ -12287,33 +12546,35 @@ package body Safe_Frontend.Ada_Emit is
                            Append_Task_Channel_Call_Warning_Restore
                              (Buffer, Depth + 1);
                         end if;
-                        if Channel_Has_Scalar_Length_Model (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              "pragma Assume ("
-                              & Channel_Length_Image
-                                  (Declared_Channel,
-                                   Staged_Name)
-                              & " = "
-                              & Length_Name
-                              & ");",
-                              Depth + 1);
-                        elsif Channel_Has_Length_Model (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              Length_Name
-                              & " := "
-                              & Channel_Length_Image
-                                  (Declared_Channel,
-                                   Staged_Name)
-                              & ";",
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
+                           if Channel_Has_Scalar_Length_Model (Declared_Channel) then
+                              Append_Line
+                                (Buffer,
+                                 "pragma Assume ("
+                                 & Channel_Length_Image
+                                     (Declared_Channel,
+                                      Staged_Name)
+                                 & " = "
+                                 & Length_Name
+                                 & ");",
+                                 Depth + 1);
+                           else
+                              Append_Line
+                                (Buffer,
+                                 Length_Name
+                                 & " := "
+                                 & Channel_Length_Image
+                                     (Declared_Channel,
+                                      Staged_Name)
+                                 & ";",
+                                 Depth + 1);
+                           end if;
+                           Append_Channel_Length_Assert
+                             (Declared_Channel,
+                              Staged_Name,
+                              Length_Name,
                               Depth + 1);
                         end if;
-                        Append_Channel_Length_Assert
-                          (Declared_Channel,
-                           Staged_Name,
-                           Length_Name,
-                           Depth + 1);
                         Append_Local_Warning_Suppression (Buffer, Depth + 1);
                         Append_Heap_Channel_Free
                           (Declared_Channel,
@@ -12324,11 +12585,18 @@ package body Safe_Frontend.Ada_Emit is
                           (Buffer,
                            Target_Image & " := " & Staged_Name & ";",
                            Depth + 1);
-                        Append_Channel_Length_Assert
-                          (Declared_Channel,
-                           Target_Image,
-                           Length_Name,
-                           Depth + 1);
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
+                           Append_Line
+                             (Buffer,
+                              "pragma Assert ("
+                              & Channel_Length_Image
+                                  (Declared_Channel,
+                                   Target_Image)
+                              & " = "
+                              & Length_Name
+                              & ");",
+                              Depth + 1);
+                        end if;
                         Append_Line (Buffer, "end;", Depth);
                      end;
                   else
@@ -12506,7 +12774,7 @@ package body Safe_Frontend.Ada_Emit is
                                       Declared_Channel.Element_Type)
                                  & ";",
                                  Depth + 1);
-                        if Channel_Has_Length_Model (Declared_Channel) then
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
                            Append_Line
                              (Buffer,
                               Length_Name & " : Natural := 0;",
@@ -12519,7 +12787,7 @@ package body Safe_Frontend.Ada_Emit is
                            Append_Task_Channel_Call_Warning_Suppression
                              (Buffer, Depth + 1);
                         end if;
-                        if Channel_Has_Length_Model (Declared_Channel) then
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
                            Append_Channel_Staged_Call_Warning_Suppression
                              (Buffer, Depth + 1);
                         end if;
@@ -12528,14 +12796,14 @@ package body Safe_Frontend.Ada_Emit is
                            Render_Expr (Unit, Document, Item.Channel_Name, State)
                            & ".Try_Receive ("
                            & Staged_Name
-                           & (if Channel_Has_Length_Model (Declared_Channel)
+                           & (if Channel_Uses_Runtime_Length_Formals (Declared_Channel)
                               then ", " & Length_Name
                               else "")
                            & ", "
                            & Success_Image
                            & ");",
                            Depth + 1);
-                        if Channel_Has_Length_Model (Declared_Channel) then
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
                            Append_Channel_Staged_Call_Warning_Restore
                              (Buffer, Depth + 1);
                         end if;
@@ -12548,33 +12816,35 @@ package body Safe_Frontend.Ada_Emit is
                           (Buffer,
                            "if " & Success_Image & " then",
                            Depth + 1);
-                        if Channel_Has_Scalar_Length_Model (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              "pragma Assume ("
-                              & Channel_Length_Image
-                                  (Declared_Channel,
-                                   Staged_Name)
-                              & " = "
-                              & Length_Name
-                              & ");",
-                              Depth + 2);
-                        elsif Channel_Has_Length_Model (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              Length_Name
-                              & " := "
-                              & Channel_Length_Image
-                                  (Declared_Channel,
-                                   Staged_Name)
-                              & ";",
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
+                           if Channel_Has_Scalar_Length_Model (Declared_Channel) then
+                              Append_Line
+                                (Buffer,
+                                 "pragma Assume ("
+                                 & Channel_Length_Image
+                                     (Declared_Channel,
+                                      Staged_Name)
+                                 & " = "
+                                 & Length_Name
+                                 & ");",
+                                 Depth + 2);
+                           else
+                              Append_Line
+                                (Buffer,
+                                 Length_Name
+                                 & " := "
+                                 & Channel_Length_Image
+                                     (Declared_Channel,
+                                      Staged_Name)
+                                 & ";",
+                                 Depth + 2);
+                           end if;
+                           Append_Channel_Length_Assert
+                             (Declared_Channel,
+                              Staged_Name,
+                              Length_Name,
                               Depth + 2);
                         end if;
-                        Append_Channel_Length_Assert
-                          (Declared_Channel,
-                           Staged_Name,
-                           Length_Name,
-                           Depth + 2);
                         Append_Local_Warning_Suppression (Buffer, Depth + 2);
                         Append_Heap_Channel_Free
                           (Declared_Channel,
@@ -12585,11 +12855,18 @@ package body Safe_Frontend.Ada_Emit is
                           (Buffer,
                            Target_Image & " := " & Staged_Name & ";",
                            Depth + 2);
-                        Append_Channel_Length_Assert
-                          (Declared_Channel,
-                           Target_Image,
-                           Length_Name,
-                           Depth + 2);
+                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
+                           Append_Line
+                             (Buffer,
+                              "pragma Assert ("
+                              & Channel_Length_Image
+                                  (Declared_Channel,
+                                   Target_Image)
+                              & " = "
+                              & Length_Name
+                              & ");",
+                              Depth + 2);
+                        end if;
                         Append_Line (Buffer, "end if;", Depth + 1);
                         if State.Task_Body_Depth > 0 then
                            Append_Task_If_Warning_Restore (Buffer, Depth + 1);
@@ -12973,6 +13250,8 @@ package body Safe_Frontend.Ada_Emit is
       Length_Buffer_Type : constant String := Name & "_Length_Buffer";
       Buffer_Type   : constant String := Name & "_Buffer";
       Stored_Length : constant String := "Stored_Length";
+      Model_Has_Value : constant String := Channel_Model_Has_Value_Name (Channel);
+      Model_Length : constant String := Channel_Model_Length_Name (Channel);
       Heap_Value    : constant Boolean :=
         Has_Heap_Value_Type (Unit, Document, Channel.Element_Type);
       Has_Length_Model : constant Boolean :=
@@ -12980,9 +13259,37 @@ package body Safe_Frontend.Ada_Emit is
         or else Is_Growable_Array_Type (Unit, Document, Channel.Element_Type);
       Single_Slot_Length_Model : constant Boolean :=
         Has_Length_Model and then Channel.Capacity = 1;
+      Uses_Ghost_Scalar_Model : constant Boolean :=
+        Channel_Uses_Sequential_Scalar_Ghost_Model
+          (Unit, Document, Channel);
+      Uses_Length_Formals : constant Boolean := Has_Length_Model;
+      Uses_Runtime_Length_Buffer : constant Boolean :=
+        Has_Length_Model and then not Uses_Ghost_Scalar_Model;
       Send_Mode     : constant String :=
         (if Heap_Value then "in out " else "in ");
       Receive_Mode  : constant String := "out ";
+      Ghost_Send_Post : constant String :=
+        Model_Has_Value
+        & " and then "
+        & Model_Length
+        & " = Value_Length";
+      Ghost_Model_Unchanged : constant String :=
+        Model_Has_Value
+        & " = "
+        & Model_Has_Value
+        & "'Old and then "
+        & Model_Length
+        & " = "
+        & Model_Length
+        & "'Old";
+      Ghost_Receive_Post : constant String :=
+        "Value_Length = "
+        & Model_Length
+        & "'Old and then (not "
+        & Model_Has_Value
+        & ") and then "
+        & Model_Length
+        & " = 0";
       Ceiling       : Long_Long_Integer :=
         (if Channel.Has_Required_Ceiling then Channel.Required_Ceiling else 0);
    begin
@@ -13004,11 +13311,13 @@ package body Safe_Frontend.Ada_Emit is
         (Buffer,
          "type " & Buffer_Type & " is array (" & Index_Subtype & ") of " & Element_Type & ";",
          1);
-      if Has_Length_Model then
+      if Uses_Runtime_Length_Buffer then
          Append_Line
            (Buffer,
             "type " & Length_Buffer_Type & " is array (" & Index_Subtype & ") of Natural;",
             1);
+      end if;
+      if Has_Length_Model then
          Append_Line
            (Buffer,
             "function "
@@ -13017,6 +13326,18 @@ package body Safe_Frontend.Ada_Emit is
             & Element_Type
             & ") return Natural with Global => null;",
             1);
+         if Uses_Ghost_Scalar_Model then
+            Append_Initialization_Warning_Suppression (Buffer, 1);
+            Append_Line
+              (Buffer,
+               Model_Has_Value & " : Boolean := False;",
+               1);
+            Append_Line
+              (Buffer,
+               Model_Length & " : Natural := 0;",
+               1);
+            Append_Initialization_Warning_Restore (Buffer, 1);
+         end if;
       end if;
       Append_Line
         (Buffer,
@@ -13030,9 +13351,11 @@ package body Safe_Frontend.Ada_Emit is
          "entry Send (Value : "
          & Send_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : in Natural" else "")
+         & (if Uses_Length_Formals then "; Value_Length : in Natural" else "")
          & ")"
-         & (if Single_Slot_Length_Model
+         & (if Uses_Ghost_Scalar_Model
+            then " with Post => " & Ghost_Send_Post
+            elsif Single_Slot_Length_Model
             then " with Post => " & Stored_Length & " = Value_Length"
             else "")
          & ";",
@@ -13042,9 +13365,11 @@ package body Safe_Frontend.Ada_Emit is
          "entry Receive (Value : "
          & Receive_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : out Natural" else "")
+         & (if Uses_Length_Formals then "; Value_Length : out Natural" else "")
          & ")"
-         & (if Single_Slot_Length_Model
+         & (if Uses_Ghost_Scalar_Model
+            then " with Post => " & Ghost_Receive_Post
+            elsif Single_Slot_Length_Model
             then
               " with Post => Value_Length = "
               & Stored_Length
@@ -13059,18 +13384,36 @@ package body Safe_Frontend.Ada_Emit is
          "procedure Try_Send (Value : "
          & Send_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : in Natural" else "")
-         & "; Success : out Boolean);",
+         & (if Uses_Length_Formals then "; Value_Length : in Natural" else "")
+         & "; Success : out Boolean)"
+         & (if Uses_Ghost_Scalar_Model
+            then
+              " with Post => (if Success then "
+              & Ghost_Send_Post
+              & " else "
+              & Ghost_Model_Unchanged
+              & ")"
+            else "")
+         & ";",
          2);
       Append_Line
         (Buffer,
          "procedure Try_Receive (Value : "
          & Receive_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : out Natural" else "")
-         & "; Success : out Boolean);",
+         & (if Uses_Length_Formals then "; Value_Length : out Natural" else "")
+         & "; Success : out Boolean)"
+         & (if Uses_Ghost_Scalar_Model
+            then
+              " with Post => (if Success then "
+              & Ghost_Receive_Post
+              & " else "
+              & Ghost_Model_Unchanged
+              & " and then Value_Length = 0)"
+            else "")
+         & ";",
          2);
-      if Single_Slot_Length_Model then
+      if Single_Slot_Length_Model and then not Uses_Ghost_Scalar_Model then
          Append_Line (Buffer, "function " & Stored_Length & " return Natural;", 2);
       end if;
       Append_Line (Buffer, "private", 1);
@@ -13082,7 +13425,7 @@ package body Safe_Frontend.Ada_Emit is
           & Default_Value_Expr (Unit, Document, Channel.Element_Type)
           & ");",
           2);
-      if Has_Length_Model then
+      if Uses_Runtime_Length_Buffer then
          Append_Line
            (Buffer,
             "Lengths : " & Length_Buffer_Type & " := (others => 0);",
@@ -13091,7 +13434,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "Head   : " & Index_Subtype & " := " & Index_Subtype & "'First;", 2);
       Append_Line (Buffer, "Tail   : " & Index_Subtype & " := " & Index_Subtype & "'First;", 2);
       Append_Line (Buffer, "Count  : " & Count_Subtype & " := 0;", 2);
-      if Single_Slot_Length_Model then
+      if Single_Slot_Length_Model and then not Uses_Ghost_Scalar_Model then
          Append_Line (Buffer, "Stored_Length_Value : Natural := 0;", 2);
       end if;
       Append_Line (Buffer, "end " & Type_Name & ";", 1);
@@ -13113,6 +13456,8 @@ package body Safe_Frontend.Ada_Emit is
       Length_Helper : constant String := Name & "_Element_Length";
       Index_Subtype : constant String := Name & "_Index";
       Stored_Length : constant String := "Stored_Length";
+      Model_Has_Value : constant String := Channel_Model_Has_Value_Name (Channel);
+      Model_Length : constant String := Channel_Model_Length_Name (Channel);
       Heap_Value    : constant Boolean :=
         Has_Heap_Value_Type (Unit, Document, Channel.Element_Type);
       Has_Length_Model : constant Boolean :=
@@ -13120,6 +13465,12 @@ package body Safe_Frontend.Ada_Emit is
         or else Is_Growable_Array_Type (Unit, Document, Channel.Element_Type);
       Single_Slot_Length_Model : constant Boolean :=
         Has_Length_Model and then Channel.Capacity = 1;
+      Uses_Ghost_Scalar_Model : constant Boolean :=
+        Channel_Uses_Sequential_Scalar_Ghost_Model
+          (Unit, Document, Channel);
+      Uses_Length_Formals : constant Boolean := Has_Length_Model;
+      Uses_Runtime_Length_Buffer : constant Boolean :=
+        Has_Length_Model and then not Uses_Ghost_Scalar_Model;
       Send_Mode     : constant String :=
         (if Heap_Value then "in out " else "in ");
       Receive_Mode  : constant String := "out ";
@@ -13725,7 +14076,7 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       Append_Line (Buffer, "protected body " & Type_Name & " is", 1);
-      if Single_Slot_Length_Model then
+      if Single_Slot_Length_Model and then not Uses_Ghost_Scalar_Model then
          Append_Line
            (Buffer,
             "function " & Stored_Length & " return Natural is (Stored_Length_Value);",
@@ -13737,7 +14088,7 @@ package body Safe_Frontend.Ada_Emit is
          "entry Send (Value : "
          & Send_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : in Natural" else "")
+         & (if Uses_Length_Formals then "; Value_Length : in Natural" else "")
          & ")",
          2);
       Append_Line
@@ -13748,7 +14099,16 @@ package body Safe_Frontend.Ada_Emit is
          3);
       Append_Line (Buffer, "begin", 2);
       Append_Line (Buffer, "Buffer (Tail) := Value;", 3);
-      if Has_Length_Model then
+      if Uses_Ghost_Scalar_Model then
+         Append_Line
+           (Buffer,
+            Model_Has_Value & " := True;",
+            3);
+         Append_Line
+           (Buffer,
+            Model_Length & " := Value_Length;",
+            3);
+      elsif Uses_Runtime_Length_Buffer then
          Append_Line (Buffer, "Lengths (Tail) := Value_Length;", 3);
          if Single_Slot_Length_Model then
             Append_Line (Buffer, "Stored_Length_Value := Value_Length;", 3);
@@ -13770,7 +14130,7 @@ package body Safe_Frontend.Ada_Emit is
          "entry Receive (Value : "
          & Receive_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : out Natural" else "")
+         & (if Uses_Length_Formals then "; Value_Length : out Natural" else "")
          & ")",
          2);
       Append_Line
@@ -13780,7 +14140,11 @@ package body Safe_Frontend.Ada_Emit is
          3);
       Append_Line (Buffer, "begin", 2);
       Append_Line (Buffer, "Value := Buffer (Head);", 3);
-      if Has_Length_Model then
+      if Uses_Ghost_Scalar_Model then
+         Append_Line (Buffer, "Value_Length := " & Model_Length & ";", 3);
+         Append_Line (Buffer, Model_Has_Value & " := False;", 3);
+         Append_Line (Buffer, Model_Length & " := 0;", 3);
+      elsif Uses_Runtime_Length_Buffer then
          if Single_Slot_Length_Model then
             Append_Line (Buffer, "Value_Length := Stored_Length_Value;", 3);
          else
@@ -13788,7 +14152,7 @@ package body Safe_Frontend.Ada_Emit is
          end if;
       end if;
       Append_Line (Buffer, "Buffer (Head) := " & Buffer_Default & ";", 3);
-      if Has_Length_Model then
+      if Uses_Runtime_Length_Buffer then
          Append_Line (Buffer, "Lengths (Head) := 0;", 3);
          if Single_Slot_Length_Model then
             Append_Line (Buffer, "Stored_Length_Value := 0;", 3);
@@ -13806,18 +14170,24 @@ package body Safe_Frontend.Ada_Emit is
         (Buffer,
          "procedure Try_Send (Value : " & Send_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : in Natural" else "")
+         & (if Uses_Length_Formals then "; Value_Length : in Natural" else "")
          & "; Success : out Boolean) is",
          2);
       Append_Line (Buffer, "begin", 2);
       Append_Line
         (Buffer,
-         "if Count < "
+        "if Count < "
          & Capacity
          & " then",
          3);
       Append_Line (Buffer, "Buffer (Tail) := Value;", 4);
-      if Has_Length_Model then
+      if Uses_Ghost_Scalar_Model then
+         Append_Line (Buffer, Model_Has_Value & " := True;", 4);
+         Append_Line
+           (Buffer,
+            Model_Length & " := Value_Length;",
+            4);
+      elsif Uses_Runtime_Length_Buffer then
          Append_Line (Buffer, "Lengths (Tail) := Value_Length;", 4);
          if Single_Slot_Length_Model then
             Append_Line (Buffer, "Stored_Length_Value := Value_Length;", 4);
@@ -13843,13 +14213,17 @@ package body Safe_Frontend.Ada_Emit is
          "procedure Try_Receive (Value : "
          & Receive_Mode
          & Element_Type
-         & (if Has_Length_Model then "; Value_Length : out Natural" else "")
+         & (if Uses_Length_Formals then "; Value_Length : out Natural" else "")
          & "; Success : out Boolean) is",
          2);
       Append_Line (Buffer, "begin", 2);
       Append_Line (Buffer, "if Count > 0 then", 3);
       Append_Line (Buffer, "Value := Buffer (Head);", 4);
-      if Has_Length_Model then
+      if Uses_Ghost_Scalar_Model then
+         Append_Line (Buffer, "Value_Length := " & Model_Length & ";", 4);
+         Append_Line (Buffer, Model_Has_Value & " := False;", 4);
+         Append_Line (Buffer, Model_Length & " := 0;", 4);
+      elsif Uses_Runtime_Length_Buffer then
          if Single_Slot_Length_Model then
             Append_Line (Buffer, "Value_Length := Stored_Length_Value;", 4);
          else
@@ -13857,7 +14231,7 @@ package body Safe_Frontend.Ada_Emit is
          end if;
       end if;
       Append_Line (Buffer, "Buffer (Head) := " & Buffer_Default & ";", 4);
-      if Has_Length_Model then
+      if Uses_Runtime_Length_Buffer then
          Append_Line (Buffer, "Lengths (Head) := 0;", 4);
          if Single_Slot_Length_Model then
             Append_Line (Buffer, "Stored_Length_Value := 0;", 4);
@@ -13872,7 +14246,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "Success := True;", 4);
       Append_Line (Buffer, "else", 3);
       Append_Line (Buffer, "Value := " & Buffer_Default & ";", 4);
-      if Has_Length_Model then
+      if Uses_Length_Formals then
          Append_Line (Buffer, "Value_Length := 0;", 4);
       end if;
       Append_Line (Buffer, "Success := False;", 4);
