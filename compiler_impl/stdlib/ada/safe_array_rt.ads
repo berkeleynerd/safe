@@ -13,12 +13,7 @@ package Safe_Array_RT is
 
    function From_Array (Value : Element_Array) return Safe_Array
       with Global => null,
-           Post =>
-             Length (From_Array'Result) = Value'Length
-             and then
-             (for all Index in Value'Range =>
-                 Element (From_Array'Result, Positive (Index - Value'First + 1)) =
-                   Value (Index)),
+           Post => Length (From_Array'Result) = Value'Length,
            Depends => (From_Array'Result => Value);
    function Clone (Source : Safe_Array) return Safe_Array
       with Global => null,

@@ -80,9 +80,11 @@ residuals are the broader-than-admitted follow-ons `PS-019`, `PS-035`, and
 | `PS-021` | Stabilise and document interchange-format policy for existing `safei-v1` and `mir-v2` artifacts, including compatibility and what is normative versus implementation-defined `TBD-08` | `spec/00-front-matter.md` section `0.8`; `compiler_impl/src/safe_frontend-interfaces.adb`; `compiler_impl/src/safe_frontend-mir_analyze.adb` | `tooling` | `long-term` |
 | `PS-022` | Performance targets `TBD-02` | `spec/00-front-matter.md` section `0.8` | `tooling` | `long-term` |
 | `PS-023` | SPARK container library compatibility gaps | `docs/spark_container_compatibility.md` | `tooling` | `long-term` |
-| `PS-034` | Shared-runtime generic contract soundness for clone-based heap-backed helpers, especially `Safe_Array_RT.From_Array` overclaiming elementwise `=` without a formal semantic-equality requirement on `Clone_Element` | `compiler_impl/stdlib/ada/safe_array_rt.ads`; `docs/pr118g2-proof-journal.md` | `stdlib` | `blocking-if-needed` |
 
 ## Spec and Language TBDs
+
+Historical note: `PS-034` is closed by `PR11.8g.4`; see
+[`docs/pr118g4-proof-journal.md`](pr118g4-proof-journal.md).
 
 | ID | Item | Source | Area | Priority |
 |----|------|--------|------|----------|

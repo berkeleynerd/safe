@@ -141,13 +141,14 @@
 
 ### `pr118d_fixed_to_growable_build.safe` reclosed
 
-- Shared-array runtime changes that closed the fixture:
-  - `Safe_Array_RT.From_Array` now exposes both:
-    - result length
-    - per-element preservation
-  - `Safe_Array_RT.Clone` now exposes result-length preservation
-  - `Safe_Array_RT.Copy` now exposes target-length preservation
-  - `Safe_Array_RT.Free` now exposes zero length after cleanup
+- Historical note:
+  - `PR11.8g.2` originally reclosed the fixture by strengthening the shared
+    `Safe_Array_RT` seam, including a temporary element-preservation claim on
+    `From_Array`.
+  - `PR11.8g.4` later replaced that shape with the final honest split:
+    - weak generic `Safe_Array_RT` base contracts
+    - stronger identity-preserving facts only on the emitted/runtime path for
+      non-heap growable-array component types
 - Emitter change that mattered:
   - access-parameter length preconditions are now synthesized for parameter-root indexed/sliced growable arrays, strings, and bounded strings
 - Result:

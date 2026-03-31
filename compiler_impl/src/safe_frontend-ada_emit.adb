@@ -425,7 +425,9 @@ package body Safe_Frontend.Ada_Emit is
      (Unit : CM.Resolved_Unit;
       Name : String) return CM.Resolved_Channel_Decl;
    function Render_Type_Decl
-     (Type_Item : GM.Type_Descriptor;
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
       State     : in out Emit_State) return String;
    procedure Render_Growable_Array_Helper_Body
      (Buffer   : in out SU.Unbounded_String;
@@ -2955,6 +2957,41 @@ package body Safe_Frontend.Ada_Emit is
       return False;
    end Has_Growable_Runtime_Type;
 
+   function Uses_Identity_Array_Runtime
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+   begin
+      return FT.Lowercase (FT.To_String (Base.Kind)) = "array"
+        and then Base.Growable
+        and then Base.Has_Component_Type
+        and then
+          not Has_Heap_Value_Type
+            (Unit,
+             Document,
+             Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type)));
+   end Uses_Identity_Array_Runtime;
+
+   function Array_Runtime_Generic_Name
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return String
+   is
+   begin
+      if Uses_Identity_Array_Runtime (Unit, Document, Info) then
+         return "Safe_Array_Identity_RT";
+      end if;
+      return "Safe_Array_RT";
+   end Array_Runtime_Generic_Name;
+
+   function Array_Runtime_Identity_Ops_Name
+     (Info : GM.Type_Descriptor) return String is
+   begin
+      return Array_Runtime_Instance_Name (Info) & "_Element_Ops";
+   end Array_Runtime_Identity_Ops_Name;
+
    function Tuple_Field_Name (Index : Positive) return String is
    begin
       return "F" & Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Both);
@@ -5043,7 +5080,9 @@ package body Safe_Frontend.Ada_Emit is
    end Append_Bounded_String_Uses;
 
    function Render_Type_Decl
-     (Type_Item : GM.Type_Descriptor;
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
       State     : in out Emit_State) return String is
       Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
       Kind : constant String := FT.To_String (Type_Item.Kind);
@@ -5134,71 +5173,142 @@ package body Safe_Frontend.Ada_Emit is
          end if;
       elsif Kind = "array" then
          if Type_Item.Growable or else Type_Item.Index_Types.Is_Empty then
-            State.Needs_Safe_Array_RT := True;
-            return
-              "function "
-              & Array_Runtime_Default_Element_Name (Type_Item)
-              & " return "
-              & Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type))
-              & ASCII.LF
-              & Indentation (2)
-              & "with Global => null;"
-              & ASCII.LF
-              & Indentation (1)
-              & "function "
-              & Array_Runtime_Clone_Element_Name (Type_Item)
-              & " (Source : "
-              & Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type))
-              & ") return "
-              & Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type))
-              & ASCII.LF
-              & Indentation (2)
-              & "with Global => null;"
-              & ASCII.LF
-              & Indentation (1)
-              & "procedure "
-              & Array_Runtime_Free_Element_Name (Type_Item)
-              & " (Value : in out "
-              & Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type))
-              & ")"
-              & ASCII.LF
-              & Indentation (2)
-              & "with Global => null,"
-              & ASCII.LF
-              & Indentation (3)
-              & "Always_Terminates;"
-              & ASCII.LF
-              & Indentation (1)
-              & "package "
-              & Array_Runtime_Instance_Name (Type_Item)
-              & " is new Safe_Array_RT"
-              & ASCII.LF
-              & Indentation (2)
-              & "(Element_Type => "
-              & Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type))
-              & ","
-              & ASCII.LF
-              & Indentation (3)
-              & "Default_Element => "
-              & Array_Runtime_Default_Element_Name (Type_Item)
-              & ","
-              & ASCII.LF
-              & Indentation (3)
-              & "Clone_Element => "
-              & Array_Runtime_Clone_Element_Name (Type_Item)
-              & ","
-              & ASCII.LF
-              & Indentation (3)
-              & "Free_Element => "
-              & Array_Runtime_Free_Element_Name (Type_Item)
-              & ");"
-              & ASCII.LF
-              & Indentation (1)
-              & "subtype "
-              & Ada_Safe_Name (Name)
-              & " is "
-              & Array_Runtime_Instance_Name (Type_Item)
-              & ".Safe_Array;";
+            declare
+               Identity_Runtime : constant Boolean :=
+                 Uses_Identity_Array_Runtime (Unit, Document, Type_Item);
+               Runtime_Generic_Name : constant String :=
+                 Array_Runtime_Generic_Name (Unit, Document, Type_Item);
+               Component_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String (Type_Item.Component_Type));
+               Element_Type_Name : constant String :=
+                 Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type));
+               Default_Image : constant String :=
+                 Default_Value_Expr (Unit, Document, Component_Info);
+               Clone_Post : constant String :=
+                 (if Identity_Runtime
+                  then
+                    ASCII.LF
+                    & Indentation (3)
+                    & "Post => "
+                    & Array_Runtime_Clone_Element_Name (Type_Item)
+                    & "'Result = Source;"
+                  else
+                    ";");
+            begin
+               if Runtime_Generic_Name = "Safe_Array_RT" then
+                  State.Needs_Safe_Array_RT := True;
+               end if;
+               return
+                 "function "
+                 & Array_Runtime_Default_Element_Name (Type_Item)
+                 & " return "
+                 & Element_Type_Name
+                 & (if Identity_Runtime then " is (" & Default_Image & ")" else "")
+                 & ASCII.LF
+                 & Indentation (2)
+                 & "with Global => null;"
+                 & ASCII.LF
+                 & Indentation (1)
+                 & "function "
+                 & Array_Runtime_Clone_Element_Name (Type_Item)
+                 & " (Source : "
+                 & Element_Type_Name
+                 & ") return "
+                 & Element_Type_Name
+                 & (if Identity_Runtime then " is (Source)" else "")
+                 & ASCII.LF
+                 & Indentation (2)
+                 & "with Global => null"
+                 & (if Identity_Runtime then "," & Clone_Post else ";")
+                 & ASCII.LF
+                 & Indentation (1)
+                 & "procedure "
+                 & Array_Runtime_Free_Element_Name (Type_Item)
+                 & " (Value : in out "
+                 & Element_Type_Name
+                 & ")"
+                 & (if Identity_Runtime
+                    then
+                      " is null;"
+                    else
+                      ASCII.LF
+                      & Indentation (2)
+                      & "with Global => null,"
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Always_Terminates;")
+                 & ASCII.LF
+                 & (if Identity_Runtime
+                    then
+                      Indentation (1)
+                      & "package "
+                      & Array_Runtime_Identity_Ops_Name (Type_Item)
+                      & " is new Safe_Array_Identity_Ops"
+                      & ASCII.LF
+                      & Indentation (2)
+                      & "(Element_Type => "
+                      & Element_Type_Name
+                      & ","
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Default_Element => "
+                      & Array_Runtime_Default_Element_Name (Type_Item)
+                      & ","
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Clone_Element => "
+                      & Array_Runtime_Clone_Element_Name (Type_Item)
+                      & ","
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Free_Element => "
+                      & Array_Runtime_Free_Element_Name (Type_Item)
+                      & ");"
+                      & ASCII.LF
+                    else
+                      "")
+                 & Indentation (1)
+                 & "package "
+                 & Array_Runtime_Instance_Name (Type_Item)
+                 & " is new "
+                 & Runtime_Generic_Name
+                 & ASCII.LF
+                 & Indentation (2)
+                 & (if Identity_Runtime
+                    then
+                      "(Element_Ops => "
+                      & Array_Runtime_Identity_Ops_Name (Type_Item)
+                      & ");"
+                    else
+                      "(Element_Type => "
+                      & Element_Type_Name
+                      & ","
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Default_Element => "
+                      & Array_Runtime_Default_Element_Name (Type_Item)
+                      & ","
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Clone_Element => "
+                      & Array_Runtime_Clone_Element_Name (Type_Item)
+                      & ","
+                      & ASCII.LF
+                      & Indentation (3)
+                      & "Free_Element => "
+                      & Array_Runtime_Free_Element_Name (Type_Item)
+                      & ");")
+                 & ASCII.LF
+                 & Indentation (1)
+                 & "subtype "
+                 & Ada_Safe_Name (Name)
+                 & " is "
+                 & Array_Runtime_Instance_Name (Type_Item)
+                 & ".Safe_Array;";
+            end;
          end if;
          return
            "type "
@@ -5440,6 +5550,8 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       declare
+         Identity_Runtime : constant Boolean :=
+           Uses_Identity_Array_Runtime (Unit, Document, Type_Item);
          Component_Info : constant GM.Type_Descriptor :=
            Resolve_Type_Name
              (Unit,
@@ -5459,67 +5571,71 @@ package body Safe_Frontend.Ada_Emit is
                 (Array_Runtime_Instance_Name (Component_Info) & ".Clone (Source)");
          end if;
 
-         Append_Line
-           (Buffer,
-            "function "
-            & Array_Runtime_Default_Element_Name (Type_Item)
-            & " return "
-            & Component_Name
-            & " is",
-            1);
-         Append_Line (Buffer, "begin", 1);
-         Append_Line (Buffer, "return " & Default_Image & ";", 2);
-         Append_Line
-           (Buffer,
-            "end " & Array_Runtime_Default_Element_Name (Type_Item) & ";",
-            1);
-         Append_Line (Buffer);
-
-         Append_Line
-           (Buffer,
-            "function "
-            & Array_Runtime_Clone_Element_Name (Type_Item)
-            & " (Source : "
-            & Component_Name
-            & ") return "
-            & Component_Name
-            & " is",
-            1);
-         Append_Line (Buffer, "begin", 1);
-         Append_Line (Buffer, "return " & SU.To_String (Clone_Image) & ";", 2);
-         Append_Line
-           (Buffer,
-            "end " & Array_Runtime_Clone_Element_Name (Type_Item) & ";",
-            1);
-         Append_Line (Buffer);
-
-         Append_Line
-           (Buffer,
-            "procedure "
-            & Array_Runtime_Free_Element_Name (Type_Item)
-            & " (Value : in out "
-            & Component_Name
-            & ") is",
-            1);
-         Append_Line (Buffer, "begin", 1);
-         if Is_Plain_String_Type (Unit, Document, Component_Info) then
-            State.Needs_Safe_String_RT := True;
-            Append_Line (Buffer, "Safe_String_RT.Free (Value);", 2);
-         elsif Is_Growable_Array_Type (Unit, Document, Component_Info) then
-            State.Needs_Safe_Array_RT := True;
+         if not Identity_Runtime then
             Append_Line
               (Buffer,
-               Array_Runtime_Instance_Name (Component_Info) & ".Free (Value);",
-               2);
-         else
-            Append_Line (Buffer, "pragma Unreferenced (Value);", 2);
-            Append_Line (Buffer, "null;", 2);
+               "function "
+               & Array_Runtime_Default_Element_Name (Type_Item)
+               & " return "
+               & Component_Name
+               & " is",
+               1);
+            Append_Line (Buffer, "begin", 1);
+            Append_Line (Buffer, "return " & Default_Image & ";", 2);
+            Append_Line
+              (Buffer,
+               "end " & Array_Runtime_Default_Element_Name (Type_Item) & ";",
+               1);
+            Append_Line (Buffer);
+
+            Append_Line
+              (Buffer,
+               "function "
+               & Array_Runtime_Clone_Element_Name (Type_Item)
+               & " (Source : "
+               & Component_Name
+               & ") return "
+               & Component_Name
+               & " is",
+               1);
+            Append_Line (Buffer, "begin", 1);
+            Append_Line (Buffer, "return " & SU.To_String (Clone_Image) & ";", 2);
+            Append_Line
+              (Buffer,
+               "end " & Array_Runtime_Clone_Element_Name (Type_Item) & ";",
+               1);
+            Append_Line (Buffer);
          end if;
-         Append_Line
-           (Buffer,
-            "end " & Array_Runtime_Free_Element_Name (Type_Item) & ";",
-            1);
-         Append_Line (Buffer);
+
+         if not Identity_Runtime then
+            Append_Line
+              (Buffer,
+               "procedure "
+               & Array_Runtime_Free_Element_Name (Type_Item)
+               & " (Value : in out "
+               & Component_Name
+               & ") is",
+               1);
+            Append_Line (Buffer, "begin", 1);
+            if Is_Plain_String_Type (Unit, Document, Component_Info) then
+               State.Needs_Safe_String_RT := True;
+               Append_Line (Buffer, "Safe_String_RT.Free (Value);", 2);
+            elsif Is_Growable_Array_Type (Unit, Document, Component_Info) then
+               State.Needs_Safe_Array_RT := True;
+               Append_Line
+                 (Buffer,
+                  Array_Runtime_Instance_Name (Component_Info) & ".Free (Value);",
+                  2);
+            else
+               Append_Line (Buffer, "pragma Unreferenced (Value);", 2);
+               Append_Line (Buffer, "null;", 2);
+            end if;
+            Append_Line
+              (Buffer,
+               "end " & Array_Runtime_Free_Element_Name (Type_Item) & ";",
+               1);
+            Append_Line (Buffer);
+         end if;
       end;
    end Render_Growable_Array_Helper_Body;
 
@@ -14860,7 +14976,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Bounded_String_Instantiations (Spec_Inner, State);
 
       for Type_Item of Unit.Types loop
-         Append_Line (Spec_Inner, Render_Type_Decl (Type_Item, State), 1);
+         Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
          if FT.To_String (Type_Item.Kind) = "record" then
             Append_Line (Spec_Inner);
          end if;
@@ -14869,7 +14985,7 @@ package body Safe_Frontend.Ada_Emit is
       Collect_Synthetic_Types (Unit, Document, Synthetic_Types);
       Collect_Owner_Access_Helper_Types (Unit, Document, Owner_Access_Helper_Types);
       for Type_Item of Synthetic_Types loop
-         Append_Line (Spec_Inner, Render_Type_Decl (Type_Item, State), 1);
+         Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
          Append_Line (Spec_Inner);
       end loop;
 
@@ -15123,6 +15239,10 @@ package body Safe_Frontend.Ada_Emit is
            Ada.Strings.Fixed.Index (Original_Spec, "Safe_String_RT.") > 0;
          Spec_Needs_Safe_Array_RT : constant Boolean :=
            Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_RT") > 0;
+         Spec_Needs_Safe_Array_Identity_Ops : constant Boolean :=
+           Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_Identity_Ops") > 0;
+         Spec_Needs_Safe_Array_Identity_RT : constant Boolean :=
+           Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_Identity_RT") > 0;
          Spec_Needs_Safe_Bounded_Strings : constant Boolean :=
            State.Needs_Safe_Bounded_Strings;
          Spec_Needs_Ada_Strings_Unbounded : constant Boolean :=
@@ -15135,6 +15255,8 @@ package body Safe_Frontend.Ada_Emit is
          if (Spec_Needs_Safe_Runtime
              or else Spec_Needs_Safe_String_RT
              or else Spec_Needs_Safe_Array_RT
+             or else Spec_Needs_Safe_Array_Identity_Ops
+             or else Spec_Needs_Safe_Array_Identity_RT
              or else Spec_Needs_Safe_Bounded_Strings
              or else Spec_Needs_Ada_Strings_Unbounded
              or else Spec_Needs_Interfaces
@@ -15158,6 +15280,12 @@ package body Safe_Frontend.Ada_Emit is
             end if;
             if Spec_Needs_Safe_Array_RT then
                Append_Line (Spec_Text, "with Safe_Array_RT;");
+            end if;
+            if Spec_Needs_Safe_Array_Identity_Ops then
+               Append_Line (Spec_Text, "with Safe_Array_Identity_Ops;");
+            end if;
+            if Spec_Needs_Safe_Array_Identity_RT then
+               Append_Line (Spec_Text, "with Safe_Array_Identity_RT;");
             end if;
             if Spec_Needs_Safe_Bounded_Strings then
                Append_Line (Spec_Text, "with Safe_Bounded_Strings;");
