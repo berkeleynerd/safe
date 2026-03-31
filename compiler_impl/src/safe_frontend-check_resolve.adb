@@ -1227,6 +1227,20 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Qualify_Type_Info;
 
+   function Qualify_Static_Value
+     (Value        : CM.Static_Value;
+      Package_Name : String) return CM.Static_Value
+   is
+      Result : CM.Static_Value := Value;
+   begin
+      if Result.Kind = CM.Static_Value_Enum then
+         Result.Type_Name :=
+           FT.To_UString
+             (Qualify_Name (Package_Name, UString_Value (Result.Type_Name)));
+      end if;
+      return Result;
+   end Qualify_Static_Value;
+
    function Classify_Access_Role
      (Anonymous   : Boolean;
       Is_Constant : Boolean;
@@ -1458,6 +1472,36 @@ package body Safe_Frontend.Check_Resolve is
             return False;
       end case;
    end Try_Static_Value;
+
+   function Is_Static_Case_Choice
+     (Expr      : CM.Expr_Access;
+      Const_Env : Static_Value_Maps.Map) return Boolean
+   is
+      Value : CM.Static_Value := (others => <>);
+   begin
+      if Expr = null then
+         return False;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Int | CM.Expr_Bool | CM.Expr_String | CM.Expr_Enum_Literal =>
+            return True;
+         when CM.Expr_Ident | CM.Expr_Select =>
+            return Try_Static_Value (Expr, Const_Env, Value);
+         when CM.Expr_Call | CM.Expr_Apply =>
+            return Natural (Expr.Args.Length) = 1
+              and then Is_Static_Case_Choice (Expr.Args (Expr.Args.First_Index), Const_Env);
+         when CM.Expr_Conversion | CM.Expr_Annotated =>
+            return Expr.Inner /= null
+              and then Is_Static_Case_Choice (Expr.Inner, Const_Env);
+         when CM.Expr_Unary =>
+            return Expr.Inner /= null
+              and then UString_Value (Expr.Operator) in "+" | "-"
+              and then Expr.Inner.Kind = CM.Expr_Int;
+         when others =>
+            return False;
+      end case;
+   end Is_Static_Case_Choice;
 
    function To_Scalar_Value (Value : CM.Static_Value) return GM.Scalar_Value is
       Result : GM.Scalar_Value;
@@ -4893,6 +4937,14 @@ package body Safe_Frontend.Check_Resolve is
                                 (Path    => Path,
                                  Span    => New_Arm.Choice.Span,
                                  Message => "string case choices currently require string literals"));
+                        elsif not Is_Static_Case_Choice
+                          (New_Arm.Choice, Local_Static_Constants)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => New_Arm.Choice.Span,
+                                 Message => "case arm choices must be static scalar values"));
                         end if;
                         Choice_Type :=
                           Expr_Type (New_Arm.Choice, Var_Types, Functions, Type_Env);
@@ -6096,7 +6148,7 @@ package body Safe_Frontend.Check_Resolve is
                   Put_Static_Value
                     (Const_Env,
                      Qualified_Name,
-                     Object_Item.Static_Info);
+                     Qualify_Static_Value (Object_Item.Static_Info, Package_Name));
                end if;
             end;
          end loop;

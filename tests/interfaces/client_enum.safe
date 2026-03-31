@@ -2,7 +2,7 @@ with provider_enum;
 
 package client_enum
 
-   current : provider_enum.color = provider_enum.red;
+   current : provider_enum.color = provider_enum.default_color;
    next_value : provider_enum.color = provider_enum.next (current);
 
    print (next_value)

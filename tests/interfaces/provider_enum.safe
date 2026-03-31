@@ -1,6 +1,7 @@
 package provider_enum
 
    public type color is (red, green, blue);
+   public default_color : constant color = red;
 
    public function next (value : color) returns color
 

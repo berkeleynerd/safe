@@ -1596,6 +1596,8 @@ package body Safe_Frontend.Check_Parse is
         | CM.Expr_Ident
         | CM.Expr_Select
       then
+         --  Idents/selects are only provisional here so enum literals and
+         --  imported constant names can parse. Resolve rechecks staticness.
          return True;
       elsif Expr.Kind in CM.Expr_Call | CM.Expr_Apply
         and then Natural (Expr.Args.Length) = 1
