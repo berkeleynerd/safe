@@ -54,21 +54,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          alr install gnat_arm_elf
-          arm_gnatls=""
-          for alire_home in "${HOME}/.alire" "${HOME}/.local/share/alire"; do
-            if [[ -d "${alire_home}" ]]; then
-              arm_gnatls="$(find "${alire_home}" -path '*gnat_arm_elf*' -type f \( -name 'arm-eabi-gnatls' -o -name 'arm-elf-gnatls' \) | head -n 1)"
-              if [[ -n "${arm_gnatls}" ]]; then
-                break
-              fi
-            fi
-          done
-          if [[ -z "${arm_gnatls}" ]]; then
-            echo "failed to locate gnat_arm_elf triplet tools" >&2
+          arm_toolchain_root="${RUNNER_TEMP}/gnat_arm_elf"
+          rm -rf "${arm_toolchain_root}"
+          alr install --prefix "${arm_toolchain_root}" gnat_arm_elf
+          if [[ ! -x "${arm_toolchain_root}/bin/arm-eabi-gnatls" ]]; then
+            echo "failed to install gnat_arm_elf triplet tools under ${arm_toolchain_root}" >&2
             exit 1
           fi
-          echo "$(dirname "${arm_gnatls}")" >> "${GITHUB_PATH}"
+          echo "${arm_toolchain_root}/bin" >> "${GITHUB_PATH}"
       - name: Install Renode portable
         shell: bash
         run: |
