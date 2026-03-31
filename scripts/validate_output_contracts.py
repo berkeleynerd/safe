@@ -436,19 +436,29 @@ def validate_safei_object_list(items: Any, path: str) -> list[dict[str, Any]]:
         if static_kind is None:
             if has_static_value:
                 fail(f"{path}[{index}].static_value_kind is required when static_value is present")
+            if "static_value_type" in entry:
+                fail(f"{path}[{index}].static_value_type requires static_value_kind to be present")
         else:
             if not is_constant:
                 fail(f"{path}[{index}].static_value_kind requires is_constant to be true")
-            if type(static_kind) is not str or static_kind not in {"integer", "boolean"}:
-                fail(f"{path}[{index}].static_value_kind must be `integer` or `boolean`")
+            if type(static_kind) is not str or static_kind not in {"integer", "boolean", "enum"}:
+                fail(f"{path}[{index}].static_value_kind must be `integer`, `boolean`, or `enum`")
             if not has_static_value:
                 fail(f"{path}[{index}].static_value is required when static_value_kind is present")
             value = entry.get("static_value")
             if static_kind == "integer":
                 if type(value) is not int:
                     fail(f"{path}[{index}].static_value must be an integer")
-            elif type(value) is not bool:
-                fail(f"{path}[{index}].static_value must be a boolean")
+                if "static_value_type" in entry:
+                    fail(f"{path}[{index}].static_value_type is only valid for enum static values")
+            elif static_kind == "boolean":
+                if type(value) is not bool:
+                    fail(f"{path}[{index}].static_value must be a boolean")
+                if "static_value_type" in entry:
+                    fail(f"{path}[{index}].static_value_type is only valid for enum static values")
+            else:
+                require_string(value, f"{path}[{index}].static_value")
+                require_string(entry.get("static_value_type"), f"{path}[{index}].static_value_type")
         validate_span(entry.get("span"), f"{path}[{index}].span")
         result.append(entry)
     return result

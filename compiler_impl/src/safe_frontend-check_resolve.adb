@@ -4180,7 +4180,8 @@ package body Safe_Frontend.Check_Resolve is
       Const_Env        : Static_Value_Maps.Map;
       Path             : String;
       Message          : String) is
-      Name : constant String := Root_Name (Expr);
+      Name      : constant String := Root_Name (Expr);
+      Flat_Name : constant String := Flatten_Name (Expr);
    begin
       if Expr /= null and then Expr.Kind = CM.Expr_Tuple then
          for Item of Expr.Elements loop
@@ -4207,14 +4208,14 @@ package body Safe_Frontend.Check_Resolve is
                  "assignment target rooted in constant `"
                  & (if Name'Length = 0 then "<unknown>" else Name)
                  & "` is not writable"));
-      elsif Name'Length > 0 and then Has_Enum_Literal (Const_Env, Name) then
+      elsif Flat_Name'Length > 0 and then Has_Enum_Literal (Const_Env, Flat_Name) then
          Raise_Diag
            (CM.Write_To_Constant
               (Path    => Path,
                Span    => (if Expr = null then FT.Null_Span else Expr.Span),
                Message =>
                  "assignment target rooted in enum literal `"
-                 & Name
+                 & Flat_Name
                  & "` is not writable"));
       end if;
    end Ensure_Writable_Target;

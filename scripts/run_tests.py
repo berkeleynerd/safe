@@ -161,6 +161,12 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_enum_unqualified.safe",
         1,
     ),
+    (
+        "enum-literal-assign-rejected",
+        REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_enum_literal_assign.safe",
+        1,
+    ),
 ]
 
 STATIC_INTERFACE_CASES = [
@@ -632,6 +638,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr118c2_entry_print.safe",
     REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
+    REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [

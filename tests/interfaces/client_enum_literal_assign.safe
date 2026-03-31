@@ -1,0 +1,5 @@
+with provider_enum;
+
+package client_enum_literal_assign
+
+   provider_enum.red = provider_enum.green;
