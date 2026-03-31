@@ -3,7 +3,7 @@ with Safe_Array_Identity_Ops;
 generic
    with package Element_Ops is new Safe_Array_Identity_Ops (<>);
 package Safe_Array_Identity_RT
-  with SPARK_Mode
+  with SPARK_Mode => On
 is
    subtype Element_Type is Element_Ops.Element;
    use type Element_Type;
