@@ -14,7 +14,12 @@ from pathlib import Path
 
 from _lib.embedded_eval import parse_monitor_value
 from _lib.harness_common import ensure_sdkroot
-from run_proofs import EMITTED_PROOF_FIXTURES
+from _lib.proof_inventory import (
+    EMITTED_PROOF_COVERED_PATHS,
+    EMITTED_PROOF_EXCLUSIONS,
+    EMITTED_PROOF_FIXTURES,
+    iter_proof_coverage_paths,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
@@ -45,9 +50,9 @@ NEGATIVE_SUCCESS_FIXTURES = {
 }
 
 CONCURRENCY_REJECT_FIXTURES = {
-    REPO_ROOT / "tests" / "concurrency" / "channel_access_type.safe",
-    REPO_ROOT / "tests" / "concurrency" / "select_ownership_binding.safe",
-    REPO_ROOT / "tests" / "concurrency" / "try_send_ownership.safe",
+    REPO_ROOT / entry.path
+    for entry in EMITTED_PROOF_EXCLUSIONS
+    if entry.path.startswith("tests/concurrency/")
 }
 
 INTERFACE_CASES = [
@@ -664,6 +669,7 @@ OUTPUT_CONTRACT_REJECT_CASES = [
 ]
 
 EMITTED_PRAGMA_ALLOWLIST = {
+    'pragma Assume (Safe_String_RT.Length (Safe_Channel_Staged_1) = Safe_Channel_Length_1);',
     'pragma Assume (Safe_String_RT.Length (Safe_Channel_Staged_3) = Safe_Channel_Length_3);',
     'pragma Assume (values_RT.Length (Safe_Channel_Staged_3) = Safe_Channel_Length_3);',
     'pragma Warnings (GNATprove, Off, "implicit aspect Always_Terminates", Reason => "shared runtime cleanup termination is accepted");',
@@ -716,62 +722,59 @@ EMITTED_SHAPE_CASES = [
         ["SPARK_Mode => Off", "Skip_Flow_And_Proof", "_safe_io"],
     ),
     (
-        "string-channel-direct-scalar-no-length-plumbing",
+        "string-channel-direct-scalar-no-protected-lowering",
         REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
-        ["Stored_Length"],
+        ["protected type text_ch_Channel is", "_Model_Has_Value", "pragma Assume ("],
     ),
     (
-        "growable-channel-direct-scalar-no-length-plumbing",
+        "growable-channel-direct-scalar-no-protected-lowering",
         REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
-        ["Stored_Length"],
+        ["protected type data_ch_Channel is", "_Model_Has_Value", "pragma Assume ("],
     ),
     (
-        "try-string-channel-direct-scalar-no-length-plumbing",
+        "try-string-channel-direct-scalar-no-protected-lowering",
         REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
-        ["Stored_Length"],
+        ["protected type text_ch_Channel is", "_Model_Has_Value", "pragma Assume ("],
     ),
 ]
 
 EMITTED_REQUIRED_SHAPE_CASES = [
     (
-        "string-channel-direct-scalar-ghost-model",
+        "string-channel-direct-scalar-record-lowering",
         REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
         [
-            "text_ch_Model_Has_Value : Boolean := False;",
-            "text_ch_Model_Length : Natural := 0;",
+            "type text_ch_Channel is record",
+            "Full : Boolean := False;",
+            "Stored_Length_Value : Natural := 0;",
+            "Pre => not text_ch.Full",
+            "Pre => text_ch.Full",
         ],
     ),
     (
-        "growable-channel-direct-scalar-ghost-model",
+        "growable-channel-direct-scalar-record-lowering",
         REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
         [
-            "data_ch_Model_Has_Value : Boolean := False;",
-            "data_ch_Model_Length : Natural := 0;",
+            "type data_ch_Channel is record",
+            "Full : Boolean := False;",
+            "Stored_Length_Value : Natural := 0;",
+            "Pre => not data_ch.Full",
+            "Pre => data_ch.Full",
         ],
     ),
     (
-        "try-string-channel-direct-scalar-ghost-model",
+        "try-string-channel-direct-scalar-record-lowering",
         REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
         [
-            "text_ch_Model_Has_Value : Boolean := False;",
-            "text_ch_Model_Length : Natural := 0;",
+            "type text_ch_Channel is record",
+            "Full : Boolean := False;",
+            "Stored_Length_Value : Natural := 0;",
+            "Pre => not text_ch.Full",
+            "Pre => text_ch.Full",
         ],
     ),
 ]
 
 EMITTED_PROTECTED_BODY_SHAPE_CASES = [
-    (
-        "string-channel-protected-body-no-heap-runtime",
-        REPO_ROOT / "tests" / "build" / "pr118g_string_channel_build.safe",
-        "text_ch_Channel",
-        ["Safe_String_RT.Clone", "Safe_String_RT.Copy", "Safe_String_RT.Free"],
-    ),
-    (
-        "growable-channel-protected-body-no-heap-runtime",
-        REPO_ROOT / "tests" / "build" / "pr118g_growable_channel_build.safe",
-        "data_ch_Channel",
-        ["values_RT.Clone", "values_RT.Copy", "values_RT.Free"],
-    ),
     (
         "tuple-channel-protected-body-no-heap-runtime",
         REPO_ROOT / "tests" / "build" / "pr118g_tuple_string_channel_build.safe",
@@ -1682,6 +1685,18 @@ def run_source_shape_case(
     return True, ""
 
 
+def run_proof_inventory_coverage_case() -> tuple[bool, str]:
+    covered = set(EMITTED_PROOF_COVERED_PATHS)
+    uncovered = [
+        entry
+        for entry in iter_proof_coverage_paths(REPO_ROOT)
+        if entry not in covered
+    ]
+    if uncovered:
+        return False, "uncovered proof inventory entries: " + ", ".join(uncovered)
+    return True, ""
+
+
 def run_repl_case(
     *,
     label: str,
@@ -1786,6 +1801,12 @@ def main() -> int:
             passed += 1
         else:
             failures.append((repo_rel(fixture), detail))
+
+    ok, detail = run_proof_inventory_coverage_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("proof-inventory-coverage", detail))
 
     with tempfile.TemporaryDirectory(prefix="safe-tests-") as temp_root_str:
         temp_root = Path(temp_root_str)

@@ -14,168 +14,25 @@ from _lib.proof_eval import (
     run_gnatprove_project,
     run_source_proof,
 )
+from _lib.proof_inventory import (
+    COMPANION_PROJECTS,
+    EMITTED_PROOF_EXCLUSIONS,
+    EMITTED_PROOF_FIXTURES,
+    EMITTED_PROOF_REGRESSION_FIXTURES,
+    PR11_8A_CHECKPOINT_FIXTURES,
+    PR11_8B_CHECKPOINT_FIXTURES,
+    PR11_8E_CHECKPOINT_FIXTURES,
+    PR11_8F_CHECKPOINT_FIXTURES,
+    PR11_8G1_CHECKPOINT_FIXTURES,
+    PR11_8G2_CHECKPOINT_FIXTURES,
+    PR11_8I_CHECKPOINT_FIXTURES,
+    PR11_8I1_CHECKPOINT_FIXTURES,
+    PROOF_COVERAGE_ROOTS,
+    iter_proof_coverage_paths,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
-
-COMPANION_PROJECTS = [
-    ("companion/gen", "companion.gpr"),
-    ("companion/templates", "templates.gpr"),
-]
-
-PR11_8A_CHECKPOINT_FIXTURES = [
-    "tests/positive/rule1_accumulate.safe",
-    "tests/positive/rule1_averaging.safe",
-    "tests/positive/rule1_conversion.safe",
-    "tests/positive/rule1_parameter.safe",
-    "tests/positive/rule1_return.safe",
-    "tests/positive/rule2_binary_search.safe",
-    "tests/positive/rule2_binary_search_function.safe",
-    "tests/positive/rule2_iteration.safe",
-    "tests/positive/rule2_lookup.safe",
-    "tests/positive/rule2_matrix.safe",
-    "tests/positive/rule2_slice.safe",
-    "tests/positive/rule3_average.safe",
-    "tests/positive/rule3_divide.safe",
-    "tests/positive/rule3_modulo.safe",
-    "tests/positive/rule3_percent.safe",
-    "tests/positive/rule3_remainder.safe",
-    "tests/positive/rule5_filter.safe",
-    "tests/positive/rule5_interpolate.safe",
-    "tests/positive/rule5_normalize.safe",
-    "tests/positive/rule5_statistics.safe",
-    "tests/positive/rule5_temperature.safe",
-    "tests/positive/rule5_vector_normalize.safe",
-    "tests/positive/constant_range_bound.safe",
-    "tests/positive/constant_channel_capacity.safe",
-    "tests/positive/constant_task_priority.safe",
-    "tests/positive/pr112_character_case.safe",
-    "tests/positive/pr112_discrete_case.safe",
-    "tests/positive/pr112_string_param.safe",
-    "tests/positive/pr112_case_scrutinee_once.safe",
-    "tests/positive/pr113_discriminant_constraints.safe",
-    "tests/positive/pr113_tuple_destructure.safe",
-    "tests/positive/pr113_structured_result.safe",
-    "tests/positive/pr113_variant_guard.safe",
-    "tests/positive/constant_discriminant_default.safe",
-    "tests/positive/result_equality_check.safe",
-    "tests/positive/result_guarded_access.safe",
-    "tests/positive/pr118_inline_integer_return.safe",
-    "tests/positive/pr118_type_range_equivalent.safe",
-]
-
-PR11_8B_CHECKPOINT_FIXTURES = [
-    "tests/concurrency/channel_ceiling_priority.safe",
-    "tests/positive/channel_pipeline.safe",
-    "tests/concurrency/exclusive_variable.safe",
-    "tests/concurrency/fifo_ordering.safe",
-    "tests/concurrency/multi_task_channel.safe",
-    "tests/concurrency/select_delay_local_scope.safe",
-    "tests/concurrency/select_priority.safe",
-    "tests/concurrency/task_global_owner.safe",
-    "tests/concurrency/task_priority_delay.safe",
-    "tests/concurrency/try_ops.safe",
-    "tests/positive/pr113_tuple_channel.safe",
-]
-
-PR11_8E_CHECKPOINT_FIXTURES = [
-    "tests/positive/ownership_move.safe",
-    "tests/positive/ownership_early_return.safe",
-    "tests/positive/pr118e_not_null_self_reference.safe",
-    "tests/positive/pr118e1_mutual_record_family.safe",
-    "tests/positive/pr118e2_disjoint_mut_borrow_fields.safe",
-    "tests/concurrency/pr118c2_pre_task_init.safe",
-]
-
-PR11_8F_CHECKPOINT_FIXTURES = [
-    "tests/positive/rule4_conditional.safe",
-    "tests/positive/rule4_deref.safe",
-    "tests/positive/rule4_factory.safe",
-    "tests/positive/rule4_linked_list.safe",
-    "tests/positive/rule4_linked_list_sum.safe",
-    "tests/positive/rule4_optional.safe",
-    "tests/positive/ownership_borrow.safe",
-    "tests/positive/ownership_observe.safe",
-    "tests/positive/ownership_observe_access.safe",
-    "tests/positive/ownership_return.safe",
-    "tests/positive/ownership_inout.safe",
-]
-
-PR11_8G1_CHECKPOINT_FIXTURES = [
-    "tests/positive/pr09_emitter_discriminant.safe",
-    "tests/positive/pr115_compound_terminators.safe",
-    "tests/positive/pr115_declare_terminator.safe",
-    "tests/positive/pr115_legacy_local_decl.safe",
-    "tests/positive/pr115_multiline_return.safe",
-    "tests/positive/pr1162_empty_subprogram_body_followed_by_sibling.safe",
-    "tests/positive/pr116_bare_return.safe",
-    "tests/positive/pr118c_binary_case_dispatch.safe",
-    "tests/positive/pr118d_bounded_string_array_component.safe",
-    "tests/positive/pr118d_bounded_string_field.safe",
-    "tests/positive/pr118d_string_equality.safe",
-    "tests/positive/pr118e1_not_null_mutual_family.safe",
-    "tests/positive/pr118e1_three_type_family.safe",
-    "tests/concurrency/pr118b1_partial_task_clauses.safe",
-    "tests/concurrency/pr118b1_scoped_receive.safe",
-    "tests/concurrency/pr118b1_scoped_try_receive.safe",
-    "tests/concurrency/pr118b1_transitive_local_task_clause.safe",
-    "tests/build/pr118c2_package_pre_task.safe",
-    "tests/build/pr118d1_for_of_string_build.safe",
-    "tests/build/pr118d1_string_case_build.safe",
-    "tests/build/pr118d1_string_order_build.safe",
-    "tests/build/pr118d_bounded_string_array_component_build.safe",
-    "tests/build/pr118d_bounded_string_index_build.safe",
-    "tests/build/pr118d_bounded_string_tick_build.safe",
-    "tests/build/pr118d_for_of_fixed_build.safe",
-    "tests/build/pr118d_for_of_growable_build.safe",
-    "tests/build/pr118d_for_of_heap_element_build.safe",
-]
-
-PR11_8G2_CHECKPOINT_FIXTURES = [
-    "tests/positive/pr118c1_print.safe",
-    "tests/positive/pr118d_bounded_string.safe",
-    "tests/positive/pr118d_character_quote_literal.safe",
-    "tests/positive/pr118d_growable_array.safe",
-    "tests/positive/pr118d_string_length_attribute.safe",
-    "tests/positive/pr118d_string_mutable_object.safe",
-    "tests/build/pr118d1_growable_to_fixed_guard_build.safe",
-    "tests/build/pr118d_bounded_string_build.safe",
-    "tests/build/pr118d_bounded_string_field_build.safe",
-    "tests/build/pr118d_fixed_to_growable_build.safe",
-    "tests/build/pr118d_growable_to_fixed_literal_build.safe",
-    "tests/build/pr118d_growable_to_fixed_slice_build.safe",
-    "tests/build/pr118g_string_channel_build.safe",
-    "tests/build/pr118g_growable_channel_build.safe",
-    "tests/build/pr118g_tuple_string_channel_build.safe",
-    "tests/build/pr118g_record_string_channel_build.safe",
-    "tests/build/pr118g_try_string_channel_build.safe",
-]
-
-PR11_8I_CHECKPOINT_FIXTURES = [
-    "tests/build/pr118i_enum_build.safe",
-]
-
-EMITTED_PROOF_REGRESSION_FIXTURES = [
-    "tests/concurrency/select_with_delay.safe",
-    "tests/concurrency/select_with_delay_multiarm.safe",
-    "tests/positive/channel_pingpong.safe",
-    "tests/positive/channel_pipeline_compute.safe",
-    "tests/positive/constant_access_deref_write.safe",
-    "tests/positive/constant_shadow_mutable.safe",
-    "tests/positive/emitter_surface_proc.safe",
-    "tests/positive/emitter_surface_record.safe",
-]
-
-EMITTED_PROOF_FIXTURES = (
-    PR11_8A_CHECKPOINT_FIXTURES
-    + PR11_8B_CHECKPOINT_FIXTURES
-    + PR11_8E_CHECKPOINT_FIXTURES
-    + PR11_8F_CHECKPOINT_FIXTURES
-    + PR11_8G1_CHECKPOINT_FIXTURES
-    + PR11_8G2_CHECKPOINT_FIXTURES
-    + PR11_8I_CHECKPOINT_FIXTURES
-    + EMITTED_PROOF_REGRESSION_FIXTURES
-)
 
 
 def repo_rel(path: Path) -> str:
@@ -214,8 +71,36 @@ def validate_manifests() -> None:
     validate_manifest("PR11.8g.1 checkpoint manifest", PR11_8G1_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8g.2 checkpoint manifest", PR11_8G2_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8i checkpoint manifest", PR11_8I_CHECKPOINT_FIXTURES)
+    validate_manifest("PR11.8i.1 checkpoint manifest", PR11_8I1_CHECKPOINT_FIXTURES)
     validate_manifest("emitted proof regression manifest", EMITTED_PROOF_REGRESSION_FIXTURES)
     validate_manifest("emitted proof manifest", EMITTED_PROOF_FIXTURES)
+    validate_manifest(
+        "emitted proof exclusion inventory",
+        [entry.path for entry in EMITTED_PROOF_EXCLUSIONS],
+    )
+
+    managed = set(EMITTED_PROOF_FIXTURES)
+    exclusions = {entry.path for entry in EMITTED_PROOF_EXCLUSIONS}
+    overlap = sorted(managed & exclusions)
+    if overlap:
+        raise RuntimeError(
+            "emitted proof fixtures also listed as exclusions: " + ", ".join(overlap)
+        )
+
+    covered = managed | exclusions
+    uncovered = [
+        entry
+        for entry in iter_proof_coverage_paths(REPO_ROOT)
+        if entry not in covered
+    ]
+    if uncovered:
+        detail = ", ".join(uncovered)
+        raise RuntimeError(
+            "proof coverage inventory leaves uncovered fixtures under "
+            + ", ".join(PROOF_COVERAGE_ROOTS)
+            + ": "
+            + detail
+        )
 
 def run_companion_project(
     *,
@@ -298,6 +183,10 @@ def main() -> int:
     checkpoint_g1_failures: list[tuple[str, str]] = []
     checkpoint_g2_passed = 0
     checkpoint_g2_failures: list[tuple[str, str]] = []
+    checkpoint_i_passed = 0
+    checkpoint_i_failures: list[tuple[str, str]] = []
+    checkpoint_i1_passed = 0
+    checkpoint_i1_failures: list[tuple[str, str]] = []
     regression_passed = 0
     regression_failures: list[tuple[str, str]] = []
 
@@ -350,6 +239,11 @@ def main() -> int:
             temp_root=temp_root,
             toolchain=toolchain,
         )
+        checkpoint_i1_passed, checkpoint_i1_failures = run_fixture_group(
+            fixtures=PR11_8I1_CHECKPOINT_FIXTURES,
+            temp_root=temp_root,
+            toolchain=toolchain,
+        )
         regression_passed, regression_failures = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
@@ -365,6 +259,7 @@ def main() -> int:
         + checkpoint_g1_passed
         + checkpoint_g2_passed
         + checkpoint_i_passed
+        + checkpoint_i1_passed
         + regression_passed
     )
     total_failures = (
@@ -376,6 +271,7 @@ def main() -> int:
         + checkpoint_g1_failures
         + checkpoint_g2_failures
         + checkpoint_i_failures
+        + checkpoint_i1_failures
         + regression_failures
     )
 
@@ -425,6 +321,12 @@ def main() -> int:
         passed=checkpoint_i_passed,
         failures=checkpoint_i_failures,
         title="PR11.8i checkpoint",
+        trailing_blank_line=True,
+    )
+    print_summary(
+        passed=checkpoint_i1_passed,
+        failures=checkpoint_i1_failures,
+        title="PR11.8i.1 checkpoint",
         trailing_blank_line=True,
     )
     print_summary(
