@@ -531,6 +531,11 @@ BUILD_SUCCESS_CASES = [
         "41\n",
         False,
     ),
+    (
+        REPO_ROOT / "tests" / "interfaces" / "pr169_safe_elaborate_collision.safe",
+        "41\n",
+        False,
+    ),
 ]
 
 BUILD_REJECT_CASES = [
@@ -683,8 +688,10 @@ EMITTED_PRAGMA_ALLOWLIST = {
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "generated local cleanup is intentional");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "task-local branching is intentionally isolated");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "task-local state updates are intentionally isolated");',
+    'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "static for-of string unrolling exposes constant conditions");',
     'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "deferred heap-backed package initialization is intentional");',
     'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "generated local cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "static for-of unrolling preserves intermediate source assignments");',
     'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "task-local state updates are intentionally isolated");',
     'pragma Warnings (GNATprove, Off, "unused initial value of", Reason => "generated local cleanup is intentional");',
     'pragma Warnings (GNATprove, On, "implicit aspect Always_Terminates");',

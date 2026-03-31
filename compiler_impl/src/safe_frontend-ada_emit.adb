@@ -73,6 +73,34 @@ package body Safe_Frontend.Ada_Emit is
      (Index_Type   => Positive,
       Element_Type => Type_Binding_Frame);
 
+   type Static_Length_Binding is record
+      Name   : FT.UString := FT.To_UString ("");
+      Length : Natural := 0;
+   end record;
+
+   package Static_Length_Binding_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Static_Length_Binding);
+
+   type Static_Integer_Binding is record
+      Name  : FT.UString := FT.To_UString ("");
+      Known : Boolean := False;
+      Value : Long_Long_Integer := 0;
+   end record;
+
+   package Static_Integer_Binding_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Static_Integer_Binding);
+
+   type Static_String_Binding is record
+      Name  : FT.UString := FT.To_UString ("");
+      Image : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Static_String_Binding_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Static_String_Binding);
+
    type Emit_State is record
       Needs_Safe_IO : Boolean := False;
       Needs_Safe_Runtime : Boolean := False;
@@ -84,6 +112,9 @@ package body Safe_Frontend.Ada_Emit is
       Needs_Gnat_Adc     : Boolean := False;
       Needs_Unchecked_Deallocation : Boolean := False;
       Wide_Local_Names   : FT.UString_Vectors.Vector;
+      Static_Length_Bindings : Static_Length_Binding_Vectors.Vector;
+      Static_Integer_Bindings : Static_Integer_Binding_Vectors.Vector;
+      Static_String_Bindings : Static_String_Binding_Vectors.Vector;
       Bounded_String_Bounds : FT.UString_Vectors.Vector;
       Type_Binding_Stack : Type_Binding_Frame_Vectors.Vector;
       Unsupported_Span   : FT.Source_Span := FT.Null_Span;
@@ -304,6 +335,10 @@ package body Safe_Frontend.Ada_Emit is
    function Is_Access_Type (Info : GM.Type_Descriptor) return Boolean;
    function Is_Owner_Access (Info : GM.Type_Descriptor) return Boolean;
    function Is_Alias_Access (Info : GM.Type_Descriptor) return Boolean;
+   function Owner_Allocate_Post_Field_Is_Trackable
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Field_Info : GM.Type_Descriptor) return Boolean;
    function Needs_Implicit_Dereference
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -337,6 +372,55 @@ package body Safe_Frontend.Ada_Emit is
    function Try_Static_Integer_Value
      (Expr  : CM.Expr_Access;
       Value : out Long_Long_Integer) return Boolean;
+   function Try_Static_String_Literal
+     (Expr   : CM.Expr_Access;
+      Image  : out SU.Unbounded_String;
+      Length : out Natural) return Boolean;
+   function Static_String_Literal_Element_Image
+     (Image    : String;
+      Position : Positive) return String;
+   function Try_Static_String_Image
+     (State : Emit_State;
+      Expr  : CM.Expr_Access;
+      Image : out SU.Unbounded_String) return Boolean;
+   function Try_Static_Boolean_Value
+     (State : Emit_State;
+      Expr  : CM.Expr_Access;
+      Value : out Boolean) return Boolean;
+   procedure Bind_Static_Integer
+     (State : in out Emit_State;
+      Name  : String;
+      Value : Long_Long_Integer);
+   procedure Invalidate_Static_Integer
+     (State : in out Emit_State;
+      Name  : String);
+   procedure Bind_Static_String
+     (State : in out Emit_State;
+      Name  : String;
+      Image : String);
+   function Has_Static_Integer_Tracking
+     (State : Emit_State;
+      Name  : String) return Boolean;
+   function Try_Static_Integer_Binding
+     (State : Emit_State;
+      Name  : String;
+      Value : out Long_Long_Integer) return Boolean;
+   function Try_Tracked_Static_Integer_Value
+     (State : Emit_State;
+      Expr  : CM.Expr_Access;
+      Value : out Long_Long_Integer) return Boolean;
+   function Try_Static_String_Binding
+     (State : Emit_State;
+      Name  : String;
+      Image : out SU.Unbounded_String) return Boolean;
+   procedure Restore_Static_String_Bindings
+     (State           : in out Emit_State;
+      Previous_Length : Ada.Containers.Count_Type);
+   function Try_Object_Static_String_Initializer
+     (Unit   : CM.Resolved_Unit;
+      Name   : String;
+      Image  : out SU.Unbounded_String;
+      Length : out Natural) return Boolean;
    function Fixed_Array_Cardinality
      (Unit        : CM.Resolved_Unit;
       Document    : GM.Mir_Document;
@@ -345,6 +429,10 @@ package body Safe_Frontend.Ada_Emit is
    function Static_Growable_Length
      (Expr   : CM.Expr_Access;
       Length : out Natural) return Boolean;
+   function Has_Heap_Value_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
    function Render_Fixed_Array_As_Growable
      (Unit        : CM.Resolved_Unit;
       Document    : GM.Mir_Document;
@@ -904,6 +992,139 @@ package body Safe_Frontend.Ada_Emit is
          State.Wide_Local_Names.Delete_Last;
       end loop;
    end Restore_Wide_Names;
+
+   procedure Bind_Static_Length
+     (State  : in out Emit_State;
+      Name   : String;
+      Length : Natural) is
+   begin
+      if Name'Length = 0 then
+         return;
+      end if;
+      State.Static_Length_Bindings.Append
+        ((Name => FT.To_UString (Name), Length => Length));
+   end Bind_Static_Length;
+
+   function Try_Static_Length
+     (State  : Emit_State;
+      Name   : String;
+      Length : out Natural) return Boolean is
+   begin
+      if Name'Length = 0 or else State.Static_Length_Bindings.Is_Empty then
+         return False;
+      end if;
+
+      for Index in reverse State.Static_Length_Bindings.First_Index .. State.Static_Length_Bindings.Last_Index loop
+         declare
+            Binding : constant Static_Length_Binding := State.Static_Length_Bindings (Index);
+         begin
+            if FT.To_String (Binding.Name) = Name then
+               Length := Binding.Length;
+               return True;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Try_Static_Length;
+
+   procedure Restore_Static_Length_Bindings
+     (State           : in out Emit_State;
+      Previous_Length : Ada.Containers.Count_Type) is
+   begin
+      while State.Static_Length_Bindings.Length > Previous_Length loop
+         State.Static_Length_Bindings.Delete_Last;
+      end loop;
+   end Restore_Static_Length_Bindings;
+
+   procedure Bind_Static_Integer
+     (State : in out Emit_State;
+      Name  : String;
+      Value : Long_Long_Integer) is
+   begin
+      if Name'Length = 0 then
+         return;
+      end if;
+      State.Static_Integer_Bindings.Append
+        ((Name => FT.To_UString (Name), Known => True, Value => Value));
+   end Bind_Static_Integer;
+
+   procedure Invalidate_Static_Integer
+     (State : in out Emit_State;
+      Name  : String) is
+   begin
+      if Name'Length = 0 then
+         return;
+      end if;
+      State.Static_Integer_Bindings.Append
+        ((Name => FT.To_UString (Name), Known => False, Value => 0));
+   end Invalidate_Static_Integer;
+
+   procedure Bind_Static_String
+     (State : in out Emit_State;
+      Name  : String;
+      Image : String) is
+   begin
+      if Name'Length = 0 then
+         return;
+      end if;
+      State.Static_String_Bindings.Append
+        ((Name => FT.To_UString (Name),
+          Image => FT.To_UString (Image)));
+   end Bind_Static_String;
+
+   function Has_Static_Integer_Tracking
+     (State : Emit_State;
+      Name  : String) return Boolean is
+   begin
+      if Name'Length = 0 or else State.Static_Integer_Bindings.Is_Empty then
+         return False;
+      end if;
+
+      for Binding of State.Static_Integer_Bindings loop
+         if FT.To_String (Binding.Name) = Name then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Has_Static_Integer_Tracking;
+
+   function Try_Static_Integer_Binding
+     (State : Emit_State;
+      Name  : String;
+      Value : out Long_Long_Integer) return Boolean is
+   begin
+      Value := 0;
+      if Name'Length = 0 or else State.Static_Integer_Bindings.Is_Empty then
+         return False;
+      end if;
+
+      for Index in reverse State.Static_Integer_Bindings.First_Index .. State.Static_Integer_Bindings.Last_Index loop
+         declare
+            Binding : constant Static_Integer_Binding := State.Static_Integer_Bindings (Index);
+         begin
+            if FT.To_String (Binding.Name) = Name then
+               if Binding.Known then
+                  Value := Binding.Value;
+                  return True;
+               end if;
+               return False;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Try_Static_Integer_Binding;
+
+   procedure Restore_Static_Integer_Bindings
+     (State           : in out Emit_State;
+      Previous_Length : Ada.Containers.Count_Type) is
+   begin
+      while State.Static_Integer_Bindings.Length > Previous_Length loop
+         State.Static_Integer_Bindings.Delete_Last;
+      end loop;
+   end Restore_Static_Integer_Bindings;
 
    procedure Push_Type_Binding_Frame (State : in out Emit_State) is
    begin
@@ -2584,6 +2805,27 @@ package body Safe_Frontend.Ada_Emit is
         and then FT.To_String (Info.Access_Role) = "Owner";
    end Is_Owner_Access;
 
+   function Owner_Allocate_Post_Field_Is_Trackable
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Field_Info : GM.Type_Descriptor) return Boolean
+   is
+      Base      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Field_Info);
+      Base_Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+      Base_Name : constant String := FT.Lowercase (FT.To_String (Base.Name));
+   begin
+      return
+        not Is_Access_Type (Field_Info)
+        and then not Has_Heap_Value_Type (Unit, Document, Field_Info)
+        and then
+          (Is_Integer_Type (Unit, Document, Field_Info)
+           or else Base_Kind = "boolean"
+           or else Base_Name = "boolean"
+           or else Base_Kind = "enum"
+           or else Base_Kind = "character"
+           or else Base_Name = "character");
+   end Owner_Allocate_Post_Field_Is_Trackable;
+
    function Is_Alias_Access (Info : GM.Type_Descriptor) return Boolean is
       Role : constant String := FT.To_String (Info.Access_Role);
    begin
@@ -3249,6 +3491,407 @@ package body Safe_Frontend.Ada_Emit is
 
       return False;
    end Try_Static_Integer_Value;
+
+   function Try_Static_String_Literal
+     (Expr   : CM.Expr_Access;
+      Image  : out SU.Unbounded_String;
+      Length : out Natural) return Boolean
+   is
+      Literal : constant String :=
+        (if Expr /= null and then Has_Text (Expr.Text)
+         then FT.To_String (Expr.Text)
+         else "");
+      Index   : Positive;
+   begin
+      Image := SU.Null_Unbounded_String;
+      Length := 0;
+      if Expr = null
+        or else Expr.Kind /= CM.Expr_String
+        or else not Has_Text (Expr.Text)
+        or else Literal'Length < 2
+        or else Literal (Literal'First) /= '"'
+        or else Literal (Literal'Last) /= '"'
+      then
+         return False;
+      end if;
+
+      Image := SU.To_Unbounded_String (Literal);
+      Index := Literal'First + 1;
+      while Index < Literal'Last loop
+         if Literal (Index) = '"' then
+            if Index + 1 <= Literal'Last - 1
+              and then Literal (Index + 1) = '"'
+            then
+               Length := Length + 1;
+               Index := Index + 2;
+            else
+               Image := SU.Null_Unbounded_String;
+               Length := 0;
+               return False;
+            end if;
+         else
+            Length := Length + 1;
+            Index := Index + 1;
+         end if;
+      end loop;
+
+      return True;
+   end Try_Static_String_Literal;
+
+   function Static_String_Literal_Element_Image
+     (Image    : String;
+      Position : Positive) return String
+   is
+      Cursor        : Positive := Image'First + 1;
+      Element_Index : Positive := 1;
+   begin
+      while Cursor < Image'Last loop
+         declare
+            Result : SU.Unbounded_String := SU.To_Unbounded_String (String'(1 => '"'));
+         begin
+            if Image (Cursor) = '"'
+              and then Cursor + 1 <= Image'Last - 1
+              and then Image (Cursor + 1) = '"'
+            then
+               Result := Result & SU.To_Unbounded_String (String'(1 => '"', 2 => '"'));
+               if Element_Index = Position then
+                  return SU.To_String (Result & SU.To_Unbounded_String (String'(1 => '"')));
+               end if;
+               Cursor := Cursor + 2;
+            else
+               Result := Result & SU.To_Unbounded_String (String'(1 => Image (Cursor)));
+               if Element_Index = Position then
+                  return SU.To_String (Result & SU.To_Unbounded_String (String'(1 => '"')));
+               end if;
+               Cursor := Cursor + 1;
+            end if;
+            Element_Index := Element_Index + 1;
+         end;
+      end loop;
+
+      return String'(1 => '"', 2 => '"');
+   end Static_String_Literal_Element_Image;
+
+   function Try_Static_String_Image
+     (State : Emit_State;
+      Expr  : CM.Expr_Access;
+      Image : out SU.Unbounded_String) return Boolean
+   is
+      Length : Natural := 0;
+   begin
+      Image := SU.Null_Unbounded_String;
+      if Expr = null then
+         return False;
+      elsif Try_Static_String_Literal (Expr, Image, Length) then
+         return True;
+      elsif Expr.Kind = CM.Expr_Ident then
+         return Try_Static_String_Binding (State, FT.To_String (Expr.Name), Image);
+      elsif Expr.Kind = CM.Expr_Conversion and then Expr.Inner /= null then
+         return Try_Static_String_Image (State, Expr.Inner, Image);
+      end if;
+
+      return False;
+   end Try_Static_String_Image;
+
+   function Try_Static_Boolean_Value
+     (State : Emit_State;
+      Expr  : CM.Expr_Access;
+      Value : out Boolean) return Boolean
+   is
+      Left_Bool    : Boolean := False;
+      Right_Bool   : Boolean := False;
+      Left_Int     : Long_Long_Integer := 0;
+      Right_Int    : Long_Long_Integer := 0;
+      Left_String  : SU.Unbounded_String := SU.Null_Unbounded_String;
+      Right_String : SU.Unbounded_String := SU.Null_Unbounded_String;
+      Operator     : constant String :=
+        (if Expr = null then ""
+         elsif FT.To_String (Expr.Operator) = "==" then "="
+         elsif FT.To_String (Expr.Operator) = "!=" then "/="
+         else FT.To_String (Expr.Operator));
+   begin
+      Value := False;
+      if Expr = null then
+         return False;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Bool =>
+            Value := Expr.Bool_Value;
+            return True;
+         when CM.Expr_Unary =>
+            if Operator = "not"
+              and then Expr.Inner /= null
+              and then Try_Static_Boolean_Value (State, Expr.Inner, Left_Bool)
+            then
+               Value := not Left_Bool;
+               return True;
+            end if;
+         when CM.Expr_Binary =>
+            if Operator in "and" | "and then" | "or" | "or else"
+              and then Expr.Left /= null
+              and then Expr.Right /= null
+              and then Try_Static_Boolean_Value (State, Expr.Left, Left_Bool)
+              and then Try_Static_Boolean_Value (State, Expr.Right, Right_Bool)
+            then
+               if Operator in "and" | "and then" then
+                  Value := Left_Bool and then Right_Bool;
+               else
+                  Value := Left_Bool or else Right_Bool;
+               end if;
+               return True;
+            elsif Operator in "=" | "/=" | "<" | "<=" | ">" | ">="
+              and then Expr.Left /= null
+              and then Expr.Right /= null
+            then
+               if Try_Static_String_Image (State, Expr.Left, Left_String)
+                 and then Try_Static_String_Image (State, Expr.Right, Right_String)
+               then
+                  declare
+                     function Normalize_Static_String (Image : String) return String is
+                     begin
+                        if Image'Length > 8
+                          and then Image (Image'First .. Image'First + 6) = "String'("
+                          and then Image (Image'Last) = ')'
+                        then
+                           return Image (Image'First + 7 .. Image'Last - 1);
+                        end if;
+                        return Image;
+                     end Normalize_Static_String;
+
+                     Left_Image  : constant String :=
+                       Normalize_Static_String (SU.To_String (Left_String));
+                     Right_Image : constant String :=
+                       Normalize_Static_String (SU.To_String (Right_String));
+                  begin
+                     if Operator = "=" then
+                        Value := Left_Image = Right_Image;
+                     elsif Operator = "/=" then
+                        Value := Left_Image /= Right_Image;
+                     elsif Operator = "<" then
+                        Value := Left_Image < Right_Image;
+                     elsif Operator = "<=" then
+                        Value := Left_Image <= Right_Image;
+                     elsif Operator = ">" then
+                        Value := Left_Image > Right_Image;
+                     else
+                        Value := Left_Image >= Right_Image;
+                     end if;
+                     return True;
+                  end;
+               elsif Try_Tracked_Static_Integer_Value (State, Expr.Left, Left_Int)
+                 and then Try_Tracked_Static_Integer_Value (State, Expr.Right, Right_Int)
+               then
+                  if Operator = "=" then
+                     Value := Left_Int = Right_Int;
+                  elsif Operator = "/=" then
+                     Value := Left_Int /= Right_Int;
+                  elsif Operator = "<" then
+                     Value := Left_Int < Right_Int;
+                  elsif Operator = "<=" then
+                     Value := Left_Int <= Right_Int;
+                  elsif Operator = ">" then
+                     Value := Left_Int > Right_Int;
+                  else
+                     Value := Left_Int >= Right_Int;
+                  end if;
+                  return True;
+               end if;
+            end if;
+         when others =>
+            null;
+      end case;
+
+      return False;
+   end Try_Static_Boolean_Value;
+
+   function Try_Tracked_Static_Integer_Value
+     (State : Emit_State;
+      Expr  : CM.Expr_Access;
+      Value : out Long_Long_Integer) return Boolean
+   is
+      Left_Value   : Long_Long_Integer := 0;
+      Right_Value  : Long_Long_Integer := 0;
+      Inner_Value  : Long_Long_Integer := 0;
+      Static_Length : Natural := 0;
+      Callee_Flat  : constant String :=
+        (if Expr = null then "" else CM.Flatten_Name (Expr.Callee));
+      Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
+      Raw_Operator : constant String :=
+        (if Expr = null then "" else FT.To_String (Expr.Operator));
+      Operator     : constant String :=
+        (if Raw_Operator = "!=" then "/="
+         elsif Raw_Operator = "==" then "="
+         else Raw_Operator);
+   begin
+      Value := 0;
+      if Expr = null then
+         return False;
+      end if;
+
+      if Try_Static_Integer_Value (Expr, Value) then
+         return True;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Ident =>
+            return Try_Static_Integer_Binding (State, FT.To_String (Expr.Name), Value);
+         when CM.Expr_Select =>
+            if FT.To_String (Expr.Selector) = "length"
+              and then Expr.Prefix /= null
+              and then Expr.Prefix.Kind = CM.Expr_Ident
+              and then Try_Static_Length
+                (State,
+                 FT.To_String (Expr.Prefix.Name),
+                 Static_Length)
+            then
+               Value := Long_Long_Integer (Static_Length);
+               return True;
+            end if;
+         when CM.Expr_Call =>
+            if Natural (Expr.Args.Length) = 1
+              and then Lower_Callee'Length >= 7
+              and then Lower_Callee (Lower_Callee'Last - 6 .. Lower_Callee'Last) = ".length"
+              and then Expr.Args (Expr.Args.First_Index) /= null
+              and then Expr.Args (Expr.Args.First_Index).Kind = CM.Expr_Ident
+              and then Try_Static_Length
+                (State,
+                 FT.To_String (Expr.Args (Expr.Args.First_Index).Name),
+                 Static_Length)
+            then
+               Value := Long_Long_Integer (Static_Length);
+               return True;
+            end if;
+         when CM.Expr_Unary =>
+            if Expr.Inner /= null
+              and then Try_Tracked_Static_Integer_Value (State, Expr.Inner, Inner_Value)
+            then
+               if Operator = "-" then
+                  Value := -Inner_Value;
+                  return True;
+               elsif Operator = "+" then
+                  Value := Inner_Value;
+                  return True;
+               end if;
+            end if;
+         when CM.Expr_Binary =>
+            if Expr.Left /= null
+              and then Expr.Right /= null
+              and then Try_Tracked_Static_Integer_Value (State, Expr.Left, Left_Value)
+              and then Try_Tracked_Static_Integer_Value (State, Expr.Right, Right_Value)
+            then
+               if Operator = "+" then
+                  Value := Left_Value + Right_Value;
+                  return True;
+               elsif Operator = "-" then
+                  Value := Left_Value - Right_Value;
+                  return True;
+               elsif Operator = "*" then
+                  Value := Left_Value * Right_Value;
+                  return True;
+               end if;
+            end if;
+         when CM.Expr_Conversion =>
+            if Expr.Inner /= null
+              and then Try_Tracked_Static_Integer_Value (State, Expr.Inner, Inner_Value)
+            then
+               Value := Inner_Value;
+               return True;
+            end if;
+         when others =>
+            null;
+      end case;
+
+      return False;
+   end Try_Tracked_Static_Integer_Value;
+
+   function Try_Static_String_Binding
+     (State : Emit_State;
+      Name  : String;
+      Image : out SU.Unbounded_String) return Boolean is
+   begin
+      Image := SU.Null_Unbounded_String;
+      if Name'Length = 0 or else State.Static_String_Bindings.Is_Empty then
+         return False;
+      end if;
+
+      for Index in reverse State.Static_String_Bindings.First_Index .. State.Static_String_Bindings.Last_Index loop
+         declare
+            Binding : constant Static_String_Binding := State.Static_String_Bindings (Index);
+         begin
+            if FT.To_String (Binding.Name) = Name then
+               Image := SU.To_Unbounded_String (FT.To_String (Binding.Image));
+               return True;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Try_Static_String_Binding;
+
+   procedure Restore_Static_String_Bindings
+     (State           : in out Emit_State;
+      Previous_Length : Ada.Containers.Count_Type) is
+   begin
+      while State.Static_String_Bindings.Length > Previous_Length loop
+         State.Static_String_Bindings.Delete_Last;
+      end loop;
+   end Restore_Static_String_Bindings;
+
+   function Try_Object_Static_String_Initializer
+     (Unit   : CM.Resolved_Unit;
+      Name   : String;
+      Image  : out SU.Unbounded_String;
+      Length : out Natural) return Boolean is
+   begin
+      Image := SU.Null_Unbounded_String;
+      Length := 0;
+      if Name'Length = 0 or else Unit.Objects.Is_Empty then
+         return False;
+      end if;
+
+      for Decl of Unit.Objects loop
+         if Decl.Has_Initializer and then Decl.Initializer /= null then
+            for Decl_Name of Decl.Names loop
+               if FT.To_String (Decl_Name) = Name
+                 and then Try_Static_String_Literal
+                   (Decl.Initializer,
+                    Image,
+                    Length)
+               then
+                  return True;
+               end if;
+            end loop;
+         end if;
+      end loop;
+
+      return False;
+   end Try_Object_Static_String_Initializer;
+
+   function Try_Object_Static_Integer_Initializer
+     (Unit  : CM.Resolved_Unit;
+      Name  : String;
+      Value : out Long_Long_Integer) return Boolean is
+   begin
+      Value := 0;
+      if Name'Length = 0 or else Unit.Objects.Is_Empty then
+         return False;
+      end if;
+
+      for Decl of Unit.Objects loop
+         if Decl.Has_Initializer and then Decl.Initializer /= null then
+            for Decl_Name of Decl.Names loop
+               if FT.To_String (Decl_Name) = Name
+                 and then Try_Static_Integer_Value (Decl.Initializer, Value)
+               then
+                  return True;
+               end if;
+            end loop;
+         end if;
+      end loop;
+
+      return False;
+   end Try_Object_Static_Integer_Initializer;
 
    function Fixed_Array_Cardinality
      (Unit        : CM.Resolved_Unit;
@@ -3918,6 +4561,16 @@ package body Safe_Frontend.Ada_Emit is
             else
                Expr_Type_Info := Synthetic_Bounded_String_Type (Type_Name, Found_Synthetic);
                Has_Expr_Type := Found_Synthetic;
+            end if;
+         end;
+      end if;
+
+      if Expr.Kind = CM.Expr_Ident then
+         declare
+            Static_Image : SU.Unbounded_String := SU.Null_Unbounded_String;
+         begin
+            if Try_Static_String_Binding (State, FT.To_String (Expr.Name), Static_Image) then
+               return SU.To_String (Static_Image);
             end if;
          end;
       end if;
@@ -5194,6 +5847,43 @@ package body Safe_Frontend.Ada_Emit is
       Target_Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Target));
       Result_Info : GM.Type_Descriptor := Type_Item;
       Runtime_Name : constant String := Local_Ownership_Runtime_Name (Type_Item);
+
+      function Allocate_Post_Image return String is
+         Result      : SU.Unbounded_String :=
+           SU.To_Unbounded_String
+             (Local_Allocate_Helper_Name (Type_Item) & "'Result /= null");
+         Target_Info : constant GM.Type_Descriptor :=
+           Resolve_Type_Name (Unit, Document, FT.To_String (Type_Item.Target));
+      begin
+         for Field of Target_Info.Fields loop
+            declare
+               Field_Name : constant String := FT.To_String (Field.Name);
+               Field_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String (Field.Type_Name));
+            begin
+               if Owner_Allocate_Post_Field_Is_Trackable
+                 (Unit, Document, Field_Info)
+               then
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        (ASCII.LF
+                         & Indentation (2)
+                         & "and then "
+                         & Local_Allocate_Helper_Name (Type_Item)
+                         & "'Result.all."
+                         & Field_Name
+                         & " = Value."
+                         & Field_Name);
+               end if;
+            end;
+         end loop;
+
+         return SU.To_String (Result);
+      end Allocate_Post_Image;
    begin
       if not Is_Owner_Access (Type_Item) or else not Type_Item.Has_Target then
          return;
@@ -5226,14 +5916,11 @@ package body Safe_Frontend.Ada_Emit is
          & Target_Name
          & ") return "
          & Render_Subtype_Indication (Unit, Document, Result_Info)
-         & " is ("
-         & Runtime_Name
-         & ".Allocate (Value))"
          & ASCII.LF
          & Indentation (2)
          & "with Post => "
-         & Local_Allocate_Helper_Name (Type_Item)
-         & "'Result /= null;",
+         & Allocate_Post_Image
+         & ";",
          1);
       Append_Line
         (Buffer,
@@ -5265,8 +5952,67 @@ package body Safe_Frontend.Ada_Emit is
       Type_Item : GM.Type_Descriptor;
       State    : in out Emit_State)
    is
+      pragma Unreferenced (State);
+      Result_Info : GM.Type_Descriptor := Type_Item;
+      Target_Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Target));
+      Runtime_Name : constant String := Local_Ownership_Runtime_Name (Type_Item);
+      Target_Info : constant GM.Type_Descriptor :=
+        Resolve_Type_Name (Unit, Document, FT.To_String (Type_Item.Target));
    begin
-      pragma Unreferenced (Buffer, Unit, Document, Type_Item, State);
+      if not Is_Owner_Access (Type_Item) or else not Type_Item.Has_Target then
+         return;
+      end if;
+
+      Result_Info.Not_Null := True;
+
+      Append_Line
+        (Buffer,
+         "function "
+         & Local_Allocate_Helper_Name (Type_Item)
+         & " (Value : "
+         & Target_Name
+         & ") return "
+         & Render_Subtype_Indication (Unit, Document, Result_Info)
+         & " is",
+         1);
+      Append_Line
+        (Buffer,
+         "Result : constant "
+         & Render_Subtype_Indication (Unit, Document, Result_Info)
+         & " := "
+         & Runtime_Name
+         & ".Allocate (Value);",
+         2);
+      Append_Line (Buffer, "begin", 1);
+      for Field of Target_Info.Fields loop
+         declare
+            Field_Name : constant String := FT.To_String (Field.Name);
+            Field_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name
+                (Unit,
+                 Document,
+                 FT.To_String (Field.Type_Name));
+         begin
+            if Owner_Allocate_Post_Field_Is_Trackable
+              (Unit, Document, Field_Info)
+            then
+               Append_Line
+                 (Buffer,
+                  "Result.all."
+                  & Field_Name
+                  & " := Value."
+                  & Field_Name
+                  & ";",
+                  2);
+            end if;
+         end;
+      end loop;
+      Append_Line (Buffer, "return Result;", 2);
+      Append_Line
+        (Buffer,
+         "end " & Local_Allocate_Helper_Name (Type_Item) & ";",
+         1);
+      Append_Line (Buffer);
    end Render_Owner_Access_Helper_Body;
 
    procedure Append_Bounded_String_Instantiations
@@ -6091,7 +6837,19 @@ package body Safe_Frontend.Ada_Emit is
                   declare
                      Prefix_Type : constant GM.Type_Descriptor :=
                        Base_Type (Unit, Document, Expr_Type_Info (Unit, Document, Expr.Prefix));
+                     Static_Length : Natural;
                   begin
+                     if Expr.Prefix.Kind = CM.Expr_Ident
+                       and then Try_Static_Length
+                         (State,
+                          FT.To_String (Expr.Prefix.Name),
+                          Static_Length)
+                     then
+                        return "Long_Long_Integer ("
+                          & Trim_Wide_Image (CM.Wide_Integer (Static_Length))
+                          & ")";
+                     end if;
+
                      if Is_Bounded_String_Type (Prefix_Type) then
                         Register_Bounded_String_Type (State, Prefix_Type);
                         return
@@ -6251,6 +7009,7 @@ package body Safe_Frontend.Ada_Emit is
             declare
                Callee_Flat : constant String := CM.Flatten_Name (Expr.Callee);
                Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
+               Static_Length : Natural;
                Callee_Image : constant String :=
                  (if Expr.Callee /= null
                    and then Expr.Callee.Kind = CM.Expr_Select
@@ -6281,7 +7040,18 @@ package body Safe_Frontend.Ada_Emit is
                     & FT.To_String (Expr.Callee.Selector)
                   else Render_Expr (Unit, Document, Expr.Callee, State));
             begin
-               if Lower_Callee = "ok" and then Expr.Args.Is_Empty then
+               if Natural (Expr.Args.Length) = 1
+                 and then Lower_Callee'Length >= 7
+                 and then Lower_Callee (Lower_Callee'Last - 6 .. Lower_Callee'Last) = ".length"
+                 and then Expr.Args (Expr.Args.First_Index) /= null
+                 and then Expr.Args (Expr.Args.First_Index).Kind = CM.Expr_Ident
+                 and then Try_Static_Length
+                   (State,
+                    FT.To_String (Expr.Args (Expr.Args.First_Index).Name),
+                    Static_Length)
+               then
+                  return Trim_Wide_Image (CM.Wide_Integer (Static_Length));
+               elsif Lower_Callee = "ok" and then Expr.Args.Is_Empty then
                   State.Needs_Ada_Strings_Unbounded := True;
                   return Render_Result_Empty_Aggregate;
                elsif Lower_Callee = "fail" and then Natural (Expr.Args.Length) = 1 then
@@ -7209,6 +7979,14 @@ package body Safe_Frontend.Ada_Emit is
             "encountered null wide expression during Ada emission");
       end if;
 
+      declare
+         Static_Value : Long_Long_Integer := 0;
+      begin
+         if Try_Tracked_Static_Integer_Value (State, Expr, Static_Value) then
+            return "Safe_Runtime.Wide_Integer (" & Trim_Wide_Image (CM.Wide_Integer (Static_Value)) & ")";
+         end if;
+      end;
+
       case Expr.Kind is
          when CM.Expr_Int =>
             return "Safe_Runtime.Wide_Integer (" & Render_Expr (Unit, Document, Expr, State) & ")";
@@ -7635,34 +8413,9 @@ package body Safe_Frontend.Ada_Emit is
       Subprogram : CM.Resolved_Subprogram;
       Depth      : Natural)
    is
+      pragma Unreferenced (Buffer, Subprogram, Depth);
    begin
-      for Param of Subprogram.Params loop
-         if FT.To_String (Param.Mode) in "mut" | "in out"
-           and then Is_Owner_Access (Param.Type_Info)
-         then
-            declare
-               Param_Name    : constant String := FT.To_String (Param.Name);
-               Snapshot_Name : constant String := Param_Name & "_Snapshot";
-               Snapshot_Type : constant String :=
-                 (if Param.Type_Info.Not_Null then "not null " else "")
-                 & Render_Type_Name (Param.Type_Info);
-            begin
-               Append_Line (Buffer, "declare", Depth);
-               Append_Line
-                 (Buffer,
-                  Snapshot_Name
-                  & " : constant "
-                  & Snapshot_Type
-                  & " := "
-                  & Param_Name
-                  & ";",
-                  Depth + 1);
-               Append_Line (Buffer, "begin", Depth);
-               Append_Line (Buffer, Param_Name & " := " & Snapshot_Name & ";", Depth + 1);
-               Append_Line (Buffer, "end;", Depth);
-            end;
-         end if;
-      end loop;
+      null;
    end Render_In_Out_Param_Stabilizers;
 
    function Find_Graph_Summary
@@ -7828,25 +8581,25 @@ package body Safe_Frontend.Ada_Emit is
 
          for Called of Calls loop
             declare
-               Called_Name : constant String := FT.To_String (Called);
-               Package_Call_Name : constant String :=
-                 FT.Lowercase (FT.To_String (Unit.Package_Name) & "." & FT.To_String (Called));
+               Called_Name : constant String := FT.Lowercase (FT.To_String (Called));
             begin
-               if Called_Name'Length = 0
-                 or else Contains_Name (Visited_Calls, Called_Name)
-               then
+               if Called_Name'Length = 0 then
                   null;
                else
                   for Candidate of Unit.Subprograms loop
                      declare
                         Candidate_Name : constant String := FT.Lowercase (FT.To_String (Candidate.Name));
+                        Qualified_Candidate_Name : constant String :=
+                          FT.Lowercase (FT.To_String (Unit.Package_Name) & "." & FT.To_String (Candidate.Name));
                      begin
                         if Called_Name = Candidate_Name
-                          or else Called_Name = Package_Call_Name
+                          or else Called_Name = Qualified_Candidate_Name
                         then
-                           Visited_Calls.Append (FT.To_UString (Candidate_Name));
-                           if Subprogram_Uses_Global_Name (Unit, Candidate, Name) then
-                              return True;
+                           if not Contains_Name (Visited_Calls, Candidate_Name) then
+                              Visited_Calls.Append (FT.To_UString (Candidate_Name));
+                              if Subprogram_Uses_Global_Name (Unit, Candidate, Name) then
+                                 return True;
+                              end if;
                            end if;
                            exit;
                         end if;
@@ -11455,6 +12208,27 @@ package body Safe_Frontend.Ada_Emit is
                         Case_Name : constant String :=
                           "Safe_String_Case_Expr_"
                           & Ada.Strings.Fixed.Trim (Positive'Image (Positive (Index)), Ada.Strings.Both);
+                        function Static_String_Case_Assertion return String is
+                        begin
+                           if Item.Case_Expr /= null and then Item.Case_Expr.Kind = CM.Expr_Ident then
+                              for Decl of Unit.Objects loop
+                                 if Decl.Has_Initializer and then Decl.Initializer /= null then
+                                    for Decl_Name of Decl.Names loop
+                                       if FT.To_String (Decl_Name) = FT.To_String (Item.Case_Expr.Name) then
+                                          return
+                                            "pragma Assert ("
+                                            & Case_Name
+                                            & " = "
+                                            & Render_String_Expr (Unit, Document, Decl.Initializer, State)
+                                            & ");";
+                                       end if;
+                                    end loop;
+                                 end if;
+                              end loop;
+                           end if;
+                           return "";
+                        end Static_String_Case_Assertion;
+                        Static_Assertion : constant String := Static_String_Case_Assertion;
                         First_String_Arm : Boolean := True;
                      begin
                         Append_Line (Buffer, "declare", Depth);
@@ -11466,6 +12240,9 @@ package body Safe_Frontend.Ada_Emit is
                            & ";",
                            Depth + 1);
                         Append_Line (Buffer, "begin", Depth);
+                        if Static_Assertion'Length > 0 then
+                           Append_Line (Buffer, Static_Assertion, Depth + 1);
+                        end if;
                         for Arm of Item.Case_Arms loop
                            if Arm.Is_Others then
                               if First_String_Arm then
@@ -11776,6 +12553,42 @@ package body Safe_Frontend.Ada_Emit is
                         return null;
                      end Static_Growable_Literal_Expr;
 
+                     function Try_Static_String_Iterable
+                       (Image  : out SU.Unbounded_String;
+                        Length : out Natural) return Boolean
+                     is
+                     begin
+                        Image := SU.Null_Unbounded_String;
+                        Length := 0;
+                        if not Is_String_Iterable or else Item.Loop_Iterable = null then
+                           return False;
+                        elsif Try_Static_String_Literal
+                          (Item.Loop_Iterable,
+                           Image,
+                           Length)
+                        then
+                           return True;
+                        elsif Item.Loop_Iterable.Kind = CM.Expr_Ident then
+                           declare
+                              Iterable_Name : constant String :=
+                                FT.To_String (Item.Loop_Iterable.Name);
+                           begin
+                              if Statements_Assign_Name (Unit.Statements, Iterable_Name) then
+                                 return False;
+                              end if;
+
+                              return
+                                Try_Object_Static_String_Initializer
+                                  (Unit,
+                                   Iterable_Name,
+                                   Image,
+                                   Length);
+                           end;
+                        end if;
+
+                        return False;
+                     end Try_Static_String_Iterable;
+
                      function Static_Growable_Prefix_Sum_Invariant return String is
                         Literal_Expr : CM.Expr_Access := null;
 
@@ -11860,7 +12673,7 @@ package body Safe_Frontend.Ada_Emit is
                                  Element : constant CM.Expr_Access := Literal_Expr.Elements (Element_Index);
                                  Case_Index : constant Natural :=
                                    Natural (Element_Index - Literal_Expr.Elements.First_Index + 1);
-                              begin
+                                 begin
                                  if Element = null or else Element.Kind /= CM.Expr_Int then
                                     return "";
                                  end if;
@@ -12055,47 +12868,81 @@ package body Safe_Frontend.Ada_Emit is
                         end if;
                      end if;
 
-                     Push_Cleanup_Frame (State);
-                     if Is_String_Iterable then
-                        null;
-                     elsif Iterable_Info.Growable then
-                        Add_Cleanup_Item
-                          (State,
-                           Snapshot_Name,
-                           Snapshot_Type_Image,
-                           Array_Runtime_Instance_Name (Iterable_Info) & ".Free",
-                           Is_Constant => True,
-                           Always_Terminates_Suppression_OK =>
-                             Constant_Cleanup_Uses_Shared_Runtime_Free
-                               (Unit,
-                                Document,
-                                Iterable_Info,
-                                Array_Runtime_Instance_Name (Iterable_Info) & ".Free"));
-                     end if;
-
-                     Append_Line (Buffer, "declare", Depth);
-                     Append_Line
-                       (Buffer,
-                        Snapshot_Name & " : constant " & Snapshot_Type_Image & " := " & Snapshot_Init & ";",
-                        Depth + 1);
-                     Append_Line (Buffer, "begin", Depth);
-
                      declare
+                        Static_Growable_Literal : constant CM.Expr_Access :=
+                          Static_Growable_Literal_Expr;
+                        Static_String_Image : SU.Unbounded_String :=
+                          SU.Null_Unbounded_String;
+                        Static_String_Length : Natural := 0;
+                        Can_Unroll_Static_String : constant Boolean :=
+                          Try_Static_String_Iterable
+                            (Static_String_Image,
+                             Static_String_Length);
                         Can_Unroll_Static_Growable : constant Boolean :=
                           Iterable_Info.Growable
-                          and then Static_Growable_Literal_Expr /= null
-                          and then not Static_Growable_Literal_Expr.Elements.Is_Empty
-                          and then not Has_Heap_Value_Type (Unit, Document, Element_Info)
-                          and then Static_Growable_Prefix_Sum_Invariant'Length > 0;
+                          and then Static_Growable_Literal /= null
+                          and then not Static_Growable_Literal.Elements.Is_Empty;
+                        Can_Unroll_Static_Iterable : constant Boolean :=
+                          Can_Unroll_Static_Growable
+                          or else Can_Unroll_Static_String;
                      begin
+                        if not Can_Unroll_Static_Iterable then
+                           Push_Cleanup_Frame (State);
+                           if Is_String_Iterable then
+                              null;
+                           elsif Iterable_Info.Growable then
+                              Add_Cleanup_Item
+                                (State,
+                                 Snapshot_Name,
+                                 Snapshot_Type_Image,
+                                 Array_Runtime_Instance_Name (Iterable_Info) & ".Free",
+                                 Is_Constant => True,
+                                 Always_Terminates_Suppression_OK =>
+                                   Constant_Cleanup_Uses_Shared_Runtime_Free
+                                     (Unit,
+                                      Document,
+                                      Iterable_Info,
+                                      Array_Runtime_Instance_Name (Iterable_Info) & ".Free"));
+                           end if;
+                        end if;
+
+                        Append_Line (Buffer, "declare", Depth);
+                        if not Can_Unroll_Static_Iterable then
+                           Append_Line
+                             (Buffer,
+                              Snapshot_Name & " : constant " & Snapshot_Type_Image & " := " & Snapshot_Init & ";",
+                              Depth + 1);
+                        end if;
+                        Append_Line (Buffer, "begin", Depth);
+
                         if Can_Unroll_Static_Growable then
-                           for Element_Index in
-                             Static_Growable_Literal_Expr.Elements.First_Index
-                             .. Static_Growable_Literal_Expr.Elements.Last_Index
-                           loop
-                              declare
+                           declare
+                              Previous_Static_Integer_Count : constant Ada.Containers.Count_Type :=
+                                State.Static_Integer_Bindings.Length;
+                              Tracked_Static_Value : Long_Long_Integer := 0;
+                           begin
+                              if Natural (Item.Body_Stmts.Length) = 1
+                                and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Kind = CM.Stmt_Assign
+                                and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target /= null
+                                and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Kind = CM.Expr_Ident
+                                and then Try_Object_Static_Integer_Initializer
+                                  (Unit,
+                                   FT.To_String (Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Name),
+                                   Tracked_Static_Value)
+                              then
+                                 Bind_Static_Integer
+                                   (State,
+                                    FT.To_String (Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Name),
+                                    Tracked_Static_Value);
+                              end if;
+
+                              for Element_Index in
+                                Static_Growable_Literal.Elements.First_Index
+                                .. Static_Growable_Literal.Elements.Last_Index
+                              loop
+                                 declare
                                  Element : constant CM.Expr_Access :=
-                                   Static_Growable_Literal_Expr.Elements (Element_Index);
+                                   Static_Growable_Literal.Elements (Element_Index);
                                  Loop_Item_Init : constant String :=
                                    Render_Expr_For_Target_Type
                                      (Unit,
@@ -12110,13 +12957,27 @@ package body Safe_Frontend.Ada_Emit is
                                       (State,
                                        FT.To_String (Item.Loop_Var),
                                        Element_Type_Image,
-                                       "Safe_String_RT.Free");
+                                       "Safe_String_RT.Free",
+                                       Is_Constant => True,
+                                       Always_Terminates_Suppression_OK =>
+                                         Constant_Cleanup_Uses_Shared_Runtime_Free
+                                           (Unit,
+                                            Document,
+                                            Element_Info,
+                                            "Safe_String_RT.Free"));
                                  elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
                                     Add_Cleanup_Item
                                       (State,
                                        FT.To_String (Item.Loop_Var),
                                        Element_Type_Image,
-                                       Array_Runtime_Instance_Name (Element_Info) & ".Free");
+                                       Array_Runtime_Instance_Name (Element_Info) & ".Free",
+                                       Is_Constant => True,
+                                       Always_Terminates_Suppression_OK =>
+                                         Constant_Cleanup_Uses_Shared_Runtime_Free
+                                           (Unit,
+                                            Document,
+                                            Element_Info,
+                                            Array_Runtime_Instance_Name (Element_Info) & ".Free"));
                                  end if;
 
                                  Append_Line (Buffer, "declare", Depth + 1);
@@ -12124,21 +12985,87 @@ package body Safe_Frontend.Ada_Emit is
                                    (Buffer,
                                     FT.To_String (Item.Loop_Var)
                                     & " : "
+                                    & (if Is_Plain_String_Type (Unit, Document, Element_Info)
+                                       or else Is_Growable_Array_Type (Unit, Document, Element_Info)
+                                       then "constant "
+                                       else "")
                                     & Element_Type_Image
                                     & " := "
                                     & Loop_Item_Init
                                     & ";",
                                     Depth + 2);
                                  Append_Line (Buffer, "begin", Depth + 1);
-                                 Render_Required_Statement_Suite
-                                   (Buffer,
-                                    Unit,
-                                    Document,
-                                    Item.Body_Stmts,
-                                    State,
-                                    Depth + 2,
-                                    Return_Type,
-                                    True);
+                                 declare
+                                    Previous_Static_Length_Count : constant Ada.Containers.Count_Type :=
+                                      State.Static_Length_Bindings.Length;
+                                    Element_Length : Natural := 0;
+                                 begin
+                                    if Is_Growable_Array_Type (Unit, Document, Element_Info)
+                                      and then Static_Growable_Length (Element, Element_Length)
+                                    then
+                                       Bind_Static_Length
+                                         (State,
+                                          FT.To_String (Item.Loop_Var),
+                                          Element_Length);
+                                       Append_Line
+                                         (Buffer,
+                                          "pragma Assert ("
+                                          & Array_Runtime_Instance_Name (Element_Info)
+                                          & ".Length ("
+                                          & FT.To_String (Item.Loop_Var)
+                                          & ") = "
+                                          & Trim_Wide_Image (CM.Wide_Integer (Element_Length))
+                                          & ");",
+                                          Depth + 2);
+                                    end if;
+                                    if Element_Index /= Static_Growable_Literal.Elements.Last_Index then
+                                       Append_Gnatprove_Warning_Suppression
+                                         (Buffer,
+                                          "unused assignment",
+                                          "static for-of unrolling preserves intermediate source assignments",
+                                          Depth + 2);
+                                    end if;
+                                    Render_Required_Statement_Suite
+                                      (Buffer,
+                                       Unit,
+                                       Document,
+                                       Item.Body_Stmts,
+                                       State,
+                                       Depth + 2,
+                                       Return_Type,
+                                       True);
+                                    if Element_Index /= Static_Growable_Literal.Elements.Last_Index then
+                                       Append_Gnatprove_Warning_Restore
+                                         (Buffer,
+                                          "unused assignment",
+                                          Depth + 2);
+                                    end if;
+                                    if Natural (Item.Body_Stmts.Length) = 1
+                                      and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Kind = CM.Stmt_Assign
+                                      and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target /= null
+                                      and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Kind = CM.Expr_Ident
+                                    then
+                                       declare
+                                          Target_Name : constant String :=
+                                            FT.To_String (Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Name);
+                                          Static_Value : Long_Long_Integer := 0;
+                                       begin
+                                          if Has_Static_Integer_Tracking (State, Target_Name) then
+                                             if Try_Tracked_Static_Integer_Value
+                                               (State,
+                                                Item.Body_Stmts (Item.Body_Stmts.First_Index).Value,
+                                                Static_Value)
+                                             then
+                                                Bind_Static_Integer (State, Target_Name, Static_Value);
+                                             else
+                                                Invalidate_Static_Integer (State, Target_Name);
+                                             end if;
+                                          end if;
+                                       end;
+                                    end if;
+                                    Restore_Static_Length_Bindings
+                                      (State, Previous_Static_Length_Count);
+                                 end;
                                  if Statements_Fall_Through (Item.Body_Stmts) then
                                     if Is_Plain_String_Type (Unit, Document, Element_Info)
                                       or else Is_Growable_Array_Type (Unit, Document, Element_Info)
@@ -12172,6 +13099,305 @@ package body Safe_Frontend.Ada_Emit is
                                  Pop_Cleanup_Frame (State);
                               end;
                            end loop;
+                              Restore_Static_Integer_Bindings
+                                (State, Previous_Static_Integer_Count);
+                           end;
+                        elsif Can_Unroll_Static_String then
+                           declare
+                              Loop_Var_Name : constant String := FT.To_String (Item.Loop_Var);
+
+                              function Try_Static_String_Additive_Update
+                                (Statements  : CM.Statement_Access_Vectors.Vector;
+                                 Target_Name : out SU.Unbounded_String;
+                                 Target_Info : out GM.Type_Descriptor;
+                                 Delta_Value : out Long_Long_Integer) return Boolean
+                              is
+                              begin
+                                 Target_Name := SU.Null_Unbounded_String;
+                                 Target_Info := (others => <>);
+                                 Delta_Value := 0;
+
+                                 if Statements.Length /= 1 or else Statements_Use_Name (Statements, Loop_Var_Name) then
+                                    return False;
+                                 end if;
+
+                                 declare
+                                    Only_Stmt : constant CM.Statement_Access :=
+                                      Statements (Statements.First_Index);
+                                 begin
+                                    if Only_Stmt = null
+                                      or else Only_Stmt.Kind /= CM.Stmt_Assign
+                                      or else Only_Stmt.Target = null
+                                      or else Only_Stmt.Target.Kind /= CM.Expr_Ident
+                                      or else Only_Stmt.Value = null
+                                      or else Only_Stmt.Value.Kind /= CM.Expr_Binary
+                                      or else FT.To_String (Only_Stmt.Value.Operator) /= "+"
+                                    then
+                                       return False;
+                                    end if;
+
+                                    declare
+                                       This_Target_Name : constant String :=
+                                         FT.To_String (Only_Stmt.Target.Name);
+                                       This_Target_Info : constant GM.Type_Descriptor :=
+                                         Expr_Type_Info (Unit, Document, Only_Stmt.Target);
+                                    begin
+                                       if not Is_Integer_Type (Unit, Document, This_Target_Info) then
+                                          return False;
+                                       end if;
+
+                                       if Only_Stmt.Value.Left /= null
+                                         and then Only_Stmt.Value.Left.Kind = CM.Expr_Ident
+                                         and then FT.To_String (Only_Stmt.Value.Left.Name) = This_Target_Name
+                                         and then Only_Stmt.Value.Right /= null
+                                         and then Try_Static_Integer_Value (Only_Stmt.Value.Right, Delta_Value)
+                                       then
+                                          Target_Name := SU.To_Unbounded_String (This_Target_Name);
+                                          Target_Info := This_Target_Info;
+                                          return True;
+                                       end if;
+
+                                       if Only_Stmt.Value.Right /= null
+                                         and then Only_Stmt.Value.Right.Kind = CM.Expr_Ident
+                                         and then FT.To_String (Only_Stmt.Value.Right.Name) = This_Target_Name
+                                         and then Only_Stmt.Value.Left /= null
+                                         and then Try_Static_Integer_Value (Only_Stmt.Value.Left, Delta_Value)
+                                       then
+                                          Target_Name := SU.To_Unbounded_String (This_Target_Name);
+                                          Target_Info := This_Target_Info;
+                                          return True;
+                                       end if;
+                                    end;
+                                 end;
+
+                                 return False;
+                              end Try_Static_String_Additive_Update;
+
+                              Collapsed_Target_Name : SU.Unbounded_String := SU.Null_Unbounded_String;
+                              Collapsed_Target_Info : GM.Type_Descriptor := (others => <>);
+                              Collapsed_Delta       : Long_Long_Integer := 0;
+                              Per_Hit_Delta         : Long_Long_Integer := 0;
+                              Can_Collapse_Static_String : Boolean := False;
+                           begin
+                              if Natural (Item.Body_Stmts.Length) = 1
+                                and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Kind = CM.Stmt_If
+                                and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Condition /= null
+                                and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Elsifs.Is_Empty
+                                and then not Item.Body_Stmts (Item.Body_Stmts.First_Index).Has_Else
+                                and then Try_Static_String_Additive_Update
+                                  (Item.Body_Stmts (Item.Body_Stmts.First_Index).Then_Stmts,
+                                   Collapsed_Target_Name,
+                                   Collapsed_Target_Info,
+                                   Per_Hit_Delta)
+                              then
+                                 Can_Collapse_Static_String := True;
+                                 for Element_Index in 1 .. Static_String_Length loop
+                                    declare
+                                       Element_Image : constant String :=
+                                         Static_String_Literal_Element_Image
+                                           (SU.To_String (Static_String_Image),
+                                            Positive (Element_Index));
+                                       Previous_Static_String_Count : constant Ada.Containers.Count_Type :=
+                                         State.Static_String_Bindings.Length;
+                                       Static_Condition : Boolean := False;
+                                    begin
+                                       Bind_Static_String
+                                         (State,
+                                          Loop_Var_Name,
+                                          Element_Image);
+                                       if not Try_Static_Boolean_Value
+                                         (State,
+                                          Item.Body_Stmts (Item.Body_Stmts.First_Index).Condition,
+                                          Static_Condition)
+                                       then
+                                          Can_Collapse_Static_String := False;
+                                       elsif Static_Condition then
+                                          Collapsed_Delta := Collapsed_Delta + Per_Hit_Delta;
+                                       end if;
+                                       Restore_Static_String_Bindings
+                                         (State,
+                                          Previous_Static_String_Count);
+                                       exit when not Can_Collapse_Static_String;
+                                    end;
+                                 end loop;
+                              end if;
+
+                              if Can_Collapse_Static_String then
+                                 if Collapsed_Delta = 0 then
+                                    Append_Line (Buffer, "null;", Depth + 1);
+                                 else
+                                    declare
+                                       Target_Name : constant String := SU.To_String (Collapsed_Target_Name);
+                                       Target_Subtype : constant String :=
+                                         Render_Subtype_Indication (Unit, Document, Collapsed_Target_Info);
+                                       Delta_Image : constant String :=
+                                         Trim_Wide_Image (CM.Wide_Integer (Collapsed_Delta));
+                                       Initial_Static_Value : Long_Long_Integer := 0;
+                                    begin
+                                       State.Needs_Safe_Runtime := True;
+                                       Append_Line
+                                         (Buffer,
+                                          "pragma Assert ((Safe_Runtime.Wide_Integer ("
+                                          & Target_Name
+                                          & ") + Safe_Runtime.Wide_Integer ("
+                                          & Delta_Image
+                                          & ")) >= Safe_Runtime.Wide_Integer ("
+                                          & Target_Subtype
+                                          & "'First) and then (Safe_Runtime.Wide_Integer ("
+                                          & Target_Name
+                                          & ") + Safe_Runtime.Wide_Integer ("
+                                          & Delta_Image
+                                          & ")) <= Safe_Runtime.Wide_Integer ("
+                                          & Target_Subtype
+                                          & "'Last));",
+                                          Depth + 1);
+                                       Append_Line
+                                         (Buffer,
+                                          Target_Name
+                                          & " := "
+                                          & Target_Subtype
+                                          & " ((Safe_Runtime.Wide_Integer ("
+                                          & Target_Name
+                                          & ") + Safe_Runtime.Wide_Integer ("
+                                          & Delta_Image
+                                          & ")));",
+                                          Depth + 1);
+                                       if Try_Static_Integer_Binding (State, Target_Name, Initial_Static_Value)
+                                       then
+                                          Bind_Static_Integer
+                                            (State,
+                                             Target_Name,
+                                             Initial_Static_Value + Collapsed_Delta);
+                                       elsif Try_Object_Static_Integer_Initializer
+                                         (Unit,
+                                          Target_Name,
+                                          Initial_Static_Value)
+                                       then
+                                          Bind_Static_Integer
+                                            (State,
+                                             Target_Name,
+                                             Initial_Static_Value + Collapsed_Delta);
+                                       end if;
+                                    end;
+                                 end if;
+                              else
+                                 for Element_Index in 1 .. Static_String_Length loop
+                                    declare
+                                       Element_Image : constant String :=
+                                         Static_String_Literal_Element_Image
+                                           (SU.To_String (Static_String_Image),
+                                            Positive (Element_Index));
+                                       Previous_Static_String_Count : constant Ada.Containers.Count_Type :=
+                                         State.Static_String_Bindings.Length;
+                                    begin
+                                       Bind_Static_String
+                                         (State,
+                                          Loop_Var_Name,
+                                          Element_Image);
+                                       declare
+                                          Rendered_Static_Body : Boolean := False;
+                                          Static_Condition    : Boolean := False;
+                                          Need_Loop_Item_Decl : Boolean :=
+                                            Statements_Use_Name (Item.Body_Stmts, Loop_Var_Name);
+                                          Body_Depth : Natural := Depth + 1;
+                                       begin
+                                          if Natural (Item.Body_Stmts.Length) = 1
+                                            and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Kind = CM.Stmt_If
+                                            and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Condition /= null
+                                            and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Elsifs.Is_Empty
+                                            and then not Item.Body_Stmts (Item.Body_Stmts.First_Index).Has_Else
+                                            and then Try_Static_Boolean_Value
+                                              (State,
+                                               Item.Body_Stmts (Item.Body_Stmts.First_Index).Condition,
+                                               Static_Condition)
+                                          then
+                                             Rendered_Static_Body := True;
+                                             Need_Loop_Item_Decl :=
+                                               Static_Condition
+                                               and then Statements_Use_Name
+                                                 (Item.Body_Stmts (Item.Body_Stmts.First_Index).Then_Stmts,
+                                                  Loop_Var_Name);
+                                          end if;
+
+                                          if Need_Loop_Item_Decl then
+                                             Append_Line (Buffer, "declare", Depth + 1);
+                                             Append_Line
+                                               (Buffer,
+                                                Loop_Var_Name
+                                                & " : constant "
+                                                & Element_Type_Image
+                                                & " := "
+                                                & Bounded_String_Instance_Name (Element_Info)
+                                                & ".To_Bounded ("
+                                                & Element_Image
+                                                & ");",
+                                                Depth + 2);
+                                             Append_Line (Buffer, "begin", Depth + 1);
+                                             Body_Depth := Depth + 2;
+                                          end if;
+
+                                          if Element_Index /= Static_String_Length then
+                                             Append_Gnatprove_Warning_Suppression
+                                               (Buffer,
+                                                "unused assignment",
+                                                "static for-of unrolling preserves intermediate source assignments",
+                                                Body_Depth);
+                                          end if;
+
+                                          if Rendered_Static_Body then
+                                             if Static_Condition then
+                                                Render_Required_Statement_Suite
+                                                  (Buffer,
+                                                   Unit,
+                                                   Document,
+                                                   Item.Body_Stmts (Item.Body_Stmts.First_Index).Then_Stmts,
+                                                   State,
+                                                   Body_Depth,
+                                                   Return_Type,
+                                                   True);
+                                             else
+                                                Append_Line (Buffer, "null;", Body_Depth);
+                                             end if;
+                                          end if;
+
+                                          if not Rendered_Static_Body then
+                                             Append_Gnatprove_Warning_Suppression
+                                               (Buffer,
+                                                "statement has no effect",
+                                                "static for-of string unrolling exposes constant conditions",
+                                                Body_Depth);
+                                             Render_Required_Statement_Suite
+                                               (Buffer,
+                                                Unit,
+                                                Document,
+                                                Item.Body_Stmts,
+                                                State,
+                                                Body_Depth,
+                                                Return_Type,
+                                                True);
+                                             Append_Gnatprove_Warning_Restore
+                                               (Buffer,
+                                                "statement has no effect",
+                                                Body_Depth);
+                                          end if;
+
+                                          if Element_Index /= Static_String_Length then
+                                             Append_Gnatprove_Warning_Restore
+                                               (Buffer,
+                                                "unused assignment",
+                                                Body_Depth);
+                                          end if;
+                                          if Need_Loop_Item_Decl then
+                                             Append_Line (Buffer, "end;", Depth + 1);
+                                          end if;
+                                       end;
+                                       Restore_Static_String_Bindings
+                                         (State,
+                                          Previous_Static_String_Count);
+                                    end;
+                                 end loop;
+                              end if;
+                           end;
                         else
                            if Is_String_Iterable then
                               Append_Line
@@ -12461,11 +13687,13 @@ package body Safe_Frontend.Ada_Emit is
 
                            Append_Line (Buffer, "end loop;", Depth + 1);
                         end if;
-                     end;
 
-                     Render_Current_Cleanup_Frame (Buffer, State, Depth + 1);
-                     Append_Line (Buffer, "end;", Depth);
-                     Pop_Cleanup_Frame (State);
+                        if not Can_Unroll_Static_Iterable then
+                           Render_Current_Cleanup_Frame (Buffer, State, Depth + 1);
+                           Pop_Cleanup_Frame (State);
+                        end if;
+                        Append_Line (Buffer, "end;", Depth);
+                     end;
                   end;
                else
                   Append_Line
@@ -15566,6 +16794,7 @@ package body Safe_Frontend.Ada_Emit is
            and then Decl.Has_Initializer
            and then
              (Has_Heap_Value_Type (Unit, Document, Decl.Type_Info)
+              or else Is_Owner_Access (Decl.Type_Info)
               or else Decl_Uses_Deferred_Package_Init_Name (Decl, Names)
               or else Decl_Uses_Package_Subprogram_Name (Decl));
       end Should_Defer_Package_Object_Initializer;
@@ -15585,6 +16814,9 @@ package body Safe_Frontend.Ada_Emit is
             end;
          end loop;
       end Register_Deferred_Package_Init_Names;
+
+      Generated_Elaborate_Name : constant String :=
+        "Safe_Generated_Elaborate_" & FT.To_String (Unit.Package_Name);
    begin
       if not Unit.Channels.Is_Empty or else not Unit.Tasks.Is_Empty then
          State.Needs_Gnat_Adc := True;
@@ -15781,7 +17013,7 @@ package body Safe_Frontend.Ada_Emit is
       if not Unit.Statements.Is_Empty
         or else not Deferred_Package_Init_Names.Is_Empty
       then
-         Append_Line (Body_Inner, "procedure Safe_Elaborate is", 1);
+         Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name & " is", 1);
          Append_Line (Body_Inner, "begin", 1);
          declare
             Deferred_Names : FT.UString_Vectors.Vector;
@@ -15817,10 +17049,10 @@ package body Safe_Frontend.Ada_Emit is
          end;
          Render_Required_Statement_Suite
            (Body_Inner, Unit, Document, Unit.Statements, State, 2, "");
-         Append_Line (Body_Inner, "end Safe_Elaborate;", 1);
+         Append_Line (Body_Inner, "end " & Generated_Elaborate_Name & ";", 1);
          Append_Line (Body_Inner);
          Append_Line (Body_Inner, "begin");
-         Append_Line (Body_Inner, "Safe_Elaborate;", 1);
+         Append_Line (Body_Inner, Generated_Elaborate_Name & ";", 1);
       end if;
 
       Append_Line (Body_Inner, "end " & FT.To_String (Unit.Package_Name) & ";");
