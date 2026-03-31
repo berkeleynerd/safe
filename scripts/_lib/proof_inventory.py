@@ -202,6 +202,9 @@ PR11_8I1_CHECKPOINT_FIXTURES = [
     "tests/build/pr118d_string_field_runtime_build.safe",
     "tests/build/pr118d_string_plain_build.safe",
     "tests/build/pr118d_tuple_string_build.safe",
+    "tests/build/pr118d_nested_growable_array_literal_build.safe",
+    "tests/build/pr118e1_mutual_family_build.safe",
+    "tests/positive/pr118e1_mutual_move_borrow.safe",
 ]
 
 
@@ -250,21 +253,6 @@ EMITTED_PROOF_EXCLUSIONS = [
         path="tests/build/pr118c2_root_with_clause.safe",
         reason="intentional tooling reject fixture with missing dependency interface; not an admitted emitted proof target",
         owner="tooling-reject-case",
-    ),
-    EmittedProofExclusion(
-        path="tests/build/pr118d_nested_growable_array_literal_build.safe",
-        reason="temporary PR11.8i.1 checkpoint exclusion; nested growable literal proof still times out under GNATprove",
-        owner="PR11.8i.1-followup",
-    ),
-    EmittedProofExclusion(
-        path="tests/build/pr118e1_mutual_family_build.safe",
-        reason="temporary PR11.8i.1 checkpoint exclusion; mutual owner family elaboration proof not yet closed",
-        owner="PR11.8i.1-followup",
-    ),
-    EmittedProofExclusion(
-        path="tests/positive/pr118e1_mutual_move_borrow.safe",
-        reason="temporary PR11.8i.1 checkpoint exclusion; mutual owner move/borrow proof not yet closed",
-        owner="PR11.8i.1-followup",
     ),
 ]
 
