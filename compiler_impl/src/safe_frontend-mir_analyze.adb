@@ -260,6 +260,9 @@ package body Safe_Frontend.Mir_Analyze is
       Type_Env  : Type_Maps.Map) return GM.Type_Descriptor;
    function Range_Interval
      (Info : GM.Type_Descriptor) return Interval;
+   function Enum_Literal_Ordinal
+     (Info         : GM.Type_Descriptor;
+      Literal_Name : String) return Wide_Integer;
    function Is_Integer_Type
      (Info : GM.Type_Descriptor) return Boolean;
    function Is_Binary_Type
@@ -991,6 +994,14 @@ package body Safe_Frontend.Mir_Analyze is
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
       elsif UString_Value (Info.Name) = "boolean" then
          return (Low => 0, High => 1, Excludes_Zero => False);
+      elsif Lower (UString_Value (Info.Kind)) = "enum"
+        and then Info.Has_Low
+        and then Info.Has_High
+      then
+         return
+           (Low           => Wide_Integer (Info.Low),
+            High          => Wide_Integer (Info.High),
+            Excludes_Zero => Info.Low > 0 or else Info.High < 0);
       elsif (Lower (UString_Value (Info.Kind)) = "binary"
              or else (Lower (UString_Value (Info.Kind)) = "subtype" and then Info.Has_Bit_Width))
         and then Info.Has_Bit_Width
@@ -1006,6 +1017,29 @@ package body Safe_Frontend.Mir_Analyze is
       end if;
       return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
    end Range_Interval;
+
+   function Enum_Literal_Ordinal
+     (Info         : GM.Type_Descriptor;
+      Literal_Name : String) return Wide_Integer
+   is
+   begin
+      if not Info.Enum_Literals.Is_Empty then
+         for Index in Info.Enum_Literals.First_Index .. Info.Enum_Literals.Last_Index loop
+            if UString_Value (Info.Enum_Literals (Index)) = Literal_Name then
+               return Wide_Integer (Index - Info.Enum_Literals.First_Index);
+            end if;
+         end loop;
+      end if;
+
+      declare
+         Diag : MD.Diagnostic := Null_Diagnostic;
+      begin
+         Diag.Reason := FT.To_UString ("narrowing_check_failure");
+         Diag.Message := FT.To_UString ("unknown enum literal '" & Literal_Name & "'");
+         Raise_Diag (Diag);
+      end;
+      return 0;
+   end Enum_Literal_Ordinal;
 
    function Is_Integer_Type
      (Info : GM.Type_Descriptor) return Boolean is
@@ -3550,6 +3584,18 @@ package body Safe_Frontend.Mir_Analyze is
               (Low           => (if Expr.Bool_Value then 1 else 0),
                High          => (if Expr.Bool_Value then 1 else 0),
                Excludes_Zero => Expr.Bool_Value);
+         when GM.Expr_Enum_Literal =>
+            declare
+               Enum_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type (UString_Value (Expr.Type_Name), Var_Types, Type_Env);
+               Ordinal : constant Wide_Integer :=
+                 Enum_Literal_Ordinal (Enum_Info, UString_Value (Expr.Name));
+            begin
+               return
+                 (Low           => Ordinal,
+                  High          => Ordinal,
+                  Excludes_Zero => Ordinal /= 0);
+            end;
          when GM.Expr_Null =>
             return (Low => 0, High => 0, Excludes_Zero => False);
          when GM.Expr_Ident =>

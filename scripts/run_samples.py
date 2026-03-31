@@ -182,6 +182,7 @@ def expected_stdout(sample: Path) -> str | None:
         "samples/rosetta/data_structures/fixed_to_growable.safe": "10\n",
         "samples/rosetta/data_structures/growable_sum.safe": "60\n",
         "samples/rosetta/data_structures/growable_to_fixed.safe": "16\n",
+        "samples/rosetta/text/enum_dispatch.safe": "store\n",
         "samples/rosetta/text/bounded_prefix.safe": "ok\n",
         "samples/rosetta/text/grade_message.safe": "good\n",
         "samples/rosetta/text/hello_print.safe": "hello\n",

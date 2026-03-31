@@ -266,6 +266,9 @@ end to end on this host:
 - For a checked-in single-file runnable print example, see
   `samples/rosetta/text/hello_print.safe`, which the sample sweep now emits,
   builds, runs, and checks for exact stdout through the emitted `main.adb`.
+- For a checked-in enum example on the shipped PR11.8i surface, see
+  `samples/rosetta/text/enum_dispatch.safe`, which the same sweep now proves,
+  builds, and runs.
 - For a checked-in binary-surface example, see
   `samples/rosetta/text/opcode_dispatch.safe`.
 - `safe build` and `safe run` in this repo are still single-file only. Roots

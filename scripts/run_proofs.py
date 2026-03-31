@@ -151,6 +151,10 @@ PR11_8G2_CHECKPOINT_FIXTURES = [
     "tests/build/pr118g_try_string_channel_build.safe",
 ]
 
+PR11_8I_CHECKPOINT_FIXTURES = [
+    "tests/build/pr118i_enum_build.safe",
+]
+
 EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/concurrency/select_with_delay.safe",
     "tests/concurrency/select_with_delay_multiarm.safe",
@@ -169,6 +173,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_8F_CHECKPOINT_FIXTURES
     + PR11_8G1_CHECKPOINT_FIXTURES
     + PR11_8G2_CHECKPOINT_FIXTURES
+    + PR11_8I_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 
@@ -208,6 +213,7 @@ def validate_manifests() -> None:
     validate_manifest("PR11.8f checkpoint manifest", PR11_8F_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8g.1 checkpoint manifest", PR11_8G1_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8g.2 checkpoint manifest", PR11_8G2_CHECKPOINT_FIXTURES)
+    validate_manifest("PR11.8i checkpoint manifest", PR11_8I_CHECKPOINT_FIXTURES)
     validate_manifest("emitted proof regression manifest", EMITTED_PROOF_REGRESSION_FIXTURES)
     validate_manifest("emitted proof manifest", EMITTED_PROOF_FIXTURES)
 
@@ -339,6 +345,11 @@ def main() -> int:
             temp_root=temp_root,
             toolchain=toolchain,
         )
+        checkpoint_i_passed, checkpoint_i_failures = run_fixture_group(
+            fixtures=PR11_8I_CHECKPOINT_FIXTURES,
+            temp_root=temp_root,
+            toolchain=toolchain,
+        )
         regression_passed, regression_failures = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
@@ -353,6 +364,7 @@ def main() -> int:
         + checkpoint_f_passed
         + checkpoint_g1_passed
         + checkpoint_g2_passed
+        + checkpoint_i_passed
         + regression_passed
     )
     total_failures = (
@@ -363,6 +375,7 @@ def main() -> int:
         + checkpoint_f_failures
         + checkpoint_g1_failures
         + checkpoint_g2_failures
+        + checkpoint_i_failures
         + regression_failures
     )
 
@@ -406,6 +419,12 @@ def main() -> int:
         passed=checkpoint_g2_passed,
         failures=checkpoint_g2_failures,
         title="PR11.8g.2 checkpoint",
+        trailing_blank_line=True,
+    )
+    print_summary(
+        passed=checkpoint_i_passed,
+        failures=checkpoint_i_failures,
+        title="PR11.8i checkpoint",
         trailing_blank_line=True,
     )
     print_summary(

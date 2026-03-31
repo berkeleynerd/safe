@@ -8,12 +8,14 @@ runner now exercises the corpus end to end:
 
 - `safec check`
 - `safec emit`
+- emitted proof via the same helper path used by `safe prove`
 - emitted Ada build through `gprbuild`
 - execution of the produced binary
 
 PR11.1, PR11.2, and PR11.3 do not treat this corpus as a proof-bearing
 milestone. Proof coverage re-enters later through `PR11.3a`, `PR11.8a`, and
-`PR11.8b`.
+`PR11.8b`, and the checked-in sweep now keeps that proof discipline live on the
+sample corpus too.
 
 ## Status of Current Candidates
 
@@ -57,6 +59,10 @@ PR11.8d text/array additions:
 - `data_structures/fixed_to_growable.safe`
 - `data_structures/growable_to_fixed.safe`
 
+PR11.8i enum addition:
+
+- `text/enum_dispatch.safe`
+
 The current PR11.8d Rosetta coverage demonstrates:
 
 - bounded strings through `string (N)`
@@ -64,6 +70,12 @@ The current PR11.8d Rosetta coverage demonstrates:
 - array-only `for item of values`
 - fixed -> growable widening
 - static-only growable -> fixed narrowing
+
+The current `PR11.8i` Rosetta coverage also demonstrates:
+
+- user-defined identifier-valued enum declarations
+- enum ordering and `case` dispatch
+- enum printing through the built-in `print`
 
 Still deferred beyond the current corpus:
 
@@ -86,6 +98,7 @@ That runner builds the compiler once and, for every
 
 - runs `safec check`
 - emits Ada and interface artifacts
+- runs emitted proof using the same helper path as `safe prove`
 - builds either the emitted `main.adb` for packageless entry samples or a tiny
   Ada driver for explicit-package samples
 - runs the produced executable under a short timeout
@@ -100,6 +113,10 @@ executes its emitted `main.adb` directly and asserts exact stdout:
 ```text
 hello
 ```
+
+`text/enum_dispatch.safe` is the checked-in enum sample. The runner proves,
+builds, and executes it so user-defined enum declarations, `case`, and enum
+printing stay inside the live sample contract instead of only the fixture lane.
 
 ## Embedded Smoke Lane
 

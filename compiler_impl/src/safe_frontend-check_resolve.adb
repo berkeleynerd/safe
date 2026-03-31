@@ -42,7 +42,8 @@ package body Safe_Frontend.Check_Resolve is
       return Left.Kind = Right.Kind
         and then Left.Int_Value = Right.Int_Value
         and then Left.Bool_Value = Right.Bool_Value
-        and then FT.To_String (Left.Text) = FT.To_String (Right.Text);
+        and then FT.To_String (Left.Text) = FT.To_String (Right.Text)
+        and then FT.To_String (Left.Type_Name) = FT.To_String (Right.Type_Name);
    end Equal_Static_Value;
 
    package Type_Maps is new Ada.Containers.Indefinite_Hashed_Maps
@@ -160,6 +161,8 @@ package body Safe_Frontend.Check_Resolve is
             return "array";
          when CM.Type_Decl_Integer =>
             return "integer";
+         when CM.Type_Decl_Enumeration =>
+            return "enumeration";
          when CM.Type_Decl_Binary =>
             return "binary";
          when CM.Type_Decl_Float =>
@@ -342,6 +345,21 @@ package body Safe_Frontend.Check_Resolve is
       return Map.Element (Canonical_Name (Name));
    end Get_Static_Value;
 
+   function Is_Enum_Static_Value (Value : CM.Static_Value) return Boolean is
+   begin
+      return Value.Kind = CM.Static_Value_Enum
+        and then UString_Value (Value.Type_Name) /= ""
+        and then UString_Value (Value.Text) /= "";
+   end Is_Enum_Static_Value;
+
+   function Has_Enum_Literal
+     (Map  : Static_Value_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      return Has_Static_Value (Map, Name)
+        and then Is_Enum_Static_Value (Get_Static_Value (Map, Name));
+   end Has_Enum_Literal;
+
    procedure Add_Builtins (Type_Env : in out Type_Maps.Map) is
    begin
       Put_Type (Type_Env, "integer", BT.Integer_Type);
@@ -460,6 +478,10 @@ package body Safe_Frontend.Check_Resolve is
    function Is_Integerish
      (Info     : GM.Type_Descriptor;
      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Enum_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
 
    function Is_Binary_Type
      (Info     : GM.Type_Descriptor;
@@ -931,8 +953,17 @@ package body Safe_Frontend.Check_Resolve is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
       Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
    begin
-      return Kind in "integer" | "subtype";
+      return Kind = "integer";
    end Is_Integerish;
+
+   function Is_Enum_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+   begin
+      return FT.Lowercase (UString_Value (Base.Kind)) = "enum";
+   end Is_Enum_Type;
 
    function Is_Binary_Type
      (Info     : GM.Type_Descriptor;
@@ -959,6 +990,7 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return Is_Boolean_Type (Info, Type_Env)
         or else Is_Binary_Type (Info, Type_Env)
+        or else Is_Enum_Type (Info, Type_Env)
         or else (Is_Integerish (Info, Type_Env) and then not Is_Boolean_Type (Info, Type_Env));
    end Is_Discrete_Case_Type;
 
@@ -969,6 +1001,8 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Is_Boolean_Type (Scrutinee, Type_Env) then
          return Is_Boolean_Type (Choice, Type_Env);
+      elsif Is_Enum_Type (Scrutinee, Type_Env) then
+         return Equivalent_Type (Scrutinee, Choice, Type_Env);
       elsif Is_String_Type (Scrutinee, Type_Env) then
          return Is_String_Type (Choice, Type_Env);
       elsif Is_Binary_Type (Scrutinee, Type_Env) then
@@ -978,8 +1012,10 @@ package body Safe_Frontend.Check_Resolve is
 
       return Is_Integerish (Scrutinee, Type_Env)
         and then not Is_Boolean_Type (Scrutinee, Type_Env)
+        and then not Is_Enum_Type (Scrutinee, Type_Env)
         and then Is_Integerish (Choice, Type_Env)
         and then not Is_Boolean_Type (Choice, Type_Env)
+        and then not Is_Enum_Type (Choice, Type_Env)
         and then not Is_String_Type (Choice, Type_Env);
    end Case_Choice_Compatible;
 
@@ -1191,6 +1227,20 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Qualify_Type_Info;
 
+   function Qualify_Static_Value
+     (Value        : CM.Static_Value;
+      Package_Name : String) return CM.Static_Value
+   is
+      Result : CM.Static_Value := Value;
+   begin
+      if Result.Kind = CM.Static_Value_Enum then
+         Result.Type_Name :=
+           FT.To_UString
+             (Qualify_Name (Package_Name, UString_Value (Result.Type_Name)));
+      end if;
+      return Result;
+   end Qualify_Static_Value;
+
    function Classify_Access_Role
      (Anonymous   : Boolean;
       Is_Constant : Boolean;
@@ -1223,6 +1273,8 @@ package body Safe_Frontend.Check_Resolve is
             end if;
          when CM.Expr_Bool =>
             return (if Expr.Bool_Value then "true" else "false");
+         when CM.Expr_Enum_Literal =>
+            return UString_Value (Expr.Name);
          when CM.Expr_Ident =>
             return UString_Value (Expr.Name);
          when CM.Expr_Select =>
@@ -1242,6 +1294,8 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Expr = null then
          return "";
+      elsif Expr.Kind = CM.Expr_Enum_Literal then
+         return UString_Value (Expr.Name);
       elsif Expr.Kind = CM.Expr_Ident then
          return UString_Value (Expr.Name);
       elsif Expr.Kind = CM.Expr_Select then
@@ -1384,6 +1438,11 @@ package body Safe_Frontend.Check_Resolve is
             Result.Kind := CM.Static_Value_Boolean;
             Result.Bool_Value := Expr.Bool_Value;
             return True;
+         when CM.Expr_Enum_Literal =>
+            Result.Kind := CM.Static_Value_Enum;
+            Result.Text := Expr.Name;
+            Result.Type_Name := Expr.Type_Name;
+            return UString_Value (Result.Type_Name) /= "";
          when CM.Expr_Unary =>
             if UString_Value (Expr.Operator) = "-" then
                declare
@@ -1414,6 +1473,36 @@ package body Safe_Frontend.Check_Resolve is
       end case;
    end Try_Static_Value;
 
+   function Is_Static_Case_Choice
+     (Expr      : CM.Expr_Access;
+      Const_Env : Static_Value_Maps.Map) return Boolean
+   is
+      Value : CM.Static_Value := (others => <>);
+   begin
+      if Expr = null then
+         return False;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Int | CM.Expr_Bool | CM.Expr_String | CM.Expr_Enum_Literal =>
+            return True;
+         when CM.Expr_Ident | CM.Expr_Select =>
+            return Try_Static_Value (Expr, Const_Env, Value);
+         when CM.Expr_Call | CM.Expr_Apply =>
+            return Natural (Expr.Args.Length) = 1
+              and then Is_Static_Case_Choice (Expr.Args (Expr.Args.First_Index), Const_Env);
+         when CM.Expr_Conversion | CM.Expr_Annotated =>
+            return Expr.Inner /= null
+              and then Is_Static_Case_Choice (Expr.Inner, Const_Env);
+         when CM.Expr_Unary =>
+            return Expr.Inner /= null
+              and then UString_Value (Expr.Operator) in "+" | "-"
+              and then Expr.Inner.Kind = CM.Expr_Int;
+         when others =>
+            return False;
+      end case;
+   end Is_Static_Case_Choice;
+
    function To_Scalar_Value (Value : CM.Static_Value) return GM.Scalar_Value is
       Result : GM.Scalar_Value;
    begin
@@ -1427,6 +1516,10 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Static_Value_Character =>
             Result.Kind := GM.Scalar_Value_Character;
             Result.Text := Value.Text;
+         when CM.Static_Value_Enum =>
+            Result.Kind := GM.Scalar_Value_Enum;
+            Result.Text := Value.Text;
+            Result.Type_Name := Value.Type_Name;
          when others =>
             null;
       end case;
@@ -1442,6 +1535,12 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Value.Kind = CM.Static_Value_Boolean then
          return Is_Boolean_Type (Base, Type_Env);
+      elsif Value.Kind = CM.Static_Value_Enum then
+         return Is_Enum_Type (Disc_Type, Type_Env)
+           and then Equivalent_Type
+             (Resolve_Type (UString_Value (Value.Type_Name), Type_Env, "", FT.Null_Span),
+              Disc_Type,
+              Type_Env);
       elsif Value.Kind = CM.Static_Value_Integer then
          if Is_Binary_Type (Disc_Type, Type_Env) then
             return Value.Int_Value >= 0
@@ -1612,6 +1711,10 @@ package body Safe_Frontend.Check_Resolve is
             return (if Value.Bool_Value then "true" else "false");
          when CM.Static_Value_Character =>
             return Sanitize_Type_Name_Component (UString_Value (Value.Text));
+         when CM.Static_Value_Enum =>
+            return
+              Sanitize_Type_Name_Component
+                (UString_Value (Value.Type_Name) & "_" & UString_Value (Value.Text));
          when others =>
             return "value";
       end case;
@@ -1647,6 +1750,13 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication =>
             if Spec.Has_Range_Constraint then
                Base := Resolve_Type (UString_Value (Spec.Name), Type_Env, Path, Spec.Span);
+               if Is_Enum_Type (Base, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Spec.Span,
+                        Message => "enum range-constrained subtypes are deferred past PR11.8i"));
+               end if;
                if not Is_Integerish (Base, Type_Env)
                  or else Is_Boolean_Type (Base, Type_Env)
                then
@@ -2133,6 +2243,12 @@ package body Safe_Frontend.Check_Resolve is
                return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
             end if;
             return Default_Float;
+         when CM.Expr_Enum_Literal =>
+            if UString_Value (Expr.Type_Name)'Length > 0
+              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
+            then
+               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            end if;
          when CM.Expr_Ident =>
             Name := Expr.Name;
             if Has_Type (Var_Types, UString_Value (Name)) then
@@ -2186,7 +2302,23 @@ package body Safe_Frontend.Check_Resolve is
                Result.Has_Access_Role := True;
                Result.Access_Role := FT.To_UString ("Observe");
                return Result;
-            elsif UString_Value (Expr.Selector) in "first" | "last" | "length" then
+            elsif UString_Value (Expr.Selector) in "first" | "last" then
+               if Expr.Prefix /= null then
+                  declare
+                     Prefix_Name : constant String := Flatten_Name (Expr.Prefix);
+                  begin
+                     if Prefix_Name /= ""
+                       and then Has_Type (Type_Env, Prefix_Name)
+                     then
+                        Prefix_Type := Get_Type (Type_Env, Prefix_Name);
+                        if Is_Enum_Type (Prefix_Type, Type_Env) then
+                           return Prefix_Type;
+                        end if;
+                     end if;
+                  end;
+               end if;
+               return Default_Integer;
+            elsif UString_Value (Expr.Selector) = "length" then
                return Default_Integer;
             end if;
 
@@ -2476,6 +2608,7 @@ package body Safe_Frontend.Check_Resolve is
         or else Base_Name = FT.To_UString ("string")
         or else Base_Kind = FT.To_UString ("boolean")
         or else Base_Name = FT.To_UString ("boolean")
+        or else Base_Kind = FT.To_UString ("enum")
       then
          return;
       end if;
@@ -2484,7 +2617,7 @@ package body Safe_Frontend.Check_Resolve is
         (CM.Source_Frontend_Error
            (Path    => Path,
             Span    => Expr.Args (Expr.Args.First_Index).Span,
-            Message => "`print` supports only integer, string, or boolean arguments"));
+            Message => "`print` supports only integer, string, boolean, or enum arguments"));
    end Validate_Print_Procedure_Call;
 
    function Resolve_Apply
@@ -2564,17 +2697,55 @@ package body Safe_Frontend.Check_Resolve is
       end;
    end Resolve_Apply;
 
+   function Rewrite_Static_Enum_Literal
+     (Expr      : CM.Expr_Access;
+      Const_Env : Static_Value_Maps.Map) return CM.Expr_Access
+   is
+      Value  : CM.Static_Value := (others => <>);
+      Result : CM.Expr_Access;
+   begin
+      if Expr = null
+        or else Expr.Kind not in CM.Expr_Ident | CM.Expr_Select
+        or else not Try_Static_Value (Expr, Const_Env, Value)
+        or else Value.Kind /= CM.Static_Value_Enum
+      then
+         return null;
+      end if;
+
+      Result := new CM.Expr_Node'(Expr.all);
+      Result.Kind := CM.Expr_Enum_Literal;
+      Result.Name := Value.Text;
+      Result.Type_Name := Value.Type_Name;
+      Result.Selector := FT.To_UString ("");
+      Result.Operator := FT.To_UString ("");
+      Result.Prefix := null;
+      Result.Callee := null;
+      Result.Inner := null;
+      Result.Left := null;
+      Result.Right := null;
+      Result.Value := null;
+      Result.Target := null;
+      return Result;
+   end Rewrite_Static_Enum_Literal;
+
    function Normalize_Expr
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
-      Type_Env  : Type_Maps.Map) return CM.Expr_Access
+      Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map) return CM.Expr_Access
    is
       Result   : CM.Expr_Access;
       Field    : CM.Aggregate_Field;
+      Enum_Expr : CM.Expr_Access;
    begin
       if Expr = null then
          return null;
+      end if;
+
+      Enum_Expr := Rewrite_Static_Enum_Literal (Expr, Const_Env);
+      if Enum_Expr /= null then
+         return Set_Type (Enum_Expr, Expr_Type (Enum_Expr, Var_Types, Functions, Type_Env));
       end if;
 
       case Expr.Kind is
@@ -2585,63 +2756,70 @@ package body Safe_Frontend.Check_Resolve is
             begin
                if Resolved.Kind = CM.Expr_Resolved_Index then
                   Result := new CM.Expr_Node'(Resolved.all);
-                  Result.Prefix := Normalize_Expr (Resolved.Prefix, Var_Types, Functions, Type_Env);
+                  Result.Prefix :=
+                    Normalize_Expr (Resolved.Prefix, Var_Types, Functions, Type_Env, Const_Env);
                   Result.Args.Clear;
                   for Item of Resolved.Args loop
-                     Result.Args.Append (Normalize_Expr (Item, Var_Types, Functions, Type_Env));
+                     Result.Args.Append
+                       (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env));
                   end loop;
                elsif Resolved.Kind = CM.Expr_Call then
                   Result := new CM.Expr_Node'(Resolved.all);
-                  Result.Callee := Normalize_Expr (Resolved.Callee, Var_Types, Functions, Type_Env);
+                  Result.Callee :=
+                    Normalize_Expr (Resolved.Callee, Var_Types, Functions, Type_Env, Const_Env);
                   Result.Args.Clear;
                   for Item of Resolved.Args loop
-                     Result.Args.Append (Normalize_Expr (Item, Var_Types, Functions, Type_Env));
+                     Result.Args.Append
+                       (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env));
                   end loop;
                else
                   Result := new CM.Expr_Node'(Resolved.all);
-                  Result.Inner := Normalize_Expr (Resolved.Inner, Var_Types, Functions, Type_Env);
+                  Result.Inner :=
+                    Normalize_Expr (Resolved.Inner, Var_Types, Functions, Type_Env, Const_Env);
                end if;
             end;
          when CM.Expr_Select =>
             Result := new CM.Expr_Node'(Expr.all);
-            Result.Prefix := Normalize_Expr (Expr.Prefix, Var_Types, Functions, Type_Env);
+            Result.Prefix := Normalize_Expr (Expr.Prefix, Var_Types, Functions, Type_Env, Const_Env);
          when CM.Expr_Binary =>
             Result := new CM.Expr_Node'(Expr.all);
-            Result.Left := Normalize_Expr (Expr.Left, Var_Types, Functions, Type_Env);
-            Result.Right := Normalize_Expr (Expr.Right, Var_Types, Functions, Type_Env);
+            Result.Left := Normalize_Expr (Expr.Left, Var_Types, Functions, Type_Env, Const_Env);
+            Result.Right := Normalize_Expr (Expr.Right, Var_Types, Functions, Type_Env, Const_Env);
          when CM.Expr_Unary =>
             Result := new CM.Expr_Node'(Expr.all);
-            Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env);
+            Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
          when CM.Expr_Allocator =>
             Result := new CM.Expr_Node'(Expr.all);
             if Expr.Value /= null and then Expr.Value.Kind = CM.Expr_Annotated then
                Result.Value := new CM.Expr_Node'(Expr.Value.all);
                Result.Value.Inner :=
-                 Normalize_Expr (Expr.Value.Inner, Var_Types, Functions, Type_Env);
+                 Normalize_Expr (Expr.Value.Inner, Var_Types, Functions, Type_Env, Const_Env);
             end if;
          when CM.Expr_Aggregate =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Fields.Clear;
             for Item of Expr.Fields loop
                Field := Item;
-               Field.Expr := Normalize_Expr (Item.Expr, Var_Types, Functions, Type_Env);
+               Field.Expr := Normalize_Expr (Item.Expr, Var_Types, Functions, Type_Env, Const_Env);
                Result.Fields.Append (Field);
             end loop;
          when CM.Expr_Array_Literal =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Elements.Clear;
             for Item of Expr.Elements loop
-               Result.Elements.Append (Normalize_Expr (Item, Var_Types, Functions, Type_Env));
+               Result.Elements.Append
+                 (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env));
             end loop;
          when CM.Expr_Tuple =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Elements.Clear;
             for Item of Expr.Elements loop
-               Result.Elements.Append (Normalize_Expr (Item, Var_Types, Functions, Type_Env));
+               Result.Elements.Append
+                 (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env));
             end loop;
          when CM.Expr_Annotated =>
             Result := new CM.Expr_Node'(Expr.all);
-            Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env);
+            Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
          when others =>
             Result := new CM.Expr_Node'(Expr.all);
       end case;
@@ -2804,6 +2982,15 @@ package body Safe_Frontend.Check_Resolve is
                            Message => "`" & Op & "` requires an integer shift count"));
                   end if;
                elsif Op in "+" | "-" | "*" | "/" | "mod" | "rem" then
+                  if Is_Enum_Type (Left_Type, Type_Env)
+                    or else Is_Enum_Type (Right_Type, Type_Env)
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message => "enum values do not support arithmetic"));
+                  end if;
                   if Is_Binary_Type (Left_Type, Type_Env)
                     or else Is_Binary_Type (Right_Type, Type_Env)
                   then
@@ -2856,6 +3043,17 @@ package body Safe_Frontend.Check_Resolve is
                      end if;
                   end if;
                elsif Op in "==" | "!=" | "<" | "<=" | ">" | ">=" then
+                  if Is_Enum_Type (Left_Type, Type_Env)
+                    or else Is_Enum_Type (Right_Type, Type_Env)
+                  then
+                     if not Equivalent_Type (Left_Type, Right_Type, Type_Env) then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Expr.Span,
+                              Message => "enum comparisons require both operands to have the same enum type"));
+                     end if;
+                  end if;
                   if Is_Binary_Type (Left_Type, Type_Env)
                     or else Is_Binary_Type (Right_Type, Type_Env)
                   then
@@ -2895,10 +3093,11 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
       Path      : String) return CM.Expr_Access
    is
       Result : constant CM.Expr_Access :=
-        Normalize_Expr (Expr, Var_Types, Functions, Type_Env);
+        Normalize_Expr (Expr, Var_Types, Functions, Type_Env, Const_Env);
    begin
       Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
       Validate_Print_Call_Context (Result, Var_Types, Functions, Type_Env, Path);
@@ -3537,12 +3736,21 @@ package body Safe_Frontend.Check_Resolve is
       end case;
    end Validate_Static_Binary_Boundaries;
 
-   function Is_Assignable_Target (Expr : CM.Expr_Access) return Boolean is
+   function Is_Assignable_Target
+     (Expr : CM.Expr_Access) return Boolean is
    begin
       if Expr = null then
          return False;
-      elsif Expr.Kind = CM.Expr_Ident or else Expr.Kind = CM.Expr_Resolved_Index then
+      elsif Expr.Kind = CM.Expr_Ident then
          return True;
+      elsif Expr.Kind = CM.Expr_Resolved_Index then
+         return True;
+      elsif Expr.Kind = CM.Expr_Enum_Literal then
+         return True;
+      elsif Expr.Kind = CM.Expr_Subtype_Indication then
+         return False;
+      elsif Expr.Kind = CM.Expr_Conversion then
+         return False;
       elsif Expr.Kind = CM.Expr_Tuple then
          if Natural (Expr.Elements.Length) < 2 then
             return False;
@@ -3580,6 +3788,7 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
       Path      : String) return CM.Expr_Access
    is
       Result : CM.Expr_Access := Expr;
@@ -3599,7 +3808,8 @@ package body Safe_Frontend.Check_Resolve is
                 (Expr.Callee,
                  Var_Types,
                  Functions,
-                 Type_Env);
+                 Type_Env,
+                 Const_Env);
          end if;
          if not Expr.Args.Is_Empty then
             Result.Args.Clear;
@@ -3610,6 +3820,7 @@ package body Safe_Frontend.Check_Resolve is
                      Var_Types,
                      Functions,
                      Type_Env,
+                     Const_Env,
                      Path));
             end loop;
          end if;
@@ -3648,10 +3859,11 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
       Path      : String) return CM.Expr_Access
    is
       Result : constant CM.Expr_Access :=
-        Normalize_Expr (Expr, Var_Types, Functions, Type_Env);
+        Normalize_Expr (Expr, Var_Types, Functions, Type_Env, Const_Env);
    begin
       Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
       Validate_Print_Call_Context
@@ -3667,6 +3879,7 @@ package body Safe_Frontend.Check_Resolve is
            Var_Types,
            Functions,
            Type_Env,
+           Const_Env,
            Path);
    end Normalize_Procedure_Call_Checked;
 
@@ -3822,7 +4035,7 @@ package body Safe_Frontend.Check_Resolve is
          end if;
          Result.Initializer :=
            Normalize_Expr_Checked
-             (Decl.Initializer, Var_Types, Functions, Type_Env, Path);
+             (Decl.Initializer, Var_Types, Functions, Type_Env, Const_Env, Path);
          if Result.Initializer.Kind in CM.Expr_Aggregate | CM.Expr_Tuple | CM.Expr_Array_Literal then
             Result.Initializer.Type_Name := Result.Type_Info.Name;
          end if;
@@ -3961,9 +4174,11 @@ package body Safe_Frontend.Check_Resolve is
      (Expr             : CM.Expr_Access;
       Imported_Objects : Type_Maps.Map;
       Local_Constants  : Type_Maps.Map;
+      Const_Env        : Static_Value_Maps.Map;
       Path             : String;
       Message          : String) is
-      Name : constant String := Root_Name (Expr);
+      Name      : constant String := Root_Name (Expr);
+      Flat_Name : constant String := Flatten_Name (Expr);
    begin
       if Expr /= null and then Expr.Kind = CM.Expr_Tuple then
          for Item of Expr.Elements loop
@@ -3971,6 +4186,7 @@ package body Safe_Frontend.Check_Resolve is
               (Item,
                Imported_Objects,
                Local_Constants,
+               Const_Env,
                Path,
                Message);
          end loop;
@@ -3988,6 +4204,15 @@ package body Safe_Frontend.Check_Resolve is
                Message =>
                  "assignment target rooted in constant `"
                  & (if Name'Length = 0 then "<unknown>" else Name)
+                 & "` is not writable"));
+      elsif Flat_Name'Length > 0 and then Has_Enum_Literal (Const_Env, Flat_Name) then
+         Raise_Diag
+           (CM.Write_To_Constant
+              (Path    => Path,
+               Span    => (if Expr = null then FT.Null_Span else Expr.Span),
+               Message =>
+                 "assignment target rooted in enum literal `"
+                 & Flat_Name
                  & "` is not writable"));
       end if;
    end Ensure_Writable_Target;
@@ -4162,7 +4387,7 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             Result.Destructure.Initializer :=
               Normalize_Expr_Checked
-                (Stmt.Destructure.Initializer, Var_Types, Functions, Type_Env, Path);
+                (Stmt.Destructure.Initializer, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             Reject_Static_Bounded_String_Overflow
               (Result.Destructure.Initializer,
                Result.Destructure.Type_Info,
@@ -4200,7 +4425,9 @@ package body Safe_Frontend.Check_Resolve is
             end;
 
          when CM.Stmt_Assign =>
-            Result.Target := Normalize_Expr_Checked (Stmt.Target, Var_Types, Functions, Type_Env, Path);
+            Result.Target :=
+              Normalize_Expr_Checked
+                (Stmt.Target, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             if not Is_Assignable_Target (Result.Target) then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -4212,9 +4439,12 @@ package body Safe_Frontend.Check_Resolve is
               (Result.Target,
                Imported_Objects,
                Local_Constants,
+               Local_Static_Constants,
                Path,
                "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
-            Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
+            Result.Value :=
+              Normalize_Expr_Checked
+                (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             declare
                Target_Info : constant GM.Type_Descriptor :=
                  Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
@@ -4291,12 +4521,15 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Return =>
             if Stmt.Value /= null then
-               Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
+               Result.Value :=
+                 Normalize_Expr_Checked
+                   (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             end if;
 
          when CM.Stmt_If =>
             Result.Condition :=
-              Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
+              Normalize_Expr_Checked
+                (Stmt.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             declare
                Then_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
                Guard_Name : FT.UString := FT.To_UString ("");
@@ -4335,7 +4568,8 @@ package body Safe_Frontend.Check_Resolve is
                   Guard_Length : Natural := 0;
                begin
                   New_Part.Condition :=
-                    Normalize_Expr_Checked (Part.Condition, Var_Types, Functions, Type_Env, Path);
+                    Normalize_Expr_Checked
+                      (Part.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                   if Try_Direct_Growable_Length_Guard
                     (New_Part.Condition,
                      Var_Types,
@@ -4379,7 +4613,8 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_While =>
             Result.Condition :=
-              Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
+              Normalize_Expr_Checked
+                (Stmt.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             declare
                Body_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
                Guard_Name : FT.UString := FT.To_UString ("");
@@ -4427,7 +4662,8 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_Exit =>
             if Stmt.Condition /= null then
                Result.Condition :=
-                 Normalize_Expr_Checked (Stmt.Condition, Var_Types, Functions, Type_Env, Path);
+                 Normalize_Expr_Checked
+                   (Stmt.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             end if;
 
          when CM.Stmt_For =>
@@ -4438,7 +4674,7 @@ package body Safe_Frontend.Check_Resolve is
                begin
                   Result.Loop_Iterable :=
                     Normalize_Expr_Checked
-                      (Stmt.Loop_Iterable, Var_Types, Functions, Type_Env, Path);
+                      (Stmt.Loop_Iterable, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                   if not Is_Name_Expr (Result.Loop_Iterable) then
                      Raise_Diag
                        (CM.Source_Frontend_Error
@@ -4500,16 +4736,16 @@ package body Safe_Frontend.Check_Resolve is
                if Stmt.Loop_Range.Kind = CM.Range_Explicit then
                   Result.Loop_Range.Low_Expr :=
                     Normalize_Expr_Checked
-                      (Stmt.Loop_Range.Low_Expr, Var_Types, Functions, Type_Env, Path);
+                      (Stmt.Loop_Range.Low_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                   Result.Loop_Range.High_Expr :=
                     Normalize_Expr_Checked
-                      (Stmt.Loop_Range.High_Expr, Var_Types, Functions, Type_Env, Path);
+                      (Stmt.Loop_Range.High_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                   Loop_Type.Name := FT.To_UString ("integer");
                   Loop_Type.Kind := FT.To_UString ("integer");
                else
                   Result.Loop_Range.Name_Expr :=
                     Normalize_Expr_Checked
-                      (Stmt.Loop_Range.Name_Expr, Var_Types, Functions, Type_Env, Path);
+                      (Stmt.Loop_Range.Name_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                   Loop_Type :=
                     Resolve_Type (Flatten_Name (Stmt.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
                end if;
@@ -4537,12 +4773,16 @@ package body Safe_Frontend.Check_Resolve is
                  Var_Types,
                  Functions,
                  Type_Env,
+                 Local_Static_Constants,
                  Path);
 
          when CM.Stmt_Send | CM.Stmt_Try_Send =>
             Result.Channel_Name :=
-              Normalize_Expr_Checked (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Path);
-            Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
+              Normalize_Expr_Checked
+                (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            Result.Value :=
+              Normalize_Expr_Checked
+                (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
             if not Compatible_Type
               (Expr_Type (Result.Value, Var_Types, Functions, Type_Env),
@@ -4557,7 +4797,8 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             if Stmt.Kind = CM.Stmt_Try_Send then
                Result.Success_Var :=
-                 Normalize_Expr_Checked (Stmt.Success_Var, Var_Types, Functions, Type_Env, Path);
+                 Normalize_Expr_Checked
+                   (Stmt.Success_Var, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                if not Is_Assignable_Target (Result.Success_Var) then
                   Raise_Diag
                     (CM.Source_Frontend_Error
@@ -4569,6 +4810,7 @@ package body Safe_Frontend.Check_Resolve is
                  (Result.Success_Var,
                   Imported_Objects,
                   Local_Constants,
+                  Local_Static_Constants,
                   Path,
                   "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
                Success_Type := Expr_Type (Result.Success_Var, Var_Types, Functions, Type_Env);
@@ -4583,8 +4825,11 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
             Result.Channel_Name :=
-              Normalize_Expr_Checked (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Path);
-            Result.Target := Normalize_Expr_Checked (Stmt.Target, Var_Types, Functions, Type_Env, Path);
+              Normalize_Expr_Checked
+                (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            Result.Target :=
+              Normalize_Expr_Checked
+                (Stmt.Target, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             if not Is_Assignable_Target (Result.Target) then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -4596,6 +4841,7 @@ package body Safe_Frontend.Check_Resolve is
               (Result.Target,
                Imported_Objects,
                Local_Constants,
+               Local_Static_Constants,
                Path,
                "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
             Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
@@ -4609,7 +4855,8 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             if Stmt.Kind = CM.Stmt_Try_Receive then
                Result.Success_Var :=
-                 Normalize_Expr_Checked (Stmt.Success_Var, Var_Types, Functions, Type_Env, Path);
+                 Normalize_Expr_Checked
+                   (Stmt.Success_Var, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                if not Is_Assignable_Target (Result.Success_Var) then
                   Raise_Diag
                     (CM.Source_Frontend_Error
@@ -4621,6 +4868,7 @@ package body Safe_Frontend.Check_Resolve is
                  (Result.Success_Var,
                   Imported_Objects,
                   Local_Constants,
+                  Local_Static_Constants,
                   Path,
                   "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
                Success_Type := Expr_Type (Result.Success_Var, Var_Types, Functions, Type_Env);
@@ -4634,7 +4882,9 @@ package body Safe_Frontend.Check_Resolve is
             end if;
 
          when CM.Stmt_Delay =>
-            Result.Value := Normalize_Expr_Checked (Stmt.Value, Var_Types, Functions, Type_Env, Path);
+            Result.Value :=
+              Normalize_Expr_Checked
+                (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             if not Is_Duration_Compatible
               (Expr_Type (Result.Value, Var_Types, Functions, Type_Env), Type_Env)
             then
@@ -4650,7 +4900,8 @@ package body Safe_Frontend.Check_Resolve is
                Scrutinee_Type : GM.Type_Descriptor;
             begin
                Result.Case_Expr :=
-                 Normalize_Expr_Checked (Stmt.Case_Expr, Var_Types, Functions, Type_Env, Path);
+                 Normalize_Expr_Checked
+                   (Stmt.Case_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                Scrutinee_Type :=
                  Expr_Type (Result.Case_Expr, Var_Types, Functions, Type_Env);
                if not Is_Discrete_Case_Type (Scrutinee_Type, Type_Env)
@@ -4674,7 +4925,8 @@ package body Safe_Frontend.Check_Resolve is
                         New_Arm.Choice := null;
                      else
                         New_Arm.Choice :=
-                          Normalize_Expr_Checked (Arm.Choice, Var_Types, Functions, Type_Env, Path);
+                          Normalize_Expr_Checked
+                            (Arm.Choice, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
                         if Is_String_Type (Scrutinee_Type, Type_Env)
                           and then New_Arm.Choice.Kind /= CM.Expr_String
                         then
@@ -4683,6 +4935,14 @@ package body Safe_Frontend.Check_Resolve is
                                 (Path    => Path,
                                  Span    => New_Arm.Choice.Span,
                                  Message => "string case choices currently require string literals"));
+                        elsif not Is_Static_Case_Choice
+                          (New_Arm.Choice, Local_Static_Constants)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => New_Arm.Choice.Span,
+                                 Message => "case arm choices must be static scalar values"));
                         end if;
                         Choice_Type :=
                           Expr_Type (New_Arm.Choice, Var_Types, Functions, Type_Env);
@@ -4733,6 +4993,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Var_Types,
                                 Functions,
                                 Type_Env,
+                                Local_Static_Constants,
                                 Path);
                            Channel_Type :=
                              Channel_Element_Type
@@ -4787,6 +5048,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Var_Types,
                                 Functions,
                                 Type_Env,
+                                Local_Static_Constants,
                                 Path);
                            if not Is_Duration_Compatible
                              (Expr_Type
@@ -4901,6 +5163,41 @@ package body Safe_Frontend.Check_Resolve is
                      Span    => Decl.Span,
                      Message => "type lower bound exceeds upper bound"));
             end if;
+         when CM.Type_Decl_Enumeration =>
+            declare
+               Seen : String_Index_Maps.Map;
+               Ordinal : Long_Long_Integer := 0;
+            begin
+               if Decl.Enum_Literals.Is_Empty then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Span,
+                        Message => "enumeration types require at least one literal"));
+               end if;
+               Result.Kind := FT.To_UString ("enum");
+               Result.Has_Low := True;
+               Result.Low := 0;
+               Result.Has_High := True;
+               Result.High := Long_Long_Integer (Natural (Decl.Enum_Literals.Length) - 1);
+               for Literal of Decl.Enum_Literals loop
+                  declare
+                     Key : constant String := Canonical_Name (UString_Value (Literal));
+                  begin
+                     if Seen.Contains (Key) then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Decl.Span,
+                              Message =>
+                                "duplicate enum literal '" & UString_Value (Literal) & "'"));
+                     end if;
+                     Seen.Include (Key, Positive (Ordinal + 1));
+                     Result.Enum_Literals.Append (Literal);
+                     Ordinal := Ordinal + 1;
+                  end;
+               end loop;
+            end;
          when CM.Type_Decl_Binary =>
             declare
                Width : constant CM.Wide_Integer :=
@@ -5075,7 +5372,7 @@ package body Safe_Frontend.Check_Resolve is
                           (CM.Unsupported_Source_Construct
                              (Path    => Path,
                               Span    => Disc_Spec.Span,
-                              Message => "record discriminants currently support only boolean, binary, and integer-family types"));
+                              Message => "record discriminants currently support only boolean, enum, binary, and integer-family types"));
                      end if;
                      Disc_Desc.Name := Disc_Spec.Name;
                      Disc_Desc.Type_Name := Disc_Type.Name;
@@ -5504,6 +5801,81 @@ package body Safe_Frontend.Check_Resolve is
       Family_By_Name               : String_Index_Maps.Map;
       Families                     : Recursive_Family_Vectors.Vector;
 
+      function Visible_Value_Name_Exists
+        (Name      : String;
+         Value_Env : Type_Maps.Map) return Boolean is
+      begin
+         return Has_Type (Value_Env, Name)
+           and then not Has_Type (Type_Env, Name);
+      end Visible_Value_Name_Exists;
+
+      procedure Reject_Enum_Literal_Collision
+        (Name      : String;
+         Value_Env : Type_Maps.Map;
+         Span      : FT.Source_Span;
+         Path      : String) is
+      begin
+         if Has_Enum_Literal (Const_Env, Name)
+           or else Visible_Value_Name_Exists (Name, Value_Env)
+           or else Has_Function (Functions, Name)
+           or else Has_Type (Type_Env, Name)
+           or else Has_Type (Channel_Env, Name)
+         then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Span,
+                  Message =>
+                    "enum literal '" & Name
+                    & "' conflicts with another visible package-level name"));
+         end if;
+      end Reject_Enum_Literal_Collision;
+
+      procedure Register_Enum_Literals
+        (Info      : GM.Type_Descriptor;
+         Value_Env : in out Type_Maps.Map;
+         Qualifier : String := "";
+         Path      : String := "";
+         Span      : FT.Source_Span := FT.Null_Span) is
+      begin
+         if not Is_Enum_Type (Info, Type_Env) then
+            return;
+         end if;
+
+         for Literal of Info.Enum_Literals loop
+            declare
+               Qualified_Name : constant String :=
+                 (if Qualifier = ""
+                  then UString_Value (Literal)
+                  else Qualify_Name (Qualifier, UString_Value (Literal)));
+               Static_Info    : CM.Static_Value := (others => <>);
+            begin
+               Reject_Enum_Literal_Collision (Qualified_Name, Value_Env, Span, Path);
+               Put_Type (Value_Env, Qualified_Name, Info);
+               Static_Info.Kind := CM.Static_Value_Enum;
+               Static_Info.Text := Literal;
+               Static_Info.Type_Name := Info.Name;
+               Put_Static_Value (Const_Env, Qualified_Name, Static_Info);
+            end;
+         end loop;
+      end Register_Enum_Literals;
+
+      procedure Reject_Package_Level_Enum_Collision
+        (Name : String;
+         Span : FT.Source_Span;
+         Path : String) is
+      begin
+         if Has_Enum_Literal (Const_Env, Name) then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Span,
+                  Message =>
+                    "package-level name '" & Name
+                    & "' conflicts with an enum literal already visible in this package"));
+         end if;
+      end Reject_Package_Level_Enum_Collision;
+
       procedure Analyze_Recursive_Type_Families is
          procedure Register_Completed_Local_Type (Decl : CM.Type_Decl) is
             Name : constant String := UString_Value (Decl.Name);
@@ -5775,7 +6147,7 @@ package body Safe_Frontend.Check_Resolve is
                   Put_Static_Value
                     (Const_Env,
                      Qualified_Name,
-                     Object_Item.Static_Info);
+                     Qualify_Static_Value (Object_Item.Static_Info, Package_Name));
                end if;
             end;
          end loop;
@@ -5822,6 +6194,32 @@ package body Safe_Frontend.Check_Resolve is
                External.Channel_Summary := Subp_Item.Channel_Summary;
                Put_Function (Functions, UString_Value (Info.Name), Info);
                Result.Imported_Subprograms.Append (External);
+            end;
+         end loop;
+
+         for Type_Item of Item.Types loop
+            declare
+               Info : constant GM.Type_Descriptor :=
+                 Qualify_Type_Info (Type_Item, Package_Name);
+            begin
+               Register_Enum_Literals
+                 (Info,
+                  Imported_Objects,
+                  Qualifier => Package_Name,
+                  Path      => UString_Value (Unit.Path));
+            end;
+         end loop;
+
+         for Type_Item of Item.Subtypes loop
+            declare
+               Info : constant GM.Type_Descriptor :=
+                 Qualify_Type_Info (Type_Item, Package_Name);
+            begin
+               Register_Enum_Literals
+                 (Info,
+                  Imported_Objects,
+                  Qualifier => Package_Name,
+                  Path      => UString_Value (Unit.Path));
             end;
          end loop;
       end Add_Imported_Interface;
@@ -5900,6 +6298,7 @@ package body Safe_Frontend.Check_Resolve is
                   null;
                else
                   declare
+                     Name : constant String := UString_Value (Item.Type_Data.Name);
                      Info : constant GM.Type_Descriptor :=
                        Resolve_Type_Declaration
                          (Item.Type_Data,
@@ -5909,6 +6308,10 @@ package body Safe_Frontend.Check_Resolve is
                           Family_By_Name,
                           Families);
                   begin
+                     Reject_Package_Level_Enum_Collision
+                       (Name,
+                        Item.Type_Data.Span,
+                        UString_Value (Unit.Path));
                      if not Is_Builtin_Name (UString_Value (Info.Name)) then
                         declare
                            Hidden_Target : constant String :=
@@ -5929,6 +6332,11 @@ package body Safe_Frontend.Check_Resolve is
                         end;
                      end if;
                      Put_Type (Package_Vars, UString_Value (Info.Name), Info);
+                     Register_Enum_Literals
+                       (Info,
+                        Package_Vars,
+                        Path => UString_Value (Unit.Path),
+                        Span => Item.Type_Data.Span);
                   end;
                end if;
             when CM.Item_Subtype_Decl =>
@@ -5941,6 +6349,10 @@ package body Safe_Frontend.Check_Resolve is
                        UString_Value (Unit.Path));
                   Info : GM.Type_Descriptor;
                begin
+                  Reject_Package_Level_Enum_Collision
+                    (UString_Value (Item.Sub_Data.Name),
+                     Item.Sub_Data.Span,
+                     UString_Value (Unit.Path));
                   Info.Name := Item.Sub_Data.Name;
                   Info.Kind := FT.To_UString ("subtype");
                   if Base.Has_Low
@@ -5979,6 +6391,10 @@ package body Safe_Frontend.Check_Resolve is
                        Const_Env,
                        UString_Value (Unit.Path));
                begin
+                  Reject_Package_Level_Enum_Collision
+                    (UString_Value (Item.Chan_Data.Name),
+                     Item.Chan_Data.Span,
+                     UString_Value (Unit.Path));
                   Result.Channels.Append (Channel_Decl);
                   Put_Type
                     (Channel_Env,
@@ -5999,6 +6415,12 @@ package body Safe_Frontend.Check_Resolve is
                   Local_Decl   : CM.Resolved_Object_Decl;
                   Static_Value : CM.Static_Value;
                begin
+                  for Name of Item.Obj_Data.Names loop
+                     Reject_Package_Level_Enum_Collision
+                       (UString_Value (Name),
+                        Item.Obj_Data.Span,
+                        UString_Value (Unit.Path));
+                  end loop;
                   Local_Decl.Names := Normalized.Names;
                   Local_Decl.Type_Info := Normalized.Type_Info;
                   Local_Decl.Is_Constant := Normalized.Is_Constant;
@@ -6042,6 +6464,7 @@ package body Safe_Frontend.Check_Resolve is
                           Package_Vars,
                           Functions,
                           Type_Env,
+                          Const_Env,
                           UString_Value (Unit.Path));
                      Priority_Type := Expr_Type (Priority_Expr, Package_Vars, Functions, Type_Env);
                      if not Is_Integerish (Priority_Type, Type_Env) then
@@ -6080,6 +6503,10 @@ package body Safe_Frontend.Check_Resolve is
                        Const_Env,
                        UString_Value (Unit.Path));
                begin
+                  Reject_Package_Level_Enum_Collision
+                    (UString_Value (Item.Subp_Data.Spec.Name),
+                     Item.Subp_Data.Span,
+                     UString_Value (Unit.Path));
                   Put_Function (Functions, UString_Value (Info.Name), Info);
                end;
             when others =>

@@ -242,6 +242,9 @@ package body Safe_Frontend.Mir_Validate is
          when GM.Expr_Int | GM.Expr_Real | GM.Expr_String
             | GM.Expr_Bool | GM.Expr_Null =>
             null;
+         when GM.Expr_Enum_Literal =>
+            Require (Has_Text (Value.Name), Where & ": missing enum literal name");
+            Require (Has_Text (Value.Type_Name), Where & ": missing enum literal type");
          when GM.Expr_Ident =>
             Require (Has_Text (Value.Name), Where & ": missing identifier name");
          when GM.Expr_Select =>

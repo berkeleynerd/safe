@@ -143,7 +143,7 @@ Build once, then run the top-level workflow scripts from the repository root:
 # Run fixture tests
 python3 scripts/run_tests.py
 
-# Check, build, and run the Rosetta samples
+# Check, emit, prove, build, and run the Rosetta samples
 python3 scripts/run_samples.py
 
 # Run proofs (requires GNATprove)
@@ -162,6 +162,7 @@ python3 scripts/run_proofs.py
 
 - `safec check`
 - `safec emit`
+- emitted proof via the same helper path used by `safe prove`
 - emitted Ada build through `gprbuild`
 - native execution of the produced binary
 

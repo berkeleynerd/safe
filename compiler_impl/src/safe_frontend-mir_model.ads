@@ -22,6 +22,7 @@ package Safe_Frontend.Mir_Model is
       Expr_Real,
       Expr_String,
       Expr_Bool,
+      Expr_Enum_Literal,
       Expr_Null,
       Expr_Ident,
       Expr_Select,
@@ -92,13 +93,15 @@ package Safe_Frontend.Mir_Model is
      (Scalar_Value_None,
       Scalar_Value_Integer,
       Scalar_Value_Boolean,
-      Scalar_Value_Character);
+      Scalar_Value_Character,
+      Scalar_Value_Enum);
 
    type Scalar_Value is record
       Kind       : Scalar_Value_Kind := Scalar_Value_None;
       Int_Value  : Long_Long_Integer := 0;
       Bool_Value : Boolean := False;
       Text       : FT.UString := FT.To_UString ("");
+      Type_Name  : FT.UString := FT.To_UString ("");
    end record;
 
    type Discriminant_Descriptor is record
@@ -141,6 +144,7 @@ package Safe_Frontend.Mir_Model is
       Low                : Long_Long_Integer := 0;
       Has_High           : Boolean := False;
       High               : Long_Long_Integer := 0;
+      Enum_Literals      : FT.UString_Vectors.Vector;
       Has_Bit_Width      : Boolean := False;
       Bit_Width          : Positive := 8;
       Index_Types        : FT.UString_Vectors.Vector;

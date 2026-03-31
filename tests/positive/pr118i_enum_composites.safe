@@ -1,0 +1,34 @@
+-- Test: pr118i_enum_composites
+-- Description: Enum use in fields, parameters, tuple elements, array indices, and discriminants.
+-- Expected: ACCEPT
+
+package pr118i_enum_composites
+
+   type state is (idle, busy, done);
+   type state_table is array (state) of integer;
+
+   type payload (mode : state = idle) is record
+      case mode
+         when idle
+            idle_count : integer;
+         when busy
+            work_count : integer;
+         when done
+            done_count : integer;
+
+   type wrapper is record
+      mode   : state;
+      amount : integer;
+
+   function echo (value : state) returns state
+      return value;
+
+   function read_slot (table : state_table; key : state) returns integer
+      return table (key);
+
+   counts : state_table = (1, 2, 3);
+   item : wrapper = (mode = done, amount = counts (done));
+   chosen : state = echo (busy);
+   pair : (state, integer) = (chosen, read_slot (counts, chosen));
+   packet : payload (mode = busy);
+   final_mode : state = item.mode;

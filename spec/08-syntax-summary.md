@@ -24,7 +24,11 @@ logical zero-fill right shift.
 
 For the post-PR11.8c.1 surface, `print (expression)` is admitted as a
 statement-only built-in. It prints exactly one line of normalized text for
-`integer`, `string`, and `boolean` expressions.
+`integer`, `string`, `boolean`, and enum expressions.
+
+For the post-PR11.8i surface, user-defined enumeration types with
+identifier-valued enumerators are admitted. Character-literal enumerators and
+enum range-constrained subtypes remain outside the admitted surface.
 
 For the post-PR11.8c.2 surface, a compilation unit may be either an explicit
 package unit or a packageless entry unit. Executable statements are admitted at
@@ -164,7 +168,7 @@ enumeration_type_definition ::=
     '(' enumeration_literal { ',' enumeration_literal } ')'
 
 enumeration_literal ::=
-    defining_identifier | defining_character_literal
+    defining_identifier
 
 signed_integer_type_definition ::=
     'range' static_simple_expression 'to' static_simple_expression

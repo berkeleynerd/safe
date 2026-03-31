@@ -1,0 +1,28 @@
+-- Test: pr118i_enum_basics
+-- Description: Basic user-defined enum declaration, ordering, case, and print.
+-- Expected: ACCEPT
+
+package pr118i_enum_basics
+
+   type color is (red, green, blue);
+
+   first_color : color = color.first;
+   last_color : color = color.last;
+   current : color = green;
+   score : integer = 0;
+
+   if first_color < current
+      score = score + 1;
+
+   if current < last_color
+      score = score + 10;
+
+   case current
+      when red
+         score = score + 100;
+      when green
+         score = score + 1_000;
+      when others
+         score = score + 10_000;
+
+   print (current)

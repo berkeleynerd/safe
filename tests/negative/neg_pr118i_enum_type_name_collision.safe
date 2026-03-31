@@ -1,0 +1,4 @@
+package neg_pr118i_enum_type_name_collision
+
+   type red is integer;
+   type traffic is (red, yellow, green);

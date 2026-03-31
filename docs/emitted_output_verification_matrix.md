@@ -320,6 +320,48 @@ all-proved-only policy as the earlier checkpoints, including the linked-list
 observer and accumulator traversal representatives after PR11.8f.1's
 structural cursor-loop lowering.
 
+## Emitted GNATprove Warning Suppression Inventory
+
+The emitter generates narrowly scoped `pragma Warnings (GNATprove, Off, "<pattern>")` /
+`pragma Warnings (GNATprove, On, "<pattern>")` pairs around specific generated Ada
+constructs. Each suppression covers a known false-positive GNATprove flow warning
+produced by a generated code shape that is structurally correct. This inventory must
+be updated whenever a suppression is added or removed.
+
+### Emitted `pragma Assume` (proof debt)
+
+| Fact | Emission site | Scope | Justification | Fragility |
+|------|--------------|-------|---------------|-----------|
+| `Length(Staged) = Value_Length` after protected channel Receive / Try_Receive | Ordinary receive, try_receive success path, select-arm try_receive success path (2 forms) | Capacity-1 string/growable channels (sequential and concurrent) | The protected body stores `Value` and `Value_Length` in corresponding slots atomically; the fact is true by construction but unprovable because GNATprove's modular protected-type analysis does not support invariants relating distinct private components | Permanent until either the emitter re-emits sequential channels as record-based (Option A) or GNATprove supports protected-type state invariants |
+
+### Emitted warning suppressions
+
+| Pattern | Reason string | Generated construct | Why the warning is a false positive | What would invalidate it |
+|---------|--------------|--------------------|------------------------------------|------------------------|
+| `"initialization of"` | "generated local initialization is intentional" | Scratch locals with default initializers where the first executable statement unconditionally assigns the real value | The emitter generates default initializers to satisfy Ada definite-assignment rules; the value is always overwritten before first read | If the emitter generated a code path that read the scratch local before the first assignment |
+| `"unused initial value of"` | "generated local cleanup is intentional" | Cleanup locals that are assigned and then freed | GNATprove sees the initial value as unused because the cleanup path overwrites it; the initial value exists only to satisfy Ada elaboration | Same as above |
+| `"unused assignment"` | "generated local cleanup is intentional" / "task-local state updates are intentionally isolated" | Cleanup locals and task-body state updates | For cleanup: the assignment is consumed by the subsequent `Free` call. For task locals: the assignment is consumed by later task-body statements, but GNATprove's modular task analysis cannot trace the connection | If the emitter generated a cleanup local whose value was never consumed, or a task-local assignment that was genuinely dead |
+| `"is set by"` | "generated local cleanup is intentional" | Cleanup locals set by runtime `Free` / `Copy` calls | GNATprove warns that the local "is set by" a procedure call that might not always execute; the emitter's generated cleanup path always executes the call unconditionally | If the emitter generated a conditional cleanup path where the `Free` call was not unconditional |
+| `"is set by"` | "heap-backed channel staging is intentional" | Staged value locals around heap-backed channel `Receive` / `Try_Receive` calls | The `out` parameter is set by the protected operation; GNATprove warns because the parameter might not be set on the failure path, but the emitter always guards usage with the success flag | If the emitter used the staged value without checking the success flag |
+| `"is set by"` | "channel results are consumed on the success path only" | Task-body channel `Receive` / `Try_Receive` calls | Same as above but inside task bodies, where GNATprove's modular analysis is more conservative | Same as above |
+| `"statement has no effect"` | "generated local cleanup is intentional" / "task-local state updates are intentionally isolated" / "task-local branching is intentionally isolated" | Cleanup paths, task-body assignments, and task-body `if` statements | GNATprove's modular task analysis sees task-local state updates and branches as effect-free because the results do not flow to a visible output in the protected-call model; the effects are real and consumed by subsequent task-body statements | If the emitter generated genuinely dead task-body code |
+| `"implicit aspect Always_Terminates"` | "shared runtime cleanup termination is accepted" | Constant-value cleanup blocks that copy a constant into a mutable local and call `Free` | The shared runtime `Free` procedures carry `Always_Terminates` on their specs; GNATprove cannot connect that contract through the generated mutable-copy block | **Fragile:** if a shared runtime `Free` ever lost its `Always_Terminates` aspect, this suppression would silently hide a real termination gap. Hardening improvement tracked: the emitter should verify the target `Free` carries `Always_Terminates` before emitting the suppression |
+
+### Shared stdlib `SPARK_Mode => Off` boundaries
+
+These are standard SPARK boundary-unit patterns. GNATprove reasons through the
+spec contracts and does not analyze the implementation bodies. They are not proof
+compromises — they are the abstraction boundary between proved caller code and
+trusted runtime implementation.
+
+| File | What is `SPARK_Mode => Off` | Why |
+|------|---------------------------|-----|
+| `safe_string_rt.ads` (private) + `.adb` | Heap-backed string representation and allocation | Access types and `Unchecked_Deallocation` |
+| `safe_array_rt.ads` (private) + `.adb` | Heap-backed array representation and allocation | Same |
+| `safe_array_identity_rt.ads` (private) + `.adb` | Identity-preserving array variant | Same underlying representation |
+| `safe_ownership_rt.adb` | Generic allocate/free/dispose | Same |
+| `io.adb` | `Ada.Text_IO.Put_Line` wrapper | I/O is outside SPARK's analysis model |
+
 ## PR10 Assurance Policy
 
 Inside the selected emitted corpus, PR10 uses an **all-proved-only** policy:

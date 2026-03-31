@@ -54,6 +54,11 @@ proves samples as well as building and executing them, specifically so missing
 guards show up as source-level proof failures with suggested fixes in context.
 That is not extra ceremony; it is the product working as intended.
 
+That same rule now applies to newly shipped source features, not just the old
+numeric/string core. When the language surface widens, the sample corpus must
+widen with it and stay in the prove-build-run sweep. The current user-defined
+enum sample is part of that contract rather than a docs-only example.
+
 ### Where guards alone are not enough
 
 Guards-as-contracts cover input validation, bounds checking, capacity checking,

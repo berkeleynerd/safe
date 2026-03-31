@@ -162,6 +162,15 @@ package body Safe_Frontend.Mir_Json is
                then
                   Parsed.Kind := GM.Scalar_Value_Character;
                   Parsed.Text := FT.To_UString (Get (Item, "text"));
+               elsif Kind_Name = "enum"
+                 and then Has_Field (Item, "text")
+                 and then Get (Item, "text").Kind = JSON_String_Type
+                 and then Has_Field (Item, "type_name")
+                 and then Get (Item, "type_name").Kind = JSON_String_Type
+               then
+                  Parsed.Kind := GM.Scalar_Value_Enum;
+                  Parsed.Text := FT.To_UString (Get (Item, "text"));
+                  Parsed.Type_Name := FT.To_UString (Get (Item, "type_name"));
                end if;
             end;
          end if;
@@ -196,6 +205,19 @@ package body Safe_Frontend.Mir_Json is
          Result.Has_High := True;
          Result.High := Get (Get (Value, "high"));
       end if;
+      declare
+         Enum_Literals : constant JSON_Array := Json_Array_Or_Empty (Value, "enum_literals");
+      begin
+         for Index in 1 .. Length (Enum_Literals) loop
+            declare
+               Item : constant JSON_Value := Get (Enum_Literals, Index);
+            begin
+               if Item.Kind = JSON_String_Type then
+                  Result.Enum_Literals.Append (FT.To_UString (Get (Item)));
+               end if;
+            end;
+         end loop;
+      end;
       if Has_Field (Value, "bit_width") and then Get (Value, "bit_width").Kind = JSON_Int_Type then
          declare
             Width_Value : constant Long_Long_Integer :=
@@ -596,6 +618,11 @@ package body Safe_Frontend.Mir_Json is
          Result.Kind := GM.Expr_Bool;
          if Has_Field (Value, "value") and then Get (Value, "value").Kind = JSON_Boolean_Type then
             Result.Bool_Value := Get (Get (Value, "value"));
+         end if;
+      elsif FT.To_String (Tag) = "enum_literal" then
+         Result.Kind := GM.Expr_Enum_Literal;
+         if Has_Field (Value, "name") and then Get (Value, "name").Kind = JSON_String_Type then
+            Result.Name := FT.To_UString (Get (Value, "name"));
          end if;
       elsif FT.To_String (Tag) = "null"
         or else FT.To_String (Kind_Name) = "null_literal"

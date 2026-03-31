@@ -112,6 +112,10 @@ package body Safe_Frontend.Mir_Write is
          when GM.Scalar_Value_Character =>
             Items.Append ("""kind"":""character""");
             Items.Append ("""text"":" & JS.Quote (Value.Text));
+         when GM.Scalar_Value_Enum =>
+            Items.Append ("""kind"":""enum""");
+            Items.Append ("""type_name"":" & JS.Quote (Value.Type_Name));
+            Items.Append ("""text"":" & JS.Quote (Value.Text));
          when others =>
             Items.Append ("""kind"":""none""");
       end case;
@@ -129,6 +133,16 @@ package body Safe_Frontend.Mir_Write is
       end if;
       if Info.Has_High then
          Items.Append ("""high"":" & Long_Long_Integer'Image (Info.High));
+      end if;
+      if not Info.Enum_Literals.Is_Empty then
+         declare
+            Values : String_Vectors.Vector;
+         begin
+            for Item of Info.Enum_Literals loop
+               Values.Append (JS.Quote (Item));
+            end loop;
+            Items.Append ("""enum_literals"":" & Json_List (Values));
+         end;
       end if;
       if Info.Has_Bit_Width then
          Items.Append ("""bit_width"":" & Positive'Image (Info.Bit_Width));
@@ -296,6 +310,8 @@ package body Safe_Frontend.Mir_Write is
             Items.Append ("""text"":" & JS.Quote (Expr.Text));
          when GM.Expr_Bool =>
             Items.Append ("""value"":" & JS.Bool_Literal (Expr.Bool_Value));
+         when GM.Expr_Enum_Literal =>
+            Items.Append ("""name"":" & JS.Quote (Expr.Name));
          when GM.Expr_Null =>
             null;
          when GM.Expr_Ident =>

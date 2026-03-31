@@ -238,6 +238,11 @@ package body Safe_Frontend.Check_Lower is
          return BT.Integer_Type;
       elsif Expr.Kind = CM.Expr_String then
          return Resolve_Type ("string", Type_Env);
+      elsif Expr.Kind = CM.Expr_Enum_Literal then
+         if Name'Length > 0 and then Type_Env.Contains (Name) then
+            return Type_Env.Element (Name);
+         end if;
+         return BT.Integer_Type;
       elsif Expr.Kind = CM.Expr_Array_Literal then
          if Name'Length > 0 and then Type_Env.Contains (Name) then
             return Type_Env.Element (Name);
@@ -282,6 +287,8 @@ package body Safe_Frontend.Check_Lower is
             return GM.Expr_String;
          when CM.Expr_Bool =>
             return GM.Expr_Bool;
+         when CM.Expr_Enum_Literal =>
+            return GM.Expr_Enum_Literal;
          when CM.Expr_Null =>
             return GM.Expr_Null;
          when CM.Expr_Ident =>
@@ -346,6 +353,8 @@ package body Safe_Frontend.Check_Lower is
             Result.Text := Expr.Text;
          when CM.Expr_Bool =>
             Result.Bool_Value := Expr.Bool_Value;
+         when CM.Expr_Enum_Literal =>
+            Result.Name := Expr.Name;
          when CM.Expr_Ident =>
             Result.Name := Expr.Name;
          when CM.Expr_Select =>

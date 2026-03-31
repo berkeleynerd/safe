@@ -41,6 +41,7 @@ package body Safe_Frontend.Ada_Emit is
       Type_Name : FT.UString := FT.To_UString ("");
       Free_Proc : FT.UString := FT.To_UString ("");
       Is_Constant : Boolean := False;
+      Always_Terminates_Suppression_OK : Boolean := False;
    end record;
 
    package Cleanup_Item_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -150,6 +151,7 @@ package body Safe_Frontend.Ada_Emit is
       Type_Name : String;
       Free_Proc : String := "";
       Is_Constant : Boolean := False;
+      Always_Terminates_Suppression_OK : Boolean := False;
       Action    : Cleanup_Action := Cleanup_Deallocate);
    procedure Register_Cleanup_Items
      (State        : in out Emit_State;
@@ -173,7 +175,12 @@ package body Safe_Frontend.Ada_Emit is
    function Has_Active_Cleanup_Items (State : Emit_State) return Boolean;
    function Starts_With (Text : String; Prefix : String) return Boolean;
    function Ada_Safe_Name (Name : String) return String;
+   function Ada_Qualified_Name (Name : String) return String;
+   function Render_Enum_Literal_Name
+     (Literal_Name   : String;
+      Enum_Type_Name : String) return String;
    function Sanitized_Helper_Name (Name : String) return String;
+   function Array_Runtime_Instance_Name (Info : GM.Type_Descriptor) return String;
    function Normalize_Aspect_Name
      (Subprogram_Name : String;
       Raw_Name        : String) return String;
@@ -285,6 +292,11 @@ package body Safe_Frontend.Ada_Emit is
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean;
+   function Constant_Cleanup_Uses_Shared_Runtime_Free
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor;
+      Free_Proc : String) return Boolean;
    function Is_Tuple_Type (Info : GM.Type_Descriptor) return Boolean;
    function Is_Result_Builtin (Info : GM.Type_Descriptor) return Boolean;
    function Render_Result_Empty_Aggregate return String;
@@ -979,6 +991,7 @@ package body Safe_Frontend.Ada_Emit is
       Type_Name : String;
       Free_Proc : String := "";
       Is_Constant : Boolean := False;
+      Always_Terminates_Suppression_OK : Boolean := False;
       Action    : Cleanup_Action := Cleanup_Deallocate) is
    begin
       if State.Cleanup_Stack.Is_Empty then
@@ -993,7 +1006,9 @@ package body Safe_Frontend.Ada_Emit is
              Name      => FT.To_UString (Name),
              Type_Name => FT.To_UString (Type_Name),
              Free_Proc => FT.To_UString (Free_Proc),
-             Is_Constant => Is_Constant));
+             Is_Constant => Is_Constant,
+             Always_Terminates_Suppression_OK =>
+               Always_Terminates_Suppression_OK));
          State.Cleanup_Stack.Replace_Element (State.Cleanup_Stack.Last_Index, Frame);
       end;
    end Add_Cleanup_Item;
@@ -1046,6 +1061,13 @@ package body Safe_Frontend.Ada_Emit is
       case Item.Action is
          when Cleanup_Deallocate =>
             if Item.Is_Constant then
+               if not Item.Always_Terminates_Suppression_OK then
+                  Raise_Internal
+                    ("constant cleanup warning suppression requires a shared runtime Free"
+                     & " with Always_Terminates for type "
+                     & FT.To_String (Item.Type_Name)
+                     & " (" & Free_Call & ")");
+               end if;
                Append_Gnatprove_Warning_Suppression
                  (Buffer,
                   "implicit aspect Always_Terminates",
@@ -1201,6 +1223,46 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       return Name;
    end Ada_Safe_Name;
+
+   function Ada_Qualified_Name (Name : String) return String is
+      Dot : constant Natural := Ada.Strings.Fixed.Index (Name, ".");
+   begin
+      if Dot = 0 then
+         return Ada_Safe_Name (Name);
+      elsif Dot = Name'First then
+         return Ada_Qualified_Name (Name (Dot + 1 .. Name'Last));
+      elsif Dot = Name'Last then
+         return Ada_Qualified_Name (Name (Name'First .. Dot - 1));
+      end if;
+
+      return
+        Ada_Qualified_Name (Name (Name'First .. Dot - 1))
+        & "."
+        & Ada_Qualified_Name (Name (Dot + 1 .. Name'Last));
+   end Ada_Qualified_Name;
+
+   function Render_Enum_Literal_Name
+     (Literal_Name   : String;
+      Enum_Type_Name : String) return String
+   is
+      Literal_Dot : constant Natural := Ada.Strings.Fixed.Index (Literal_Name, ".");
+      Type_Dot    : constant Natural :=
+        Ada.Strings.Fixed.Index
+          (Enum_Type_Name,
+           ".",
+           Going => Ada.Strings.Backward);
+   begin
+      if Literal_Dot > 0 then
+         return Ada_Qualified_Name (Literal_Name);
+      elsif Type_Dot > 0 then
+         return
+           Ada_Qualified_Name (Enum_Type_Name (Enum_Type_Name'First .. Type_Dot - 1))
+           & "."
+           & Ada_Safe_Name (Literal_Name);
+      end if;
+
+      return Ada_Safe_Name (Literal_Name);
+   end Render_Enum_Literal_Name;
 
    function Normalize_Aspect_Name
      (Subprogram_Name : String;
@@ -2548,6 +2610,26 @@ package body Safe_Frontend.Ada_Emit is
         and then Base.Growable;
    end Is_Growable_Array_Type;
 
+   function Constant_Cleanup_Uses_Shared_Runtime_Free
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor;
+      Free_Proc : String) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+   begin
+      if Is_Plain_String_Type (Unit, Document, Info) then
+         return Free_Proc = "Safe_String_RT.Free";
+      end if;
+
+      if Is_Growable_Array_Type (Unit, Document, Info) then
+         return Free_Proc = Array_Runtime_Instance_Name (Info) & ".Free"
+           or else Free_Proc = Array_Runtime_Instance_Name (Base) & ".Free";
+      end if;
+
+      return False;
+   end Constant_Cleanup_Uses_Shared_Runtime_Free;
+
    function Sanitized_Helper_Name (Name : String) return String is
       Result : SU.Unbounded_String;
    begin
@@ -3627,6 +3709,10 @@ package body Safe_Frontend.Ada_Emit is
             return (if Value.Bool_Value then "true" else "false");
          when GM.Scalar_Value_Character =>
             return FT.To_String (Value.Text);
+         when GM.Scalar_Value_Enum =>
+            return
+              Render_Enum_Literal_Name
+                (FT.To_String (Value.Text), FT.To_String (Value.Type_Name));
          when others =>
             return "";
       end case;
@@ -5115,6 +5201,19 @@ package body Safe_Frontend.Ada_Emit is
            & " .. "
            & Trim_Image (Type_Item.High)
            & ";";
+      elsif Kind = "enum" then
+         Result := SU.To_Unbounded_String ("type " & Name & " is (");
+         for Index in Type_Item.Enum_Literals.First_Index .. Type_Item.Enum_Literals.Last_Index loop
+            if Index /= Type_Item.Enum_Literals.First_Index then
+               Result := Result & SU.To_Unbounded_String (", ");
+            end if;
+            Result :=
+              Result
+              & SU.To_Unbounded_String
+                  (Ada_Safe_Name (FT.To_String (Type_Item.Enum_Literals (Index))));
+         end loop;
+         Result := Result & SU.To_Unbounded_String (");");
+         return SU.To_String (Result);
       elsif Kind = "binary" then
          return
            "type "
@@ -5813,6 +5912,10 @@ package body Safe_Frontend.Ada_Emit is
             return SU.To_String (Result);
          when CM.Expr_Bool =>
             return (if Expr.Bool_Value then "true" else "false");
+         when CM.Expr_Enum_Literal =>
+            return
+              Render_Enum_Literal_Name
+                (FT.To_String (Expr.Name), FT.To_String (Expr.Type_Name));
          when CM.Expr_Null =>
             return "null";
          when CM.Expr_Ident =>
@@ -6403,6 +6506,13 @@ package body Safe_Frontend.Ada_Emit is
                return Render_String_Expr (Unit, Document, Expr, State);
             elsif Base_Kind = "boolean" or else Base_Name = "boolean" then
                return "(if " & Value_Image & " then ""true"" else ""false"")";
+            elsif Base_Kind = "enum" then
+               return
+                 "Ada.Characters.Handling.To_Lower (Ada.Strings.Fixed.Trim ("
+                 & Render_Type_Name (Unit, Document, FT.To_String (Base_Info.Name))
+                 & "'Image ("
+                 & Value_Image
+                 & "), Ada.Strings.Both))";
             elsif Is_Integer_Type (Unit, Document, Info) then
                return
                  "Ada.Strings.Fixed.Trim (Long_Long_Integer'Image (Long_Long_Integer ("
@@ -10586,7 +10696,8 @@ package body Safe_Frontend.Ada_Emit is
                        Name      => Name,
                        Type_Name => Decl.Type_Info.Name,
                        Free_Proc => FT.To_UString (""),
-                       Is_Constant => False),
+                       Is_Constant => False,
+                       Always_Terminates_Suppression_OK => False),
                       Depth);
                end loop;
             end if;
@@ -10614,7 +10725,8 @@ package body Safe_Frontend.Ada_Emit is
                        Name      => Name,
                        Type_Name => Decl.Type_Info.Name,
                        Free_Proc => FT.To_UString (""),
-                       Is_Constant => False),
+                       Is_Constant => False,
+                       Always_Terminates_Suppression_OK => False),
                       Depth);
                end loop;
             end if;
@@ -11660,7 +11772,13 @@ package body Safe_Frontend.Ada_Emit is
                            Snapshot_Name,
                            Snapshot_Type_Image,
                            Array_Runtime_Instance_Name (Iterable_Info) & ".Free",
-                           Is_Constant => True);
+                           Is_Constant => True,
+                           Always_Terminates_Suppression_OK =>
+                             Constant_Cleanup_Uses_Shared_Runtime_Free
+                               (Unit,
+                                Document,
+                                Iterable_Info,
+                                Array_Runtime_Instance_Name (Iterable_Info) & ".Free"));
                      end if;
 
                      Append_Line (Buffer, "declare", Depth);
@@ -15190,6 +15308,10 @@ package body Safe_Frontend.Ada_Emit is
       if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Strings.Fixed.") > 0 then
          Add_Body_With ("Ada.Strings");
          Add_Body_With ("Ada.Strings.Fixed");
+      end if;
+      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Characters.Handling.") > 0 then
+         Add_Body_With ("Ada.Characters");
+         Add_Body_With ("Ada.Characters.Handling");
       end if;
       if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Interfaces.") > 0 then
          Add_Body_With ("Interfaces");

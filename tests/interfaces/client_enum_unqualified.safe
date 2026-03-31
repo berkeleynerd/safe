@@ -1,0 +1,5 @@
+with provider_enum;
+
+package client_enum_unqualified
+
+   current : provider_enum.color = red;

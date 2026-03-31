@@ -1,0 +1,5 @@
+package neg_pr118i_write_enum_literal
+
+   type color is (red, green);
+
+   red = green;

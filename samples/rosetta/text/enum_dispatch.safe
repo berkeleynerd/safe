@@ -1,0 +1,17 @@
+package enum_dispatch
+
+   type opcode is (load, store, jump);
+
+   current : opcode = load;
+
+   function next (value : opcode) returns opcode
+
+      case value
+         when load
+            return store;
+         when store
+            return jump;
+         when others
+            return load;
+
+   print (next (current))

@@ -16,6 +16,7 @@ package Safe_Frontend.Check_Model is
       Expr_Real,
       Expr_String,
       Expr_Bool,
+      Expr_Enum_Literal,
       Expr_Null,
       Expr_Ident,
       Expr_Select,
@@ -147,13 +148,15 @@ package Safe_Frontend.Check_Model is
      (Static_Value_None,
       Static_Value_Integer,
       Static_Value_Boolean,
-      Static_Value_Character);
+      Static_Value_Character,
+      Static_Value_Enum);
 
    type Static_Value is record
       Kind       : Static_Value_Kind := Static_Value_None;
       Int_Value  : Wide_Integer := 0;
       Bool_Value : Boolean := False;
       Text       : FT.UString := FT.To_UString ("");
+      Type_Name  : FT.UString := FT.To_UString ("");
    end record;
 
    type Object_Decl is record
@@ -226,6 +229,7 @@ package Safe_Frontend.Check_Model is
       Type_Decl_Integer,
       Type_Decl_Binary,
       Type_Decl_Float,
+      Type_Decl_Enumeration,
       Type_Decl_Constrained_Array,
       Type_Decl_Unconstrained_Array,
       Type_Decl_Growable_Array,
@@ -239,6 +243,7 @@ package Safe_Frontend.Check_Model is
       Span           : FT.Source_Span := FT.Null_Span;
       Digits_Expr    : Expr_Access := null;
       Binary_Width_Expr : Expr_Access := null;
+      Enum_Literals  : FT.UString_Vectors.Vector;
       Low_Expr       : Expr_Access := null;
       High_Expr      : Expr_Access := null;
       Indexes        : Array_Index_Vectors.Vector;

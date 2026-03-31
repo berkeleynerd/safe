@@ -378,7 +378,8 @@ Also note: Safe draws a sharp line between recoverable and non-recoverable failu
 ## 10. Known Friction Points (Read Before You Commit)
 
 - No user-extensible I/O standard library. The current output surface is only
-  statement-only `print (expr)` for `integer`, `string`, and `boolean`.
+  statement-only `print (expr)` for `integer`, `string`, `boolean`, and enum
+  values.
 - No multi-file `safe build` yet. The current wrapper is intentionally
   single-file; roots with `with` clauses still use `safec emit` plus manual
   `gprbuild`. `safe prove` is already wider here: it can audit emitted

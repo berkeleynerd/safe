@@ -3,7 +3,7 @@ Source: tests/negative/neg_pr118c1_print_unsupported_type.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_pr118c1_print_unsupported_type.safe:8:14: error: `print` supports only integer, string, or boolean arguments
+neg_pr118c1_print_unsupported_type.safe:8:14: error: `print` supports only integer, string, boolean, or enum arguments
   |
   | 8 |       print (value)
   |   |              ^~~~~

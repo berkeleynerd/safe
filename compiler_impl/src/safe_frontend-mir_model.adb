@@ -40,6 +40,8 @@ package body Safe_Frontend.Mir_Model is
             return "string";
          when Expr_Bool =>
             return "bool";
+         when Expr_Enum_Literal =>
+            return "enum_literal";
          when Expr_Null =>
             return "null";
          when Expr_Ident =>

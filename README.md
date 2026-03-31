@@ -84,7 +84,7 @@ python3 scripts/run_tests.py
 # Run proofs (requires GNATprove)
 python3 scripts/run_proofs.py
 
-# Check, build, and run samples
+# Check, emit, prove, build, and run samples
 python3 scripts/run_samples.py
 
 # Run the local Renode embedded smoke lane

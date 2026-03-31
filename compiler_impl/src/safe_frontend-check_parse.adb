@@ -375,6 +375,9 @@ package body Safe_Frontend.Check_Parse is
      (State : in out Parser_State) return CM.Expr_Access;
    function Parse_Expression
      (State : in out Parser_State) return CM.Expr_Access;
+   function Parse_Enumeration_Type
+     (State : in out Parser_State;
+      Start : FL.Token) return CM.Type_Decl;
    function Parse_Case_Statement
      (State : in out Parser_State) return CM.Statement_Access;
    function Parse_Statement
@@ -954,6 +957,42 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Growable_Array_Type;
 
+   function Parse_Enumeration_Type
+     (State : in out Parser_State;
+      Start : FL.Token) return CM.Type_Decl
+   is
+      Result : CM.Type_Decl;
+   begin
+      Require (State, "(");
+      loop
+         if Current (State).Kind = FL.Character_Literal then
+            Raise_Diag
+              (CM.Unsupported_Source_Construct
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message => "character-literal enum enumerators are deferred past PR11.8i"));
+         end if;
+
+         declare
+            Literal : constant FL.Token := Expect_Identifier (State);
+         begin
+            Result.Enum_Literals.Append (Literal.Lexeme);
+         end;
+
+         exit when not Match (State, ",");
+      end loop;
+
+      declare
+         Close_Paren : constant FL.Token := Expect (State, ")");
+         Semi        : constant FL.Token := Expect (State, ";");
+         pragma Unreferenced (Close_Paren);
+      begin
+         Result.Kind := CM.Type_Decl_Enumeration;
+         Result.Span := CM.Join (Start.Span, Semi.Span);
+      end;
+      return Result;
+   end Parse_Enumeration_Type;
+
    function Parse_Component_Decl
      (State : in out Parser_State) return CM.Component_Decl
    is
@@ -1063,7 +1102,7 @@ package body Safe_Frontend.Check_Parse is
                         elsif not Case_Choice_Is_Literal (Alternative.Choice_Expr) then
                            Reject_Unsupported
                              (State,
-                              "variant alternatives currently support exactly one Boolean, integer, Character, or converted binary literal choice per arm");
+                              "variant alternatives currently support exactly one static boolean, integer, enum, Character, or converted binary literal choice per arm");
                         elsif Alternative.Choice_Expr.Kind = CM.Expr_Bool
                           and then Alternative.Choice_Expr.Bool_Value
                         then
@@ -1181,6 +1220,11 @@ package body Safe_Frontend.Check_Parse is
             Item.High_Expr := Parse_Expression (State);
             Item.Kind := CM.Type_Decl_Float;
             Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+         elsif FT.To_String (Current (State).Lexeme) = "(" then
+            Item := Parse_Enumeration_Type (State, Start);
+            Item.Is_Public := Is_Public;
+            Item.Name := Name.Lexeme;
+            Item.Has_Discriminant := False;
          elsif Current_Lower (State) = "array"
            and then FT.To_String (Next (State).Lexeme) = "("
          then
@@ -1544,7 +1588,16 @@ package body Safe_Frontend.Check_Parse is
    begin
       if Expr = null then
          return False;
-      elsif Expr.Kind in CM.Expr_Int | CM.Expr_Bool | CM.Expr_String then
+      elsif Expr.Kind in
+        CM.Expr_Int
+        | CM.Expr_Bool
+        | CM.Expr_String
+        | CM.Expr_Enum_Literal
+        | CM.Expr_Ident
+        | CM.Expr_Select
+      then
+         --  Idents/selects are only provisional here so enum literals and
+         --  imported constant names can parse. Resolve rechecks staticness.
          return True;
       elsif Expr.Kind in CM.Expr_Call | CM.Expr_Apply
         and then Natural (Expr.Args.Length) = 1
@@ -1778,7 +1831,7 @@ package body Safe_Frontend.Check_Parse is
             elsif not Case_Choice_Is_Literal (Arm.Choice) then
                Reject_Unsupported
                  (State,
-                  "case arms currently support exactly one Boolean, integer, string, Character, or converted binary literal choice per arm");
+                  "case arms currently support exactly one static boolean, integer, string, enum, Character, or converted binary literal choice per arm");
             end if;
          end if;
 

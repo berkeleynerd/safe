@@ -14,6 +14,7 @@ from pathlib import Path
 
 from _lib.embedded_eval import parse_monitor_value
 from _lib.harness_common import ensure_sdkroot
+from run_proofs import EMITTED_PROOF_FIXTURES
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
@@ -24,6 +25,17 @@ SAFE_CLI = REPO_ROOT / "scripts" / "safe_cli.py"
 SAFE_REPL = REPO_ROOT / "scripts" / "safe_repl.py"
 EMBEDDED_SMOKE = REPO_ROOT / "scripts" / "run_embedded_smoke.py"
 VALIDATE_OUTPUT_CONTRACTS = REPO_ROOT / "scripts" / "validate_output_contracts.py"
+VSCODE_README = REPO_ROOT / "editors" / "vscode" / "README.md"
+VSCODE_PACKAGE_JSON = REPO_ROOT / "editors" / "vscode" / "package.json"
+
+EMITTED_GNATPROVE_WARNING_RE = re.compile(
+    r"pragma\s+Warnings\s*\(\s*GNATprove\b.*?\);",
+    re.IGNORECASE | re.DOTALL,
+)
+EMITTED_ASSUME_RE = re.compile(
+    r"pragma\s+Assume\s*\(.*?\);",
+    re.IGNORECASE | re.DOTALL,
+)
 
 # These fixtures live in category directories that do not match the
 # compiler's current acceptance boundary, so keep the expectations explicit.
@@ -145,6 +157,24 @@ INTERFACE_CASES = [
         "entry-import-rejected",
         REPO_ROOT / "tests" / "interfaces" / "entry_helper.safe",
         REPO_ROOT / "tests" / "interfaces" / "client_import_entry_rejected.safe",
+        1,
+    ),
+    (
+        "enum",
+        REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_enum.safe",
+        0,
+    ),
+    (
+        "enum-unqualified-import-rejected",
+        REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_enum_unqualified.safe",
+        1,
+    ),
+    (
+        "enum-literal-assign-rejected",
+        REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_enum_literal_assign.safe",
         1,
     ),
 ]
@@ -308,6 +338,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
     (
         REPO_ROOT / "tests" / "negative" / "neg_pr118c1_print_unsupported_type.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr118c1_print_unsupported_type.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr118i_write_enum_literal.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr118i_write_enum_literal.txt",
     ),
 ]
 
@@ -618,6 +652,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr118c2_entry_print.safe",
     REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
+    REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [
@@ -627,6 +662,32 @@ OUTPUT_CONTRACT_REJECT_CASES = [
         "subprograms[0].return_is_access_def must be a boolean",
     ),
 ]
+
+EMITTED_PRAGMA_ALLOWLIST = {
+    'pragma Assume (Safe_String_RT.Length (Safe_Channel_Staged_3) = Safe_Channel_Length_3);',
+    'pragma Assume (values_RT.Length (Safe_Channel_Staged_3) = Safe_Channel_Length_3);',
+    'pragma Warnings (GNATprove, Off, "implicit aspect Always_Terminates", Reason => "shared runtime cleanup termination is accepted");',
+    'pragma Warnings (GNATprove, Off, "initialization of", Reason => "generated local cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "initialization of", Reason => "generated local initialization is intentional");',
+    'pragma Warnings (GNATprove, Off, "is set by", Reason => "channel results are consumed on the success path only");',
+    'pragma Warnings (GNATprove, Off, "is set by", Reason => "for-of loop item cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "is set by", Reason => "generated local cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "is set by", Reason => "heap-backed channel staging is intentional");',
+    'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "for-of loop item cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "generated local cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "task-local branching is intentionally isolated");',
+    'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "task-local state updates are intentionally isolated");',
+    'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "deferred heap-backed package initialization is intentional");',
+    'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "generated local cleanup is intentional");',
+    'pragma Warnings (GNATprove, Off, "unused assignment", Reason => "task-local state updates are intentionally isolated");',
+    'pragma Warnings (GNATprove, Off, "unused initial value of", Reason => "generated local cleanup is intentional");',
+    'pragma Warnings (GNATprove, On, "implicit aspect Always_Terminates");',
+    'pragma Warnings (GNATprove, On, "initialization of");',
+    'pragma Warnings (GNATprove, On, "is set by");',
+    'pragma Warnings (GNATprove, On, "statement has no effect");',
+    'pragma Warnings (GNATprove, On, "unused assignment");',
+    'pragma Warnings (GNATprove, On, "unused initial value of");',
+}
 
 EMITTED_SHAPE_CASES = [
     (
@@ -1271,6 +1332,27 @@ def run_safe_cli_help_case(argv: list[str], expected_snippets: list[str]) -> tup
     return True, ""
 
 
+def run_vscode_surface_docs_case() -> tuple[bool, str]:
+    readme = VSCODE_README.read_text(encoding="utf-8")
+    metadata = json.loads(VSCODE_PACKAGE_JSON.read_text(encoding="utf-8"))
+
+    if "PR11.8c.1 compiler surface" in readme:
+        return False, "VS Code README still advertises the stale PR11.8c.1 surface"
+    if "syntax-only" not in readme:
+        return False, "VS Code README no longer states the syntax-only boundary"
+    if "post-v1.0 language server" not in readme:
+        return False, "VS Code README no longer states the disposable-language-server boundary"
+    if "PR11.8i" not in readme:
+        return False, "VS Code README no longer names the current shipped milestone surface"
+
+    description = str(metadata.get("description", ""))
+    if "PR11.8c.1" in description:
+        return False, "VS Code package.json description still advertises PR11.8c.1"
+    if "PR11.8i" not in description:
+        return False, "VS Code package.json description no longer names the current shipped surface"
+    return True, ""
+
+
 def run_safe_deploy_reject_case(argv: list[str], expected_message: str) -> tuple[bool, str]:
     completed = run_command([sys.executable, str(SAFE_CLI), *argv], cwd=REPO_ROOT)
     if completed.returncode == 0:
@@ -1469,6 +1551,56 @@ def emit_case_ada_text(
         raise RuntimeError(f"emit produced no Ada sources in {ada_dir}")
 
     return ada_dir, emitted_text
+
+
+def normalize_snippet_whitespace(text: str) -> str:
+    return " ".join(text.split())
+
+
+def emitted_allowlisted_pragmas(ada_dir: Path) -> dict[str, set[str]]:
+    occurrences: dict[str, set[str]] = {}
+
+    for path in sorted(ada_dir.iterdir()):
+        if path.suffix not in {".adb", ".ads"}:
+            continue
+        emitted_text = path.read_text(encoding="utf-8")
+        for match in EMITTED_GNATPROVE_WARNING_RE.findall(emitted_text):
+            snippet = normalize_snippet_whitespace(match)
+            occurrences.setdefault(snippet, set()).add(path.name)
+        for match in EMITTED_ASSUME_RE.findall(emitted_text):
+            snippet = normalize_snippet_whitespace(match)
+            occurrences.setdefault(snippet, set()).add(path.name)
+
+    return occurrences
+
+
+def run_emitted_pragma_allowlist_case(
+    safec: Path,
+    *,
+    label: str,
+    source: Path,
+    temp_root: Path,
+) -> tuple[bool, str]:
+    try:
+        ada_dir, _ = emit_case_ada_text(
+            safec,
+            label=label,
+            source=source,
+            temp_root=temp_root,
+        )
+    except RuntimeError as exc:
+        return False, str(exc)
+
+    occurrences = emitted_allowlisted_pragmas(ada_dir)
+    unexpected = sorted(set(occurrences) - EMITTED_PRAGMA_ALLOWLIST)
+    if not unexpected:
+        return True, ""
+
+    details = []
+    for snippet in unexpected:
+        files = ", ".join(sorted(occurrences[snippet]))
+        details.append(f"{snippet!r} in {files}")
+    return False, "unexpected emitted pragma(s): " + "; ".join(details)
 
 
 def run_emitted_required_shape_case(
@@ -1723,6 +1855,20 @@ def main() -> int:
             else:
                 failures.append((case_label, detail))
 
+        for fixture in EMITTED_PROOF_FIXTURES:
+            source = REPO_ROOT / fixture
+            ok, detail = run_emitted_pragma_allowlist_case(
+                safec,
+                label="pragma-allowlist",
+                source=source,
+                temp_root=temp_root,
+            )
+            case_label = f"emitted-pragma-allowlist:{repo_rel(source)}"
+            if ok:
+                passed += 1
+            else:
+                failures.append((case_label, detail))
+
         for label, source, required_snippets in EMITTED_REQUIRED_SHAPE_CASES:
             ok, detail = run_emitted_required_shape_case(
                 safec,
@@ -1813,6 +1959,12 @@ def main() -> int:
             passed += 1
         else:
             failures.append((label, detail))
+
+    ok, detail = run_vscode_surface_docs_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("vscode surface docs", detail))
 
     for argv, expected_message in DEPLOY_REJECT_ARGV_CASES:
         ok, detail = run_safe_deploy_reject_case(argv, expected_message)

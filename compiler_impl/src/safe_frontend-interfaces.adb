@@ -265,6 +265,19 @@ package body Safe_Frontend.Interfaces is
             end if;
          end;
       end if;
+      declare
+         Enum_Literals : constant JSON_Array := Json_Array_Or_Empty (Value, "enum_literals");
+      begin
+         for Index in 1 .. Length (Enum_Literals) loop
+            declare
+               Item : constant JSON_Value := Get (Enum_Literals, Index);
+            begin
+               if Item.Kind = JSON_String_Type then
+                  Result.Enum_Literals.Append (FT.To_UString (Get (Item)));
+               end if;
+            end;
+         end loop;
+      end;
       if Has_Field (Value, "low") and then Get (Value, "low").Kind = JSON_Int_Type then
          Result.Has_Low := True;
          Result.Low := Get (Get (Value, "low"));
@@ -972,9 +985,25 @@ package body Safe_Frontend.Interfaces is
                      end if;
                      Object.Static_Info.Kind := CM.Static_Value_Boolean;
                      Object.Static_Info.Bool_Value := Get (Value);
+                  elsif Get (Kind) = "enum" then
+                     declare
+                        Enum_Type : constant JSON_Value :=
+                          Field_Or_Null (Item, "static_value_type");
+                     begin
+                        if Value.Kind /= JSON_String_Type then
+                           raise Constraint_Error with
+                             File_Path & ": objects[].static_value must be a string for enum constants";
+                        elsif Enum_Type.Kind /= JSON_String_Type then
+                           raise Constraint_Error with
+                             File_Path & ": objects[].static_value_type is required for enum constants";
+                        end if;
+                        Object.Static_Info.Kind := CM.Static_Value_Enum;
+                        Object.Static_Info.Text := FT.To_UString (Get (Value));
+                        Object.Static_Info.Type_Name := FT.To_UString (Get (Enum_Type));
+                     end;
                   else
                      raise Constraint_Error with
-                       File_Path & ": objects[].static_value_kind must be `integer` or `boolean`";
+                       File_Path & ": objects[].static_value_kind must be `integer`, `boolean`, or `enum`";
                   end if;
                end if;
                Object.Span := Parse_Span (Field_Or_Null (Item, "span"));

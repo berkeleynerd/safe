@@ -1053,6 +1053,13 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
+         when CM.Expr_Enum_Literal =>
+            return
+              "{""node_type"":""Primary"",""kind"":""Literal"",""value"":"
+              & Enum_Literal_Node (FT.To_String (Expr.Name), Expr.Span)
+              & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
          when CM.Expr_Null =>
             return
               "{""node_type"":""Primary"",""kind"":""Literal"",""value"":"
@@ -1098,7 +1105,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Span_Object (Expr.Span)
               & "}";
          when CM.Expr_Annotated =>
-           return
+            return
               "{""node_type"":""Primary"",""kind"":""AnnotatedExpr"",""value"":{""node_type"":""AnnotatedExpression"",""expression"":"
               & Expression_Node (Expr.Inner)
               & ",""subtype_mark"":"
@@ -1222,6 +1229,33 @@ package body Safe_Frontend.Check_Emit is
               & "},""span"":"
               & JS.Span_Object (Decl.Span)
               & "}";
+         when CM.Type_Decl_Enumeration =>
+            declare
+               Literals : String_Vectors.Vector;
+            begin
+               for Literal of Decl.Enum_Literals loop
+                  Literals.Append
+                    ("{""node_type"":""DefiningIdentifier"",""name"":"
+                     & JS.Quote (Literal)
+                     & ",""span"":"
+                     & JS.Span_Object (Decl.Span)
+                     & "}");
+               end loop;
+               return
+                 "{""node_type"":""TypeDeclaration"",""is_public"":"
+                 & JS.Bool_Literal (Decl.Is_Public)
+                 & ",""name"":"
+                 & JS.Quote (Decl.Name)
+                 & ",""discriminant_part"":"
+                 & Discriminant_Part_Node (Decl)
+                 & ",""type_definition"":{""node_type"":""EnumerationTypeDefinition"",""enumerators"":"
+                 & Json_List (Literals)
+                 & ",""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "},""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "}";
+            end;
          when CM.Type_Decl_Constrained_Array =>
             for Index_Item of Decl.Indexes loop
                declare
@@ -2301,10 +2335,10 @@ package body Safe_Frontend.Check_Emit is
       Type_Index : Natural := 0;
       function Is_Hidden_Reference_Target
         (Info : GM.Type_Descriptor) return Boolean is
-        Target_Name : constant String := FT.To_String (Info.Name);
+         Target_Name : constant String := FT.To_String (Info.Name);
       begin
-        return Target_Name'Length > 16
-          and then Target_Name (Target_Name'First .. Target_Name'First + 15) = "safe_ref_target_";
+         return Target_Name'Length > 16
+           and then Target_Name (Target_Name'First .. Target_Name'First + 15) = "safe_ref_target_";
       end Is_Hidden_Reference_Target;
    begin
       for Item of Parsed.Items loop
@@ -2368,21 +2402,21 @@ package body Safe_Frontend.Check_Emit is
                   Ceiling : constant Long_Long_Integer :=
                     Channel_Required_Ceiling (Bronze, Channel_Item.Name);
                begin
-               Items.Append
-                 ("{""name"":"
-                  & JS.Quote (Channel_Item.Name)
-                  & ",""is_public"":"
-                  & JS.Bool_Literal (Channel_Item.Is_Public)
-                  & ",""element_type"":"
-                  & Type_Json (Channel_Item.Element_Type)
-                  & ",""capacity"":"
+                  Items.Append
+                    ("{""name"":"
+                     & JS.Quote (Channel_Item.Name)
+                     & ",""is_public"":"
+                     & JS.Bool_Literal (Channel_Item.Is_Public)
+                     & ",""element_type"":"
+                     & Type_Json (Channel_Item.Element_Type)
+                     & ",""capacity"":"
                   & Long_Long_Integer'Image (Channel_Item.Capacity)
                   & (if Ceiling > 0
                      then ",""required_ceiling"":" & Long_Long_Integer'Image (Ceiling)
                      else "")
                   & ",""span"":"
                   & JS.Span_Object (Channel_Item.Span)
-                  & "}");
+                     & "}");
                end;
             end if;
          end loop;
@@ -2423,6 +2457,14 @@ package body Safe_Frontend.Check_Emit is
                            Fields.Append
                              ("""static_value"":"
                               & JS.Bool_Literal (Info.Static_Info.Bool_Value));
+                        when CM.Static_Value_Enum =>
+                           Fields.Append ("""static_value_kind"":""enum""");
+                           Fields.Append
+                             ("""static_value"":"
+                              & JS.Quote (Info.Static_Info.Text));
+                           Fields.Append
+                             ("""static_value_type"":"
+                              & JS.Quote (Info.Static_Info.Type_Name));
                         when others =>
                            null;
                      end case;
@@ -2678,146 +2720,163 @@ package body Safe_Frontend.Check_Emit is
                     "{""kind"":""character"",""value"":"
                     & JS.Quote (Value.Text)
                     & "}";
+               when GM.Scalar_Value_Enum =>
+                  return
+                    "{""kind"":""enum"",""type_name"":"
+                    & JS.Quote (Value.Type_Name)
+                    & ",""value"":"
+                    & JS.Quote (Value.Text)
+                    & "}";
                when others =>
                   return "null";
             end case;
          end Scalar_Value_Json;
       begin
-      Items.Append ("""name"":" & JS.Quote (Info.Name));
-      Items.Append ("""kind"":" & JS.Quote (Public_Type_Kind (Info)));
-      if Info.Has_Bit_Width then
-         Items.Append ("""bit_width"":" & Positive'Image (Info.Bit_Width));
-      end if;
-      if Info.Has_Low then
-         Items.Append ("""low"":" & Long_Long_Integer'Image (Info.Low));
-      end if;
-      if Info.Has_High then
-         Items.Append ("""high"":" & Long_Long_Integer'Image (Info.High));
-      end if;
-      if Info.Has_Base then
-         Items.Append ("""base"":" & JS.Quote (Info.Base));
-      end if;
-      if Info.Has_Digits_Text then
-         Items.Append ("""digits_text"":" & JS.Quote (Info.Digits_Text));
-      end if;
-      if Info.Has_Float_Low_Text then
-         Items.Append ("""float_low_text"":" & JS.Quote (Info.Float_Low_Text));
-      end if;
-      if Info.Has_Float_High_Text then
-         Items.Append ("""float_high_text"":" & JS.Quote (Info.Float_High_Text));
-      end if;
-      if not Info.Index_Types.Is_Empty then
-         declare
-            Indexes : String_Vectors.Vector;
-         begin
-            for Item of Info.Index_Types loop
-               Indexes.Append (JS.Quote (Item));
-            end loop;
-            Items.Append ("""index_types"":" & Json_List (Indexes));
-         end;
-      end if;
-      if Info.Has_Component_Type then
-         Items.Append ("""component_type"":" & JS.Quote (Info.Component_Type));
-      end if;
-      if Info.Unconstrained then
-         Items.Append ("""unconstrained"":true");
-      end if;
-      if not Info.Fields.Is_Empty then
-         for Field of Info.Fields loop
-            Fields.Append (JS.Quote (Field.Name) & ":" & JS.Quote (Field.Type_Name));
-         end loop;
-         Items.Append ("""fields"":{" & Join_Object_Fields (Fields) & "}");
-      end if;
-      if Info.Has_Target then
-         Items.Append ("""target"":" & JS.Quote (Info.Target));
-      end if;
-      if Info.Has_Discriminant then
-         Items.Append ("""discriminant_name"":" & JS.Quote (Info.Discriminant_Name));
-         Items.Append ("""discriminant_type"":" & JS.Quote (Info.Discriminant_Type));
-         if Info.Has_Discriminant_Default then
-            Items.Append
-              ("""discriminant_default"":" & JS.Bool_Literal (Info.Discriminant_Default_Bool));
+         Items.Append ("""name"":" & JS.Quote (Info.Name));
+         Items.Append ("""kind"":" & JS.Quote (Public_Type_Kind (Info)));
+         if Info.Has_Bit_Width then
+            Items.Append ("""bit_width"":" & Positive'Image (Info.Bit_Width));
          end if;
-      end if;
-      if not Info.Discriminants.Is_Empty then
-         declare
-            Discriminants : String_Vectors.Vector;
-         begin
-            for Disc of Info.Discriminants loop
-               Discriminants.Append
-                 ("{""name"":"
-                  & JS.Quote (Disc.Name)
-                  & ",""type_name"":"
-                  & JS.Quote (Disc.Type_Name)
-                  & ",""has_default"":"
-                  & JS.Bool_Literal (Disc.Has_Default)
-                  & ",""default_value"":"
-                  & (if Disc.Has_Default then Scalar_Value_Json (Disc.Default_Value) else "null")
-                  & "}");
+         if not Info.Enum_Literals.Is_Empty then
+            declare
+               Literals : String_Vectors.Vector;
+            begin
+               for Item of Info.Enum_Literals loop
+                  Literals.Append (JS.Quote (Item));
+               end loop;
+               Items.Append ("""enum_literals"":" & Json_List (Literals));
+            end;
+         end if;
+         if Info.Has_Low then
+            Items.Append ("""low"":" & Long_Long_Integer'Image (Info.Low));
+         end if;
+         if Info.Has_High then
+            Items.Append ("""high"":" & Long_Long_Integer'Image (Info.High));
+         end if;
+         if Info.Has_Base then
+            Items.Append ("""base"":" & JS.Quote (Info.Base));
+         end if;
+         if Info.Has_Digits_Text then
+            Items.Append ("""digits_text"":" & JS.Quote (Info.Digits_Text));
+         end if;
+         if Info.Has_Float_Low_Text then
+            Items.Append ("""float_low_text"":" & JS.Quote (Info.Float_Low_Text));
+         end if;
+         if Info.Has_Float_High_Text then
+            Items.Append ("""float_high_text"":" & JS.Quote (Info.Float_High_Text));
+         end if;
+         if not Info.Index_Types.Is_Empty then
+            declare
+               Indexes : String_Vectors.Vector;
+            begin
+               for Item of Info.Index_Types loop
+                  Indexes.Append (JS.Quote (Item));
+               end loop;
+               Items.Append ("""index_types"":" & Json_List (Indexes));
+            end;
+         end if;
+         if Info.Has_Component_Type then
+            Items.Append ("""component_type"":" & JS.Quote (Info.Component_Type));
+         end if;
+         if Info.Unconstrained then
+            Items.Append ("""unconstrained"":true");
+         end if;
+         if not Info.Fields.Is_Empty then
+            for Field of Info.Fields loop
+               Fields.Append (JS.Quote (Field.Name) & ":" & JS.Quote (Field.Type_Name));
             end loop;
-            Items.Append ("""discriminants"":" & Json_List (Discriminants));
-         end;
-      end if;
-      if not Info.Discriminant_Constraints.Is_Empty then
-         declare
-            Constraints : String_Vectors.Vector;
-         begin
-            for Constraint of Info.Discriminant_Constraints loop
-               Constraints.Append
-                 ("{""is_named"":"
-                  & JS.Bool_Literal (Constraint.Is_Named)
-                  & ",""name"":"
-                  & JS.Quote (Constraint.Name)
-                  & ",""value"":"
-                  & Scalar_Value_Json (Constraint.Value)
-                  & "}");
-            end loop;
-            Items.Append ("""discriminant_constraints"":" & Json_List (Constraints));
-         end;
-      end if;
-      if FT.To_String (Info.Variant_Discriminant_Name)'Length > 0 then
-         Items.Append
-           ("""variant_discriminant_name"":" & JS.Quote (Info.Variant_Discriminant_Name));
-      end if;
-      if not Info.Variant_Fields.Is_Empty then
-         declare
-            Variants : String_Vectors.Vector;
-         begin
-            for Variant_Field of Info.Variant_Fields loop
-               Variants.Append
-                 ("{""name"":"
-                  & JS.Quote (Variant_Field.Name)
-                  & ",""type"":"
-                  & JS.Quote (Variant_Field.Type_Name)
-                  & ",""is_others"":"
-                  & JS.Bool_Literal (Variant_Field.Is_Others)
-                  & ",""choice"":"
-                  & (if Variant_Field.Is_Others then "null" else Scalar_Value_Json (Variant_Field.Choice))
-                  & "}");
-            end loop;
-            Items.Append ("""variant_fields"":" & Json_List (Variants));
-         end;
-      end if;
-      if not Info.Tuple_Element_Types.Is_Empty then
-         declare
-            Elements : String_Vectors.Vector;
-         begin
-            for Item of Info.Tuple_Element_Types loop
-               Elements.Append (JS.Quote (Item));
-            end loop;
-            Items.Append ("""tuple_element_types"":" & Json_List (Elements));
-         end;
-      end if;
-      if Info.Is_Result_Builtin then
-         Items.Append ("""is_result_builtin"":true");
-      end if;
-      if FT.To_String (Info.Kind) = "access" then
-         Items.Append ("""not_null"":" & JS.Bool_Literal (Info.Not_Null));
-      end if;
-      return
-        "{"
-        & Join_Object_Fields (Items)
-        & "}";
+            Items.Append ("""fields"":{" & Join_Object_Fields (Fields) & "}");
+         end if;
+         if Info.Has_Target then
+            Items.Append ("""target"":" & JS.Quote (Info.Target));
+         end if;
+         if Info.Has_Discriminant then
+            Items.Append ("""discriminant_name"":" & JS.Quote (Info.Discriminant_Name));
+            Items.Append ("""discriminant_type"":" & JS.Quote (Info.Discriminant_Type));
+            if Info.Has_Discriminant_Default then
+               Items.Append
+                 ("""discriminant_default"":" & JS.Bool_Literal (Info.Discriminant_Default_Bool));
+            end if;
+         end if;
+         if not Info.Discriminants.Is_Empty then
+            declare
+               Discriminants : String_Vectors.Vector;
+            begin
+               for Disc of Info.Discriminants loop
+                  Discriminants.Append
+                    ("{""name"":"
+                     & JS.Quote (Disc.Name)
+                     & ",""type_name"":"
+                     & JS.Quote (Disc.Type_Name)
+                     & ",""has_default"":"
+                     & JS.Bool_Literal (Disc.Has_Default)
+                     & ",""default_value"":"
+                     & (if Disc.Has_Default then Scalar_Value_Json (Disc.Default_Value) else "null")
+                     & "}");
+               end loop;
+               Items.Append ("""discriminants"":" & Json_List (Discriminants));
+            end;
+         end if;
+         if not Info.Discriminant_Constraints.Is_Empty then
+            declare
+               Constraints : String_Vectors.Vector;
+            begin
+               for Constraint of Info.Discriminant_Constraints loop
+                  Constraints.Append
+                    ("{""is_named"":"
+                     & JS.Bool_Literal (Constraint.Is_Named)
+                     & ",""name"":"
+                     & JS.Quote (Constraint.Name)
+                     & ",""value"":"
+                     & Scalar_Value_Json (Constraint.Value)
+                     & "}");
+               end loop;
+               Items.Append ("""discriminant_constraints"":" & Json_List (Constraints));
+            end;
+         end if;
+         if FT.To_String (Info.Variant_Discriminant_Name)'Length > 0 then
+            Items.Append
+              ("""variant_discriminant_name"":" & JS.Quote (Info.Variant_Discriminant_Name));
+         end if;
+         if not Info.Variant_Fields.Is_Empty then
+            declare
+               Variants : String_Vectors.Vector;
+            begin
+               for Variant_Field of Info.Variant_Fields loop
+                  Variants.Append
+                    ("{""name"":"
+                     & JS.Quote (Variant_Field.Name)
+                     & ",""type"":"
+                     & JS.Quote (Variant_Field.Type_Name)
+                     & ",""is_others"":"
+                     & JS.Bool_Literal (Variant_Field.Is_Others)
+                     & ",""choice"":"
+                     & (if Variant_Field.Is_Others then "null" else Scalar_Value_Json (Variant_Field.Choice))
+                     & "}");
+               end loop;
+               Items.Append ("""variant_fields"":" & Json_List (Variants));
+            end;
+         end if;
+         if not Info.Tuple_Element_Types.Is_Empty then
+            declare
+               Elements : String_Vectors.Vector;
+            begin
+               for Item of Info.Tuple_Element_Types loop
+                  Elements.Append (JS.Quote (Item));
+               end loop;
+               Items.Append ("""tuple_element_types"":" & Json_List (Elements));
+            end;
+         end if;
+         if Info.Is_Result_Builtin then
+            Items.Append ("""is_result_builtin"":true");
+         end if;
+         if FT.To_String (Info.Kind) = "access" then
+            Items.Append ("""not_null"":" & JS.Bool_Literal (Info.Not_Null));
+         end if;
+         return
+           "{"
+           & Join_Object_Fields (Items)
+           & "}";
       end;
    end Type_Json;
 
@@ -2891,7 +2950,7 @@ package body Safe_Frontend.Check_Emit is
         & ","
         & """package_unit"":"
         & (if Parsed.Kind = CM.Unit_Package
-           then "{""node_type"":""PackageUnit"",""name"":" 
+           then "{""node_type"":""PackageUnit"",""name"":"
                 & JS.Quote (Parsed.Package_Name)
                 & ",""items"":"
                 & Json_List (Items)
