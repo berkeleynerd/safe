@@ -77,7 +77,7 @@ package body Safe_Frontend.Lexer is
           | "public" | "channel" | "send" | "receive"
           | "try_send" | "try_receive" | "capacity" | "from"
           | "binary" | "print" | "mut"
-          | "returns";
+          | "try" | "match" | "returns";
    end Is_Keyword;
 
    function Is_Valid_Source_Spelling (Item : String) return Boolean is

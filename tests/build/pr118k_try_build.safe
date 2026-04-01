@@ -1,0 +1,16 @@
+package pr118k_try_build
+
+   function one returns (result, integer)
+
+      return (ok (), 10)
+
+   function two returns (result, integer)
+
+      return (ok (), 20)
+
+   function total returns (result, integer)
+
+      var first : integer = try one ()
+      return (ok (), first + try two ())
+
+   print (total ().2)

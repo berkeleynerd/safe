@@ -1,0 +1,7 @@
+package neg_pr118k_try_non_executable
+
+   function parse returns (result, integer)
+
+      return (ok (), 1)
+
+   value : integer = try parse ()

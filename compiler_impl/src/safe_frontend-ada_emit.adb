@@ -5532,6 +5532,8 @@ package body Safe_Frontend.Ada_Emit is
             Result := Result & SU.To_Unbounded_String (")");
          end loop;
          return SU.To_String (Result);
+      elsif Is_Result_Builtin (Info) then
+         return Render_Result_Empty_Aggregate;
       elsif Kind = "record"
         or else
           (Kind = "subtype"
@@ -5724,8 +5726,6 @@ package body Safe_Frontend.Ada_Emit is
          end;
          Result := Result & SU.To_Unbounded_String (")");
          return SU.To_String (Result);
-      elsif Is_Result_Builtin (Info) then
-         return Render_Result_Empty_Aggregate;
       end if;
       return Default_Value_Expr (Type_Name);
    end Default_Value_Expr;
@@ -5755,6 +5755,8 @@ package body Safe_Frontend.Ada_Emit is
             Result := Result & SU.To_Unbounded_String (")");
          end loop;
          return SU.To_String (Result);
+      elsif Is_Result_Builtin (Info) then
+         return Render_Result_Empty_Aggregate;
       elsif Kind = "record"
         or else (Kind = "subtype" and then not Info.Discriminant_Constraints.Is_Empty)
       then
@@ -5838,8 +5840,6 @@ package body Safe_Frontend.Ada_Emit is
          end;
          Result := Result & SU.To_Unbounded_String (")");
          return SU.To_String (Result);
-      elsif Is_Result_Builtin (Info) then
-         return Render_Result_Empty_Aggregate;
       end if;
       return Default_Value_Expr (Type_Name);
    end Default_Value_Expr;
@@ -7425,19 +7425,8 @@ package body Safe_Frontend.Ada_Emit is
                  and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
                then
                   return Prefix_Image & "'" & Selector_Name;
-               elsif Expr.Prefix /= null
-                 and then Selector_Name'Length > 0
+               elsif Selector_Name'Length > 0
                  and then Selector_Name (Selector_Name'First) in '0' .. '9'
-                 and then Has_Text (Expr.Prefix.Type_Name)
-                 and then
-                   (Starts_With (FT.To_String (Expr.Prefix.Type_Name), "__tuple")
-                    or else
-                      (Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
-                       and then Is_Tuple_Type
-                         (Lookup_Type
-                            (Unit,
-                             Document,
-                             FT.To_String (Expr.Prefix.Type_Name)))))
                then
                   return
                     Prefix_Image
@@ -10161,6 +10150,13 @@ package body Safe_Frontend.Ada_Emit is
                  and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
                then
                   return Prefix_Image & "'" & Selector_Name;
+               elsif Selector_Name'Length > 0
+                 and then Selector_Name (Selector_Name'First) in '0' .. '9'
+               then
+                  return
+                    Prefix_Image
+                    & "."
+                    & Tuple_Field_Name (Positive (Natural'Value (Selector_Name)));
                elsif Expr.Prefix /= null
                  and then FT.Lowercase (Selector_Name) = "message"
                  and then Has_Text (Expr.Prefix.Type_Name)

@@ -1,0 +1,11 @@
+package neg_pr118k_match_missing_fail
+
+   function parse returns (result, integer)
+
+      return (ok (), 1)
+
+   function value returns integer
+
+      match parse ()
+         when ok (v)
+            return v

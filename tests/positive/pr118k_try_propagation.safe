@@ -1,0 +1,24 @@
+package pr118k_try_propagation
+
+   function parse_digit (text : string (1)) returns (result, integer)
+
+      if text == "7"
+         return (ok (), 7)
+      return (fail ("not-seven"), 0)
+
+   function add_four (text : string (1)) returns (result, integer)
+
+      var value : integer = try parse_digit (text)
+      if value < 0 or value > 9
+         return (fail ("unexpected-digit"), 0)
+      return (ok (), value + 4)
+
+   function doubled (text : string (1)) returns (result, integer)
+
+      var first : integer = try add_four (text)
+      if first < 0 or first > 13
+         return (fail ("unexpected-sum"), 0)
+      var second : integer = try add_four (text)
+      if second < 0 or second > 13
+         return (fail ("unexpected-sum"), 0)
+      return (ok (), first + second)

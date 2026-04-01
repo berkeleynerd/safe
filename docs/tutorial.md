@@ -98,7 +98,52 @@ full language, but it now handles local imported roots incrementally:
 - the model is still `safe build <root.safe>`, not workspace-mode discovery
 - `safe prove` reuses the same cache and imported-root dependency closure
 
-### 3.1 Opaque Types With `private record`
+### 3.0 Fallible Values: `(result, T)`, `try`, and `match`
+
+Safe still has no exceptions. The admitted fallible-value pattern is the tuple
+`(result, T)`, where the first element carries `ok()` / `fail(message)` and the
+second element carries the success value.
+
+`try` is propagation sugar over that tuple pattern:
+
+```safe
+function parse_digit (text : string (1)) returns (result, integer)
+
+   if text == "7"
+      return (ok (), 7)
+   return (fail ("not-seven"), 0)
+
+function add_four (text : string (1)) returns (result, integer)
+
+   var value : integer = try parse_digit (text)
+   return (ok (), value + 4)
+```
+
+If `parse_digit` fails, `try parse_digit(text)` returns early from `add_four`
+with the same failure `result`. If it succeeds, `try` yields the unwrapped
+integer.
+
+`match` is the terminal handling form:
+
+```safe
+match parse_digit (text)
+   when ok (value)
+      return value
+   when fail (err)
+      if err.ok
+         return 99
+      return 0
+```
+
+In the shipped `PR11.8k` surface:
+
+- `try` works only on `(result, T)` values
+- the enclosing function must also return `(result, U)`
+- `match` is statement-only, not an expression
+- user-defined record-based result shapes are still valid Safe code, but
+  `try` / `match` do not target them yet
+
+## 3.1 Opaque Types With `private record`
 
 Safe uses `private record` (not Ada's package `private` part) to express an opaque type:
 

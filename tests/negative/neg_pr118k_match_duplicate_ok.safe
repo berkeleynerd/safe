@@ -1,0 +1,13 @@
+package neg_pr118k_match_duplicate_ok
+
+   function parse returns (result, integer)
+
+      return (ok (), 1)
+
+   function value returns integer
+
+      match parse ()
+         when ok (left)
+            return left
+         when ok (right)
+            return right

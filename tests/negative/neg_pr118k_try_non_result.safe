@@ -1,0 +1,5 @@
+package neg_pr118k_try_non_result
+
+   function value returns integer
+
+      return try 41

@@ -1,0 +1,9 @@
+package neg_pr118k_try_wrong_return
+
+   function parse returns (result, integer)
+
+      return (ok (), 1)
+
+   function value returns integer
+
+      return try parse ()

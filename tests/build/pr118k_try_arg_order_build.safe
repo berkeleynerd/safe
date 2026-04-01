@@ -1,0 +1,34 @@
+package pr118k_try_arg_order_build
+
+   subtype small is integer (0 to 1);
+
+   function fail_first returns (result, small)
+
+      zero : small = 0;
+      return (fail ("first"), zero)
+
+   function fail_second returns (result, small)
+
+      zero : small = 0;
+      return (fail ("second"), zero)
+
+   function pack (left : small; right : small) returns integer
+
+      return left + right
+
+   function total returns (result, integer)
+
+      return (ok (), pack (try fail_first (), try fail_second ()))
+
+   function terminal returns integer
+
+      current : (result, integer) = total ();
+      match current
+         when ok (value)
+            return value
+         when fail (err)
+            if err == fail ("first")
+               return 1
+            return 2
+
+   print (terminal ())

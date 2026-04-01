@@ -1,0 +1,11 @@
+package neg_pr118k_match_non_result
+
+   function value returns integer
+
+      match 41
+         when ok (v)
+            return v
+         when fail (e)
+            if e.ok
+               return 1
+            return 0

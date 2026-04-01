@@ -547,6 +547,12 @@ package body Safe_Frontend.Check_Parse is
                      Validate_Unit_Statement (Nested);
                   end loop;
                end loop;
+            when CM.Stmt_Match =>
+               for Arm of Stmt.Match_Arms loop
+                  for Nested of Arm.Statements loop
+                     Validate_Unit_Statement (Nested);
+                  end loop;
+               end loop;
             when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
                for Nested of Stmt.Body_Stmts loop
                   Validate_Unit_Statement (Nested);
@@ -1875,6 +1881,90 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Case_Statement;
 
+   function Parse_Match_Statement
+     (State : in out Parser_State) return CM.Statement_Access
+   is
+      Start    : constant FL.Token := Expect (State, "match");
+      Result   : constant CM.Statement_Access := new CM.Statement;
+      Arm      : CM.Match_Arm;
+      Arm_Start : FL.Token;
+      Binder   : FL.Token;
+      Saw_Ok   : Boolean := False;
+      Saw_Fail : Boolean := False;
+   begin
+      Result.Kind := CM.Stmt_Match;
+      Result.Match_Expr := Parse_Expression (State);
+      Require_Indent (State, "match arms must be indented under `match`");
+
+      loop
+         exit when Current (State).Kind in FL.Dedent | FL.End_Of_File;
+         Arm := (others => <>);
+         Arm_Start := Expect (State, "when");
+
+         if Current_Lower (State) = "ok" then
+            if Saw_Ok then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Current (State).Span,
+                     Message => "match statements require exactly one `when ok (...)` arm"));
+            end if;
+            Saw_Ok := True;
+            Arm.Kind := CM.Match_Arm_Ok;
+            Advance (State);
+         elsif Current_Lower (State) = "fail" then
+            if Saw_Fail then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Current (State).Span,
+                     Message => "match statements require exactly one `when fail (...)` arm"));
+            end if;
+            Saw_Fail := True;
+            Arm.Kind := CM.Match_Arm_Fail;
+            Advance (State);
+         else
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Current (State).Span,
+                  Message => "expected `ok` or `fail` in match arm"));
+         end if;
+
+         Require (State, "(");
+         Binder := Expect_Identifier (State);
+         Arm.Binder := Binder.Lexeme;
+         Require (State, ")");
+         Arm.Statements :=
+           Parse_Indented_Statement_Sequence
+             (State,
+              "match arms require an indented body",
+              Binder.Span);
+         Arm.Span := CM.Join (Arm_Start.Span, Suite_End_Span (Arm.Statements, Binder.Span));
+         Result.Match_Arms.Append (Arm);
+      end loop;
+
+      if Natural (Result.Match_Arms.Length) /= 2
+        or else not Saw_Ok
+        or else not Saw_Fail
+      then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Current (State).Span,
+               Message => "match statements require exactly one `when ok (...)` arm and one `when fail (...)` arm"));
+      end if;
+
+      Require_Dedent (State, "match arms must align under `match`");
+      Result.Span :=
+        CM.Join
+          (Start.Span,
+           (if Result.Match_Arms.Is_Empty
+            then Result.Match_Expr.Span
+            else Result.Match_Arms (Result.Match_Arms.Last_Index).Span));
+      return Result;
+   end Parse_Match_Statement;
+
    function Parse_While_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
@@ -2265,6 +2355,8 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Return_Statement (State);
       elsif Lower = "case" then
          return Parse_Case_Statement (State);
+      elsif Lower = "match" then
+         return Parse_Match_Statement (State);
       elsif Lower = "send" then
          return Parse_Send_Statement (State);
       elsif Lower = "receive" then
@@ -2534,6 +2626,13 @@ package body Safe_Frontend.Check_Parse is
          Result := New_Expr;
          Result.Kind := CM.Expr_Unary;
          Result.Operator := FT.To_UString ("not");
+         Result.Inner := Parse_Primary (State);
+         Result.Span := CM.Join (Token.Span, Result.Inner.Span);
+         return Result;
+      elsif Current_Lower (State) = "try" then
+         Token := Expect (State, "try");
+         Result := New_Expr;
+         Result.Kind := CM.Expr_Try;
          Result.Inner := Parse_Primary (State);
          Result.Span := CM.Join (Token.Span, Result.Inner.Span);
          return Result;

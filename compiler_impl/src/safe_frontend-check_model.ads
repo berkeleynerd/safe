@@ -29,6 +29,7 @@ package Safe_Frontend.Check_Model is
       Expr_Array_Literal,
       Expr_Tuple,
       Expr_Annotated,
+      Expr_Try,
       Expr_Unary,
       Expr_Binary,
       Expr_Subtype_Indication);
@@ -292,6 +293,22 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Case_Arm);
 
+   type Match_Arm_Kind is
+     (Match_Arm_Unknown,
+      Match_Arm_Ok,
+      Match_Arm_Fail);
+
+   type Match_Arm is record
+      Kind       : Match_Arm_Kind := Match_Arm_Unknown;
+      Binder     : FT.UString := FT.To_UString ("");
+      Statements : Statement_Access_Vectors.Vector;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Match_Arm_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Match_Arm);
+
    type Select_Arm_Kind is
      (Select_Arm_Unknown,
       Select_Arm_Channel,
@@ -343,6 +360,7 @@ package Safe_Frontend.Check_Model is
       Stmt_Receive,
       Stmt_Try_Send,
       Stmt_Try_Receive,
+      Stmt_Match,
       Stmt_Select,
       Stmt_Delay);
 
@@ -366,6 +384,7 @@ package Safe_Frontend.Check_Model is
       Call          : Expr_Access := null;
       Condition     : Expr_Access := null;
       Case_Expr     : Expr_Access := null;
+      Match_Expr    : Expr_Access := null;
       Channel_Name  : Expr_Access := null;
       Success_Var   : Expr_Access := null;
       Then_Stmts    : Statement_Access_Vectors.Vector;
@@ -373,6 +392,7 @@ package Safe_Frontend.Check_Model is
       Has_Else      : Boolean := False;
       Else_Stmts    : Statement_Access_Vectors.Vector;
       Case_Arms     : Case_Arm_Vectors.Vector;
+      Match_Arms    : Match_Arm_Vectors.Vector;
       Loop_Var      : FT.UString := FT.To_UString ("");
       Loop_Range    : Discrete_Range;
       Loop_Iterable : Expr_Access := null;
@@ -382,6 +402,7 @@ package Safe_Frontend.Check_Model is
       Declarations  : Object_Decl_Vectors.Vector;
       Arms          : Select_Arm_Vectors.Vector;
       Scope_Id      : FT.UString := FT.To_UString ("");
+      Is_Synthetic  : Boolean := False;
    end record;
 
    type Subprogram_Spec is record

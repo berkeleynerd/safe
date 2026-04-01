@@ -673,10 +673,105 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return FT.Lowercase (UString_Value (Base_Type (Info, Type_Env).Kind)) = "array";
    end Is_Array_Type;
+
    function Is_Name_Expr (Expr : CM.Expr_Access) return Boolean is
    begin
       return Expr /= null and then Expr.Kind in CM.Expr_Ident | CM.Expr_Select;
    end Is_Name_Expr;
+
+   function Is_Result_Builtin_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+   begin
+      return Base.Is_Result_Builtin
+        or else FT.Lowercase (UString_Value (Base.Name)) = "result";
+   end Is_Result_Builtin_Type;
+
+   function Try_Result_Carrier_Success_Type
+     (Info         : GM.Type_Descriptor;
+      Type_Env     : Type_Maps.Map;
+      Success_Type : out GM.Type_Descriptor) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+   begin
+      Success_Type := (others => <>);
+      if FT.Lowercase (UString_Value (Base.Kind)) /= "tuple"
+        or else Natural (Base.Tuple_Element_Types.Length) /= 2
+      then
+         return False;
+      end if;
+
+      declare
+         Result_Type : constant GM.Type_Descriptor :=
+           Resolve_Type
+             (UString_Value (Base.Tuple_Element_Types (Base.Tuple_Element_Types.First_Index)),
+              Type_Env,
+              "",
+              FT.Null_Span);
+      begin
+         if not Is_Result_Builtin_Type (Result_Type, Type_Env) then
+            return False;
+         end if;
+      end;
+
+      Success_Type :=
+        Resolve_Type
+          (UString_Value (Base.Tuple_Element_Types (Base.Tuple_Element_Types.First_Index + 1)),
+           Type_Env,
+           "",
+           FT.Null_Span);
+      return True;
+   end Try_Result_Carrier_Success_Type;
+
+   function Expr_Contains_Try (Expr : CM.Expr_Access) return Boolean is
+   begin
+      if Expr = null then
+         return False;
+      elsif Expr.Kind = CM.Expr_Try then
+         return True;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary | CM.Expr_Try =>
+            return Expr_Contains_Try (Expr.Prefix)
+              or else Expr_Contains_Try (Expr.Inner);
+         when CM.Expr_Resolved_Index | CM.Expr_Call | CM.Expr_Apply =>
+            if Expr_Contains_Try (Expr.Prefix)
+              or else Expr_Contains_Try (Expr.Callee)
+            then
+               return True;
+            end if;
+            for Item of Expr.Args loop
+               if Expr_Contains_Try (Item) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Binary =>
+            return Expr_Contains_Try (Expr.Left)
+              or else Expr_Contains_Try (Expr.Right);
+         when CM.Expr_Allocator =>
+            return Expr_Contains_Try (Expr.Value);
+         when CM.Expr_Aggregate =>
+            for Item of Expr.Fields loop
+               if Expr_Contains_Try (Item.Expr) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               if Expr_Contains_Try (Item) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when others =>
+            return False;
+      end case;
+   end Expr_Contains_Try;
 
    function Is_Bounded_String_Type
      (Info     : GM.Type_Descriptor;
@@ -1279,6 +1374,8 @@ package body Safe_Frontend.Check_Resolve is
             return UString_Value (Expr.Name);
          when CM.Expr_Select =>
             return Expr_Text (Expr.Prefix) & "." & UString_Value (Expr.Selector);
+         when CM.Expr_Try =>
+            return "try " & Expr_Text (Expr.Inner);
          when CM.Expr_Unary =>
             return UString_Value (Expr.Operator) & Expr_Text (Expr.Inner);
          when CM.Expr_Binary =>
@@ -2375,6 +2472,18 @@ package body Safe_Frontend.Check_Resolve is
             then
                return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
             end if;
+         when CM.Expr_Try =>
+            declare
+               Success_Type : GM.Type_Descriptor;
+            begin
+               if Try_Result_Carrier_Success_Type
+                 (Expr_Type (Expr.Inner, Var_Types, Functions, Type_Env),
+                  Type_Env,
+                  Success_Type)
+               then
+                  return Success_Type;
+               end if;
+            end;
          when CM.Expr_Allocator =>
             if Expr.Value /= null then
                if Expr.Value.Kind = CM.Expr_Annotated and then Expr.Value.Target /= null then
@@ -2545,6 +2654,8 @@ package body Safe_Frontend.Check_Resolve is
             end loop;
          when CM.Expr_Allocator =>
             Recurse (Expr.Value);
+         when CM.Expr_Try =>
+            Recurse (Expr.Inner);
          when CM.Expr_Aggregate =>
             for Item of Expr.Fields loop
                Recurse (Item.Expr);
@@ -2820,6 +2931,9 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Expr_Annotated =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
+         when CM.Expr_Try =>
+            Result := new CM.Expr_Node'(Expr.all);
+            Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
          when others =>
             Result := new CM.Expr_Node'(Expr.all);
       end case;
@@ -2913,6 +3027,8 @@ package body Safe_Frontend.Check_Resolve is
             Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
          when CM.Expr_Allocator =>
             Validate_Pr112_Expr_Boundaries (Expr.Value, Var_Types, Functions, Type_Env, Path);
+         when CM.Expr_Try =>
+            Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
          when CM.Expr_Aggregate =>
             for Item of Expr.Fields loop
                Validate_Pr112_Expr_Boundaries (Item.Expr, Var_Types, Functions, Type_Env, Path);
@@ -3088,19 +3204,65 @@ package body Safe_Frontend.Check_Resolve is
       end case;
    end Validate_Pr112_Expr_Boundaries;
 
+   procedure Reject_Non_Executable_Try
+     (Expr : CM.Expr_Access;
+      Path : String) is
+   begin
+      if Expr = null then
+         return;
+      elsif Expr.Kind = CM.Expr_Try then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Expr.Span,
+               Message => "`try` is allowed only in executable statements inside functions returning `(result, T)`"));
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary =>
+            Reject_Non_Executable_Try (Expr.Prefix, Path);
+            Reject_Non_Executable_Try (Expr.Inner, Path);
+         when CM.Expr_Resolved_Index | CM.Expr_Call | CM.Expr_Apply =>
+            Reject_Non_Executable_Try (Expr.Prefix, Path);
+            Reject_Non_Executable_Try (Expr.Callee, Path);
+            for Item of Expr.Args loop
+               Reject_Non_Executable_Try (Item, Path);
+            end loop;
+         when CM.Expr_Binary =>
+            Reject_Non_Executable_Try (Expr.Left, Path);
+            Reject_Non_Executable_Try (Expr.Right, Path);
+         when CM.Expr_Allocator =>
+            Reject_Non_Executable_Try (Expr.Value, Path);
+         when CM.Expr_Aggregate =>
+            for Item of Expr.Fields loop
+               Reject_Non_Executable_Try (Item.Expr, Path);
+            end loop;
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               Reject_Non_Executable_Try (Item, Path);
+            end loop;
+         when others =>
+            null;
+      end case;
+   end Reject_Non_Executable_Try;
+
    function Normalize_Expr_Checked
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map;
-      Path      : String) return CM.Expr_Access
+      Path      : String;
+      Allow_Try : Boolean := False) return CM.Expr_Access
    is
       Result : constant CM.Expr_Access :=
         Normalize_Expr (Expr, Var_Types, Functions, Type_Env, Const_Env);
    begin
       Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
       Validate_Print_Call_Context (Result, Var_Types, Functions, Type_Env, Path);
+      if not Allow_Try then
+         Reject_Non_Executable_Try (Result, Path);
+      end if;
       return Result;
    end Normalize_Expr_Checked;
 
@@ -3789,7 +3951,8 @@ package body Safe_Frontend.Check_Resolve is
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map;
-      Path      : String) return CM.Expr_Access
+      Path      : String;
+      Allow_Try : Boolean := False) return CM.Expr_Access
    is
       Result : CM.Expr_Access := Expr;
       Name   : FT.UString := FT.To_UString ("");
@@ -3821,7 +3984,8 @@ package body Safe_Frontend.Check_Resolve is
                      Functions,
                      Type_Env,
                      Const_Env,
-                     Path));
+                     Path,
+                     Allow_Try => Allow_Try));
             end loop;
          end if;
          Name := FT.To_UString (Flatten_Name (Result.Callee));
@@ -3860,7 +4024,8 @@ package body Safe_Frontend.Check_Resolve is
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map;
-      Path      : String) return CM.Expr_Access
+      Path      : String;
+      Allow_Try : Boolean := False) return CM.Expr_Access
    is
       Result : constant CM.Expr_Access :=
         Normalize_Expr (Expr, Var_Types, Functions, Type_Env, Const_Env);
@@ -3873,6 +4038,9 @@ package body Safe_Frontend.Check_Resolve is
          Type_Env,
          Path,
          Allow_Root_Print => True);
+      if not Allow_Try then
+         Reject_Non_Executable_Try (Result, Path);
+      end if;
       return
         Normalize_Procedure_Call
           (Result,
@@ -3880,7 +4048,8 @@ package body Safe_Frontend.Check_Resolve is
            Functions,
            Type_Env,
            Const_Env,
-           Path);
+           Path,
+           Allow_Try => Allow_Try);
    end Normalize_Procedure_Call_Checked;
 
    function Channel_Element_Type
@@ -4217,6 +4386,494 @@ package body Safe_Frontend.Check_Resolve is
       end if;
    end Ensure_Writable_Target;
 
+   Synthetic_Name_Counter : Natural := 0;
+
+   type Desugared_Expr_Result is record
+      Expr     : CM.Expr_Access := null;
+      Preludes : CM.Statement_Access_Vectors.Vector;
+   end record;
+
+   function Next_Synthetic_Name (Prefix : String) return String is
+   begin
+      Synthetic_Name_Counter := Synthetic_Name_Counter + 1;
+      return Prefix & "_" & Ada.Strings.Fixed.Trim (Natural'Image (Synthetic_Name_Counter), Ada.Strings.Both);
+   end Next_Synthetic_Name;
+
+   procedure Append_Statements
+     (Target : in out CM.Statement_Access_Vectors.Vector;
+      Items  : CM.Statement_Access_Vectors.Vector) is
+   begin
+      for Item of Items loop
+         Target.Append (Item);
+      end loop;
+   end Append_Statements;
+
+   function Ident_Expr
+     (Name      : String;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind      => CM.Expr_Ident,
+           Span      => Span,
+           Type_Name => FT.To_UString (Type_Name),
+           Name      => FT.To_UString (Name),
+           others    => <>);
+   end Ident_Expr;
+
+   function Selector_Expr
+     (Prefix    : CM.Expr_Access;
+      Selector  : String;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind      => CM.Expr_Select,
+           Span      => Span,
+           Type_Name => FT.To_UString (Type_Name),
+           Prefix    => Prefix,
+           Selector  => FT.To_UString (Selector),
+           others    => <>);
+   end Selector_Expr;
+
+   function Unary_Expr
+     (Operator  : String;
+      Inner     : CM.Expr_Access;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind      => CM.Expr_Unary,
+           Span      => Span,
+           Type_Name => FT.To_UString (Type_Name),
+           Operator  => FT.To_UString (Operator),
+           Inner     => Inner,
+           others    => <>);
+   end Unary_Expr;
+
+   function Tuple_Expr
+     (First     : CM.Expr_Access;
+      Second    : CM.Expr_Access;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access := new CM.Expr_Node;
+   begin
+      Result.Kind := CM.Expr_Tuple;
+      Result.Span := Span;
+      Result.Type_Name := FT.To_UString (Type_Name);
+      Result.Elements.Append (First);
+      Result.Elements.Append (Second);
+      return Result;
+   end Tuple_Expr;
+
+   function Default_Initializer_Expr
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Span     : FT.Source_Span) return CM.Expr_Access
+   is
+      Kind   : constant String := FT.Lowercase (UString_Value (Info.Kind));
+      Name   : constant String := FT.Lowercase (UString_Value (Info.Name));
+      Result : CM.Expr_Access;
+      Field  : CM.Aggregate_Field;
+   begin
+      if Kind = "subtype"
+        and then UString_Value (Info.Base)'Length > 0
+        and then not Info.Has_Low
+        and then not Info.Has_High
+        and then not Info.Has_Float_Low_Text
+        and then not Info.Has_Float_High_Text
+      then
+         return Default_Initializer_Expr
+           (Resolve_Type (UString_Value (Info.Base), Type_Env, "", FT.Null_Span),
+            Type_Env,
+            Span);
+      elsif Kind = "access" then
+         return
+           new CM.Expr_Node'
+             (Kind      => CM.Expr_Null,
+              Span      => Span,
+              Type_Name => FT.To_UString (UString_Value (Info.Name)),
+              Text      => FT.To_UString ("null"),
+              others    => <>);
+      elsif Name = "string" then
+         return
+           new CM.Expr_Node'
+             (Kind      => CM.Expr_String,
+              Span      => Span,
+              Type_Name => FT.To_UString ("string"),
+              Text      => FT.To_UString (""),
+              others    => <>);
+      elsif Info.Is_Result_Builtin then
+         Result := new CM.Expr_Node;
+         Result.Kind := CM.Expr_Call;
+         Result.Type_Name := FT.To_UString (UString_Value (Info.Name));
+         Result.Span := Span;
+         Result.Callee :=
+           Ident_Expr
+             (Name      => "ok",
+              Span      => Span,
+              Type_Name => UString_Value (Info.Name));
+         return Result;
+      elsif Kind = "record" then
+         Result := new CM.Expr_Node;
+         Result.Kind := CM.Expr_Aggregate;
+         Result.Type_Name := Info.Name;
+         Result.Span := Span;
+         for Item of Info.Fields loop
+            Field.Field_Name := Item.Name;
+            Field.Expr := Default_Initializer_Expr
+              (Resolve_Type (UString_Value (Item.Type_Name), Type_Env, "", FT.Null_Span),
+               Type_Env,
+               Span);
+            Field.Span := Span;
+            Result.Fields.Append (Field);
+         end loop;
+         return Result;
+      elsif Kind = "tuple" then
+         Result := new CM.Expr_Node;
+         Result.Kind := CM.Expr_Tuple;
+         Result.Type_Name := Info.Name;
+         Result.Span := Span;
+         for Item of Info.Tuple_Element_Types loop
+            Result.Elements.Append
+              (Default_Initializer_Expr
+                 (Resolve_Type (UString_Value (Item), Type_Env, "", FT.Null_Span),
+                  Type_Env,
+                  Span));
+         end loop;
+         return Result;
+      end if;
+
+      return Selector_Expr
+        (Prefix    => Ident_Expr (UString_Value (Info.Name), Span, UString_Value (Info.Name)),
+         Selector  => "first",
+         Span      => Span,
+         Type_Name => UString_Value (Info.Name));
+   end Default_Initializer_Expr;
+
+   function Synthetic_Object_Decl_Stmt
+     (Name        : String;
+      Type_Info   : GM.Type_Descriptor;
+      Initializer : CM.Expr_Access;
+      Span        : FT.Source_Span;
+      Is_Constant : Boolean := True) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_Object_Decl;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Decl.Names.Append (FT.To_UString (Name));
+      Result.Decl.Type_Info := Type_Info;
+      Result.Decl.Is_Constant := Is_Constant;
+      Result.Decl.Has_Initializer := Initializer /= null;
+      Result.Decl.Initializer := Initializer;
+      Result.Decl.Span := Span;
+      return Result;
+   end Synthetic_Object_Decl_Stmt;
+
+   function Synthetic_Return_Stmt
+     (Value : CM.Expr_Access;
+      Span  : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_Return;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Value := Value;
+      return Result;
+   end Synthetic_Return_Stmt;
+
+   function Synthetic_If_Stmt
+     (Condition  : CM.Expr_Access;
+      Then_Stmts : CM.Statement_Access_Vectors.Vector;
+      Span       : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_If;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Condition := Condition;
+      Result.Then_Stmts := Then_Stmts;
+      return Result;
+   end Synthetic_If_Stmt;
+
+   function Desugar_Executable_Expr
+     (Expr                : CM.Expr_Access;
+      Var_Types           : Type_Maps.Map;
+      Functions           : Function_Maps.Map;
+      Type_Env            : Type_Maps.Map;
+      Has_Enclosing_Return : Boolean;
+      Enclosing_Return_Type : GM.Type_Descriptor;
+      Path                : String;
+      Reject_Short_Circuit_Try : Boolean := False) return Desugared_Expr_Result
+   is
+      Result          : Desugared_Expr_Result;
+      Child           : Desugared_Expr_Result;
+      Left_Result     : Desugared_Expr_Result;
+      Right_Result    : Desugared_Expr_Result;
+      Carrier_Type    : GM.Type_Descriptor;
+      Success_Type    : GM.Type_Descriptor;
+      Return_Success  : GM.Type_Descriptor;
+      Temp_Name       : FT.UString := FT.To_UString ("");
+      Then_Stmts      : CM.Statement_Access_Vectors.Vector;
+      Conditional_Right : Boolean := False;
+   begin
+      if Expr = null then
+         return Result;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Try =>
+            if Reject_Short_Circuit_Try then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "`try` is not yet supported in the right operand of `and then` or `or else`"));
+            end if;
+
+            Child :=
+              Desugar_Executable_Expr
+                (Expr.Inner,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path);
+            Result.Preludes := Child.Preludes;
+            Carrier_Type := Expr_Type (Child.Expr, Var_Types, Functions, Type_Env);
+            if not Try_Result_Carrier_Success_Type (Carrier_Type, Type_Env, Success_Type) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "`try` expects an expression of type `(result, T)`"));
+            elsif not Has_Enclosing_Return
+              or else not Try_Result_Carrier_Success_Type
+                (Enclosing_Return_Type, Type_Env, Return_Success)
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "`try` requires an enclosing function returning `(result, T)`"));
+            end if;
+
+            Temp_Name := FT.To_UString (Next_Synthetic_Name ("safe_try_tmp"));
+            Result.Preludes.Append
+              (Synthetic_Object_Decl_Stmt (UString_Value (Temp_Name), Carrier_Type, Child.Expr, Expr.Span));
+            Then_Stmts.Append
+              (Synthetic_Return_Stmt
+                 (Tuple_Expr
+                    (Selector_Expr
+                       (Ident_Expr (UString_Value (Temp_Name), Expr.Span, UString_Value (Carrier_Type.Name)),
+                        "1",
+                        Expr.Span,
+                        UString_Value (BT.Result_Type.Name)),
+                     Default_Initializer_Expr (Return_Success, Type_Env, Expr.Span),
+                     Expr.Span,
+                     UString_Value (Enclosing_Return_Type.Name)),
+                  Expr.Span));
+            Result.Preludes.Append
+              (Synthetic_If_Stmt
+                 (Unary_Expr
+                    ("not",
+                     Selector_Expr
+                       (Selector_Expr
+                          (Ident_Expr (UString_Value (Temp_Name), Expr.Span, UString_Value (Carrier_Type.Name)),
+                           "1",
+                           Expr.Span,
+                           UString_Value (BT.Result_Type.Name)),
+                        "ok",
+                        Expr.Span,
+                        "boolean"),
+                     Expr.Span,
+                     "boolean"),
+                  Then_Stmts,
+                  Expr.Span));
+            Result.Expr :=
+              Selector_Expr
+                (Ident_Expr (UString_Value (Temp_Name), Expr.Span, UString_Value (Carrier_Type.Name)),
+                 "2",
+                 Expr.Span,
+                 UString_Value (Success_Type.Name));
+            return Result;
+
+         when CM.Expr_Select =>
+            Child :=
+              Desugar_Executable_Expr
+                (Expr.Prefix,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path,
+                 Reject_Short_Circuit_Try);
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Result.Expr.Prefix := Child.Expr;
+            Result.Preludes := Child.Preludes;
+
+         when CM.Expr_Resolved_Index =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Result.Expr.Args.Clear;
+            Child :=
+              Desugar_Executable_Expr
+                (Expr.Prefix,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path,
+                 Reject_Short_Circuit_Try);
+            Result.Expr.Prefix := Child.Expr;
+            Result.Preludes := Child.Preludes;
+            for Item of Expr.Args loop
+               Child :=
+                 Desugar_Executable_Expr
+                   (Item,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path,
+                    Reject_Short_Circuit_Try);
+               Append_Statements (Result.Preludes, Child.Preludes);
+               Result.Expr.Args.Append (Child.Expr);
+            end loop;
+
+         when CM.Expr_Call | CM.Expr_Apply =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Result.Expr.Args.Clear;
+            Child :=
+              Desugar_Executable_Expr
+                (Expr.Callee,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path,
+                 Reject_Short_Circuit_Try);
+            Result.Expr.Callee := Child.Expr;
+            Result.Preludes := Child.Preludes;
+            for Item of Expr.Args loop
+               Child :=
+                 Desugar_Executable_Expr
+                   (Item,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path,
+                    Reject_Short_Circuit_Try);
+               Append_Statements (Result.Preludes, Child.Preludes);
+               Result.Expr.Args.Append (Child.Expr);
+            end loop;
+
+         when CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Child :=
+              Desugar_Executable_Expr
+                (Expr.Inner,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path,
+                 Reject_Short_Circuit_Try);
+            Result.Expr.Inner := Child.Expr;
+            Result.Preludes := Child.Preludes;
+
+         when CM.Expr_Binary =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Left_Result :=
+              Desugar_Executable_Expr
+                (Expr.Left,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path,
+                 Reject_Short_Circuit_Try);
+            Conditional_Right := Reject_Short_Circuit_Try
+              or else UString_Value (Expr.Operator) in "and then" | "or else";
+            Right_Result :=
+              Desugar_Executable_Expr
+                (Expr.Right,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type,
+                 Path,
+                 Conditional_Right);
+            Result.Expr.Left := Left_Result.Expr;
+            Result.Expr.Right := Right_Result.Expr;
+            Result.Preludes := Left_Result.Preludes;
+            Append_Statements (Result.Preludes, Right_Result.Preludes);
+
+         when CM.Expr_Aggregate =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Result.Expr.Fields.Clear;
+            for Item of Expr.Fields loop
+               declare
+                  New_Field : CM.Aggregate_Field := Item;
+               begin
+                  Child :=
+                    Desugar_Executable_Expr
+                      (Item.Expr,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Append_Statements (Result.Preludes, Child.Preludes);
+                  New_Field.Expr := Child.Expr;
+                  Result.Expr.Fields.Append (New_Field);
+               end;
+            end loop;
+
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+            Result.Expr.Elements.Clear;
+            for Item of Expr.Elements loop
+               Child :=
+                 Desugar_Executable_Expr
+                   (Item,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path,
+                    Reject_Short_Circuit_Try);
+               Append_Statements (Result.Preludes, Child.Preludes);
+               Result.Expr.Elements.Append (Child.Expr);
+            end loop;
+
+         when others =>
+            Result.Expr := new CM.Expr_Node'(Expr.all);
+      end case;
+
+      return Result;
+   end Desugar_Executable_Expr;
+
    function Normalize_Statement
      (Stmt        : CM.Statement_Access;
       Var_Types   : Type_Maps.Map;
@@ -4227,7 +4884,9 @@ package body Safe_Frontend.Check_Resolve is
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
       Exact_Length_Facts : Exact_Length_Maps.Map;
-      Path        : String) return CM.Statement_Access;
+      Path        : String;
+      Has_Enclosing_Return : Boolean := False;
+      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>)) return CM.Statement_Access_Vectors.Vector;
 
    function Normalize_Statement_List
      (Statements  : CM.Statement_Access_Vectors.Vector;
@@ -4239,7 +4898,9 @@ package body Safe_Frontend.Check_Resolve is
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
       Exact_Length_Facts : Exact_Length_Maps.Map;
-      Path        : String) return CM.Statement_Access_Vectors.Vector
+      Path        : String;
+      Has_Enclosing_Return : Boolean := False;
+      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>)) return CM.Statement_Access_Vectors.Vector
    is
       Result      : CM.Statement_Access_Vectors.Vector;
       Local_Types : Type_Maps.Map := Var_Types;
@@ -4249,7 +4910,7 @@ package body Safe_Frontend.Check_Resolve is
    begin
       for Item of Statements loop
          declare
-            Normalized : constant CM.Statement_Access :=
+            Normalized_Items : constant CM.Statement_Access_Vectors.Vector :=
               Normalize_Statement
                 (Item,
                  Local_Types,
@@ -4260,73 +4921,77 @@ package body Safe_Frontend.Check_Resolve is
                  Current_Constants,
                  Current_Static_Constants,
                  Current_Exact_Length_Facts,
-                 Path);
+                 Path,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type);
          begin
-            Result.Append (Normalized);
-            if Normalized.Kind = CM.Stmt_Object_Decl then
-               for Name of Normalized.Decl.Names loop
-                  Put_Type (Local_Types, UString_Value (Name), Normalized.Decl.Type_Info);
-                  Update_Constant_Visibility
-                    (Current_Constants,
-                     UString_Value (Name),
-                     Normalized.Decl.Type_Info,
-                     Normalized.Decl.Is_Constant);
-                  Update_Static_Constant_Visibility
-                    (Current_Static_Constants,
-                     UString_Value (Name),
-                     Normalized.Decl.Initializer,
-                     Normalized.Decl.Is_Constant,
-                     Current_Static_Constants);
-                  Remove_Exact_Length_Fact (Current_Exact_Length_Facts, UString_Value (Name));
-               end loop;
-            elsif Normalized.Kind = CM.Stmt_Destructure_Decl then
-               declare
-                  Tuple_Type : constant GM.Type_Descriptor := Base_Type (Normalized.Destructure.Type_Info, Type_Env);
-               begin
-                  for Index in Normalized.Destructure.Names.First_Index .. Normalized.Destructure.Names.Last_Index loop
-                     Put_Type
-                       (Local_Types,
-                        UString_Value (Normalized.Destructure.Names (Index)),
-                        Resolve_Type
-                          (UString_Value (Tuple_Type.Tuple_Element_Types (Index)),
-                           Type_Env,
-                           "",
-                           FT.Null_Span));
-                     Remove_Type (Current_Constants, UString_Value (Normalized.Destructure.Names (Index)));
-                     Remove_Static_Value
+            for Normalized of Normalized_Items loop
+               Result.Append (Normalized);
+               if Normalized.Kind = CM.Stmt_Object_Decl then
+                  for Name of Normalized.Decl.Names loop
+                     Put_Type (Local_Types, UString_Value (Name), Normalized.Decl.Type_Info);
+                     Update_Constant_Visibility
+                       (Current_Constants,
+                        UString_Value (Name),
+                        Normalized.Decl.Type_Info,
+                        Normalized.Decl.Is_Constant);
+                     Update_Static_Constant_Visibility
                        (Current_Static_Constants,
-                        UString_Value (Normalized.Destructure.Names (Index)));
-                     Remove_Exact_Length_Fact
-                       (Current_Exact_Length_Facts,
-                        UString_Value (Normalized.Destructure.Names (Index)));
+                        UString_Value (Name),
+                        Normalized.Decl.Initializer,
+                        Normalized.Decl.Is_Constant,
+                        Current_Static_Constants);
+                     Remove_Exact_Length_Fact (Current_Exact_Length_Facts, UString_Value (Name));
                   end loop;
-               end;
-            elsif Normalized.Kind = CM.Stmt_Assign then
-               Remove_Exact_Length_Fact
-                 (Current_Exact_Length_Facts,
-                  Exact_Length_Fact_Name (Normalized.Target));
-            elsif Normalized.Kind = CM.Stmt_Call
-              and then Normalized.Call /= null
-              and then Has_Function (Functions, Flatten_Name (Normalized.Call.Callee))
-            then
-               declare
-                  Info : constant Function_Info :=
-                    Get_Function (Functions, Flatten_Name (Normalized.Call.Callee));
-               begin
-                  for Index in Info.Params.First_Index .. Info.Params.Last_Index loop
-                     exit when Index > Normalized.Call.Args.Last_Index;
-                     if UString_Value (Info.Params (Index).Mode) = "mut" then
+               elsif Normalized.Kind = CM.Stmt_Destructure_Decl then
+                  declare
+                     Tuple_Type : constant GM.Type_Descriptor := Base_Type (Normalized.Destructure.Type_Info, Type_Env);
+                  begin
+                     for Index in Normalized.Destructure.Names.First_Index .. Normalized.Destructure.Names.Last_Index loop
+                        Put_Type
+                          (Local_Types,
+                           UString_Value (Normalized.Destructure.Names (Index)),
+                           Resolve_Type
+                             (UString_Value (Tuple_Type.Tuple_Element_Types (Index)),
+                              Type_Env,
+                              "",
+                              FT.Null_Span));
+                        Remove_Type (Current_Constants, UString_Value (Normalized.Destructure.Names (Index)));
+                        Remove_Static_Value
+                          (Current_Static_Constants,
+                           UString_Value (Normalized.Destructure.Names (Index)));
                         Remove_Exact_Length_Fact
                           (Current_Exact_Length_Facts,
-                           Exact_Length_Fact_Name (Normalized.Call.Args (Index)));
-                     end if;
-                  end loop;
-               end;
-            elsif Normalized.Kind in CM.Stmt_Receive | CM.Stmt_Try_Receive then
-               Remove_Exact_Length_Fact
-                 (Current_Exact_Length_Facts,
-                  Exact_Length_Fact_Name (Normalized.Target));
-            end if;
+                           UString_Value (Normalized.Destructure.Names (Index)));
+                     end loop;
+                  end;
+               elsif Normalized.Kind = CM.Stmt_Assign then
+                  Remove_Exact_Length_Fact
+                    (Current_Exact_Length_Facts,
+                     Exact_Length_Fact_Name (Normalized.Target));
+               elsif Normalized.Kind = CM.Stmt_Call
+                 and then Normalized.Call /= null
+                 and then Has_Function (Functions, Flatten_Name (Normalized.Call.Callee))
+               then
+                  declare
+                     Info : constant Function_Info :=
+                       Get_Function (Functions, Flatten_Name (Normalized.Call.Callee));
+                  begin
+                     for Index in Info.Params.First_Index .. Info.Params.Last_Index loop
+                        exit when Index > Normalized.Call.Args.Last_Index;
+                        if UString_Value (Info.Params (Index).Mode) = "mut" then
+                           Remove_Exact_Length_Fact
+                             (Current_Exact_Length_Facts,
+                              Exact_Length_Fact_Name (Normalized.Call.Args (Index)));
+                        end if;
+                     end loop;
+                  end;
+               elsif Normalized.Kind in CM.Stmt_Receive | CM.Stmt_Try_Receive then
+                  Remove_Exact_Length_Fact
+                    (Current_Exact_Length_Facts,
+                     Exact_Length_Fact_Name (Normalized.Target));
+               end if;
+            end loop;
          end;
       end loop;
       return Result;
@@ -4342,8 +5007,11 @@ package body Safe_Frontend.Check_Resolve is
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
       Exact_Length_Facts : Exact_Length_Maps.Map;
-      Path        : String) return CM.Statement_Access
+      Path        : String;
+      Has_Enclosing_Return : Boolean := False;
+      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>)) return CM.Statement_Access_Vectors.Vector
    is
+      Expanded       : CM.Statement_Access_Vectors.Vector;
       Result         : constant CM.Statement_Access := new CM.Statement'(Stmt.all);
       Local_Types    : Type_Maps.Map := Var_Types;
       Current_Constants : Type_Maps.Map := Local_Constants;
@@ -4356,15 +5024,49 @@ package body Safe_Frontend.Check_Resolve is
    begin
       case Stmt.Kind is
          when CM.Stmt_Object_Decl =>
-            Result.Decl :=
-              Normalize_Object_Decl
-                (Stmt.Decl,
-                 Var_Types,
-                 Functions,
-                 Type_Env,
-                 Local_Static_Constants,
-                 Exact_Length_Facts,
-                 Path);
+            if Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null then
+               declare
+                  Temp_Decl : CM.Object_Decl := Stmt.Decl;
+                  Desugared : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Normalize_Expr_Checked
+                         (Stmt.Decl.Initializer,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Local_Static_Constants,
+                          Path,
+                          Allow_Try => True),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path);
+               begin
+                  Append_Statements (Expanded, Desugared.Preludes);
+                  Temp_Decl.Initializer := Desugared.Expr;
+                  Result.Decl :=
+                    Normalize_Object_Decl
+                      (Temp_Decl,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Exact_Length_Facts,
+                       Path);
+               end;
+            else
+               Result.Decl :=
+                 Normalize_Object_Decl
+                   (Stmt.Decl,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Local_Static_Constants,
+                    Exact_Length_Facts,
+                    Path);
+            end if;
 
          when CM.Stmt_Destructure_Decl =>
             Result.Destructure := Stmt.Destructure;
@@ -4385,9 +5087,27 @@ package body Safe_Frontend.Check_Resolve is
                      Span    => Stmt.Destructure.Span,
                      Message => "destructuring declarations require an initializer"));
             end if;
-            Result.Destructure.Initializer :=
-              Normalize_Expr_Checked
-                (Stmt.Destructure.Initializer, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Destructure.Initializer,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
+            begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Destructure.Initializer := Desugared.Expr;
+            end;
             Reject_Static_Bounded_String_Overflow
               (Result.Destructure.Initializer,
                Result.Destructure.Type_Info,
@@ -4442,13 +5162,28 @@ package body Safe_Frontend.Check_Resolve is
                Local_Static_Constants,
                Path,
                "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
-            Result.Value :=
-              Normalize_Expr_Checked
-                (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Value,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
                Target_Info : constant GM.Type_Descriptor :=
                  Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
             begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Value := Desugared.Expr;
                if Result.Value.Kind = CM.Expr_Resolved_Index
                  and then Result.Value.Prefix /= null
                then
@@ -4521,20 +5256,53 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Return =>
             if Stmt.Value /= null then
-               Result.Value :=
-                 Normalize_Expr_Checked
-                   (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+               declare
+                  Desugared : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Normalize_Expr_Checked
+                         (Stmt.Value,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Local_Static_Constants,
+                          Path,
+                          Allow_Try => True),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path);
+               begin
+                  Append_Statements (Expanded, Desugared.Preludes);
+                  Result.Value := Desugared.Expr;
+               end;
             end if;
 
          when CM.Stmt_If =>
-            Result.Condition :=
-              Normalize_Expr_Checked
-                (Stmt.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Condition,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
                Then_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
                Guard_Name : FT.UString := FT.To_UString ("");
                Guard_Length : Natural := 0;
             begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Condition := Desugared.Expr;
                if Try_Direct_Growable_Length_Guard
                  (Result.Condition,
                   Var_Types,
@@ -4557,7 +5325,9 @@ package body Safe_Frontend.Check_Resolve is
                     Local_Constants,
                     Local_Static_Constants,
                     Then_Exact_Length_Facts,
-                    Path);
+                    Path,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type);
             end;
             Result.Elsifs.Clear;
             for Part of Stmt.Elsifs loop
@@ -4567,9 +5337,27 @@ package body Safe_Frontend.Check_Resolve is
                   Guard_Name : FT.UString := FT.To_UString ("");
                   Guard_Length : Natural := 0;
                begin
-                  New_Part.Condition :=
-                    Normalize_Expr_Checked
-                      (Part.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+                  declare
+                     Desugared : constant Desugared_Expr_Result :=
+                       Desugar_Executable_Expr
+                         (Normalize_Expr_Checked
+                            (Part.Condition,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Local_Static_Constants,
+                             Path,
+                             Allow_Try => True),
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type,
+                          Path);
+                  begin
+                     Append_Statements (Expanded, Desugared.Preludes);
+                     New_Part.Condition := Desugared.Expr;
+                  end;
                   if Try_Direct_Growable_Length_Guard
                     (New_Part.Condition,
                      Var_Types,
@@ -4592,7 +5380,9 @@ package body Safe_Frontend.Check_Resolve is
                        Local_Constants,
                        Local_Static_Constants,
                        Elsif_Exact_Length_Facts,
-                       Path);
+                       Path,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type);
                   Result.Elsifs.Append (New_Part);
                end;
             end loop;
@@ -4608,20 +5398,37 @@ package body Safe_Frontend.Check_Resolve is
                     Local_Constants,
                     Local_Static_Constants,
                     Exact_Length_Facts,
-                    Path);
+                    Path,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type);
             end if;
 
          when CM.Stmt_While =>
-            Result.Condition :=
-              Normalize_Expr_Checked
-                (Stmt.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
             declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Condition,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
                Body_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
                Guard_Name : FT.UString := FT.To_UString ("");
                Guard_Length : Natural := 0;
+               Normalized_Body : CM.Statement_Access_Vectors.Vector;
+               Exit_Stmt : CM.Statement_Access;
             begin
                if Try_Direct_Growable_Length_Guard
-                 (Result.Condition,
+                 (Desugared.Expr,
                   Var_Types,
                   Functions,
                   Type_Env,
@@ -4631,7 +5438,7 @@ package body Safe_Frontend.Check_Resolve is
                   Body_Exact_Length_Facts.Include
                     (Canonical_Name (UString_Value (Guard_Name)), Guard_Length);
                end if;
-               Result.Body_Stmts :=
+               Normalized_Body :=
                  Normalize_Statement_List
                    (Stmt.Body_Stmts,
                     Var_Types,
@@ -4642,7 +5449,25 @@ package body Safe_Frontend.Check_Resolve is
                     Local_Constants,
                     Local_Static_Constants,
                     Body_Exact_Length_Facts,
-                    Path);
+                    Path,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type);
+               if Desugared.Preludes.Is_Empty then
+                  Result.Condition := Desugared.Expr;
+                  Result.Body_Stmts := Normalized_Body;
+               else
+                  Result.Kind := CM.Stmt_Loop;
+                  Result.Condition := null;
+                  Result.Body_Stmts.Clear;
+                  Append_Statements (Result.Body_Stmts, Desugared.Preludes);
+                  Exit_Stmt := new CM.Statement;
+                  Exit_Stmt.Kind := CM.Stmt_Exit;
+                  Exit_Stmt.Is_Synthetic := True;
+                  Exit_Stmt.Span := Stmt.Condition.Span;
+                  Exit_Stmt.Condition := Unary_Expr ("not", Desugared.Expr, Stmt.Condition.Span, "boolean");
+                  Result.Body_Stmts.Append (Exit_Stmt);
+                  Append_Statements (Result.Body_Stmts, Normalized_Body);
+               end if;
             end;
 
          when CM.Stmt_Loop =>
@@ -4657,13 +5482,33 @@ package body Safe_Frontend.Check_Resolve is
                  Local_Constants,
                  Local_Static_Constants,
                  Exact_Length_Facts,
-                 Path);
+                 Path,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type);
 
          when CM.Stmt_Exit =>
             if Stmt.Condition /= null then
-               Result.Condition :=
-                 Normalize_Expr_Checked
-                   (Stmt.Condition, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+               declare
+                  Desugared : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Normalize_Expr_Checked
+                         (Stmt.Condition,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Local_Static_Constants,
+                          Path,
+                          Allow_Try => True),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path);
+               begin
+                  Append_Statements (Expanded, Desugared.Preludes);
+                  Result.Condition := Desugared.Expr;
+               end;
             end if;
 
          when CM.Stmt_For =>
@@ -4671,10 +5516,25 @@ package body Safe_Frontend.Check_Resolve is
                declare
                   Iterable_Type : GM.Type_Descriptor;
                   Base_Type_Info : GM.Type_Descriptor;
+                  Desugared : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Normalize_Expr_Checked
+                         (Stmt.Loop_Iterable,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Local_Static_Constants,
+                          Path,
+                          Allow_Try => True),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path);
                begin
-                  Result.Loop_Iterable :=
-                    Normalize_Expr_Checked
-                      (Stmt.Loop_Iterable, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+                  Append_Statements (Expanded, Desugared.Preludes);
+                  Result.Loop_Iterable := Desugared.Expr;
                   if not Is_Name_Expr (Result.Loop_Iterable) then
                      Raise_Diag
                        (CM.Source_Frontend_Error
@@ -4734,20 +5594,71 @@ package body Safe_Frontend.Check_Resolve is
             else
                Result.Loop_Range := Stmt.Loop_Range;
                if Stmt.Loop_Range.Kind = CM.Range_Explicit then
-                  Result.Loop_Range.Low_Expr :=
-                    Normalize_Expr_Checked
-                      (Stmt.Loop_Range.Low_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
-                  Result.Loop_Range.High_Expr :=
-                    Normalize_Expr_Checked
-                      (Stmt.Loop_Range.High_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+                  declare
+                     Low_Desugared : constant Desugared_Expr_Result :=
+                       Desugar_Executable_Expr
+                         (Normalize_Expr_Checked
+                            (Stmt.Loop_Range.Low_Expr,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Local_Static_Constants,
+                             Path,
+                             Allow_Try => True),
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type,
+                          Path);
+                     High_Desugared : constant Desugared_Expr_Result :=
+                       Desugar_Executable_Expr
+                         (Normalize_Expr_Checked
+                            (Stmt.Loop_Range.High_Expr,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Local_Static_Constants,
+                             Path,
+                             Allow_Try => True),
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type,
+                          Path);
+                  begin
+                     Append_Statements (Expanded, Low_Desugared.Preludes);
+                     Append_Statements (Expanded, High_Desugared.Preludes);
+                     Result.Loop_Range.Low_Expr := Low_Desugared.Expr;
+                     Result.Loop_Range.High_Expr := High_Desugared.Expr;
+                  end;
                   Loop_Type.Name := FT.To_UString ("integer");
                   Loop_Type.Kind := FT.To_UString ("integer");
                else
-                  Result.Loop_Range.Name_Expr :=
-                    Normalize_Expr_Checked
-                      (Stmt.Loop_Range.Name_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+                  declare
+                     Desugared : constant Desugared_Expr_Result :=
+                       Desugar_Executable_Expr
+                         (Normalize_Expr_Checked
+                            (Stmt.Loop_Range.Name_Expr,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Local_Static_Constants,
+                             Path,
+                             Allow_Try => True),
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type,
+                          Path);
+                  begin
+                     Append_Statements (Expanded, Desugared.Preludes);
+                     Result.Loop_Range.Name_Expr := Desugared.Expr;
+                  end;
                   Loop_Type :=
-                    Resolve_Type (Flatten_Name (Stmt.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
+                    Resolve_Type (Flatten_Name (Result.Loop_Range.Name_Expr), Type_Env, Path, Stmt.Span);
                end if;
             end if;
             Put_Type (Local_Types, UString_Value (Stmt.Loop_Var), Loop_Type);
@@ -4764,25 +5675,58 @@ package body Safe_Frontend.Check_Resolve is
                  Current_Constants,
                  Current_Static_Constants,
                  Exact_Length_Facts,
-                 Path);
+                 Path,
+                 Has_Enclosing_Return,
+                 Enclosing_Return_Type);
 
          when CM.Stmt_Call =>
-            Result.Call :=
-              Normalize_Procedure_Call_Checked
-                (Stmt.Call,
-                 Var_Types,
-                 Functions,
-                 Type_Env,
-                 Local_Static_Constants,
-                 Path);
+            declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Procedure_Call_Checked
+                      (Stmt.Call,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
+            begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Call := Desugared.Expr;
+            end;
 
          when CM.Stmt_Send | CM.Stmt_Try_Send =>
             Result.Channel_Name :=
               Normalize_Expr_Checked
                 (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
-            Result.Value :=
-              Normalize_Expr_Checked
-                (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Value,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
+            begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Value := Desugared.Expr;
+            end;
             Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
             if not Compatible_Type
               (Expr_Type (Result.Value, Var_Types, Functions, Type_Env),
@@ -4882,9 +5826,27 @@ package body Safe_Frontend.Check_Resolve is
             end if;
 
          when CM.Stmt_Delay =>
-            Result.Value :=
-              Normalize_Expr_Checked
-                (Stmt.Value, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Value,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
+            begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Value := Desugared.Expr;
+            end;
             if not Is_Duration_Compatible
               (Expr_Type (Result.Value, Var_Types, Functions, Type_Env), Type_Env)
             then
@@ -4898,10 +5860,25 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_Case =>
             declare
                Scrutinee_Type : GM.Type_Descriptor;
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Case_Expr,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
             begin
-               Result.Case_Expr :=
-                 Normalize_Expr_Checked
-                   (Stmt.Case_Expr, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+               Append_Statements (Expanded, Desugared.Preludes);
+               Result.Case_Expr := Desugared.Expr;
                Scrutinee_Type :=
                  Expr_Type (Result.Case_Expr, Var_Types, Functions, Type_Env);
                if not Is_Discrete_Case_Type (Scrutinee_Type, Type_Env)
@@ -4967,10 +5944,173 @@ package body Safe_Frontend.Check_Resolve is
                           Local_Constants,
                           Local_Static_Constants,
                           Exact_Length_Facts,
-                          Path);
+                          Path,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type);
                      Result.Case_Arms.Append (New_Arm);
                   end;
                end loop;
+            end;
+
+         when CM.Stmt_Match =>
+            declare
+               Desugared : constant Desugared_Expr_Result :=
+                 Desugar_Executable_Expr
+                   (Normalize_Expr_Checked
+                      (Stmt.Match_Expr,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Local_Static_Constants,
+                       Path,
+                       Allow_Try => True),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type,
+                    Path);
+               Carrier_Type : GM.Type_Descriptor;
+               Match_Value   : CM.Expr_Access;
+               Match_Name    : FT.UString := FT.To_UString ("");
+               Result_Cond   : CM.Expr_Access;
+               Ok_Arm        : CM.Match_Arm := (others => <>);
+               Fail_Arm      : CM.Match_Arm := (others => <>);
+               Have_Ok       : Boolean := False;
+               Have_Fail     : Boolean := False;
+               Arm_Vars      : Type_Maps.Map;
+               Arm_Constants : Type_Maps.Map;
+               Arm_Static_Constants : Static_Value_Maps.Map;
+               Binder_Stmt   : CM.Statement_Access;
+            begin
+               Append_Statements (Expanded, Desugared.Preludes);
+               Carrier_Type := Expr_Type (Desugared.Expr, Var_Types, Functions, Type_Env);
+               if not Try_Result_Carrier_Success_Type
+                 (Carrier_Type, Type_Env, Success_Type)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Match_Expr.Span,
+                        Message => "match requires a `(result, T)` expression"));
+               end if;
+
+               for Arm of Stmt.Match_Arms loop
+                  case Arm.Kind is
+                     when CM.Match_Arm_Ok =>
+                        Ok_Arm := Arm;
+                        Have_Ok := True;
+                     when CM.Match_Arm_Fail =>
+                        Fail_Arm := Arm;
+                        Have_Fail := True;
+                     when others =>
+                        null;
+                  end case;
+               end loop;
+
+               if not Have_Ok or else not Have_Fail then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Span,
+                        Message => "match statements require exactly one `when ok (...)` arm and one `when fail (...)` arm"));
+               end if;
+
+               if Is_Name_Expr (Desugared.Expr) then
+                  Match_Value := Desugared.Expr;
+               else
+                  Match_Name := FT.To_UString (Next_Synthetic_Name ("safe_match_tmp"));
+                  Expanded.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Match_Name),
+                        Carrier_Type,
+                        Desugared.Expr,
+                        Stmt.Match_Expr.Span));
+                  Match_Value :=
+                    Ident_Expr
+                      (UString_Value (Match_Name),
+                       Stmt.Match_Expr.Span,
+                       UString_Value (Carrier_Type.Name));
+               end if;
+
+               Result_Cond :=
+                 Selector_Expr
+                   (Selector_Expr
+                      (Match_Value,
+                       "1",
+                       Stmt.Match_Expr.Span,
+                       UString_Value (BT.Result_Type.Name)),
+                    "ok",
+                    Stmt.Match_Expr.Span,
+                    "boolean");
+
+               Arm_Vars := Var_Types;
+               Arm_Constants := Local_Constants;
+               Arm_Static_Constants := Local_Static_Constants;
+               Put_Type (Arm_Vars, UString_Value (Ok_Arm.Binder), Success_Type);
+               Put_Type (Arm_Constants, UString_Value (Ok_Arm.Binder), Success_Type);
+               Remove_Static_Value (Arm_Static_Constants, UString_Value (Ok_Arm.Binder));
+               Result.Then_Stmts :=
+                 Normalize_Statement_List
+                   (Ok_Arm.Statements,
+                    Arm_Vars,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    Imported_Objects,
+                    Arm_Constants,
+                    Arm_Static_Constants,
+                    Exact_Length_Facts,
+                    Path,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type);
+               Binder_Stmt :=
+                 Synthetic_Object_Decl_Stmt
+                   (UString_Value (Ok_Arm.Binder),
+                    Success_Type,
+                    Selector_Expr
+                      (Match_Value,
+                       "2",
+                       Ok_Arm.Span,
+                       UString_Value (Success_Type.Name)),
+                    Ok_Arm.Span);
+               Result.Then_Stmts.Prepend (Binder_Stmt);
+
+               Arm_Vars := Var_Types;
+               Arm_Constants := Local_Constants;
+               Arm_Static_Constants := Local_Static_Constants;
+               Put_Type (Arm_Vars, UString_Value (Fail_Arm.Binder), BT.Result_Type);
+               Put_Type (Arm_Constants, UString_Value (Fail_Arm.Binder), BT.Result_Type);
+               Remove_Static_Value (Arm_Static_Constants, UString_Value (Fail_Arm.Binder));
+               Result.Else_Stmts :=
+                 Normalize_Statement_List
+                   (Fail_Arm.Statements,
+                    Arm_Vars,
+                    Functions,
+                    Type_Env,
+                    Channel_Env,
+                    Imported_Objects,
+                    Arm_Constants,
+                    Arm_Static_Constants,
+                    Exact_Length_Facts,
+                    Path,
+                    Has_Enclosing_Return,
+                    Enclosing_Return_Type);
+               Binder_Stmt :=
+                 Synthetic_Object_Decl_Stmt
+                   (UString_Value (Fail_Arm.Binder),
+                    BT.Result_Type,
+                    Selector_Expr
+                      (Match_Value,
+                       "1",
+                       Fail_Arm.Span,
+                       UString_Value (BT.Result_Type.Name)),
+                    Fail_Arm.Span);
+               Result.Else_Stmts.Prepend (Binder_Stmt);
+
+               Result.Kind := CM.Stmt_If;
+               Result.Condition := Result_Cond;
+               Result.Has_Else := True;
             end;
 
          when CM.Stmt_Select =>
@@ -5038,7 +6178,9 @@ package body Safe_Frontend.Check_Resolve is
                                    Local_Constants,
                                    Arm_Static_Constants,
                                    Exact_Length_Facts,
-                                   Path);
+                                   Path,
+                                   Has_Enclosing_Return,
+                                   Enclosing_Return_Type);
                            end;
                         when CM.Select_Arm_Delay =>
                            Delay_Arms := Delay_Arms + 1;
@@ -5075,7 +6217,9 @@ package body Safe_Frontend.Check_Resolve is
                                 Local_Constants,
                                 Local_Static_Constants,
                                 Exact_Length_Facts,
-                                Path);
+                                Path,
+                                Has_Enclosing_Return,
+                                Enclosing_Return_Type);
                         when others =>
                            null;
                      end case;
@@ -5102,7 +6246,8 @@ package body Safe_Frontend.Check_Resolve is
             null;
       end case;
 
-      return Result;
+      Expanded.Append (Result);
+      return Expanded;
    end Normalize_Statement;
 
    function Resolve_Type_Declaration
@@ -6534,6 +7679,7 @@ package body Safe_Frontend.Check_Resolve is
             end if;
          end loop;
 
+         Synthetic_Name_Counter := 0;
          Result.Statements :=
            Normalize_Statement_List
              (Unit.Statements,
@@ -6643,7 +7789,9 @@ package body Safe_Frontend.Check_Resolve is
                     Visible_Constants,
                     Visible_Static_Constants,
                     Exact_Length_Maps.Empty_Map,
-                    UString_Value (Unit.Path));
+                    UString_Value (Unit.Path),
+                    Has_Enclosing_Return => Info.Has_Return_Type,
+                    Enclosing_Return_Type => Info.Return_Type);
 
                Result.Subprograms.Append (Subprogram);
             end;

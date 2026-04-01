@@ -1115,6 +1115,15 @@ package body Safe_Frontend.Check_Emit is
               & "},""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
+         when CM.Expr_Try =>
+            return
+              "{""node_type"":""Primary"",""kind"":""TryExpr"",""value"":{""node_type"":""TryExpression"",""expression"":"
+              & Expression_Node (Expr.Inner)
+              & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "},""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
          when CM.Expr_Ident
             | CM.Expr_Select
             | CM.Expr_Resolved_Index
@@ -1423,14 +1432,26 @@ package body Safe_Frontend.Check_Emit is
       Items : String_Vectors.Vector;
       Parsed_Stmt : CM.Statement_Access;
       Resolved_Stmt : CM.Statement_Access;
+      Resolved_Index : Positive := 1;
    begin
+      if not Resolved_Items.Is_Empty then
+         Resolved_Index := Resolved_Items.First_Index;
+      end if;
+
       if not Parsed_Items.Is_Empty then
          for Index in Parsed_Items.First_Index .. Parsed_Items.Last_Index loop
             Parsed_Stmt := Parsed_Items (Index);
+            while not Resolved_Items.Is_Empty
+              and then Resolved_Index in Resolved_Items.First_Index .. Resolved_Items.Last_Index
+              and then Resolved_Items (Resolved_Index).Is_Synthetic
+            loop
+               Resolved_Index := Resolved_Index + 1;
+            end loop;
             if not Resolved_Items.Is_Empty
-              and then Index in Resolved_Items.First_Index .. Resolved_Items.Last_Index
+              and then Resolved_Index in Resolved_Items.First_Index .. Resolved_Items.Last_Index
             then
-               Resolved_Stmt := Resolved_Items (Index);
+               Resolved_Stmt := Resolved_Items (Resolved_Index);
+               Resolved_Index := Resolved_Index + 1;
             else
                Resolved_Stmt := Parsed_Stmt;
             end if;
@@ -1807,6 +1828,50 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
+         when CM.Stmt_Match =>
+            declare
+               Ok_Arm : CM.Match_Arm := (others => <>);
+               Fail_Arm : CM.Match_Arm := (others => <>);
+            begin
+               for Arm of Parsed.Match_Arms loop
+                  case Arm.Kind is
+                     when CM.Match_Arm_Ok =>
+                        Ok_Arm := Arm;
+                     when CM.Match_Arm_Fail =>
+                        Fail_Arm := Arm;
+                     when others =>
+                        null;
+                  end case;
+               end loop;
+               return
+                 "{""node_type"":""MatchStatement"",""expression"":"
+                 & Expression_Node (Parsed.Match_Expr)
+                 & ",""ok_arm"":{""node_type"":""MatchArm"",""kind"":""ok"",""binder"":"
+                 & JS.Quote (Ok_Arm.Binder)
+                 & ",""statements"":"
+                 & Sequence_Node
+                     (Ok_Arm.Statements,
+                      (if Resolved_Expr /= null and then Resolved_Expr.Kind = CM.Stmt_If
+                       then Resolved_Expr.Then_Stmts
+                       else Ok_Arm.Statements),
+                      Ok_Arm.Span)
+                 & ",""span"":"
+                 & JS.Span_Object (Ok_Arm.Span)
+                 & "},""fail_arm"":{""node_type"":""MatchArm"",""kind"":""fail"",""binder"":"
+                 & JS.Quote (Fail_Arm.Binder)
+                 & ",""statements"":"
+                 & Sequence_Node
+                     (Fail_Arm.Statements,
+                      (if Resolved_Expr /= null and then Resolved_Expr.Kind = CM.Stmt_If and then Resolved_Expr.Has_Else
+                       then Resolved_Expr.Else_Stmts
+                       else Fail_Arm.Statements),
+                      Fail_Arm.Span)
+                 & ",""span"":"
+                 & JS.Span_Object (Fail_Arm.Span)
+                 & "},""span"":"
+                 & JS.Span_Object (Parsed.Span)
+                 & "}";
+            end;
          when CM.Stmt_Select =>
             declare
                Arms : String_Vectors.Vector;

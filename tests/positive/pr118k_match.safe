@@ -1,0 +1,28 @@
+package pr118k_match
+
+   function parse_digit (text : string (1)) returns (result, integer)
+
+      if text == "7"
+         return (ok (), 7)
+      return (fail ("not-seven"), 0)
+
+   function stable_value (text : string (1)) returns integer
+
+      current : (result, integer) = parse_digit (text)
+      match current
+         when ok (value)
+            return value
+         when fail (err)
+            if err.ok
+               return 99
+            return 0
+
+   function direct_value (text : string (1)) returns integer
+
+      match parse_digit (text)
+         when fail (err)
+            if err.ok
+               return 99
+            return 0
+         when ok (value)
+            return value

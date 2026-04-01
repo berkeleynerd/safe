@@ -147,6 +147,33 @@ def format_completed_output(completed: subprocess.CompletedProcess[str]) -> str:
     return "".join(parts)
 
 
+def non_info_lines(completed: subprocess.CompletedProcess[str]) -> list[str]:
+    lines: list[str] = []
+    for stream in (completed.stderr, completed.stdout):
+        for raw_line in stream.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            lowered = line.lower()
+            if ": info:" in lowered:
+                continue
+            lines.append(line)
+    return lines
+
+
+def allow_clean_nonzero_gnatprove_exit(
+    completed: subprocess.CompletedProcess[str],
+    total_row: SummaryRow,
+) -> bool:
+    if completed.returncode == 0:
+        return True
+    justified = int(total_row["justified"]["count"])
+    unproved = int(total_row["unproved"]["count"])
+    if justified != 0 or unproved != 0:
+        return False
+    return not non_info_lines(completed)
+
+
 def prepare_proof_toolchain(
     *,
     env: dict[str, str] | None = None,
@@ -486,12 +513,14 @@ def run_gnatprove_project(
             env=toolchain.env,
             timeout=command_timeout,
         )
-        if completed.returncode != 0:
-            return False, f"{mode} failed: {first_message(completed)}"
         try:
-            parse_gnatprove_summary(summary_path)
+            rows = parse_gnatprove_summary(summary_path)
         except (FileNotFoundError, RuntimeError) as exc:
+            if completed.returncode != 0:
+                return False, f"{mode} failed: {first_message(completed)}"
             return False, f"{mode} summary error: {exc}"
+        if not allow_clean_nonzero_gnatprove_exit(completed, rows["Total"]):
+            return False, f"{mode} failed: {first_message(completed)}"
     return True, ""
 
 
@@ -629,20 +658,24 @@ def run_cached_source_proof(
         )
         result.stage = mode
         result.stage_output[mode] = format_completed_output(completed)
-        if completed.returncode != 0:
-            result.detail = f"{mode} failed: {first_message(completed)}"
-            state["proofs"].pop(source_key(source), None)
-            save_project_state(shared_paths, state)
-            return result
         try:
             rows = parse_gnatprove_summary(summary_path)
         except (FileNotFoundError, RuntimeError) as exc:
-            result.detail = f"{mode} summary error: {exc}"
+            result.detail = (
+                f"{mode} failed: {first_message(completed)}"
+                if completed.returncode != 0
+                else f"{mode} summary error: {exc}"
+            )
             state["proofs"].pop(source_key(source), None)
             save_project_state(shared_paths, state)
             return result
 
         total_row = rows["Total"]
+        if not allow_clean_nonzero_gnatprove_exit(completed, total_row):
+            result.detail = f"{mode} failed: {first_message(completed)}"
+            state["proofs"].pop(source_key(source), None)
+            save_project_state(shared_paths, state)
+            return result
         if mode == "flow":
             result.flow_summary = total_row
         else:
@@ -765,16 +798,20 @@ def run_source_proof(
         )
         result.stage = mode
         result.stage_output[mode] = format_completed_output(completed)
-        if completed.returncode != 0:
-            result.detail = f"{mode} failed: {first_message(completed)}"
-            return result
         try:
             rows = parse_gnatprove_summary(summary_path)
         except (FileNotFoundError, RuntimeError) as exc:
-            result.detail = f"{mode} summary error: {exc}"
+            result.detail = (
+                f"{mode} failed: {first_message(completed)}"
+                if completed.returncode != 0
+                else f"{mode} summary error: {exc}"
+            )
             return result
 
         total_row = rows["Total"]
+        if not allow_clean_nonzero_gnatprove_exit(completed, total_row):
+            result.detail = f"{mode} failed: {first_message(completed)}"
+            return result
         if mode == "flow":
             result.flow_summary = total_row
         else:

@@ -167,6 +167,14 @@ PR11_8I_CHECKPOINT_FIXTURES = [
 ]
 
 
+PR11_8K_CHECKPOINT_FIXTURES = [
+    "tests/positive/pr118k_try_propagation.safe",
+    "tests/positive/pr118k_match.safe",
+    "tests/build/pr118k_try_build.safe",
+    "tests/build/pr118k_try_arg_order_build.safe",
+]
+
+
 PR11_8I1_CHECKPOINT_FIXTURES = [
     "tests/positive/pr115_case_terminator.safe",
     "tests/positive/pr115_var_basic.safe",
@@ -230,6 +238,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_8G2_CHECKPOINT_FIXTURES
     + PR11_8I_CHECKPOINT_FIXTURES
     + PR11_8I1_CHECKPOINT_FIXTURES
+    + PR11_8K_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 

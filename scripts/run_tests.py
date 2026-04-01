@@ -14,7 +14,10 @@ from pathlib import Path
 
 from _lib.embedded_eval import parse_monitor_value
 from _lib.harness_common import ensure_sdkroot
-from _lib.proof_eval import first_message as proof_eval_first_message
+from _lib.proof_eval import (
+    allow_clean_nonzero_gnatprove_exit,
+    first_message as proof_eval_first_message,
+)
 from _lib.proof_inventory import (
     EMITTED_PROOF_COVERED_PATHS,
     EMITTED_PROOF_EXCLUSIONS,
@@ -537,6 +540,16 @@ BUILD_SUCCESS_CASES = [
         "41\n",
         False,
     ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118k_try_build.safe",
+        "30\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118k_try_arg_order_build.safe",
+        "1\n",
+        False,
+    ),
 ]
 
 BUILD_REJECT_CASES = [
@@ -561,6 +574,16 @@ RUN_SUCCESS_CASES = [
         REPO_ROOT / "tests" / "build" / "pr118c2_package_pre_task.safe",
         "41\n",
         True,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118k_try_build.safe",
+        "30\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr118k_try_arg_order_build.safe",
+        "1\n",
+        False,
     ),
 ]
 
@@ -1897,6 +1920,25 @@ def run_proof_eval_message_priority_case() -> tuple[bool, str]:
     return True, ""
 
 
+def run_proof_eval_clean_nonzero_case() -> tuple[bool, str]:
+    completed = subprocess.CompletedProcess(
+        args=["dummy"],
+        returncode=1,
+        stdout="",
+        stderr="unit.ads:1:1: info: assertion proved\n",
+    )
+    total_row = {
+        "total": {"count": 1, "detail": ""},
+        "flow": {"count": 0, "detail": ""},
+        "provers": {"count": 1, "detail": ""},
+        "justified": {"count": 0, "detail": ""},
+        "unproved": {"count": 0, "detail": ""},
+    }
+    if not allow_clean_nonzero_gnatprove_exit(completed, total_row):
+        return False, "expected info-only nonzero GNATprove exit to be accepted"
+    return True, ""
+
+
 def run_repl_case(
     *,
     label: str,
@@ -2013,6 +2055,12 @@ def main() -> int:
         passed += 1
     else:
         failures.append(("proof-eval-message-priority", detail))
+
+    ok, detail = run_proof_eval_clean_nonzero_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("proof-eval-clean-nonzero", detail))
 
     with tempfile.TemporaryDirectory(prefix="safe-tests-") as temp_root_str:
         temp_root = Path(temp_root_str)
