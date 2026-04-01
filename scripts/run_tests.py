@@ -1247,6 +1247,43 @@ def run_safe_run_reject_case(source: Path, expected_message: str) -> tuple[bool,
     return True, ""
 
 
+def run_safe_run_mutated_iterable_case() -> tuple[bool, str]:
+    source_text = """package mutated_iterable_runtime
+
+   plain : string = "Ada";
+   total : integer = 0;
+
+   function rewrite (value : mut string)
+      value = "Bob";
+
+   rewrite (plain);
+
+   for ch of plain
+      if ch == "B" or ch == "o" or ch == "b"
+         total = total + 1;
+
+   print (total)
+"""
+
+    with tempfile.TemporaryDirectory(prefix="safe-run-mutated-iterable-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        source = temp_root / "mutated_iterable_runtime.safe"
+        source.write_text(source_text, encoding="utf-8")
+        completed = run_command(
+            [sys.executable, str(SAFE_CLI), "run", source.name],
+            cwd=temp_root,
+        )
+        if completed.returncode != 0:
+            return False, f"safe run failed: {first_message(completed)}"
+        if completed.stdout != "3\n":
+            return False, f"unexpected stdout {completed.stdout!r}"
+        if completed.stderr:
+            return False, f"unexpected stderr {completed.stderr!r}"
+        if "safe build: OK (" in completed.stdout:
+            return False, f"unexpected build banner in stdout {completed.stdout!r}"
+    return True, ""
+
+
 def run_safe_prove_single_case(source: Path) -> tuple[bool, str]:
     completed = run_command(
         [sys.executable, str(SAFE_CLI), "prove", repo_rel(source)],
@@ -2002,6 +2039,12 @@ def main() -> int:
             passed += 1
         else:
             failures.append((label, detail))
+
+    ok, detail = run_safe_run_mutated_iterable_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("safe run mutated iterable", detail))
 
     for argv, expected in (
         (["--help"], ["safe deploy", "safe run", "safe prove"]),

@@ -2005,6 +2005,32 @@ package body Safe_Frontend.Ada_Emit is
       return False;
    end Statements_Assign_Name;
 
+   function Unit_Runtime_Assigns_Name
+     (Unit : CM.Resolved_Unit;
+      Name : String) return Boolean
+   is
+   begin
+      if Name'Length = 0 then
+         return False;
+      elsif Statements_Assign_Name (Unit.Statements, Name) then
+         return True;
+      end if;
+
+      for Subprogram of Unit.Subprograms loop
+         if Statements_Assign_Name (Subprogram.Statements, Name) then
+            return True;
+         end if;
+      end loop;
+
+      for Task_Item of Unit.Tasks loop
+         if Statements_Assign_Name (Task_Item.Statements, Name) then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Unit_Runtime_Assigns_Name;
+
    function Statements_Immediately_Overwrite_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean
@@ -13336,7 +13362,10 @@ package body Safe_Frontend.Ada_Emit is
                               Iterable_Name : constant String :=
                                 FT.To_String (Item.Loop_Iterable.Name);
                            begin
-                              if Statements_Assign_Name (Unit.Statements, Iterable_Name) then
+                              if not Unit.Subprograms.Is_Empty
+                                or else not Unit.Tasks.Is_Empty
+                                or else Unit_Runtime_Assigns_Name (Unit, Iterable_Name)
+                              then
                                  return null;
                               end if;
 
@@ -13378,7 +13407,10 @@ package body Safe_Frontend.Ada_Emit is
                               Iterable_Name : constant String :=
                                 FT.To_String (Item.Loop_Iterable.Name);
                            begin
-                              if Statements_Assign_Name (Unit.Statements, Iterable_Name) then
+                              if not Unit.Subprograms.Is_Empty
+                                or else not Unit.Tasks.Is_Empty
+                                or else Unit_Runtime_Assigns_Name (Unit, Iterable_Name)
+                              then
                                  return False;
                               end if;
 
