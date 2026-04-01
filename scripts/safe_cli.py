@@ -28,11 +28,21 @@ from _lib.embedded_eval import (
     work_paths,
     write_support_files,
 )
-from _lib.harness_common import ensure_sdkroot, run_capture, run_passthrough
+from _lib.harness_common import ensure_sdkroot, run_capture, run_passthrough, sha256_file
+from _lib.project_cache import (
+    ProjectEmitError,
+    build_fingerprint,
+    ensure_project_emitted,
+    ensure_safe_build_root,
+    reset_project_cache,
+    reset_root_workdirs,
+    save_project_state,
+    source_key,
+    write_safe_build_support_files,
+)
 from _lib.proof_eval import (
     prepare_proof_toolchain,
-    run_source_proof,
-    safe_prove_root,
+    run_cached_source_proof,
     summary_counts,
 )
 from _lib.pr111_language_eval import (
@@ -40,18 +50,16 @@ from _lib.pr111_language_eval import (
     REPO_ROOT,
     emitted_primary_unit,
     ensure_safe_build_executable,
-    prepare_safe_build_root,
     repo_rel_or_abs,
     require_source_file,
     resolve_source_arg,
     safe_build_command,
     safec_path,
-    write_safe_build_support_files,
 )
 
 
 USAGE = """usage:
-  safe build <file.safe>
+  safe build [--clean] <file.safe>
   safe prove [--verbose] [file.safe]
   safe deploy [--target stm32f4] --board stm32f4-discovery [--simulate] [--watch-symbol NAME --expect-value N] [--timeout SECONDS] <file.safe>
   safe run   <file.safe>
@@ -97,11 +105,25 @@ def source_has_leading_with_clause(source: Path) -> bool:
 
 def reject_multi_file_root(command: str) -> int:
     print(
-        f"safe {command}: root files with `with` clauses are not supported yet; "
-        "use `safec emit` plus manual `gprbuild` for multi-file programs",
+        f"safe {command}: imported roots with leading `with` clauses are not supported for this command yet; "
+        "use `safec emit` plus manual `gprbuild` for the current deploy flow",
         file=sys.stderr,
     )
     return 1
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="safe build",
+        description="Build a Safe source into a native executable.",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clear the local build cache for this project before rebuilding.",
+    )
+    parser.add_argument("source", help="Safe source to build.")
+    return parser
 
 
 def prove_parser() -> argparse.ArgumentParser:
@@ -167,6 +189,14 @@ def pass_through(command: str, args: list[str]) -> int:
     return run_subprocess([str(safec), command, *args], cwd=Path.cwd(), env=env)
 
 
+def parse_build_args(args: list[str]) -> argparse.Namespace | int:
+    parser = build_parser()
+    try:
+        return parser.parse_args(args)
+    except SystemExit as exc:
+        return int(exc.code)
+
+
 def parse_prove_args(args: list[str]) -> argparse.Namespace | int:
     parser = prove_parser()
     try:
@@ -175,48 +205,64 @@ def parse_prove_args(args: list[str]) -> argparse.Namespace | int:
         return int(exc.code)
 
 
-def build_single_file(source_arg: str) -> tuple[dict[str, str], Path] | int:
+def build_source(source_arg: str, *, clean: bool) -> tuple[dict[str, str], Path] | int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
     source = require_source_file(resolve_source_arg(source_arg))
-    if source_has_leading_with_clause(source):
-        return reject_multi_file_root("build")
-    paths = prepare_safe_build_root(source)
 
-    check_code = run_quiet_stage([str(safec), "check", str(source)], cwd=REPO_ROOT, env=env)
-    if check_code != 0:
-        return check_code
+    if clean:
+        reset_project_cache(source)
+        reset_root_workdirs(source)
 
-    emit_code = run_quiet_stage(
-        [
-            str(safec),
-            "emit",
-            str(source),
-            "--out-dir",
-            str(paths["out"]),
-            "--interface-dir",
-            str(paths["iface"]),
-            "--ada-out-dir",
-            str(paths["ada"]),
-        ],
-        cwd=REPO_ROOT,
-        env=env,
+    try:
+        shared_paths, state, sources = ensure_project_emitted(
+            safec=safec,
+            source=source,
+            env=env,
+            run_check=True,
+        )
+    except ProjectEmitError as exc:
+        if exc.output:
+            print(exc.output, end="" if exc.output.endswith("\n") else "\n", file=sys.stderr)
+        else:
+            print(f"safe build: {exc.detail}", file=sys.stderr)
+        return 1
+    except RuntimeError as exc:
+        print(f"safe build: {exc}", file=sys.stderr)
+        return 1
+
+    paths = ensure_safe_build_root(source)
+    main_text, project_text = write_safe_build_support_files(paths, ada_dir=shared_paths["ada"], source=source)
+    fingerprint = build_fingerprint(
+        source=source,
+        sources=sources,
+        state=state,
+        safec_hash=sha256_file(safec),
+        main_text=main_text,
+        project_text=project_text,
+        shared_paths=shared_paths,
     )
-    if emit_code != 0:
-        return emit_code
+    cached = state["builds"].get(source_key(source))
+    if cached and cached.get("fingerprint") == fingerprint and paths["exe"].exists():
+        return env, ensure_safe_build_executable(paths)
 
-    write_safe_build_support_files(paths)
-    build_argv = safe_build_command(paths)
-    build_code = run_quiet_stage(build_argv, cwd=COMPILER_ROOT, env=env)
+    build_code = run_quiet_stage(safe_build_command(paths), cwd=COMPILER_ROOT, env=env)
     if build_code != 0:
+        state["builds"].pop(source_key(source), None)
+        save_project_state(shared_paths, state)
         return build_code
 
     executable = ensure_safe_build_executable(paths)
+    state["builds"][source_key(source)] = {
+        "fingerprint": fingerprint,
+        "executable": str(executable),
+    }
+    save_project_state(shared_paths, state)
     return env, executable
 
 
-def safe_build(source_arg: str) -> int:
-    built = build_single_file(source_arg)
+def safe_build(args: argparse.Namespace) -> int:
+    built = build_source(args.source, clean=args.clean)
     if isinstance(built, int):
         return built
     _, executable = built
@@ -225,7 +271,7 @@ def safe_build(source_arg: str) -> int:
 
 
 def safe_run(source_arg: str) -> int:
-    built = build_single_file(source_arg)
+    built = build_source(source_arg, clean=False)
     if isinstance(built, int):
         return built
     env, executable = built
@@ -282,10 +328,9 @@ def safe_prove(args: argparse.Namespace) -> int:
     passed = 0
     failed = 0
     for source in sources:
-        result = run_source_proof(
+        result = run_cached_source_proof(
             toolchain=toolchain,
             source=source,
-            proof_root=safe_prove_root(source),
             run_check=True,
         )
         label = display_source_for_user(source, cwd=cwd)
@@ -417,7 +462,7 @@ def safe_deploy(args: argparse.Namespace) -> int:
         env=env,
     )
     if not ok:
-        print(f"safe deploy: {detail} (artifacts: {repo_rel_or_abs(root)})", file=sys.stderr)
+        print(f"safe deploy: {detail} (artifacts: {repo_rel_or_abs(paths['exe'])})", file=sys.stderr)
         return 1
     print(f"safe deploy: OK (flashed {board.name}; {repo_rel_or_abs(paths['exe'])})")
     return 0
@@ -433,9 +478,10 @@ def main(argv: list[str] | None = None) -> int:
 
     command = args[0]
     if command == "build":
-        if len(args) != 2:
-            return print_usage()
-        return safe_build(args[1])
+        parsed = parse_build_args(args[1:])
+        if isinstance(parsed, int):
+            return parsed
+        return safe_build(parsed)
     if command == "prove":
         parsed = parse_prove_args(args[1:])
         if isinstance(parsed, int):

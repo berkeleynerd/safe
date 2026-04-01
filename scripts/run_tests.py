@@ -542,7 +542,7 @@ BUILD_SUCCESS_CASES = [
 BUILD_REJECT_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr118c2_root_with_clause.safe",
-        "safe build: root files with `with` clauses are not supported yet",
+        "local dependency source not found for package `missing_helper`",
     ),
 ]
 
@@ -567,7 +567,7 @@ RUN_SUCCESS_CASES = [
 RUN_REJECT_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr118c2_root_with_clause.safe",
-        "safe build: root files with `with` clauses are not supported yet",
+        "local dependency source not found for package `missing_helper`",
     ),
 ]
 
@@ -609,7 +609,7 @@ DEPLOY_REJECT_ARGV_CASES = [
             "--simulate",
             "tests/build/pr118c2_root_with_clause.safe",
         ],
-        "safe deploy: root files with `with` clauses are not supported yet",
+        "safe deploy: imported roots with leading `with` clauses are not supported for this command yet",
     ),
     (
         [
@@ -1281,6 +1281,122 @@ def run_safe_run_mutated_iterable_case() -> tuple[bool, str]:
             return False, f"unexpected stderr {completed.stderr!r}"
         if "safe build: OK (" in completed.stdout:
             return False, f"unexpected build banner in stdout {completed.stdout!r}"
+    return True, ""
+
+
+def run_safe_build_incremental_case() -> tuple[bool, str]:
+    provider_text = """package provider_answer
+
+   public subtype count is integer (0 to 100);
+"""
+    client_text = """with provider_answer;
+
+subtype answer_count is provider_answer.count;
+value : answer_count = 42;
+print (value)
+"""
+    updated_provider_text = provider_text.replace("100", "50")
+
+    with tempfile.TemporaryDirectory(prefix="safe-build-incremental-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        provider = temp_root / "provider_answer.safe"
+        client = temp_root / "client_answer.safe"
+        provider.write_text(provider_text, encoding="utf-8")
+        client.write_text(client_text, encoding="utf-8")
+
+        build = run_command([sys.executable, str(SAFE_CLI), "build", client.name], cwd=temp_root)
+        if build.returncode != 0:
+            return False, f"initial build failed: {first_message(build)}"
+
+        executable = temp_root / "obj" / "client_answer" / executable_name()
+        emitted_client = temp_root / ".safe-build" / "ada" / "client_answer.adb"
+        if not emitted_client.exists():
+            return False, f"missing cached emitted unit {emitted_client}"
+        if not executable.exists():
+            return False, f"missing executable {executable}"
+
+        run = run_command([str(executable)], cwd=executable.parent)
+        if run.returncode != 0:
+            return False, f"built executable failed: {first_message(run)}"
+        if run.stdout != "42\n":
+            return False, f"unexpected initial stdout {run.stdout!r}"
+
+        emitted_mtime = emitted_client.stat().st_mtime_ns
+        executable_mtime = executable.stat().st_mtime_ns
+
+        build_cached = run_command([sys.executable, str(SAFE_CLI), "build", client.name], cwd=temp_root)
+        if build_cached.returncode != 0:
+            return False, f"cached build failed: {first_message(build_cached)}"
+        if emitted_client.stat().st_mtime_ns != emitted_mtime:
+            return False, "cached build rewrote emitted Ada"
+        if executable.stat().st_mtime_ns != executable_mtime:
+            return False, "cached build rewrote executable"
+
+        provider.write_text(updated_provider_text, encoding="utf-8")
+        build_updated = run_command([sys.executable, str(SAFE_CLI), "build", client.name], cwd=temp_root)
+        if build_updated.returncode != 0:
+            return False, f"dependency-invalidated build failed: {first_message(build_updated)}"
+        if emitted_client.stat().st_mtime_ns == emitted_mtime:
+            return False, "dependency interface change did not re-emit client"
+        run_updated = run_command([str(executable)], cwd=executable.parent)
+        if run_updated.returncode != 0:
+            return False, f"updated executable failed: {first_message(run_updated)}"
+        if run_updated.stdout != "42\n":
+            return False, f"unexpected updated stdout {run_updated.stdout!r}"
+
+        clean_build = run_command([sys.executable, str(SAFE_CLI), "build", "--clean", client.name], cwd=temp_root)
+        if clean_build.returncode != 0:
+            return False, f"clean build failed: {first_message(clean_build)}"
+        if not (temp_root / ".safe-build" / "state.json").exists():
+            return False, "clean build did not recreate project cache"
+
+    return True, ""
+
+def run_safe_prove_incremental_case() -> tuple[bool, str]:
+    provider_text = """package provider_constant
+
+   public subtype count is integer (0 to 10);
+   public max_count : constant count = 4;
+"""
+    client_text = """with provider_constant;
+
+package client_constant
+
+   subtype index is integer (0 to provider_constant.max_count);
+"""
+    updated_provider_text = provider_text.replace("4", "5")
+
+    with tempfile.TemporaryDirectory(prefix="safe-prove-incremental-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        provider = temp_root / "provider_constant.safe"
+        client = temp_root / "client_constant.safe"
+        provider.write_text(provider_text, encoding="utf-8")
+        client.write_text(client_text, encoding="utf-8")
+
+        prove = run_command([sys.executable, str(SAFE_CLI), "prove", client.name], cwd=temp_root)
+        if prove.returncode != 0:
+            return False, f"initial prove failed: {first_message(prove)}"
+        if "safe prove: PASS" not in prove.stdout:
+            return False, f"missing PASS verdict in initial prove {prove.stdout!r}"
+
+        summary_path = temp_root / "obj" / "client_constant" / "prove" / "obj" / "gnatprove" / "gnatprove.out"
+        if not summary_path.exists():
+            return False, f"missing proof summary {summary_path}"
+        summary_mtime = summary_path.stat().st_mtime_ns
+
+        prove_cached = run_command([sys.executable, str(SAFE_CLI), "prove", client.name], cwd=temp_root)
+        if prove_cached.returncode != 0:
+            return False, f"cached prove failed: {first_message(prove_cached)}"
+        if summary_path.stat().st_mtime_ns != summary_mtime:
+            return False, "cached prove reran GNATprove"
+
+        provider.write_text(updated_provider_text, encoding="utf-8")
+        prove_updated = run_command([sys.executable, str(SAFE_CLI), "prove", client.name], cwd=temp_root)
+        if prove_updated.returncode != 0:
+            return False, f"dependency-invalidated prove failed: {first_message(prove_updated)}"
+        if summary_path.stat().st_mtime_ns == summary_mtime:
+            return False, "dependency change did not rerun GNATprove"
+
     return True, ""
 
 
@@ -2046,8 +2162,14 @@ def main() -> int:
     else:
         failures.append(("safe run mutated iterable", detail))
 
+    ok, detail = run_safe_build_incremental_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("safe build incremental", detail))
+
     for argv, expected in (
-        (["--help"], ["safe deploy", "safe run", "safe prove"]),
+        (["--help"], ["safe build [--clean]", "safe deploy", "safe run", "safe prove"]),
         (["deploy", "--help"], ["--board", "--simulate", "--watch-symbol", "--expect-value"]),
     ):
         ok, detail = run_safe_cli_help_case(argv, expected)
@@ -2078,6 +2200,12 @@ def main() -> int:
             passed += 1
         else:
             failures.append((label, detail))
+
+    ok, detail = run_safe_prove_incremental_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("safe prove incremental", detail))
 
     for label, verbose in (
         ("safe prove current directory", False),

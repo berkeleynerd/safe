@@ -183,14 +183,14 @@ safe fmt   <file.safe>       format (post-v1.0)
 safe test  <file.safe>       test runner (post-v1.0)
 ```
 
-Internally, `safe build` calls `safec emit` then `gprbuild` on the emitted Ada.
-The current repo-local prototype is intentionally single-file only; roots with
-leading `with` clauses still fall back to manual `safec emit` plus `gprbuild`.
-`safe run` reuses that same single-file build flow, then launches the produced
-binary. `safe prove` is wider here: it can already audit imported multi-file
-roots because it proves emitted packages directly and does not need a runnable
-`main`. The user-facing goal remains a fully integrated `safe build`
-experience with Safe-oriented diagnostics.
+Internally, `safe build` incrementally emits the selected root and its local
+sibling dependency closure into `PROJECT/.safe-build/`, then runs `gprbuild`
+from a root-specific workdir under `obj/<stem>`. `safe run` reuses that same
+root-file build flow, then launches the produced binary. `safe prove` reuses
+the shared emit cache and skips unchanged reproves for the same root. This is
+still not workspace mode: the prototype operates on `safe build <root.safe>`
+rather than scanning an entire project automatically. `safe deploy` remains
+narrower and still rejects imported roots.
 
 ### What ships, what does not
 

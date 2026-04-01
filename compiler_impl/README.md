@@ -79,17 +79,17 @@ The repo also keeps a small wrapper CLI at `../scripts/safe_cli.py`:
 `safe build`, `safe run`, and `safe deploy` are still single-file wrappers in
 this branch. They support:
 
-- explicit-package roots with no leading `with` clauses, built through the
-  existing generated-driver path
-- packageless entry roots with no leading `with` clauses, built through an
-  emitted `main.adb`
+- explicit-package roots, including local imported roots with leading `with`
+  clauses when sibling dependency sources are present
+- packageless entry roots through the generated driver path
+- a shared per-directory incremental cache under `PROJECT/.safe-build/`
+  for both `safe build`/`safe run` and `safe prove`
 
-If the root file begins with `with`, the wrapper rejects it and points users to
-`safec emit` plus manual `gprbuild` for the current multi-file flow.
-
-`safe deploy` is currently limited to `stm32f4-discovery`. `--simulate` runs
-through Renode; omitting it uses OpenOCD + ST-LINK with the same generated
-embedded driver and startup-status protocol.
+The current model is still root-file based, not workspace mode. `safe deploy`
+remains narrower: it is currently limited to `stm32f4-discovery`, and roots
+with leading `with` clauses still require the manual emitted-Ada flow there.
+`--simulate` runs through Renode; omitting it uses OpenOCD + ST-LINK with the
+same generated embedded driver and startup-status protocol.
 
 The repo also now includes a prototype single-file REPL:
 

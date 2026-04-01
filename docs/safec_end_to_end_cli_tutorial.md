@@ -30,9 +30,10 @@ python3 scripts/safe_cli.py prove samples/rosetta/text/hello_print.safe
 
 `safe prove` runs `safec check`, `safec emit`, compiles the emitted Ada, then
 runs GNATprove `flow` and `prove` with the repo's current emitted-proof policy.
-Unlike `safe build` / `safe run`, it also accepts package roots with leading
-`with` clauses because it proves emitted packages directly instead of
-synthesizing a runnable `main`.
+`safe build`, `safe run`, and `safe prove` now all accept local imported roots
+with leading `with` clauses when the sibling dependency sources are present.
+They share a per-directory `.safe-build/` cache, but the model is still
+`safe <command> <root.safe>`, not workspace-mode discovery.
 
 This tutorial still uses the raw `safec emit` path and a handwritten Ada driver
 because it is focused on emitted artifacts and on a tasking example that needs
@@ -271,9 +272,9 @@ end to end on this host:
   builds, and runs.
 - For a checked-in binary-surface example, see
   `samples/rosetta/text/opcode_dispatch.safe`.
-- `safe build` and `safe run` in this repo are still single-file only. Roots
-  with leading `with` clauses still use the manual `safec emit` plus
-  `gprbuild` flow shown in this tutorial.
+- `safe build` and `safe run` now support local imported roots and reuse the
+  same per-directory `.safe-build/` cache as `safe prove`, but they are still
+  root-file commands rather than workspace mode.
 - `safe prove` is intentionally narrower than the full assurance story. It is
   the emitted-Ada GNATprove audit command only; it does not run the separate
   embedded/Jorvik evidence lane used for admitted concurrency runtime claims.

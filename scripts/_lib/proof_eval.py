@@ -9,9 +9,21 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .harness_common import COMPILER_ROOT, REPO_ROOT, find_command, require_safec
+from .harness_common import COMPILER_ROOT, REPO_ROOT, find_command, require_safec, sha256_file
 from .pr09_emit import emitted_body_file
-from .pr111_language_eval import STDLIB_ADA_DIR
+from .project_cache import (
+    STDLIB_ADA_DIR,
+    ProjectEmitError,
+    emitted_primary_unit_for_source,
+    ensure_project_emitted,
+    ensure_safe_prove_root,
+    proof_fingerprint,
+    proof_project_text,
+    safe_prove_paths,
+    save_project_state,
+    source_key,
+    write_safe_prove_project,
+)
 
 ALR_FALLBACK = Path.home() / "bin" / "alr"
 GNATPROVE_FALLBACK = Path.home() / ".alire" / "bin" / "gnatprove"
@@ -483,6 +495,170 @@ def run_gnatprove_project(
     return True, ""
 
 
+
+def tool_identity(value: str) -> str:
+    candidate = Path(value)
+    if candidate.is_absolute() and candidate.exists():
+        return sha256_file(candidate)
+    return value
+
+
+def compile_cached_proof_project(
+    project_paths: dict[str, Path],
+    *,
+    ada_dir: Path,
+    source: Path,
+    toolchain: ProofToolchain,
+) -> subprocess.CompletedProcess[str]:
+    argv = [
+        toolchain.alr,
+        "exec",
+        "--",
+        "gprbuild",
+        "-c",
+        "-P",
+        str(project_paths["gpr"]),
+        emitted_primary_unit_for_source(ada_dir, source) + ".adb",
+    ]
+    if (ada_dir / "gnat.adc").exists():
+        argv.extend(["-cargs", f"-gnatec={ada_dir / 'gnat.adc'}"])
+    return run_command(argv, cwd=COMPILER_ROOT, env=toolchain.env)
+
+
+def run_cached_source_proof(
+    *,
+    toolchain: ProofToolchain,
+    source: Path,
+    run_check: bool,
+    prove_switches: list[str] | None = None,
+    command_timeout: int | None = None,
+) -> ProofRunResult:
+    result = ProofRunResult(
+        source=source,
+        proof_root=safe_prove_paths(source)["root"],
+        passed=False,
+        stage="check" if run_check else "emit",
+    )
+
+    try:
+        shared_paths, state, sources = ensure_project_emitted(
+            safec=toolchain.safec,
+            source=source,
+            env=toolchain.env,
+            run_check=run_check,
+            stage_output=result.stage_output,
+            log_stage=result.stage,
+        )
+    except ProjectEmitError as exc:
+        result.stage = exc.stage
+        result.detail = exc.detail
+        if exc.output and exc.stage not in result.stage_output:
+            result.stage_output[exc.stage] = exc.output
+        return result
+
+    project_text = proof_project_text(
+        ada_dir=shared_paths["ada"],
+        has_gnat_adc=(shared_paths["ada"] / "gnat.adc").exists(),
+    )
+    fingerprint = proof_fingerprint(
+        source=source,
+        sources=sources,
+        state=state,
+        safec_hash=sha256_file(toolchain.safec),
+        gnatprove_id=tool_identity(toolchain.gnatprove),
+        flow_switches=FLOW_SWITCHES,
+        prove_switches=PROVE_SWITCHES if prove_switches is None else prove_switches,
+        project_text=project_text,
+        shared_paths=shared_paths,
+    )
+    cached = state["proofs"].get(source_key(source))
+    if cached and cached.get("fingerprint") == fingerprint and cached.get("passed"):
+        result.stage = "prove"
+        result.passed = True
+        result.flow_summary = cached.get("flow_summary")
+        result.prove_summary = cached.get("prove_summary")
+        result.detail = ""
+        return result
+
+    project_paths = ensure_safe_prove_root(source)
+    write_safe_prove_project(project_paths, ada_dir=shared_paths["ada"])
+
+    compile_completed = compile_cached_proof_project(
+        project_paths,
+        ada_dir=shared_paths["ada"],
+        source=source,
+        toolchain=toolchain,
+    )
+    result.stage = "compile"
+    result.stage_output["compile"] = format_completed_output(compile_completed)
+    if compile_completed.returncode != 0:
+        result.detail = f"compile failed: {first_message(compile_completed)}"
+        state["proofs"].pop(source_key(source), None)
+        save_project_state(shared_paths, state)
+        return result
+
+    adc_path = shared_paths["ada"] / "gnat.adc"
+    summary_path = project_paths["summary"]
+    for mode, switches in (
+        ("flow", FLOW_SWITCHES),
+        ("prove", PROVE_SWITCHES if prove_switches is None else prove_switches),
+    ):
+        argv = [
+            toolchain.alr,
+            "exec",
+            "--",
+            toolchain.gnatprove,
+            "-P",
+            str(project_paths["gpr"]),
+            *switches,
+        ]
+        if adc_path.exists():
+            argv.extend(["-cargs", f"-gnatec={adc_path}"])
+        completed = run_command(
+            argv,
+            cwd=COMPILER_ROOT,
+            env=toolchain.env,
+            timeout=command_timeout,
+        )
+        result.stage = mode
+        result.stage_output[mode] = format_completed_output(completed)
+        if completed.returncode != 0:
+            result.detail = f"{mode} failed: {first_message(completed)}"
+            state["proofs"].pop(source_key(source), None)
+            save_project_state(shared_paths, state)
+            return result
+        try:
+            rows = parse_gnatprove_summary(summary_path)
+        except (FileNotFoundError, RuntimeError) as exc:
+            result.detail = f"{mode} summary error: {exc}"
+            state["proofs"].pop(source_key(source), None)
+            save_project_state(shared_paths, state)
+            return result
+
+        total_row = rows["Total"]
+        if mode == "flow":
+            result.flow_summary = total_row
+        else:
+            result.prove_summary = total_row
+        justified = int(total_row["justified"]["count"])
+        unproved = int(total_row["unproved"]["count"])
+        if justified != 0 or unproved != 0:
+            result.detail = f"{mode} summary has justified={justified}, unproved={unproved}"
+            state["proofs"].pop(source_key(source), None)
+            save_project_state(shared_paths, state)
+            return result
+
+    result.passed = True
+    result.detail = ""
+    state["proofs"][source_key(source)] = {
+        "fingerprint": fingerprint,
+        "passed": True,
+        "flow_summary": result.flow_summary,
+        "prove_summary": result.prove_summary,
+    }
+    save_project_state(shared_paths, state)
+    return result
+
 def run_source_proof(
     *,
     toolchain: ProofToolchain,
@@ -619,6 +795,7 @@ __all__ = [
     "parse_gnatprove_summary",
     "prepare_proof_root",
     "prepare_proof_toolchain",
+    "run_cached_source_proof",
     "run_command",
     "run_gnatprove_project",
     "run_source_proof",

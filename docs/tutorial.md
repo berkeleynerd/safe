@@ -87,16 +87,16 @@ That is a packageless entry file. The unit name comes from the filename stem,
 and its unit-scope statements execute in source order before any tasks declared
 in the same file start.
 
-The current `safe build` / `safe run` prototype is intentionally narrower than
-the language:
+The current `safe build` / `safe run` prototype is still narrower than the
+full language, but it now handles local imported roots incrementally:
 
-- single-file explicit-package roots work
-- single-file packageless entry roots work
-- roots with leading `with` clauses still use `safec emit` plus manual
-  `gprbuild` for now
-- `safe prove` can already audit both single-file roots and package roots with
-  leading `with` clauses, because it proves emitted packages directly rather
-  than synthesizing a runnable `main`
+- explicit-package roots work
+- packageless entry roots work
+- roots with leading `with` clauses build and run when their sibling dependency
+  sources are present in the same directory
+- shared incremental state lives under `PROJECT/.safe-build/`
+- the model is still `safe build <root.safe>`, not workspace-mode discovery
+- `safe prove` reuses the same cache and imported-root dependency closure
 
 ### 3.1 Opaque Types With `private record`
 
@@ -380,11 +380,11 @@ Also note: Safe draws a sharp line between recoverable and non-recoverable failu
 - No user-extensible I/O standard library. The current output surface is only
   statement-only `print (expr)` for `integer`, `string`, `boolean`, and enum
   values.
-- No multi-file `safe build` yet. The current wrapper is intentionally
-  single-file; roots with `with` clauses still use `safec emit` plus manual
-  `gprbuild`. `safe prove` is already wider here: it can audit emitted
-  packages for imported roots, but it is still a proof command rather than a
-  runnable build command.
+- No workspace-mode `safe build` yet. The current wrapper is still
+  root-file based, uses a per-directory `.safe-build/` cache, and can build
+  imported roots only when their sibling dependency sources are present.
+  `safe deploy` remains narrower and still rejects roots with leading
+  `with` clauses.
 - No generics, no tagged types, no overloading: abstraction techniques are intentionally limited.
 - The "Silver by construction" story means you will spend effort on numeric subtype design.
 - Some Ada habits are invalid in Safe (`'` attributes and qualified expressions, exceptions).
