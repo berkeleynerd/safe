@@ -1452,6 +1452,14 @@ package body Safe_Frontend.Check_Emit is
             then
                Resolved_Stmt := Resolved_Items (Resolved_Index);
                Resolved_Index := Resolved_Index + 1;
+               if Resolved_Stmt /= null
+                 and then Resolved_Stmt.Kind /= Parsed_Stmt.Kind
+                 and then not
+                   (Parsed_Stmt.Kind = CM.Stmt_Match
+                    and then Resolved_Stmt.Kind = CM.Stmt_If)
+               then
+                  Resolved_Stmt := null;
+               end if;
             else
                Resolved_Stmt := Parsed_Stmt;
             end if;

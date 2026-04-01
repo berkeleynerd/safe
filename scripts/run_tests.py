@@ -687,6 +687,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
+    REPO_ROOT / "tests" / "interfaces" / "pr118k_try_while_contract.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [

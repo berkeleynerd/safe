@@ -1,0 +1,21 @@
+package neg_pr118k_try_user_result
+
+   type result (ok : boolean = false) is record
+      case ok
+         when true
+            value : integer;
+         when false
+            error_code : integer;
+
+   function carrier returns (result, integer)
+
+      local_result : result = (ok = true, value = 1)
+      current : (result, integer) = (local_result, 1)
+      return current
+
+   function total returns (result, integer)
+
+      var value : integer = try carrier ()
+      local_result : result = (ok = true, value = value)
+      current : (result, integer) = (local_result, value)
+      return current

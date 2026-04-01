@@ -685,8 +685,7 @@ package body Safe_Frontend.Check_Resolve is
    is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
    begin
-      return Base.Is_Result_Builtin
-        or else FT.Lowercase (UString_Value (Base.Name)) = "result";
+      return Base.Is_Result_Builtin;
    end Is_Result_Builtin_Type;
 
    function Try_Result_Carrier_Success_Type

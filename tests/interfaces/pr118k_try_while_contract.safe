@@ -1,0 +1,12 @@
+package pr118k_try_while_contract
+
+   function ready returns (result, boolean)
+
+      return (ok (), false)
+
+   function looped returns (result, integer)
+
+      count : integer = 0
+      while try ready ()
+         count = count + 1
+      return (ok (), count)
