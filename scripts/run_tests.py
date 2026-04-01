@@ -448,7 +448,7 @@ BUILD_SUCCESS_CASES = [
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr118d_for_of_fixed_build.safe",
-        "60\n",
+        "30\n",
         False,
     ),
     (
@@ -755,8 +755,8 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "type text_ch_Channel is record",
             "Full : Boolean := False;",
             "Stored_Length_Value : Natural := 0;",
-            "Pre => not text_ch.Full",
-            "Pre => text_ch.Full",
+            "Pre => text_ch_Well_Formed and then not text_ch.Full",
+            "Pre => text_ch_Well_Formed and then text_ch.Full",
         ],
     ),
     (
@@ -766,8 +766,8 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "type data_ch_Channel is record",
             "Full : Boolean := False;",
             "Stored_Length_Value : Natural := 0;",
-            "Pre => not data_ch.Full",
-            "Pre => data_ch.Full",
+            "Pre => data_ch_Well_Formed and then not data_ch.Full",
+            "Pre => data_ch_Well_Formed and then data_ch.Full",
         ],
     ),
     (
@@ -777,8 +777,8 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "type text_ch_Channel is record",
             "Full : Boolean := False;",
             "Stored_Length_Value : Natural := 0;",
-            "Pre => not text_ch.Full",
-            "Pre => text_ch.Full",
+            "Pre => text_ch_Well_Formed and then not text_ch.Full",
+            "Pre => text_ch_Well_Formed and then text_ch.Full",
         ],
     ),
 ]
