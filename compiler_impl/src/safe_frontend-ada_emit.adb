@@ -11803,19 +11803,29 @@ package body Safe_Frontend.Ada_Emit is
          elsif Stmt.Target.Kind = CM.Expr_Select
          then CM.Flatten_Name (Stmt.Target)
          else "");
-      Value_Image  : constant String :=
-        Render_Expr_For_Target_Type (Unit, Document, Stmt.Value, Target_Info, State);
       Needs_Target_Snapshot : constant Boolean :=
         Stmt.Target /= null
         and then Stmt.Target.Kind = CM.Expr_Select
         and then Target_Image'Length > 0
-        and then Value_Image'Length > 0
         and then Expr_Contains_Target (Stmt.Value, Stmt.Target);
       Needs_Pre_Target_Value_Assert : constant Boolean :=
         not In_Loop
         and then Tracked_Target_Name'Length > 0
         and then Is_Integer_Type (Unit, Document, Target_Type)
         and then Expr_Contains_Target (Stmt.Value, Stmt.Target);
+      Suppress_Target_Static_Binding : constant Boolean :=
+        In_Loop
+        and then Tracked_Target_Name'Length > 0
+        and then Is_Integer_Type (Unit, Document, Target_Type)
+        and then Expr_Contains_Target (Stmt.Value, Stmt.Target)
+        and then Has_Static_Integer_Tracking (State, Tracked_Target_Name);
+      Previous_Static_Integer_Count : constant Ada.Containers.Count_Type :=
+        State.Static_Integer_Bindings.Length;
+
+      function Value_Image return String is
+      begin
+         return Render_Expr_For_Target_Type (Unit, Document, Stmt.Value, Target_Info, State);
+      end Value_Image;
 
       function Static_Integer_Assignment_Image return String is
          Static_Value : Long_Long_Integer := 0;
@@ -11834,6 +11844,12 @@ package body Safe_Frontend.Ada_Emit is
          return "";
       end Static_Integer_Assignment_Image;
    begin
+      if Suppress_Target_Static_Binding then
+         --  Loop bodies are emitted once and reused at runtime, so do not
+         --  fold the target's current static binding into a self-update.
+         Invalidate_Static_Integer (State, Tracked_Target_Name);
+      end if;
+
       if Needs_Pre_Target_Value_Assert then
          declare
             Static_Target_Value : Long_Long_Integer := 0;
@@ -12065,6 +12081,10 @@ package body Safe_Frontend.Ada_Emit is
            and then Root_Name (Stmt.Value) = FT.To_String (Stmt.Target.Name))
       then
          Append_Move_Null (Buffer, Unit, Document, State, Stmt.Value, Depth);
+      end if;
+
+      if Suppress_Target_Static_Binding then
+         Restore_Static_Integer_Bindings (State, Previous_Static_Integer_Count);
       end if;
 
       if Stmt.Target /= null and then Stmt.Target.Kind in CM.Expr_Ident | CM.Expr_Select then
@@ -14435,7 +14455,7 @@ package body Safe_Frontend.Ada_Emit is
                                  State,
                                  Depth + 3,
                                  Return_Type,
-                                 not Has_Top_Level_Loop_Invariant);
+                                 True);
                               if Statements_Fall_Through (Item.Body_Stmts) then
                                  declare
                                     Post_Sum_Assertion : constant String :=

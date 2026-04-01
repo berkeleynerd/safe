@@ -449,7 +449,7 @@ BUILD_SUCCESS_CASES = [
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr118d_for_of_fixed_build.safe",
-        "30\n",
+        "60\n",
         False,
     ),
     (

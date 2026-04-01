@@ -79,6 +79,17 @@ def validate_manifests() -> None:
         [entry.path for entry in EMITTED_PROOF_EXCLUSIONS],
     )
 
+    missing_metadata = [
+        entry.path
+        for entry in EMITTED_PROOF_EXCLUSIONS
+        if not entry.reason or not entry.owner or not entry.milestone
+    ]
+    if missing_metadata:
+        raise RuntimeError(
+            "emitted proof exclusions missing reason/owner/milestone metadata: "
+            + ", ".join(missing_metadata)
+        )
+
     managed = set(EMITTED_PROOF_FIXTURES)
     exclusions = {entry.path for entry in EMITTED_PROOF_EXCLUSIONS}
     overlap = sorted(managed & exclusions)

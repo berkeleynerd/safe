@@ -12,6 +12,7 @@ class EmittedProofExclusion:
     path: str
     reason: str
     owner: str
+    milestone: str
 
 
 PROOF_COVERAGE_ROOTS = (
@@ -238,21 +239,25 @@ EMITTED_PROOF_EXCLUSIONS = [
         path="tests/concurrency/channel_access_type.safe",
         reason="reference-bearing channel element; frontend-rejected by value-only channel legality",
         owner="spec-excluded",
+        milestone="PR11.8i.1",
     ),
     EmittedProofExclusion(
         path="tests/concurrency/select_ownership_binding.safe",
         reason="reference-bearing channel element; frontend-rejected by value-only channel legality",
         owner="spec-excluded",
+        milestone="PR11.8i.1",
     ),
     EmittedProofExclusion(
         path="tests/concurrency/try_send_ownership.safe",
         reason="reference-bearing channel element; frontend-rejected by value-only channel legality",
         owner="spec-excluded",
+        milestone="PR11.8i.1",
     ),
     EmittedProofExclusion(
         path="tests/build/pr118c2_root_with_clause.safe",
         reason="intentional tooling reject fixture with missing dependency interface; not an admitted emitted proof target",
         owner="tooling-reject-case",
+        milestone="PR11.8i.1",
     ),
 ]
 
