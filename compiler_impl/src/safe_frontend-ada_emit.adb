@@ -1011,29 +1011,29 @@ package body Safe_Frontend.Ada_Emit is
      (Binding_Name : String;
       Query_Name   : String) return Boolean
    is
-      function Tail_Name (Name : String) return String is
-         Last_Dot : Natural := 0;
+      function Has_Dot (Name : String) return Boolean is
       begin
-         if Name'Length = 0 then
-            return "";
-         end if;
-
-         for Index in reverse Name'Range loop
-            if Name (Index) = '.' then
-               Last_Dot := Index;
-               exit;
+         for Ch of Name loop
+            if Ch = '.' then
+               return True;
             end if;
          end loop;
+         return False;
+      end Has_Dot;
 
-         if Last_Dot = 0 or else Last_Dot = Name'Last then
-            return Name;
-         end if;
-
-         return Name (Last_Dot + 1 .. Name'Last);
-      end Tail_Name;
+      function Has_Qualified_Suffix
+        (Qualified_Name : String;
+         Bare_Name      : String) return Boolean is
+      begin
+         return Bare_Name'Length > 0
+           and then Qualified_Name'Length > Bare_Name'Length
+           and then Qualified_Name (Qualified_Name'Last - Bare_Name'Length + 1 .. Qualified_Name'Last) = Bare_Name
+           and then Qualified_Name (Qualified_Name'Last - Bare_Name'Length) = '.';
+      end Has_Qualified_Suffix;
    begin
       return Binding_Name = Query_Name
-        or else Tail_Name (Binding_Name) = Tail_Name (Query_Name);
+        or else (not Has_Dot (Query_Name) and then Has_Qualified_Suffix (Binding_Name, Query_Name))
+        or else (not Has_Dot (Binding_Name) and then Has_Qualified_Suffix (Query_Name, Binding_Name));
    end Static_Binding_Name_Matches;
 
    function Try_Static_Length
@@ -14061,6 +14061,10 @@ package body Safe_Frontend.Ada_Emit is
                                           & " (Safe_Runtime.Wide_Integer ("
                                           & Final_Image
                                           & "));",
+                                          Depth + 1);
+                                       Append_Gnatprove_Warning_Restore
+                                         (Buffer,
+                                          "unused assignment",
                                           Depth + 1);
                                        Bind_Static_Integer
                                          (State,
