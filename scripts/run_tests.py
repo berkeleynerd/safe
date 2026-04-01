@@ -1702,7 +1702,11 @@ def run_proof_inventory_coverage_case() -> tuple[bool, str]:
         if entry not in covered
     ]
     if uncovered:
-        return False, "uncovered proof inventory entries: " + ", ".join(uncovered)
+        return (
+            False,
+            "fixtures under proof coverage roots missing from proof inventory: "
+            + ", ".join(uncovered),
+        )
     return True, ""
 
 
