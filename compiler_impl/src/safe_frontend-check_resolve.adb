@@ -111,6 +111,8 @@ package body Safe_Frontend.Check_Resolve is
    Documented_Default_Task_Priority : constant Long_Long_Integer := 31;
 
    Current_Target_Bits : Positive := 64;
+   Current_Public_Channel_Names : String_Vectors.Vector;
+   Current_Select_In_Subprogram_Body : Boolean := False;
 
    function UString_Value (Value : FT.UString) return String is
    begin
@@ -121,6 +123,16 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return FT.Lowercase (Value);
    end Canonical_Name;
+
+   function Contains_Public_Local_Channel (Name : String) return Boolean is
+   begin
+      for Item of Current_Public_Channel_Names loop
+         if Canonical_Name (Item) = Canonical_Name (Name) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Contains_Public_Local_Channel;
 
    procedure Append_Unique_String
      (Items : in out String_Vectors.Vector;
@@ -6119,6 +6131,14 @@ package body Safe_Frontend.Check_Resolve is
                Channel_Arms : Natural := 0;
                Delay_Arms   : Natural := 0;
             begin
+               if Current_Select_In_Subprogram_Body then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Span,
+                        Message =>
+                          "PR11.9a temporarily admits select only in direct task bodies and unit-scope statements"));
+               end if;
                Result.Arms.Clear;
                for Arm of Stmt.Arms loop
                   declare
@@ -6136,6 +6156,21 @@ package body Safe_Frontend.Check_Resolve is
                                 Type_Env,
                                 Local_Static_Constants,
                                 Path);
+                           declare
+                              Channel_Name : constant String :=
+                                Flatten_Name (New_Arm.Channel_Data.Channel_Name);
+                           begin
+                              if Contains_Dot (Channel_Name)
+                                or else Contains_Public_Local_Channel (Channel_Name)
+                              then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Arm.Channel_Data.Channel_Name.Span,
+                                       Message =>
+                                         "PR11.9a temporarily admits select arms only on same-unit non-public channels"));
+                              end if;
+                           end;
                            Channel_Type :=
                              Channel_Element_Type
                                (New_Arm.Channel_Data.Channel_Name,
@@ -7410,6 +7445,8 @@ package body Safe_Frontend.Check_Resolve is
       end Add_Imported_Interface;
    begin
       Current_Target_Bits := Normalized_Target_Bits;
+      Current_Public_Channel_Names.Clear;
+      Current_Select_In_Subprogram_Body := False;
       Add_Builtins (Type_Env);
       Result.Target_Bits := Normalized_Target_Bits;
       Add_Builtin_Functions (Functions);
@@ -7459,6 +7496,14 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
 
       Analyze_Recursive_Type_Families;
+
+      for Item of Unit.Items loop
+         if Item.Kind = CM.Item_Channel and then Item.Chan_Data.Is_Public then
+            Append_Unique_String
+              (Current_Public_Channel_Names,
+               UString_Value (Item.Chan_Data.Name));
+         end if;
+      end loop;
 
       for Item of Unit.Items loop
          if Unit.Kind = CM.Unit_Entry and then Item_Is_Public (Item) then
@@ -7583,6 +7628,11 @@ package body Safe_Frontend.Check_Resolve is
                      Item.Chan_Data.Span,
                      UString_Value (Unit.Path));
                   Result.Channels.Append (Channel_Decl);
+                  if Channel_Decl.Is_Public then
+                     Append_Unique_String
+                       (Current_Public_Channel_Names,
+                        UString_Value (Channel_Decl.Name));
+                  end if;
                   Put_Type
                     (Channel_Env,
                      UString_Value (Channel_Decl.Name),
@@ -7820,20 +7870,31 @@ package body Safe_Frontend.Check_Resolve is
                   end loop;
                end loop;
 
-               Subprogram.Statements :=
-                 Normalize_Statement_List
-                   (Item.Subp_Data.Statements,
-                    Visible,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
-                    Visible_Constants,
-                    Visible_Static_Constants,
-                    Exact_Length_Maps.Empty_Map,
-                    UString_Value (Unit.Path),
-                    Has_Enclosing_Return => Info.Has_Return_Type,
-                    Enclosing_Return_Type => Info.Return_Type);
+               declare
+                  Previous_Select_Context : constant Boolean :=
+                    Current_Select_In_Subprogram_Body;
+               begin
+                  Current_Select_In_Subprogram_Body := True;
+                  Subprogram.Statements :=
+                    Normalize_Statement_List
+                      (Item.Subp_Data.Statements,
+                       Visible,
+                       Functions,
+                       Type_Env,
+                       Channel_Env,
+                       Imported_Objects,
+                       Visible_Constants,
+                       Visible_Static_Constants,
+                       Exact_Length_Maps.Empty_Map,
+                       UString_Value (Unit.Path),
+                       Has_Enclosing_Return => Info.Has_Return_Type,
+                       Enclosing_Return_Type => Info.Return_Type);
+                  Current_Select_In_Subprogram_Body := Previous_Select_Context;
+               exception
+                  when others =>
+                     Current_Select_In_Subprogram_Body := Previous_Select_Context;
+                     raise;
+               end;
 
                Result.Subprograms.Append (Subprogram);
             end;

@@ -189,6 +189,21 @@ INTERFACE_CASES = [
     ),
 ]
 
+INTERFACE_REJECT_CASES = [
+    (
+        "select-public-channel",
+        REPO_ROOT / "tests" / "interfaces" / "provider_select_channel.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_select_channel.safe",
+        "PR11.9a temporarily admits select arms only on same-unit non-public channels",
+    ),
+]
+
+CHECK_SUCCESS_CASES = [
+    REPO_ROOT / "tests" / "interfaces" / "pr119a_select_prebuffered.safe",
+    REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_receive.safe",
+    REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_timeout.safe",
+]
+
 STATIC_INTERFACE_CASES = [
     (
         "legacy-channel-unconstrained",
@@ -716,6 +731,8 @@ EMITTED_PRAGMA_ALLOWLIST = {
     'pragma Warnings (GNATprove, Off, "is set by", Reason => "for-of loop item cleanup is intentional");',
     'pragma Warnings (GNATprove, Off, "is set by", Reason => "generated local cleanup is intentional");',
     'pragma Warnings (GNATprove, Off, "is set by", Reason => "heap-backed channel staging is intentional");',
+    'pragma Warnings (GNATprove, Off, "is set by", Reason => "generated timer cancel result is intentionally ignored");',
+    'pragma Warnings (GNATprove, Off, "is set by", Reason => "generated dispatcher wake result is intentionally ignored on no-delay select paths");',
     'pragma Warnings (GNATprove, Off, "has no effect", Reason => "generated package elaboration helper is intentional");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "for-of loop item cleanup is intentional");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "generated local cleanup is intentional");',
@@ -777,6 +794,16 @@ EMITTED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
         ["protected type text_ch_Channel is", "_Model_Has_Value", "pragma Assume ("],
     ),
+    (
+        "select-delay-no-polling-lowering",
+        REPO_ROOT / "tests" / "concurrency" / "select_with_delay.safe",
+        ["Select_Polls", "Select_Iter", "if Select_Iter > 0 then"],
+    ),
+    (
+        "select-no-delay-no-polling-lowering",
+        REPO_ROOT / "tests" / "concurrency" / "select_priority.safe",
+        ["Select_Polls", "Select_Iter", "delay 0.001;"],
+    ),
 ]
 
 EMITTED_REQUIRED_SHAPE_CASES = [
@@ -811,6 +838,32 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "Stored_Length_Value : Natural := 0;",
             "Pre => text_ch_Well_Formed and then not text_ch.Full",
             "Pre => text_ch_Well_Formed and then text_ch.Full",
+        ],
+    ),
+    (
+        "select-delay-dispatcher-lowering",
+        REPO_ROOT / "tests" / "concurrency" / "select_with_delay.safe",
+        [
+            "protected type Safe_Select_Dispatcher_",
+            "procedure Reset;",
+            "procedure Signal;",
+            "procedure Signal_Delay (Event : in out Ada.Real_Time.Timing_Events.Timing_Event);",
+            "entry Await (Timed_Out : out Boolean);",
+            ".Signal;",
+            ".Await (Select_Timed_Out);",
+            "Ada.Real_Time.Timing_Events.Set_Handler",
+            ".Signal_Delay'Access",
+            "Select_Delay_Span : constant Ada.Real_Time.Time_Span :=",
+            "Ada.Real_Time.Time_Last - Select_Delay_Span",
+        ],
+    ),
+    (
+        "select-no-delay-dispatcher-await",
+        REPO_ROOT / "tests" / "concurrency" / "select_priority.safe",
+        [
+            "protected type Safe_Select_Dispatcher_",
+            ".Signal;",
+            ".Await (Select_Timed_Out);",
         ],
     ),
 ]
@@ -852,6 +905,11 @@ SOURCE_SHAPE_CASES = [
         "ada-emit-no-channel-proof-suppression",
         REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-ada_emit.adb",
         ["Skip_Flow_And_Proof"],
+    ),
+    (
+        "ada-emit-no-select-polling-lowering",
+        REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-ada_emit.adb",
+        ["Select_Poll_Quantum_Seconds", "Select_Polls : constant Positive :=", "for Select_Iter in 0 .. Select_Polls loop"],
     ),
     (
         "run-proofs-no-stdlib-project-import",
@@ -1093,6 +1151,58 @@ def run_interface_case(
     return True, ""
 
 
+def run_interface_reject_case(
+    safec: Path,
+    *,
+    label: str,
+    provider: Path,
+    client: Path,
+    expected_message: str,
+    temp_root: Path,
+) -> tuple[bool, str]:
+    case_root = temp_root / label
+    out_dir = case_root / "out"
+    iface_dir = case_root / "iface"
+    ada_dir = case_root / "ada"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    iface_dir.mkdir(parents=True, exist_ok=True)
+    ada_dir.mkdir(parents=True, exist_ok=True)
+
+    emit = run_command(
+        [
+            str(safec),
+            "emit",
+            repo_rel(provider),
+            "--out-dir",
+            str(out_dir),
+            "--interface-dir",
+            str(iface_dir),
+            "--ada-out-dir",
+            str(ada_dir),
+        ],
+        cwd=REPO_ROOT,
+    )
+    if emit.returncode != 0:
+        return False, f"provider emit failed: {first_message(emit)}"
+
+    completed = run_command(
+        [
+            str(safec),
+            "check",
+            repo_rel(client),
+            "--interface-search-dir",
+            str(iface_dir),
+        ],
+        cwd=REPO_ROOT,
+    )
+    if completed.returncode != DIAGNOSTIC_EXIT_CODE:
+        return False, f"expected exit {DIAGNOSTIC_EXIT_CODE}, got {completed.returncode}: {first_message(completed)}"
+    output = completed.stderr or completed.stdout
+    if expected_message not in output:
+        return False, f"missing expected message {expected_message!r}"
+    return True, ""
+
+
 def run_static_interface_case(
     safec: Path,
     *,
@@ -1155,12 +1265,18 @@ def safe_prove_summary_path(source: Path, *, target_bits: int = 64) -> Path:
     return source.parent / "obj" / source.stem / f"prove-{target_bits}" / "obj" / "gnatprove" / "gnatprove.out"
 
 
+def clear_project_artifacts(source: Path) -> None:
+    shutil.rmtree(source.parent / ".safe-build", ignore_errors=True)
+    shutil.rmtree(source.parent / "obj" / source.stem, ignore_errors=True)
+
+
 def run_safe_build_case(
     source: Path,
     expected_stdout: str,
     *,
     allow_timeout: bool,
 ) -> tuple[bool, str]:
+    clear_project_artifacts(source)
     build = run_command(
         [sys.executable, str(SAFE_CLI), "build", repo_rel(source)],
         cwd=REPO_ROOT,
@@ -1204,6 +1320,7 @@ def run_safe_build_case(
 
 
 def run_safe_build_reject_case(source: Path, expected_message: str) -> tuple[bool, str]:
+    clear_project_artifacts(source)
     build = run_command(
         [sys.executable, str(SAFE_CLI), "build", repo_rel(source)],
         cwd=REPO_ROOT,
@@ -1222,6 +1339,7 @@ def run_safe_run_case(
     *,
     allow_timeout: bool,
 ) -> tuple[bool, str]:
+    clear_project_artifacts(source)
     argv = [sys.executable, str(SAFE_CLI), "run", repo_rel(source)]
     if not allow_timeout:
         completed = run_command(argv, cwd=REPO_ROOT)
@@ -1270,6 +1388,7 @@ def run_safe_run_case(
 
 
 def run_safe_run_reject_case(source: Path, expected_message: str) -> tuple[bool, str]:
+    clear_project_artifacts(source)
     completed = run_command(
         [sys.executable, str(SAFE_CLI), "run", repo_rel(source)],
         cwd=REPO_ROOT,
@@ -1767,6 +1886,7 @@ def run_safe_prove_target_bits_case() -> tuple[bool, str]:
 
 
 def run_safe_prove_single_case(source: Path) -> tuple[bool, str]:
+    clear_project_artifacts(source)
     completed = run_command(
         [sys.executable, str(SAFE_CLI), "prove", repo_rel(source)],
         cwd=REPO_ROOT,
@@ -2388,6 +2508,13 @@ def main() -> int:
         else:
             failures.append((repo_rel(fixture), detail))
 
+    for fixture in CHECK_SUCCESS_CASES:
+        ok, detail = check_fixture(safec, fixture, expected_returncode=0)
+        if ok:
+            passed += 1
+        else:
+            failures.append((repo_rel(fixture), detail))
+
     ok, detail = run_proof_inventory_coverage_case()
     if ok:
         passed += 1
@@ -2415,6 +2542,21 @@ def main() -> int:
                 provider=provider,
                 client=client,
                 expected_returncode=expected_returncode,
+                temp_root=temp_root,
+            )
+            pair_label = f"{repo_rel(provider)} -> {repo_rel(client)}"
+            if ok:
+                passed += 1
+            else:
+                failures.append((pair_label, detail))
+
+        for label, provider, client, expected_message in INTERFACE_REJECT_CASES:
+            ok, detail = run_interface_reject_case(
+                safec,
+                label=label,
+                provider=provider,
+                client=client,
+                expected_message=expected_message,
                 temp_root=temp_root,
             )
             pair_label = f"{repo_rel(provider)} -> {repo_rel(client)}"

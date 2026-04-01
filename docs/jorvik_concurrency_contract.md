@@ -27,13 +27,17 @@ It covers the shipped subset only:
   touched from package-level code or exposed as public channels, so the
   environment task and direct external callers do not violate the emitted
   protected-object boundary on the admitted STM32F4/Jorvik runtime.
+- The admitted `select` subset in `PR11.9a` is intentionally narrower than the
+  full source surface: select arms must target same-unit non-public channels,
+  and emitted select statements are admitted only from direct task bodies and
+  unit-scope statements.
 - `select` channel arms are checked in source order, and the first ready arm
   wins.
 - If no channel arm is ready and a delay arm is present, the current
-  implementation rechecks readiness through a fixed 1 ms polling loop until a
-  channel arm is observed ready or the delay deadline is observed to have
-  expired at a polling check. A `delay 0.0` arm may therefore still wait up to
-  one polling quantum before it is selected.
+  implementation establishes one absolute deadline at select entry, then blocks
+  on a package-scope dispatcher that is signaled by same-unit channel sends or
+  by a package-scope timing event when the deadline expires. After each wake,
+  the same source-order readiness precheck runs again.
 - No stronger fairness, wakeup immediacy, or cycle-accurate timing guarantee is
   part of the admitted surface.
 
@@ -62,8 +66,8 @@ That embedded lane must stay green for:
 These claims are not part of the admitted surface:
 
 - fairness guarantees beyond source-order select priority
-- tighter latency guarantees than the documented 1 ms polling contract plus
-  ordinary runtime scheduling jitter
+- stronger latency or round-robin fairness guarantees beyond the admitted
+  blocking dispatcher contract plus ordinary runtime scheduling jitter
 - cycle-accurate or peripheral-level timing claims
 - targets or runtimes beyond the documented STM32F4 / `light-tasking-stm32f4`
   evidence lane

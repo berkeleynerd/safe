@@ -43,8 +43,8 @@ companion/templates/
 ├── template_effect_summary.adb
 ├── template_package_structure.ads  M5: ads/adb split + interleaved decls
 ├── template_package_structure.adb
-├── template_select_polling.ads     M6: Select-to-polling-loop
-├── template_select_polling.adb
+├── template_select_dispatcher.ads  M6: Dispatcher-based select lowering
+├── template_select_dispatcher.adb
 ├── template_fp_safety.ads          M6: Floating-point narrowing
 ├── template_fp_safety.adb
 ├── template_borrow_observe.ads     M6: Borrow + observe ownership
@@ -168,18 +168,19 @@ Alire dependencies are required.
   Hooks: `FP_Not_NaN`, `FP_Not_Infinity`, `FP_Safe_Div`.
   Clauses: 2.8.5.p139-p139e, 5.3.7a.p28a.
   Result: 24 VCs (7 flow, 17 proof) — all proved.
-- `template_select_polling.ads/.adb` — Demonstrates the select-to-polling-loop
-  lowering pattern. Models two-arm selects (with and without delay arm) using
-  bounded `for` loops with loop invariants. Deadline modeled as a
-  per-iteration `Deadline_Schedule` array (assumption T-01).
+- `template_select_dispatcher.ads/.adb` — Demonstrates the dispatcher-based
+  select lowering pattern. Models two-arm selects (with and without delay
+  arm) using source-order prechecks plus an abstract readiness dispatcher
+  latch. A bounded wake schedule models the finite proof trace for channel
+  wakes and the one-shot delay wake without introducing a polling-quantum
+  assumption.
   Hooks: `Check_Channel_Not_Empty` (at each Try_Receive point).
   Clauses: 4.4.p33-p42 (select semantics, arm ordering, determinism).
   Result: 46 VCs (14 flow, 32 proof) — all proved.
-- New assumption T-01 added to `companion/assumptions.yaml`
 - M1-M5 templates verified: full regression passes (305 VCs, 0 unproved)
 - `prove_golden.txt` baseline updated (215 → 305 VCs)
 - `docs/template_inventory.md` updated with new template entries
-- Assumption count: 14 total (13 baseline + T-01; within <= 15 budget)
+- Assumption count unchanged; no template-specific assumption added
 
 ### M7: Narrowing Completeness + Final Audit (Complete)
 - `template_narrow_conversion.ads/.adb` — Demonstrates narrowing at the
@@ -192,7 +193,7 @@ Alire dependencies are required.
 - M1-M6 templates verified: full regression passes (325 VCs, 0 unproved)
 - `prove_golden.txt` baseline updated (305 → 325 VCs)
 - `docs/template_inventory.md` updated with final template entry
-- Assumption count: 14 total (13 baseline + T-01; within <= 15 budget)
+- Assumption count unchanged
 - No new assumptions introduced
 
 ## 4. Clause Traceability
@@ -211,7 +212,7 @@ Each template traces to specific D27 specification clauses:
 | `template_index_safety`    | Rule 2   | 2.8.2.p131-p132, 5.3.1.p12 |
 | `template_effect_summary`  | §5.2     | 5.2.2.p5, 5.2.3.p8, 5.2.4.p11 |
 | `template_package_structure`| §3.1    | 3.2.6.p23-p24, 2.9.p140 |
-| `template_select_polling`  | §4.4     | 4.4.p32-p44, 4.4.p39, 4.4.p41-p42 |
+| `template_select_dispatcher` | §4.4   | 4.4.p32-p44, 4.4.p39, 4.4.p41-p42 |
 | `template_fp_safety`       | Rule 5   | 2.8.5.p139-p139e, 5.3.7a.p28a |
 | `template_borrow_observe`  | §2.3     | 2.3.3.p99b, 2.3.4a.p102a |
 | `template_narrow_conversion`| Rule 1  | 2.8.1.p127, 2.8.1.p130 |
@@ -237,7 +238,7 @@ New template assumptions require:
 | CI runtime explosion          | Separate `templates-verify` job, cache GNATprove     |
 | Assumption creep              | Budget of 13-15, CI-gated diff                       |
 | Template-translation drift    | Each template references `translation_rules.md`      |
-| Select timing not provable    | Abstract deadline to Boolean flag; track as T-01 (M6)|
+| Dispatcher timing/fairness not fully modeled | Keep broader scheduling/fairness claims out of template scope |
 | FP solver difficulty          | CVC5/Z3 FP theory; escalate to level 3 if needed    |
-| Polling loop termination      | Loop invariant + bounded iteration or pragma variant |
+| Blocking loop termination     | Loop invariant + bounded wake schedule |
 | Declare-block nesting depth   | Limit example to 2-3 levels; mirrors typical Safe src|

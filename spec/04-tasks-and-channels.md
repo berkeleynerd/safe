@@ -238,13 +238,13 @@ delay_arm ::=
 
 ### Dynamic Semantics
 
-39. **Arm selection semantics.** When the `select` statement is evaluated, the implementation tests each channel arm in declaration order (top to bottom). If one or more channel arms are ready at that check, the first ready channel arm is selected. If no channel arm is ready and a delay arm is present, the implementation establishes a delay deadline and repeats that ordered readiness check at an implementation-defined documented polling quantum until either a channel arm is observed ready at a polling check or the delay deadline is observed to have expired at a polling check.
+39. **Arm selection semantics.** When the `select` statement is evaluated, the implementation tests each channel arm in declaration order (top to bottom). If one or more channel arms are ready at that check, the first ready channel arm is selected. If no channel arm is ready and a delay arm is present, the implementation establishes a single delay deadline at `select` entry and then blocks awaiting either a readiness notification from one of the referenced channels or expiry of that deadline. After each wake, the implementation repeats the same ordered readiness check and still selects the first ready channel arm.
 
-40. If the delay deadline is observed to have expired before any channel arm is observed ready at a polling check, the delay arm is selected. Delay expiry is quantized to those polling checks: the implementation is not required to resume the `select` immediately when a channel becomes ready or a delay elapses between polling checks, and `delay 0.0` may still wait up to one polling quantum before the delay arm is selected.
+40. If the delay deadline expires before any channel arm is selected, the delay arm is selected. Delay expiry is not quantized to a fixed polling interval: the implementation is allowed ordinary runtime scheduling jitter, but it is not specified in terms of an implementation-defined sleep quantum.
 
-41. If multiple channels are ready at the same polling check (for example, data arrives on two channels between polling quanta), the first listed channel arm is selected. This is deterministic — arm ordering in source code determines priority. There is no random selection.
+41. If multiple channels are ready at the same readiness check, the first listed channel arm is selected. This is deterministic — arm ordering in source code determines priority. There is no random selection.
 
-42. If no channel arm is ready and no delay arm is present, the `select` blocks by repeating the same ordered readiness checks until one channel arm is observed ready.
+42. If no channel arm is ready and no delay arm is present, the `select` blocks until one or more channel arms become ready, then repeats the same ordered readiness check and selects the first ready arm.
 
 43. Once an arm is selected, its `sequence_of_statements` is executed. For a channel arm, the received value is bound to the `defining_identifier` before the statements execute. Channel-arm binding copies the dequeued element; it does not establish ownership of a designated object through the channel.
 

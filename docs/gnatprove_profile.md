@@ -266,7 +266,7 @@ Each assumption documents a dependency that the SPARK companion relies on but ca
 | **A** -- Implementation/Target | Properties of the compiler, runtime, or hardware (e.g., 64-bit arithmetic, IEEE 754 mode, FP overflow guard) | 5 |
 | **B** -- Modeling | Fidelity of the ghost model to the real system (e.g., ownership state completeness, FIFO ordering) | 4 |
 | **C** -- Proof-Mode | Properties of the GNATprove verification methodology (e.g., flow analysis sufficiency, Ghost erasure) | 2 |
-| **D** -- Specification | Properties of the Safe specification text itself (e.g., select lowering conformance, frozen commit authority) | 2 |
+| **D** -- Specification | Properties of the Safe specification text itself (e.g., frozen commit authority) | 1 |
 
 ### 6.3 Budget Summary
 
@@ -274,8 +274,8 @@ Each assumption documents a dependency that the SPARK companion relies on but ca
 |----------|-------|-----|
 | **Critical** | 4 | A-01 (64-bit intermediates), A-02 (IEEE 754 non-trapping), A-03 (range analysis soundness), A-04 (channel serialization) |
 | **Major** | 4 | A-05 (FP division overflow guard), B-01 (ownership state completeness), B-02 (FIFO ordering), B-03 (task-var map coverage) |
-| **Minor** | 5 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-01 (select polling conformance), D-02 (frozen spec commit) |
-| **Total** | **13** | |
+| **Minor** | 4 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-02 (frozen spec commit) |
+| **Total** | **12** | |
 
 ### 6.4 Assumption Extraction and Diffing
 

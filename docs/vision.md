@@ -396,7 +396,7 @@ Some obligations are inherently outside GNATprove's reach and require different
 verification approaches (testing, runtime analysis, or separate formal methods):
 
 - Broader runtime-model guarantees beyond the admitted STM32F4/Jorvik subset (`PS-036`)
-- Broader select fairness and latency semantics beyond the admitted polling contract (`PS-035`)
+- Broader select fairness and latency semantics beyond the admitted dispatcher contract (`PS-035`)
 - I/O seam wrapper contracts (PS-019)
 
 These are post-v1.0 concerns that do not block the core safety guarantee for

@@ -192,35 +192,6 @@
   status: open
   note: "M3-AUD-002: GNATprove counterexample: X=-1.1e-5, Y=1.3e-318 → overflow."
 
-- id: D-01
-  summary: "Select lowering via polling is conformant"
-  description: >
-    The Safe select statement is lowered to a polling loop over channel
-    protected objects.  The spec does not mandate a specific implementation
-    strategy.  The polling approach introduces bounded latency between a
-    channel becoming ready and the select arm executing.  This is assumed
-    conformant under the spec's determinism requirements.
-  spec_reference: "spec/04-tasks-and-channels.md#4.4"
-  affects:
-    - "compiler/translation_rules.md Section 5 (Select Lowering)"
-  severity: minor
-  status: open
-  note: "M2-AUD-005: Spec does not define maximum latency for select responsiveness."
-
-- id: T-01
-  summary: "Select polling deadline check is faithful to wall-clock elapsed time"
-  description: >
-    The template_select_polling template models the delay arm's deadline
-    check as a Boolean flag (Deadline_Elapsed).  In emitted code, this
-    flag is computed by Safe_Runtime.Elapsed_Since.  Faithfulness of this
-    Boolean to actual wall-clock elapsed time is assumed.
-  spec_reference: "spec/04-tasks-and-channels.md#4.4"
-  affects:
-    - "template_select_polling.Select_With_Delay"
-  severity: minor
-  status: open
-  note: "Complements D-01 which covers overall polling conformance."
-
 - id: D-02
   summary: "Frozen spec commit is authoritative"
   description: >

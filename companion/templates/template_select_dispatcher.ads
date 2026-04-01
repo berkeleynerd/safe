@@ -1,4 +1,4 @@
---  Verified Emission Template: Select-to-Polling-Loop Lowering
+--  Verified Emission Template: Dispatcher-Based Select Lowering
 --
 --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p33:7a94ab51
 --  Clause: SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39:1012f4db
@@ -9,23 +9,20 @@
 --  Demonstrates the compiler emission pattern for select statement lowering:
 --    1. Each channel arm becomes a Try_Receive call in declaration order
 --    2. Arms are tested in priority order (declaration order per spec)
---    3. A delay arm is modeled as a per-iteration Deadline_Schedule
---       whose entries represent Elapsed_Since checks (assumption T-01)
---    4. The polling loop is bounded (for loop) for proof termination
+--    3. A package-scope readiness dispatcher is modeled as a latch with
+--       Reset/Signal/Signal_Delay/Await operations
+--    4. A bounded wake schedule abstracts the finite environment trace
+--       used to prove the blocking loop's control flow
 --
 --  SPARK constraints and modeling compromises:
---    - Ada.Real_Time and delay statements are not provable in SPARK.
---      The deadline is modeled as a Deadline_Schedule array with one
---      Boolean per iteration, matching the emitted per-iteration
---      Safe_Runtime.Elapsed_Since check.  Faithfulness of each entry
---      to wall-clock time is assumption T-01.  Monotonicity
---      (Is_Monotone) models the physical invariant that elapsed time
---      cannot go backward.
---    - Bounded for loop (Max_Poll_Iterations) replaces the emitted
---      while-not-Select_Done loop. Real polling is unbounded (Section
---      5.2 specifies indefinite polling until an arm fires), but SPARK
---      requires termination proof. Loop exhaustion yields default
---      output (Result = Default_Element, Found/Timed_Out = False).
+--    - Protected entry blocking and Ada.Real_Time timing events are not
+--      directly provable in SPARK.  The dispatcher control flow is
+--      abstracted to finite wake schedules: channel wakes and delay wakes.
+--      This models the emitted latch/timed-handler structure without a
+--      polling quantum or wall-clock faithfulness assumption.
+--    - Bounded wake schedules replace the emitted unbounded blocking
+--      loops so SPARK can prove termination. Loop exhaustion yields
+--      default output (Result = Default_Element, Found/Timed_Out = False).
 --    - Item := Default_Element on failure paths satisfies SPARK flow
 --      analysis for out parameter initialization.
 --
@@ -34,36 +31,33 @@
 pragma SPARK_Mode (On);
 pragma Assertion_Policy (Check);
 
-package Template_Select_Polling
+package Template_Select_Dispatcher
   with SPARK_Mode => On
 is
 
    Max_Capacity : constant := 16;
-   Max_Poll_Iterations : constant := 100;
+   Max_Wake_Iterations : constant := 100;
 
    subtype Element_Type is Integer;
    Default_Element : constant Element_Type := 0;
    subtype Capacity_Range is Positive range 1 .. Max_Capacity;
    subtype Count_Range is Natural range 0 .. Max_Capacity;
    subtype Index_Range is Positive range 1 .. Max_Capacity;
-   subtype Poll_Range is
-     Positive range 1 .. Max_Poll_Iterations;
+   subtype Wake_Range is
+     Positive range 1 .. Max_Wake_Iterations;
 
    type Buffer_Array is array (Index_Range) of Element_Type;
 
-   --  Per-iteration deadline schedule for the delay arm.
-   --  Deadline(I) = True means the deadline has elapsed at iteration I.
-   type Deadline_Schedule is array (Poll_Range) of Boolean;
+   --  Channel-only dispatcher wake schedule used by the no-delay select.
+   type Channel_Wake_Schedule is array (Wake_Range) of Boolean;
 
-   --  Physical monotonicity: once elapsed, stays elapsed.
-   function Is_Monotone (S : Deadline_Schedule) return Boolean
-   is (for all I in 2 .. Max_Poll_Iterations =>
-         (if S (I - 1) then S (I)));
+   --  Combined dispatcher wake schedule for a select with delay arm.
+   type Delay_Wake_Kind is (No_Wake, Channel_Wake, Delay_Wake);
+   type Delay_Wake_Schedule is array (Wake_Range) of Delay_Wake_Kind;
 
-   --  At least one iteration has the deadline elapsed.
-   function Any_Elapsed
-     (S : Deadline_Schedule) return Boolean
-   is (for some I in Poll_Range => S (I));
+   function Any_Delay_Wake
+     (S : Delay_Wake_Schedule) return Boolean
+   is (for some I in Wake_Range => S (I) = Delay_Wake);
 
    --  Channel record compatible with template_channel_fifo pattern.
    type Channel (Capacity : Capacity_Range) is record
@@ -82,6 +76,29 @@ is
    function Is_Empty (Ch : Channel) return Boolean is
      (Ch.Count = 0);
 
+   --  Dispatcher latch abstracting the emitted protected object.
+   type Dispatcher is record
+      Signaled      : Boolean;
+      Delay_Expired : Boolean;
+   end record;
+
+   function Is_Idle (D : Dispatcher) return Boolean is
+     (not D.Signaled and then not D.Delay_Expired);
+
+   procedure Reset (D : in out Dispatcher)
+     with Post => Is_Idle (D);
+
+   procedure Signal (D : in out Dispatcher)
+     with Post => D.Signaled and then not D.Delay_Expired;
+
+   procedure Signal_Delay (D : in out Dispatcher)
+     with Post => D.Signaled and then D.Delay_Expired;
+
+   procedure Await (D : in out Dispatcher; Timed_Out : out Boolean)
+     with Pre  => D.Signaled,
+          Post => Is_Idle (D)
+                  and then Timed_Out = D.Delay_Expired'Old;
+
    --  Non-blocking receive: attempts to dequeue one element.
    --  Success = True iff the channel was non-empty and an item was received.
    procedure Try_Receive
@@ -96,28 +113,23 @@ is
                             else
                               Ch.Count = Ch.Count'Old);
 
-   --  Two-arm select with delay arm (per-iteration schedule).
+   --  Two-arm select with delay arm under the dispatcher lowering.
    --  Arms tested in declaration order: Ch_A (Arm 1), Ch_B (Arm 2).
-   --  On each iteration, Deadline(Iter) is checked after channel arms;
-   --  a ready channel arm still takes precedence over the delay arm.
-   --
-   --  Assumption T-01: each Deadline(I) faithfully represents
-   --  wall-clock elapsed time (see companion/assumptions.yaml T-01).
+   --  When no arm is ready, the dispatcher is awaited. Channel wakes
+   --  represent successful sends; delay wakes represent the one absolute
+   --  deadline handler firing.
    procedure Select_With_Delay
      (Ch_A      : in out Channel;
       Ch_B      : in out Channel;
-      Deadline  : Deadline_Schedule;
+      Wakeups   : Delay_Wake_Schedule;
       Result    : out Element_Type;
       Timed_Out : out Boolean)
-     with Pre  =>
-            Is_Valid (Ch_A)
-            and then Is_Valid (Ch_B)
-            and then Is_Monotone (Deadline),
+     with Pre  => Is_Valid (Ch_A) and then Is_Valid (Ch_B),
           Post =>
             Is_Valid (Ch_A) and then Is_Valid (Ch_B)
             and then
               (if Timed_Out then
-                 Any_Elapsed (Deadline)
+                 Any_Delay_Wake (Wakeups)
                  and then Ch_A.Count'Old = 0
                  and then Ch_B.Count'Old = 0
                  and then Ch_A.Count = Ch_A.Count'Old
@@ -129,16 +141,17 @@ is
                  Ch_A.Count = Ch_A.Count'Old
                  and then Ch_B.Count = Ch_B.Count'Old - 1
                else
-                 not Any_Elapsed (Deadline)
+                 not Any_Delay_Wake (Wakeups)
                  and then Ch_A.Count = Ch_A.Count'Old
                  and then Ch_B.Count = Ch_B.Count'Old);
 
-   --  Two-arm select without delay arm.
+   --  Two-arm select without delay arm under the dispatcher lowering.
    --  Arms are tested in declaration order: Ch_A (Arm 1), Ch_B (Arm 2).
    --  Found = True iff an item was successfully received from either channel.
    procedure Select_No_Delay
      (Ch_A   : in out Channel;
       Ch_B   : in out Channel;
+      Wakeups : Channel_Wake_Schedule;
       Result : out Element_Type;
       Found  : out Boolean)
      with Pre  => Is_Valid (Ch_A) and then Is_Valid (Ch_B),
@@ -158,4 +171,4 @@ is
                  and then Ch_A.Count = Ch_A.Count'Old
                  and then Ch_B.Count = Ch_B.Count'Old);
 
-end Template_Select_Polling;
+end Template_Select_Dispatcher;

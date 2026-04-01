@@ -344,9 +344,9 @@ end;
 
 **AST nodes:** `SelectStatement`, `SelectArm`, `ChannelArm`, `DelayArm`
 
-Safe's `select` statement multiplexes channel receive operations. Ada does not have a direct equivalent for protected-object entry multiplexing, so the emitter produces a polling pattern.
+Safe's `select` statement multiplexes channel receive operations. The shipped lowering uses a package-scope readiness dispatcher per admitted `select` site rather than a fixed-quantum poll loop.
 
-### 5.1 Polling Loop Pattern
+### 5.1 Dispatcher Pattern
 
 ```
 -- Safe source:
@@ -363,16 +363,34 @@ end select;
 Emits as:
 
 ```ada
+protected Safe_Select_Dispatcher_L23_C10 is
+   procedure Reset;
+   procedure Signal;
+   procedure Signal_Delay
+     (Event : in out Ada.Real_Time.Timing_Events.Timing_Event);
+   entry Await (Timed_Out : out Boolean);
+private
+   Signaled : Boolean := False;
+   Delay_Expired : Boolean := False;
+end Safe_Select_Dispatcher_L23_C10;
+
+Safe_Select_Dispatcher_L23_C10_Timer :
+  Ada.Real_Time.Timing_Events.Timing_Event;
+
 declare
    Select_Done : Boolean := False;
-   Select_Deadline : constant Duration := 5.0;
-   Select_Start : constant Duration := Ada.Real_Time.To_Duration(
-      Ada.Real_Time.Clock - Ada.Real_Time.Time_First);
-   -- Note: Since Ada.Real_Time is excluded from Safe source, the emitter
-   -- uses Duration-based timing with a monotonic clock wrapper from
-   -- Safe_Runtime. See conservative default for timing mechanism below.
+   Select_Timed_Out : Boolean := False;
+   Select_Handler_Cancelled : Boolean := False;
+   Select_Deadline : constant Ada.Real_Time.Time :=
+      Ada.Real_Time.Clock + Ada.Real_Time.To_Time_Span (5.0);
 begin
-   while not Select_Done loop
+   Safe_Select_Dispatcher_L23_C10.Reset;
+   Ada.Real_Time.Timing_Events.Set_Handler (
+      Safe_Select_Dispatcher_L23_C10_Timer,
+      Select_Deadline,
+      Safe_Select_Dispatcher_L23_C10.Signal_Delay'Access);
+
+   loop
       -- Arm 1: Commands (higher priority by source order)
       declare
          Msg : Command;
@@ -380,8 +398,12 @@ begin
       begin
          Commands.Try_Receive(Msg, Got_Msg);
          if Got_Msg then
-            Handle(Msg);
             Select_Done := True;
+            Ada.Real_Time.Timing_Events.Cancel_Handler (
+               Safe_Select_Dispatcher_L23_C10_Timer,
+               Select_Handler_Cancelled);
+            Safe_Select_Dispatcher_L23_C10.Reset;
+            Handle(Msg);
          end if;
       end;
 
@@ -393,43 +415,44 @@ begin
          begin
             Data_Ch.Try_Receive(Data, Got_Data);
             if Got_Data then
-               Process(Data);
                Select_Done := True;
+               Ada.Real_Time.Timing_Events.Cancel_Handler (
+                  Safe_Select_Dispatcher_L23_C10_Timer,
+                  Select_Handler_Cancelled);
+               Safe_Select_Dispatcher_L23_C10.Reset;
+               Process(Data);
             end if;
          end;
       end if;
 
       if not Select_Done then
-         -- Check delay arm
-         if Safe_Runtime.Elapsed_Since(Select_Start) >= Select_Deadline then
+         Safe_Select_Dispatcher_L23_C10.Await (Select_Timed_Out);
+         if Select_Timed_Out then
             Timeout_Handler;
             Select_Done := True;
-         else
-            delay 0.001;  -- 1ms sleep to avoid busy-wait
          end if;
       end if;
+      exit when Select_Done;
    end loop;
 end;
 ```
 
 ### 5.2 select without delay arm
 
-if no delay arm is present, the polling loop has no deadline and polls indefinitely until a channel arm fires (safe@468cf72:spec/04-tasks-and-channels.md#4.4.p42). the `delay 0.001` sleep between poll rounds is retained to avoid busy-waiting.
+if no delay arm is present, the emitter still performs the same source-order precheck, but the fallback wait is a blocking dispatcher `Await` call with no deadline. there is no emitted fixed sleep quantum.
 
 ### 5.3 arm priority
 
-arms are tested in declaration order (top to bottom). the first ready arm is selected (safe@468cf72:spec/04-tasks-and-channels.md#4.4.p41). the emission preserves this ordering with sequential `if not select_done then` checks.
+arms are tested in declaration order (top to bottom). the first ready arm is selected (safe@468cf72:spec/04-tasks-and-channels.md#4.4.p41). the emission preserves this ordering with sequential precheck blocks guarded by `if not Select_Done then`.
 
-### 5.4 latency note
+### 5.4 admitted lowering boundary
 
-**clause:** safe@468cf72:spec/04-tasks-and-channels.md#4.4.p39
+the admitted dispatcher lowering in `PR11.9a` is intentionally narrower than the full language surface:
 
-the polling-with-sleep pattern introduces latency equal to the sleep interval (1 millisecond by default). implementations may use more efficient patterns (e.g., a dispatcher task with entry calls, or a combined protected object that aggregates all channel states) provided the observable semantics are preserved. the conservative default is the polling pattern because it:
-
-- works with any ada runtime
-- does not require additional task creation
-- has bounded, predictable resource usage
-- preserves the declaration-order arm priority semantics
+- select channel arms must target same-unit, non-public channels
+- select statements are emitted only from unit-scope statements and direct task bodies
+- the dispatcher is readiness-only; payload transfer still happens through the existing `Try_Receive` path
+- delay arms use one absolute deadline established at `select` entry and a package-scope timing event to wake the dispatcher when that deadline expires
 
 ### 5.5 ownership in select arms
 
@@ -1036,7 +1059,7 @@ the following table lists semantics that are underspecified or implementation-de
 | task activation order | order among tasks starting execution | undefined; rely on ada runtime scheduling | no way to control this portably; spec allows implementation-defined | safe@468cf72:spec/04-tasks-and-channels.md#4.7.p58 |
 | channel allocation strategy | static vs. heap-allocated buffer | static array in protected object (deterministic, no allocation failure) | avoids heap allocation; bounded memory; provable | SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p18 |
 | channel ceiling priority (no task accesses) | ceiling when no task references channel | `system.any_priority'Last` (safe upper bound) | Prevents priority inversion for any future accessor | SAFE@468cf72:spec/04-tasks-and-channels.md#4.2.p21 |
-| Select polling interval | Sleep duration in select polling loop | 1 millisecond (`delay 0.001;`) | Balance between latency and CPU usage; configurable via Safe_Runtime constant | SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39 |
+| Select wake mechanism | How blocked `select` resumes after no arm is initially ready | Package-scope dispatcher latch signaled by successful sends and awaited by the select site | Preserves source-order precheck semantics without polling or a fixed sleep quantum | SAFE@468cf72:spec/04-tasks-and-channels.md#4.4.p39 |
 | Select timing mechanism | How to measure delay arm expiry | `Safe_Runtime.Elapsed_Since` using monotonic Duration tracking | Ada.Real_Time is excluded from Safe source but the emitter can use it internally; Duration-based fallback available | SAFE@468cf72:spec/02-restrictions.md#2.1.8.p60 |
 | Depends over-approximation | Granularity of data-flow tracking | Include all potentially-contributing inputs (superset); refine later | Sound for Bronze verification; spec permits over-approximation | SAFE@468cf72:spec/05-assurance.md#5.2.3.p10 |
 | Global over-approximation | Granularity of variable tracking | Include all package-level vars referenced in any code path (superset) | Sound for Bronze verification; spec permits over-approximation | SAFE@468cf72:spec/05-assurance.md#5.2.2.p6 |

@@ -28,11 +28,6 @@ package body Safe_Frontend.Ada_Emit is
      "pragma Partition_Elaboration_Policy(Sequential);" & ASCII.LF
      & "pragma Profile(Jorvik);" & ASCII.LF;
 
-   --  The shipped select-with-delay lowering is a fixed-quantum poll loop.
-   --  Keep the quantum named here so the emitted shape, spec text, and
-   --  blocking Jorvik evidence lane stay aligned.
-   Select_Poll_Quantum_Seconds : constant String := "0.001";
-
    type Cleanup_Action is (Cleanup_Deallocate, Cleanup_Reset_Null);
 
    type Cleanup_Item is record
@@ -109,6 +104,7 @@ package body Safe_Frontend.Ada_Emit is
       Needs_Safe_Array_RT  : Boolean := False;
       Needs_Safe_Bounded_Strings : Boolean := False;
       Needs_Ada_Strings_Unbounded : Boolean := False;
+      Needs_Ada_Real_Time : Boolean := False;
       Needs_Unevaluated_Use_Of_Old : Boolean := False;
       Needs_Gnat_Adc     : Boolean := False;
       Needs_Unchecked_Deallocation : Boolean := False;
@@ -633,6 +629,48 @@ package body Safe_Frontend.Ada_Emit is
       Depth      : Natural;
       Return_Type : String := "";
       In_Loop    : Boolean := False);
+   function Select_Dispatcher_Name
+     (Stmt : CM.Statement_Access) return String;
+   function Select_Dispatcher_Timer_Name
+     (Stmt : CM.Statement_Access) return String;
+   function Select_Dispatcher_Arm_Helper_Name
+     (Stmt : CM.Statement_Access) return String;
+   function Select_Dispatcher_Cancel_Helper_Name
+     (Stmt : CM.Statement_Access) return String;
+   function Select_Has_Delay_Arm
+     (Stmt : CM.Statement_Access) return Boolean;
+   function Select_References_Channel
+     (Stmt         : CM.Statement_Access;
+      Channel_Name : String) return Boolean;
+   procedure Collect_Select_Dispatcher_Names
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Names      : in out FT.UString_Vectors.Vector);
+   procedure Collect_Select_Delay_Timer_Names
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Names      : in out FT.UString_Vectors.Vector);
+   procedure Collect_Select_Dispatcher_Names_For_Channel
+     (Statements   : CM.Statement_Access_Vectors.Vector;
+      Channel_Name : String;
+      Names        : in out FT.UString_Vectors.Vector);
+   procedure Render_Select_Dispatcher_Spec
+     (Buffer : in out SU.Unbounded_String;
+      Name   : String);
+   procedure Render_Select_Dispatcher_Body
+     (Buffer : in out SU.Unbounded_String;
+      Name   : String);
+   procedure Render_Select_Dispatcher_Delay_Helpers
+     (Buffer        : in out SU.Unbounded_String;
+      Dispatcher    : String;
+      Timer_Name    : String;
+      Init_Helper   : String;
+      Arm_Helper    : String;
+      Cancel_Helper : String;
+      Depth         : Natural := 1);
+   procedure Append_Select_Dispatcher_Signals
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Channel_Name : String;
+      Depth        : Natural);
    function Alias_Declarations
      (Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
       return CM.Resolved_Object_Decl_Vectors.Vector;
@@ -1938,6 +1976,484 @@ package body Safe_Frontend.Ada_Emit is
         and then Unit.Subprograms.Is_Empty
         and then not Statements_Have_Select (Unit.Statements);
    end Channel_Uses_Sequential_Scalar_Ghost_Model;
+
+   function Select_Dispatcher_Name
+     (Stmt : CM.Statement_Access) return String
+   is
+   begin
+      if Stmt = null then
+         return "Safe_Select_Dispatcher_L1_C1";
+      end if;
+
+      return
+        "Safe_Select_Dispatcher_L"
+        & Trim_Image (Long_Long_Integer (Stmt.Span.Start_Pos.Line))
+        & "_C"
+        & Trim_Image (Long_Long_Integer (Stmt.Span.Start_Pos.Column));
+   end Select_Dispatcher_Name;
+
+   function Select_Dispatcher_Type_Name (Name : String) return String is
+   begin
+      return Name & "_Type";
+   end Select_Dispatcher_Type_Name;
+
+   function Select_Dispatcher_Timer_Name
+     (Stmt : CM.Statement_Access) return String is
+   begin
+      return Select_Dispatcher_Name (Stmt) & "_Timer";
+   end Select_Dispatcher_Timer_Name;
+
+   function Select_Dispatcher_Arm_Helper_Name
+     (Stmt : CM.Statement_Access) return String is
+   begin
+      return Select_Dispatcher_Name (Stmt) & "_Arm_Deadline";
+   end Select_Dispatcher_Arm_Helper_Name;
+
+   function Select_Dispatcher_Cancel_Helper_Name
+     (Stmt : CM.Statement_Access) return String is
+   begin
+      return Select_Dispatcher_Name (Stmt) & "_Cancel_Deadline";
+   end Select_Dispatcher_Cancel_Helper_Name;
+
+   function Select_Has_Delay_Arm
+     (Stmt : CM.Statement_Access) return Boolean
+   is
+   begin
+      if Stmt = null or else Stmt.Kind /= CM.Stmt_Select then
+         return False;
+      end if;
+
+      for Arm of Stmt.Arms loop
+         if Arm.Kind = CM.Select_Arm_Delay then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Select_Has_Delay_Arm;
+
+   function Select_References_Channel
+     (Stmt         : CM.Statement_Access;
+      Channel_Name : String) return Boolean
+   is
+      Canonical_Channel_Name : constant String := FT.Lowercase (Channel_Name);
+   begin
+      if Stmt = null or else Stmt.Kind /= CM.Stmt_Select then
+         return False;
+      end if;
+
+      for Arm of Stmt.Arms loop
+         if Arm.Kind = CM.Select_Arm_Channel
+           and then
+             FT.Lowercase (CM.Flatten_Name (Arm.Channel_Data.Channel_Name)) =
+               Canonical_Channel_Name
+         then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Select_References_Channel;
+
+   procedure Collect_Select_Dispatcher_Names
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Names      : in out FT.UString_Vectors.Vector)
+   is
+      procedure Collect_From
+        (Nested_Statements : CM.Statement_Access_Vectors.Vector);
+
+      procedure Maybe_Add (Stmt : CM.Statement_Access) is
+         Name_Text : constant String := Select_Dispatcher_Name (Stmt);
+      begin
+         if not Contains_Name (Names, Name_Text) then
+            Names.Append (FT.To_UString (Name_Text));
+         end if;
+      end Maybe_Add;
+
+      procedure Collect_From
+        (Nested_Statements : CM.Statement_Access_Vectors.Vector)
+      is
+      begin
+         for Item of Nested_Statements loop
+            if Item = null then
+               null;
+            else
+               case Item.Kind is
+                  when CM.Stmt_If =>
+                     Collect_From (Item.Then_Stmts);
+                     for Part of Item.Elsifs loop
+                        Collect_From (Part.Statements);
+                     end loop;
+                     if Item.Has_Else then
+                        Collect_From (Item.Else_Stmts);
+                     end if;
+                  when CM.Stmt_Case =>
+                     for Arm of Item.Case_Arms loop
+                        Collect_From (Arm.Statements);
+                     end loop;
+                  when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+                     Collect_From (Item.Body_Stmts);
+                  when CM.Stmt_Select =>
+                     Maybe_Add (Item);
+                     for Arm of Item.Arms loop
+                        case Arm.Kind is
+                           when CM.Select_Arm_Channel =>
+                              Collect_From (Arm.Channel_Data.Statements);
+                           when CM.Select_Arm_Delay =>
+                              Collect_From (Arm.Delay_Data.Statements);
+                           when others =>
+                              null;
+                        end case;
+                     end loop;
+                  when others =>
+                     null;
+               end case;
+            end if;
+         end loop;
+      end Collect_From;
+   begin
+      Collect_From (Statements);
+   end Collect_Select_Dispatcher_Names;
+
+   procedure Collect_Select_Delay_Timer_Names
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Names      : in out FT.UString_Vectors.Vector)
+   is
+      procedure Collect_From
+        (Nested_Statements : CM.Statement_Access_Vectors.Vector);
+
+      procedure Maybe_Add (Stmt : CM.Statement_Access) is
+         Name_Text : constant String := Select_Dispatcher_Timer_Name (Stmt);
+      begin
+         if Select_Has_Delay_Arm (Stmt)
+           and then not Contains_Name (Names, Name_Text)
+         then
+            Names.Append (FT.To_UString (Name_Text));
+         end if;
+      end Maybe_Add;
+
+      procedure Collect_From
+        (Nested_Statements : CM.Statement_Access_Vectors.Vector)
+      is
+      begin
+         for Item of Nested_Statements loop
+            if Item = null then
+               null;
+            else
+               case Item.Kind is
+                  when CM.Stmt_If =>
+                     Collect_From (Item.Then_Stmts);
+                     for Part of Item.Elsifs loop
+                        Collect_From (Part.Statements);
+                     end loop;
+                     if Item.Has_Else then
+                        Collect_From (Item.Else_Stmts);
+                     end if;
+                  when CM.Stmt_Case =>
+                     for Arm of Item.Case_Arms loop
+                        Collect_From (Arm.Statements);
+                     end loop;
+                  when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+                     Collect_From (Item.Body_Stmts);
+                  when CM.Stmt_Select =>
+                     Maybe_Add (Item);
+                     for Arm of Item.Arms loop
+                        case Arm.Kind is
+                           when CM.Select_Arm_Channel =>
+                              Collect_From (Arm.Channel_Data.Statements);
+                           when CM.Select_Arm_Delay =>
+                              Collect_From (Arm.Delay_Data.Statements);
+                           when others =>
+                              null;
+                        end case;
+                     end loop;
+                  when others =>
+                     null;
+               end case;
+            end if;
+         end loop;
+      end Collect_From;
+   begin
+      Collect_From (Statements);
+   end Collect_Select_Delay_Timer_Names;
+
+   procedure Collect_Select_Dispatcher_Names_For_Channel
+     (Statements   : CM.Statement_Access_Vectors.Vector;
+      Channel_Name : String;
+      Names        : in out FT.UString_Vectors.Vector)
+   is
+      procedure Collect_From
+        (Nested_Statements : CM.Statement_Access_Vectors.Vector);
+
+      procedure Maybe_Add (Stmt : CM.Statement_Access) is
+         Name_Text : constant String := Select_Dispatcher_Name (Stmt);
+      begin
+         if Select_References_Channel (Stmt, Channel_Name)
+           and then not Contains_Name (Names, Name_Text)
+         then
+            Names.Append (FT.To_UString (Name_Text));
+         end if;
+      end Maybe_Add;
+
+      procedure Collect_From
+        (Nested_Statements : CM.Statement_Access_Vectors.Vector)
+      is
+      begin
+         for Item of Nested_Statements loop
+            if Item = null then
+               null;
+            else
+               case Item.Kind is
+                  when CM.Stmt_If =>
+                     Collect_From (Item.Then_Stmts);
+                     for Part of Item.Elsifs loop
+                        Collect_From (Part.Statements);
+                     end loop;
+                     if Item.Has_Else then
+                        Collect_From (Item.Else_Stmts);
+                     end if;
+                  when CM.Stmt_Case =>
+                     for Arm of Item.Case_Arms loop
+                        Collect_From (Arm.Statements);
+                     end loop;
+                  when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+                     Collect_From (Item.Body_Stmts);
+                  when CM.Stmt_Select =>
+                     Maybe_Add (Item);
+                     for Arm of Item.Arms loop
+                        case Arm.Kind is
+                           when CM.Select_Arm_Channel =>
+                              Collect_From (Arm.Channel_Data.Statements);
+                           when CM.Select_Arm_Delay =>
+                              Collect_From (Arm.Delay_Data.Statements);
+                           when others =>
+                              null;
+                        end case;
+                     end loop;
+                  when others =>
+                     null;
+               end case;
+            end if;
+         end loop;
+      end Collect_From;
+   begin
+      Collect_From (Statements);
+   end Collect_Select_Dispatcher_Names_For_Channel;
+
+   procedure Render_Select_Dispatcher_Spec
+     (Buffer : in out SU.Unbounded_String;
+      Name   : String) is
+   begin
+      Append_Line
+        (Buffer,
+         "protected type "
+         & Select_Dispatcher_Type_Name (Name)
+         & " with Priority => System.Any_Priority'Last is",
+         1);
+      Append_Line (Buffer, "procedure Reset;", 2);
+      Append_Line (Buffer, "procedure Signal;", 2);
+      Append_Line
+        (Buffer,
+         "procedure Signal_Delay (Event : in out Ada.Real_Time.Timing_Events.Timing_Event);",
+         2);
+      Append_Line (Buffer, "entry Await (Timed_Out : out Boolean);", 2);
+      Append_Line (Buffer, "private", 1);
+      Append_Line (Buffer, "Signaled : Boolean := False;", 2);
+      Append_Line (Buffer, "Delay_Expired : Boolean := False;", 2);
+      Append_Line
+        (Buffer,
+         "end " & Select_Dispatcher_Type_Name (Name) & ";",
+         1);
+      Append_Line (Buffer);
+   end Render_Select_Dispatcher_Spec;
+
+   procedure Render_Select_Dispatcher_Object_Decl
+     (Buffer : in out SU.Unbounded_String;
+      Name   : String) is
+   begin
+      Append_Line
+        (Buffer,
+         Name
+         & " : " & Select_Dispatcher_Type_Name (Name)
+         & ASCII.LF
+         & Indentation (1)
+         & "  with Part_Of => Safe_Select_Internal_State;",
+         1);
+      Append_Line (Buffer);
+   end Render_Select_Dispatcher_Object_Decl;
+
+   procedure Render_Select_Dispatcher_Body
+     (Buffer : in out SU.Unbounded_String;
+      Name   : String) is
+   begin
+      Append_Line
+        (Buffer,
+         "protected body " & Select_Dispatcher_Type_Name (Name) & " is",
+         1);
+      Append_Line (Buffer, "procedure Reset is", 2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "Signaled := False;", 3);
+      Append_Line (Buffer, "Delay_Expired := False;", 3);
+      Append_Line (Buffer, "end Reset;", 2);
+      Append_Line (Buffer);
+      Append_Line (Buffer, "procedure Signal is", 2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "Signaled := True;", 3);
+      Append_Line (Buffer, "end Signal;", 2);
+      Append_Line (Buffer);
+      Append_Line
+        (Buffer,
+         "procedure Signal_Delay (Event : in out Ada.Real_Time.Timing_Events.Timing_Event) is",
+         2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "pragma Unreferenced (Event);", 3);
+      Append_Line (Buffer, "Delay_Expired := True;", 3);
+      Append_Line (Buffer, "end Signal_Delay;", 2);
+      Append_Line (Buffer);
+      Append_Line (Buffer, "entry Await (Timed_Out : out Boolean) when Signaled or Delay_Expired is", 2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "Timed_Out := Delay_Expired;", 3);
+      Append_Line (Buffer, "Signaled := False;", 3);
+      Append_Line (Buffer, "Delay_Expired := False;", 3);
+      Append_Line (Buffer, "end Await;", 2);
+      Append_Line
+        (Buffer,
+         "end " & Select_Dispatcher_Type_Name (Name) & ";",
+         1);
+      Append_Line (Buffer);
+   end Render_Select_Dispatcher_Body;
+
+   procedure Render_Select_Dispatcher_Delay_Helpers
+     (Buffer        : in out SU.Unbounded_String;
+      Dispatcher    : String;
+      Timer_Name    : String;
+      Init_Helper   : String;
+      Arm_Helper    : String;
+      Cancel_Helper : String;
+      Depth         : Natural := 1)
+   is
+   begin
+      Append_Line
+        (Buffer,
+         "procedure " & Init_Helper
+         & " (Event : out Ada.Real_Time.Timing_Events.Timing_Event)",
+         Depth);
+      Append_Line
+        (Buffer,
+         "  with Global => null,"
+         & ASCII.LF
+         & Indentation (Depth)
+         & "       Always_Terminates;",
+         Depth);
+      Append_Line
+        (Buffer,
+         "procedure " & Arm_Helper & " (Deadline : in Ada.Real_Time.Time)",
+         Depth);
+      Append_Line
+        (Buffer,
+         "  with Global => (In_Out => ("
+         & Dispatcher
+         & ", "
+         & Timer_Name
+         & ")),"
+         & ASCII.LF
+         & Indentation (Depth)
+         & "       Always_Terminates;",
+         Depth);
+      Append_Line
+        (Buffer,
+         "procedure " & Cancel_Helper & " (Cancelled : out Boolean)",
+         Depth);
+      Append_Line
+        (Buffer,
+         "  with Global => (In_Out => ("
+         & Dispatcher
+         & ", "
+         & Timer_Name
+         & ")),"
+         & ASCII.LF
+         & Indentation (Depth)
+         & "       Always_Terminates;",
+         Depth);
+      Append_Line (Buffer);
+
+      Append_Line
+        (Buffer,
+         "procedure " & Init_Helper
+         & " (Event : out Ada.Real_Time.Timing_Events.Timing_Event)",
+         Depth);
+      Append_Line (Buffer, "  with SPARK_Mode => Off", Depth);
+      Append_Line (Buffer, "is", Depth);
+      Append_Line (Buffer, "Cancelled : Boolean;", Depth + 1);
+      Append_Line (Buffer, "begin", Depth);
+      Append_Line
+        (Buffer,
+         "Ada.Real_Time.Timing_Events.Cancel_Handler"
+         & " (Event, Cancelled);",
+         Depth + 1);
+      Append_Line (Buffer, "end " & Init_Helper & ";", Depth);
+      Append_Line (Buffer);
+
+      Append_Line
+        (Buffer,
+         "procedure " & Arm_Helper & " (Deadline : in Ada.Real_Time.Time)",
+         Depth);
+      Append_Line (Buffer, "  with SPARK_Mode => Off", Depth);
+      Append_Line (Buffer, "is", Depth);
+      Append_Line (Buffer, "begin", Depth);
+      Append_Line
+        (Buffer,
+         "Ada.Real_Time.Timing_Events.Set_Handler"
+         & " ("
+         & Timer_Name
+         & ", Deadline, "
+         & Dispatcher
+         & ".Signal_Delay'Access);",
+         Depth + 1);
+      Append_Line (Buffer, "end " & Arm_Helper & ";", Depth);
+      Append_Line (Buffer);
+
+      Append_Line
+        (Buffer,
+         "procedure " & Cancel_Helper & " (Cancelled : out Boolean)",
+         Depth);
+      Append_Line (Buffer, "  with SPARK_Mode => Off", Depth);
+      Append_Line (Buffer, "is", Depth);
+      Append_Line (Buffer, "begin", Depth);
+      Append_Line
+        (Buffer,
+         "Ada.Real_Time.Timing_Events.Cancel_Handler"
+         & " ("
+         & Timer_Name
+         & ", Cancelled);",
+         Depth + 1);
+      Append_Line (Buffer, "end " & Cancel_Helper & ";", Depth);
+      Append_Line (Buffer);
+   end Render_Select_Dispatcher_Delay_Helpers;
+
+   procedure Append_Select_Dispatcher_Signals
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Channel_Name : String;
+      Depth        : Natural)
+   is
+      Dispatcher_Names : FT.UString_Vectors.Vector;
+   begin
+      Collect_Select_Dispatcher_Names_For_Channel
+        (Unit.Statements,
+         Channel_Name,
+         Dispatcher_Names);
+      for Task_Item of Unit.Tasks loop
+         Collect_Select_Dispatcher_Names_For_Channel
+           (Task_Item.Statements,
+            Channel_Name,
+            Dispatcher_Names);
+      end loop;
+
+      for Name of Dispatcher_Names loop
+         Append_Line (Buffer, FT.To_String (Name) & ".Signal;", Depth);
+      end loop;
+   end Append_Select_Dispatcher_Signals;
 
    function Statements_Assign_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
@@ -9207,6 +9723,8 @@ package body Safe_Frontend.Ada_Emit is
    is
       pragma Unreferenced (Document);
       Items : FT.UString_Vectors.Vector;
+      Dispatcher_Names : FT.UString_Vectors.Vector;
+      Timer_Names : FT.UString_Vectors.Vector;
 
       procedure Add_Unique (Name : String) is
       begin
@@ -9231,6 +9749,16 @@ package body Safe_Frontend.Ada_Emit is
          Add_Unique (FT.To_String (Task_Item.Name));
       end loop;
 
+      Collect_Select_Dispatcher_Names (Unit.Statements, Dispatcher_Names);
+      Collect_Select_Delay_Timer_Names (Unit.Statements, Timer_Names);
+      for Task_Item of Unit.Tasks loop
+         Collect_Select_Dispatcher_Names
+           (Task_Item.Statements,
+            Dispatcher_Names);
+         Collect_Select_Delay_Timer_Names
+           (Task_Item.Statements,
+            Timer_Names);
+      end loop;
       for Decl of Unit.Objects loop
          if not Decl.Is_Constant then
             for Name of Decl.Names loop
@@ -15099,6 +15627,239 @@ package body Safe_Frontend.Ada_Emit is
                declare
                   Channel_Arm_Count : Natural := 0;
                   Delay_Arm_Count   : Natural := 0;
+                  Dispatcher_Name   : constant String :=
+                    Select_Dispatcher_Name (Item);
+
+                  function Delay_Expr_Image return String is
+                  begin
+                     for Arm of Item.Arms loop
+                        if Arm.Kind = CM.Select_Arm_Delay then
+                           return
+                             Render_Expr
+                               (Unit,
+                                Document,
+                                Arm.Delay_Data.Duration_Expr,
+                                State);
+                        end if;
+                     end loop;
+
+                     return "0.0";
+                  end Delay_Expr_Image;
+
+                  procedure Render_Channel_Precheck
+                    (Arm          : CM.Select_Arm;
+                     Select_Depth : Natural)
+                  is
+                     Declared_Channel : constant CM.Resolved_Channel_Decl :=
+                       Channel_Item (Arm.Channel_Data.Channel_Name);
+                     Arm_Value_Name   : constant String :=
+                       FT.To_String (Arm.Channel_Data.Variable_Name);
+                     Arm_Type_Name    : constant String :=
+                       Render_Type_Name (Arm.Channel_Data.Type_Info);
+                     Arm_Has_Heap_Value : constant Boolean :=
+                       Has_Heap_Value_Type
+                         (Unit,
+                          Document,
+                          Declared_Channel.Element_Type);
+                     Arm_Needs_Local_Cleanup_Suppression : constant Boolean :=
+                       Arm_Has_Heap_Value
+                       and then
+                         (Is_Plain_String_Type
+                            (Unit,
+                             Document,
+                             Declared_Channel.Element_Type)
+                          or else
+                          Is_Growable_Array_Type
+                            (Unit,
+                             Document,
+                             Declared_Channel.Element_Type));
+                     Arm_Free_Proc : constant String :=
+                       (if not Arm_Has_Heap_Value
+                        then ""
+                        elsif Is_Plain_String_Type
+                          (Unit,
+                           Document,
+                           Declared_Channel.Element_Type)
+                        then "Safe_String_RT.Free"
+                        elsif Is_Growable_Array_Type
+                          (Unit,
+                           Document,
+                           Declared_Channel.Element_Type)
+                        then
+                          Array_Runtime_Instance_Name
+                            (Base_Type
+                               (Unit,
+                                Document,
+                                Declared_Channel.Element_Type))
+                          & ".Free"
+                        else Channel_Free_Helper_Name (Declared_Channel));
+                  begin
+                     if Arm_Has_Heap_Value then
+                        Push_Cleanup_Frame (State);
+                        Add_Cleanup_Item
+                          (State,
+                           Arm_Value_Name,
+                           Arm_Type_Name,
+                           Arm_Free_Proc);
+                     end if;
+                     Append_Line (Buffer, "if not Select_Done then", Select_Depth);
+                     Append_Line (Buffer, "declare", Select_Depth + 1);
+                     if State.Task_Body_Depth > 0 then
+                        Append_Initialization_Warning_Suppression
+                          (Buffer, Select_Depth + 2);
+                     end if;
+                     Append_Line
+                       (Buffer,
+                        Arm_Value_Name
+                        & " : "
+                        & Arm_Type_Name
+                        & " := "
+                        & Default_Value_Expr (Arm.Channel_Data.Type_Info)
+                        & ";",
+                        Select_Depth + 2);
+                     if Channel_Has_Length_Model (Declared_Channel) then
+                        Append_Line (Buffer, "Arm_Length : Natural := 0;", Select_Depth + 2);
+                     end if;
+                     Append_Line (Buffer, "Arm_Success : Boolean := False;", Select_Depth + 2);
+                     if State.Task_Body_Depth > 0 then
+                        Append_Initialization_Warning_Restore
+                          (Buffer, Select_Depth + 2);
+                     end if;
+                     Append_Line (Buffer, "begin", Select_Depth + 1);
+                     if State.Task_Body_Depth > 0 then
+                        Append_Task_Channel_Call_Warning_Suppression
+                          (Buffer, Select_Depth + 2);
+                     end if;
+                     if Channel_Has_Length_Model (Declared_Channel) then
+                        Append_Channel_Staged_Call_Warning_Suppression
+                          (Buffer, Select_Depth + 2);
+                     end if;
+                     Append_Line
+                       (Buffer,
+                        Render_Expr (Unit, Document, Arm.Channel_Data.Channel_Name, State)
+                        & ".Try_Receive ("
+                        & Arm_Value_Name
+                        & (if Channel_Has_Length_Model (Declared_Channel)
+                           then ", Arm_Length"
+                           else "")
+                        & ", Arm_Success);",
+                        Select_Depth + 2);
+                     if Channel_Has_Length_Model (Declared_Channel) then
+                        Append_Channel_Staged_Call_Warning_Restore
+                          (Buffer, Select_Depth + 2);
+                     end if;
+                     if State.Task_Body_Depth > 0 then
+                        Append_Task_Channel_Call_Warning_Restore
+                          (Buffer, Select_Depth + 2);
+                        Append_Task_If_Warning_Suppression (Buffer, Select_Depth + 2);
+                     end if;
+                     Append_Line (Buffer, "if Arm_Success then", Select_Depth + 2);
+                     Append_Line (Buffer, "Select_Done := True;", Select_Depth + 3);
+                     if Delay_Arm_Count > 0 then
+                        Append_Line
+                          (Buffer,
+                           "pragma Warnings (GNATprove, Off, ""is set by"", Reason => ""generated timer cancel result is intentionally ignored"");",
+                           Select_Depth + 3);
+                        Append_Line
+                          (Buffer,
+                           Select_Dispatcher_Cancel_Helper_Name (Item)
+                           & " (Select_Handler_Cancelled);",
+                           Select_Depth + 3);
+                        Append_Line
+                          (Buffer,
+                           "pragma Warnings (GNATprove, On, ""is set by"");",
+                           Select_Depth + 3);
+                        Append_Line
+                          (Buffer,
+                           Dispatcher_Name & ".Reset;",
+                           Select_Depth + 3);
+                     end if;
+                     if Channel_Has_Scalar_Length_Model (Declared_Channel) then
+                        Append_Line
+                          (Buffer,
+                           "pragma Assume ("
+                           & Channel_Length_Image
+                               (Declared_Channel,
+                                Arm_Value_Name)
+                           & " = Arm_Length);",
+                           Select_Depth + 3);
+                     elsif Channel_Has_Length_Model (Declared_Channel) then
+                        Append_Line
+                          (Buffer,
+                           "Arm_Length := "
+                           & Channel_Length_Image
+                               (Declared_Channel,
+                                Arm_Value_Name)
+                           & ";",
+                           Select_Depth + 3);
+                     end if;
+                     Append_Channel_Length_Assert
+                       (Declared_Channel,
+                        Arm_Value_Name,
+                        "Arm_Length",
+                        Select_Depth + 3);
+                     Render_Required_Statement_Suite
+                       (Buffer,
+                        Unit,
+                        Document,
+                        Arm.Channel_Data.Statements,
+                        State,
+                        Select_Depth + 3,
+                        Return_Type);
+                     if Arm_Has_Heap_Value
+                       and then Statements_Fall_Through (Arm.Channel_Data.Statements)
+                     then
+                        if Arm_Needs_Local_Cleanup_Suppression then
+                           Append_Local_Warning_Suppression (Buffer, Select_Depth + 3);
+                        end if;
+                        Render_Current_Cleanup_Frame (Buffer, State, Select_Depth + 3);
+                        if Arm_Needs_Local_Cleanup_Suppression then
+                           Append_Local_Warning_Restore (Buffer, Select_Depth + 3);
+                        end if;
+                     end if;
+                     Append_Line (Buffer, "end if;", Select_Depth + 2);
+                     if State.Task_Body_Depth > 0 then
+                        Append_Task_If_Warning_Restore (Buffer, Select_Depth + 2);
+                     end if;
+                     Append_Line (Buffer, "end;", Select_Depth + 1);
+                     Append_Line (Buffer, "end if;", Select_Depth);
+                     if Arm_Has_Heap_Value then
+                        Pop_Cleanup_Frame (State);
+                     end if;
+                  end Render_Channel_Precheck;
+
+                  procedure Render_Select_Precheck
+                    (Select_Depth : Natural) is
+                  begin
+                     for Arm of Item.Arms loop
+                        if Arm.Kind = CM.Select_Arm_Channel then
+                           Render_Channel_Precheck (Arm, Select_Depth);
+                        elsif Arm.Kind /= CM.Select_Arm_Delay then
+                           Raise_Unsupported
+                             (State,
+                              Arm.Span,
+                              "unsupported select arm in Ada emission");
+                        end if;
+                     end loop;
+                  end Render_Select_Precheck;
+
+                  procedure Render_Delay_Arm_Statements
+                    (Select_Depth : Natural) is
+                  begin
+                     for Arm of Item.Arms loop
+                        if Arm.Kind = CM.Select_Arm_Delay then
+                           Render_Required_Statement_Suite
+                             (Buffer,
+                              Unit,
+                              Document,
+                              Arm.Delay_Data.Statements,
+                              State,
+                              Select_Depth,
+                              Return_Type);
+                           return;
+                        end if;
+                     end loop;
+                  end Render_Delay_Arm_Statements;
                begin
                   for Arm of Item.Arms loop
                      if Arm.Kind = CM.Select_Arm_Channel then
@@ -15123,414 +15884,92 @@ package body Safe_Frontend.Ada_Emit is
                            "select with delay supports exactly one delay arm in Ada emission");
                      end if;
 
+                     State.Needs_Ada_Real_Time := True;
                      Append_Line (Buffer, "declare", Depth);
                      Append_Line (Buffer, "Select_Done : Boolean := False;", Depth + 1);
-                     for Arm of Item.Arms loop
-                        if Arm.Kind = CM.Select_Arm_Delay then
-                           Append_Line
-                             (Buffer,
-                              "Select_Polls : constant Positive :="
-                              & ASCII.LF
-                              & Indentation (Depth + 2)
-                              & "(if "
-                              & Render_Expr (Unit, Document, Arm.Delay_Data.Duration_Expr, State)
-                              & " <= 0.0"
-                              & ASCII.LF
-                              & Indentation (Depth + 3)
-                              & "then 1"
-                              & ASCII.LF
-                              & Indentation (Depth + 3)
-                              & "else Positive (Long_Float'Ceiling ("
-                              & "Long_Float ("
-                              & Render_Expr (Unit, Document, Arm.Delay_Data.Duration_Expr, State)
-                              & ") / "
-                              & Select_Poll_Quantum_Seconds
-                              & ")));",
-                              Depth + 1);
-                           exit;
-                        end if;
-                     end loop;
-                     Append_Line (Buffer, "begin", Depth);
-                     Append_Line (Buffer, "for Select_Iter in 0 .. Select_Polls loop", Depth + 1);
-                     Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
-                     Append_Line (Buffer, "if Select_Iter > 0 then", Depth + 2);
+                     Append_Line (Buffer, "Select_Timed_Out : Boolean;", Depth + 1);
                      Append_Line
                        (Buffer,
-                        "delay " & Select_Poll_Quantum_Seconds & ";",
+                        "Select_Handler_Cancelled : Boolean;",
+                        Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "Select_Delay_Span : constant Ada.Real_Time.Time_Span := "
+                        & "Ada.Real_Time.To_Time_Span ("
+                        & Delay_Expr_Image
+                        & ");",
+                        Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "Select_Start : constant Ada.Real_Time.Time := "
+                        & "Ada.Real_Time.Clock;",
+                        Depth + 1);
+                     Append_Line (Buffer, "Select_Deadline : constant Ada.Real_Time.Time :=", Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "(if Select_Start > Ada.Real_Time.Time_Last - Select_Delay_Span",
+                        Depth + 2);
+                     Append_Line
+                       (Buffer,
+                        " then Ada.Real_Time.Time_Last",
+                        Depth + 2);
+                     Append_Line
+                       (Buffer,
+                        " else Select_Start + Select_Delay_Span);",
+                        Depth + 2);
+                     Append_Line (Buffer, "begin", Depth);
+                     Append_Line
+                       (Buffer,
+                        Dispatcher_Name & ".Reset;",
+                        Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "if Select_Start >= Select_Deadline then",
+                        Depth + 1);
+                     Render_Delay_Arm_Statements (Depth + 2);
+                     Append_Line (Buffer, "else", Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        Select_Dispatcher_Arm_Helper_Name (Item)
+                        & " (Select_Deadline);",
+                        Depth + 2);
+                     Append_Line (Buffer, "loop", Depth + 2);
+                     Render_Select_Precheck (Depth + 3);
+                     Append_Line (Buffer, "exit when Select_Done;", Depth + 3);
+                     Append_Line
+                       (Buffer,
+                        Dispatcher_Name & ".Await (Select_Timed_Out);",
                         Depth + 3);
-                     Append_Line (Buffer, "end if;", Depth + 2);
-
-                     for Arm of Item.Arms loop
-                        if Arm.Kind = CM.Select_Arm_Channel then
-                           declare
-                              Declared_Channel : constant CM.Resolved_Channel_Decl :=
-                                Channel_Item (Arm.Channel_Data.Channel_Name);
-                              Arm_Value_Name   : constant String :=
-                                FT.To_String (Arm.Channel_Data.Variable_Name);
-                              Arm_Type_Name    : constant String :=
-                                Render_Type_Name (Arm.Channel_Data.Type_Info);
-                              Arm_Has_Heap_Value : constant Boolean :=
-                                Has_Heap_Value_Type
-                                  (Unit,
-                                   Document,
-                                   Declared_Channel.Element_Type);
-                              Arm_Needs_Local_Cleanup_Suppression : constant Boolean :=
-                                Arm_Has_Heap_Value
-                                and then
-                                  (Is_Plain_String_Type
-                                     (Unit,
-                                      Document,
-                                      Declared_Channel.Element_Type)
-                                   or else
-                                   Is_Growable_Array_Type
-                                     (Unit,
-                                      Document,
-                                      Declared_Channel.Element_Type));
-                              Arm_Free_Proc    : constant String :=
-                                (if not Arm_Has_Heap_Value
-                                 then ""
-                                 elsif Is_Plain_String_Type
-                                   (Unit,
-                                    Document,
-                                    Declared_Channel.Element_Type)
-                                 then "Safe_String_RT.Free"
-                                 elsif Is_Growable_Array_Type
-                                   (Unit,
-                                    Document,
-                                    Declared_Channel.Element_Type)
-                                 then
-                                   Array_Runtime_Instance_Name
-                                     (Base_Type
-                                        (Unit,
-                                         Document,
-                                         Declared_Channel.Element_Type))
-                                   & ".Free"
-                                 else Channel_Free_Helper_Name (Declared_Channel));
-                           begin
-                              if Arm_Has_Heap_Value then
-                                 Push_Cleanup_Frame (State);
-                                 Add_Cleanup_Item
-                                   (State,
-                                    Arm_Value_Name,
-                                    Arm_Type_Name,
-                                    Arm_Free_Proc);
-                              end if;
-                              Append_Line (Buffer, "if not Select_Done then", Depth + 2);
-                              Append_Line (Buffer, "declare", Depth + 3);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Initialization_Warning_Suppression
-                                   (Buffer, Depth + 4);
-                              end if;
-                              Append_Line
-                                (Buffer,
-                                 Arm_Value_Name
-                                 & " : "
-                                 & Arm_Type_Name
-                                 & " := "
-                                 & Default_Value_Expr (Arm.Channel_Data.Type_Info)
-                                 & ";",
-                                 Depth + 4);
-                              if Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Line (Buffer, "Arm_Length : Natural := 0;", Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "Arm_Success : Boolean := False;", Depth + 4);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Initialization_Warning_Restore
-                                   (Buffer, Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "begin", Depth + 3);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Task_Channel_Call_Warning_Suppression
-                                   (Buffer, Depth + 4);
-                              end if;
-                              if Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Channel_Staged_Call_Warning_Suppression
-                                   (Buffer, Depth + 4);
-                              end if;
-                              Append_Line
-                                (Buffer,
-                                 Render_Expr (Unit, Document, Arm.Channel_Data.Channel_Name, State)
-                                 & ".Try_Receive ("
-                                 & Arm_Value_Name
-                                 & (if Channel_Has_Length_Model (Declared_Channel)
-                                    then ", Arm_Length"
-                                    else "")
-                                 & ", Arm_Success);",
-                                 Depth + 4);
-                              if Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Channel_Staged_Call_Warning_Restore
-                                   (Buffer, Depth + 4);
-                              end if;
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Task_Channel_Call_Warning_Restore
-                                   (Buffer, Depth + 4);
-                                 Append_Task_If_Warning_Suppression (Buffer, Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "if Arm_Success then", Depth + 4);
-                              Append_Line (Buffer, "Select_Done := True;", Depth + 5);
-                              if Channel_Has_Scalar_Length_Model (Declared_Channel) then
-                                 Append_Line
-                                   (Buffer,
-                                    "pragma Assume ("
-                                    & Channel_Length_Image
-                                        (Declared_Channel,
-                                         Arm_Value_Name)
-                                    & " = Arm_Length);",
-                                    Depth + 5);
-                              elsif Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Line
-                                   (Buffer,
-                                    "Arm_Length := "
-                                    & Channel_Length_Image
-                                        (Declared_Channel,
-                                         Arm_Value_Name)
-                                    & ";",
-                                    Depth + 5);
-                              end if;
-                              Append_Channel_Length_Assert
-                                (Declared_Channel,
-                                 Arm_Value_Name,
-                                 "Arm_Length",
-                                 Depth + 5);
-                              Render_Required_Statement_Suite
-                                (Buffer,
-                                 Unit,
-                                 Document,
-                                 Arm.Channel_Data.Statements,
-                                 State,
-                                 Depth + 5,
-                                 Return_Type);
-                              if Arm_Has_Heap_Value
-                                and then Statements_Fall_Through (Arm.Channel_Data.Statements)
-                              then
-                                 if Arm_Needs_Local_Cleanup_Suppression then
-                                    Append_Local_Warning_Suppression (Buffer, Depth + 5);
-                                 end if;
-                                 Render_Current_Cleanup_Frame (Buffer, State, Depth + 5);
-                                 if Arm_Needs_Local_Cleanup_Suppression then
-                                    Append_Local_Warning_Restore (Buffer, Depth + 5);
-                                 end if;
-                              end if;
-                              Append_Line (Buffer, "end if;", Depth + 4);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Task_If_Warning_Restore (Buffer, Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "end;", Depth + 3);
-                              Append_Line (Buffer, "end if;", Depth + 2);
-                              if Arm_Has_Heap_Value then
-                                 Pop_Cleanup_Frame (State);
-                              end if;
-                           end;
-                        elsif Arm.Kind /= CM.Select_Arm_Delay then
-                           Raise_Unsupported
-                             (State,
-                              Arm.Span,
-                              "unsupported select arm in Ada emission");
-                        end if;
-                     end loop;
-
-                     Append_Line (Buffer, "end loop;", Depth + 1);
-                     for Arm of Item.Arms loop
-                        if Arm.Kind = CM.Select_Arm_Delay then
-                           if State.Task_Body_Depth > 0 then
-                              Append_Task_If_Warning_Suppression (Buffer, Depth + 1);
-                           end if;
-                           Append_Line (Buffer, "if not Select_Done then", Depth + 1);
-                           Render_Required_Statement_Suite
-                             (Buffer,
-                              Unit,
-                              Document,
-                              Arm.Delay_Data.Statements,
-                              State,
-                              Depth + 2,
-                              Return_Type);
-                           Append_Line (Buffer, "end if;", Depth + 1);
-                           if State.Task_Body_Depth > 0 then
-                              Append_Task_If_Warning_Restore (Buffer, Depth + 1);
-                           end if;
-                           exit;
-                        end if;
-                     end loop;
+                     Append_Line (Buffer, "if Select_Timed_Out then", Depth + 3);
+                     Render_Delay_Arm_Statements (Depth + 4);
+                     Append_Line (Buffer, "exit;", Depth + 4);
+                     Append_Line (Buffer, "end if;", Depth + 3);
+                     Append_Line (Buffer, "end loop;", Depth + 2);
+                     Append_Line (Buffer, "end if;", Depth + 1);
                      Append_Line (Buffer, "end;", Depth);
                   else
                      Append_Line (Buffer, "declare", Depth);
                      Append_Line (Buffer, "Select_Done : Boolean := False;", Depth + 1);
+                     Append_Line (Buffer, "Select_Timed_Out : Boolean;", Depth + 1);
                      Append_Line (Buffer, "begin", Depth);
+                     Append_Line
+                       (Buffer,
+                        Dispatcher_Name & ".Reset;",
+                        Depth + 1);
                      Append_Line (Buffer, "loop", Depth + 1);
-
-                     for Arm of Item.Arms loop
-                        if Arm.Kind = CM.Select_Arm_Channel then
-                           declare
-                              Declared_Channel : constant CM.Resolved_Channel_Decl :=
-                                Channel_Item (Arm.Channel_Data.Channel_Name);
-                              Arm_Value_Name   : constant String :=
-                                FT.To_String (Arm.Channel_Data.Variable_Name);
-                              Arm_Type_Name    : constant String :=
-                                Render_Type_Name (Arm.Channel_Data.Type_Info);
-                              Arm_Has_Heap_Value : constant Boolean :=
-                                Has_Heap_Value_Type
-                                  (Unit,
-                                   Document,
-                                   Declared_Channel.Element_Type);
-                              Arm_Needs_Local_Cleanup_Suppression : constant Boolean :=
-                                Arm_Has_Heap_Value
-                                and then
-                                  (Is_Plain_String_Type
-                                     (Unit,
-                                      Document,
-                                      Declared_Channel.Element_Type)
-                                   or else
-                                   Is_Growable_Array_Type
-                                     (Unit,
-                                      Document,
-                                      Declared_Channel.Element_Type));
-                              Arm_Free_Proc    : constant String :=
-                                (if not Arm_Has_Heap_Value
-                                 then ""
-                                 elsif Is_Plain_String_Type
-                                   (Unit,
-                                    Document,
-                                    Declared_Channel.Element_Type)
-                                 then "Safe_String_RT.Free"
-                                 elsif Is_Growable_Array_Type
-                                   (Unit,
-                                    Document,
-                                    Declared_Channel.Element_Type)
-                                 then
-                                   Array_Runtime_Instance_Name
-                                     (Base_Type
-                                        (Unit,
-                                         Document,
-                                         Declared_Channel.Element_Type))
-                                   & ".Free"
-                                 else Channel_Free_Helper_Name (Declared_Channel));
-                           begin
-                              if Arm_Has_Heap_Value then
-                                 Push_Cleanup_Frame (State);
-                                 Add_Cleanup_Item
-                                   (State,
-                                    Arm_Value_Name,
-                                    Arm_Type_Name,
-                                    Arm_Free_Proc);
-                              end if;
-                              Append_Line (Buffer, "if not Select_Done then", Depth + 2);
-                              Append_Line (Buffer, "declare", Depth + 3);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Initialization_Warning_Suppression
-                                   (Buffer, Depth + 4);
-                              end if;
-                              Append_Line
-                                (Buffer,
-                                 Arm_Value_Name
-                                 & " : "
-                                 & Arm_Type_Name
-                                 & " := "
-                                 & Default_Value_Expr (Arm.Channel_Data.Type_Info)
-                                 & ";",
-                                 Depth + 4);
-                              if Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Line (Buffer, "Arm_Length : Natural := 0;", Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "Arm_Success : Boolean := False;", Depth + 4);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Initialization_Warning_Restore
-                                   (Buffer, Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "begin", Depth + 3);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Task_Channel_Call_Warning_Suppression
-                                   (Buffer, Depth + 4);
-                              end if;
-                              if Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Channel_Staged_Call_Warning_Suppression
-                                   (Buffer, Depth + 4);
-                              end if;
-                              Append_Line
-                                (Buffer,
-                                 Render_Expr (Unit, Document, Arm.Channel_Data.Channel_Name, State)
-                                 & ".Try_Receive ("
-                                 & Arm_Value_Name
-                                 & (if Channel_Has_Length_Model (Declared_Channel)
-                                    then ", Arm_Length"
-                                    else "")
-                                 & ", Arm_Success);",
-                                 Depth + 4);
-                              if Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Channel_Staged_Call_Warning_Restore
-                                   (Buffer, Depth + 4);
-                              end if;
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Task_Channel_Call_Warning_Restore
-                                   (Buffer, Depth + 4);
-                                 Append_Task_If_Warning_Suppression (Buffer, Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "if Arm_Success then", Depth + 4);
-                              Append_Line (Buffer, "Select_Done := True;", Depth + 5);
-                              if Channel_Has_Scalar_Length_Model (Declared_Channel) then
-                                 Append_Line
-                                   (Buffer,
-                                    "pragma Assume ("
-                                    & Channel_Length_Image
-                                        (Declared_Channel,
-                                         Arm_Value_Name)
-                                    & " = Arm_Length);",
-                                    Depth + 5);
-                              elsif Channel_Has_Length_Model (Declared_Channel) then
-                                 Append_Line
-                                   (Buffer,
-                                    "Arm_Length := "
-                                    & Channel_Length_Image
-                                        (Declared_Channel,
-                                         Arm_Value_Name)
-                                    & ";",
-                                    Depth + 5);
-                              end if;
-                              Append_Channel_Length_Assert
-                                (Declared_Channel,
-                                 Arm_Value_Name,
-                                 "Arm_Length",
-                                 Depth + 5);
-                              Render_Required_Statement_Suite
-                                (Buffer,
-                                 Unit,
-                                 Document,
-                                 Arm.Channel_Data.Statements,
-                                 State,
-                                 Depth + 5,
-                                 Return_Type);
-                              if Arm_Has_Heap_Value
-                                and then Statements_Fall_Through (Arm.Channel_Data.Statements)
-                              then
-                                 if Arm_Needs_Local_Cleanup_Suppression then
-                                    Append_Local_Warning_Suppression (Buffer, Depth + 5);
-                                 end if;
-                                 Render_Current_Cleanup_Frame (Buffer, State, Depth + 5);
-                                 if Arm_Needs_Local_Cleanup_Suppression then
-                                    Append_Local_Warning_Restore (Buffer, Depth + 5);
-                                 end if;
-                              end if;
-                              Append_Line (Buffer, "end if;", Depth + 4);
-                              if State.Task_Body_Depth > 0 then
-                                 Append_Task_If_Warning_Restore (Buffer, Depth + 4);
-                              end if;
-                              Append_Line (Buffer, "end;", Depth + 3);
-                              Append_Line (Buffer, "end if;", Depth + 2);
-                              if Arm_Has_Heap_Value then
-                                 Pop_Cleanup_Frame (State);
-                              end if;
-                           end;
-                        elsif Arm.Kind /= CM.Select_Arm_Delay then
-                           Raise_Unsupported
-                             (State,
-                              Arm.Span,
-                              "unsupported select arm in Ada emission");
-                        end if;
-                     end loop;
-
+                     Render_Select_Precheck (Depth + 2);
                      Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
                      Append_Line
                        (Buffer,
-                        "delay " & Select_Poll_Quantum_Seconds & ";",
+                        "pragma Warnings (GNATprove, Off, ""is set by"", Reason => ""generated dispatcher wake result is intentionally ignored on no-delay select paths"");",
+                        Depth + 2);
+                     Append_Line
+                       (Buffer,
+                        Dispatcher_Name & ".Await (Select_Timed_Out);",
+                        Depth + 2);
+                     Append_Line
+                       (Buffer,
+                        "pragma Warnings (GNATprove, On, ""is set by"");",
                         Depth + 2);
                      Append_Line (Buffer, "end loop;", Depth + 1);
                      Append_Line (Buffer, "end;", Depth);
@@ -16603,6 +17042,7 @@ package body Safe_Frontend.Ada_Emit is
          Append_Line (Buffer, Name & ".Value := Value;", 2);
          Append_Line (Buffer, Name & ".Full := True;", 2);
          Append_Line (Buffer, Name & ".Stored_Length_Value := Value_Length;", 2);
+         Append_Select_Dispatcher_Signals (Buffer, Unit, Name, 2);
          if Heap_Value then
             Append_Line (Buffer, "Value := " & Buffer_Default & ";", 2);
          end if;
@@ -16629,6 +17069,7 @@ package body Safe_Frontend.Ada_Emit is
          Append_Line (Buffer, Name & ".Value := Value;", 3);
          Append_Line (Buffer, Name & ".Full := True;", 3);
          Append_Line (Buffer, Name & ".Stored_Length_Value := Value_Length;", 3);
+         Append_Select_Dispatcher_Signals (Buffer, Unit, Name, 3);
          if Heap_Value then
             Append_Line (Buffer, "Value := " & Buffer_Default & ";", 3);
          end if;
@@ -16708,6 +17149,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "Tail := " & Index_Subtype & "'Succ (Tail);", 4);
       Append_Line (Buffer, "end if;", 3);
       Append_Line (Buffer, "Count := Count + 1;", 3);
+      Append_Select_Dispatcher_Signals (Buffer, Unit, Name, 3);
       Append_Line (Buffer, "end Send;", 2);
       Append_Line (Buffer);
       Append_Line
@@ -16787,6 +17229,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "Tail := " & Index_Subtype & "'Succ (Tail);", 5);
       Append_Line (Buffer, "end if;", 4);
       Append_Line (Buffer, "Count := Count + 1;", 4);
+      Append_Select_Dispatcher_Signals (Buffer, Unit, Name, 4);
       Append_Line (Buffer, "Success := True;", 4);
       Append_Line (Buffer, "else", 3);
       Append_Line (Buffer, "Success := False;", 4);
@@ -17927,14 +18370,44 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
       end Seed_Package_Static_Bindings;
 
+      Package_Dispatcher_Names : FT.UString_Vectors.Vector;
+      Package_Dispatcher_Timer_Names : FT.UString_Vectors.Vector;
+      Package_Select_Abstract_State_Name : constant String :=
+        "Safe_Select_Internal_State";
       Generated_Elaborate_Name : constant String :=
         "Safe_Generated_Elaborate_" & FT.To_String (Unit.Package_Name);
+
+      function Package_Select_Refined_State return String is
+         Constituents : FT.UString_Vectors.Vector;
+      begin
+         for Name of Package_Dispatcher_Names loop
+            Constituents.Append (Name);
+         end loop;
+         for Name of Package_Dispatcher_Timer_Names loop
+            Constituents.Append (Name);
+         end loop;
+         return Join_Names (Constituents);
+      end Package_Select_Refined_State;
    begin
       if not Unit.Channels.Is_Empty or else not Unit.Tasks.Is_Empty then
          State.Needs_Gnat_Adc := True;
       end if;
       Collect_Bounded_String_Types (Unit, Document, State);
       Collect_Wide_Locals (Unit, Document, State, Unit.Objects, Unit.Statements);
+      Collect_Select_Dispatcher_Names
+        (Unit.Statements,
+         Package_Dispatcher_Names);
+      Collect_Select_Delay_Timer_Names
+        (Unit.Statements,
+         Package_Dispatcher_Timer_Names);
+      for Task_Item of Unit.Tasks loop
+         Collect_Select_Dispatcher_Names
+           (Task_Item.Statements,
+            Package_Dispatcher_Names);
+         Collect_Select_Delay_Timer_Names
+           (Task_Item.Statements,
+            Package_Dispatcher_Timer_Names);
+      end loop;
 
       Append_Line (Spec_Inner, "pragma SPARK_Mode (On);");
       Append_Line (Spec_Inner);
@@ -17946,6 +18419,16 @@ package body Safe_Frontend.Ada_Emit is
          & Indentation (1)
          & "with SPARK_Mode => On,"
          & ASCII.LF
+         & (if not Package_Dispatcher_Names.Is_Empty
+               or else not Package_Dispatcher_Timer_Names.Is_Empty
+            then
+               Indentation (1)
+               & "     Abstract_State => ("
+               & Package_Select_Abstract_State_Name
+               & " with External),"
+               & ASCII.LF
+            else
+               "")
          & Indentation (1)
          & "     Initializes => "
          & Render_Initializes_Aspect (Unit, Document, Bronze)
@@ -18082,6 +18565,31 @@ package body Safe_Frontend.Ada_Emit is
          Append_Line (Spec_Inner);
       end if;
 
+      if not Package_Dispatcher_Names.Is_Empty
+        or else not Package_Dispatcher_Timer_Names.Is_Empty
+      then
+         Append_Line (Spec_Inner, "private", 1);
+         for Name of Package_Dispatcher_Names loop
+            Render_Select_Dispatcher_Spec
+              (Spec_Inner,
+               FT.To_String (Name));
+            Render_Select_Dispatcher_Object_Decl
+              (Spec_Inner,
+               FT.To_String (Name));
+         end loop;
+         for Name of Package_Dispatcher_Timer_Names loop
+            Append_Line
+              (Spec_Inner,
+               FT.To_String (Name)
+               & " : Ada.Real_Time.Timing_Events.Timing_Event"
+               & ASCII.LF
+               & Indentation (1)
+               & "  with Part_Of => Safe_Select_Internal_State;",
+               1);
+         end loop;
+         Append_Line (Spec_Inner);
+      end if;
+
       Append_Line (Spec_Inner, "end " & FT.To_String (Unit.Package_Name) & ";");
 
       Append_Line
@@ -18089,6 +18597,18 @@ package body Safe_Frontend.Ada_Emit is
          "package body "
          & FT.To_String (Unit.Package_Name)
          & " with SPARK_Mode => On"
+         & (if not Package_Dispatcher_Names.Is_Empty
+               or else not Package_Dispatcher_Timer_Names.Is_Empty
+            then
+               "," & ASCII.LF
+               & Indentation (1)
+               & "     Refined_State => ("
+               & Package_Select_Abstract_State_Name
+               & " => ("
+               & Package_Select_Refined_State
+               & "))"
+            else
+               "")
          & " is");
       Append_Bounded_String_Uses (Body_Inner, State, 1);
       Append_Line (Body_Inner);
@@ -18108,6 +18628,33 @@ package body Safe_Frontend.Ada_Emit is
            (Body_Inner, Unit, Document, Type_Item, State);
       end loop;
 
+      for Name of Package_Dispatcher_Names loop
+         Render_Select_Dispatcher_Body
+           (Body_Inner,
+            FT.To_String (Name));
+      end loop;
+      if not Package_Dispatcher_Names.Is_Empty then
+         Append_Line (Body_Inner);
+      end if;
+      for Name of Package_Dispatcher_Timer_Names loop
+         declare
+            Timer_Text : constant String := FT.To_String (Name);
+            Dispatcher_Text : constant String :=
+              Timer_Text (Timer_Text'First .. Timer_Text'Last - 6);
+         begin
+            Render_Select_Dispatcher_Delay_Helpers
+              (Body_Inner,
+               Dispatcher => Dispatcher_Text,
+               Timer_Name => Timer_Text,
+               Init_Helper => Dispatcher_Text & "_Initialize_Timer",
+               Arm_Helper => Dispatcher_Text & "_Arm_Deadline",
+               Cancel_Helper => Dispatcher_Text & "_Cancel_Deadline");
+         end;
+      end loop;
+      if not Package_Dispatcher_Timer_Names.Is_Empty then
+         Append_Line (Body_Inner);
+      end if;
+
       for Channel of Unit.Channels loop
          Render_Channel_Body (Body_Inner, Unit, Document, Channel, State);
       end loop;
@@ -18124,6 +18671,7 @@ package body Safe_Frontend.Ada_Emit is
 
       if not Unit.Statements.Is_Empty
         or else not Deferred_Package_Init_Names.Is_Empty
+        or else not Package_Dispatcher_Timer_Names.Is_Empty
       then
          Append_Gnatprove_Warning_Suppression
            (Body_Inner,
@@ -18148,6 +18696,18 @@ package body Safe_Frontend.Ada_Emit is
          declare
             Deferred_Names : FT.UString_Vectors.Vector;
          begin
+            for Name of Package_Dispatcher_Timer_Names loop
+               declare
+                  Timer_Text : constant String := FT.To_String (Name);
+                  Dispatcher_Text : constant String :=
+                    Timer_Text (Timer_Text'First .. Timer_Text'Last - 6);
+               begin
+                  Append_Line
+                    (Body_Inner,
+                     Dispatcher_Text & "_Initialize_Timer (" & Timer_Text & ");",
+                     2);
+               end;
+            end loop;
             for Decl of Unit.Objects loop
                if Should_Defer_Package_Object_Initializer (Decl, Deferred_Names) then
                   for Name of Decl.Names loop
@@ -18278,8 +18838,15 @@ package body Safe_Frontend.Ada_Emit is
       if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Interfaces.") > 0 then
          Add_Body_With ("Interfaces");
       end if;
+      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Real_Time.Timing_Events.") > 0 then
+         Add_Body_With ("Ada.Real_Time");
+         Add_Body_With ("Ada.Real_Time.Timing_Events");
+      end if;
       if State.Needs_Safe_IO then
          Add_Body_With ("IO");
+      end if;
+      if State.Needs_Ada_Real_Time then
+         Add_Body_With ("Ada.Real_Time");
       end if;
       if State.Needs_Safe_Runtime then
          Add_Body_With ("Safe_Runtime");
@@ -18299,6 +18866,9 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
       if State.Needs_Safe_Runtime then
          Append_Line (Body_Text, "use type Safe_Runtime.Wide_Integer;");
+      end if;
+      if State.Needs_Ada_Real_Time then
+         Append_Line (Body_Text, "use type Ada.Real_Time.Time;");
       end if;
       if State.Needs_Safe_String_RT then
          Append_Line (Body_Text, "use type Safe_String_RT.Safe_String;");
@@ -18331,6 +18901,8 @@ package body Safe_Frontend.Ada_Emit is
            State.Needs_Safe_Bounded_Strings;
          Spec_Needs_Ada_Strings_Unbounded : constant Boolean :=
            State.Needs_Ada_Strings_Unbounded;
+         Spec_Needs_Ada_Real_Time_Timing_Events : constant Boolean :=
+           Ada.Strings.Fixed.Index (Original_Spec, "Ada.Real_Time.Timing_Events.") > 0;
          Spec_Needs_Interfaces : constant Boolean :=
            Ada.Strings.Fixed.Index (Original_Spec, "Interfaces.") > 0;
          Spec_Needs_System : constant Boolean :=
@@ -18345,6 +18917,7 @@ package body Safe_Frontend.Ada_Emit is
              or else Spec_Needs_Safe_Array_Identity_RT
              or else Spec_Needs_Safe_Bounded_Strings
              or else Spec_Needs_Ada_Strings_Unbounded
+             or else Spec_Needs_Ada_Real_Time_Timing_Events
              or else Spec_Needs_Interfaces
              or else Spec_Needs_System
              or else Spec_Needs_Safe_Ownership_RT
@@ -18361,6 +18934,10 @@ package body Safe_Frontend.Ada_Emit is
             end if;
             if Spec_Needs_Ada_Strings_Unbounded then
                Append_Line (Spec_Text, "with Ada.Strings.Unbounded;");
+            end if;
+            if Spec_Needs_Ada_Real_Time_Timing_Events then
+               Append_Line (Spec_Text, "with Ada.Real_Time;");
+               Append_Line (Spec_Text, "with Ada.Real_Time.Timing_Events;");
             end if;
             if Spec_Needs_Safe_String_RT then
                Append_Line (Spec_Text, "with Safe_String_RT;");

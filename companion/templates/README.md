@@ -39,7 +39,7 @@ The mapping from Safe constructs to templates is defined in
 | `template_package_structure` | Section 3.1 | .ads/.adb split, opaque type, interleaved-to-declare lowering | `Narrow_Parameter` |
 | `template_borrow_observe` | Section 2.3 | Exclusive borrow + shared observe ownership transitions | `Check_Borrow_Exclusive`, `Check_Observe_Shared` |
 | `template_fp_safety` | Rule 5 | FP narrowing: not-NaN, not-infinity, safe FP division | `FP_Not_NaN`, `FP_Not_Infinity`, `FP_Safe_Div` |
-| `template_select_polling` | Section 4.4 | Select-to-polling-loop lowering with bounded iteration | `Check_Channel_Not_Empty` |
+| `template_select_dispatcher` | Section 4.4 | Dispatcher-based select lowering with readiness latch | `Check_Channel_Not_Empty` |
 | `template_narrow_conversion` | Rule 1 | Type-conversion narrowing from 64-bit integer arithmetic | `Narrow_Conversion` |
 
 Each `.ads` file carries clause IDs in its header comment tracing to the
@@ -52,7 +52,7 @@ All milestones (M0–M7) are complete. PO hook coverage: 23/23 (100%).
 | Milestone | Templates | Status |
 |-----------|-----------|--------|
 | M5 | `template_effect_summary`, `template_package_structure` | Complete |
-| M6 | `template_select_polling`, `template_fp_safety`, `template_borrow_observe` | Complete |
+| M6 | `template_select_dispatcher`, `template_fp_safety`, `template_borrow_observe` | Complete |
 | M7 | `template_narrow_conversion` + final PO hook coverage audit | Complete |
 
 See [`docs/template_plan.md`](../../docs/template_plan.md) for detailed
@@ -96,8 +96,8 @@ drift.
 
 ## Assumptions
 
-One template-specific assumption (T-01: select polling deadline faithfulness)
-was introduced in M6. All other templates prove under the existing companion
+The current template suite does not carry any template-specific assumptions.
+The dispatcher-based select template proves under the existing companion
 assumptions tracked in [`companion/assumptions.yaml`](../assumptions.yaml).
 
 ## Further reading

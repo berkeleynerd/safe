@@ -224,11 +224,9 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 | B-04 | Not_Null_Ptr and Safe_Deref model Boolean null flag | Minor | Modeling | Open |
 | C-01 | Flow analysis (Bronze gate) is sufficient for data-dependency proofs | Minor | Proof-Mode | Open |
 | C-02 | Proof-only (Ghost) procedures have no runtime effect | Minor | Proof-Mode | Open |
-| D-01 | Select lowering via polling is conformant | Minor | Specification | Open |
 | D-02 | Frozen spec commit is authoritative | Minor | Specification | Open |
-| T-01 | Select polling deadline check is faithful to wall-clock elapsed time | Minor | Modeling | Open |
 
-**Budget status:** 14 total (limit: 15), 4 critical (limit: 4) -- WITHIN LIMITS.
+**Budget status:** 12 total (limit: 15), 4 critical (limit: 4) -- WITHIN LIMITS.
 
 ---
 

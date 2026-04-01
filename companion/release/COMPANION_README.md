@@ -161,15 +161,15 @@ safe/
 
 ## 7. Assumption Registry
 
-The companion tracks 14 assumptions -- dependencies that the SPARK model relies on but cannot verify within SPARK itself. Full details are in `companion/assumptions.yaml`.
+The companion tracks 12 assumptions -- dependencies that the SPARK model relies on but cannot verify within SPARK itself. Full details are in `companion/assumptions.yaml`.
 
 | Severity | Count | IDs |
 |----------|-------|-----|
 | Critical | 4 | A-01 (64-bit intermediates), A-02 (IEEE 754 non-trapping), A-03 (range analysis soundness), A-04 (channel serialization) |
 | Major | 4 | A-05 (FP division overflow guard), B-01 (ownership state completeness), B-02 (FIFO ordering), B-03 (task-var map coverage) |
-| Minor | 6 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-01 (select polling conformance), D-02 (frozen spec commit), T-01 (select deadline faithfulness) |
+| Minor | 4 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-02 (frozen spec commit) |
 
-**Budget limits:** max 15 total (current: 14), max 4 critical (current: 4). Both within limits.
+**Budget limits:** max 15 total (current: 12), max 4 critical (current: 4). Both within limits.
 
 ---
 

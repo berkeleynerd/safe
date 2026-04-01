@@ -385,7 +385,6 @@ affected POs/models, severity, and related spec references.
 | C-01 | Flow analysis (Bronze gate) is sufficient for data-dependency proofs | All Safe_PO procedures (flow mode), All Safe_Model functions (flow mode) | minor | spec/05-assurance.md#5.2.1 | open |
 | C-02 | Proof-only (Ghost) procedures have no runtime effect | All Ghost PO procedures | minor | spec/05-assurance.md#5.3.1 | open |
 | A-05 | FP division result is finite when operands are finite | Safe_PO.FP_Safe_Div | major | spec/02-restrictions.md#2.8.5 | open |
-| D-01 | Select lowering via polling is conformant | compiler/translation_rules.md Section 5 (Select Lowering) | minor | spec/04-tasks-and-channels.md#4.4 | open |
 | D-02 | Frozen spec commit is authoritative | All clause IDs across all artifacts | minor | meta/commit.txt | open |
 
 ### Assumption-to-Clause Detail
@@ -458,13 +457,6 @@ affected POs/models, severity, and related spec references.
 - Affects: Safe_PO.FP_Safe_Div
 - Related clauses: `2.8.5.p139:d50bc714`, `2.8.5.p139b:5e20032b`, `2.8.5.p139c:7fad4f7d`, `2.8.5.p139d:56f1f36b`
 - Note: M3-AUD-002: GNATprove counterexample: X=-1.1e-5, Y=1.3e-318 → overflow.
-
-**D-01: Select lowering via polling is conformant**
-- Severity: minor
-- Spec reference: `spec/04-tasks-and-channels.md#4.4`
-- Affects: compiler/translation_rules.md Section 5 (Select Lowering)
-- Related clauses: `4.4.p33:7a94ab51`, `4.4.p34:f0f83b83`, `4.4.p35:2ad6e64f`, `4.4.p36:0bffbd47`, `4.4.p37:6ced8129`...
-- Note: M2-AUD-005: Spec does not define maximum latency for select responsiveness.
 
 **D-02: Frozen spec commit is authoritative**
 - Severity: minor

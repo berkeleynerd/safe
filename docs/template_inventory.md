@@ -1,7 +1,7 @@
 # Verified Emission Templates — Inventory
 
 **Status:** Complete
-**Updated:** 2026-03-04
+**Updated:** 2026-04-01
 
 ## Template Summary
 
@@ -19,7 +19,7 @@
 | 10| `template_package_structure` | M5       | `Narrow_Parameter`                                   | 6   | Proved   |
 | 11| `template_borrow_observe`   | M6       | `Check_Borrow_Exclusive`, `Check_Observe_Shared`     | 13  | Proved   |
 | 12| `template_fp_safety`        | M6       | `FP_Not_NaN`, `FP_Not_Infinity`, `FP_Safe_Div`       | 17  | Proved   |
-| 13| `template_select_polling`   | M6       | `Check_Channel_Not_Empty`                             | 32  | Proved   |
+| 13| `template_select_dispatcher`| M6       | `Check_Channel_Not_Empty`                             | 32  | Proved   |
 | 14| `template_narrow_conversion`| M7       | `Narrow_Conversion`                                   | 17  | Proved   |
 
 \* VCs = proof checks discharged by SMT provers (Silver level); flow
@@ -49,7 +49,7 @@ checks (Bronze level) are reported separately in the Proof Summary below.
 | `template_package_structure` | 3   | 6     | 9     | CVC5    |
 | `template_borrow_observe`   | 7    | 13    | 20    | CVC5    |
 | `template_fp_safety`        | 7    | 17    | 24    | CVC5    |
-| `template_select_polling`   | 14   | 32    | 46    | CVC5    |
+| `template_select_dispatcher`| 14   | 32    | 46    | CVC5    |
 | `template_narrow_conversion`| 3    | 17    | 20    | CVC5    |
 
 ## Max Steps
@@ -58,14 +58,9 @@ Max steps used for successful proof: 2 (well within budget).
 
 ## Assumption Ledger (Template-specific)
 
-One template-specific assumption (T-01) was introduced in M6, bringing
-the total from 13 to **14** tracked assumptions (within the <= 15
-budget). All other templates prove under the existing companion
-assumptions (see `companion/assumptions.yaml`).
-
-| ID   | Description | Clause | Introduced |
-|------|-------------|--------|------------|
-| T-01 | Select polling deadline check is faithful to wall-clock elapsed time | 4.4 | M6 |
+No template-specific assumptions are currently tracked. The dispatcher-based
+select template proves under the baseline companion assumptions in
+`companion/assumptions.yaml`.
 
 ## Coverage Boundary (M0–M7 Complete)
 
@@ -85,7 +80,7 @@ coverage. All 23 `Safe_PO` hooks are exercised.
 | §2.3 — Ownership (move, scope dealloc) | 2.3.2.p96a-p96c, 2.3.5.p104 | `template_ownership_move`, `template_scope_dealloc` |
 | §2.3 — Borrow & observe | 2.3.3.p99b, 2.3.4a.p102a | `template_borrow_observe` |
 | §4.2-4.3 — Channel FIFO | 4.2.p15, 4.3.p27-p31 | `template_channel_fifo` |
-| §4.4 — Select polling | 4.4.p33-p42 | `template_select_polling` |
+| §4.4 — Dispatcher-based select | 4.4.p33-p42 | `template_select_dispatcher` |
 | §4.5 — Task declaration | 4.5.p45, 5.4.1.p32-p33 | `template_task_decl` |
 | §5.2 — Effect summaries | 5.2.2.p5, 5.2.3.p8, 5.2.4.p11 | `template_effect_summary` |
 | §3.1 — Package structure | 3.2.6.p23-p24, 2.9.p140 | `template_package_structure` |
