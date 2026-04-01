@@ -95,24 +95,31 @@ def first_message(completed: subprocess.CompletedProcess[str]) -> str:
     if not lines:
         return f"exit code {completed.returncode}"
 
-    priority_markers = (
-        ": error:",
-        ": high:",
-        ": medium:",
-        ": low:",
-        "gnatprove:",
-        "error:",
-        "warning:",
-    )
-    for line in lines:
-        if ": info:" in line:
-            continue
-        if any(marker in line for marker in priority_markers):
-            return line
+    def severity(line: str) -> tuple[int, int]:
+        lowered = line.lower()
+        if ": info:" in lowered:
+            return (7, 0)
+        if ": error:" in lowered or " error:" in lowered or lowered.startswith("error:"):
+            return (0, 0)
+        if ": high:" in lowered:
+            return (1, 0)
+        if ": medium:" in lowered:
+            return (2, 0)
+        if ": low:" in lowered:
+            return (3, 0)
+        if "gnatprove:" in lowered:
+            return (4, 0)
+        if "warning:" in lowered:
+            return (5, 0)
+        return (6, 0)
 
-    for line in lines:
-        if ": info:" not in line:
-            return line
+    ranked = [
+        (severity(line), index, line)
+        for index, line in enumerate(lines)
+        if ": info:" not in line.lower()
+    ]
+    if ranked:
+        return min(ranked)[2]
 
     return lines[0]
 

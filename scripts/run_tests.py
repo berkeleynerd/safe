@@ -14,6 +14,7 @@ from pathlib import Path
 
 from _lib.embedded_eval import parse_monitor_value
 from _lib.harness_common import ensure_sdkroot
+from _lib.proof_eval import first_message as proof_eval_first_message
 from _lib.proof_inventory import (
     EMITTED_PROOF_COVERED_PATHS,
     EMITTED_PROOF_EXCLUSIONS,
@@ -1710,6 +1711,19 @@ def run_proof_inventory_coverage_case() -> tuple[bool, str]:
     return True, ""
 
 
+def run_proof_eval_message_priority_case() -> tuple[bool, str]:
+    completed = subprocess.CompletedProcess(
+        args=["dummy"],
+        returncode=1,
+        stdout="tool: error: real failure\n",
+        stderr="wrapper warning: noisy wrapper prefix\n",
+    )
+    detail = proof_eval_first_message(completed)
+    if detail != "tool: error: real failure":
+        return False, f"unexpected prioritized detail {detail!r}"
+    return True, ""
+
+
 def run_repl_case(
     *,
     label: str,
@@ -1820,6 +1834,12 @@ def main() -> int:
         passed += 1
     else:
         failures.append(("proof-inventory-coverage", detail))
+
+    ok, detail = run_proof_eval_message_priority_case()
+    if ok:
+        passed += 1
+    else:
+        failures.append(("proof-eval-message-priority", detail))
 
     with tempfile.TemporaryDirectory(prefix="safe-tests-") as temp_root_str:
         temp_root = Path(temp_root_str)
