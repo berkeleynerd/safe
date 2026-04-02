@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -80,23 +81,41 @@ def run_command(
     env: dict[str, str] | None = None,
     timeout: int | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    try:
-        return subprocess.run(
-            argv,
-            cwd=cwd,
-            env=os.environ.copy() if env is None else env,
-            text=True,
-            capture_output=True,
-            check=False,
-            timeout=timeout,
-        )
-    except subprocess.TimeoutExpired as exc:
-        stdout = exc.stdout or ""
-        stderr = exc.stderr or ""
-        if stderr:
-            stderr += "\n"
-        stderr += f"timed out after {timeout}s"
-        return subprocess.CompletedProcess(argv, 124, stdout, stderr)
+    with tempfile.TemporaryDirectory(prefix="safe-proof-cmd-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        stdout_path = temp_root / "stdout.txt"
+        stderr_path = temp_root / "stderr.txt"
+        with stdout_path.open("w+", encoding="utf-8") as stdout_handle, stderr_path.open(
+            "w+", encoding="utf-8"
+        ) as stderr_handle:
+            process = subprocess.Popen(
+                argv,
+                cwd=cwd,
+                env=os.environ.copy() if env is None else env,
+                text=True,
+                stdout=stdout_handle,
+                stderr=stderr_handle,
+            )
+            timed_out = False
+            try:
+                returncode = process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                process.kill()
+                returncode = 124
+                process.wait()
+
+            stdout_handle.flush()
+            stderr_handle.flush()
+            stdout_handle.seek(0)
+            stderr_handle.seek(0)
+            stdout = stdout_handle.read()
+            stderr = stderr_handle.read()
+            if timed_out:
+                if stderr:
+                    stderr += "\n"
+                stderr += f"timed out after {timeout}s"
+            return subprocess.CompletedProcess(argv, returncode, stdout, stderr)
 
 
 def first_message(completed: subprocess.CompletedProcess[str]) -> str:

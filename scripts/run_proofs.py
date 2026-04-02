@@ -145,6 +145,10 @@ def print_summary(
         print()
 
 
+def print_progress(message: str) -> None:
+    print(f"[run_proofs] {message}", flush=True)
+
+
 def run_fixture_group(
     *,
     fixtures: list[str],
@@ -157,6 +161,7 @@ def run_fixture_group(
     failures: list[tuple[str, str]] = []
 
     for fixture_rel in fixtures:
+        print_progress(f"proving {fixture_rel}")
         source = REPO_ROOT / fixture_rel
         result = run_source_proof(
             toolchain=toolchain,
@@ -207,6 +212,7 @@ def main() -> int:
 
     for project_rel, project_file in COMPANION_PROJECTS:
         project_dir = REPO_ROOT / project_rel
+        print_progress(f"proving {project_rel}/{project_file}")
         ok, detail = run_companion_project(
             project_dir=project_dir,
             project_file=project_file,
