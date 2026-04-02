@@ -884,8 +884,9 @@ EMITTED_REQUIRED_SHAPE_CASES = [
         [
             "protected type Safe_Select_Dispatcher_",
             "_Next_Arm : Positive range 1 .. 2 := 1",
-            "case Safe_Select_Dispatcher_",
-            "_Next_Arm is",
+            "for Select_Offset in 0 .. 1 loop",
+            "Select_Probe_Ordinal : constant Positive range 1 .. 2 :=",
+            "case Select_Probe_Ordinal is",
             "_Next_Arm := 2;",
             "_Next_Arm := 1;",
             ".Signal;",

@@ -22,18 +22,18 @@ package select_single_ready_result
       select
          when high_item : message from high_ch
             if round == 1
-               result = result_value (high_item)
+               result = 0
                receive low_ch, drained
                send high_ch, 3
             else
-               result = result * 10 + result_value (high_item)
+               result = 10 + result_value (high_item)
       or
          when low_item : message from low_ch
             if round == 1
-               result = result_value (low_item)
+               result = 0
                receive high_ch, drained
                send low_ch, 4
             else
-               result = result * 10 + result_value (low_item)
+               result = 20 + result_value (low_item)
 
    send result_ch, result

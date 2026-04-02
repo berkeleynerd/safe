@@ -15998,7 +15998,6 @@ package body Safe_Frontend.Ada_Emit is
 
                   procedure Render_Select_Precheck
                     (Select_Depth : Natural) is
-                     Rotated_Ordinal : Positive;
                   begin
                      if Channel_Arm_Count = 1 then
                         Render_Channel_Precheck_At_Ordinal (1, Select_Depth);
@@ -16007,24 +16006,41 @@ package body Safe_Frontend.Ada_Emit is
 
                      Append_Line
                        (Buffer,
-                        "case " & Next_Arm_Name & " is",
+                        "for Select_Offset in 0 .. "
+                        & Trim_Image (Long_Long_Integer (Channel_Arm_Count - 1))
+                        & " loop",
                         Select_Depth);
-                     for Start_Arm in 1 .. Channel_Arm_Count loop
+                     Append_Line (Buffer, "exit when Select_Done;", Select_Depth + 1);
+                     Append_Line (Buffer, "declare", Select_Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "Select_Probe_Ordinal : constant Positive range 1 .. "
+                        & Trim_Image (Long_Long_Integer (Channel_Arm_Count))
+                        & " := Positive ((("
+                        & Next_Arm_Name
+                        & " - 1 + Select_Offset) mod "
+                        & Trim_Image (Long_Long_Integer (Channel_Arm_Count))
+                        & ") + 1);",
+                        Select_Depth + 2);
+                     Append_Line (Buffer, "begin", Select_Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "case Select_Probe_Ordinal is",
+                        Select_Depth + 2);
+                     for Arm_Ordinal in 1 .. Channel_Arm_Count loop
                         Append_Line
                           (Buffer,
                            "when "
-                           & Trim_Image (Long_Long_Integer (Start_Arm))
+                           & Trim_Image (Long_Long_Integer (Arm_Ordinal))
                            & " =>",
-                           Select_Depth + 1);
-                        for Offset in 0 .. Channel_Arm_Count - 1 loop
-                           Rotated_Ordinal :=
-                             Positive (((Start_Arm - 1 + Offset) mod Channel_Arm_Count) + 1);
-                           Render_Channel_Precheck_At_Ordinal
-                             (Rotated_Ordinal,
-                              Select_Depth + 2);
-                        end loop;
+                           Select_Depth + 3);
+                        Render_Channel_Precheck_At_Ordinal
+                          (Arm_Ordinal,
+                           Select_Depth + 4);
                      end loop;
-                     Append_Line (Buffer, "end case;", Select_Depth);
+                     Append_Line (Buffer, "end case;", Select_Depth + 2);
+                     Append_Line (Buffer, "end;", Select_Depth + 1);
+                     Append_Line (Buffer, "end loop;", Select_Depth);
                   end Render_Select_Precheck;
 
                   procedure Render_Delay_Arm_Statements
