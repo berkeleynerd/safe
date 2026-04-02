@@ -321,9 +321,12 @@ does not transfer ownership through the channel.
 
 The emitter must:
 
-1. Evaluate the expression before the fullness check.
-2. Call the emitted nonblocking channel `Try_Send` path.
-3. Write the success flag with the enqueue result.
+1. Evaluate the expression exactly once before the fullness check.
+2. For heap-backed channel elements, stage the copied/cloned value first and
+   derive any modeled length from that staged value rather than re-rendering
+   the source expression.
+3. Call the emitted nonblocking channel `Try_Send` path.
+4. Write the success flag with the enqueue result.
 
 ```ada
 -- Emitted Ada for: send Ch, Value, Ok;

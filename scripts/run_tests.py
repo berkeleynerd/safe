@@ -553,6 +553,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr119d_send_single_eval_build.safe",
+        "Ada\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118e1_mutual_family_build.safe",
         "41\n",
         False,
@@ -795,6 +800,11 @@ EMITTED_SHAPE_CASES = [
         ["protected type text_ch_Channel is", "_Model_Has_Value", "pragma Assume ("],
     ),
     (
+        "heap-send-length-no-source-rerender",
+        REPO_ROOT / "tests" / "build" / "pr119d_send_single_eval_build.safe",
+        ["Safe_String_RT.Length (next_text)"],
+    ),
+    (
         "select-delay-no-polling-lowering",
         REPO_ROOT / "tests" / "concurrency" / "select_with_delay.safe",
         [
@@ -843,6 +853,14 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "Stored_Length_Value : Natural := 0;",
             "Pre => text_ch_Well_Formed and then not text_ch.Full",
             "Pre => text_ch_Well_Formed and then text_ch.Full",
+        ],
+    ),
+    (
+        "heap-send-stages-before-length-model",
+        REPO_ROOT / "tests" / "build" / "pr119d_send_single_eval_build.safe",
+        [
+            "Safe_Channel_Staged_1 := Safe_String_RT.Clone (next_text);",
+            "Safe_Channel_Length_1 := Safe_String_RT.Length (Safe_Channel_Staged_1);",
         ],
     ),
     (

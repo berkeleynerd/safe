@@ -1,0 +1,16 @@
+package pr119d_send_single_eval_build
+
+   channel text_ch : string capacity 1;
+
+   function next_text returns string
+      return "Ada";
+
+   sent     : boolean = false;
+   received : string;
+
+   send text_ch, next_text (), sent
+   if sent
+      receive text_ch, received
+      print (received)
+   else
+      print ("send failed")

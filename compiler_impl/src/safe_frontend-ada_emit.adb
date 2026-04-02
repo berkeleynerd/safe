@@ -13405,10 +13405,6 @@ package body Safe_Frontend.Ada_Emit is
                  Render_Type_Name (Declared_Channel.Element_Type);
                Success_Image : constant String :=
                  Render_Expr (Unit, Document, Item.Success_Var, State);
-               Source_Image : constant String :=
-                 Render_Heap_Channel_Copy_Expr
-                   (Declared_Channel,
-                    Item.Value);
             begin
                Append_Line (Buffer, "declare", Depth);
                Append_Initialization_Warning_Suppression
@@ -13428,12 +13424,7 @@ package body Safe_Frontend.Ada_Emit is
                if Channel_Has_Length_Model (Declared_Channel) then
                   Append_Line
                     (Buffer,
-                     Length_Name
-                     & " : constant Natural := "
-                     & Channel_Length_Image
-                         (Declared_Channel,
-                          Source_Image)
-                     & ";",
+                     Length_Name & " : Natural := 0;",
                      Depth + 1);
                end if;
                Append_Initialization_Warning_Restore
@@ -13444,6 +13435,17 @@ package body Safe_Frontend.Ada_Emit is
                   Staged_Name,
                   Item.Value,
                   Depth + 1);
+               if Channel_Has_Length_Model (Declared_Channel) then
+                  Append_Line
+                    (Buffer,
+                     Length_Name
+                     & " := "
+                     & Channel_Length_Image
+                         (Declared_Channel,
+                          Staged_Name)
+                     & ";",
+                     Depth + 1);
+               end if;
                Append_Channel_Staged_Call_Warning_Suppression
                  (Buffer, Depth + 1);
                Append_Line
@@ -15339,98 +15341,8 @@ package body Safe_Frontend.Ada_Emit is
                if Item.Success_Var /= null then
                   Emit_Nonblocking_Send (Item.all, Index, Depth);
                else
-                  declare
-                     Declared_Channel : constant CM.Resolved_Channel_Decl :=
-                       Channel_Item (Item.Channel_Name);
-                  begin
-                     State.Needs_Gnat_Adc := True;
-                     if Has_Text (Declared_Channel.Name)
-                       and then Has_Heap_Value_Type
-                         (Unit,
-                          Document,
-                          Declared_Channel.Element_Type)
-                     then
-                        declare
-                           Staged_Name  : constant String :=
-                             "Safe_Channel_Staged_"
-                             & Ada.Strings.Fixed.Trim
-                                 (Natural'Image (Natural (Index)),
-                                  Ada.Strings.Both);
-                           Length_Name  : constant String :=
-                             "Safe_Channel_Length_"
-                             & Ada.Strings.Fixed.Trim
-                                 (Natural'Image (Natural (Index)),
-                                  Ada.Strings.Both);
-                           Element_Type : constant String :=
-                             Render_Type_Name (Declared_Channel.Element_Type);
-                           Source_Image : constant String :=
-                             Render_Heap_Channel_Copy_Expr
-                               (Declared_Channel,
-                                Item.Value);
-                        begin
-                           Append_Line (Buffer, "declare", Depth);
-                           Append_Initialization_Warning_Suppression
-                             (Buffer, Depth + 1);
-                           Append_Line
-                             (Buffer,
-                              Staged_Name
-                              & " : "
-                              & Element_Type
-                              & " := "
-                              & Default_Value_Expr
-                                  (Unit,
-                                   Document,
-                                   Declared_Channel.Element_Type)
-                              & ";",
-                              Depth + 1);
-                           if Channel_Has_Length_Model (Declared_Channel) then
-                              Append_Line
-                                (Buffer,
-                                 Length_Name
-                                 & " : constant Natural := "
-                                 & Channel_Length_Image
-                                     (Declared_Channel,
-                                      Source_Image)
-                                 & ";",
-                                 Depth + 1);
-                           end if;
-                           Append_Initialization_Warning_Restore
-                             (Buffer, Depth + 1);
-                           Append_Line (Buffer, "begin", Depth);
-                           Append_Heap_Channel_Copy
-                             (Declared_Channel,
-                              Staged_Name,
-                              Item.Value,
-                              Depth + 1);
-                           Append_Channel_Staged_Call_Warning_Suppression
-                             (Buffer, Depth + 1);
-                           Append_Line
-                             (Buffer,
-                              Render_Channel_Operation_Target
-                                (Item.Channel_Name, Declared_Channel, "Send")
-                              & " ("
-                              & Staged_Name
-                              & (if Channel_Has_Length_Model (Declared_Channel)
-                                 then ", " & Length_Name
-                                 else "")
-                              & ");",
-                              Depth + 1);
-                           Append_Channel_Staged_Call_Warning_Restore
-                             (Buffer, Depth + 1);
-                           Append_Line (Buffer, "end;", Depth);
-                        end;
-                     else
-                        Append_Line
-                          (Buffer,
-                           Render_Channel_Operation_Target
-                             (Item.Channel_Name, Declared_Channel, "Send")
-                           & " ("
-                           & Render_Channel_Send_Value
-                               (Unit, Document, State, Item.Channel_Name, Item.Value)
-                           & ");",
-                           Depth);
-                     end if;
-                  end;
+                  Raise_Internal
+                    ("resolved send reached Ada emission without a success variable");
                end if;
             when CM.Stmt_Receive =>
                declare
