@@ -9,7 +9,7 @@ package body Template_Select_Dispatcher
   with SPARK_Mode => On
 is
 
-   procedure Reset (D : in out Dispatcher) is
+   procedure Reset (D : out Dispatcher) is
    begin
       D.Signaled := False;
       D.Delay_Expired := False;
@@ -18,12 +18,10 @@ is
    procedure Signal (D : in out Dispatcher) is
    begin
       D.Signaled := True;
-      D.Delay_Expired := False;
    end Signal;
 
    procedure Signal_Delay (D : in out Dispatcher) is
    begin
-      D.Signaled := True;
       D.Delay_Expired := True;
    end Signal_Delay;
 
@@ -88,8 +86,10 @@ is
       Select_Done : Boolean := False;
       Success     : Boolean;
       Item        : Element_Type;
-      Disp        : Dispatcher := (Signaled => False, Delay_Expired => False);
-      Timed_Wake  : Boolean := False;
+      Disp        : Dispatcher;
+      Timed_Wake  : Boolean;
+      Initial_Count_A : constant Count_Range := Ch_A.Count;
+      Initial_Count_B : constant Count_Range := Ch_B.Count;
    begin
       Result    := Default_Element;
       Timed_Out := False;
@@ -100,6 +100,10 @@ is
          pragma Loop_Invariant (Is_Valid (Ch_B));
          pragma Loop_Invariant (not Timed_Out);
          pragma Loop_Invariant (Is_Idle (Disp));
+         pragma Loop_Invariant
+           (if not Select_Done then
+              Ch_A.Count = Initial_Count_A
+              and then Ch_B.Count = Initial_Count_B);
          pragma Loop_Invariant
            (Ch_A.Count = Ch_A.Count'Loop_Entry
             and then Ch_B.Count = Ch_B.Count'Loop_Entry);
@@ -161,8 +165,10 @@ is
       Select_Done : Boolean := False;
       Success     : Boolean;
       Item        : Element_Type;
-      Disp        : Dispatcher := (Signaled => False, Delay_Expired => False);
-      Timed_Wake  : Boolean := False;
+      Disp        : Dispatcher;
+      Timed_Wake  : Boolean;
+      Initial_Count_A : constant Count_Range := Ch_A.Count;
+      Initial_Count_B : constant Count_Range := Ch_B.Count;
    begin
       Result := Default_Element;
       Found  := False;
@@ -173,6 +179,13 @@ is
          pragma Loop_Invariant (Is_Valid (Ch_B));
          pragma Loop_Invariant (not Found);
          pragma Loop_Invariant (Is_Idle (Disp));
+         pragma Loop_Invariant
+           (if Initial_Count_A = 0 and then Initial_Count_B = 0 then
+              not Select_Done and then not Found);
+         pragma Loop_Invariant
+           (if not Select_Done then
+              Ch_A.Count = Initial_Count_A
+              and then Ch_B.Count = Initial_Count_B);
          pragma Loop_Invariant
            (Ch_A.Count = Ch_A.Count'Loop_Entry
             and then Ch_B.Count = Ch_B.Count'Loop_Entry);

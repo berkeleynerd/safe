@@ -85,17 +85,19 @@ is
    function Is_Idle (D : Dispatcher) return Boolean is
      (not D.Signaled and then not D.Delay_Expired);
 
-   procedure Reset (D : in out Dispatcher)
+   procedure Reset (D : out Dispatcher)
      with Post => Is_Idle (D);
 
    procedure Signal (D : in out Dispatcher)
-     with Post => D.Signaled and then not D.Delay_Expired;
+     with Post => D.Signaled
+                  and then D.Delay_Expired = D.Delay_Expired'Old;
 
    procedure Signal_Delay (D : in out Dispatcher)
-     with Post => D.Signaled and then D.Delay_Expired;
+     with Post => D.Delay_Expired
+                  and then D.Signaled = D.Signaled'Old;
 
    procedure Await (D : in out Dispatcher; Timed_Out : out Boolean)
-     with Pre  => D.Signaled,
+     with Pre  => D.Signaled or else D.Delay_Expired,
           Post => Is_Idle (D)
                   and then Timed_Out = D.Delay_Expired'Old;
 
@@ -137,12 +139,10 @@ is
                elsif Ch_A.Count'Old > 0 then
                  Ch_A.Count = Ch_A.Count'Old - 1
                  and then Ch_B.Count = Ch_B.Count'Old
-               elsif Ch_B.Count'Old > 0 then
+               elsif Ch_A.Count'Old = 0 and then Ch_B.Count'Old > 0 then
                  Ch_A.Count = Ch_A.Count'Old
-                 and then Ch_B.Count = Ch_B.Count'Old - 1
                else
-                 not Any_Delay_Wake (Wakeups)
-                 and then Ch_A.Count = Ch_A.Count'Old
+                 Ch_A.Count = Ch_A.Count'Old
                  and then Ch_B.Count = Ch_B.Count'Old);
 
    --  Two-arm select without delay arm under the dispatcher lowering.
@@ -162,10 +162,9 @@ is
                  Found
                  and then Ch_A.Count = Ch_A.Count'Old - 1
                  and then Ch_B.Count = Ch_B.Count'Old
-               elsif Ch_B.Count'Old > 0 then
+               elsif Ch_A.Count'Old = 0 and then Ch_B.Count'Old > 0 then
                  Found
                  and then Ch_A.Count = Ch_A.Count'Old
-                 and then Ch_B.Count = Ch_B.Count'Old - 1
                else
                  not Found
                  and then Ch_A.Count = Ch_A.Count'Old

@@ -202,6 +202,7 @@ CHECK_SUCCESS_CASES = [
     REPO_ROOT / "tests" / "interfaces" / "pr119a_select_prebuffered.safe",
     REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_receive.safe",
     REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_timeout.safe",
+    REPO_ROOT / "tests" / "interfaces" / "pr119a_select_zero_delay_ready.safe",
 ]
 
 STATIC_INTERFACE_CASES = [
@@ -797,7 +798,12 @@ EMITTED_SHAPE_CASES = [
     (
         "select-delay-no-polling-lowering",
         REPO_ROOT / "tests" / "concurrency" / "select_with_delay.safe",
-        ["Select_Polls", "Select_Iter", "if Select_Iter > 0 then"],
+        [
+            "Select_Polls",
+            "Select_Iter",
+            "if Select_Iter > 0 then",
+            "if Select_Start >= Select_Deadline then",
+        ],
     ),
     (
         "select-no-delay-no-polling-lowering",
@@ -855,7 +861,20 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             ".Signal_Delay'Access",
             "Select_Delay_Span : constant Ada.Real_Time.Time_Span :=",
             "_Compute_Deadline (Start : in Ada.Real_Time.Time; Delay_Span : in Ada.Real_Time.Time_Span)",
-            "Select_Timeout_Observed : Boolean := False;",
+            "Select_Timeout_Observed : Boolean;",
+            "Select_Timeout_Observed := Select_Start >= Select_Deadline;",
+            "if not Select_Timeout_Observed then",
+            "if Select_Timeout_Observed then",
+        ],
+    ),
+    (
+        "select-zero-delay-ready-precheck-before-timeout",
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_zero_delay_ready.safe",
+        [
+            "Select_Timeout_Observed := Select_Start >= Select_Deadline;",
+            "if not Select_Timeout_Observed then",
+            "if not Select_Done then",
+            "msg_ch.Try_Receive (item, Arm_Success);",
             "if Select_Timeout_Observed then",
         ],
     ),

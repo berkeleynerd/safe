@@ -15950,7 +15950,7 @@ package body Safe_Frontend.Ada_Emit is
                         Depth + 2);
                      Append_Line
                        (Buffer,
-                        "Select_Timeout_Observed : Boolean := False;",
+                        "Select_Timeout_Observed : Boolean;",
                         Depth + 1);
                      Append_Line (Buffer, "begin", Depth);
                      Append_Line
@@ -15959,32 +15959,34 @@ package body Safe_Frontend.Ada_Emit is
                         Depth + 1);
                      Append_Line
                        (Buffer,
-                        "if Select_Start >= Select_Deadline then",
+                        "Select_Timeout_Observed := Select_Start >= Select_Deadline;",
                         Depth + 1);
-                     Render_Delay_Arm_Statements (Depth + 2);
-                     Append_Line (Buffer, "else", Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "if not Select_Timeout_Observed then",
+                        Depth + 1);
                      Append_Line
                        (Buffer,
                         Select_Dispatcher_Arm_Helper_Name (Item)
                         & " (Select_Deadline);",
                         Depth + 2);
-                     Append_Line (Buffer, "loop", Depth + 2);
-                     Render_Select_Precheck (Depth + 3);
-                     Append_Line (Buffer, "exit when Select_Done;", Depth + 3);
-                     Append_Line (Buffer, "if Select_Timeout_Observed then", Depth + 3);
-                     Render_Delay_Arm_Statements (Depth + 4);
-                     Append_Line (Buffer, "exit;", Depth + 4);
-                     Append_Line (Buffer, "end if;", Depth + 3);
+                     Append_Line (Buffer, "end if;", Depth + 1);
+                     Append_Line (Buffer, "loop", Depth + 1);
+                     Render_Select_Precheck (Depth + 2);
+                     Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
+                     Append_Line (Buffer, "if Select_Timeout_Observed then", Depth + 2);
+                     Render_Delay_Arm_Statements (Depth + 3);
+                     Append_Line (Buffer, "exit;", Depth + 3);
+                     Append_Line (Buffer, "end if;", Depth + 2);
                      Append_Line
                        (Buffer,
                         Dispatcher_Name & ".Await (Select_Timed_Out);",
-                        Depth + 3);
+                        Depth + 2);
                      Append_Line
                        (Buffer,
                         "Select_Timeout_Observed := Select_Timed_Out;",
-                        Depth + 3);
-                     Append_Line (Buffer, "end loop;", Depth + 2);
-                     Append_Line (Buffer, "end if;", Depth + 1);
+                        Depth + 2);
+                     Append_Line (Buffer, "end loop;", Depth + 1);
                      Append_Line (Buffer, "end;", Depth);
                   else
                      Append_Line (Buffer, "declare", Depth);
