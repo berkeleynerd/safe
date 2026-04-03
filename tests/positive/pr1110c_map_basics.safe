@@ -1,0 +1,44 @@
+-- Test: pr1110c_map_basics
+-- Description: Built-in `map of (K, V)` reuses growable tuple storage with
+--   default-empty construction, free builtins, and order-insensitive
+--   iteration.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110c-built-in-map-of-k-v
+-- Expected: ACCEPT
+
+package pr1110c_map_basics
+
+   function singleton returns map of (integer, integer)
+      var values : map of (integer, integer);
+
+      set (values, 1, 15);
+      return values;
+
+   function entries_ok returns boolean
+      var values : map of (integer, integer) = singleton;
+      var saw_first : boolean = false;
+
+      for item of values
+         if item.1 == 1 and then item.2 == 15
+            saw_first = true;
+
+      return saw_first;
+
+   function default_is_empty returns boolean
+      var values : map of (integer, integer);
+
+      return values.length == 0;
+
+   function operations_ok returns boolean
+      var values : map of (integer, integer) = singleton;
+      var found : optional integer;
+      var missing : optional integer;
+
+      found = get (values, 1);
+      missing = get (values, 2);
+      if not default_is_empty
+         return false;
+      if missing.present
+         return false;
+      if not found.present
+         return false;
+      return values.length == 1 and then found.value == 15 and then contains (values, 1) and then not contains (values, 2) and then entries_ok;

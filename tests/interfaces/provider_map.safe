@@ -1,0 +1,17 @@
+package provider_map
+
+   public function seeded returns map of (integer, integer)
+      var values : map of (integer, integer);
+
+      set (values, 1, 10);
+      set (values, 2, 20);
+      return values;
+
+   public function lookup (values : map of (integer, integer); key : integer) returns integer
+      var found : optional integer;
+
+      found = get (values, key);
+      if found.present
+         return found.value;
+      else
+         return 0;

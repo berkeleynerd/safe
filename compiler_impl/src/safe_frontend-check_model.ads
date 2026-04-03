@@ -95,6 +95,7 @@ package Safe_Frontend.Check_Model is
       Type_Spec_Binary,
       Type_Spec_Tuple,
       Type_Spec_List,
+      Type_Spec_Map,
       Type_Spec_Growable_Array,
       Type_Spec_Optional,
       Type_Spec_Subtype_Indication,
@@ -122,6 +123,8 @@ package Safe_Frontend.Check_Model is
       Target_Name : Expr_Access := null;
       Binary_Width_Expr : Expr_Access := null;
       Element_Type : Type_Spec_Access := null;
+      Key_Type : Type_Spec_Access := null;
+      Value_Type : Type_Spec_Access := null;
       Tuple_Elements : Type_Spec_Access_Vectors.Vector;
       Has_Range_Constraint : Boolean := False;
       Range_Low            : Expr_Access := null;

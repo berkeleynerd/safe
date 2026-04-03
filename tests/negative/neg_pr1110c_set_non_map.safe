@@ -1,0 +1,11 @@
+-- Test: neg_pr1110c_set_non_map
+-- Description: `set(m, key, value)` requires a `mut map of (K, V)` first
+--   argument.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110c-built-in-map-of-k-v
+-- Expected: REJECT
+
+package neg_pr1110c_set_non_map
+
+   var count : integer = 0;
+
+   set (count, 1, 2);

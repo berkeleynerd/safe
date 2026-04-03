@@ -1,0 +1,11 @@
+-- Test: neg_pr1110c_remove_stmt
+-- Description: `remove(m, key)` returns an `optional V` value and must be
+--   used in an expression.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110c-built-in-map-of-k-v
+-- Expected: REJECT
+
+package neg_pr1110c_remove_stmt
+
+   var values : map of (integer, integer);
+
+   remove (values, 1);
