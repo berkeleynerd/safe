@@ -6615,8 +6615,6 @@ package body Safe_Frontend.Check_Resolve is
                     FT.To_UString (Next_Synthetic_Name ("Safe_Map_Index"));
                   Result_Name   : constant FT.UString :=
                     FT.To_UString (Next_Synthetic_Name ("Safe_Map_Remove"));
-                  New_Map_Name  : constant FT.UString :=
-                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_New"));
                   Entry_Name    : constant FT.UString :=
                     FT.To_UString (Next_Synthetic_Name ("Safe_Map_Entry"));
                   Snapshot_Expr : CM.Expr_Access;
@@ -6624,17 +6622,21 @@ package body Safe_Frontend.Check_Resolve is
                   Length_Temp   : CM.Expr_Access;
                   Index_Temp    : CM.Expr_Access;
                   Result_Temp   : CM.Expr_Access;
-                  New_Map_Temp  : CM.Expr_Access;
-                  Present_Expr  : CM.Expr_Access;
                   Entry_Expr    : CM.Expr_Access;
+                  Last_Entry_Expr : CM.Expr_Access;
                   Match_Then    : CM.Statement_Access_Vectors.Vector;
-                  Keep_Else     : CM.Statement_Access_Vectors.Vector;
+                  Trim_Then     : CM.Statement_Access_Vectors.Vector;
+                  Trim_Else     : CM.Statement_Access_Vectors.Vector;
+                  Rebuild_Then  : CM.Statement_Access_Vectors.Vector;
+                  Prefix_Then   : CM.Statement_Access_Vectors.Vector;
+                  Prefix_Else   : CM.Statement_Access_Vectors.Vector;
+                  Suffix_Then   : CM.Statement_Access_Vectors.Vector;
                   Index_Guard_Then : CM.Statement_Access_Vectors.Vector;
                   Loop_Body     : CM.Statement_Access_Vectors.Vector;
                   Advance_Then  : CM.Statement_Access_Vectors.Vector;
                   Advance_Else  : CM.Statement_Access_Vectors.Vector;
-                  Final_Then    : CM.Statement_Access_Vectors.Vector;
-                  Literal       : constant CM.Expr_Access := new CM.Expr_Node;
+                  Empty_Map_Expr : constant CM.Expr_Access := new CM.Expr_Node;
+                  Last_Literal_Expr : constant CM.Expr_Access := new CM.Expr_Node;
                   Entry_Type    : GM.Type_Descriptor := Default_Integer;
                   Entry_Elements : FT.UString_Vectors.Vector;
                begin
@@ -6691,14 +6693,6 @@ package body Safe_Frontend.Check_Resolve is
                         Build_Optional_None_Expr (Optional_Type, Expr.Span),
                         Expr.Span,
                         Is_Constant => False));
-                  Result.Preludes.Append
-                    (Synthetic_Object_Decl_Stmt
-                       (UString_Value (New_Map_Name),
-                        Map_Type,
-                        Default_Initializer_Expr (Map_Type, Type_Env, Expr.Span),
-                        Expr.Span,
-                        Is_Constant => False));
-
                   Snapshot_Expr :=
                     Ident_Expr
                       (UString_Value (Snapshot_Name),
@@ -6724,22 +6718,24 @@ package body Safe_Frontend.Check_Resolve is
                       (UString_Value (Result_Name),
                        Expr.Span,
                        UString_Value (Optional_Type.Name));
-                  New_Map_Temp :=
-                    Ident_Expr
-                      (UString_Value (New_Map_Name),
-                       Expr.Span,
-                       UString_Value (Map_Type.Name));
-                  Present_Expr :=
-                    Selector_Expr
-                      (Result_Temp,
-                       "present",
-                       Expr.Span,
-                       "boolean");
                   Entry_Expr :=
                     Ident_Expr
                       (UString_Value (Entry_Name),
                        Expr.Span,
                        UString_Value (Entry_Type.Name));
+                  Last_Entry_Expr :=
+                    Resolved_Index_Expr
+                      (Snapshot_Expr,
+                       Length_Temp,
+                       Expr.Span,
+                       UString_Value (Entry_Type.Name));
+                  Empty_Map_Expr.Kind := CM.Expr_Array_Literal;
+                  Empty_Map_Expr.Span := Expr.Span;
+                  Empty_Map_Expr.Type_Name := Map_Type.Name;
+                  Last_Literal_Expr.Kind := CM.Expr_Array_Literal;
+                  Last_Literal_Expr.Span := Expr.Span;
+                  Last_Literal_Expr.Type_Name := Map_Type.Name;
+                  Last_Literal_Expr.Elements.Append (Last_Entry_Expr);
                   Index_Guard_Then.Append
                     (Synthetic_Exit_Stmt (Expr.Span));
                   Loop_Body.Append
@@ -6765,20 +6761,154 @@ package body Safe_Frontend.Check_Resolve is
                               UString_Value (Value_Type.Name)),
                            Expr.Span),
                         Expr.Span));
-                  Literal.Kind := CM.Expr_Array_Literal;
-                  Literal.Span := Expr.Span;
-                  Literal.Type_Name := Map_Type.Name;
-                  Literal.Elements.Append (Entry_Expr);
-                  Keep_Else.Append
+                  Trim_Then.Append
                     (Synthetic_Assign_Stmt
-                       (New_Map_Temp,
+                       (Map_Child.Expr,
+                        Empty_Map_Expr,
+                        Expr.Span));
+                  Trim_Else.Append
+                    (Synthetic_Assign_Stmt
+                       (Map_Child.Expr,
+                        Resolved_Index_Expr
+                          (Map_Child.Expr,
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           UString_Value (Map_Type.Name),
+                           Binary_Expr
+                             (Length_Temp,
+                              "-",
+                              Int_Expr (1, Expr.Span),
+                              Expr.Span,
+                              UString_Value (Default_Integer.Name))),
+                        Expr.Span));
+                  Prefix_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Map_Child.Expr,
+                        Last_Literal_Expr,
+                        Expr.Span));
+                  Prefix_Else.Append
+                    (Synthetic_Assign_Stmt
+                       (Map_Child.Expr,
                         Binary_Expr
-                          (New_Map_Temp,
+                          (Resolved_Index_Expr
+                             (Snapshot_Expr,
+                              Int_Expr (1, Expr.Span),
+                              Expr.Span,
+                              UString_Value (Map_Type.Name),
+                              Binary_Expr
+                                (Index_Temp,
+                                 "-",
+                                 Int_Expr (1, Expr.Span),
+                                 Expr.Span,
+                                 UString_Value (Default_Integer.Name))),
                            "&",
-                           Literal,
+                           Last_Literal_Expr,
                            Expr.Span,
                            UString_Value (Map_Type.Name)),
                         Expr.Span));
+                  Rebuild_Then.Append
+                    (Synthetic_If_Else_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "==",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Prefix_Then,
+                        Prefix_Else,
+                        Expr.Span));
+                  Suffix_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Map_Child.Expr,
+                        Binary_Expr
+                          (Map_Child.Expr,
+                           "&",
+                           Resolved_Index_Expr
+                             (Snapshot_Expr,
+                              Binary_Expr
+                                (Index_Temp,
+                                 "+",
+                                 Int_Expr (1, Expr.Span),
+                                 Expr.Span,
+                                 UString_Value (Default_Integer.Name)),
+                              Expr.Span,
+                              UString_Value (Map_Type.Name),
+                              Binary_Expr
+                                (Length_Temp,
+                                 "-",
+                                 Int_Expr (1, Expr.Span),
+                                 Expr.Span,
+                                 UString_Value (Default_Integer.Name))),
+                           Expr.Span,
+                           UString_Value (Map_Type.Name)),
+                        Expr.Span));
+                  Rebuild_Then.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Binary_Expr
+                             (Length_Temp,
+                              "-",
+                              Int_Expr (1, Expr.Span),
+                              Expr.Span,
+                              UString_Value (Default_Integer.Name)),
+                           Expr.Span,
+                           "boolean"),
+                        Suffix_Then,
+                        Expr.Span));
+                  Match_Then.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Length_Temp,
+                           "==",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Trim_Then,
+                        Expr.Span));
+                  Match_Then.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Binary_Expr
+                             (Length_Temp,
+                              ">",
+                              Int_Expr (1, Expr.Span),
+                              Expr.Span,
+                              "boolean"),
+                           "and then",
+                           Binary_Expr
+                             (Index_Temp,
+                              "==",
+                              Length_Temp,
+                              Expr.Span,
+                              "boolean"),
+                           Expr.Span,
+                           "boolean"),
+                        Trim_Else,
+                        Expr.Span));
+                  Match_Then.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Binary_Expr
+                             (Length_Temp,
+                              ">",
+                              Int_Expr (1, Expr.Span),
+                              Expr.Span,
+                              "boolean"),
+                           "and then",
+                           Binary_Expr
+                             (Index_Temp,
+                              "<",
+                              Length_Temp,
+                              Expr.Span,
+                              "boolean"),
+                           Expr.Span,
+                           "boolean"),
+                        Rebuild_Then,
+                        Expr.Span));
+                  Match_Then.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
                   Loop_Body.Append
                     (Synthetic_Object_Decl_Stmt
                        (UString_Value (Entry_Name),
@@ -6790,28 +6920,18 @@ package body Safe_Frontend.Check_Resolve is
                            UString_Value (Entry_Type.Name)),
                         Expr.Span));
                   Loop_Body.Append
-                    (Synthetic_If_Else_Stmt
+                    (Synthetic_If_Stmt
                        (Binary_Expr
-                          (Unary_Expr
-                             ("not",
-                              Present_Expr,
+                          (Selector_Expr
+                             (Entry_Expr,
+                              "1",
                               Expr.Span,
-                              "boolean"),
-                           "and then",
-                           Binary_Expr
-                             (Selector_Expr
-                                (Entry_Expr,
-                                 "1",
-                                 Expr.Span,
-                                 UString_Value (Key_Type.Name)),
-                              "==",
-                              Key_Temp,
-                              Expr.Span,
-                              "boolean"),
+                              UString_Value (Key_Type.Name)),
+                           "==",
+                           Key_Temp,
                            Expr.Span,
                            "boolean"),
                         Match_Then,
-                        Keep_Else,
                         Expr.Span));
                   Advance_Then.Append
                     (Synthetic_Assign_Stmt
@@ -6846,12 +6966,6 @@ package body Safe_Frontend.Check_Resolve is
                            "boolean"),
                         Loop_Body,
                         Expr.Span));
-                  Final_Then.Append
-                    (Synthetic_Assign_Stmt
-                       (Map_Child.Expr,
-                        New_Map_Temp,
-                        Expr.Span));
-                  Append_Statements (Result.Preludes, Final_Then);
                   Result.Expr := Result_Temp;
                   return Result;
                end;
@@ -8012,7 +8126,11 @@ package body Safe_Frontend.Check_Resolve is
                         Literal        : constant CM.Expr_Access := new CM.Expr_Node;
                         Loop_Body      : CM.Statement_Access_Vectors.Vector;
                         Match_Then     : CM.Statement_Access_Vectors.Vector;
-                        Append_Then    : CM.Statement_Access_Vectors.Vector;
+                        Append_Missing_Then : CM.Statement_Access_Vectors.Vector;
+                        Rebuild_Then   : CM.Statement_Access_Vectors.Vector;
+                        Prefix_Then    : CM.Statement_Access_Vectors.Vector;
+                        Prefix_Else    : CM.Statement_Access_Vectors.Vector;
+                        Suffix_Then    : CM.Statement_Access_Vectors.Vector;
                         Index_Guard_Then : CM.Statement_Access_Vectors.Vector;
                         Advance_Then   : CM.Statement_Access_Vectors.Vector;
                         Advance_Else   : CM.Statement_Access_Vectors.Vector;
@@ -8104,12 +8222,9 @@ package body Safe_Frontend.Check_Resolve is
                         declare
                            Snapshot_Name : constant FT.UString :=
                              FT.To_UString (Next_Synthetic_Name ("Safe_Map_Value"));
-                           New_Map_Name  : constant FT.UString :=
-                             FT.To_UString (Next_Synthetic_Name ("Safe_Map_New"));
                            Entry_Name    : constant FT.UString :=
                              FT.To_UString (Next_Synthetic_Name ("Safe_Map_Entry"));
                            Snapshot_Expr : CM.Expr_Access;
-                           New_Map_Temp  : CM.Expr_Access;
                         begin
                            Rewritten_Stmts.Append
                              (Synthetic_Object_Decl_Stmt
@@ -8156,13 +8271,6 @@ package body Safe_Frontend.Check_Resolve is
                                  Bool_Expr (False, Stmt.Span),
                                  Stmt.Span,
                                  Is_Constant => False));
-                           Rewritten_Stmts.Append
-                             (Synthetic_Object_Decl_Stmt
-                                (UString_Value (New_Map_Name),
-                                 Map_Type,
-                                 Default_Initializer_Expr (Map_Type, Type_Env, Stmt.Span),
-                                 Stmt.Span,
-                                 Is_Constant => False));
 
                            Entry_Type := Make_Tuple_Type (Entry_Elements);
                            Snapshot_Expr :=
@@ -8195,11 +8303,6 @@ package body Safe_Frontend.Check_Resolve is
                                (UString_Value (Found_Name),
                                 Stmt.Span,
                                 UString_Value (BT.Boolean_Type.Name));
-                           New_Map_Temp :=
-                             Ident_Expr
-                               (UString_Value (New_Map_Name),
-                                Stmt.Span,
-                                UString_Value (Map_Type.Name));
                            Entry_Expr :=
                              Ident_Expr
                                (UString_Value (Entry_Name),
@@ -8218,40 +8321,94 @@ package body Safe_Frontend.Check_Resolve is
                            Literal.Span := Stmt.Span;
                            Literal.Type_Name := Map_Type.Name;
                            Literal.Elements.Append (Entry_Value);
-                           Match_Then.Append
+                           Append_Missing_Then.Append
                              (Synthetic_Assign_Stmt
-                                (New_Map_Temp,
+                                (Map_Target,
                                  Binary_Expr
-                                   (New_Map_Temp,
+                                   (Snapshot_Expr,
                                     "&",
                                     Literal,
                                     Stmt.Span,
                                     UString_Value (Map_Type.Name)),
+                                 Stmt.Span));
+                           Prefix_Then.Append
+                             (Synthetic_Assign_Stmt
+                                (Map_Target,
+                                 Literal,
+                                 Stmt.Span));
+                           Prefix_Else.Append
+                             (Synthetic_Assign_Stmt
+                                (Map_Target,
+                                 Binary_Expr
+                                   (Resolved_Index_Expr
+                                      (Snapshot_Expr,
+                                       Int_Expr (1, Stmt.Span),
+                                       Stmt.Span,
+                                       UString_Value (Map_Type.Name),
+                                       Binary_Expr
+                                         (Index_Temp,
+                                          "-",
+                                          Int_Expr (1, Stmt.Span),
+                                          Stmt.Span,
+                                          UString_Value (Default_Integer.Name))),
+                                    "&",
+                                    Literal,
+                                    Stmt.Span,
+                                    UString_Value (Map_Type.Name)),
+                                 Stmt.Span));
+                           Rebuild_Then.Append
+                             (Synthetic_If_Else_Stmt
+                                (Binary_Expr
+                                   (Index_Temp,
+                                    "==",
+                                    Int_Expr (1, Stmt.Span),
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Prefix_Then,
+                                 Prefix_Else,
+                                 Stmt.Span));
+                           Suffix_Then.Append
+                             (Synthetic_Assign_Stmt
+                                (Map_Target,
+                                 Binary_Expr
+                                   (Map_Target,
+                                    "&",
+                                    Resolved_Index_Expr
+                                      (Snapshot_Expr,
+                                       Binary_Expr
+                                         (Index_Temp,
+                                          "+",
+                                          Int_Expr (1, Stmt.Span),
+                                          Stmt.Span,
+                                          UString_Value (Default_Integer.Name)),
+                                       Stmt.Span,
+                                       UString_Value (Map_Type.Name),
+                                       Length_Temp),
+                                    Stmt.Span,
+                                    UString_Value (Map_Type.Name)),
+                                 Stmt.Span));
+                           Rebuild_Then.Append
+                             (Synthetic_If_Stmt
+                                (Binary_Expr
+                                   (Index_Temp,
+                                    "<",
+                                    Length_Temp,
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Suffix_Then,
                                  Stmt.Span));
                            Match_Then.Append
                              (Synthetic_Assign_Stmt
                                 (Found_Temp,
                                  Bool_Expr (True, Stmt.Span),
                                  Stmt.Span));
-
-                           declare
-                              Keep_Literal : constant CM.Expr_Access := new CM.Expr_Node;
-                           begin
-                              Keep_Literal.Kind := CM.Expr_Array_Literal;
-                              Keep_Literal.Span := Stmt.Span;
-                              Keep_Literal.Type_Name := Map_Type.Name;
-                              Keep_Literal.Elements.Append (Entry_Expr);
-                              Append_Then.Append
-                                (Synthetic_Assign_Stmt
-                                   (New_Map_Temp,
-                                    Binary_Expr
-                                      (New_Map_Temp,
-                                       "&",
-                                       Keep_Literal,
-                                       Stmt.Span,
-                                       UString_Value (Map_Type.Name)),
-                                    Stmt.Span));
-                           end;
+                           Match_Then.Append
+                             (Synthetic_If_Stmt
+                                (Found_Temp,
+                                 Rebuild_Then,
+                                 Stmt.Span));
+                           Match_Then.Append
+                             (Synthetic_Exit_Stmt (Stmt.Span));
 
                            Loop_Body.Append
                              (Synthetic_If_Stmt
@@ -8274,28 +8431,18 @@ package body Safe_Frontend.Check_Resolve is
                                     UString_Value (Entry_Type.Name)),
                                  Stmt.Span));
                            Loop_Body.Append
-                             (Synthetic_If_Else_Stmt
+                             (Synthetic_If_Stmt
                                 (Binary_Expr
-                                   (Unary_Expr
-                                      ("not",
-                                       Found_Temp,
+                                   (Selector_Expr
+                                      (Entry_Expr,
+                                       "1",
                                        Stmt.Span,
-                                       "boolean"),
-                                    "and then",
-                                    Binary_Expr
-                                      (Selector_Expr
-                                         (Entry_Expr,
-                                          "1",
-                                          Stmt.Span,
-                                          UString_Value (Key_Type.Name)),
-                                       "==",
-                                       Key_Temp,
-                                       Stmt.Span,
-                                       "boolean"),
+                                       UString_Value (Key_Type.Name)),
+                                    "==",
+                                    Key_Temp,
                                     Stmt.Span,
                                     "boolean"),
                                  Match_Then,
-                                 Append_Then,
                                  Stmt.Span));
                            Advance_Then.Append
                              (Synthetic_Assign_Stmt
@@ -8331,25 +8478,6 @@ package body Safe_Frontend.Check_Resolve is
                                  Loop_Body,
                                  Stmt.Span));
 
-                           declare
-                              New_Literal : constant CM.Expr_Access := new CM.Expr_Node;
-                           begin
-                              New_Literal.Kind := CM.Expr_Array_Literal;
-                              New_Literal.Span := Stmt.Span;
-                              New_Literal.Type_Name := Map_Type.Name;
-                              New_Literal.Elements.Append (Entry_Value);
-                              Match_Then.Clear;
-                              Match_Then.Append
-                                (Synthetic_Assign_Stmt
-                                   (New_Map_Temp,
-                                    Binary_Expr
-                                      (New_Map_Temp,
-                                       "&",
-                                       New_Literal,
-                                       Stmt.Span,
-                                       UString_Value (Map_Type.Name)),
-                                    Stmt.Span));
-                           end;
                            Rewritten_Stmts.Append
                              (Synthetic_If_Stmt
                                 (Unary_Expr
@@ -8357,12 +8485,7 @@ package body Safe_Frontend.Check_Resolve is
                                     Found_Temp,
                                     Stmt.Span,
                                     "boolean"),
-                                 Match_Then,
-                                 Stmt.Span));
-                           Rewritten_Stmts.Append
-                             (Synthetic_Assign_Stmt
-                                (Map_Target,
-                                 New_Map_Temp,
+                                 Append_Missing_Then,
                                  Stmt.Span));
                         end;
 
