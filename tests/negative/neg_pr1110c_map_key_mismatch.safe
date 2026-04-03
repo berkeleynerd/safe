@@ -1,0 +1,9 @@
+-- Test: neg_pr1110c_map_key_mismatch
+-- Description: Map builtin key arguments must match the map key type.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110c-built-in-map-of-k-v
+-- Expected: REJECT
+
+package neg_pr1110c_map_key_mismatch
+
+   var values : map of (integer, integer);
+   found : optional integer = get (values, "Ada");

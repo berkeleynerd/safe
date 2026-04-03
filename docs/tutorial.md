@@ -326,6 +326,35 @@ function tail_or_zero returns integer
 `array of T` still works. `list of T` is an alias surface over the same
 growable representation, not a second runtime.
 
+`PR11.10c` adds the next container slice:
+
+- `map of (K, V)` is the user-facing spelling for a growable sequence of
+  `(K, V)` entries,
+- maps default-initialize to empty values,
+- free builtins provide the first surface:
+  - `contains(m, key)` returns `boolean`
+  - `get(m, key)` returns `optional V`
+  - `set(m, key, value)` mutates a writable map in place
+  - `remove(m, key)` mutates a writable map and returns `optional V`
+- `for entry of values` iterates `(K, V)` tuples, but iteration order is
+  intentionally unspecified in this first wedge.
+
+Example:
+
+```safe
+function lookup_or_zero returns integer
+   var values : map of (integer, integer);
+   found : optional integer = none;
+
+   set (values, 1, 10);
+   set (values, 1, 15);
+   found = get (values, 1);
+   if found.present
+      return found.value;
+   else
+      return 0;
+```
+
 ## 6. "Silver By Construction": D27 In One Page
 
 Safe's Silver level is built around a simple premise:

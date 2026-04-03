@@ -3796,6 +3796,7 @@ package body Safe_Frontend.Ada_Emit is
          Match : GM.Type_Descriptor := (others => <>);
 
          procedure Check_Info (Info : GM.Type_Descriptor);
+         procedure Check_Expr (Expr : CM.Expr_Access);
          procedure Check_Decls (Decls : CM.Resolved_Object_Decl_Vectors.Vector);
          procedure Check_Decls (Decls : CM.Object_Decl_Vectors.Vector);
          procedure Check_Statements
@@ -3808,15 +3809,64 @@ package body Safe_Frontend.Ada_Emit is
             end if;
 
             if FT.To_String (Info.Name) = Target_Name then
+               if Starts_With (Target_Name, "__tuple")
+                 and then Info.Tuple_Element_Types.Is_Empty
+               then
+                  return;
+               end if;
                Match := Info;
                Found := True;
             end if;
          end Check_Info;
 
+         procedure Check_Expr (Expr : CM.Expr_Access) is
+         begin
+            if Found or else Expr = null then
+               return;
+            end if;
+
+            if Expr.Kind = CM.Expr_Tuple
+              and then Has_Text (Expr.Type_Name)
+              and then FT.To_String (Expr.Type_Name) = Target_Name
+            then
+               Match.Name := Expr.Type_Name;
+               Match.Kind := FT.To_UString ("tuple");
+               for Element of Expr.Elements loop
+                  if Element /= null and then Has_Text (Element.Type_Name) then
+                     Match.Tuple_Element_Types.Append (Element.Type_Name);
+                  end if;
+               end loop;
+               Found := True;
+               return;
+            end if;
+
+            Check_Expr (Expr.Prefix);
+            Check_Expr (Expr.Callee);
+            Check_Expr (Expr.Inner);
+            Check_Expr (Expr.Left);
+            Check_Expr (Expr.Right);
+            Check_Expr (Expr.Value);
+            Check_Expr (Expr.Target);
+            for Item of Expr.Args loop
+               exit when Found;
+               Check_Expr (Item);
+            end loop;
+            for Item of Expr.Elements loop
+               exit when Found;
+               Check_Expr (Item);
+            end loop;
+            for Field of Expr.Fields loop
+               exit when Found;
+               Check_Expr (Field.Expr);
+            end loop;
+         end Check_Expr;
+
          procedure Check_Decls (Decls : CM.Resolved_Object_Decl_Vectors.Vector) is
          begin
             for Decl of Decls loop
                Check_Info (Decl.Type_Info);
+               exit when Found;
+               Check_Expr (Decl.Initializer);
                exit when Found;
             end loop;
          end Check_Decls;
@@ -3825,6 +3875,8 @@ package body Safe_Frontend.Ada_Emit is
          begin
             for Decl of Decls loop
                Check_Info (Decl.Type_Info);
+               exit when Found;
+               Check_Expr (Decl.Initializer);
                exit when Found;
             end loop;
          end Check_Decls;
@@ -3841,23 +3893,33 @@ package body Safe_Frontend.Ada_Emit is
                   case Item.Kind is
                      when CM.Stmt_Object_Decl =>
                         Check_Info (Item.Decl.Type_Info);
+                        Check_Expr (Item.Decl.Initializer);
                      when CM.Stmt_Destructure_Decl =>
                         Check_Info (Item.Destructure.Type_Info);
+                        Check_Expr (Item.Destructure.Initializer);
                      when CM.Stmt_If =>
+                        Check_Expr (Item.Condition);
                         Check_Statements (Item.Then_Stmts);
                         for Part of Item.Elsifs loop
                            exit when Found;
+                           Check_Expr (Part.Condition);
                            Check_Statements (Part.Statements);
                         end loop;
                         if Item.Has_Else then
                            Check_Statements (Item.Else_Stmts);
                         end if;
                      when CM.Stmt_Case =>
+                        Check_Expr (Item.Case_Expr);
                         for Arm of Item.Case_Arms loop
                            exit when Found;
+                           Check_Expr (Arm.Choice);
                            Check_Statements (Arm.Statements);
                         end loop;
                      when CM.Stmt_While | CM.Stmt_Loop | CM.Stmt_For =>
+                        Check_Expr (Item.Condition);
+                        Check_Expr (Item.Loop_Iterable);
+                        Check_Expr (Item.Loop_Range.Low_Expr);
+                        Check_Expr (Item.Loop_Range.High_Expr);
                         Check_Decls (Item.Declarations);
                         Check_Statements (Item.Body_Stmts);
                      when CM.Stmt_Select =>
@@ -3866,15 +3928,24 @@ package body Safe_Frontend.Ada_Emit is
                            case Arm.Kind is
                               when CM.Select_Arm_Channel =>
                                  Check_Info (Arm.Channel_Data.Type_Info);
+                                 Check_Expr (Arm.Channel_Data.Channel_Name);
                                  Check_Statements (Arm.Channel_Data.Statements);
                               when CM.Select_Arm_Delay =>
+                                 Check_Expr (Arm.Delay_Data.Duration_Expr);
                                  Check_Statements (Arm.Delay_Data.Statements);
                               when others =>
                                  null;
                            end case;
                         end loop;
                      when others =>
-                        null;
+                        Check_Expr (Item.Target);
+                        Check_Expr (Item.Value);
+                        Check_Expr (Item.Call);
+                        Check_Expr (Item.Condition);
+                        Check_Expr (Item.Case_Expr);
+                        Check_Expr (Item.Match_Expr);
+                        Check_Expr (Item.Channel_Name);
+                        Check_Expr (Item.Success_Var);
                   end case;
                end if;
             end loop;
@@ -6154,6 +6225,10 @@ package body Safe_Frontend.Ada_Emit is
          return "Safe_String_RT.Empty";
       elsif Type_Name = "float" or else Type_Name = "long_float" then
          return "0.0";
+      elsif Starts_With (Type_Name, "__growable_array_")
+        or else Starts_With (Type_Name, "Safe_growable_array_")
+      then
+         return Ada_Safe_Name (Type_Name) & "_RT.Empty";
       elsif Starts_With (Type_Name, "access ")
         or else Starts_With (Type_Name, "not null access ")
         or else Starts_With (Type_Name, "access constant ")
@@ -6629,13 +6704,7 @@ package body Safe_Frontend.Ada_Emit is
          elsif FT.Lowercase (Name) = "result" then
             Add_From_Info (BT.Result_Type);
          elsif Starts_With (Name, "__tuple") then
-            declare
-               Info : GM.Type_Descriptor;
-            begin
-               Info.Name := FT.To_UString (Name);
-               Info.Kind := FT.To_UString ("tuple");
-               Add_Unique (Info);
-            end;
+            Add_From_Info (Resolve_Type_Name (Unit, Document, Name));
          end if;
       end Add_From_Name;
 
@@ -6747,6 +6816,21 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
       end Add_From_Statements;
    begin
+      for Item of Unit.Types loop
+         if Has_Text (Item.Name)
+           and then not Contains_Name (Seen, FT.To_String (Item.Name))
+         then
+            Seen.Append (Item.Name);
+         end if;
+      end loop;
+      for Item of Unit.Imported_Types loop
+         if Has_Text (Item.Name)
+           and then not Contains_Name (Seen, FT.To_String (Item.Name))
+         then
+            Seen.Append (Item.Name);
+         end if;
+      end loop;
+
       for Item of Unit.Types loop
          Add_From_Info (Item);
       end loop;
@@ -18539,6 +18623,7 @@ package body Safe_Frontend.Ada_Emit is
       Synthetic_Types : GM.Type_Descriptor_Vectors.Vector;
       Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
       Deferred_Package_Init_Names : FT.UString_Vectors.Vector;
+      Emit_Result_Builtin_First : Boolean := False;
 
       procedure Add_Body_With (Name : String) is
       begin
@@ -18596,6 +18681,18 @@ package body Safe_Frontend.Ada_Emit is
 
          return False;
       end Decl_Uses_Package_Subprogram_Name;
+
+      function Unit_Defines_Result_Type return Boolean is
+      begin
+         for Type_Item of Unit.Types loop
+            if Is_Result_Builtin (Type_Item)
+              or else FT.Lowercase (FT.To_String (Type_Item.Name)) = "result"
+            then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Unit_Defines_Result_Type;
 
       function Should_Defer_Package_Object_Initializer
         (Decl  : CM.Resolved_Object_Decl;
@@ -18938,6 +19035,20 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Spec_Inner, "pragma Elaborate_Body;", 1);
       Append_Line (Spec_Inner);
       Append_Bounded_String_Instantiations (Spec_Inner, State);
+      Collect_Synthetic_Types (Unit, Document, Synthetic_Types);
+      Collect_Owner_Access_Helper_Types (Unit, Document, Owner_Access_Helper_Types);
+
+      Emit_Result_Builtin_First :=
+        not Unit_Defines_Result_Type
+        and then (for some Type_Item of Synthetic_Types => Is_Result_Builtin (Type_Item));
+
+      if Emit_Result_Builtin_First then
+         Append_Line
+           (Spec_Inner,
+            Render_Type_Decl (Unit, Document, BT.Result_Type, State),
+            1);
+         Append_Line (Spec_Inner);
+      end if;
 
       for Type_Item of Unit.Types loop
          Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
@@ -18946,11 +19057,11 @@ package body Safe_Frontend.Ada_Emit is
          end if;
       end loop;
 
-      Collect_Synthetic_Types (Unit, Document, Synthetic_Types);
-      Collect_Owner_Access_Helper_Types (Unit, Document, Owner_Access_Helper_Types);
       for Type_Item of Synthetic_Types loop
-         Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
-         Append_Line (Spec_Inner);
+         if not (Emit_Result_Builtin_First and then Is_Result_Builtin (Type_Item)) then
+            Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
+            Append_Line (Spec_Inner);
+         end if;
       end loop;
 
       for Type_Item of Owner_Access_Helper_Types loop

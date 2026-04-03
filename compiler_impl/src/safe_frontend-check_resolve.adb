@@ -610,6 +610,16 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
 
+   function Try_Map_Key_Value_Types
+     (Info       : GM.Type_Descriptor;
+      Type_Env   : Type_Maps.Map;
+      Key_Type   : out GM.Type_Descriptor;
+      Value_Type : out GM.Type_Descriptor) return Boolean;
+
+   function Is_Map_Key_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
    function Bool_Expr
      (Value : Boolean;
       Span  : FT.Source_Span) return CM.Expr_Access;
@@ -667,6 +677,30 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env  : Type_Maps.Map) return Boolean;
 
    function Is_Pop_Last_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean;
+
+   function Is_Contains_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean;
+
+   function Is_Get_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean;
+
+   function Is_Set_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean;
+
+   function Is_Remove_Builtin_Call
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
@@ -1309,6 +1343,51 @@ package body Safe_Frontend.Check_Resolve is
               & "` is missing component type information"));
       return Default_Integer;
    end Growable_Array_Element_Type;
+
+   function Try_Map_Key_Value_Types
+     (Info       : GM.Type_Descriptor;
+      Type_Env   : Type_Maps.Map;
+      Key_Type   : out GM.Type_Descriptor;
+      Value_Type : out GM.Type_Descriptor) return Boolean
+   is
+      Entry_Type : GM.Type_Descriptor := Default_Integer;
+   begin
+      Key_Type := Default_Integer;
+      Value_Type := Default_Integer;
+
+      if not Is_Growable_Array_Type (Info, Type_Env) then
+         return False;
+      end if;
+
+      Entry_Type := Base_Type (Growable_Array_Element_Type (Info, Type_Env), Type_Env);
+      if FT.Lowercase (UString_Value (Entry_Type.Kind)) /= "tuple"
+        or else Natural (Entry_Type.Tuple_Element_Types.Length) /= 2
+      then
+         return False;
+      end if;
+
+      Key_Type :=
+        Resolve_Type
+          (UString_Value (Entry_Type.Tuple_Element_Types (Entry_Type.Tuple_Element_Types.First_Index)),
+           Type_Env,
+           "",
+           FT.Null_Span);
+      Value_Type :=
+        Resolve_Type
+          (UString_Value (Entry_Type.Tuple_Element_Types (Entry_Type.Tuple_Element_Types.First_Index + 1)),
+           Type_Env,
+           "",
+           FT.Null_Span);
+      return True;
+   end Try_Map_Key_Value_Types;
+
+   function Is_Map_Key_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return Is_Discrete_Case_Type (Info, Type_Env)
+        or else Is_String_Type (Info, Type_Env);
+   end Is_Map_Key_Type_Allowed;
 
    function Bool_Expr
      (Value : Boolean;
@@ -2617,6 +2696,55 @@ package body Safe_Frontend.Check_Resolve is
                end if;
                return Make_Growable_Array_Type (Element_Type);
             end;
+         when CM.Type_Spec_Map =>
+            if Spec.Key_Type = null or else Spec.Value_Type = null then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Spec.Span,
+                     Message => "map type is missing a key or value type"));
+            end if;
+            declare
+               Key_Type : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec
+                   (Spec.Key_Type.all,
+                    Type_Env,
+                    Const_Env,
+                    Path,
+                    Current_Record_Name,
+                    Family_By_Name,
+                    Families);
+               Value_Type : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec
+                   (Spec.Value_Type.all,
+                    Type_Env,
+                    Const_Env,
+                    Path,
+                    Current_Record_Name,
+                    Family_By_Name,
+                    Families);
+            begin
+               if not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Spec.Key_Type.Span,
+                        Message =>
+                          "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+               elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Spec.Value_Type.Span,
+                        Message =>
+                          "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+               end if;
+
+               Element_Types.Clear;
+               Element_Types.Append (Key_Type.Name);
+               Element_Types.Append (Value_Type.Name);
+               return Make_Growable_Array_Type (Make_Tuple_Type (Element_Types));
+            end;
          when CM.Type_Spec_Optional =>
             if Spec.Element_Type = null then
                Raise_Diag
@@ -2949,6 +3077,44 @@ package body Safe_Frontend.Check_Resolve is
                        Make_Optional_Type
                          (Growable_Array_Element_Type (List_Type, Type_Env),
                           Type_Env);
+                  end if;
+               end;
+            elsif Is_Contains_Builtin_Call (Expr, Var_Types, Functions, Type_Env)
+              and then Natural (Expr.Args.Length) = 2
+            then
+               return BT.Boolean_Type;
+            elsif Is_Get_Builtin_Call (Expr, Var_Types, Functions, Type_Env)
+              and then Natural (Expr.Args.Length) = 2
+            then
+               declare
+                  Map_Type   : constant GM.Type_Descriptor :=
+                    Expr_Type
+                      (Expr.Args (Expr.Args.First_Index),
+                       Var_Types,
+                       Functions,
+                       Type_Env);
+                  Key_Type   : GM.Type_Descriptor;
+                  Value_Type : GM.Type_Descriptor;
+               begin
+                  if Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                     return Make_Optional_Type (Value_Type, Type_Env);
+                  end if;
+               end;
+            elsif Is_Remove_Builtin_Call (Expr, Var_Types, Functions, Type_Env)
+              and then Natural (Expr.Args.Length) = 2
+            then
+               declare
+                  Map_Type   : constant GM.Type_Descriptor :=
+                    Expr_Type
+                      (Expr.Args (Expr.Args.First_Index),
+                       Var_Types,
+                       Functions,
+                       Type_Env);
+                  Key_Type   : GM.Type_Descriptor;
+                  Value_Type : GM.Type_Descriptor;
+               begin
+                  if Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                     return Make_Optional_Type (Value_Type, Type_Env);
                   end if;
                end;
             elsif UString_Value (Name) = "long_float.copy_sign" then
@@ -3457,6 +3623,99 @@ package body Safe_Frontend.Check_Resolve is
                              Make_Optional_Type (Element_Type, Type_Env).Name;
                         end;
                      end if;
+                  elsif Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                    or else Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                    or else Is_Remove_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                  then
+                     declare
+                        Builtin_Name : constant String :=
+                          (if Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                           then "contains"
+                           elsif Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                           then "get"
+                           else "remove");
+                     begin
+                        if Natural (Result.Args.Length) /= 2 then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => "",
+                                 Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
+                                 Message => "`" & Builtin_Name & "(m, key)` expects exactly two arguments"));
+                        end if;
+
+                        declare
+                           Map_Expr    : constant CM.Expr_Access :=
+                             Result.Args (Result.Args.First_Index);
+                           Key_Expr    : CM.Expr_Access :=
+                             Result.Args (Result.Args.First_Index + 1);
+                           Map_Type    : constant GM.Type_Descriptor :=
+                             Expr_Type (Map_Expr, Var_Types, Functions, Type_Env);
+                           Key_Type    : GM.Type_Descriptor;
+                           Value_Type  : GM.Type_Descriptor;
+                        begin
+                           if Builtin_Name = "remove"
+                             and then not Is_Assignable_Target (Map_Expr)
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => "",
+                                    Span    => Map_Expr.Span,
+                                    Message => "`remove` first argument must be a writable map name"));
+                           elsif not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => "",
+                                    Span    => Map_Expr.Span,
+                                    Message => "`" & Builtin_Name & "` expects a `map of (K, V)` first argument"));
+                           elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+                              Raise_Diag
+                                (CM.Unsupported_Source_Construct
+                                   (Path    => "",
+                                    Span    => Map_Expr.Span,
+                                    Message =>
+                                      "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+                           elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+                              Raise_Diag
+                                (CM.Unsupported_Source_Construct
+                                   (Path    => "",
+                                    Span    => Map_Expr.Span,
+                                    Message =>
+                                      "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+                           else
+                              Key_Expr :=
+                                Contextualize_Expr_To_Target_Type
+                                  (Key_Expr,
+                                   Key_Type,
+                                   Var_Types,
+                                   Functions,
+                                   Type_Env,
+                                   "");
+                              Reject_Uncontextualized_None (Key_Expr, "");
+                              if not Compatible_Source_Expr_To_Target_Type
+                                (Key_Expr,
+                                 Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
+                                 Key_Type,
+                                 Var_Types,
+                                 Functions,
+                                 Type_Env,
+                                 Const_Env,
+                                 Exact_Length_Maps.Empty_Map)
+                              then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => "",
+                                       Span    => Key_Expr.Span,
+                                       Message => "`" & Builtin_Name & "` key type does not match the map key type"));
+                              end if;
+                              Result.Args.Replace_Element (Result.Args.First_Index + 1, Key_Expr);
+                              if Builtin_Name = "contains" then
+                                 Result.Type_Name := FT.To_UString ("boolean");
+                              else
+                                 Result.Type_Name := Make_Optional_Type (Value_Type, Type_Env).Name;
+                              end if;
+                           end if;
+                        end;
+                     end;
                   end if;
                else
                   Result := new CM.Expr_Node'(Resolved.all);
@@ -3753,6 +4012,46 @@ package body Safe_Frontend.Check_Resolve is
       return
         Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "pop_last");
    end Is_Pop_Last_Builtin_Call;
+
+   function Is_Contains_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      return
+        Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "contains");
+   end Is_Contains_Builtin_Call;
+
+   function Is_Get_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      return
+        Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "get");
+   end Is_Get_Builtin_Call;
+
+   function Is_Set_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      return
+        Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "set");
+   end Is_Set_Builtin_Call;
+
+   function Is_Remove_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      return
+        Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "remove");
+   end Is_Remove_Builtin_Call;
 
    procedure Validate_Pr112_Expr_Boundaries
      (Expr      : CM.Expr_Access;
@@ -5347,6 +5646,12 @@ package body Safe_Frontend.Check_Resolve is
          return Result;
       elsif Is_Optional_Type (Info, Type_Env) then
          return Build_Optional_None_Expr (Info, Span);
+      elsif Kind = "array" and then Info.Growable then
+         Result := new CM.Expr_Node;
+         Result.Kind := CM.Expr_Array_Literal;
+         Result.Type_Name := Info.Name;
+         Result.Span := Span;
+         return Result;
       elsif Kind = "record" then
          Result := new CM.Expr_Node;
          Result.Kind := CM.Expr_Aggregate;
@@ -5447,6 +5752,90 @@ package body Safe_Frontend.Check_Resolve is
       Result.Then_Stmts := Then_Stmts;
       return Result;
    end Synthetic_If_Stmt;
+
+   function Synthetic_If_Else_Stmt
+     (Condition  : CM.Expr_Access;
+      Then_Stmts : CM.Statement_Access_Vectors.Vector;
+      Else_Stmts : CM.Statement_Access_Vectors.Vector;
+      Span       : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_If;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Condition := Condition;
+      Result.Then_Stmts := Then_Stmts;
+      Result.Has_Else := True;
+      Result.Else_Stmts := Else_Stmts;
+      return Result;
+   end Synthetic_If_Else_Stmt;
+
+   function Synthetic_While_Stmt
+     (Condition  : CM.Expr_Access;
+      Body_Stmts : CM.Statement_Access_Vectors.Vector;
+      Span       : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_While;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Condition := Condition;
+      Result.Body_Stmts := Body_Stmts;
+      return Result;
+   end Synthetic_While_Stmt;
+
+   function Synthetic_For_Stmt
+     (Loop_Var  : String;
+      Low_Expr  : CM.Expr_Access;
+      High_Expr : CM.Expr_Access;
+      Body_Stmts : CM.Statement_Access_Vectors.Vector;
+      Span      : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_For;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Loop_Var := FT.To_UString (Loop_Var);
+      Result.Loop_Range.Kind := CM.Range_Explicit;
+      Result.Loop_Range.Span := Span;
+      Result.Loop_Range.Low_Expr := Low_Expr;
+      Result.Loop_Range.High_Expr := High_Expr;
+      Result.Body_Stmts := Body_Stmts;
+      return Result;
+   end Synthetic_For_Stmt;
+
+   function Synthetic_For_Of_Stmt
+     (Loop_Var      : String;
+      Loop_Iterable : CM.Expr_Access;
+      Body_Stmts    : CM.Statement_Access_Vectors.Vector;
+      Span          : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_For;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Loop_Var := FT.To_UString (Loop_Var);
+      Result.Loop_Iterable := Loop_Iterable;
+      Result.Body_Stmts := Body_Stmts;
+      return Result;
+   end Synthetic_For_Of_Stmt;
+
+   function Synthetic_Exit_Stmt
+     (Span       : FT.Source_Span;
+      Condition  : CM.Expr_Access := null) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_Exit;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Condition := Condition;
+      return Result;
+   end Synthetic_Exit_Stmt;
 
    function Desugar_Executable_Expr
      (Expr                : CM.Expr_Access;
@@ -5721,6 +6110,758 @@ package body Safe_Frontend.Check_Resolve is
                        UString_Value (Optional_Type.Name));
                   return Result;
                end;
+            end if;
+            if Is_Contains_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
+               declare
+                  Map_Child   : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Expr.Args (Expr.Args.First_Index),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Key_Child   : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Expr.Args (Expr.Args.First_Index + 1),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Map_Type    : constant GM.Type_Descriptor :=
+                    Expr_Type (Map_Child.Expr, Var_Types, Functions, Type_Env);
+                  Key_Type    : GM.Type_Descriptor;
+                  Value_Type  : GM.Type_Descriptor;
+                  Snapshot_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Value"));
+                  Key_Name    : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Key"));
+                  Length_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Len"));
+                  Index_Name  : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Index"));
+                  Result_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Contains"));
+                  Entry_Name  : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Entry"));
+                  Snapshot_Expr : CM.Expr_Access;
+                  Key_Temp    : CM.Expr_Access;
+                  Length_Temp : CM.Expr_Access;
+                  Index_Temp  : CM.Expr_Access;
+                  Result_Temp : CM.Expr_Access;
+                  Entry_Expr  : CM.Expr_Access;
+                  Match_Then  : CM.Statement_Access_Vectors.Vector;
+                  Index_Guard_Then : CM.Statement_Access_Vectors.Vector;
+                  Advance_Then : CM.Statement_Access_Vectors.Vector;
+                  Advance_Else : CM.Statement_Access_Vectors.Vector;
+                  Loop_Body   : CM.Statement_Access_Vectors.Vector;
+                  Entry_Type  : GM.Type_Descriptor := Default_Integer;
+                  Entry_Elements : FT.UString_Vectors.Vector;
+               begin
+                  Append_Statements (Result.Preludes, Map_Child.Preludes);
+                  Append_Statements (Result.Preludes, Key_Child.Preludes);
+                  if not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message => "`contains` expects a `map of (K, V)` first argument"));
+                  end if;
+                  Entry_Elements.Append (Key_Type.Name);
+                  Entry_Elements.Append (Value_Type.Name);
+                  Entry_Type := Make_Tuple_Type (Entry_Elements);
+
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Snapshot_Name),
+                        Map_Type,
+                        Map_Child.Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Key_Name),
+                        Key_Type,
+                        Key_Child.Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Length_Name),
+                        Default_Integer,
+                        Selector_Expr
+                          (Ident_Expr
+                             (UString_Value (Snapshot_Name),
+                              Expr.Span,
+                              UString_Value (Map_Type.Name)),
+                           "length",
+                           Expr.Span,
+                           UString_Value (Default_Integer.Name)),
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Index_Name),
+                        Default_Integer,
+                        Int_Expr (1, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Result_Name),
+                        BT.Boolean_Type,
+                        Bool_Expr (False, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+
+                  Snapshot_Expr :=
+                    Ident_Expr
+                      (UString_Value (Snapshot_Name),
+                       Expr.Span,
+                       UString_Value (Map_Type.Name));
+                  Key_Temp :=
+                    Ident_Expr
+                      (UString_Value (Key_Name),
+                       Expr.Span,
+                       UString_Value (Key_Type.Name));
+                  Length_Temp :=
+                    Ident_Expr
+                      (UString_Value (Length_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Index_Temp :=
+                    Ident_Expr
+                      (UString_Value (Index_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Result_Temp :=
+                    Ident_Expr
+                      (UString_Value (Result_Name),
+                       Expr.Span,
+                       UString_Value (BT.Boolean_Type.Name));
+                  Entry_Expr :=
+                    Ident_Expr
+                      (UString_Value (Entry_Name),
+                       Expr.Span,
+                       UString_Value (Entry_Type.Name));
+                  Index_Guard_Then.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Index_Guard_Then,
+                        Expr.Span));
+
+                  Match_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Result_Temp,
+                        Bool_Expr (True, Expr.Span),
+                        Expr.Span));
+                  Match_Then.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Entry_Name),
+                        Entry_Type,
+                        Resolved_Index_Expr
+                          (Snapshot_Expr,
+                           Index_Temp,
+                           Expr.Span,
+                           UString_Value (Entry_Type.Name)),
+                        Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Unary_Expr
+                             ("not",
+                              Result_Temp,
+                              Expr.Span,
+                              "boolean"),
+                           "and then",
+                           Binary_Expr
+                             (Selector_Expr
+                                (Entry_Expr,
+                                 "1",
+                                 Expr.Span,
+                                 UString_Value (Key_Type.Name)),
+                              "==",
+                              Key_Temp,
+                              Expr.Span,
+                              "boolean"),
+                           Expr.Span,
+                           "boolean"),
+                        Match_Then,
+                        Expr.Span));
+                  Advance_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Index_Temp,
+                        Binary_Expr
+                          (Index_Temp,
+                           "+",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           UString_Value (Default_Integer.Name)),
+                        Expr.Span));
+                  Advance_Else.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Else_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Length_Temp,
+                           Expr.Span,
+                           "boolean"),
+                        Advance_Then,
+                        Advance_Else,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_While_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<=",
+                           Length_Temp,
+                           Expr.Span,
+                           "boolean"),
+                        Loop_Body,
+                        Expr.Span));
+                  Result.Expr := Result_Temp;
+                  return Result;
+               end;
+            end if;
+            if Is_Get_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
+               declare
+                  Map_Child   : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Expr.Args (Expr.Args.First_Index),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Key_Child   : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Expr.Args (Expr.Args.First_Index + 1),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Map_Type    : constant GM.Type_Descriptor :=
+                    Expr_Type (Map_Child.Expr, Var_Types, Functions, Type_Env);
+                  Key_Type    : GM.Type_Descriptor;
+                  Value_Type  : GM.Type_Descriptor;
+                  Snapshot_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Value"));
+                  Key_Name    : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Key"));
+                  Length_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Len"));
+                  Index_Name  : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Index"));
+                  Result_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Get"));
+                  Entry_Name  : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Entry"));
+                  Snapshot_Expr : CM.Expr_Access;
+                  Key_Temp    : CM.Expr_Access;
+                  Length_Temp : CM.Expr_Access;
+                  Index_Temp  : CM.Expr_Access;
+                  Result_Temp : CM.Expr_Access;
+                  Present_Expr : CM.Expr_Access;
+                  Entry_Expr  : CM.Expr_Access;
+                  Match_Then  : CM.Statement_Access_Vectors.Vector;
+                  Index_Guard_Then : CM.Statement_Access_Vectors.Vector;
+                  Advance_Then : CM.Statement_Access_Vectors.Vector;
+                  Advance_Else : CM.Statement_Access_Vectors.Vector;
+                  Loop_Body   : CM.Statement_Access_Vectors.Vector;
+                  Optional_Type : GM.Type_Descriptor := Default_Integer;
+                  Entry_Type    : GM.Type_Descriptor := Default_Integer;
+                  Entry_Elements : FT.UString_Vectors.Vector;
+               begin
+                  Append_Statements (Result.Preludes, Map_Child.Preludes);
+                  Append_Statements (Result.Preludes, Key_Child.Preludes);
+                  if not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message => "`get` expects a `map of (K, V)` first argument"));
+                  end if;
+
+                  Optional_Type := Make_Optional_Type (Value_Type, Type_Env);
+                  Entry_Elements.Append (Key_Type.Name);
+                  Entry_Elements.Append (Value_Type.Name);
+                  Entry_Type := Make_Tuple_Type (Entry_Elements);
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Snapshot_Name),
+                        Map_Type,
+                        Map_Child.Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Key_Name),
+                        Key_Type,
+                        Key_Child.Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Length_Name),
+                        Default_Integer,
+                        Selector_Expr
+                          (Ident_Expr
+                             (UString_Value (Snapshot_Name),
+                              Expr.Span,
+                              UString_Value (Map_Type.Name)),
+                           "length",
+                           Expr.Span,
+                           UString_Value (Default_Integer.Name)),
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Index_Name),
+                        Default_Integer,
+                        Int_Expr (1, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Result_Name),
+                        Optional_Type,
+                        Build_Optional_None_Expr (Optional_Type, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+
+                  Snapshot_Expr :=
+                    Ident_Expr
+                      (UString_Value (Snapshot_Name),
+                       Expr.Span,
+                       UString_Value (Map_Type.Name));
+                  Key_Temp :=
+                    Ident_Expr
+                      (UString_Value (Key_Name),
+                       Expr.Span,
+                       UString_Value (Key_Type.Name));
+                  Length_Temp :=
+                    Ident_Expr
+                      (UString_Value (Length_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Index_Temp :=
+                    Ident_Expr
+                      (UString_Value (Index_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Result_Temp :=
+                    Ident_Expr
+                      (UString_Value (Result_Name),
+                       Expr.Span,
+                       UString_Value (Optional_Type.Name));
+                  Present_Expr :=
+                    Selector_Expr
+                      (Result_Temp,
+                       "present",
+                       Expr.Span,
+                       "boolean");
+                  Entry_Type := Growable_Array_Element_Type (Map_Type, Type_Env);
+                  Entry_Expr :=
+                    Ident_Expr
+                      (UString_Value (Entry_Name),
+                       Expr.Span,
+                       UString_Value (Entry_Type.Name));
+                  Index_Guard_Then.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Index_Guard_Then,
+                        Expr.Span));
+
+                  Match_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Result_Temp,
+                        Build_Optional_Some_Expr
+                          (Optional_Type,
+                           Selector_Expr
+                             (Entry_Expr,
+                              "2",
+                              Expr.Span,
+                             UString_Value (Value_Type.Name)),
+                           Expr.Span),
+                        Expr.Span));
+                  Match_Then.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Entry_Name),
+                        Entry_Type,
+                        Resolved_Index_Expr
+                          (Snapshot_Expr,
+                           Index_Temp,
+                           Expr.Span,
+                           UString_Value (Entry_Type.Name)),
+                        Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Unary_Expr
+                             ("not",
+                              Present_Expr,
+                              Expr.Span,
+                              "boolean"),
+                           "and then",
+                           Binary_Expr
+                             (Selector_Expr
+                                (Entry_Expr,
+                                 "1",
+                                 Expr.Span,
+                                 UString_Value (Key_Type.Name)),
+                              "==",
+                              Key_Temp,
+                              Expr.Span,
+                              "boolean"),
+                           Expr.Span,
+                           "boolean"),
+                        Match_Then,
+                        Expr.Span));
+                  Advance_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Index_Temp,
+                        Binary_Expr
+                          (Index_Temp,
+                           "+",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           UString_Value (Default_Integer.Name)),
+                        Expr.Span));
+                  Advance_Else.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Else_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Length_Temp,
+                           Expr.Span,
+                           "boolean"),
+                        Advance_Then,
+                        Advance_Else,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_While_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<=",
+                           Length_Temp,
+                           Expr.Span,
+                           "boolean"),
+                        Loop_Body,
+                        Expr.Span));
+                  Result.Expr := Result_Temp;
+                  return Result;
+               end;
+            end if;
+            if Is_Remove_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
+               declare
+                  Map_Child     : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Expr.Args (Expr.Args.First_Index),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Key_Child     : constant Desugared_Expr_Result :=
+                    Desugar_Executable_Expr
+                      (Expr.Args (Expr.Args.First_Index + 1),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path,
+                       Reject_Short_Circuit_Try);
+                  Map_Type      : constant GM.Type_Descriptor :=
+                    Expr_Type (Map_Child.Expr, Var_Types, Functions, Type_Env);
+                  Key_Type      : GM.Type_Descriptor;
+                  Value_Type    : GM.Type_Descriptor;
+                  Optional_Type : GM.Type_Descriptor := Default_Integer;
+                  Snapshot_Name : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Value"));
+                  Key_Name      : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Key"));
+                  Length_Name   : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Len"));
+                  Index_Name    : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Index"));
+                  Result_Name   : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Remove"));
+                  New_Map_Name  : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_New"));
+                  Entry_Name    : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_Map_Entry"));
+                  Snapshot_Expr : CM.Expr_Access;
+                  Key_Temp      : CM.Expr_Access;
+                  Length_Temp   : CM.Expr_Access;
+                  Index_Temp    : CM.Expr_Access;
+                  Result_Temp   : CM.Expr_Access;
+                  New_Map_Temp  : CM.Expr_Access;
+                  Present_Expr  : CM.Expr_Access;
+                  Entry_Expr    : CM.Expr_Access;
+                  Match_Then    : CM.Statement_Access_Vectors.Vector;
+                  Keep_Else     : CM.Statement_Access_Vectors.Vector;
+                  Index_Guard_Then : CM.Statement_Access_Vectors.Vector;
+                  Loop_Body     : CM.Statement_Access_Vectors.Vector;
+                  Advance_Then  : CM.Statement_Access_Vectors.Vector;
+                  Advance_Else  : CM.Statement_Access_Vectors.Vector;
+                  Final_Then    : CM.Statement_Access_Vectors.Vector;
+                  Literal       : constant CM.Expr_Access := new CM.Expr_Node;
+                  Entry_Type    : GM.Type_Descriptor := Default_Integer;
+                  Entry_Elements : FT.UString_Vectors.Vector;
+               begin
+                  Append_Statements (Result.Preludes, Map_Child.Preludes);
+                  Append_Statements (Result.Preludes, Key_Child.Preludes);
+                  if not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message => "`remove` expects a `map of (K, V)` first argument"));
+                  end if;
+
+                  Optional_Type := Make_Optional_Type (Value_Type, Type_Env);
+                  Entry_Elements.Append (Key_Type.Name);
+                  Entry_Elements.Append (Value_Type.Name);
+                  Entry_Type := Make_Tuple_Type (Entry_Elements);
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Snapshot_Name),
+                        Map_Type,
+                        Map_Child.Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Key_Name),
+                        Key_Type,
+                        Key_Child.Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Length_Name),
+                        Default_Integer,
+                        Selector_Expr
+                          (Ident_Expr
+                             (UString_Value (Snapshot_Name),
+                              Expr.Span,
+                              UString_Value (Map_Type.Name)),
+                           "length",
+                           Expr.Span,
+                           UString_Value (Default_Integer.Name)),
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Index_Name),
+                        Default_Integer,
+                        Int_Expr (1, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Result_Name),
+                        Optional_Type,
+                        Build_Optional_None_Expr (Optional_Type, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (New_Map_Name),
+                        Map_Type,
+                        Default_Initializer_Expr (Map_Type, Type_Env, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+
+                  Snapshot_Expr :=
+                    Ident_Expr
+                      (UString_Value (Snapshot_Name),
+                       Expr.Span,
+                       UString_Value (Map_Type.Name));
+                  Key_Temp :=
+                    Ident_Expr
+                      (UString_Value (Key_Name),
+                       Expr.Span,
+                       UString_Value (Key_Type.Name));
+                  Length_Temp :=
+                    Ident_Expr
+                      (UString_Value (Length_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Index_Temp :=
+                    Ident_Expr
+                      (UString_Value (Index_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Result_Temp :=
+                    Ident_Expr
+                      (UString_Value (Result_Name),
+                       Expr.Span,
+                       UString_Value (Optional_Type.Name));
+                  New_Map_Temp :=
+                    Ident_Expr
+                      (UString_Value (New_Map_Name),
+                       Expr.Span,
+                       UString_Value (Map_Type.Name));
+                  Present_Expr :=
+                    Selector_Expr
+                      (Result_Temp,
+                       "present",
+                       Expr.Span,
+                       "boolean");
+                  Entry_Expr :=
+                    Ident_Expr
+                      (UString_Value (Entry_Name),
+                       Expr.Span,
+                       UString_Value (Entry_Type.Name));
+                  Index_Guard_Then.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Index_Guard_Then,
+                        Expr.Span));
+
+                  Match_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Result_Temp,
+                        Build_Optional_Some_Expr
+                          (Optional_Type,
+                           Selector_Expr
+                             (Entry_Expr,
+                              "2",
+                              Expr.Span,
+                              UString_Value (Value_Type.Name)),
+                           Expr.Span),
+                        Expr.Span));
+                  Literal.Kind := CM.Expr_Array_Literal;
+                  Literal.Span := Expr.Span;
+                  Literal.Type_Name := Map_Type.Name;
+                  Literal.Elements.Append (Entry_Expr);
+                  Keep_Else.Append
+                    (Synthetic_Assign_Stmt
+                       (New_Map_Temp,
+                        Binary_Expr
+                          (New_Map_Temp,
+                           "&",
+                           Literal,
+                           Expr.Span,
+                           UString_Value (Map_Type.Name)),
+                        Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Entry_Name),
+                        Entry_Type,
+                        Resolved_Index_Expr
+                          (Snapshot_Expr,
+                           Index_Temp,
+                           Expr.Span,
+                           UString_Value (Entry_Type.Name)),
+                        Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Else_Stmt
+                       (Binary_Expr
+                          (Unary_Expr
+                             ("not",
+                              Present_Expr,
+                              Expr.Span,
+                              "boolean"),
+                           "and then",
+                           Binary_Expr
+                             (Selector_Expr
+                                (Entry_Expr,
+                                 "1",
+                                 Expr.Span,
+                                 UString_Value (Key_Type.Name)),
+                              "==",
+                              Key_Temp,
+                              Expr.Span,
+                              "boolean"),
+                           Expr.Span,
+                           "boolean"),
+                        Match_Then,
+                        Keep_Else,
+                        Expr.Span));
+                  Advance_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Index_Temp,
+                        Binary_Expr
+                          (Index_Temp,
+                           "+",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           UString_Value (Default_Integer.Name)),
+                        Expr.Span));
+                  Advance_Else.Append
+                    (Synthetic_Exit_Stmt (Expr.Span));
+                  Loop_Body.Append
+                    (Synthetic_If_Else_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<",
+                           Length_Temp,
+                           Expr.Span,
+                           "boolean"),
+                        Advance_Then,
+                        Advance_Else,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_While_Stmt
+                       (Binary_Expr
+                          (Index_Temp,
+                           "<=",
+                           Length_Temp,
+                           Expr.Span,
+                           "boolean"),
+                        Loop_Body,
+                        Expr.Span));
+                  Final_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (Map_Child.Expr,
+                        New_Map_Temp,
+                        Expr.Span));
+                  Append_Statements (Result.Preludes, Final_Then);
+                  Result.Expr := Result_Temp;
+                  return Result;
+               end;
+            end if;
+            if Is_Set_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+                     Message => "`set(m, key, value)` mutates a writable map and must be used as a statement"));
             end if;
             Result.Expr := new CM.Expr_Node'(Expr.all);
             Result.Expr.Args.Clear;
@@ -6816,6 +7957,428 @@ package body Safe_Frontend.Check_Resolve is
                              Exact_Length_Facts,
                              Path,
                              Has_Enclosing_Return,
+                            Enclosing_Return_Type);
+                     end;
+                  end if;
+               elsif Is_Set_Builtin_Call
+                 (Normalized_Call, Var_Types, Functions, Type_Env)
+               then
+                  if Natural (Normalized_Call.Args.Length) /= 3 then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => (if Normalized_Call.Has_Call_Span
+                                       then Normalized_Call.Call_Span
+                                       else Normalized_Call.Span),
+                           Message => "`set(m, key, value)` expects exactly three arguments"));
+                  elsif not Is_Assignable_Target
+                    (Normalized_Call.Args (Normalized_Call.Args.First_Index))
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Normalized_Call.Args (Normalized_Call.Args.First_Index).Span,
+                           Message => "`set` first argument must be a writable map name"));
+                  else
+                     declare
+                        Map_Target     : constant CM.Expr_Access :=
+                          Normalized_Call.Args (Normalized_Call.Args.First_Index);
+                        Map_Type       : constant GM.Type_Descriptor :=
+                          Expr_Type (Map_Target, Var_Types, Functions, Type_Env);
+                        Key_Type       : GM.Type_Descriptor;
+                        Value_Type     : GM.Type_Descriptor;
+                        Key_Expr       : CM.Expr_Access :=
+                          Normalized_Call.Args (Normalized_Call.Args.First_Index + 1);
+                        Value_Expr     : CM.Expr_Access :=
+                          Normalized_Call.Args (Normalized_Call.Args.First_Index + 2);
+                        Entry_Type     : GM.Type_Descriptor := Default_Integer;
+                        Key_Name       : constant FT.UString :=
+                          FT.To_UString (Next_Synthetic_Name ("Safe_Map_Key"));
+                        Value_Name     : constant FT.UString :=
+                          FT.To_UString (Next_Synthetic_Name ("Safe_Map_Value"));
+                        Length_Name    : constant FT.UString :=
+                          FT.To_UString (Next_Synthetic_Name ("Safe_Map_Len"));
+                        Index_Name     : constant FT.UString :=
+                          FT.To_UString (Next_Synthetic_Name ("Safe_Map_Index"));
+                        Found_Name     : constant FT.UString :=
+                          FT.To_UString (Next_Synthetic_Name ("Safe_Map_Found"));
+                        Key_Temp       : CM.Expr_Access;
+                        Value_Temp     : CM.Expr_Access;
+                        Length_Temp    : CM.Expr_Access;
+                        Index_Temp     : CM.Expr_Access;
+                        Found_Temp     : CM.Expr_Access;
+                        Entry_Expr     : CM.Expr_Access;
+                        Entry_Value    : CM.Expr_Access;
+                        Literal        : constant CM.Expr_Access := new CM.Expr_Node;
+                        Loop_Body      : CM.Statement_Access_Vectors.Vector;
+                        Match_Then     : CM.Statement_Access_Vectors.Vector;
+                        Append_Then    : CM.Statement_Access_Vectors.Vector;
+                        Index_Guard_Then : CM.Statement_Access_Vectors.Vector;
+                        Advance_Then   : CM.Statement_Access_Vectors.Vector;
+                        Advance_Else   : CM.Statement_Access_Vectors.Vector;
+                        Rewritten_Stmts : CM.Statement_Access_Vectors.Vector;
+                        Entry_Elements : FT.UString_Vectors.Vector;
+                     begin
+                        if not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Map_Target.Span,
+                                 Message => "`set` expects a `mut map of (K, V)` first argument"));
+                        elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+                           Raise_Diag
+                             (CM.Unsupported_Source_Construct
+                                (Path    => Path,
+                                 Span    => Map_Target.Span,
+                                 Message =>
+                                   "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+                        elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+                           Raise_Diag
+                             (CM.Unsupported_Source_Construct
+                                (Path    => Path,
+                                 Span    => Map_Target.Span,
+                                 Message =>
+                                   "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+                        end if;
+                        Entry_Elements.Append (Key_Type.Name);
+                        Entry_Elements.Append (Value_Type.Name);
+
+                        Ensure_Writable_Target
+                          (Map_Target,
+                           Imported_Objects,
+                           Local_Constants,
+                           Local_Static_Constants,
+                           Path,
+                           "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
+
+                        Key_Expr :=
+                          Contextualize_Expr_To_Target_Type
+                            (Key_Expr,
+                             Key_Type,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Path);
+                        Value_Expr :=
+                          Contextualize_Expr_To_Target_Type
+                            (Value_Expr,
+                             Value_Type,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Path);
+                        Reject_Uncontextualized_None (Key_Expr, Path);
+                        Reject_Uncontextualized_None (Value_Expr, Path);
+                        if not Compatible_Source_Expr_To_Target_Type
+                          (Key_Expr,
+                           Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
+                           Key_Type,
+                           Var_Types,
+                           Functions,
+                           Type_Env,
+                           Local_Static_Constants,
+                           Exact_Length_Facts)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Key_Expr.Span,
+                                 Message => "`set` key type does not match the map key type"));
+                        elsif not Compatible_Source_Expr_To_Target_Type
+                          (Value_Expr,
+                           Expr_Type (Value_Expr, Var_Types, Functions, Type_Env),
+                           Value_Type,
+                           Var_Types,
+                           Functions,
+                           Type_Env,
+                           Local_Static_Constants,
+                           Exact_Length_Facts)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Value_Expr.Span,
+                                 Message => "`set` value type does not match the map value type"));
+                        end if;
+
+                        declare
+                           Snapshot_Name : constant FT.UString :=
+                             FT.To_UString (Next_Synthetic_Name ("Safe_Map_Value"));
+                           New_Map_Name  : constant FT.UString :=
+                             FT.To_UString (Next_Synthetic_Name ("Safe_Map_New"));
+                           Entry_Name    : constant FT.UString :=
+                             FT.To_UString (Next_Synthetic_Name ("Safe_Map_Entry"));
+                           Snapshot_Expr : CM.Expr_Access;
+                           New_Map_Temp  : CM.Expr_Access;
+                        begin
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Snapshot_Name),
+                                 Map_Type,
+                                 Map_Target,
+                                 Stmt.Span));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Key_Name),
+                                 Key_Type,
+                                 Key_Expr,
+                                 Stmt.Span));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Value_Name),
+                                 Value_Type,
+                                 Value_Expr,
+                                 Stmt.Span));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Length_Name),
+                                 Default_Integer,
+                                 Selector_Expr
+                                   (Ident_Expr
+                                      (UString_Value (Snapshot_Name),
+                                       Stmt.Span,
+                                       UString_Value (Map_Type.Name)),
+                                    "length",
+                                    Stmt.Span,
+                                    UString_Value (Default_Integer.Name)),
+                                 Stmt.Span));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Index_Name),
+                                 Default_Integer,
+                                 Int_Expr (1, Stmt.Span),
+                                 Stmt.Span,
+                                 Is_Constant => False));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Found_Name),
+                                 BT.Boolean_Type,
+                                 Bool_Expr (False, Stmt.Span),
+                                 Stmt.Span,
+                                 Is_Constant => False));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (New_Map_Name),
+                                 Map_Type,
+                                 Default_Initializer_Expr (Map_Type, Type_Env, Stmt.Span),
+                                 Stmt.Span,
+                                 Is_Constant => False));
+
+                           Entry_Type := Make_Tuple_Type (Entry_Elements);
+                           Snapshot_Expr :=
+                             Ident_Expr
+                               (UString_Value (Snapshot_Name),
+                                Stmt.Span,
+                                UString_Value (Map_Type.Name));
+                           Key_Temp :=
+                             Ident_Expr
+                               (UString_Value (Key_Name),
+                                Stmt.Span,
+                                UString_Value (Key_Type.Name));
+                           Value_Temp :=
+                             Ident_Expr
+                               (UString_Value (Value_Name),
+                                Stmt.Span,
+                                UString_Value (Value_Type.Name));
+                           Length_Temp :=
+                             Ident_Expr
+                               (UString_Value (Length_Name),
+                                Stmt.Span,
+                                UString_Value (Default_Integer.Name));
+                           Index_Temp :=
+                             Ident_Expr
+                               (UString_Value (Index_Name),
+                                Stmt.Span,
+                                UString_Value (Default_Integer.Name));
+                           Found_Temp :=
+                             Ident_Expr
+                               (UString_Value (Found_Name),
+                                Stmt.Span,
+                                UString_Value (BT.Boolean_Type.Name));
+                           New_Map_Temp :=
+                             Ident_Expr
+                               (UString_Value (New_Map_Name),
+                                Stmt.Span,
+                                UString_Value (Map_Type.Name));
+                           Entry_Expr :=
+                             Ident_Expr
+                               (UString_Value (Entry_Name),
+                                Stmt.Span,
+                                UString_Value (Entry_Type.Name));
+                           Entry_Value :=
+                             Tuple_Expr
+                               (Key_Temp,
+                                Value_Temp,
+                                Stmt.Span,
+                                UString_Value (Entry_Type.Name));
+                           Index_Guard_Then.Append
+                             (Synthetic_Exit_Stmt (Stmt.Span));
+
+                           Literal.Kind := CM.Expr_Array_Literal;
+                           Literal.Span := Stmt.Span;
+                           Literal.Type_Name := Map_Type.Name;
+                           Literal.Elements.Append (Entry_Value);
+                           Match_Then.Append
+                             (Synthetic_Assign_Stmt
+                                (New_Map_Temp,
+                                 Binary_Expr
+                                   (New_Map_Temp,
+                                    "&",
+                                    Literal,
+                                    Stmt.Span,
+                                    UString_Value (Map_Type.Name)),
+                                 Stmt.Span));
+                           Match_Then.Append
+                             (Synthetic_Assign_Stmt
+                                (Found_Temp,
+                                 Bool_Expr (True, Stmt.Span),
+                                 Stmt.Span));
+
+                           declare
+                              Keep_Literal : constant CM.Expr_Access := new CM.Expr_Node;
+                           begin
+                              Keep_Literal.Kind := CM.Expr_Array_Literal;
+                              Keep_Literal.Span := Stmt.Span;
+                              Keep_Literal.Type_Name := Map_Type.Name;
+                              Keep_Literal.Elements.Append (Entry_Expr);
+                              Append_Then.Append
+                                (Synthetic_Assign_Stmt
+                                   (New_Map_Temp,
+                                    Binary_Expr
+                                      (New_Map_Temp,
+                                       "&",
+                                       Keep_Literal,
+                                       Stmt.Span,
+                                       UString_Value (Map_Type.Name)),
+                                    Stmt.Span));
+                           end;
+
+                           Loop_Body.Append
+                             (Synthetic_If_Stmt
+                                (Binary_Expr
+                                   (Index_Temp,
+                                    "<",
+                                    Int_Expr (1, Stmt.Span),
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Index_Guard_Then,
+                                 Stmt.Span));
+                           Loop_Body.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Entry_Name),
+                                 Entry_Type,
+                                 Resolved_Index_Expr
+                                   (Snapshot_Expr,
+                                    Index_Temp,
+                                    Stmt.Span,
+                                    UString_Value (Entry_Type.Name)),
+                                 Stmt.Span));
+                           Loop_Body.Append
+                             (Synthetic_If_Else_Stmt
+                                (Binary_Expr
+                                   (Unary_Expr
+                                      ("not",
+                                       Found_Temp,
+                                       Stmt.Span,
+                                       "boolean"),
+                                    "and then",
+                                    Binary_Expr
+                                      (Selector_Expr
+                                         (Entry_Expr,
+                                          "1",
+                                          Stmt.Span,
+                                          UString_Value (Key_Type.Name)),
+                                       "==",
+                                       Key_Temp,
+                                       Stmt.Span,
+                                       "boolean"),
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Match_Then,
+                                 Append_Then,
+                                 Stmt.Span));
+                           Advance_Then.Append
+                             (Synthetic_Assign_Stmt
+                                (Index_Temp,
+                                 Binary_Expr
+                                   (Index_Temp,
+                                    "+",
+                                    Int_Expr (1, Stmt.Span),
+                                    Stmt.Span,
+                                    UString_Value (Default_Integer.Name)),
+                                 Stmt.Span));
+                           Advance_Else.Append
+                             (Synthetic_Exit_Stmt (Stmt.Span));
+                           Loop_Body.Append
+                             (Synthetic_If_Else_Stmt
+                                (Binary_Expr
+                                   (Index_Temp,
+                                    "<",
+                                    Length_Temp,
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Advance_Then,
+                                 Advance_Else,
+                                 Stmt.Span));
+                           Rewritten_Stmts.Append
+                             (Synthetic_While_Stmt
+                                (Binary_Expr
+                                   (Index_Temp,
+                                    "<=",
+                                    Length_Temp,
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Loop_Body,
+                                 Stmt.Span));
+
+                           declare
+                              New_Literal : constant CM.Expr_Access := new CM.Expr_Node;
+                           begin
+                              New_Literal.Kind := CM.Expr_Array_Literal;
+                              New_Literal.Span := Stmt.Span;
+                              New_Literal.Type_Name := Map_Type.Name;
+                              New_Literal.Elements.Append (Entry_Value);
+                              Match_Then.Clear;
+                              Match_Then.Append
+                                (Synthetic_Assign_Stmt
+                                   (New_Map_Temp,
+                                    Binary_Expr
+                                      (New_Map_Temp,
+                                       "&",
+                                       New_Literal,
+                                       Stmt.Span,
+                                       UString_Value (Map_Type.Name)),
+                                    Stmt.Span));
+                           end;
+                           Rewritten_Stmts.Append
+                             (Synthetic_If_Stmt
+                                (Unary_Expr
+                                   ("not",
+                                    Found_Temp,
+                                    Stmt.Span,
+                                    "boolean"),
+                                 Match_Then,
+                                 Stmt.Span));
+                           Rewritten_Stmts.Append
+                             (Synthetic_Assign_Stmt
+                                (Map_Target,
+                                 New_Map_Temp,
+                                 Stmt.Span));
+                        end;
+
+                        return
+                          Normalize_Statement_List
+                            (Rewritten_Stmts,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Channel_Env,
+                             Imported_Objects,
+                             Local_Constants,
+                             Local_Static_Constants,
+                             Exact_Length_Facts,
+                             Path,
+                             Has_Enclosing_Return,
                              Enclosing_Return_Type);
                      end;
                   end if;
@@ -6829,6 +8392,36 @@ package body Safe_Frontend.Check_Resolve is
                                     then Normalized_Call.Call_Span
                                     else Normalized_Call.Span),
                         Message => "`pop_last(items)` returns an `optional T` value and must be used in an expression"));
+               elsif Is_Contains_Builtin_Call
+                 (Normalized_Call, Var_Types, Functions, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => (if Normalized_Call.Has_Call_Span
+                                    then Normalized_Call.Call_Span
+                                    else Normalized_Call.Span),
+                        Message => "`contains(m, key)` returns a `boolean` value and must be used in an expression"));
+               elsif Is_Get_Builtin_Call
+                 (Normalized_Call, Var_Types, Functions, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => (if Normalized_Call.Has_Call_Span
+                                    then Normalized_Call.Call_Span
+                                    else Normalized_Call.Span),
+                        Message => "`get(m, key)` returns an `optional V` value and must be used in an expression"));
+               elsif Is_Remove_Builtin_Call
+                 (Normalized_Call, Var_Types, Functions, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => (if Normalized_Call.Has_Call_Span
+                                    then Normalized_Call.Call_Span
+                                    else Normalized_Call.Span),
+                        Message => "`remove(m, key)` mutates a map and returns an `optional V` value, so it must be used in an expression"));
                end if;
             end;
             declare
@@ -8248,6 +9841,13 @@ package body Safe_Frontend.Check_Resolve is
                   if Spec.Element_Type /= null then
                      Collect_Type_Spec_Dependencies (Spec.Element_Type.all, Deps);
                   end if;
+               when CM.Type_Spec_Map =>
+                  if Spec.Key_Type /= null then
+                     Collect_Type_Spec_Dependencies (Spec.Key_Type.all, Deps);
+                  end if;
+                  if Spec.Value_Type /= null then
+                     Collect_Type_Spec_Dependencies (Spec.Value_Type.all, Deps);
+                  end if;
                when CM.Type_Spec_Tuple =>
                   for Item of Spec.Tuple_Elements loop
                      Collect_Type_Spec_Dependencies (Item.all, Deps);
@@ -9198,11 +10798,7 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
 
       for Helper_Name of Synthetic_Helper_Order loop
-         if Helper_Name'Length < 8
-           or else Helper_Name (Helper_Name'First .. Helper_Name'First + 7) /= "__tuple_"
-         then
-            Result.Types.Append (Get_Type (Synthetic_Helper_Types, Helper_Name));
-         end if;
+         Result.Types.Append (Get_Type (Synthetic_Helper_Types, Helper_Name));
       end loop;
 
       for Optional_Name of Synthetic_Optional_Order loop

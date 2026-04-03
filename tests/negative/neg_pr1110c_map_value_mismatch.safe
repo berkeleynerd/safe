@@ -1,0 +1,10 @@
+-- Test: neg_pr1110c_map_value_mismatch
+-- Description: Map builtin value arguments must match the map value type.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110c-built-in-map-of-k-v
+-- Expected: REJECT
+
+package neg_pr1110c_map_value_mismatch
+
+   var values : map of (integer, integer);
+
+   set (values, 1, "Ada");

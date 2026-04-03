@@ -284,6 +284,7 @@ subtype_indication ::=
     [ 'not' 'null' ] subtype_mark [ constraint | inline_range_constraint ]
   | binary_type_definition
   | list_type_spec
+  | map_type_spec
   | optional_type_spec
 
 subtype_mark ::=
@@ -293,10 +294,14 @@ type_target ::=
     subtype_mark
   | binary_type_definition
   | list_type_spec
+  | map_type_spec
   | optional_type_spec
 
 list_type_spec ::=
     'list' 'of' subtype_indication
+
+map_type_spec ::=
+    'map' 'of' '(' subtype_indication ',' subtype_indication ')'
 
 optional_type_spec ::=
     'optional' subtype_indication
@@ -589,10 +594,18 @@ assignment_statement ::=
 procedure_call_statement ::=
     name [ actual_parameter_part ] statement_terminator
 
-The contextual builtins `append(items, value)` and `pop_last(items)` use
-ordinary call syntax. `append` is admitted only as a procedure-call statement
-on a writable `list of T` name. `pop_last` is admitted only as an expression
-and returns `optional T`.
+The contextual builtins `append(items, value)`, `pop_last(items)`,
+`contains(m, key)`, `get(m, key)`, `set(m, key, value)`, and
+`remove(m, key)` use ordinary call syntax.
+
+- `append` is admitted only as a procedure-call statement on a writable
+  `list of T` name.
+- `pop_last` is admitted only as an expression and returns `optional T`.
+- `contains` and `get` are expression-only map builtins.
+- `set` is statement-only and requires a writable `map of (K, V)` first
+  argument.
+- `remove` is expression-only, mutates a writable `map of (K, V)`, and
+  returns `optional V`.
 
 print_statement ::=
     'print' '(' expression ')' statement_terminator

@@ -660,6 +660,30 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_List_Type_Spec;
 
+   function Parse_Map_Type_Spec
+     (State : in out Parser_State) return CM.Type_Spec
+   is
+      Start  : constant FL.Token := Expect (State, "map");
+      Result : CM.Type_Spec;
+      Opener : FL.Token;
+      Ender  : FL.Token;
+      pragma Unreferenced (Opener);
+   begin
+      Require (State, "of");
+      Opener := Expect (State, "(");
+      Result.Kind := CM.Type_Spec_Map;
+      Result.Key_Type :=
+        new CM.Type_Spec'
+          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+      Require (State, ",");
+      Result.Value_Type :=
+        new CM.Type_Spec'
+          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+      Ender := Expect (State, ")");
+      Result.Span := CM.Join (Start.Span, Ender.Span);
+      return Result;
+   end Parse_Map_Type_Spec;
+
    function Sanitize_Type_Name_Component (Value : String) return String is
       Result : FT.UString := FT.To_UString ("");
    begin
@@ -716,6 +740,18 @@ package body Safe_Frontend.Check_Parse is
                 ("__optional_"
                  & Sanitize_Type_Name_Component
                      (FT.To_String (Type_Spec_Internal_Name (Spec.Element_Type.all))));
+         when CM.Type_Spec_Map =>
+            if Spec.Key_Type = null or else Spec.Value_Type = null then
+               return FT.To_UString ("__growable_array___tuple_key_value");
+            end if;
+            return
+              FT.To_UString
+                ("__growable_array___tuple_"
+                 & Sanitize_Type_Name_Component
+                     (FT.To_String (Type_Spec_Internal_Name (Spec.Key_Type.all)))
+                 & "_"
+                 & Sanitize_Type_Name_Component
+                     (FT.To_String (Type_Spec_Internal_Name (Spec.Value_Type.all))));
          when CM.Type_Spec_Tuple =>
             Result := FT.To_UString ("__tuple");
             for Item of Spec.Tuple_Elements loop
@@ -927,6 +963,8 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Optional_Type_Spec (State, Allow_Access_Def);
       elsif Current_Lower (State) = "list" then
          return Parse_List_Type_Spec (State);
+      elsif Current_Lower (State) = "map" then
+         return Parse_Map_Type_Spec (State);
       elsif Current_Lower (State) = "array"
         and then FT.To_String (Next (State).Lexeme) /= "("
       then
@@ -994,6 +1032,10 @@ package body Safe_Frontend.Check_Parse is
          return Result;
       elsif Current_Lower (State) = "list" then
          Result := Parse_List_Type_Spec (State);
+         Result.Span := CM.Join (Start, Result.Span);
+         return Result;
+      elsif Current_Lower (State) = "map" then
+         Result := Parse_Map_Type_Spec (State);
          Result.Span := CM.Join (Start, Result.Span);
          return Result;
       elsif Current_Lower (State) = "optional" then
@@ -2982,6 +3024,7 @@ package body Safe_Frontend.Check_Parse is
    begin
       if Current_Lower (State) = "binary"
         or else Current_Lower (State) = "optional"
+        or else Current_Lower (State) = "map"
         or else (Current_Lower (State) = "array"
                  and then FT.To_String (Next (State).Lexeme) /= "(")
         or else FT.To_String (Current (State).Lexeme) = "("
