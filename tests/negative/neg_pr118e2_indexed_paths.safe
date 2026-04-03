@@ -1,5 +1,6 @@
 -- Test: neg_pr118e2_indexed_paths
--- Description: Indexed same-root paths remain conservatively rejected in PR11.8e.2.
+-- Description: Same-root indexed paths that are not statically singleton and
+--   disjoint remain conservatively rejected after PR11.10b.
 -- Expected: REJECT mut_alias_conflict
 
 package neg_pr118e2_indexed_paths
@@ -18,5 +19,7 @@ package neg_pr118e2_indexed_paths
 
    function run
       owner : row = ((value = 1, next = null), (value = 2, next = null));
+      left_index : slot = 1;
+      right_index : slot = 2;
 
-      touch (owner (1), owner (2));  -- ERROR: indexed paths are not part of PR11.8e.2
+      touch (owner (left_index), owner (right_index));

@@ -393,6 +393,13 @@ package body Safe_Frontend.Check_Emit is
    begin
       if Spec.Kind = CM.Type_Spec_Access_Def then
          return Name_Node (Spec.Target_Name);
+      elsif Spec.Kind = CM.Type_Spec_List then
+         return
+           "{""node_type"":""ListTypeSpec"",""element_type"":"
+           & Component_Definition_Node (Spec.Element_Type.all)
+           & ",""span"":"
+           & JS.Span_Object (Spec.Span)
+           & "}";
       elsif Spec.Kind = CM.Type_Spec_Growable_Array then
          return
            "{""node_type"":""GrowableArrayTypeSpec"",""element_type"":"
@@ -535,6 +542,8 @@ package body Safe_Frontend.Check_Emit is
    begin
       if Spec.Kind = CM.Type_Spec_Access_Def then
          return Access_Definition_Node (Spec);
+      elsif Spec.Kind = CM.Type_Spec_List then
+         return Type_Spec_Name (Spec);
       elsif Spec.Kind = CM.Type_Spec_Growable_Array then
          return Type_Spec_Name (Spec);
       elsif Spec.Kind = CM.Type_Spec_Tuple then

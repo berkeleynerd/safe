@@ -1,0 +1,9 @@
+-- Test: neg_pr1110b_pop_last_non_list
+-- Description: `pop_last(items)` requires a writable list name.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110b-built-in-list-of-t
+-- Expected: REJECT source_frontend_error
+
+package neg_pr1110b_pop_last_non_list
+
+   value : integer = 4;
+   last : optional integer = pop_last (value);

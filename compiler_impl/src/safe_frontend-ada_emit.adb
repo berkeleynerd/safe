@@ -5385,6 +5385,10 @@ package body Safe_Frontend.Ada_Emit is
       Source_Info : constant GM.Type_Descriptor :=
         Base_Type (Unit, Document, Expr_Type_Info (Unit, Document, Expr));
       Result     : SU.Unbounded_String;
+      function Render_Runtime_Index (Index_Expr : CM.Expr_Access) return String is
+      begin
+         return "Integer (" & Render_Expr (Unit, Document, Index_Expr, State) & ")";
+      end Render_Runtime_Index;
    begin
       if Expr = null then
          Raise_Unsupported
@@ -5446,21 +5450,21 @@ package body Safe_Frontend.Ada_Emit is
             if Is_Growable_Array_Type (Unit, Document, Prefix_Info) then
                if Natural (Expr.Args.Length) = 1 then
                   return
-                    Array_Runtime_Instance_Name (Array_Info)
+                    Array_Runtime_Instance_Name (Prefix_Info)
                     & ".Element ("
                     & Render_Expr (Unit, Document, Expr.Prefix, State)
                     & ", "
-                    & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index), State)
+                    & Render_Runtime_Index (Expr.Args (Expr.Args.First_Index))
                     & ")";
                elsif Natural (Expr.Args.Length) = 2 then
                   return
-                    Array_Runtime_Instance_Name (Array_Info)
+                    Array_Runtime_Instance_Name (Prefix_Info)
                     & ".Slice ("
                     & Render_Expr (Unit, Document, Expr.Prefix, State)
                     & ", "
-                    & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index), State)
+                    & Render_Runtime_Index (Expr.Args (Expr.Args.First_Index))
                     & ", "
-                    & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index + 1), State)
+                    & Render_Runtime_Index (Expr.Args (Expr.Args.First_Index + 1))
                     & ")";
                end if;
             end if;
@@ -13603,6 +13607,256 @@ package body Safe_Frontend.Ada_Emit is
                Depth);
          end if;
       end Emit_Nonblocking_Send;
+
+      function Find_Called_Subprogram
+        (Call_Expr   : CM.Expr_Access;
+         Subprogram  : out CM.Resolved_Subprogram) return Boolean
+      is
+         Callee_Flat  : constant String :=
+           (if Call_Expr = null or else Call_Expr.Callee = null
+            then ""
+            else CM.Flatten_Name (Call_Expr.Callee));
+         Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
+      begin
+         Subprogram := (others => <>);
+         if Call_Expr = null
+           or else Call_Expr.Kind /= CM.Expr_Call
+           or else Lower_Callee'Length = 0
+         then
+            return False;
+         end if;
+
+         for Candidate of Unit.Subprograms loop
+            if FT.Lowercase (FT.To_String (Candidate.Name)) = Lower_Callee
+              or else
+                FT.Lowercase
+                  (FT.To_String (Unit.Package_Name) & "." & FT.To_String (Candidate.Name)) = Lower_Callee
+            then
+               Subprogram := Candidate;
+               return True;
+            end if;
+         end loop;
+
+         return False;
+      end Find_Called_Subprogram;
+
+      function Needs_Growable_Indexed_Copy_Back
+        (Formal : CM.Symbol;
+         Actual : CM.Expr_Access) return Boolean
+      is
+         Mode : constant String := FT.To_String (Formal.Mode);
+      begin
+         return
+           Actual /= null
+           and then Actual.Kind = CM.Expr_Resolved_Index
+           and then Actual.Prefix /= null
+           and then Actual.Prefix.Kind in CM.Expr_Ident | CM.Expr_Select
+           and then Natural (Actual.Args.Length) = 1
+           and then Mode in "mut" | "in out" | "out"
+           and then Is_Growable_Array_Type
+             (Unit,
+              Document,
+              Base_Type
+                (Unit,
+                 Document,
+                 Expr_Type_Info (Unit, Document, Actual.Prefix)));
+      end Needs_Growable_Indexed_Copy_Back;
+
+      function Mutable_Actual_Temp_Name
+        (Statement_Index : Positive;
+         Arg_Index       : Positive) return String is
+      begin
+         return
+           "Safe_Call_Arg_"
+           & Ada.Strings.Fixed.Trim
+               (Natural'Image (Natural (Statement_Index)),
+                Ada.Strings.Both)
+           & "_"
+           & Ada.Strings.Fixed.Trim
+               (Natural'Image (Natural (Arg_Index)),
+                Ada.Strings.Both);
+      end Mutable_Actual_Temp_Name;
+
+      procedure Append_Growable_Indexed_Writeback
+        (Actual    : CM.Expr_Access;
+         Temp_Name : String;
+         Depth     : Natural)
+      is
+         Prefix_Info : constant GM.Type_Descriptor :=
+           Base_Type
+             (Unit,
+              Document,
+              Expr_Type_Info (Unit, Document, Actual.Prefix));
+      begin
+         State.Needs_Safe_Array_RT := True;
+         Append_Line
+           (Buffer,
+            Array_Runtime_Instance_Name (Prefix_Info)
+            & ".Replace_Element ("
+            & Render_Expr (Unit, Document, Actual.Prefix, State)
+            & ", Integer ("
+            & Render_Expr
+                (Unit,
+                 Document,
+                 Actual.Args (Actual.Args.First_Index),
+                 State)
+            & "), "
+            & Temp_Name
+            & ");",
+            Depth);
+      end Append_Growable_Indexed_Writeback;
+
+      procedure Emit_Call_Statement
+        (Call_Expr        : CM.Expr_Access;
+         Statement_Index  : Positive;
+         Depth            : Natural)
+      is
+         Target_Subprogram : CM.Resolved_Subprogram;
+         Needs_Copy_Back   : Boolean := False;
+      begin
+         if not Find_Called_Subprogram (Call_Expr, Target_Subprogram)
+           or else Call_Expr = null
+           or else Call_Expr.Kind /= CM.Expr_Call
+           or else Call_Expr.Args.Is_Empty
+         then
+            Append_Line
+              (Buffer,
+               Render_Expr (Unit, Document, Call_Expr, State) & ";",
+               Depth);
+            return;
+         end if;
+
+         for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
+            exit when Formal_Index > Call_Expr.Args.Last_Index;
+            if Needs_Growable_Indexed_Copy_Back
+              (Target_Subprogram.Params (Formal_Index),
+               Call_Expr.Args (Formal_Index))
+            then
+               Needs_Copy_Back := True;
+               exit;
+            end if;
+         end loop;
+
+         if not Needs_Copy_Back then
+            Append_Line
+              (Buffer,
+               Render_Expr (Unit, Document, Call_Expr, State) & ";",
+               Depth);
+            return;
+         end if;
+
+         Append_Line (Buffer, "declare", Depth);
+         for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
+            exit when Formal_Index > Call_Expr.Args.Last_Index;
+            if Needs_Growable_Indexed_Copy_Back
+              (Target_Subprogram.Params (Formal_Index),
+               Call_Expr.Args (Formal_Index))
+            then
+               declare
+                  Formal    : constant CM.Symbol :=
+                    Target_Subprogram.Params (Formal_Index);
+                  Temp_Name : constant String :=
+                    Mutable_Actual_Temp_Name (Statement_Index, Formal_Index);
+                  Init_Image : constant String :=
+                    (if FT.To_String (Formal.Mode) = "out"
+                     then
+                       Default_Value_Expr
+                         (Unit,
+                          Document,
+                          Formal.Type_Info)
+                     else
+                       Render_Expr_For_Target_Type
+                         (Unit,
+                          Document,
+                          Call_Expr.Args (Formal_Index),
+                          Formal.Type_Info,
+                          State));
+               begin
+                  Append_Line
+                    (Buffer,
+                     Temp_Name
+                     & " : "
+                     & Render_Type_Name (Formal.Type_Info)
+                     & " := "
+                     & Init_Image
+                     & ";",
+                     Depth + 1);
+               end;
+            end if;
+         end loop;
+         Append_Line (Buffer, "begin", Depth);
+         declare
+            Call_Image : SU.Unbounded_String :=
+              SU.To_Unbounded_String
+                (Render_Expr (Unit, Document, Call_Expr.Callee, State) & " (");
+         begin
+            for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
+               declare
+                  Arg_Image   : SU.Unbounded_String;
+                  Used_Formal  : Boolean := False;
+               begin
+                  if Arg_Index /= Call_Expr.Args.First_Index then
+                     Call_Image := Call_Image & SU.To_Unbounded_String (", ");
+                  end if;
+
+                  if Arg_Index <= Target_Subprogram.Params.Last_Index
+                    and then Needs_Growable_Indexed_Copy_Back
+                      (Target_Subprogram.Params (Arg_Index),
+                       Call_Expr.Args (Arg_Index))
+                  then
+                     Arg_Image :=
+                       SU.To_Unbounded_String
+                         (Mutable_Actual_Temp_Name (Statement_Index, Arg_Index));
+                     Used_Formal := True;
+                  elsif Arg_Index <= Target_Subprogram.Params.Last_Index then
+                     declare
+                        Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
+                     begin
+                        if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
+                           Arg_Image :=
+                             SU.To_Unbounded_String
+                               (Render_Expr_For_Target_Type
+                                  (Unit,
+                                   Document,
+                                   Call_Expr.Args (Arg_Index),
+                                   Formal.Type_Info,
+                                   State));
+                           Used_Formal := True;
+                        end if;
+                     end;
+                  end if;
+
+                  if not Used_Formal then
+                     Arg_Image :=
+                       SU.To_Unbounded_String
+                         (Render_Expr
+                            (Unit,
+                             Document,
+                             Call_Expr.Args (Arg_Index),
+                             State));
+                  end if;
+
+                  Call_Image := Call_Image & Arg_Image;
+               end;
+            end loop;
+            Call_Image := Call_Image & SU.To_Unbounded_String (")");
+            Append_Line (Buffer, SU.To_String (Call_Image) & ";", Depth + 1);
+         end;
+
+         for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
+            exit when Formal_Index > Call_Expr.Args.Last_Index;
+            if Needs_Growable_Indexed_Copy_Back
+              (Target_Subprogram.Params (Formal_Index),
+               Call_Expr.Args (Formal_Index))
+            then
+               Append_Growable_Indexed_Writeback
+                 (Call_Expr.Args (Formal_Index),
+                  Mutable_Actual_Temp_Name (Statement_Index, Formal_Index),
+                  Depth + 1);
+            end if;
+         end loop;
+         Append_Line (Buffer, "end;", Depth);
+      end Emit_Call_Statement;
    begin
       if Statements.Is_Empty then
          return;
@@ -13782,15 +14036,12 @@ package body Safe_Frontend.Ada_Emit is
                      & Render_Print_Argument
                          (Unit,
                           Document,
-                          Item.Call.Args (Item.Call.Args.First_Index),
+                         Item.Call.Args (Item.Call.Args.First_Index),
                           State)
                      & ");",
                      Depth);
                else
-                  Append_Line
-                    (Buffer,
-                     Render_Expr (Unit, Document, Item.Call, State) & ";",
-                     Depth);
+                  Emit_Call_Statement (Item.Call, Index, Depth);
                end if;
             when CM.Stmt_Return =>
                if Item.Value /= null and then Has_Active_Cleanup_Items (State) then

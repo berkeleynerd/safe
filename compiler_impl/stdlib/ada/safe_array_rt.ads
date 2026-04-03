@@ -38,6 +38,21 @@ package Safe_Array_RT is
       with Global => null,
            Pre => Index <= Length (Value),
            Depends => (Element'Result => (Value, Index));
+   procedure Replace_Element
+     (Value : in out Safe_Array;
+      Index : Positive;
+      Item  : Element_Type)
+      with Global => null,
+           Pre => Index <= Length (Value),
+           Post =>
+             Length (Value) = Length (Value'Old)
+             and then Element (Value, Index) = Item
+             and then
+             (for all Offset in 1 .. Length (Value) =>
+                 (if Positive (Offset) /= Index
+                  then Element (Value, Positive (Offset)) =
+                    Element (Value'Old, Positive (Offset)))),
+           Depends => (Value => (Value, Index, Item));
    function Slice (Value : Safe_Array; Low, High : Natural) return Safe_Array
       with Global => null,
            Depends => (Slice'Result => (Value, Low, High));

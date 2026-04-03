@@ -182,6 +182,15 @@ PR11_10A_CHECKPOINT_FIXTURES = [
 ]
 
 
+PR11_10B_CHECKPOINT_FIXTURES = [
+    "tests/positive/pr1110b_list_basics.safe",
+    "tests/positive/pr1110b_disjoint_mut_indices.safe",
+    "tests/build/pr1110b_list_build.safe",
+    "tests/build/pr1110b_list_string_build.safe",
+    "tests/build/pr1110b_list_growable_build.safe",
+]
+
+
 PR11_8I1_CHECKPOINT_FIXTURES = [
     "tests/positive/pr115_case_terminator.safe",
     "tests/positive/pr115_var_basic.safe",
@@ -248,6 +257,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_8I1_CHECKPOINT_FIXTURES
     + PR11_8K_CHECKPOINT_FIXTURES
     + PR11_10A_CHECKPOINT_FIXTURES
+    + PR11_10B_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 
@@ -276,6 +286,12 @@ EMITTED_PROOF_EXCLUSIONS = [
         reason="intentional tooling reject fixture with missing dependency interface; not an admitted emitted proof target",
         owner="tooling-reject-case",
         milestone="PR11.8i.1",
+    ),
+    EmittedProofExclusion(
+        path="tests/build/pr1110b_list_empty_build.safe",
+        reason="runtime-only empty pop_last witness; static empty-length lowering triggers GNATprove ineffectual-branch warnings",
+        owner="runtime-regression-only",
+        milestone="PR11.10b",
     ),
 ]
 

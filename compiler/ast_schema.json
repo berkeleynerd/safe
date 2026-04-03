@@ -139,7 +139,7 @@
         { "name": "names", "type": "NonEmptyList<Identifier>", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
         { "name": "is_constant", "type": "Boolean", "optional": false },
-        { "name": "object_type", "type": "NodeRef<SubtypeIndication | ArrayTypeDefinition | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "object_type", "type": "NodeRef<SubtypeIndication | ArrayTypeDefinition | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "initializer", "type": "Option<Expression>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]
@@ -312,7 +312,7 @@
       "production": "index_subtype_definition",
       "source_section": "8.4",
       "fields": [
-        { "name": "subtype_mark", "type": "NodeRef<Name | BinaryTypeDefinition | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "subtype_mark", "type": "NodeRef<Name | BinaryTypeDefinition | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -332,7 +332,16 @@
       "source_section": "8.4",
       "fields": [
         { "name": "is_aliased", "type": "Boolean", "optional": false },
-        { "name": "type_spec", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "type_spec", "type": "NodeRef<SubtypeIndication | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "ListTypeSpec",
+      "production": "list_type_spec",
+      "source_section": "8.4",
+      "fields": [
+        { "name": "element_type", "type": "NodeRef<ComponentDefinition>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -350,7 +359,7 @@
       "production": "tuple_type_spec",
       "source_section": "8.4",
       "fields": [
-        { "name": "elements", "type": "NonEmptyList<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "elements", "type": "NonEmptyList<SubtypeIndication | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -359,7 +368,7 @@
       "production": "optional_type_spec",
       "source_section": "8.4",
       "fields": [
-        { "name": "element_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "element_type", "type": "NodeRef<SubtypeIndication | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -1032,7 +1041,7 @@
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
-        { "name": "return_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "return_type", "type": "NodeRef<SubtypeIndication | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "initializer", "type": "Option<Expression>", "optional": true },
         { "name": "body", "type": "NodeRef<SequenceOfStatements>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
@@ -1209,7 +1218,7 @@
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
         { "name": "formal_part", "type": "Option<FormalPart>", "optional": true },
-        { "name": "return_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "return_type", "type": "NodeRef<SubtypeIndication | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -1230,7 +1239,7 @@
         { "name": "names", "type": "NonEmptyList<Identifier>", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
         { "name": "mode", "type": "ParameterMode", "optional": false, "note": "Borrow (default) or Mut" },
-        { "name": "param_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "param_type", "type": "NodeRef<SubtypeIndication | ListTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "default_expression", "type": "Option<Expression>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]

@@ -645,6 +645,21 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Growable_Array_Type_Spec;
 
+   function Parse_List_Type_Spec
+     (State : in out Parser_State) return CM.Type_Spec
+   is
+      Start  : constant FL.Token := Expect (State, "list");
+      Result : CM.Type_Spec;
+   begin
+      Require (State, "of");
+      Result.Kind := CM.Type_Spec_List;
+      Result.Element_Type :=
+        new CM.Type_Spec'
+          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+      Result.Span := CM.Join (Start.Span, Result.Element_Type.Span);
+      return Result;
+   end Parse_List_Type_Spec;
+
    function Sanitize_Type_Name_Component (Value : String) return String is
       Result : FT.UString := FT.To_UString ("");
    begin
@@ -683,7 +698,7 @@ package body Safe_Frontend.Check_Parse is
       case Spec.Kind is
          when CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication | CM.Type_Spec_Binary =>
             return Spec.Name;
-         when CM.Type_Spec_Growable_Array =>
+         when CM.Type_Spec_List | CM.Type_Spec_Growable_Array =>
             if Spec.Element_Type = null then
                return FT.To_UString ("__growable_array_value");
             end if;
@@ -910,6 +925,8 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Binary_Type_Spec (State);
       elsif Current_Lower (State) = "optional" then
          return Parse_Optional_Type_Spec (State, Allow_Access_Def);
+      elsif Current_Lower (State) = "list" then
+         return Parse_List_Type_Spec (State);
       elsif Current_Lower (State) = "array"
         and then FT.To_String (Next (State).Lexeme) /= "("
       then
@@ -973,6 +990,10 @@ package body Safe_Frontend.Check_Parse is
       end if;
       if Current_Lower (State) = "binary" then
          Result := Parse_Binary_Type_Spec (State);
+         Result.Span := CM.Join (Start, Result.Span);
+         return Result;
+      elsif Current_Lower (State) = "list" then
+         Result := Parse_List_Type_Spec (State);
          Result.Span := CM.Join (Start, Result.Span);
          return Result;
       elsif Current_Lower (State) = "optional" then

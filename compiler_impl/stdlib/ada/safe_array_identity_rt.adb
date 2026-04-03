@@ -52,6 +52,15 @@ package body Safe_Array_Identity_RT is
       return Element_Ops.Clone (Value.Data (Index));
    end Element;
 
+   procedure Replace_Element
+     (Value : in out Safe_Array;
+      Index : Positive;
+      Item  : Element_Type) is
+   begin
+      Element_Ops.Free (Value.Data (Index));
+      Value.Data (Index) := Element_Ops.Clone (Item);
+   end Replace_Element;
+
    function Slice (Value : Safe_Array; Low, High : Natural) return Safe_Array is
       Result : Safe_Array := Empty;
       Offset : Natural := 0;

@@ -128,6 +128,22 @@ package body Safe_Frontend.Check_Resolve is
       return FT.Lowercase (Value);
    end Canonical_Name;
 
+   function Has_Resolvable_Type_Name
+     (Name     : String;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Bounded_String_Prefix : constant String := "__bounded_string_";
+   begin
+      return Type_Env.Contains (Canonical_Name (Name))
+        or else Synthetic_Helper_Types.Contains (Canonical_Name (Name))
+        or else Synthetic_Optional_Types.Contains (Canonical_Name (Name))
+        or else
+          (Name'Length >= Bounded_String_Prefix'Length
+           and then
+             Name (Name'First .. Name'First + Bounded_String_Prefix'Length - 1) =
+               Bounded_String_Prefix);
+   end Has_Resolvable_Type_Name;
+
    function Contains_Public_Local_Channel (Name : String) return Boolean is
    begin
       for Item of Current_Public_Channel_Names loop
@@ -557,6 +573,10 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
+   function Is_Container_Element_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
    function Is_Definite_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
@@ -586,9 +606,31 @@ package body Safe_Frontend.Check_Resolve is
      (Element_Type : GM.Type_Descriptor;
       Type_Env     : Type_Maps.Map) return GM.Type_Descriptor;
 
+   function Growable_Array_Element_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
+
    function Bool_Expr
      (Value : Boolean;
       Span  : FT.Source_Span) return CM.Expr_Access;
+
+   function Int_Expr
+     (Value : CM.Wide_Integer;
+      Span  : FT.Source_Span) return CM.Expr_Access;
+
+   function Binary_Expr
+     (Left      : CM.Expr_Access;
+      Operator  : String;
+      Right     : CM.Expr_Access;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access;
+
+   function Resolved_Index_Expr
+     (Prefix    : CM.Expr_Access;
+      Arg_1     : CM.Expr_Access;
+      Span      : FT.Source_Span;
+      Type_Name : String;
+      Arg_2     : CM.Expr_Access := null) return CM.Expr_Access;
 
    function Build_Optional_None_Expr
      (Optional_Type : GM.Type_Descriptor;
@@ -610,6 +652,25 @@ package body Safe_Frontend.Check_Resolve is
    procedure Reject_Uncontextualized_None
      (Expr  : CM.Expr_Access;
       Path  : String);
+
+   function Is_Unshadowed_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Name      : String) return Boolean;
+
+   function Is_Append_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean;
+
+   function Is_Pop_Last_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean;
 
    function Sanitize_Type_Name_Component (Value : String) return String;
 
@@ -633,6 +694,8 @@ package body Safe_Frontend.Check_Resolve is
    function Resolve_Target_Type
      (Target   : CM.Expr_Access;
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
+
+   function Is_Assignable_Target (Expr : CM.Expr_Access) return Boolean;
 
    function Resolve_Type
      (Name     : String;
@@ -901,11 +964,21 @@ package body Safe_Frontend.Check_Resolve is
 
    function Is_Growable_Array_Type
      (Info     : GM.Type_Descriptor;
-      Type_Env : Type_Maps.Map) return Boolean is
-      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Current : GM.Type_Descriptor := Info;
    begin
-      return FT.Lowercase (UString_Value (Base.Kind)) = "array"
-        and then Base.Growable;
+      loop
+         if FT.Lowercase (UString_Value (Current.Kind)) = "array"
+           and then Current.Growable
+         then
+            return True;
+         end if;
+         exit when not Current.Has_Base
+           or else not Has_Type (Type_Env, UString_Value (Current.Base));
+         Current := Get_Type (Type_Env, UString_Value (Current.Base));
+      end loop;
+      return False;
    end Is_Growable_Array_Type;
 
    function Is_Optional_Type
@@ -946,6 +1019,14 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
    is
+   begin
+      return Is_Container_Element_Type_Allowed (Info, Type_Env);
+   end Is_Optional_Element_Type_Allowed;
+
+   function Is_Container_Element_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
       Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
    begin
@@ -955,7 +1036,7 @@ package body Safe_Frontend.Check_Resolve is
 
       return Is_Definite_Type (Info, Type_Env)
         and then not Contains_Channel_Reference_Subcomponent (Info, Type_Env);
-   end Is_Optional_Element_Type_Allowed;
+   end Is_Container_Element_Type_Allowed;
 
    function Try_Static_String_Length
      (Expr   : CM.Expr_Access;
@@ -1197,6 +1278,38 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Make_Optional_Type;
 
+   function Growable_Array_Element_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor
+   is
+      Current : GM.Type_Descriptor := Info;
+   begin
+      loop
+         if FT.Lowercase (UString_Value (Current.Kind)) = "array"
+           and then Current.Has_Component_Type
+         then
+            return Resolve_Type
+              (UString_Value (Current.Component_Type),
+               Type_Env,
+               "",
+               FT.Null_Span);
+         end if;
+         exit when not Current.Has_Base
+           or else not Has_Type (Type_Env, UString_Value (Current.Base));
+         Current := Get_Type (Type_Env, UString_Value (Current.Base));
+      end loop;
+
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => "",
+            Span    => FT.Null_Span,
+            Message =>
+              "internal error: malformed synthetic growable-array type `"
+              & UString_Value (Info.Name)
+              & "` is missing component type information"));
+      return Default_Integer;
+   end Growable_Array_Element_Type;
+
    function Bool_Expr
      (Value : Boolean;
       Span  : FT.Source_Span) return CM.Expr_Access is
@@ -1209,6 +1322,62 @@ package body Safe_Frontend.Check_Resolve is
            Bool_Value => Value,
            others     => <>);
    end Bool_Expr;
+
+   function Int_Expr
+     (Value : CM.Wide_Integer;
+      Span  : FT.Source_Span) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind      => CM.Expr_Int,
+           Span      => Span,
+           Type_Name => FT.To_UString ("integer"),
+           Int_Value => Value,
+           Text      =>
+             FT.To_UString
+               (Ada.Strings.Fixed.Trim
+                  (CM.Wide_Integer'Image (Value),
+                   Ada.Strings.Both)),
+           others    => <>);
+   end Int_Expr;
+
+   function Binary_Expr
+     (Left      : CM.Expr_Access;
+      Operator  : String;
+      Right     : CM.Expr_Access;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind      => CM.Expr_Binary,
+           Span      => Span,
+           Type_Name => FT.To_UString (Type_Name),
+           Operator  => FT.To_UString (Operator),
+           Left      => Left,
+           Right     => Right,
+           others    => <>);
+   end Binary_Expr;
+
+   function Resolved_Index_Expr
+     (Prefix    : CM.Expr_Access;
+      Arg_1     : CM.Expr_Access;
+      Span      : FT.Source_Span;
+      Type_Name : String;
+      Arg_2     : CM.Expr_Access := null) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access := new CM.Expr_Node;
+   begin
+      Result.Kind := CM.Expr_Resolved_Index;
+      Result.Span := Span;
+      Result.Type_Name := FT.To_UString (Type_Name);
+      Result.Prefix := Prefix;
+      Result.Args.Append (Arg_1);
+      if Arg_2 /= null then
+         Result.Args.Append (Arg_2);
+      end if;
+      return Result;
+   end Resolved_Index_Expr;
 
    function Build_Optional_None_Expr
      (Optional_Type : GM.Type_Descriptor;
@@ -2413,27 +2582,40 @@ package body Safe_Frontend.Check_Resolve is
                end;
             end loop;
             return Make_Tuple_Type (Element_Types);
-         when CM.Type_Spec_Growable_Array =>
+         when CM.Type_Spec_List | CM.Type_Spec_Growable_Array =>
             if Spec.Element_Type = null then
                Raise_Diag
                  (CM.Source_Frontend_Error
                     (Path    => Path,
                      Span    => Spec.Span,
-                     Message => "growable array type is missing an element type"));
+                     Message =>
+                       (if Spec.Kind = CM.Type_Spec_List
+                        then "list type is missing an element type"
+                        else "growable array type is missing an element type")));
             end if;
             declare
-               Result : constant GM.Type_Descriptor :=
-                 Make_Growable_Array_Type
-                   (Resolve_Type_Spec
-                      (Spec.Element_Type.all,
-                       Type_Env,
-                       Const_Env,
-                       Path,
-                       Current_Record_Name,
-                       Family_By_Name,
-                       Families));
+               Element_Type : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec
+                   (Spec.Element_Type.all,
+                    Type_Env,
+                    Const_Env,
+                    Path,
+                    Current_Record_Name,
+                    Family_By_Name,
+                    Families);
             begin
-               return Result;
+               if Spec.Kind = CM.Type_Spec_List
+                 and then not Is_Container_Element_Type_Allowed
+                   (Element_Type, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Spec.Element_Type.Span,
+                        Message =>
+                          "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+               end if;
+               return Make_Growable_Array_Type (Element_Type);
             end;
          when CM.Type_Spec_Optional =>
             if Spec.Element_Type = null then
@@ -2454,7 +2636,7 @@ package body Safe_Frontend.Check_Resolve is
                     Family_By_Name,
                     Families);
             begin
-               if not Is_Optional_Element_Type_Allowed (Element_Type, Type_Env) then
+               if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
                   Raise_Diag
                     (CM.Unsupported_Source_Construct
                        (Path    => Path,
@@ -2616,6 +2798,11 @@ package body Safe_Frontend.Check_Resolve is
                return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
          when CM.Expr_Ident =>
+            if UString_Value (Expr.Type_Name)'Length > 0
+              and then Has_Resolvable_Type_Name (UString_Value (Expr.Type_Name), Type_Env)
+            then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
+            end if;
             Name := Expr.Name;
             if Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
@@ -2629,6 +2816,11 @@ package body Safe_Frontend.Check_Resolve is
                end;
             end if;
          when CM.Expr_Select =>
+            if UString_Value (Expr.Type_Name)'Length > 0
+              and then Has_Resolvable_Type_Name (UString_Value (Expr.Type_Name), Type_Env)
+            then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
+            end if;
             Name := FT.To_UString (Flatten_Name (Expr));
             if Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
@@ -2727,6 +2919,11 @@ package body Safe_Frontend.Check_Resolve is
                return Expr_Type (Expr.Inner, Var_Types, Functions, Type_Env);
             end if;
          when CM.Expr_Call =>
+            if UString_Value (Expr.Type_Name)'Length > 0
+              and then Has_Resolvable_Type_Name (UString_Value (Expr.Type_Name), Type_Env)
+            then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
+            end if;
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
             if Has_Function (Functions, UString_Value (Name)) then
                declare
@@ -2736,11 +2933,31 @@ package body Safe_Frontend.Check_Resolve is
                      return Info.Return_Type;
                   end if;
                end;
+            elsif Is_Pop_Last_Builtin_Call (Expr, Var_Types, Functions, Type_Env)
+              and then Natural (Expr.Args.Length) = 1
+            then
+               declare
+                  List_Type : constant GM.Type_Descriptor :=
+                    Expr_Type
+                      (Expr.Args (Expr.Args.First_Index),
+                       Var_Types,
+                       Functions,
+                       Type_Env);
+               begin
+                  if Is_Growable_Array_Type (List_Type, Type_Env) then
+                     return
+                       Make_Optional_Type
+                         (Growable_Array_Element_Type (List_Type, Type_Env),
+                          Type_Env);
+                  end if;
+               end;
             elsif UString_Value (Name) = "long_float.copy_sign" then
                return Resolve_Type ("long_float", Type_Env, "", FT.Null_Span);
             elsif Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
-            elsif UString_Value (Expr.Type_Name)'Length > 0 then
+            elsif UString_Value (Expr.Type_Name)'Length > 0
+              and then Has_Resolvable_Type_Name (UString_Value (Expr.Type_Name), Type_Env)
+            then
                return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
          when CM.Expr_Some =>
@@ -3096,17 +3313,26 @@ package body Safe_Frontend.Check_Resolve is
                Result.Args := Expr.Args;
             end if;
          else
-            Prefix_Type := Expr_Type (Expr.Callee, Var_Types, Functions, Type_Env);
-            if UString_Value (Prefix_Type.Kind) = "array"
-              or else Is_String_Type (Prefix_Type, Type_Env)
+            if Expr.Callee /= null
+              and then Expr.Callee.Kind = CM.Expr_Select
+              and then Has_Function (Functions, Flatten_Name (Expr.Callee))
             then
-               Result.Kind := CM.Expr_Resolved_Index;
-               Result.Prefix := Expr.Callee;
-               Result.Args := Expr.Args;
-            else
                Result.Kind := CM.Expr_Call;
                Result.Callee := Expr.Callee;
                Result.Args := Expr.Args;
+            else
+               Prefix_Type := Expr_Type (Expr.Callee, Var_Types, Functions, Type_Env);
+               if UString_Value (Prefix_Type.Kind) = "array"
+                 or else Is_String_Type (Prefix_Type, Type_Env)
+               then
+                  Result.Kind := CM.Expr_Resolved_Index;
+                  Result.Prefix := Expr.Callee;
+                  Result.Args := Expr.Args;
+               else
+                  Result.Kind := CM.Expr_Call;
+                  Result.Callee := Expr.Callee;
+                  Result.Args := Expr.Args;
+               end if;
             end if;
          end if;
          return Result;
@@ -3188,6 +3414,50 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Args.Append
                        (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env));
                   end loop;
+                  if Is_Pop_Last_Builtin_Call (Result, Var_Types, Functions, Type_Env) then
+                     if Natural (Result.Args.Length) /= 1 then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => "",
+                              Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
+                              Message => "`pop_last(items)` expects exactly one argument"));
+                     elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => "",
+                              Span    => Result.Args (Result.Args.First_Index).Span,
+                              Message => "`pop_last` first argument must be a writable list name"));
+                     else
+                        declare
+                           List_Type : constant GM.Type_Descriptor :=
+                             Expr_Type
+                               (Result.Args (Result.Args.First_Index),
+                                Var_Types,
+                                Functions,
+                                Type_Env);
+                           Element_Type : GM.Type_Descriptor;
+                        begin
+                           if not Is_Growable_Array_Type (List_Type, Type_Env) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => "",
+                                    Span    => Result.Args (Result.Args.First_Index).Span,
+                                    Message => "`pop_last` expects a `mut list of T` first argument"));
+                           end if;
+                           Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
+                           if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                              Raise_Diag
+                                (CM.Unsupported_Source_Construct
+                                   (Path    => "",
+                                    Span    => Result.Args (Result.Args.First_Index).Span,
+                                    Message =>
+                                      "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                           end if;
+                           Result.Type_Name :=
+                             Make_Optional_Type (Element_Type, Type_Env).Name;
+                        end;
+                     end if;
+                  end if;
                else
                   Result := new CM.Expr_Node'(Resolved.all);
                   Result.Inner :=
@@ -3444,6 +3714,45 @@ package body Safe_Frontend.Check_Resolve is
             null;
       end case;
    end Reject_Uncontextualized_None;
+
+   function Is_Unshadowed_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Name      : String) return Boolean
+   is
+   begin
+      return
+        Expr /= null
+        and then Expr.Kind = CM.Expr_Call
+        and then Expr.Callee /= null
+        and then Expr.Callee.Kind = CM.Expr_Ident
+        and then FT.Lowercase (UString_Value (Expr.Callee.Name)) = Name
+        and then not Has_Function (Functions, Name)
+        and then not Has_Type (Var_Types, Name)
+        and then not Has_Type (Type_Env, Name);
+   end Is_Unshadowed_Builtin_Call;
+
+   function Is_Append_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      return
+        Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "append");
+   end Is_Append_Builtin_Call;
+
+   function Is_Pop_Last_Builtin_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Boolean is
+   begin
+      return
+        Is_Unshadowed_Builtin_Call (Expr, Var_Types, Functions, Type_Env, "pop_last");
+   end Is_Pop_Last_Builtin_Call;
 
    procedure Validate_Pr112_Expr_Boundaries
      (Expr      : CM.Expr_Access;
@@ -4781,14 +5090,14 @@ package body Safe_Frontend.Check_Resolve is
             Result.Initializer.Span);
          if not Static_Slice_Narrowing_OK
            and then not Compatible_Source_Expr_To_Target_Type
-           (Result.Initializer,
-            Expr_Type (Result.Initializer, Var_Types, Functions, Type_Env),
-           Result.Type_Info,
-           Var_Types,
-           Functions,
-           Type_Env,
-            Const_Env,
-            Exact_Length_Facts)
+             (Result.Initializer,
+              Expr_Type (Result.Initializer, Var_Types, Functions, Type_Env),
+              Result.Type_Info,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Const_Env,
+              Exact_Length_Facts)
          then
             Raise_Diag
               (CM.Source_Frontend_Error
@@ -5091,6 +5400,21 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Synthetic_Object_Decl_Stmt;
 
+   function Synthetic_Assign_Stmt
+     (Target : CM.Expr_Access;
+      Value  : CM.Expr_Access;
+      Span   : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_Assign;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Target := Target;
+      Result.Value := Value;
+      return Result;
+   end Synthetic_Assign_Stmt;
+
    function Synthetic_Return_Stmt
      (Value : CM.Expr_Access;
       Span  : FT.Source_Span) return CM.Statement_Access
@@ -5268,6 +5592,131 @@ package body Safe_Frontend.Check_Resolve is
             end loop;
 
          when CM.Expr_Call | CM.Expr_Apply =>
+            if Is_Pop_Last_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
+               declare
+                  List_Expr      : constant CM.Expr_Access :=
+                    Expr.Args (Expr.Args.First_Index);
+                  List_Type      : constant GM.Type_Descriptor :=
+                    Expr_Type (List_Expr, Var_Types, Functions, Type_Env);
+                  Element_Type   : constant GM.Type_Descriptor :=
+                    Growable_Array_Element_Type (List_Type, Type_Env);
+                  Optional_Type  : constant GM.Type_Descriptor :=
+                    Make_Optional_Type (Element_Type, Type_Env);
+                  Length_Name    : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_List_Len"));
+                  Result_Name    : constant FT.UString :=
+                    FT.To_UString (Next_Synthetic_Name ("Safe_List_Pop"));
+                  Then_Stmts     : CM.Statement_Access_Vectors.Vector;
+                  Trim_Then      : CM.Statement_Access_Vectors.Vector;
+                  Slice_Then     : CM.Statement_Access_Vectors.Vector;
+                  Length_Expr    : constant CM.Expr_Access :=
+                    Selector_Expr
+                      (List_Expr,
+                       "length",
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Length_Temp    : constant CM.Expr_Access :=
+                    Ident_Expr
+                      (UString_Value (Length_Name),
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+                  Last_Value_Expr : constant CM.Expr_Access :=
+                    Resolved_Index_Expr
+                      (List_Expr,
+                       Length_Temp,
+                       Expr.Span,
+                       UString_Value (Element_Type.Name));
+                  Empty_List_Expr : constant CM.Expr_Access := new CM.Expr_Node;
+               begin
+                  Empty_List_Expr.Kind := CM.Expr_Array_Literal;
+                  Empty_List_Expr.Span := Expr.Span;
+                  Empty_List_Expr.Type_Name := List_Type.Name;
+
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Length_Name),
+                        Default_Integer,
+                        Length_Expr,
+                        Expr.Span));
+                  Result.Preludes.Append
+                    (Synthetic_Object_Decl_Stmt
+                       (UString_Value (Result_Name),
+                        Optional_Type,
+                        Build_Optional_None_Expr (Optional_Type, Expr.Span),
+                        Expr.Span,
+                        Is_Constant => False));
+
+                  Then_Stmts.Append
+                    (Synthetic_Assign_Stmt
+                       (Ident_Expr
+                          (UString_Value (Result_Name),
+                           Expr.Span,
+                           UString_Value (Optional_Type.Name)),
+                        Build_Optional_Some_Expr
+                          (Optional_Type,
+                           Last_Value_Expr,
+                           Expr.Span),
+                        Expr.Span));
+
+                  Trim_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (List_Expr,
+                        Empty_List_Expr,
+                        Expr.Span));
+                  Then_Stmts.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Length_Temp,
+                           "==",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Trim_Then,
+                        Expr.Span));
+                  Slice_Then.Append
+                    (Synthetic_Assign_Stmt
+                       (List_Expr,
+                        Resolved_Index_Expr
+                          (List_Expr,
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           UString_Value (List_Type.Name),
+                           Binary_Expr
+                             (Length_Temp,
+                              "-",
+                              Int_Expr (1, Expr.Span),
+                              Expr.Span,
+                              UString_Value (Default_Integer.Name))),
+                        Expr.Span));
+                  Then_Stmts.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Length_Temp,
+                           ">",
+                           Int_Expr (1, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Slice_Then,
+                        Expr.Span));
+
+                  Result.Preludes.Append
+                    (Synthetic_If_Stmt
+                       (Binary_Expr
+                          (Length_Temp,
+                           ">",
+                           Int_Expr (0, Expr.Span),
+                           Expr.Span,
+                           "boolean"),
+                        Then_Stmts,
+                        Expr.Span));
+                  Result.Expr :=
+                    Ident_Expr
+                      (UString_Value (Result_Name),
+                       Expr.Span,
+                       UString_Value (Optional_Type.Name));
+                  return Result;
+               end;
+            end if;
             Result.Expr := new CM.Expr_Node'(Expr.all);
             Result.Expr.Args.Clear;
             Child :=
@@ -6219,6 +6668,141 @@ package body Safe_Frontend.Check_Resolve is
                  Enclosing_Return_Type);
 
          when CM.Stmt_Call =>
+            declare
+               Normalized_Call : constant CM.Expr_Access :=
+                 Normalize_Expr
+                   (Stmt.Call,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Local_Static_Constants);
+            begin
+               if Is_Append_Builtin_Call
+                 (Normalized_Call, Var_Types, Functions, Type_Env)
+               then
+                  if Natural (Normalized_Call.Args.Length) /= 2 then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => (if Normalized_Call.Has_Call_Span
+                                       then Normalized_Call.Call_Span
+                                       else Normalized_Call.Span),
+                           Message => "`append(items, value)` expects exactly two arguments"));
+                  elsif not Is_Assignable_Target
+                    (Normalized_Call.Args (Normalized_Call.Args.First_Index))
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Normalized_Call.Args (Normalized_Call.Args.First_Index).Span,
+                           Message => "`append` first argument must be a writable list name"));
+                  else
+                     declare
+                        List_Target : constant CM.Expr_Access :=
+                          Normalized_Call.Args (Normalized_Call.Args.First_Index);
+                        List_Type   : constant GM.Type_Descriptor :=
+                          Expr_Type (List_Target, Var_Types, Functions, Type_Env);
+                        Element_Type : constant GM.Type_Descriptor :=
+                          Growable_Array_Element_Type (List_Type, Type_Env);
+                        Appended_Value : CM.Expr_Access :=
+                          Normalized_Call.Args (Normalized_Call.Args.First_Index + 1);
+                        Literal : constant CM.Expr_Access := new CM.Expr_Node;
+                        Rewritten : constant CM.Statement_Access := new CM.Statement;
+                     begin
+                        if not Is_Growable_Array_Type (List_Type, Type_Env) then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => List_Target.Span,
+                                 Message => "`append` expects a `mut list of T` first argument"));
+                        elsif not Is_Container_Element_Type_Allowed
+                          (Element_Type, Type_Env)
+                        then
+                           Raise_Diag
+                             (CM.Unsupported_Source_Construct
+                                (Path    => Path,
+                                 Span    => List_Target.Span,
+                                 Message =>
+                                   "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                        end if;
+
+                        Ensure_Writable_Target
+                          (List_Target,
+                           Imported_Objects,
+                           Local_Constants,
+                           Local_Static_Constants,
+                           Path,
+                           "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
+
+                        Appended_Value :=
+                          Contextualize_Expr_To_Target_Type
+                            (Appended_Value,
+                             Element_Type,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Path);
+                        Reject_Uncontextualized_None (Appended_Value, Path);
+                        if not Compatible_Source_Expr_To_Target_Type
+                          (Appended_Value,
+                           Expr_Type (Appended_Value, Var_Types, Functions, Type_Env),
+                           Element_Type,
+                           Var_Types,
+                           Functions,
+                           Type_Env,
+                           Local_Static_Constants,
+                           Exact_Length_Facts)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Appended_Value.Span,
+                                 Message => "`append` value type does not match the list element type"));
+                        end if;
+
+                        Literal.Kind := CM.Expr_Array_Literal;
+                        Literal.Span := Normalized_Call.Args (Normalized_Call.Args.First_Index + 1).Span;
+                        Literal.Type_Name := List_Type.Name;
+                        Literal.Elements.Append (Appended_Value);
+
+                        Rewritten.Kind := CM.Stmt_Assign;
+                        Rewritten.Span := Stmt.Span;
+                        Rewritten.Target := List_Target;
+                        Rewritten.Value :=
+                          Binary_Expr
+                            (List_Target,
+                             "&",
+                             Literal,
+                             Stmt.Span,
+                             UString_Value (List_Type.Name));
+                        return
+                          Normalize_Statement
+                            (Rewritten,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Channel_Env,
+                             Imported_Objects,
+                             Local_Constants,
+                             Local_Static_Constants,
+                             Exact_Length_Facts,
+                             Path,
+                             Has_Enclosing_Return,
+                             Enclosing_Return_Type);
+                     end;
+                  end if;
+               elsif Is_Pop_Last_Builtin_Call
+                 (Normalized_Call, Var_Types, Functions, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => (if Normalized_Call.Has_Call_Span
+                                    then Normalized_Call.Call_Span
+                                    else Normalized_Call.Span),
+                        Message => "`pop_last(items)` returns an `optional T` value and must be used in an expression"));
+               end if;
+            end;
             declare
                Desugared : constant Desugared_Expr_Result :=
                  Desugar_Executable_Expr
@@ -7632,7 +8216,7 @@ package body Safe_Frontend.Check_Resolve is
                   if UString_Value (Spec.Name)'Length > 0 then
                      Append_Local_Type_Dependency (Deps, UString_Value (Spec.Name));
                   end if;
-               when CM.Type_Spec_Growable_Array =>
+               when CM.Type_Spec_List | CM.Type_Spec_Growable_Array | CM.Type_Spec_Optional =>
                   if Spec.Element_Type /= null then
                      Collect_Type_Spec_Dependencies (Spec.Element_Type.all, Deps);
                   end if;

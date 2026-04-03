@@ -283,6 +283,7 @@ derived_type_definition ::=
 subtype_indication ::=
     [ 'not' 'null' ] subtype_mark [ constraint | inline_range_constraint ]
   | binary_type_definition
+  | list_type_spec
   | optional_type_spec
 
 subtype_mark ::=
@@ -291,7 +292,11 @@ subtype_mark ::=
 type_target ::=
     subtype_mark
   | binary_type_definition
+  | list_type_spec
   | optional_type_spec
+
+list_type_spec ::=
+    'list' 'of' subtype_indication
 
 optional_type_spec ::=
     'optional' subtype_indication
@@ -583,6 +588,11 @@ assignment_statement ::=
 
 procedure_call_statement ::=
     name [ actual_parameter_part ] statement_terminator
+
+The contextual builtins `append(items, value)` and `pop_last(items)` use
+ordinary call syntax. `append` is admitted only as a procedure-call statement
+on a writable `list of T` name. `pop_last` is admitted only as an expression
+and returns `optional T`.
 
 print_statement ::=
     'print' '(' expression ')' statement_terminator

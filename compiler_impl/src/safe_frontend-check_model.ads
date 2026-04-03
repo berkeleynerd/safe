@@ -94,6 +94,7 @@ package Safe_Frontend.Check_Model is
       Type_Spec_Name,
       Type_Spec_Binary,
       Type_Spec_Tuple,
+      Type_Spec_List,
       Type_Spec_Growable_Array,
       Type_Spec_Optional,
       Type_Spec_Subtype_Indication,

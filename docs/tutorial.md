@@ -300,8 +300,31 @@ Current PR11.10a restrictions:
 - inferred reference families, channels, and tasks are rejected
 - `none` is contextual rather than a globally typed literal
 
-This is intentionally just the first container wedge. `list of T` and
-`map of (K, V)` follow later on top of the same specialization pipeline.
+`PR11.10b` adds the next wedge on the same specialization pipeline:
+
+- `list of T` is the user-facing spelling for the existing growable-array
+  representation,
+- `append(items, value)` mutates a writable list in place,
+- `pop_last(items)` returns `some(last)` for non-empty lists and `none`
+  for empty lists.
+
+Example:
+
+```safe
+function tail_or_zero returns integer
+   var values : list of integer = [1, 2];
+   last : optional integer = none;
+
+   append (values, 3);
+   last = pop_last (values);
+   if last.present
+      return last.value;
+   else
+      return 0;
+```
+
+`array of T` still works. `list of T` is an alias surface over the same
+growable representation, not a second runtime.
 
 ## 6. "Silver By Construction": D27 In One Page
 
@@ -371,10 +394,12 @@ mistakes, but the source surface stays simpler because the programmer writes
 ordinary record types and ordinary field selection.
 
 Wart: you still need to think about ownership, moves, and mutable-borrow
-aliasing. PR11.8e.1 extends the model to mutually recursive record families,
-and PR11.8e.2 relaxes the alias rule only for statically disjoint record-field
-paths. Same-field, ancestor/descendant, whole-object-plus-field, indexed, and
-other unsupported same-root paths still reject conservatively.
+aliasing. PR11.8e.1 extends the model to mutually recursive record families.
+PR11.8e.2 first relaxed the alias rule for statically disjoint record-field
+paths, and PR11.10b extends that to statically singleton, provably disjoint
+indexed paths. Same-field, ancestor/descendant, whole-object-plus-field,
+dynamic indexed, and other unsupported same-root paths still reject
+conservatively.
 
 See: `spec/02-restrictions.md` (Section 2.3).
 

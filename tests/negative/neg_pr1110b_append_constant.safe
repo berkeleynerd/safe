@@ -1,0 +1,10 @@
+-- Test: neg_pr1110b_append_constant
+-- Description: `append(items, value)` requires a writable list name.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110b-built-in-list-of-t
+-- Expected: REJECT source_frontend_error
+
+package neg_pr1110b_append_constant
+
+   values : constant list of integer = [1, 2];
+
+   append (values, 3);

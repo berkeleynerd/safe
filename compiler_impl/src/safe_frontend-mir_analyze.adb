@@ -354,6 +354,7 @@ package body Safe_Frontend.Mir_Analyze is
       Type_Env   : Type_Maps.Map) return Boolean;
    function Normalize_Alias_Path
      (Expr      : GM.Expr_Access;
+      Current   : State;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map) return Alias_Path;
@@ -1571,6 +1572,7 @@ package body Safe_Frontend.Mir_Analyze is
 
    function Normalize_Alias_Path
      (Expr      : GM.Expr_Access;
+      Current   : State;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map) return Alias_Path
@@ -1583,13 +1585,13 @@ package body Safe_Frontend.Mir_Analyze is
       end if;
       case Expr.Kind is
          when GM.Expr_Conversion =>
-            return Normalize_Alias_Path (Expr.Inner, Var_Types, Type_Env, Functions);
+            return Normalize_Alias_Path (Expr.Inner, Current, Var_Types, Type_Env, Functions);
          when GM.Expr_Ident =>
             Result.Root := Expr.Name;
             Result.Supported := True;
             return Result;
          when GM.Expr_Select =>
-            Prefix_Path := Normalize_Alias_Path (Expr.Prefix, Var_Types, Type_Env, Functions);
+            Prefix_Path := Normalize_Alias_Path (Expr.Prefix, Current, Var_Types, Type_Env, Functions);
             Result.Root := Prefix_Path.Root;
             Result.Components := Prefix_Path.Components;
             if Prefix_Path.Supported
@@ -1603,7 +1605,31 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
             return Result;
          when GM.Expr_Resolved_Index =>
-            Result.Root := FT.To_UString (Root_Name (Expr.Prefix));
+            Prefix_Path := Normalize_Alias_Path (Expr.Prefix, Current, Var_Types, Type_Env, Functions);
+            Result.Root := Prefix_Path.Root;
+            Result.Components := Prefix_Path.Components;
+            if Prefix_Path.Supported
+              and then Natural (Expr.Indices.Length) = 1
+            then
+               declare
+                  Prefix_Type  : constant GM.Type_Descriptor :=
+                    Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
+                  Index_Range : constant Interval :=
+                    Eval_Int_Expr
+                      (Expr.Indices (Expr.Indices.First_Index),
+                       Current,
+                       Var_Types,
+                       Type_Env,
+                       Functions);
+               begin
+                  if FT.Lowercase (UString_Value (Prefix_Type.Kind)) = "array"
+                    and then Index_Range.Low = Index_Range.High
+                  then
+                     Result.Components.Append ("[" & Format_Int (Index_Range.Low) & "]");
+                     Result.Supported := True;
+                  end if;
+               end;
+            end if;
             return Result;
          when others =>
             Result.Root := FT.To_UString (Root_Name (Expr));
@@ -5149,7 +5175,7 @@ package body Safe_Frontend.Mir_Analyze is
             Formal : constant GM.Local_Entry := Function_Def.Params (Index);
          begin
             Formal_Role := Type_Access_Role (Formal.Type_Info);
-            Actual_Path := Normalize_Alias_Path (Actual, Var_Types, Type_Env, Functions);
+            Actual_Path := Normalize_Alias_Path (Actual, Current, Var_Types, Type_Env, Functions);
             Actual_Name := Actual_Path.Root;
             if UString_Value (Formal.Mode) = "mut"
               and then Has_Text (Actual_Name)
@@ -5160,7 +5186,7 @@ package body Safe_Frontend.Mir_Analyze is
                         Other_Actual : constant GM.Expr_Access :=
                           Expr.Args (Expr.Args.First_Index + (Other_Index - Function_Def.Params.First_Index));
                         Other_Path : constant Alias_Path :=
-                          Normalize_Alias_Path (Other_Actual, Var_Types, Type_Env, Functions);
+                          Normalize_Alias_Path (Other_Actual, Current, Var_Types, Type_Env, Functions);
                      begin
                         if Other_Path.Root = Actual_Name
                           and then Paths_Overlap (Actual_Path, Other_Path)
@@ -5171,7 +5197,7 @@ package body Safe_Frontend.Mir_Analyze is
                                 Actual.Span,
                                 "mutable borrow actual '" & Source_Text_For_Expr (Actual)
                                 & "' aliases another actual in the same call",
-                                "PR11.8e.2 allows same-root calls only for statically disjoint record-field paths; overlapping or unsupported paths remain rejected.");
+                                "same-root `mut` calls allow only statically disjoint record-field or singleton-index paths; overlapping or unsupported paths remain rejected.");
                         end if;
                      end;
                   end if;

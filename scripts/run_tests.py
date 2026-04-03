@@ -192,6 +192,12 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_optional.safe",
         0,
     ),
+    (
+        "list",
+        REPO_ROOT / "tests" / "interfaces" / "provider_list.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_list.safe",
+        0,
+    ),
 ]
 
 INTERFACE_REJECT_CASES = [
@@ -242,6 +248,7 @@ AST_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr118k_try_propagation.safe",
     REPO_ROOT / "tests" / "positive" / "pr118k_match.safe",
     REPO_ROOT / "tests" / "positive" / "pr1110a_optional_guarded.safe",
+    REPO_ROOT / "tests" / "positive" / "pr1110b_list_basics.safe",
 ]
 
 DIAGNOSTIC_GOLDEN_CASES = [
@@ -445,6 +452,26 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr1110b_list_build.safe",
+        "40\n3\n30\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1110b_list_empty_build.safe",
+        "0\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1110b_list_string_build.safe",
+        "Bob\n1\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1110b_list_growable_build.safe",
+        "2\n8\n1\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
         "ok\n",
         False,
@@ -629,6 +656,11 @@ RUN_SUCCESS_CASES = [
         "1\n",
         False,
     ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1110b_list_empty_build.safe",
+        "0\n",
+        False,
+    ),
 ]
 
 RUN_REJECT_CASES = [
@@ -732,6 +764,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
     REPO_ROOT / "tests" / "interfaces" / "pr118k_try_while_contract.safe",
+    REPO_ROOT / "tests" / "interfaces" / "provider_list.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [

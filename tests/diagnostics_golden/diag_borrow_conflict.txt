@@ -8,5 +8,5 @@ neg_own_borrow_conflict.safe:17:14: error: mutable borrow actual 'owner' aliases
   | 17 |       touch (owner, owner);  -- ERROR: same-root alias in one call
   |    |              ^~~~~
   |
-  note: PR11.8e.2 allows same-root calls only for statically disjoint record-field paths; overlapping or unsupported paths remain rejected.
+  note: same-root `mut` calls allow only statically disjoint record-field or singleton-index paths; overlapping or unsupported paths remain rejected.
 ------------------------------------------------------------------------

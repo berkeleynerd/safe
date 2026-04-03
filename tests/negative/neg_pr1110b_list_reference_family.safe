@@ -1,0 +1,13 @@
+-- Test: neg_pr1110b_list_reference_family
+-- Description: `list of T` is limited to the PR11.10b value-type subset and
+--   rejects inferred reference families.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110b-built-in-list-of-t
+-- Expected: REJECT list_value_subset
+
+package neg_pr1110b_list_reference_family
+
+   type handle is record
+      value : integer;
+      link  : handle;
+
+   items : list of handle = [];

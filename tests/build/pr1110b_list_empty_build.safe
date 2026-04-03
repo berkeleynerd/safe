@@ -1,0 +1,16 @@
+package pr1110b_list_empty_build
+
+   function empty_values returns list of integer
+      var values : list of integer = [];
+      return values;
+
+   function empty_pop_value returns integer
+      var values : list of integer = empty_values;
+      last : constant optional integer = pop_last (values);
+
+      if last.present
+         return last.value;
+      else
+         return 0;
+
+   print (empty_pop_value);

@@ -1,0 +1,21 @@
+-- Test: pr1110b_disjoint_mut_indices
+-- Description: Same-root `mut` calls admit statically singleton disjoint indexed
+--   list paths in PR11.10b.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110b-built-in-list-of-t
+-- Expected: ACCEPT
+
+package pr1110b_disjoint_mut_indices
+
+   subtype count is integer (0 to 20);
+
+   type cell is record
+      value : count;
+
+   function bump_left_if_right_present (left : mut cell; right : cell)
+      if right.value > 0
+         left.value = 8;
+
+   function run
+      values : list of cell = [(value = 4), (value = 7)];
+
+      bump_left_if_right_present (values (1), values (2));

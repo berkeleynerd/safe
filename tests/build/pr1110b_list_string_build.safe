@@ -1,0 +1,26 @@
+package pr1110b_list_string_build
+
+   function seeded_values returns list of string
+      var values : list of string = ["Ada"];
+
+      append (values, "Bob");
+      return values;
+
+   function popped_text returns string
+      var values : list of string = seeded_values;
+      last : constant optional string = pop_last (values);
+      if last.present and then values.length == 1
+         return last.value;
+      else
+         return "none";
+
+   function remaining_length returns integer
+      var values : list of string = seeded_values;
+      last : constant optional string = pop_last (values);
+      if last.present
+         return values.length;
+      else
+         return 0;
+
+   print (popped_text);
+   print (remaining_length);

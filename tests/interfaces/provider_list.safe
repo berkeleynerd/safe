@@ -1,0 +1,14 @@
+package provider_list
+
+   public function append_one (values : list of integer; item : integer) returns list of integer
+      var copy : list of integer = values;
+
+      append (copy, item);
+      return copy;
+
+   public function last_or_zero (values : list of integer) returns integer
+
+      if values.length > 0
+         return values (values.length);
+      else
+         return 0;
