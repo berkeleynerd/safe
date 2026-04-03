@@ -30,6 +30,12 @@ For the post-PR11.8i surface, user-defined enumeration types with
 identifier-valued enumerators are admitted. Character-literal enumerators and
 enum range-constrained subtypes remain outside the admitted surface.
 
+For the post-PR11.10a surface, built-in optional values are admitted through
+`optional T`, `some(expr)`, contextual `none`, the discriminant selector
+`.present`, and guarded payload access through `.value`. `optional T` remains
+limited to the admitted value-type subset; inferred reference families,
+channels, and tasks are outside this wedge.
+
 For the post-PR11.8c.2 surface, a compilation unit may be either an explicit
 package unit or a packageless entry unit. Executable statements are admitted at
 unit scope after declarations. Once the first unit-scope statement appears,
@@ -277,6 +283,7 @@ derived_type_definition ::=
 subtype_indication ::=
     [ 'not' 'null' ] subtype_mark [ constraint | inline_range_constraint ]
   | binary_type_definition
+  | optional_type_spec
 
 subtype_mark ::=
     name
@@ -284,6 +291,10 @@ subtype_mark ::=
 type_target ::=
     subtype_mark
   | binary_type_definition
+  | optional_type_spec
+
+optional_type_spec ::=
+    'optional' subtype_indication
 
 constraint ::=
     scalar_constraint
@@ -413,9 +424,17 @@ primary ::=
   | name
   | allocator
   | aggregate
+  | some_expression
+  | none_literal
   | '(' expression ')'
   | annotated_expression
   | conditional_expression
+
+some_expression ::=
+    'some' '(' expression ')'
+
+none_literal ::=
+    'none'
 
 annotated_expression ::=
     '(' expression 'as' type_target ')'

@@ -1,0 +1,13 @@
+-- Test: neg_pr1110a_optional_reference_family
+-- Description: `optional T` is limited to the PR11.10a value-type subset and
+--   rejects inferred reference families.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optional-t
+-- Expected: REJECT optional_value_subset
+
+package neg_pr1110a_optional_reference_family
+
+   type handle is record
+      value : integer;
+      link  : handle;
+
+   current : optional handle;

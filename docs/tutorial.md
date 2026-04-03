@@ -257,6 +257,52 @@ Still deferred beyond the current PR11.8d / PR11.8d.1 surface:
 - broader proof-fact exact-length growable -> fixed narrowing
 - string discriminants
 
+## 5.2 Optional Values (PR11.10a Wedge)
+
+Safe now has a built-in optional value constructor:
+
+```safe
+maybe_count : optional integer = none;
+name : optional string = some ("Ada");
+```
+
+The shipped surface is deliberately small:
+
+- `optional T` is the type constructor
+- `some(expr)` constructs a present optional
+- bare `none` is legal only when an expected `optional T` type is already known
+- explicit ascription is available when context is missing:
+  - `(none as optional integer)`
+
+The two selectors are:
+
+- `.present` for the discriminant boolean
+- `.value` for the payload
+
+Example:
+
+```safe
+function describe (name : optional string) returns string (3)
+
+   if name.present
+      return "Ada";
+   return "n/a";
+```
+
+Like the existing `result` discriminant rules, `.value` is legal only when
+the compiler can prove `.present == true`. Reassigning the optional invalidates
+that fact.
+
+Current PR11.10a restrictions:
+
+- `optional T` is limited to admitted value types
+- heap-backed `string` and growable arrays are included
+- inferred reference families, channels, and tasks are rejected
+- `none` is contextual rather than a globally typed literal
+
+This is intentionally just the first container wedge. `list of T` and
+`map of (K, V)` follow later on top of the same specialization pipeline.
+
 ## 6. "Silver By Construction": D27 In One Page
 
 Safe's Silver level is built around a simple premise:

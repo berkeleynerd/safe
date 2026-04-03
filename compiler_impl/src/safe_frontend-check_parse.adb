@@ -11,6 +11,7 @@ package body Safe_Frontend.Check_Parse is
    use type CM.Statement_Access;
    use type CM.Statement_Kind;
    use type CM.Type_Spec_Kind;
+   use type CM.Type_Spec_Access;
    use type FL.Token_Kind;
    use type FT.Source_Span;
    use type FT.UString;
@@ -644,6 +645,95 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Growable_Array_Type_Spec;
 
+   function Sanitize_Type_Name_Component (Value : String) return String is
+      Result : FT.UString := FT.To_UString ("");
+   begin
+      for Ch of Value loop
+         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
+            Result := Result & FT.To_UString ((1 => Ch));
+         else
+            Result := Result & FT.To_UString ("_");
+         end if;
+      end loop;
+
+      declare
+         Text  : constant String := FT.To_String (Result);
+         First : Positive := Text'First;
+         Last  : Natural := Text'Last;
+      begin
+         while First <= Text'Last and then Text (First) = '_' loop
+            First := First + 1;
+         end loop;
+         while Last >= First and then Text (Last) = '_' loop
+            Last := Last - 1;
+         end loop;
+         if Last < First then
+            return "value";
+         end if;
+         return Text (First .. Last);
+      end;
+   end Sanitize_Type_Name_Component;
+
+   function Type_Spec_Internal_Name (Spec : CM.Type_Spec) return FT.UString;
+
+   function Type_Spec_Internal_Name (Spec : CM.Type_Spec) return FT.UString is
+      Result        : FT.UString;
+      Element_Names : FT.UString_Vectors.Vector;
+   begin
+      case Spec.Kind is
+         when CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication | CM.Type_Spec_Binary =>
+            return Spec.Name;
+         when CM.Type_Spec_Growable_Array =>
+            if Spec.Element_Type = null then
+               return FT.To_UString ("__growable_array_value");
+            end if;
+            return
+              FT.To_UString
+                ("__growable_array_"
+                 & Sanitize_Type_Name_Component
+                     (FT.To_String (Type_Spec_Internal_Name (Spec.Element_Type.all))));
+         when CM.Type_Spec_Optional =>
+            if Spec.Element_Type = null then
+               return FT.To_UString ("__optional_value");
+            end if;
+            return
+              FT.To_UString
+                ("__optional_"
+                 & Sanitize_Type_Name_Component
+                     (FT.To_String (Type_Spec_Internal_Name (Spec.Element_Type.all))));
+         when CM.Type_Spec_Tuple =>
+            Result := FT.To_UString ("__tuple");
+            for Item of Spec.Tuple_Elements loop
+               Element_Names.Append
+                 (FT.To_UString
+                    (Sanitize_Type_Name_Component
+                       (FT.To_String (Type_Spec_Internal_Name (Item.all)))));
+            end loop;
+            for Item of Element_Names loop
+               Result := Result & FT.To_UString ("_") & Item;
+            end loop;
+            return Result;
+         when others =>
+            return FT.To_UString ("");
+      end case;
+   end Type_Spec_Internal_Name;
+
+   function Parse_Optional_Type_Spec
+     (State            : in out Parser_State;
+      Allow_Access_Def : Boolean) return CM.Type_Spec
+   is
+      Start  : constant FL.Token := Expect (State, "optional");
+      Result : CM.Type_Spec;
+   begin
+      Result.Kind := CM.Type_Spec_Optional;
+      Result.Element_Type :=
+        new CM.Type_Spec'
+          (Parse_Type_Spec_Internal (State, Allow_Access_Def => Allow_Access_Def));
+      Result.Name := Type_Spec_Internal_Name (Result);
+      Result.Span := CM.Join (Start.Span, Result.Element_Type.Span);
+      return Result;
+   end Parse_Optional_Type_Spec;
+
    function Parse_Object_Type_Core
      (State            : in out Parser_State;
       Allow_Access_Def : Boolean := False) return CM.Type_Spec;
@@ -818,6 +908,8 @@ package body Safe_Frontend.Check_Parse is
             "PR11.8e infers references from recursive record types; source `access` is removed");
       elsif Current_Lower (State) = "binary" then
          return Parse_Binary_Type_Spec (State);
+      elsif Current_Lower (State) = "optional" then
+         return Parse_Optional_Type_Spec (State, Allow_Access_Def);
       elsif Current_Lower (State) = "array"
         and then FT.To_String (Next (State).Lexeme) /= "("
       then
@@ -881,6 +973,10 @@ package body Safe_Frontend.Check_Parse is
       end if;
       if Current_Lower (State) = "binary" then
          Result := Parse_Binary_Type_Spec (State);
+         Result.Span := CM.Join (Start, Result.Span);
+         return Result;
+      elsif Current_Lower (State) = "optional" then
+         Result := Parse_Optional_Type_Spec (State, Allow_Access_Def => False);
          Result.Span := CM.Join (Start, Result.Span);
          return Result;
       elsif Current_Lower (State) = "array"
@@ -2588,6 +2684,18 @@ package body Safe_Frontend.Check_Parse is
             Wrapped.Span := CM.Join (Token.Span, Ender.Span);
             return Wrapped;
          end;
+      elsif Lower = "some" then
+         declare
+            Ender : FL.Token;
+         begin
+            Advance (State);
+            Require (State, "(");
+            Result.Kind := CM.Expr_Some;
+            Result.Inner := Parse_Expression (State);
+            Ender := Expect (State, ")");
+            Result.Span := CM.Join (Token.Span, Ender.Span);
+            return Result;
+         end;
       elsif Token.Kind = FL.Identifier or else Token.Kind = FL.Keyword then
          if Lower = "declare" then
             Reject_Removed_Source_Construct (State, "declare_expression");
@@ -2600,6 +2708,12 @@ package body Safe_Frontend.Check_Parse is
             Advance (State);
             Result.Kind := CM.Expr_Bool;
             Result.Bool_Value := Lower = "true";
+            Result.Span := Token.Span;
+            return Result;
+         elsif Lower = "none" then
+            Advance (State);
+            Result.Kind := CM.Expr_None;
+            Result.Name := Token.Lexeme;
             Result.Span := Token.Span;
             return Result;
          end if;
@@ -2845,11 +2959,17 @@ package body Safe_Frontend.Check_Parse is
       Result : constant CM.Expr_Access := New_Expr;
       Spec   : CM.Type_Spec;
    begin
-      if Current_Lower (State) = "binary" then
-         Spec := Parse_Binary_Type_Spec (State);
-         Result.Kind := CM.Expr_Ident;
-         Result.Name := Spec.Name;
-         Result.Type_Name := Spec.Name;
+      if Current_Lower (State) = "binary"
+        or else Current_Lower (State) = "optional"
+        or else (Current_Lower (State) = "array"
+                 and then FT.To_String (Next (State).Lexeme) /= "(")
+        or else FT.To_String (Current (State).Lexeme) = "("
+      then
+         Spec := Parse_Object_Type (State);
+         Result.Kind := CM.Expr_Subtype_Indication;
+         Result.Name := Type_Spec_Internal_Name (Spec);
+         Result.Type_Name := Result.Name;
+         Result.Subtype_Spec := new CM.Type_Spec'(Spec);
          Result.Span := Spec.Span;
          return Result;
       end if;

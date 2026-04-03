@@ -1538,6 +1538,23 @@ package body Safe_Frontend.Ada_Emit is
 
    function Ada_Safe_Name (Name : String) return String is
       Bit_Width : constant Natural := Binary_Width_From_Name (Name);
+      function Collapse_Underscores (Text : String) return String is
+         Result          : SU.Unbounded_String;
+         Last_Underscore : Boolean := False;
+      begin
+         for Ch of Text loop
+            if Ch = '_' then
+               if not Last_Underscore then
+                  Result := Result & "_";
+               end if;
+               Last_Underscore := True;
+            else
+               Result := Result & Ch;
+               Last_Underscore := False;
+            end if;
+         end loop;
+         return SU.To_String (Result);
+      end Collapse_Underscores;
    begin
       if Bit_Width /= 0 then
          return Binary_Ada_Name (Positive (Bit_Width));
@@ -1556,7 +1573,9 @@ package body Safe_Frontend.Ada_Emit is
       elsif Name = "duration" then
          return "Duration";
       elsif Starts_With (Name, "__") then
-         return "Safe_" & Name (Name'First + 2 .. Name'Last);
+         return
+           "Safe_"
+           & Collapse_Underscores (Name (Name'First + 2 .. Name'Last));
       elsif Name'Length > 0 and then Name (Name'First) = '_' then
          return "Safe" & Name;
       end if;
@@ -2837,17 +2856,23 @@ package body Safe_Frontend.Ada_Emit is
    is
    begin
       for Item of Unit.Types loop
-         if FT.To_String (Item.Name) = Name then
+         if FT.To_String (Item.Name) = Name
+           or else Ada_Safe_Name (FT.To_String (Item.Name)) = Name
+         then
             return Item;
          end if;
       end loop;
       for Item of Unit.Imported_Types loop
-         if FT.To_String (Item.Name) = Name then
+         if FT.To_String (Item.Name) = Name
+           or else Ada_Safe_Name (FT.To_String (Item.Name)) = Name
+         then
             return Item;
          end if;
       end loop;
       for Item of Document.Types loop
-         if FT.To_String (Item.Name) = Name then
+         if FT.To_String (Item.Name) = Name
+           or else Ada_Safe_Name (FT.To_String (Item.Name)) = Name
+         then
             return Item;
          end if;
       end loop;
@@ -7532,6 +7557,38 @@ package body Safe_Frontend.Ada_Emit is
                       and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
             end Same_Choice;
 
+            function Has_Others_Choice return Boolean is
+            begin
+               for Field of Type_Item.Variant_Fields loop
+                  if Field.Is_Others then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            end Has_Others_Choice;
+
+            function Needs_Null_Others_Branch return Boolean is
+               Disc_Type : constant String :=
+                 FT.Lowercase (FT.To_String (Type_Item.Discriminant_Type));
+               Has_True  : Boolean := False;
+               Has_False : Boolean := False;
+            begin
+               if Has_Others_Choice or else Disc_Type /= "boolean" then
+                  return False;
+               end if;
+
+               for Field of Type_Item.Variant_Fields loop
+                  if Field.Choice.Kind = GM.Scalar_Value_Boolean then
+                     if Field.Choice.Bool_Value then
+                        Has_True := True;
+                     else
+                        Has_False := True;
+                     end if;
+                  end if;
+               end loop;
+               return not (Has_True and Has_False);
+            end Needs_Null_Others_Branch;
+
             procedure Append_Field_Line
               (Field_Name : String;
                Field_Type : String;
@@ -7642,6 +7699,17 @@ package body Safe_Frontend.Ada_Emit is
                      end;
                   end loop;
                end;
+               if Needs_Null_Others_Branch then
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        (Indentation (1)
+                         & "when others =>"
+                         & ASCII.LF
+                         & Indentation (2)
+                         & "null;"
+                         & ASCII.LF);
+               end if;
                Result :=
                  Result
                  & SU.To_Unbounded_String
@@ -8291,24 +8359,63 @@ package body Safe_Frontend.Ada_Emit is
          when CM.Expr_Allocator =>
             return "new " & Render_Expr (Unit, Document, Expr.Value, State);
          when CM.Expr_Aggregate =>
-            Result := SU.To_Unbounded_String ("(");
-            for Index in Expr.Fields.First_Index .. Expr.Fields.Last_Index loop
-               declare
-                  Field : constant CM.Aggregate_Field := Expr.Fields (Index);
+            declare
+               Target_Info     : GM.Type_Descriptor := (others => <>);
+               Has_Target_Info : constant Boolean :=
+                 Has_Text (Expr.Type_Name)
+                 and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+
+               function Aggregate_Field_Type (Field_Name : String) return GM.Type_Descriptor is
                begin
-                  if Index /= Expr.Fields.First_Index then
-                     Result := Result & SU.To_Unbounded_String (", ");
+                  if not Has_Target_Info then
+                     return (others => <>);
                   end if;
-                  Result :=
-                    Result
-                    & SU.To_Unbounded_String
-                        (FT.To_String (Field.Field_Name)
-                         & " => "
-                         & Render_Expr (Unit, Document, Field.Expr, State));
-               end;
-            end loop;
-            Result := Result & SU.To_Unbounded_String (")");
-            return SU.To_String (Result);
+
+                  for Disc of Target_Info.Discriminants loop
+                     if FT.To_String (Disc.Name) = Field_Name then
+                        return Resolve_Type_Name (Unit, Document, FT.To_String (Disc.Type_Name));
+                     end if;
+                  end loop;
+                  if Target_Info.Has_Discriminant
+                    and then FT.To_String (Target_Info.Discriminant_Name) = Field_Name
+                  then
+                     return Resolve_Type_Name (Unit, Document, FT.To_String (Target_Info.Discriminant_Type));
+                  end if;
+                  for Record_Field of Target_Info.Fields loop
+                     if FT.To_String (Record_Field.Name) = Field_Name then
+                        return Resolve_Type_Name (Unit, Document, FT.To_String (Record_Field.Type_Name));
+                     end if;
+                  end loop;
+                  return (others => <>);
+               end Aggregate_Field_Type;
+            begin
+               if Has_Target_Info then
+                  Target_Info := Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+               end if;
+               Result := SU.To_Unbounded_String ("(");
+               for Index in Expr.Fields.First_Index .. Expr.Fields.Last_Index loop
+                  declare
+                     Field        : constant CM.Aggregate_Field := Expr.Fields (Index);
+                     Field_Target : constant GM.Type_Descriptor :=
+                       Aggregate_Field_Type (FT.To_String (Field.Field_Name));
+                  begin
+                     if Index /= Expr.Fields.First_Index then
+                        Result := Result & SU.To_Unbounded_String (", ");
+                     end if;
+                     Result :=
+                       Result
+                       & SU.To_Unbounded_String
+                           (FT.To_String (Field.Field_Name)
+                            & " => "
+                            & (if Has_Text (Field_Target.Name)
+                               then Render_Expr_For_Target_Type
+                                 (Unit, Document, Field.Expr, Field_Target, State)
+                               else Render_Expr (Unit, Document, Field.Expr, State)));
+                  end;
+               end loop;
+               Result := Result & SU.To_Unbounded_String (")");
+               return SU.To_String (Result);
+            end;
          when CM.Expr_Tuple =>
             declare
                Is_Array_Target : constant Boolean :=
