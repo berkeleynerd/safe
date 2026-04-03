@@ -26,6 +26,7 @@ package body Safe_Frontend.Check_Emit is
    use type CM.Package_Item_Kind;
    use type CM.Type_Decl_Kind;
    use type CM.Type_Spec_Kind;
+   use type CM.Type_Spec_Access;
 
    function Package_Item_Node
      (Item             : CM.Package_Item;
@@ -345,6 +346,12 @@ package body Safe_Frontend.Check_Emit is
          then Binary_Width_From_Name (FT.To_String (Expr.Name))
          else 0);
    begin
+      if Expr /= null
+        and then Expr.Kind = CM.Expr_Subtype_Indication
+        and then Expr.Subtype_Spec /= null
+      then
+         return Object_Type_Node (Expr.Subtype_Spec.all);
+      end if;
       if Bit_Width /= 0 then
          return Binary_Type_Definition_Node (Positive (Bit_Width), Expr.Span);
       end if;
@@ -407,6 +414,13 @@ package body Safe_Frontend.Check_Emit is
               & JS.Span_Object (Spec.Span)
               & "}";
          end;
+      elsif Spec.Kind = CM.Type_Spec_Optional then
+         return
+           "{""node_type"":""OptionalTypeSpec"",""element_type"":"
+           & Object_Type_Node (Spec.Element_Type.all)
+           & ",""span"":"
+           & JS.Span_Object (Spec.Span)
+           & "}";
       end if;
       return Subtype_Mark_Node (Spec);
    end Type_Spec_Name;
@@ -524,6 +538,8 @@ package body Safe_Frontend.Check_Emit is
       elsif Spec.Kind = CM.Type_Spec_Growable_Array then
          return Type_Spec_Name (Spec);
       elsif Spec.Kind = CM.Type_Spec_Tuple then
+         return Type_Spec_Name (Spec);
+      elsif Spec.Kind = CM.Type_Spec_Optional then
          return Type_Spec_Name (Spec);
       end if;
       return Subtype_Indication_Node (Spec);
@@ -1120,6 +1136,22 @@ package body Safe_Frontend.Check_Emit is
               "{""node_type"":""Primary"",""kind"":""TryExpr"",""value"":{""node_type"":""TryExpression"",""expression"":"
               & Expression_Node (Expr.Inner)
               & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "},""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
+         when CM.Expr_Some =>
+            return
+              "{""node_type"":""Primary"",""kind"":""SomeExpr"",""value"":{""node_type"":""SomeExpression"",""expression"":"
+              & Expression_Node (Expr.Inner)
+              & ",""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "},""span"":"
+              & JS.Span_Object (Expr.Span)
+              & "}";
+         when CM.Expr_None =>
+            return
+              "{""node_type"":""Primary"",""kind"":""NoneLiteral"",""value"":{""node_type"":""NoneLiteral"",""span"":"
               & JS.Span_Object (Expr.Span)
               & "},""span"":"
               & JS.Span_Object (Expr.Span)

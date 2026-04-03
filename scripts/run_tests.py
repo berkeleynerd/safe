@@ -186,6 +186,12 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_enum_literal_assign.safe",
         1,
     ),
+    (
+        "optional",
+        REPO_ROOT / "tests" / "interfaces" / "provider_optional.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_optional.safe",
+        0,
+    ),
 ]
 
 INTERFACE_REJECT_CASES = [
@@ -235,6 +241,7 @@ STATIC_INTERFACE_CASES = [
 AST_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr118k_try_propagation.safe",
     REPO_ROOT / "tests" / "positive" / "pr118k_match.safe",
+    REPO_ROOT / "tests" / "positive" / "pr1110a_optional_guarded.safe",
 ]
 
 DIAGNOSTIC_GOLDEN_CASES = [
@@ -425,6 +432,16 @@ BUILD_SUCCESS_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr118d_string_plain_build.safe",
         "hello\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1110a_optional_string_build.safe",
+        "Ada\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1110a_optional_growable_build.safe",
+        "3\n",
         False,
     ),
     (

@@ -10,6 +10,9 @@ package Safe_Frontend.Check_Model is
 
    subtype Wide_Integer is Long_Long_Long_Integer;
 
+   type Type_Spec;
+   type Type_Spec_Access is access all Type_Spec;
+
    type Expr_Kind is
      (Expr_Unknown,
       Expr_Int,
@@ -29,6 +32,8 @@ package Safe_Frontend.Check_Model is
       Expr_Array_Literal,
       Expr_Tuple,
       Expr_Annotated,
+      Expr_Some,
+      Expr_None,
       Expr_Try,
       Expr_Unary,
       Expr_Binary,
@@ -75,12 +80,10 @@ package Safe_Frontend.Check_Model is
       Args             : Expr_Access_Vectors.Vector;
       Fields           : Aggregate_Field_Vectors.Vector;
       Elements         : Expr_Access_Vectors.Vector;
+      Subtype_Spec     : Type_Spec_Access := null;
       Has_Call_Span    : Boolean := False;
       Call_Span        : FT.Source_Span := FT.Null_Span;
    end record;
-
-   type Type_Spec;
-   type Type_Spec_Access is access all Type_Spec;
 
    package Type_Spec_Access_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type   => Positive,
@@ -92,6 +95,7 @@ package Safe_Frontend.Check_Model is
       Type_Spec_Binary,
       Type_Spec_Tuple,
       Type_Spec_Growable_Array,
+      Type_Spec_Optional,
       Type_Spec_Subtype_Indication,
       Type_Spec_Access_Def);
 

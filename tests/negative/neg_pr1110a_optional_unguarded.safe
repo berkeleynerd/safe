@@ -1,0 +1,18 @@
+-- Test: neg_pr1110a_optional_unguarded
+-- Description: Optional `.value` requires a proven `.present` guard.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optionalt
+-- Expected: REJECT discriminant_check_not_established
+
+package neg_pr1110a_optional_unguarded
+
+   function parse (input : integer) returns optional integer
+
+      if input > 0
+         return some (input);
+      else
+         return none;
+
+   function unsafe_access (input : integer) returns integer
+      value : optional integer = parse (input);
+
+      return value.value;

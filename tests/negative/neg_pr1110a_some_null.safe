@@ -1,0 +1,11 @@
+-- Test: neg_pr1110a_some_null
+-- Description: `some(expr)` rejects payloads outside the admitted value-type
+--   subset.
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optionalt
+-- Expected: REJECT optional_value_subset
+
+package neg_pr1110a_some_null
+
+   function bad returns optional integer
+
+      return some (null);

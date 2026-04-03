@@ -139,7 +139,7 @@
         { "name": "names", "type": "NonEmptyList<Identifier>", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
         { "name": "is_constant", "type": "Boolean", "optional": false },
-        { "name": "object_type", "type": "NodeRef<SubtypeIndication | ArrayTypeDefinition | GrowableArrayTypeSpec | TupleTypeSpec>", "optional": false },
+        { "name": "object_type", "type": "NodeRef<SubtypeIndication | ArrayTypeDefinition | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "initializer", "type": "Option<Expression>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]
@@ -312,7 +312,7 @@
       "production": "index_subtype_definition",
       "source_section": "8.4",
       "fields": [
-        { "name": "subtype_mark", "type": "NodeRef<Name | BinaryTypeDefinition>", "optional": false },
+        { "name": "subtype_mark", "type": "NodeRef<Name | BinaryTypeDefinition | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -332,7 +332,7 @@
       "source_section": "8.4",
       "fields": [
         { "name": "is_aliased", "type": "Boolean", "optional": false },
-        { "name": "type_spec", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec>", "optional": false },
+        { "name": "type_spec", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -350,7 +350,16 @@
       "production": "tuple_type_spec",
       "source_section": "8.4",
       "fields": [
-        { "name": "elements", "type": "NonEmptyList<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec>", "optional": false },
+        { "name": "elements", "type": "NonEmptyList<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "OptionalTypeSpec",
+      "production": "optional_type_spec",
+      "source_section": "8.4",
+      "fields": [
+        { "name": "element_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -755,8 +764,8 @@
       "production": "primary",
       "source_section": "8.6",
       "fields": [
-        { "name": "kind", "type": "PrimaryKind", "optional": false, "note": "Literal, BracketAggregate, Name, Allocator, Aggregate, Tuple, ParenExpr, AnnotatedExpr, TryExpr, ConditionalExpr, DeclareExpr" },
-        { "name": "value", "type": "NodeRef<Literal | Name | Allocator | Aggregate | TupleAggregate | BracketAggregate | Expression | AnnotatedExpression | TryExpression | ConditionalExpression | DeclareExpression>", "optional": false },
+        { "name": "kind", "type": "PrimaryKind", "optional": false, "note": "Literal, BracketAggregate, Name, Allocator, Aggregate, Tuple, ParenExpr, AnnotatedExpr, TryExpr, SomeExpr, NoneLiteral, ConditionalExpr, DeclareExpr" },
+        { "name": "value", "type": "NodeRef<Literal | Name | Allocator | Aggregate | TupleAggregate | BracketAggregate | Expression | AnnotatedExpression | TryExpression | SomeExpression | NoneLiteral | ConditionalExpression | DeclareExpression>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -797,6 +806,23 @@
       "source_section": "8.6",
       "fields": [
         { "name": "expression", "type": "NodeRef<Expression>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "SomeExpression",
+      "production": "some_expression",
+      "source_section": "8.6",
+      "fields": [
+        { "name": "expression", "type": "NodeRef<Expression>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "NoneLiteral",
+      "production": "none_literal",
+      "source_section": "8.6",
+      "fields": [
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -1006,7 +1032,7 @@
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
-        { "name": "return_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec>", "optional": false },
+        { "name": "return_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "initializer", "type": "Option<Expression>", "optional": true },
         { "name": "body", "type": "NodeRef<SequenceOfStatements>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
@@ -1183,7 +1209,7 @@
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
         { "name": "formal_part", "type": "Option<FormalPart>", "optional": true },
-        { "name": "return_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec>", "optional": false },
+        { "name": "return_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -1204,7 +1230,7 @@
         { "name": "names", "type": "NonEmptyList<Identifier>", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
         { "name": "mode", "type": "ParameterMode", "optional": false, "note": "Borrow (default) or Mut" },
-        { "name": "param_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec>", "optional": false },
+        { "name": "param_type", "type": "NodeRef<SubtypeIndication | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "default_expression", "type": "Option<Expression>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]
@@ -1554,7 +1580,7 @@
     },
     {
       "name": "PrimaryKind",
-      "values": ["Literal", "BracketAggregate", "Name", "Allocator", "Aggregate", "Tuple", "ParenExpr", "AnnotatedExpr", "TryExpr", "ConditionalExpr", "DeclareExpr"]
+      "values": ["Literal", "BracketAggregate", "Name", "Allocator", "Aggregate", "Tuple", "ParenExpr", "AnnotatedExpr", "TryExpr", "SomeExpr", "NoneLiteral", "ConditionalExpr", "DeclareExpr"]
     },
     {
       "name": "ParameterMode",

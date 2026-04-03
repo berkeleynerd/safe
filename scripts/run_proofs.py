@@ -28,6 +28,7 @@ from _lib.proof_inventory import (
     PR11_8I_CHECKPOINT_FIXTURES,
     PR11_8I1_CHECKPOINT_FIXTURES,
     PR11_8K_CHECKPOINT_FIXTURES,
+    PR11_10A_CHECKPOINT_FIXTURES,
     PROOF_COVERAGE_ROOTS,
     iter_proof_coverage_paths,
 )
@@ -74,6 +75,7 @@ def validate_manifests() -> None:
     validate_manifest("PR11.8i checkpoint manifest", PR11_8I_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8i.1 checkpoint manifest", PR11_8I1_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.8k checkpoint manifest", PR11_8K_CHECKPOINT_FIXTURES)
+    validate_manifest("PR11.10a checkpoint manifest", PR11_10A_CHECKPOINT_FIXTURES)
     validate_manifest("emitted proof regression manifest", EMITTED_PROOF_REGRESSION_FIXTURES)
     validate_manifest("emitted proof manifest", EMITTED_PROOF_FIXTURES)
     validate_manifest(
@@ -207,6 +209,8 @@ def main() -> int:
     checkpoint_i1_failures: list[tuple[str, str]] = []
     checkpoint_k_passed = 0
     checkpoint_k_failures: list[tuple[str, str]] = []
+    checkpoint_10a_passed = 0
+    checkpoint_10a_failures: list[tuple[str, str]] = []
     regression_passed = 0
     regression_failures: list[tuple[str, str]] = []
 
@@ -270,6 +274,11 @@ def main() -> int:
             temp_root=temp_root,
             toolchain=toolchain,
         )
+        checkpoint_10a_passed, checkpoint_10a_failures = run_fixture_group(
+            fixtures=PR11_10A_CHECKPOINT_FIXTURES,
+            temp_root=temp_root,
+            toolchain=toolchain,
+        )
         regression_passed, regression_failures = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
@@ -287,6 +296,7 @@ def main() -> int:
         + checkpoint_i_passed
         + checkpoint_i1_passed
         + checkpoint_k_passed
+        + checkpoint_10a_passed
         + regression_passed
     )
     total_failures = (
@@ -300,6 +310,7 @@ def main() -> int:
         + checkpoint_i_failures
         + checkpoint_i1_failures
         + checkpoint_k_failures
+        + checkpoint_10a_failures
         + regression_failures
     )
 
@@ -361,6 +372,12 @@ def main() -> int:
         passed=checkpoint_k_passed,
         failures=checkpoint_k_failures,
         title="PR11.8k checkpoint",
+        trailing_blank_line=True,
+    )
+    print_summary(
+        passed=checkpoint_10a_passed,
+        failures=checkpoint_10a_failures,
+        title="PR11.10a checkpoint",
         trailing_blank_line=True,
     )
     print_summary(

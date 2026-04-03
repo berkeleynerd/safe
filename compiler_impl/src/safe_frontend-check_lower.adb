@@ -992,6 +992,28 @@ package body Safe_Frontend.Check_Lower is
          Field.Span := Span;
          Result.Fields.Append (Field);
          return Result;
+      elsif UString_Value (Base_Type (Info, Type_Env).Kind) = "record"
+        and then UString_Value (Base_Type (Info, Type_Env).Name)'Length >= 11
+        and then UString_Value (Base_Type (Info, Type_Env).Name)
+          (UString_Value (Base_Type (Info, Type_Env).Name)'First ..
+             UString_Value (Base_Type (Info, Type_Env).Name)'First + 10) = "__optional_"
+      then
+         Result := new CM.Expr_Node;
+         Result.Kind := CM.Expr_Aggregate;
+         Result.Type_Name := Info.Name;
+         Result.Span := Span;
+
+         Field.Field_Name := FT.To_UString ("present");
+         Field.Expr :=
+           new CM.Expr_Node'
+             (Kind       => CM.Expr_Bool,
+              Span       => Span,
+              Type_Name  => FT.To_UString ("boolean"),
+              Bool_Value => False,
+              others     => <>);
+         Field.Span := Span;
+         Result.Fields.Append (Field);
+         return Result;
       elsif Kind = "record" then
          Result := new CM.Expr_Node;
          Result.Kind := CM.Expr_Aggregate;

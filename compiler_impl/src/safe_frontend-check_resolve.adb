@@ -113,6 +113,10 @@ package body Safe_Frontend.Check_Resolve is
    Current_Target_Bits : Positive := 64;
    Current_Public_Channel_Names : String_Vectors.Vector;
    Current_Select_In_Subprogram_Body : Boolean := False;
+   Synthetic_Helper_Types : Type_Maps.Map;
+   Synthetic_Helper_Order : String_Vectors.Vector;
+   Synthetic_Optional_Types : Type_Maps.Map;
+   Synthetic_Optional_Order : String_Vectors.Vector;
 
    function UString_Value (Value : FT.UString) return String is
    begin
@@ -145,6 +149,21 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
       Items.Append (Value);
    end Append_Unique_String;
+
+   procedure Register_Synthetic_Helper_Type
+     (Info : GM.Type_Descriptor) is
+      Name_Text : constant String := UString_Value (Info.Name);
+   begin
+      if Name_Text'Length < 2
+        or else Name_Text (Name_Text'First .. Name_Text'First + 1) /= "__"
+      then
+         return;
+      end if;
+      if not Synthetic_Helper_Types.Contains (Name_Text) then
+         Synthetic_Helper_Types.Include (Name_Text, Info);
+         Append_Unique_String (Synthetic_Helper_Order, Name_Text);
+      end if;
+   end Register_Synthetic_Helper_Type;
 
    function Join_String_Vector
      (Items     : String_Vectors.Vector;
@@ -526,6 +545,26 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
+   function Is_Optional_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Optional_Payload_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
+
+   function Is_Optional_Element_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Definite_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Contains_Channel_Reference_Subcomponent
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
    function Try_Static_String_Length
      (Expr   : CM.Expr_Access;
       Length : out Natural) return Boolean;
@@ -542,6 +581,35 @@ package body Safe_Frontend.Check_Resolve is
 
    function Make_Growable_Array_Type
      (Component_Type : GM.Type_Descriptor) return GM.Type_Descriptor;
+
+   function Make_Optional_Type
+     (Element_Type : GM.Type_Descriptor;
+      Type_Env     : Type_Maps.Map) return GM.Type_Descriptor;
+
+   function Bool_Expr
+     (Value : Boolean;
+      Span  : FT.Source_Span) return CM.Expr_Access;
+
+   function Build_Optional_None_Expr
+     (Optional_Type : GM.Type_Descriptor;
+      Span          : FT.Source_Span) return CM.Expr_Access;
+
+   function Build_Optional_Some_Expr
+     (Optional_Type : GM.Type_Descriptor;
+      Value_Expr    : CM.Expr_Access;
+      Span          : FT.Source_Span) return CM.Expr_Access;
+
+   function Contextualize_Expr_To_Target_Type
+     (Expr      : CM.Expr_Access;
+      Target    : GM.Type_Descriptor;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Path      : String) return CM.Expr_Access;
+
+   procedure Reject_Uncontextualized_None
+     (Expr  : CM.Expr_Access;
+      Path  : String);
 
    function Sanitize_Type_Name_Component (Value : String) return String;
 
@@ -561,6 +629,10 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map) return GM.Type_Descriptor;
+
+   function Resolve_Target_Type
+     (Target   : CM.Expr_Access;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
 
    function Resolve_Type
      (Name     : String;
@@ -747,7 +819,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       case Expr.Kind is
-         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary | CM.Expr_Try =>
+         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary | CM.Expr_Try | CM.Expr_Some =>
             return Expr_Contains_Try (Expr.Prefix)
               or else Expr_Contains_Try (Expr.Inner);
          when CM.Expr_Resolved_Index | CM.Expr_Call | CM.Expr_Apply =>
@@ -835,6 +907,47 @@ package body Safe_Frontend.Check_Resolve is
       return FT.Lowercase (UString_Value (Base.Kind)) = "array"
         and then Base.Growable;
    end Is_Growable_Array_Type;
+
+   function Is_Optional_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Name : constant String := FT.Lowercase (UString_Value (Base.Name));
+   begin
+      return FT.Lowercase (UString_Value (Base.Kind)) = "record"
+        and then Name'Length > 11
+        and then Name (Name'First .. Name'First + 10) = "__optional_";
+   end Is_Optional_Type;
+
+   function Optional_Payload_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+   begin
+      for Field of Base.Variant_Fields loop
+         if UString_Value (Field.Name) = "value" then
+            return Resolve_Type (UString_Value (Field.Type_Name), Type_Env, "", FT.Null_Span);
+         end if;
+      end loop;
+      return Default_Integer;
+   end Optional_Payload_Type;
+
+   function Is_Optional_Element_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+   begin
+      if Kind in "access" | "incomplete" | "null" then
+         return False;
+      end if;
+
+      return Is_Definite_Type (Info, Type_Env)
+        and then not Contains_Channel_Reference_Subcomponent (Info, Type_Env);
+   end Is_Optional_Element_Type_Allowed;
 
    function Try_Static_String_Length
      (Expr   : CM.Expr_Access;
@@ -1023,8 +1136,113 @@ package body Safe_Frontend.Check_Resolve is
       Result.Growable := True;
       Result.Has_Component_Type := True;
       Result.Component_Type := Component_Type.Name;
+      Register_Synthetic_Helper_Type (Result);
       return Result;
    end Make_Growable_Array_Type;
+
+   function Make_Optional_Type
+     (Element_Type : GM.Type_Descriptor;
+      Type_Env     : Type_Maps.Map) return GM.Type_Descriptor
+   is
+      Result  : GM.Type_Descriptor;
+      Disc    : GM.Discriminant_Descriptor;
+      Field   : GM.Type_Field;
+      Variant : GM.Variant_Field;
+   begin
+      Result.Name :=
+        FT.To_UString
+          ("__optional_"
+           & Sanitize_Type_Name_Component (UString_Value (Element_Type.Name)));
+      if Has_Type (Type_Env, UString_Value (Result.Name)) then
+         return Get_Type (Type_Env, UString_Value (Result.Name));
+      end if;
+      Result.Kind := FT.To_UString ("record");
+      Result.Has_Discriminant := True;
+      Result.Discriminant_Name := FT.To_UString ("present");
+      Result.Discriminant_Type := FT.To_UString ("boolean");
+      Result.Has_Discriminant_Default := True;
+      Result.Discriminant_Default_Bool := False;
+
+      Disc.Name := FT.To_UString ("present");
+      Disc.Type_Name := FT.To_UString ("boolean");
+      Disc.Has_Default := True;
+      Disc.Default_Value.Kind := GM.Scalar_Value_Boolean;
+      Disc.Default_Value.Bool_Value := False;
+      Result.Discriminants.Append (Disc);
+
+      Field.Name := FT.To_UString ("value");
+      Field.Type_Name := Element_Type.Name;
+      Result.Fields.Append (Field);
+
+      Variant.Name := FT.To_UString ("value");
+      Variant.Type_Name := Element_Type.Name;
+      Variant.Choice.Kind := GM.Scalar_Value_Boolean;
+      Variant.Choice.Bool_Value := True;
+      Variant.When_True := True;
+      Result.Variant_Discriminant_Name := FT.To_UString ("present");
+      Result.Variant_Fields.Append (Variant);
+
+      if not Has_Type (Synthetic_Optional_Types, UString_Value (Result.Name)) then
+         Put_Type (Synthetic_Optional_Types, UString_Value (Result.Name), Result);
+         Append_Unique_String (Synthetic_Optional_Order, UString_Value (Result.Name));
+      end if;
+      return Result;
+   end Make_Optional_Type;
+
+   function Bool_Expr
+     (Value : Boolean;
+      Span  : FT.Source_Span) return CM.Expr_Access is
+   begin
+      return
+        new CM.Expr_Node'
+          (Kind       => CM.Expr_Bool,
+           Span       => Span,
+           Type_Name  => FT.To_UString ("boolean"),
+           Bool_Value => Value,
+           others     => <>);
+   end Bool_Expr;
+
+   function Build_Optional_None_Expr
+     (Optional_Type : GM.Type_Descriptor;
+      Span          : FT.Source_Span) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access := new CM.Expr_Node;
+      Field  : CM.Aggregate_Field;
+   begin
+      Result.Kind := CM.Expr_Aggregate;
+      Result.Span := Span;
+      Result.Type_Name := Optional_Type.Name;
+
+      Field.Field_Name := FT.To_UString ("present");
+      Field.Expr := Bool_Expr (False, Span);
+      Field.Span := Span;
+      Result.Fields.Append (Field);
+      return Result;
+   end Build_Optional_None_Expr;
+
+   function Build_Optional_Some_Expr
+     (Optional_Type : GM.Type_Descriptor;
+      Value_Expr    : CM.Expr_Access;
+      Span          : FT.Source_Span) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access := new CM.Expr_Node;
+      Field  : CM.Aggregate_Field;
+   begin
+      Result.Kind := CM.Expr_Aggregate;
+      Result.Span := Span;
+      Result.Type_Name := Optional_Type.Name;
+
+      Field.Field_Name := FT.To_UString ("present");
+      Field.Expr := Bool_Expr (True, Span);
+      Field.Span := Span;
+      Result.Fields.Append (Field);
+
+      Field.Field_Name := FT.To_UString ("value");
+      Field.Expr := Value_Expr;
+      Field.Span := (if Value_Expr = null then Span else Value_Expr.Span);
+      Result.Fields.Append (Field);
+      return Result;
+   end Build_Optional_Some_Expr;
 
    function Hidden_Reference_Target_Name (Name : String) return String is
    begin
@@ -1273,6 +1491,7 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Name = ""
         or else Is_Builtin_Name (Name)
+        or else (Name'Length >= 2 and then Name (Name'First .. Name'First + 1) = "__")
         or else Contains_Dot (Name)
         or else (Lowered'Length >= 7 and then Lowered (Lowered'First .. Lowered'First + 6) = "access ")
       then
@@ -1697,6 +1916,10 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Has_Type (Type_Env, Name) then
          return Get_Type (Type_Env, Name);
+      elsif Has_Type (Synthetic_Helper_Types, Name) then
+         return Get_Type (Synthetic_Helper_Types, Name);
+      elsif Has_Type (Synthetic_Optional_Types, Name) then
+         return Get_Type (Synthetic_Optional_Types, Name);
       elsif Name'Length >= Bounded_String_Prefix'Length
         and then
           Name (Name'First .. Name'First + Bounded_String_Prefix'Length - 1) = Bounded_String_Prefix
@@ -1838,6 +2061,7 @@ package body Safe_Frontend.Check_Resolve is
       Result.Name := Tuple_Type_Name (Element_Types);
       Result.Kind := FT.To_UString ("tuple");
       Result.Tuple_Element_Types := Element_Types;
+      Register_Synthetic_Helper_Type (Result);
       return Result;
    end Make_Tuple_Type;
 
@@ -2203,6 +2427,35 @@ package body Safe_Frontend.Check_Resolve is
             begin
                return Result;
             end;
+         when CM.Type_Spec_Optional =>
+            if Spec.Element_Type = null then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Spec.Span,
+                     Message => "optional type is missing an element type"));
+            end if;
+            declare
+               Element_Type : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec
+                   (Spec.Element_Type.all,
+                    Type_Env,
+                    Const_Env,
+                    Path,
+                    Current_Record_Name,
+                    Family_By_Name,
+                    Families);
+            begin
+               if not Is_Optional_Element_Type_Allowed (Element_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Spec.Element_Type.Span,
+                        Message =>
+                          "`optional T` is limited to the admitted value-type subset in PR11.10a"));
+               end if;
+               return Make_Optional_Type (Element_Type, Type_Env);
+            end;
          when CM.Type_Spec_Access_Def =>
             Target := Resolve_Type (Flatten_Name (Spec.Target_Name), Type_Env, Path, Spec.Span);
             Result.Name := FT.To_UString ("access " & UString_Value (Target.Name));
@@ -2301,21 +2554,24 @@ package body Safe_Frontend.Check_Resolve is
 
       case Expr.Kind is
          when CM.Expr_String =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             return Default_String;
          when CM.Expr_Null =>
             Result.Name := FT.To_UString ("null");
             Result.Kind := FT.To_UString ("null");
             return Result;
+         when CM.Expr_None =>
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
+            end if;
+            Result.Name := FT.To_UString ("none");
+            Result.Kind := FT.To_UString ("none");
+            return Result;
          when CM.Expr_Array_Literal =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             elsif not Expr.Elements.Is_Empty then
                return
                  Make_Growable_Array_Type
@@ -2327,10 +2583,8 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             return Make_Growable_Array_Type (Default_Integer);
          when CM.Expr_Tuple =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             declare
                Elements : FT.UString_Vectors.Vector;
@@ -2341,23 +2595,17 @@ package body Safe_Frontend.Check_Resolve is
                return Make_Tuple_Type (Elements);
             end;
          when CM.Expr_Aggregate =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
          when CM.Expr_Real =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             return Default_Float;
          when CM.Expr_Enum_Literal =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
          when CM.Expr_Ident =>
             Name := Expr.Name;
@@ -2435,10 +2683,8 @@ package body Safe_Frontend.Check_Resolve is
             Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env);
             return Field_Type (Prefix_Type, UString_Value (Expr.Selector), Type_Env);
          when CM.Expr_Resolved_Index =>
-            if UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            if UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env);
             if Is_String_Type (Prefix_Type, Type_Env) then
@@ -2464,8 +2710,14 @@ package body Safe_Frontend.Check_Resolve is
                   FT.Null_Span);
             end if;
          when CM.Expr_Conversion =>
-            return Resolve_Type
-              (Flatten_Name (Expr.Target), Type_Env, "", FT.Null_Span);
+            return Resolve_Target_Type (Expr.Target, Type_Env);
+         when CM.Expr_Annotated =>
+            if Expr.Target /= null then
+               return Resolve_Target_Type (Expr.Target, Type_Env);
+            end if;
+            if Expr.Inner /= null then
+               return Expr_Type (Expr.Inner, Var_Types, Functions, Type_Env);
+            end if;
          when CM.Expr_Call =>
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
             if Has_Function (Functions, UString_Value (Name)) then
@@ -2480,11 +2732,18 @@ package body Safe_Frontend.Check_Resolve is
                return Resolve_Type ("long_float", Type_Env, "", FT.Null_Span);
             elsif Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
-            elsif UString_Value (Expr.Type_Name)'Length > 0
-              and then Has_Type (Type_Env, UString_Value (Expr.Type_Name))
-            then
-               return Get_Type (Type_Env, UString_Value (Expr.Type_Name));
+            elsif UString_Value (Expr.Type_Name)'Length > 0 then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
+         when CM.Expr_Some =>
+            declare
+               Payload_Type : constant GM.Type_Descriptor :=
+                 Expr_Type (Expr.Inner, Var_Types, Functions, Type_Env);
+            begin
+               if Is_Optional_Element_Type_Allowed (Payload_Type, Type_Env) then
+                  return Make_Optional_Type (Payload_Type, Type_Env);
+               end if;
+            end;
          when CM.Expr_Try =>
             declare
                Success_Type : GM.Type_Descriptor;
@@ -2585,6 +2844,22 @@ package body Safe_Frontend.Check_Resolve is
       return Default_Integer;
    end Expr_Type;
 
+   function Resolve_Target_Type
+     (Target   : CM.Expr_Access;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor
+   is
+   begin
+      if Target = null then
+         return Default_Integer;
+      elsif Target.Kind = CM.Expr_Subtype_Indication
+        and then Target.Subtype_Spec /= null
+      then
+         return Resolve_Type_Spec (Target.Subtype_Spec.all, Type_Env, Path => "");
+      end if;
+
+      return Resolve_Type (Flatten_Name (Target), Type_Env, "", FT.Null_Span);
+   end Resolve_Target_Type;
+
    function Set_Type
      (Expr : CM.Expr_Access;
       Info : GM.Type_Descriptor) return CM.Expr_Access is
@@ -2668,6 +2943,8 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Expr_Allocator =>
             Recurse (Expr.Value);
          when CM.Expr_Try =>
+            Recurse (Expr.Inner);
+         when CM.Expr_Some =>
             Recurse (Expr.Inner);
          when CM.Expr_Aggregate =>
             for Item of Expr.Fields loop
@@ -2942,8 +3219,47 @@ package body Safe_Frontend.Check_Resolve is
                  (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env));
             end loop;
          when CM.Expr_Annotated =>
+            declare
+               Inner_Result : constant CM.Expr_Access :=
+                 Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
+               Target_Type  : constant GM.Type_Descriptor :=
+                 Resolve_Target_Type (Expr.Target, Type_Env);
+            begin
+               if Inner_Result /= null and then Inner_Result.Kind = CM.Expr_None then
+                  if not Is_Optional_Type (Target_Type, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => "",
+                           Span    => Expr.Span,
+                           Message => "`none` type ascription requires an `optional T` target"));
+                  end if;
+                  Result := Build_Optional_None_Expr (Target_Type, Expr.Span);
+               else
+                  Result := new CM.Expr_Node'(Expr.all);
+                  Result.Inner := Inner_Result;
+               end if;
+            end;
+         when CM.Expr_Some =>
+            declare
+               Inner_Result  : constant CM.Expr_Access :=
+                 Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
+               Payload_Type  : constant GM.Type_Descriptor :=
+                 Expr_Type (Inner_Result, Var_Types, Functions, Type_Env);
+               Optional_Type : GM.Type_Descriptor;
+            begin
+               if not Is_Optional_Element_Type_Allowed (Payload_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => "",
+                        Span    => Expr.Span,
+                        Message =>
+                          "`optional T` is limited to the admitted value-type subset in PR11.10a"));
+               end if;
+               Optional_Type := Make_Optional_Type (Payload_Type, Type_Env);
+               Result := Build_Optional_Some_Expr (Optional_Type, Inner_Result, Expr.Span);
+            end;
+         when CM.Expr_None =>
             Result := new CM.Expr_Node'(Expr.all);
-            Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
          when CM.Expr_Try =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env);
@@ -2953,6 +3269,166 @@ package body Safe_Frontend.Check_Resolve is
 
       return Set_Type (Result, Expr_Type (Result, Var_Types, Functions, Type_Env));
    end Normalize_Expr;
+
+   function Contextualize_Expr_To_Target_Type
+     (Expr      : CM.Expr_Access;
+      Target    : GM.Type_Descriptor;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Path      : String) return CM.Expr_Access
+   is
+      Result     : CM.Expr_Access;
+      Field      : CM.Aggregate_Field;
+      Target_Base : constant GM.Type_Descriptor := Base_Type (Target, Type_Env);
+   begin
+      if Expr = null then
+         return null;
+      end if;
+
+      if Expr.Kind = CM.Expr_None then
+         if Is_Optional_Type (Target, Type_Env) then
+            return Build_Optional_None_Expr (Target, Expr.Span);
+         end if;
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Expr.Span,
+               Message => "`none` requires an expected `optional T` type"));
+      elsif Expr.Kind = CM.Expr_Annotated
+        and then Expr.Inner /= null
+        and then Expr.Inner.Kind = CM.Expr_None
+      then
+         declare
+            Explicit_Target : constant GM.Type_Descriptor :=
+              Resolve_Target_Type (Expr.Target, Type_Env);
+         begin
+            if not Is_Optional_Type (Explicit_Target, Type_Env) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message => "`none` type ascription requires an `optional T` target"));
+            end if;
+            return Build_Optional_None_Expr (Explicit_Target, Expr.Span);
+         end;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Aggregate =>
+            Result := new CM.Expr_Node'(Expr.all);
+            Result.Fields.Clear;
+            for Item of Expr.Fields loop
+               Field := Item;
+               Field.Expr :=
+                 Contextualize_Expr_To_Target_Type
+                   (Item.Expr,
+                    Field_Type (Target_Base, UString_Value (Item.Field_Name), Type_Env),
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Path);
+               Result.Fields.Append (Field);
+            end loop;
+            if UString_Value (Result.Type_Name)'Length = 0 then
+               Result.Type_Name := Target.Name;
+            end if;
+            return Set_Type (Result, Expr_Type (Result, Var_Types, Functions, Type_Env));
+         when CM.Expr_Tuple =>
+            Result := new CM.Expr_Node'(Expr.all);
+            if Is_Tuple_Type (Target_Base, Type_Env)
+              and then Natural (Expr.Elements.Length) =
+                       Natural (Target_Base.Tuple_Element_Types.Length)
+            then
+               Result.Elements.Clear;
+               for Index in Expr.Elements.First_Index .. Expr.Elements.Last_Index loop
+                  Result.Elements.Append
+                    (Contextualize_Expr_To_Target_Type
+                       (Expr.Elements (Index),
+                        Resolve_Type
+                          (UString_Value (Target_Base.Tuple_Element_Types (Index)),
+                           Type_Env,
+                           "",
+                           FT.Null_Span),
+                        Var_Types,
+                        Functions,
+                        Type_Env,
+                        Path));
+               end loop;
+               Result.Type_Name := Target.Name;
+               return Set_Type (Result, Expr_Type (Result, Var_Types, Functions, Type_Env));
+            end if;
+            return Expr;
+         when CM.Expr_Array_Literal =>
+            Result := new CM.Expr_Node'(Expr.all);
+            if Target_Base.Has_Component_Type then
+               Result.Elements.Clear;
+               for Item of Expr.Elements loop
+                  Result.Elements.Append
+                    (Contextualize_Expr_To_Target_Type
+                       (Item,
+                        Resolve_Type
+                          (UString_Value (Target_Base.Component_Type),
+                           Type_Env,
+                           "",
+                           FT.Null_Span),
+                        Var_Types,
+                        Functions,
+                        Type_Env,
+                        Path));
+               end loop;
+               Result.Type_Name := Target.Name;
+               return Set_Type (Result, Expr_Type (Result, Var_Types, Functions, Type_Env));
+            end if;
+            return Expr;
+         when others =>
+            return Expr;
+      end case;
+   end Contextualize_Expr_To_Target_Type;
+
+   procedure Reject_Uncontextualized_None
+     (Expr  : CM.Expr_Access;
+      Path  : String) is
+   begin
+      if Expr = null then
+         return;
+      elsif Expr.Kind = CM.Expr_None then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Expr.Span,
+               Message => "`none` requires an expected `optional T` type"));
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary | CM.Expr_Try =>
+            Reject_Uncontextualized_None (Expr.Prefix, Path);
+            Reject_Uncontextualized_None (Expr.Inner, Path);
+         when CM.Expr_Resolved_Index | CM.Expr_Call | CM.Expr_Apply =>
+            Reject_Uncontextualized_None (Expr.Prefix, Path);
+            Reject_Uncontextualized_None (Expr.Callee, Path);
+            for Item of Expr.Args loop
+               Reject_Uncontextualized_None (Item, Path);
+            end loop;
+         when CM.Expr_Binary =>
+            Reject_Uncontextualized_None (Expr.Left, Path);
+            Reject_Uncontextualized_None (Expr.Right, Path);
+         when CM.Expr_Allocator =>
+            Reject_Uncontextualized_None (Expr.Value, Path);
+         when CM.Expr_Aggregate =>
+            for Item of Expr.Fields loop
+               Reject_Uncontextualized_None (Item.Expr, Path);
+            end loop;
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               Reject_Uncontextualized_None (Item, Path);
+            end loop;
+         when CM.Expr_Some =>
+            Reject_Uncontextualized_None (Expr.Inner, Path);
+         when others =>
+            null;
+      end case;
+   end Reject_Uncontextualized_None;
 
    procedure Validate_Pr112_Expr_Boundaries
      (Expr      : CM.Expr_Access;
@@ -3055,6 +3531,8 @@ package body Safe_Frontend.Check_Resolve is
                Validate_Pr112_Expr_Boundaries (Item, Var_Types, Functions, Type_Env, Path);
             end loop;
          when CM.Expr_Annotated =>
+            Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
+         when CM.Expr_Some =>
             Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
          when CM.Expr_Unary =>
             Validate_Pr112_Expr_Boundaries (Expr.Inner, Var_Types, Functions, Type_Env, Path);
@@ -3232,7 +3710,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       case Expr.Kind is
-         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary =>
+         when CM.Expr_Select | CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary | CM.Expr_Some =>
             Reject_Non_Executable_Try (Expr.Prefix, Path);
             Reject_Non_Executable_Try (Expr.Inner, Path);
          when CM.Expr_Resolved_Index | CM.Expr_Call | CM.Expr_Apply =>
@@ -3461,8 +3939,7 @@ package body Safe_Frontend.Check_Resolve is
                return False;
             end if;
 
-            Target_Info :=
-              Resolve_Type (Flatten_Name (Expr.Target), Type_Env, "", FT.Null_Span);
+            Target_Info := Resolve_Target_Type (Expr.Target, Type_Env);
             if Is_Binary_Type (Target_Info, Type_Env) then
                Result := Wrap_Binary_Static_Value
                  (Inner_Value, Binary_Bit_Width (Target_Info, Type_Env));
@@ -3851,8 +4328,7 @@ package body Safe_Frontend.Check_Resolve is
               (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env, Path);
 
             if Expr.Target /= null then
-               Target_Type :=
-                 Resolve_Type (Flatten_Name (Expr.Target), Type_Env, "", FT.Null_Span);
+               Target_Type := Resolve_Target_Type (Expr.Target, Type_Env);
                if Is_Integerish (Target_Type, Type_Env)
                  and then not Is_Binary_Type (Target_Type, Type_Env)
                  and then not Is_Boolean_Type (Target_Type, Type_Env)
@@ -4218,6 +4694,15 @@ package body Safe_Frontend.Check_Resolve is
          Result.Initializer :=
            Normalize_Expr_Checked
              (Decl.Initializer, Var_Types, Functions, Type_Env, Const_Env, Path);
+         Result.Initializer :=
+           Contextualize_Expr_To_Target_Type
+             (Result.Initializer,
+              Result.Type_Info,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Path);
+         Reject_Uncontextualized_None (Result.Initializer, Path);
          if Result.Initializer.Kind in CM.Expr_Aggregate | CM.Expr_Tuple | CM.Expr_Array_Literal then
             Result.Initializer.Type_Name := Result.Type_Info.Name;
          end if;
@@ -4528,9 +5013,11 @@ package body Safe_Frontend.Check_Resolve is
          Result.Callee :=
            Ident_Expr
              (Name      => "ok",
-              Span      => Span,
-              Type_Name => UString_Value (Info.Name));
+             Span      => Span,
+             Type_Name => UString_Value (Info.Name));
          return Result;
+      elsif Is_Optional_Type (Info, Type_Env) then
+         return Build_Optional_None_Expr (Info, Span);
       elsif Kind = "record" then
          Result := new CM.Expr_Node;
          Result.Kind := CM.Expr_Aggregate;
@@ -5119,7 +5606,15 @@ package body Safe_Frontend.Check_Resolve is
                     Path);
             begin
                Append_Statements (Expanded, Desugared.Preludes);
-               Result.Destructure.Initializer := Desugared.Expr;
+               Result.Destructure.Initializer :=
+                 Contextualize_Expr_To_Target_Type
+                   (Desugared.Expr,
+                    Result.Destructure.Type_Info,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Path);
+               Reject_Uncontextualized_None (Result.Destructure.Initializer, Path);
             end;
             Reject_Static_Bounded_String_Overflow
               (Result.Destructure.Initializer,
@@ -5196,7 +5691,15 @@ package body Safe_Frontend.Check_Resolve is
                  Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
             begin
                Append_Statements (Expanded, Desugared.Preludes);
-               Result.Value := Desugared.Expr;
+               Result.Value :=
+                 Contextualize_Expr_To_Target_Type
+                   (Desugared.Expr,
+                    Target_Info,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    Path);
+               Reject_Uncontextualized_None (Result.Value, Path);
                if Result.Value.Kind = CM.Expr_Resolved_Index
                  and then Result.Value.Prefix /= null
                then
@@ -5288,7 +5791,15 @@ package body Safe_Frontend.Check_Resolve is
                        Path);
                begin
                   Append_Statements (Expanded, Desugared.Preludes);
-                  Result.Value := Desugared.Expr;
+                  Result.Value :=
+                    Contextualize_Expr_To_Target_Type
+                      (Desugared.Expr,
+                       Enclosing_Return_Type,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Path);
+                  Reject_Uncontextualized_None (Result.Value, Path);
                end;
             end if;
 
@@ -7461,6 +7972,10 @@ package body Safe_Frontend.Check_Resolve is
       Current_Target_Bits := Normalized_Target_Bits;
       Current_Public_Channel_Names.Clear;
       Current_Select_In_Subprogram_Body := False;
+      Synthetic_Helper_Types.Clear;
+      Synthetic_Helper_Order.Clear;
+      Synthetic_Optional_Types.Clear;
+      Synthetic_Optional_Order.Clear;
       Add_Builtins (Type_Env);
       Result.Target_Bits := Normalized_Target_Bits;
       Add_Builtin_Functions (Functions);
@@ -7765,10 +8280,6 @@ package body Safe_Frontend.Check_Resolve is
          end case;
       end loop;
 
-      for Hidden_Target of Pending_Hidden_Targets loop
-         Result.Types.Append (Get_Type (Type_Env, Hidden_Target));
-      end loop;
-
       declare
          Visible : Type_Maps.Map := Package_Vars;
          Visible_Constants : Type_Maps.Map;
@@ -8053,6 +8564,22 @@ package body Safe_Frontend.Check_Resolve is
                Result.Tasks.Append (Task_Item);
             end;
          end if;
+      end loop;
+
+      for Hidden_Target of Pending_Hidden_Targets loop
+         Result.Types.Append (Get_Type (Type_Env, Hidden_Target));
+      end loop;
+
+      for Helper_Name of Synthetic_Helper_Order loop
+         if Helper_Name'Length < 8
+           or else Helper_Name (Helper_Name'First .. Helper_Name'First + 7) /= "__tuple_"
+         then
+            Result.Types.Append (Get_Type (Synthetic_Helper_Types, Helper_Name));
+         end if;
+      end loop;
+
+      for Optional_Name of Synthetic_Optional_Order loop
+         Result.Types.Append (Get_Type (Synthetic_Optional_Types, Optional_Name));
       end loop;
 
       return (Success => True, Unit => Result);
