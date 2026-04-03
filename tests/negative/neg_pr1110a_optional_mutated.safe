@@ -1,6 +1,6 @@
 -- Test: neg_pr1110a_optional_mutated
 -- Description: Reassigning an optional invalidates any prior `.present` fact.
--- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optionalt
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optional-t
 -- Expected: REJECT discriminant_check_not_established
 
 package neg_pr1110a_optional_mutated

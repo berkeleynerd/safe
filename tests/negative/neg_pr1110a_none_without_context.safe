@@ -1,6 +1,6 @@
 -- Test: neg_pr1110a_none_without_context
 -- Description: Bare `none` requires an expected `optional T` type.
--- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optionalt
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optional-t
 -- Expected: REJECT expected_optional_none
 
 package neg_pr1110a_none_without_context

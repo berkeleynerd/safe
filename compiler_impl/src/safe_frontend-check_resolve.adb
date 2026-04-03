@@ -931,6 +931,14 @@ package body Safe_Frontend.Check_Resolve is
             return Resolve_Type (UString_Value (Field.Type_Name), Type_Env, "", FT.Null_Span);
          end if;
       end loop;
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => "",
+            Span    => FT.Null_Span,
+            Message =>
+              "internal error: malformed synthetic optional type `"
+              & UString_Value (Base.Name)
+              & "` is missing variant field `value`"));
       return Default_Integer;
    end Optional_Payload_Type;
 
@@ -2743,6 +2751,13 @@ package body Safe_Frontend.Check_Resolve is
                if Is_Optional_Element_Type_Allowed (Payload_Type, Type_Env) then
                   return Make_Optional_Type (Payload_Type, Type_Env);
                end if;
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => "",
+                     Span    => Expr.Span,
+                     Message =>
+                       "`optional T` is limited to the admitted value-type subset in PR11.10a"));
+               return Default_Integer;
             end;
          when CM.Expr_Try =>
             declare

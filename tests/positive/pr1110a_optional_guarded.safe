@@ -1,7 +1,7 @@
 -- Test: pr1110a_optional_guarded
 -- Description: Built-in optional values support guarded `.value` access,
 --   contextual `none`, and absent default initialization.
--- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optionalt
+-- Clause: SAFE@468cf72:docs/PR11.x-series-proposed.md#pr1110a-built-in-optional-t
 -- Expected: ACCEPT
 
 package pr1110a_optional_guarded
