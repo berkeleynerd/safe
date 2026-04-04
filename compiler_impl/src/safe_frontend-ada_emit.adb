@@ -835,6 +835,8 @@ package body Safe_Frontend.Ada_Emit is
    function Sanitize_Type_Name_Component (Value : String) return String;
    function Shared_Wrapper_Object_Name (Root_Name : String) return String;
    function Shared_Wrapper_Type_Name (Root_Name : String) return String;
+   function Shared_Get_All_Name return String;
+   function Shared_Set_All_Name return String;
    function Shared_Field_Getter_Name (Field_Name : String) return String;
    function Shared_Field_Setter_Name (Field_Name : String) return String;
    function Shared_Wrapper_Formal_Type
@@ -992,6 +994,16 @@ package body Safe_Frontend.Ada_Emit is
       return Shared_Wrapper_Object_Name (Root_Name) & "_Wrapper";
    end Shared_Wrapper_Type_Name;
 
+   function Shared_Get_All_Name return String is
+   begin
+      return "Get_All";
+   end Shared_Get_All_Name;
+
+   function Shared_Set_All_Name return String is
+   begin
+      return "Set_All";
+   end Shared_Set_All_Name;
+
    function Shared_Field_Getter_Name (Field_Name : String) return String is
    begin
       return
@@ -1020,7 +1032,9 @@ package body Safe_Frontend.Ada_Emit is
                  FT.To_String (Decl.Names (Decl.Names.First_Index));
             begin
                if Shared_Wrapper_Object_Name (Root_Name) = Wrapper_Name then
-                  if Selector_Name = "Initialize" and then Position = 1 then
+                  if Selector_Name in "Initialize" | "Set_All"
+                    and then Position = 1
+                  then
                      Found := True;
                      return Decl.Type_Info;
                   elsif Position = 1 then
@@ -1077,6 +1091,14 @@ package body Safe_Frontend.Ada_Emit is
          & Type_Name
          & " with Priority => System.Any_Priority'Last is",
          1);
+      Append_Line
+        (Buffer,
+         "function " & Shared_Get_All_Name & " return " & Record_Type & ";",
+         2);
+      Append_Line
+        (Buffer,
+         "procedure " & Shared_Set_All_Name & " (Value : in " & Record_Type & ");",
+         2);
       for Field of Base_Info.Fields loop
          declare
             Field_Type_Name : constant String :=
@@ -1130,6 +1152,24 @@ package body Safe_Frontend.Ada_Emit is
       Base_Info    : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
    begin
       Append_Line (Buffer, "protected body " & Type_Name & " is", 1);
+      Append_Line
+        (Buffer,
+         "function " & Shared_Get_All_Name & " return "
+         & Render_Type_Name (Decl.Type_Info) & " is",
+         2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "return State_Value;", 3);
+      Append_Line (Buffer, "end " & Shared_Get_All_Name & ";", 2);
+      Append_Line (Buffer);
+      Append_Line
+        (Buffer,
+         "procedure " & Shared_Set_All_Name & " (Value : in "
+         & Render_Type_Name (Decl.Type_Info) & ") is",
+         2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "State_Value := Value;", 3);
+      Append_Line (Buffer, "end " & Shared_Set_All_Name & ";", 2);
+      Append_Line (Buffer);
       for Field of Base_Info.Fields loop
          declare
             Field_Type_Name : constant String :=

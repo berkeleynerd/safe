@@ -1,0 +1,11 @@
+package neg_pr1112b_shared_mut_actual
+
+   type settings is record
+      value : integer;
+
+   shared cfg : settings = (value = 1);
+
+   function reset (item : mut settings)
+      item.value = 0;
+
+   reset (cfg);

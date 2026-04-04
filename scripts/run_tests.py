@@ -315,6 +315,7 @@ AST_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr1111b_interface_local.safe",
     REPO_ROOT / "tests" / "positive" / "pr1111c_generic_basics.safe",
     REPO_ROOT / "tests" / "positive" / "pr1112a_shared_field_access.safe",
+    REPO_ROOT / "tests" / "positive" / "pr1112b_shared_snapshot.safe",
 ]
 
 DIAGNOSTIC_GOLDEN_CASES = [
@@ -581,6 +582,11 @@ BUILD_SUCCESS_CASES = [
         REPO_ROOT / "tests" / "build" / "pr1112a_shared_task_build.safe",
         "4\n5\n3\n2\n",
         True,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112b_shared_update_build.safe",
+        "4\n7\n",
+        False,
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
@@ -1088,11 +1094,23 @@ EMITTED_REQUIRED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "positive" / "pr1112a_shared_field_access.safe",
         [
             "protected type Safe_Shared_cfg_Wrapper with Priority => System.Any_Priority'Last is",
+            "function Get_All return settings;",
+            "procedure Set_All (Value : in settings);",
             "function Get_count return",
             "procedure Set_count (Value : in",
             "function Get_nested return",
             "procedure Initialize (Value : in settings);",
             "Safe_Shared_cfg : Safe_Shared_cfg_Wrapper;",
+        ],
+    ),
+    (
+        "shared-root-snapshot-update-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1112b_shared_update_build.safe",
+        [
+            "Safe_Shared_cfg.Set_All (next);",
+            "Safe_Shared_Snapshot_",
+            "Safe_Shared_cfg.Get_All",
+            "Safe_Shared_cfg.Set_All (Safe_Shared_Snapshot_",
         ],
     ),
 ]

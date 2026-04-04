@@ -1,0 +1,27 @@
+package pr1112b_shared_snapshot
+
+   subtype counter is integer (0 to 20);
+
+   type mode is (idle, ready);
+
+   type nested_state is record
+      depth : counter;
+
+   type settings is record
+      count  : counter;
+      status : mode;
+      label  : string (5);
+      nested : nested_state;
+
+   shared cfg : settings = (count = 1, status = idle, label = "hello", nested = (depth = 2));
+
+   local_copy : settings;
+   label_now : string (5) = "-----";
+
+   local_copy = cfg;
+   label_now = cfg.label;
+
+   if local_copy.count == 1 and then local_copy.status == idle and then local_copy.nested.depth == 2 and then label_now == "hello"
+      print (1);
+   else
+      print (0);
