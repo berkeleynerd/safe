@@ -630,6 +630,9 @@ package body Safe_Frontend.Check_Parse is
      (State            : in out Parser_State;
       Allow_Access_Def : Boolean) return CM.Type_Spec;
 
+   function Parse_Subprogram_Spec
+     (State : in out Parser_State) return CM.Subprogram_Spec;
+
    function Parse_Growable_Array_Type_Spec
      (State : in out Parser_State) return CM.Type_Spec
    is
@@ -1402,6 +1405,64 @@ package body Safe_Frontend.Check_Parse is
             Item.Is_Public := Is_Public;
             Item.Name := Name.Lexeme;
             Item.Has_Discriminant := False;
+         elsif Current_Lower (State) = "interface" then
+            declare
+               Last_Span : FT.Source_Span := Current (State).Span;
+            begin
+               if Item.Has_Discriminant then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path_String (State),
+                        Span    => Item.Discriminant.Span,
+                        Message => "interfaces do not support discriminants"));
+               end if;
+               Advance (State);
+               Item.Kind := CM.Type_Decl_Interface;
+               Require_Indent
+                 (State,
+                  "interface members must be indented under `type ... is interface`");
+               while Current (State).Kind not in FL.Dedent | FL.End_Of_File loop
+                  declare
+                     Member : constant CM.Subprogram_Spec := Parse_Subprogram_Spec (State);
+                  begin
+                     if not Member.Has_Receiver then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path_String (State),
+                              Span    => Member.Span,
+                              Message => "interface members require a receiver parameter"));
+                     elsif Member.Receiver.Param_Type.Kind not in
+                       CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication
+                       or else FT.Lowercase (FT.To_String (Member.Receiver.Param_Type.Name)) /=
+                         FT.Lowercase (FT.To_String (Item.Name))
+                     then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path_String (State),
+                              Span    => Member.Receiver.Span,
+                              Message => "interface member receiver type must be the enclosing interface"));
+                     end if;
+                     for Existing of Item.Interface_Members loop
+                        if FT.Lowercase (FT.To_String (Existing.Name)) =
+                          FT.Lowercase (FT.To_String (Member.Name))
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path_String (State),
+                                 Span    => Member.Span,
+                                 Message => "duplicate interface member `" & FT.To_String (Member.Name) & "`"));
+                        end if;
+                     end loop;
+                     Require (State, ";");
+                     Item.Interface_Members.Append (Member);
+                     Last_Span := Member.Span;
+                  end;
+               end loop;
+               Require_Dedent
+                 (State,
+                  "interface members must dedent back to the enclosing declaration level");
+               Item.Span := CM.Join (Start.Span, Last_Span);
+            end;
          elsif Current_Lower (State) = "record" then
             Advance (State);
             declare

@@ -1,0 +1,14 @@
+with provider_printable;
+
+package client_printable_ambiguous
+
+   function (self : provider_printable.widget) label returns string
+      return self.text;
+
+   function render (item : provider_printable.printable) returns string
+      return item.label();
+
+   function total returns integer
+      item : provider_printable.widget = (text = "Bob");
+
+      return render (item).length;

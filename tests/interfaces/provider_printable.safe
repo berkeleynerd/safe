@@ -1,0 +1,10 @@
+package provider_printable
+
+   public type printable is interface
+      function (self : printable) label returns string;
+
+   public type widget is record
+      text : string;
+
+   public function (self : widget) label returns string
+      return self.text;

@@ -105,11 +105,11 @@ contract is documented in [`../docs/artifact_contract.md`](../docs/artifact_cont
 - `<stem>.ast.json`
   The parser AST, shaped to [`../compiler/ast_schema.json`](../compiler/ast_schema.json).
 - `<stem>.typed.json`
-  The typed frontend snapshot (`typed-v4`).
+  The typed frontend snapshot (`typed-v5`).
 - `<stem>.mir.json`
   The lowered MIR document (`mir-v4`).
 - `<stem>.safei.json`
-  The dependency interface contract (`safei-v3`).
+  The dependency interface contract (`safei-v4`).
 
 When `--ada-out-dir <dir>` is provided, `safec emit` also writes emitted
 Ada/SPARK artifacts:
@@ -191,7 +191,7 @@ run the unit.
 
 - Python remains repo glue and orchestration only. The compiler itself is the
   Ada-native `safec` binary.
-- Cross-unit resolution uses emitted `safei-v3` interfaces plus
+- Cross-unit resolution uses emitted `safei-v4` interfaces plus
   `--interface-search-dir`.
 - [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md)
   is the current statement of what is compile-only versus `flow` / `prove`

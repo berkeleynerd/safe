@@ -59,6 +59,47 @@ def validate_type_descriptor(value: Any, path: str) -> dict[str, Any]:
             fail(f"{path}.bit_width must be one of 8, 16, 32, 64")
     if kind == "binary" and "bit_width" not in descriptor:
         fail(f"{path}.bit_width is required for binary types")
+    if "interface_members" in descriptor:
+        members = require_list(descriptor.get("interface_members"), f"{path}.interface_members")
+        for index, item in enumerate(members):
+            member = require_mapping(item, f"{path}.interface_members[{index}]")
+            require_string(member.get("name"), f"{path}.interface_members[{index}].name")
+            params = require_list(member.get("params"), f"{path}.interface_members[{index}].params")
+            for param_index, param_item in enumerate(params):
+                param = require_mapping(
+                    param_item,
+                    f"{path}.interface_members[{index}].params[{param_index}]",
+                )
+                require_string(
+                    param.get("name"),
+                    f"{path}.interface_members[{index}].params[{param_index}].name",
+                )
+                require_string(
+                    param.get("mode"),
+                    f"{path}.interface_members[{index}].params[{param_index}].mode",
+                )
+                require_string(
+                    param.get("type_name"),
+                    f"{path}.interface_members[{index}].params[{param_index}].type_name",
+                )
+            has_return_type = require_boolean(
+                member.get("has_return_type"),
+                f"{path}.interface_members[{index}].has_return_type",
+            )
+            if has_return_type:
+                require_string(
+                    member.get("return_type"),
+                    f"{path}.interface_members[{index}].return_type",
+                )
+            elif member.get("return_type") is not None:
+                fail(
+                    f"{path}.interface_members[{index}].return_type must be null when "
+                    "has_return_type is false"
+                )
+            require_boolean(
+                member.get("return_is_access_def"),
+                f"{path}.interface_members[{index}].return_is_access_def",
+            )
     return descriptor
 
 
@@ -368,8 +409,8 @@ def require_target_bits(value: Any, path: str) -> int:
 
 def validate_typed_payload(payload: Any, *, path: str, ast_payload: dict[str, Any]) -> dict[str, Any]:
     typed = require_mapping(payload, path)
-    if typed.get("format") != "typed-v4":
-        fail(f"{path}.format must be typed-v4")
+    if typed.get("format") != "typed-v5":
+        fail(f"{path}.format must be typed-v5")
     for field in (
         "target_bits",
         "unit_kind",
@@ -552,8 +593,8 @@ def validate_safei_channel_access_summaries(items: Any, path: str) -> list[dict[
 
 def validate_safei_payload(payload: Any, *, path: str) -> dict[str, Any]:
     safei = require_mapping(payload, path)
-    if safei.get("format") != "safei-v3":
-        fail(f"{path}.format must be safei-v3")
+    if safei.get("format") != "safei-v4":
+        fail(f"{path}.format must be safei-v4")
     for field in (
         "target_bits",
         "unit_kind",

@@ -1,0 +1,7 @@
+package neg_pr1111b_public_interface_body
+
+   public type printable is interface
+      function (self : printable) label returns string;
+
+   public function render (item : printable) returns string
+      return item.label();

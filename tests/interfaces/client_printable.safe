@@ -1,0 +1,14 @@
+with provider_printable;
+
+package client_printable
+
+   function render (item : provider_printable.printable) returns string
+      return item.label();
+
+   function total returns integer
+      item : provider_printable.widget = (text = "Bob");
+
+      if render (item) == "Bob"
+         return 1;
+      else
+         return 0;

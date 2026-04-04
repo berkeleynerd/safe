@@ -308,6 +308,15 @@
       ]
     },
     {
+      "node_type": "InterfaceTypeDefinition",
+      "production": "interface_type_definition",
+      "source_section": "8.4",
+      "fields": [
+        { "name": "members", "type": "List<SubprogramSpecification>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
       "node_type": "IndexSubtypeDefinition",
       "production": "index_subtype_definition",
       "source_section": "8.4",

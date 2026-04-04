@@ -13,6 +13,7 @@ package body Safe_Frontend.Check_Resolve is
 
    use type CM.Expr_Access;
    use type CM.Expr_Kind;
+   use type CM.Statement_Access;
    use type CM.Discrete_Range_Kind;
    use type CM.Package_Item_Kind;
    use type CM.Select_Arm_Kind;
@@ -35,6 +36,23 @@ package body Safe_Frontend.Check_Resolve is
       Return_Is_Access_Def : Boolean := False;
       Span                 : FT.Source_Span := FT.Null_Span;
    end record;
+
+   type Interface_Template_Info is record
+      Decl : CM.Subprogram_Body;
+      Info : Function_Info;
+   end record;
+
+   package Interface_Template_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Interface_Template_Info,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => String,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
 
    function Equal_Static_Value
      (Left, Right : CM.Static_Value) return Boolean is
@@ -117,6 +135,11 @@ package body Safe_Frontend.Check_Resolve is
    Synthetic_Helper_Order : String_Vectors.Vector;
    Synthetic_Optional_Types : Type_Maps.Map;
    Synthetic_Optional_Order : String_Vectors.Vector;
+   Current_Interface_Templates : Interface_Template_Maps.Map;
+   Current_Pending_Interface_Specializations : Interface_Template_Maps.Map;
+   Current_Interface_Specialization_Order : String_Vectors.Vector;
+   Current_Interface_Specialization_By_Key : String_Maps.Map;
+   Current_Synthetic_Functions : Function_Maps.Map;
 
    function UString_Value (Value : FT.UString) return String is
    begin
@@ -204,6 +227,8 @@ package body Safe_Frontend.Check_Resolve is
       case Kind is
          when CM.Type_Decl_Record =>
             return "record";
+         when CM.Type_Decl_Interface =>
+            return "interface";
          when CM.Type_Decl_Growable_Array =>
             return "growable array";
          when CM.Type_Decl_Constrained_Array | CM.Type_Decl_Unconstrained_Array =>
@@ -329,14 +354,18 @@ package body Safe_Frontend.Check_Resolve is
      (Map  : Function_Maps.Map;
       Name : String) return Boolean is
    begin
-      return Map.Contains (Canonical_Name (Name));
+      return Map.Contains (Canonical_Name (Name))
+        or else Current_Synthetic_Functions.Contains (Canonical_Name (Name));
    end Has_Function;
 
    function Get_Function
      (Map  : Function_Maps.Map;
      Name : String) return Function_Info is
    begin
-      return Map.Element (Canonical_Name (Name));
+      if Map.Contains (Canonical_Name (Name)) then
+         return Map.Element (Canonical_Name (Name));
+      end if;
+      return Current_Synthetic_Functions.Element (Canonical_Name (Name));
    end Get_Function;
 
    procedure Put_Static_Value
@@ -565,6 +594,10 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
+   function Is_Interface_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
    function Optional_Payload_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
@@ -619,6 +652,30 @@ package body Safe_Frontend.Check_Resolve is
    function Is_Map_Key_Type_Allowed
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
+
+   function Register_Function
+     (Decl      : CM.Subprogram_Body;
+      Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
+      Path      : String) return Function_Info;
+
+   function Specialize_Interface_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
+      Path      : String) return CM.Expr_Access;
+
+   function Interface_Has_Member
+     (Info        : GM.Type_Descriptor;
+      Member_Name : String) return Boolean;
+
+   procedure Validate_Interface_Method_Syntax
+     (Decl     : CM.Subprogram_Body;
+      Info     : Function_Info;
+      Type_Env : Type_Maps.Map;
+      Path     : String);
 
    function Bool_Expr
      (Value : Boolean;
@@ -1026,6 +1083,14 @@ package body Safe_Frontend.Check_Resolve is
         and then Name'Length > 11
         and then Name (Name'First .. Name'First + 10) = "__optional_";
    end Is_Optional_Type;
+
+   function Is_Interface_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+   begin
+      return FT.Lowercase (UString_Value (Base_Type (Info, Type_Env).Kind)) = "interface";
+   end Is_Interface_Type;
 
    function Optional_Payload_Type
      (Info     : GM.Type_Descriptor;
@@ -1611,6 +1676,8 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Kind = "incomplete" then
          return False;
+      elsif Kind = "interface" then
+         return False;
       elsif Info_Kind = "subtype" and then not Info.Discriminant_Constraints.Is_Empty then
          return True;
       elsif Kind = "array" then
@@ -1804,6 +1871,32 @@ package body Safe_Frontend.Check_Resolve is
                Item.Type_Name :=
                  FT.To_UString (Qualify_Name (Package_Name, UString_Value (Item.Type_Name)));
                Result.Variant_Fields.Replace_Element (Index, Item);
+            end;
+         end loop;
+      end if;
+      if not Result.Interface_Members.Is_Empty then
+         for Member_Index in Result.Interface_Members.First_Index .. Result.Interface_Members.Last_Index loop
+            declare
+               Member : GM.Interface_Member := Result.Interface_Members (Member_Index);
+            begin
+               if not Member.Params.Is_Empty then
+                  for Param_Index in Member.Params.First_Index .. Member.Params.Last_Index loop
+                     declare
+                        Param : GM.Signature_Param := Member.Params (Param_Index);
+                     begin
+                        Param.Type_Name :=
+                          FT.To_UString
+                            (Qualify_Name (Package_Name, UString_Value (Param.Type_Name)));
+                        Member.Params.Replace_Element (Param_Index, Param);
+                     end;
+                  end loop;
+               end if;
+               if Member.Has_Return_Type then
+                  Member.Return_Type :=
+                    FT.To_UString
+                      (Qualify_Name (Package_Name, UString_Value (Member.Return_Type)));
+               end if;
+               Result.Interface_Members.Replace_Element (Member_Index, Member);
             end;
          end loop;
       end if;
@@ -3434,6 +3527,302 @@ package body Safe_Frontend.Check_Resolve is
       return Name (Last_Dot + 1 .. Name'Last);
    end Method_Target_Tail_Name;
 
+   function Has_Synthetic_Tail_Compatibility
+     (Source   : GM.Type_Descriptor;
+      Target   : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Source_Base : constant GM.Type_Descriptor := Base_Type (Source, Type_Env);
+      Target_Base : constant GM.Type_Descriptor := Base_Type (Target, Type_Env);
+      Source_Tail : constant String :=
+        Method_Target_Tail_Name (UString_Value (Source_Base.Name));
+      Target_Tail : constant String :=
+        Method_Target_Tail_Name (UString_Value (Target_Base.Name));
+   begin
+      return Source_Tail'Length > 1
+        and then Target_Tail'Length > 1
+        and then Source_Tail (Source_Tail'First .. Source_Tail'First + 1) = "__"
+        and then Target_Tail (Target_Tail'First .. Target_Tail'First + 1) = "__"
+        and then FT.Lowercase (UString_Value (Source_Base.Kind)) =
+          FT.Lowercase (UString_Value (Target_Base.Kind))
+        and then Source_Tail = Target_Tail;
+   end Has_Synthetic_Tail_Compatibility;
+
+   function Method_Source_To_Target_Compatible
+     (Source   : GM.Type_Descriptor;
+      Target   : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return Compatible_Source_To_Target_Type (Source, Target, Type_Env)
+        or else Has_Synthetic_Tail_Compatibility (Source, Target, Type_Env);
+   end Method_Source_To_Target_Compatible;
+
+   function Interface_Member_Compatible_With_Function
+     (Member         : GM.Interface_Member;
+      Concrete_Type  : GM.Type_Descriptor;
+      Info           : Function_Info;
+      Type_Env       : Type_Maps.Map) return Boolean;
+
+   function Builtin_Method_Satisfies_Interface_Member
+     (Name          : String;
+      Concrete_Type : GM.Type_Descriptor;
+      Member        : GM.Interface_Member;
+      Functions     : Function_Maps.Map;
+      Type_Env      : Type_Maps.Map) return Boolean;
+
+   function Type_Satisfies_Interface
+     (Concrete_Type  : GM.Type_Descriptor;
+      Interface_Type : GM.Type_Descriptor;
+      Functions      : Function_Maps.Map;
+      Type_Env       : Type_Maps.Map) return Boolean;
+
+   function Interface_Member_Compatible_With_Function
+     (Member         : GM.Interface_Member;
+      Concrete_Type  : GM.Type_Descriptor;
+      Info           : Function_Info;
+      Type_Env       : Type_Maps.Map) return Boolean
+   is
+   begin
+      if Natural (Member.Params.Length) /= Natural (Info.Params.Length)
+        or else Member.Params.Is_Empty
+      then
+         return False;
+      end if;
+
+      declare
+         Receiver_Param : constant GM.Signature_Param := Member.Params (Member.Params.First_Index);
+         Target_Param   : constant CM.Symbol := Info.Params (Info.Params.First_Index);
+      begin
+         if UString_Value (Receiver_Param.Mode) /= UString_Value (Target_Param.Mode) then
+            return False;
+         elsif not Method_Source_To_Target_Compatible
+           (Concrete_Type,
+            Target_Param.Type_Info,
+            Type_Env)
+         then
+            return False;
+         end if;
+      end;
+
+      if Natural (Member.Params.Length) > 1 then
+         for Offset in 1 .. Natural (Member.Params.Length) - 1 loop
+            declare
+               Member_Param : constant GM.Signature_Param :=
+                 Member.Params (Member.Params.First_Index + Offset);
+               Target_Param : constant CM.Symbol :=
+                 Info.Params (Info.Params.First_Index + Offset);
+               Member_Type  : constant GM.Type_Descriptor :=
+                 Resolve_Type
+                   (UString_Value (Member_Param.Type_Name),
+                    Type_Env,
+                    "",
+                    FT.Null_Span);
+            begin
+               if UString_Value (Member_Param.Mode) /= UString_Value (Target_Param.Mode)
+                 or else not Method_Source_To_Target_Compatible
+                   (Member_Type,
+                    Target_Param.Type_Info,
+                    Type_Env)
+               then
+                  return False;
+               end if;
+            end;
+         end loop;
+      end if;
+
+      if Member.Has_Return_Type /= Info.Has_Return_Type then
+         return False;
+      elsif Member.Has_Return_Type then
+         declare
+            Member_Return : constant GM.Type_Descriptor :=
+              Resolve_Type
+                (UString_Value (Member.Return_Type),
+                 Type_Env,
+                 "",
+                 FT.Null_Span);
+         begin
+            return Method_Source_To_Target_Compatible
+              (Info.Return_Type,
+               Member_Return,
+               Type_Env);
+         end;
+      end if;
+
+      return True;
+   end Interface_Member_Compatible_With_Function;
+
+   function Builtin_Method_Satisfies_Interface_Member
+     (Name          : String;
+      Concrete_Type : GM.Type_Descriptor;
+      Member        : GM.Interface_Member;
+      Functions     : Function_Maps.Map;
+      Type_Env      : Type_Maps.Map) return Boolean
+   is
+      Element_Type : GM.Type_Descriptor;
+      Key_Type     : GM.Type_Descriptor;
+      Value_Type   : GM.Type_Descriptor;
+   begin
+      if Has_Function (Functions, Name) or else Has_Type (Type_Env, Name) then
+         return False;
+      end if;
+
+      if Name = "append" then
+         if Natural (Member.Params.Length) /= 2
+           or else Member.Has_Return_Type
+           or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
+           or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
+         then
+            return False;
+         end if;
+         Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
+         return Method_Source_To_Target_Compatible
+           (Resolve_Type
+              (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+               Type_Env,
+               "",
+               FT.Null_Span),
+            Element_Type,
+            Type_Env);
+      elsif Name = "pop_last" then
+         if Natural (Member.Params.Length) /= 1
+           or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
+           or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
+           or else not Member.Has_Return_Type
+         then
+            return False;
+         end if;
+         Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
+         return Method_Source_To_Target_Compatible
+           (Make_Optional_Type (Element_Type, Type_Env),
+            Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+            Type_Env);
+      elsif Name in "contains" | "get" | "remove" | "set" then
+         if not Try_Map_Key_Value_Types (Concrete_Type, Type_Env, Key_Type, Value_Type) then
+            return False;
+         end if;
+      end if;
+
+      if Name = "contains" then
+         return Natural (Member.Params.Length) = 2
+           and then Member.Has_Return_Type
+           and then Method_Source_To_Target_Compatible
+             (Resolve_Type
+                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                 Type_Env,
+                 "",
+                 FT.Null_Span),
+              Key_Type,
+              Type_Env)
+           and then Method_Source_To_Target_Compatible
+             (BT.Boolean_Type,
+              Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+              Type_Env);
+      elsif Name = "get" then
+         return Natural (Member.Params.Length) = 2
+           and then Member.Has_Return_Type
+           and then Method_Source_To_Target_Compatible
+             (Resolve_Type
+                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                 Type_Env,
+                 "",
+                 FT.Null_Span),
+              Key_Type,
+              Type_Env)
+           and then Method_Source_To_Target_Compatible
+             (Make_Optional_Type (Value_Type, Type_Env),
+              Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+              Type_Env);
+      elsif Name = "remove" then
+         return Natural (Member.Params.Length) = 2
+           and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
+           and then Member.Has_Return_Type
+           and then Method_Source_To_Target_Compatible
+             (Resolve_Type
+                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                 Type_Env,
+                 "",
+                 FT.Null_Span),
+              Key_Type,
+              Type_Env)
+           and then Method_Source_To_Target_Compatible
+             (Make_Optional_Type (Value_Type, Type_Env),
+              Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+              Type_Env);
+      elsif Name = "set" then
+         return Natural (Member.Params.Length) = 3
+           and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
+           and then not Member.Has_Return_Type
+           and then Method_Source_To_Target_Compatible
+             (Resolve_Type
+                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                 Type_Env,
+                 "",
+                 FT.Null_Span),
+              Key_Type,
+              Type_Env)
+           and then Method_Source_To_Target_Compatible
+             (Resolve_Type
+                (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
+                 Type_Env,
+                 "",
+                 FT.Null_Span),
+              Value_Type,
+              Type_Env);
+      end if;
+
+      return False;
+   end Builtin_Method_Satisfies_Interface_Member;
+
+   function Type_Satisfies_Interface
+     (Concrete_Type  : GM.Type_Descriptor;
+      Interface_Type : GM.Type_Descriptor;
+      Functions      : Function_Maps.Map;
+      Type_Env       : Type_Maps.Map) return Boolean
+   is
+      Interface_Info : constant GM.Type_Descriptor := Base_Type (Interface_Type, Type_Env);
+      Match_Count    : Natural;
+   begin
+      if not Is_Interface_Type (Interface_Info, Type_Env) then
+         return False;
+      end if;
+
+      for Member of Interface_Info.Interface_Members loop
+         Match_Count := 0;
+         for Cursor in Functions.Iterate loop
+            declare
+               Candidate_Name : constant String := Function_Maps.Key (Cursor);
+               Tail_Name      : constant String := Method_Target_Tail_Name (Candidate_Name);
+            begin
+               if Tail_Name = UString_Value (Member.Name)
+                 and then Interface_Member_Compatible_With_Function
+                   (Member,
+                    Concrete_Type,
+                    Function_Maps.Element (Cursor),
+                    Type_Env)
+               then
+                  Match_Count := Match_Count + 1;
+               end if;
+            end;
+         end loop;
+
+         if Builtin_Method_Satisfies_Interface_Member
+           (UString_Value (Member.Name),
+            Concrete_Type,
+            Member,
+            Functions,
+            Type_Env)
+         then
+            Match_Count := Match_Count + 1;
+         end if;
+
+         if Match_Count /= 1 then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Type_Satisfies_Interface;
+
    function Name_Expr_From_String
      (Name : String;
       Span : FT.Source_Span) return CM.Expr_Access
@@ -3499,25 +3888,6 @@ package body Safe_Frontend.Check_Resolve is
    is
       Receiver_Type : constant GM.Type_Descriptor :=
         Expr_Type (Receiver_Arg, Var_Types, Functions, Type_Env);
-      function Has_Synthetic_Tail_Compatibility
-        (Source : GM.Type_Descriptor;
-         Target : GM.Type_Descriptor) return Boolean
-      is
-         Source_Base : constant GM.Type_Descriptor := Base_Type (Source, Type_Env);
-         Target_Base : constant GM.Type_Descriptor := Base_Type (Target, Type_Env);
-         Source_Tail : constant String :=
-           Method_Target_Tail_Name (UString_Value (Source_Base.Name));
-         Target_Tail : constant String :=
-           Method_Target_Tail_Name (UString_Value (Target_Base.Name));
-      begin
-         return Source_Tail'Length > 1
-           and then Target_Tail'Length > 1
-           and then Source_Tail (Source_Tail'First .. Source_Tail'First + 1) = "__"
-           and then Target_Tail (Target_Tail'First .. Target_Tail'First + 1) = "__"
-           and then FT.Lowercase (UString_Value (Source_Base.Kind)) =
-             FT.Lowercase (UString_Value (Target_Base.Kind))
-           and then Source_Tail = Target_Tail;
-      end Has_Synthetic_Tail_Compatibility;
    begin
       if Natural (Info.Params.Length) /= Natural (Extra_Args.Length) + 1 then
          return False;
@@ -3529,7 +3899,16 @@ package body Safe_Frontend.Check_Resolve is
          return False;
       end if;
 
-      if not Compatible_Source_Expr_To_Target_Type
+      if Is_Interface_Type (Info.Params (Info.Params.First_Index).Type_Info, Type_Env) then
+         if not Type_Satisfies_Interface
+           (Receiver_Type,
+            Info.Params (Info.Params.First_Index).Type_Info,
+            Functions,
+            Type_Env)
+         then
+            return False;
+         end if;
+      elsif not Compatible_Source_Expr_To_Target_Type
         (Receiver_Arg,
          Receiver_Type,
          Info.Params (Info.Params.First_Index).Type_Info,
@@ -3538,9 +3917,10 @@ package body Safe_Frontend.Check_Resolve is
          Type_Env,
          Const_Env,
          Exact_Length_Maps.Empty_Map)
-        and then not Has_Synthetic_Tail_Compatibility
+        and then not Method_Source_To_Target_Compatible
           (Receiver_Type,
-           Info.Params (Info.Params.First_Index).Type_Info)
+           Info.Params (Info.Params.First_Index).Type_Info,
+           Type_Env)
       then
          return False;
       end if;
@@ -3566,7 +3946,16 @@ package body Safe_Frontend.Check_Resolve is
                     Functions,
                     Type_Env,
                     "");
-               if not Compatible_Source_Expr_To_Target_Type
+               if Is_Interface_Type (Param.Type_Info, Type_Env) then
+                  if not Type_Satisfies_Interface
+                    (Expr_Type (Arg, Var_Types, Functions, Type_Env),
+                     Param.Type_Info,
+                     Functions,
+                     Type_Env)
+                  then
+                     return False;
+                  end if;
+               elsif not Compatible_Source_Expr_To_Target_Type
                  (Arg,
                   Expr_Type (Arg, Var_Types, Functions, Type_Env),
                   Param.Type_Info,
@@ -3575,9 +3964,10 @@ package body Safe_Frontend.Check_Resolve is
                   Type_Env,
                   Const_Env,
                   Exact_Length_Maps.Empty_Map)
-                 and then not Has_Synthetic_Tail_Compatibility
+                 and then not Method_Source_To_Target_Compatible
                    (Expr_Type (Arg, Var_Types, Functions, Type_Env),
-                    Param.Type_Info)
+                    Param.Type_Info,
+                    Type_Env)
                then
                   return False;
                end if;
@@ -4139,6 +4529,14 @@ package body Safe_Frontend.Check_Resolve is
                         end;
                      end;
                   end if;
+                  Result :=
+                    Specialize_Interface_Call
+                      (Result,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Const_Env,
+                       "");
                else
                   Result := new CM.Expr_Node'(Resolved.all);
                   Result.Inner :=
@@ -5467,7 +5865,9 @@ package body Safe_Frontend.Check_Resolve is
      (Decl      : CM.Object_Decl;
       Type_Env  : Type_Maps.Map;
       Const_Env : Static_Value_Maps.Map;
-      Path      : String) return GM.Type_Descriptor is
+      Path      : String) return GM.Type_Descriptor
+   is
+      Result : GM.Type_Descriptor;
    begin
       if Decl.Is_Constant and then not Decl.Has_Initializer then
          Raise_Diag
@@ -5479,9 +5879,18 @@ package body Safe_Frontend.Check_Resolve is
       if Decl.Decl_Type.Kind = CM.Type_Spec_Unknown
         and then UString_Value (Decl.Type_Info.Name)'Length > 0
       then
-         return Decl.Type_Info;
+         Result := Decl.Type_Info;
+      else
+         Result := Resolve_Type_Spec (Decl.Decl_Type, Type_Env, Const_Env, Path);
       end if;
-      return Resolve_Type_Spec (Decl.Decl_Type, Type_Env, Const_Env, Path);
+      if Is_Interface_Type (Result, Type_Env) then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Decl.Span,
+               Message => "interface types are only admitted in parameter positions in PR11.11b"));
+      end if;
+      return Result;
    end Resolve_Decl_Type;
 
    function Normalize_Procedure_Call
@@ -5946,6 +6355,171 @@ package body Safe_Frontend.Check_Resolve is
       Synthetic_Name_Counter := Synthetic_Name_Counter + 1;
       return Prefix & "_" & Ada.Strings.Fixed.Trim (Natural'Image (Synthetic_Name_Counter), Ada.Strings.Both);
    end Next_Synthetic_Name;
+
+   function Named_Type_Spec
+     (Info : GM.Type_Descriptor;
+      Span : FT.Source_Span) return CM.Type_Spec
+   is
+      Result : CM.Type_Spec;
+   begin
+      Result.Kind := CM.Type_Spec_Name;
+      Result.Name := Info.Name;
+      Result.Span := Span;
+      return Result;
+   end Named_Type_Spec;
+
+   function Has_Interface_Params
+     (Info     : Function_Info;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      for Param of Info.Params loop
+         if Is_Interface_Type (Param.Type_Info, Type_Env) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Interface_Params;
+
+   function Specialize_Interface_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map;
+      Path      : String) return CM.Expr_Access
+   is
+      Callee_Name : constant String :=
+        (if Expr = null or else Expr.Callee = null then "" else Flatten_Name (Expr.Callee));
+      Template    : Interface_Template_Info;
+      Clone       : CM.Subprogram_Body;
+      Result      : CM.Expr_Access := Expr;
+      Key         : FT.UString := FT.To_UString (Canonical_Name (Callee_Name));
+      Arg_Index    : Positive := 1;
+      Specialized_Name : FT.UString := FT.To_UString ("");
+      Clone_Info   : Function_Info;
+      Replacement  : GM.Type_Descriptor;
+      Arg          : CM.Expr_Access;
+      Arg_Type     : GM.Type_Descriptor;
+   begin
+      if Callee_Name = ""
+        or else not Current_Interface_Templates.Contains (Canonical_Name (Callee_Name))
+      then
+         return Expr;
+      end if;
+
+      Template := Current_Interface_Templates.Element (Canonical_Name (Callee_Name));
+      if Natural (Expr.Args.Length) /= Natural (Template.Info.Params.Length) then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+               Message =>
+                 "call to `" & Callee_Name & "` expects "
+                 & Ada.Strings.Fixed.Trim (Natural'Image (Natural (Template.Info.Params.Length)), Ada.Strings.Both)
+                 & " arguments"));
+      end if;
+
+      Clone := Template.Decl;
+
+      if Clone.Spec.Has_Receiver then
+         Arg := Expr.Args (Arg_Index);
+         Replacement :=
+           Resolve_Type_Spec (Clone.Spec.Receiver.Param_Type, Type_Env, Const_Env, Path);
+         if Is_Interface_Type (Replacement, Type_Env) then
+            Arg_Type := Expr_Type (Arg, Var_Types, Functions, Type_Env);
+            if Is_Interface_Type (Arg_Type, Type_Env) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Arg.Span,
+                     Message => "interface-constrained calls require concrete receiver types"));
+            elsif not Type_Satisfies_Interface (Arg_Type, Replacement, Functions, Type_Env) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Arg.Span,
+                     Message =>
+                       "receiver type `" & UString_Value (Base_Type (Arg_Type, Type_Env).Name)
+                       & "` does not satisfy interface `"
+                       & UString_Value (Base_Type (Replacement, Type_Env).Name) & "`"));
+            end if;
+            Clone.Spec.Receiver.Param_Type := Named_Type_Spec (Arg_Type, Clone.Spec.Receiver.Param_Type.Span);
+            Key := Key & FT.To_UString ("|") & Arg_Type.Name;
+         end if;
+         Arg_Index := Arg_Index + 1;
+      end if;
+
+      if not Clone.Spec.Params.Is_Empty then
+         for Index in Clone.Spec.Params.First_Index .. Clone.Spec.Params.Last_Index loop
+            declare
+               Param_Group : CM.Parameter_Spec := Clone.Spec.Params (Index);
+               Param_Type  : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec (Param_Group.Param_Type, Type_Env, Const_Env, Path);
+            begin
+               if Is_Interface_Type (Param_Type, Type_Env) then
+                  if Natural (Param_Group.Names.Length) /= 1 then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Param_Group.Span,
+                           Message => "interface-typed parameters must declare exactly one name in PR11.11b"));
+                  end if;
+                  Arg := Expr.Args (Arg_Index);
+                  Arg_Type := Expr_Type (Arg, Var_Types, Functions, Type_Env);
+                  if Is_Interface_Type (Arg_Type, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Arg.Span,
+                           Message => "interface-constrained calls require concrete argument types"));
+                  elsif not Type_Satisfies_Interface (Arg_Type, Param_Type, Functions, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Arg.Span,
+                           Message =>
+                             "argument type `" & UString_Value (Base_Type (Arg_Type, Type_Env).Name)
+                             & "` does not satisfy interface `"
+                             & UString_Value (Base_Type (Param_Type, Type_Env).Name) & "`"));
+                  end if;
+                  Param_Group.Param_Type := Named_Type_Spec (Arg_Type, Param_Group.Param_Type.Span);
+                  Clone.Spec.Params.Replace_Element (Index, Param_Group);
+                  Key := Key & FT.To_UString ("|") & Arg_Type.Name;
+               end if;
+               Arg_Index := Arg_Index + Natural (Param_Group.Names.Length);
+            end;
+         end loop;
+      end if;
+
+      if Current_Interface_Specialization_By_Key.Contains (UString_Value (Key)) then
+         Specialized_Name :=
+           FT.To_UString
+             (Current_Interface_Specialization_By_Key.Element (UString_Value (Key)));
+      else
+         Specialized_Name :=
+           FT.To_UString
+             (Next_Synthetic_Name
+                ("Safe_Interface_" & Sanitize_Type_Name_Component (Method_Target_Tail_Name (Callee_Name))));
+         Clone.Spec.Name := Specialized_Name;
+         Clone.Is_Public := False;
+         Clone_Info :=
+           Register_Function (Clone, Type_Env, Const_Env, Path);
+         Put_Function (Current_Synthetic_Functions, UString_Value (Specialized_Name), Clone_Info);
+         Current_Interface_Specialization_By_Key.Include
+           (UString_Value (Key), UString_Value (Specialized_Name));
+         Current_Pending_Interface_Specializations.Include
+           (Canonical_Name (UString_Value (Specialized_Name)),
+            (Decl => Clone, Info => Clone_Info));
+         Append_Unique_String
+           (Current_Interface_Specialization_Order,
+            UString_Value (Specialized_Name));
+      end if;
+
+      Result := new CM.Expr_Node'(Expr.all);
+      Result.Callee :=
+        Name_Expr_From_String (UString_Value (Specialized_Name), Expr.Callee.Span);
+      return Result;
+   end Specialize_Interface_Call;
 
    procedure Append_Statements
      (Target : in out CM.Statement_Access_Vectors.Vector;
@@ -9614,6 +10188,70 @@ package body Safe_Frontend.Check_Resolve is
       case Decl.Kind is
          when CM.Type_Decl_Incomplete =>
             Result.Kind := FT.To_UString ("incomplete");
+         when CM.Type_Decl_Interface =>
+            Result.Kind := FT.To_UString ("interface");
+            for Member of Decl.Interface_Members loop
+               declare
+                  Member_Info  : GM.Interface_Member;
+                  Param_Info   : GM.Signature_Param;
+               begin
+                  if not Member.Has_Receiver then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Member.Span,
+                           Message => "interface members require a receiver parameter"));
+                  end if;
+
+                  Member_Info.Name := Member.Name;
+                  Param_Info.Name := Member.Receiver.Names (Member.Receiver.Names.First_Index);
+                  Param_Info.Mode := Member.Receiver.Mode;
+                  Param_Info.Type_Name := Decl.Name;
+                  Member_Info.Params.Append (Param_Info);
+
+                  for Param of Member.Params loop
+                     declare
+                        Param_Type : constant GM.Type_Descriptor :=
+                          Resolve_Type_Spec (Param.Param_Type, Type_Env, Const_Env, Path);
+                     begin
+                        if Is_Interface_Type (Param_Type, Type_Env) then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Param.Span,
+                                 Message => "interface member parameters must use concrete non-interface types"));
+                        end if;
+                        for Param_Name of Param.Names loop
+                           Param_Info := (others => <>);
+                           Param_Info.Name := Param_Name;
+                           Param_Info.Mode := Param.Mode;
+                           Param_Info.Type_Name := Param_Type.Name;
+                           Member_Info.Params.Append (Param_Info);
+                        end loop;
+                     end;
+                  end loop;
+
+                  if Member.Has_Return_Type then
+                     declare
+                        Return_Type : constant GM.Type_Descriptor :=
+                          Resolve_Type_Spec (Member.Return_Type, Type_Env, Const_Env, Path);
+                     begin
+                        if Is_Interface_Type (Return_Type, Type_Env) then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Member.Return_Type.Span,
+                                 Message => "interface member returns must use concrete non-interface types"));
+                        end if;
+                        Member_Info.Has_Return_Type := True;
+                        Member_Info.Return_Type := Return_Type.Name;
+                        Member_Info.Return_Is_Access_Def := Member.Return_Is_Access_Def;
+                     end;
+                  end if;
+
+                  Result.Interface_Members.Append (Member_Info);
+               end;
+            end loop;
          when CM.Type_Decl_Integer =>
             Result.Kind := FT.To_UString ("subtype");
             Result.Has_Base := True;
@@ -9757,6 +10395,13 @@ package body Safe_Frontend.Check_Resolve is
                Component_Type : constant GM.Type_Descriptor :=
                  Resolve_Type_Spec (Decl.Component_Type, Type_Env, Const_Env, Path);
             begin
+               if Is_Interface_Type (Component_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Component_Type.Span,
+                        Message => "interface types are only admitted in parameter positions in PR11.11b"));
+               end if;
                Result.Component_Type := Component_Type.Name;
             end;
             Result.Unconstrained := Decl.Kind = CM.Type_Decl_Unconstrained_Array;
@@ -9765,6 +10410,13 @@ package body Safe_Frontend.Check_Resolve is
                Component : constant GM.Type_Descriptor :=
                  Resolve_Type_Spec (Decl.Component_Type, Type_Env, Const_Env, Path);
             begin
+               if Is_Interface_Type (Component, Type_Env) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Component_Type.Span,
+                        Message => "interface types are only admitted in parameter positions in PR11.11b"));
+               end if;
                if FT.Lowercase (UString_Value (Component.Kind)) = "incomplete"
                  and then FT.Lowercase (UString_Value (Component.Name)) =
                           FT.Lowercase (UString_Value (Decl.Name))
@@ -9799,6 +10451,13 @@ package body Safe_Frontend.Check_Resolve is
                   Base_Field : constant GM.Type_Descriptor := Base_Type (Field_Type, Type_Env);
                   Adjusted   : GM.Type_Descriptor := Field_Type;
                begin
+                  if Is_Interface_Type (Field_Type, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Span,
+                           Message => "interface types are only admitted in parameter positions in PR11.11b"));
+                  end if;
                   if FT.Lowercase (UString_Value (Base_Field.Kind)) = "incomplete" then
                      if In_Same_Admitted_Record_Family
                        (Self_Name,
@@ -10014,10 +10673,21 @@ package body Safe_Frontend.Check_Resolve is
                end if;
             end;
          when CM.Type_Decl_Access =>
-            Result.Kind := FT.To_UString ("access");
-            Result.Has_Target := True;
-            Result.Target :=
-              Resolve_Type (Flatten_Name (Decl.Access_Type.Target_Name), Type_Env, Path, Decl.Span).Name;
+            declare
+               Target_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type (Flatten_Name (Decl.Access_Type.Target_Name), Type_Env, Path, Decl.Span);
+            begin
+               if Is_Interface_Type (Target_Info, Type_Env) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Span,
+                        Message => "interface types are only admitted in parameter positions in PR11.11b"));
+               end if;
+               Result.Kind := FT.To_UString ("access");
+               Result.Has_Target := True;
+               Result.Target := Target_Info.Name;
+            end;
             Result.Not_Null := Decl.Access_Type.Not_Null;
             Result.Anonymous := False;
             Result.Is_All := Decl.Access_Type.Is_All;
@@ -10057,10 +10727,10 @@ package body Safe_Frontend.Check_Resolve is
          begin
             Symbol.Name := Decl.Spec.Receiver.Names (Decl.Spec.Receiver.Names.First_Index);
             Symbol.Kind := FT.To_UString ("param");
-            Symbol.Mode := Decl.Spec.Receiver.Mode;
-            Symbol.Span := Decl.Spec.Receiver.Span;
-            Symbol.Type_Info := Param_Type;
-            Result.Params.Append (Symbol);
+               Symbol.Mode := Decl.Spec.Receiver.Mode;
+               Symbol.Span := Decl.Spec.Receiver.Span;
+               Symbol.Type_Info := Param_Type;
+               Result.Params.Append (Symbol);
          end;
       end if;
       for Param of Decl.Spec.Params loop
@@ -10068,6 +10738,15 @@ package body Safe_Frontend.Check_Resolve is
             Param_Type : constant GM.Type_Descriptor :=
               Resolve_Type_Spec (Param.Param_Type, Type_Env, Const_Env, Path);
          begin
+            if Is_Interface_Type (Param_Type, Type_Env)
+              and then Natural (Param.Names.Length) /= 1
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Param.Span,
+                     Message => "interface-typed parameters must declare exactly one name in PR11.11b"));
+            end if;
             for Name of Param.Names loop
                Symbol.Name := Name;
                Symbol.Kind := FT.To_UString ("param");
@@ -10082,9 +10761,238 @@ package body Safe_Frontend.Check_Resolve is
          Result.Has_Return_Type := True;
          Result.Return_Type :=
            Resolve_Type_Spec (Decl.Spec.Return_Type, Type_Env, Const_Env, Path);
+         if Is_Interface_Type (Result.Return_Type, Type_Env) then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Decl.Spec.Return_Type.Span,
+                  Message => "interface types are only admitted in parameter positions in PR11.11b"));
+         end if;
       end if;
       return Result;
    end Register_Function;
+
+   function Interface_Has_Member
+     (Info        : GM.Type_Descriptor;
+      Member_Name : String) return Boolean
+   is
+      Canonical_Member : constant String := Canonical_Name (Member_Name);
+   begin
+      if not Info.Interface_Members.Is_Empty then
+         for Member of Info.Interface_Members loop
+            if Canonical_Name (UString_Value (Member.Name)) = Canonical_Member then
+               return True;
+            end if;
+         end loop;
+      end if;
+      return False;
+   end Interface_Has_Member;
+
+   procedure Validate_Interface_Method_Syntax
+     (Decl     : CM.Subprogram_Body;
+      Info     : Function_Info;
+      Type_Env : Type_Maps.Map;
+      Path     : String)
+   is
+      function Param_Interface_Type (Name : String) return GM.Type_Descriptor is
+      begin
+         if not Info.Params.Is_Empty then
+            for Param of Info.Params loop
+               if UString_Value (Param.Name) = Name
+                 and then Is_Interface_Type (Param.Type_Info, Type_Env)
+               then
+                  return Base_Type (Param.Type_Info, Type_Env);
+               end if;
+            end loop;
+         end if;
+         return (others => <>);
+      end Param_Interface_Type;
+
+      procedure Validate_Expr (Expr : CM.Expr_Access);
+
+      procedure Validate_Statement_List
+        (Statements : CM.Statement_Access_Vectors.Vector);
+
+      procedure Validate_Expr (Expr : CM.Expr_Access) is
+         function Is_Interface_Method_Syntax return Boolean is
+         begin
+            if Expr = null
+              or else Expr.Callee = null
+              or else Expr.Callee.Kind /= CM.Expr_Select
+              or else Expr.Callee.Prefix = null
+              or else Expr.Callee.Prefix.Kind /= CM.Expr_Ident
+            then
+               return False;
+            end if;
+
+            declare
+               Prefix_Interface_Info : constant GM.Type_Descriptor :=
+                 Param_Interface_Type
+                   (UString_Value (Expr.Callee.Prefix.Name));
+            begin
+               return
+                 UString_Value (Prefix_Interface_Info.Name)'Length > 0
+                 and then Interface_Has_Member
+                   (Prefix_Interface_Info,
+                    FT.Lowercase (UString_Value (Expr.Callee.Selector)));
+            end;
+         end Is_Interface_Method_Syntax;
+      begin
+         if Expr = null then
+            return;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Apply | CM.Expr_Call =>
+               if Expr.Callee /= null and then not Expr.Args.Is_Empty then
+                  declare
+                     Callee_Name : constant String :=
+                       Method_Target_Tail_Name (Flatten_Name (Expr.Callee));
+                     First_Arg : constant CM.Expr_Access := Expr.Args (Expr.Args.First_Index);
+                  begin
+                     if not Is_Interface_Method_Syntax
+                       and then First_Arg /= null
+                       and then First_Arg.Kind = CM.Expr_Ident
+                     then
+                        declare
+                           Interface_Info : constant GM.Type_Descriptor :=
+                             Param_Interface_Type (UString_Value (First_Arg.Name));
+                        begin
+                           if UString_Value (Interface_Info.Name)'Length > 0
+                             and then Interface_Has_Member (Interface_Info, Callee_Name)
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Expr.Span,
+                                    Message =>
+                                      "interface member calls on interface-typed parameters must use method syntax in PR11.11b"));
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end if;
+
+               Validate_Expr (Expr.Callee);
+               if not Expr.Args.Is_Empty then
+                  for Arg of Expr.Args loop
+                     Validate_Expr (Arg);
+                  end loop;
+               end if;
+            when CM.Expr_Select =>
+               Validate_Expr (Expr.Prefix);
+            when CM.Expr_Binary =>
+               Validate_Expr (Expr.Left);
+               Validate_Expr (Expr.Right);
+            when CM.Expr_Unary | CM.Expr_Annotated =>
+               Validate_Expr (Expr.Inner);
+            when CM.Expr_Conversion =>
+               Validate_Expr (Expr.Inner);
+            when CM.Expr_Allocator =>
+               Validate_Expr (Expr.Value);
+            when CM.Expr_Aggregate =>
+               if not Expr.Fields.Is_Empty then
+                  for Field of Expr.Fields loop
+                     Validate_Expr (Field.Expr);
+                  end loop;
+               end if;
+            when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+               if not Expr.Elements.Is_Empty then
+                  for Item of Expr.Elements loop
+                     Validate_Expr (Item);
+                  end loop;
+               end if;
+            when CM.Expr_Resolved_Index =>
+               Validate_Expr (Expr.Prefix);
+               if not Expr.Args.Is_Empty then
+                  for Arg of Expr.Args loop
+                     Validate_Expr (Arg);
+                  end loop;
+               end if;
+            when others =>
+               null;
+         end case;
+      end Validate_Expr;
+
+      procedure Validate_Statement_List
+        (Statements : CM.Statement_Access_Vectors.Vector)
+      is
+      begin
+         if Statements.Is_Empty then
+            return;
+         end if;
+
+         for Stmt of Statements loop
+            if Stmt = null then
+               null;
+            else
+               case Stmt.Kind is
+                  when CM.Stmt_Assign =>
+                     Validate_Expr (Stmt.Target);
+                     Validate_Expr (Stmt.Value);
+                  when CM.Stmt_Call =>
+                     Validate_Expr (Stmt.Call);
+                  when CM.Stmt_Return | CM.Stmt_Delay =>
+                     Validate_Expr (Stmt.Value);
+                  when CM.Stmt_Object_Decl =>
+                     Validate_Expr (Stmt.Decl.Initializer);
+                  when CM.Stmt_Destructure_Decl =>
+                     Validate_Expr (Stmt.Decl.Initializer);
+                  when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
+                     Validate_Expr (Stmt.Channel_Name);
+                     Validate_Expr (Stmt.Target);
+                  when CM.Stmt_Send | CM.Stmt_Try_Send =>
+                     Validate_Expr (Stmt.Channel_Name);
+                     Validate_Expr (Stmt.Value);
+                     Validate_Expr (Stmt.Success_Var);
+                  when CM.Stmt_If =>
+                     Validate_Expr (Stmt.Condition);
+                     Validate_Statement_List (Stmt.Then_Stmts);
+                     for Part of Stmt.Elsifs loop
+                        Validate_Expr (Part.Condition);
+                        Validate_Statement_List (Part.Statements);
+                     end loop;
+                     if Stmt.Has_Else then
+                        Validate_Statement_List (Stmt.Else_Stmts);
+                     end if;
+                  when CM.Stmt_Case =>
+                     Validate_Expr (Stmt.Case_Expr);
+                     for Arm of Stmt.Case_Arms loop
+                        Validate_Expr (Arm.Choice);
+                        Validate_Statement_List (Arm.Statements);
+                     end loop;
+                  when CM.Stmt_While =>
+                     Validate_Expr (Stmt.Condition);
+                     Validate_Statement_List (Stmt.Body_Stmts);
+                  when CM.Stmt_For | CM.Stmt_Loop =>
+                     Validate_Statement_List (Stmt.Body_Stmts);
+                  when CM.Stmt_Select =>
+                     for Arm of Stmt.Arms loop
+                        case Arm.Kind is
+                           when CM.Select_Arm_Channel =>
+                              Validate_Expr (Arm.Channel_Data.Channel_Name);
+                              Validate_Statement_List (Arm.Channel_Data.Statements);
+                           when CM.Select_Arm_Delay =>
+                              Validate_Expr (Arm.Delay_Data.Duration_Expr);
+                              Validate_Statement_List (Arm.Delay_Data.Statements);
+                           when others =>
+                              null;
+                        end case;
+                     end loop;
+                  when CM.Stmt_Match =>
+                     Validate_Expr (Stmt.Match_Expr);
+                     for Arm of Stmt.Match_Arms loop
+                        Validate_Statement_List (Arm.Statements);
+                     end loop;
+                  when others =>
+                     null;
+               end case;
+            end if;
+         end loop;
+      end Validate_Statement_List;
+   begin
+      Validate_Statement_List (Decl.Statements);
+   end Validate_Interface_Method_Syntax;
 
    function Resolve_Channel_Declaration
      (Decl     : CM.Channel_Decl;
@@ -10764,6 +11672,11 @@ package body Safe_Frontend.Check_Resolve is
       Current_Target_Bits := Normalized_Target_Bits;
       Current_Public_Channel_Names.Clear;
       Current_Select_In_Subprogram_Body := False;
+      Current_Interface_Templates.Clear;
+      Current_Pending_Interface_Specializations.Clear;
+      Current_Interface_Specialization_Order.Clear;
+      Current_Interface_Specialization_By_Key.Clear;
+      Current_Synthetic_Functions.Clear;
       Synthetic_Helper_Types.Clear;
       Synthetic_Helper_Order.Clear;
       Synthetic_Optional_Types.Clear;
@@ -10902,6 +11815,13 @@ package body Safe_Frontend.Check_Resolve is
                        UString_Value (Unit.Path));
                   Info : GM.Type_Descriptor;
                begin
+                  if Is_Interface_Type (Base, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => UString_Value (Unit.Path),
+                           Span    => Item.Sub_Data.Span,
+                           Message => "interface types are only admitted in parameter positions in PR11.11b"));
+                  end if;
                   Reject_Package_Level_Enum_Collision
                     (UString_Value (Item.Sub_Data.Name),
                      Item.Sub_Data.Span,
@@ -11061,6 +11981,24 @@ package body Safe_Frontend.Check_Resolve is
                        Const_Env,
                        UString_Value (Unit.Path));
                begin
+                  if Has_Interface_Params (Info, Type_Env) then
+                     if Item.Subp_Data.Is_Public then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => UString_Value (Unit.Path),
+                              Span    => Item.Subp_Data.Span,
+                              Message =>
+                                "PR11.11b does not yet admit public subprogram bodies with interface-typed parameters"));
+                     end if;
+                     Validate_Interface_Method_Syntax
+                       (Item.Subp_Data,
+                        Info,
+                        Type_Env,
+                        UString_Value (Unit.Path));
+                     Current_Interface_Templates.Include
+                       (Canonical_Name (UString_Value (Info.Name)),
+                        (Decl => Item.Subp_Data, Info => Info));
+                  end if;
                   Reject_Package_Level_Enum_Collision
                     (UString_Value (Item.Subp_Data.Spec.Name),
                      Item.Subp_Data.Span,
@@ -11122,6 +12060,12 @@ package body Safe_Frontend.Check_Resolve is
                Subprogram.Return_Type := Info.Return_Type;
                Subprogram.Return_Is_Access_Def := Info.Return_Is_Access_Def;
                Subprogram.Span := Info.Span;
+
+               if Has_Interface_Params (Info, Type_Env) then
+                  Subprogram.Is_Interface_Template := True;
+                  Result.Subprograms.Append (Subprogram);
+                  goto Continue_Second_Pass_Item;
+               end if;
 
                for Object_Decl of Result.Objects loop
                   if Object_Decl.Is_Constant then
@@ -11214,6 +12158,7 @@ package body Safe_Frontend.Check_Resolve is
                end;
 
                Result.Subprograms.Append (Subprogram);
+               <<Continue_Second_Pass_Item>>
             end;
          elsif Item.Kind = CM.Item_Task then
             declare
@@ -11357,6 +12302,137 @@ package body Safe_Frontend.Check_Resolve is
             end;
          end if;
       end loop;
+
+      if not Current_Interface_Specialization_Order.Is_Empty then
+         declare
+            Specialization_Index : Positive :=
+              Current_Interface_Specialization_Order.First_Index;
+         begin
+            while Specialization_Index in
+              Current_Interface_Specialization_Order.First_Index
+              .. Current_Interface_Specialization_Order.Last_Index
+            loop
+               declare
+                  Specialized_Name : constant String :=
+                    Current_Interface_Specialization_Order (Specialization_Index);
+               begin
+            declare
+               Template : constant Interface_Template_Info :=
+                 Current_Pending_Interface_Specializations.Element
+                   (Canonical_Name (Specialized_Name));
+               Info         : constant Function_Info := Template.Info;
+               Subprogram   : CM.Resolved_Subprogram;
+               Visible      : Type_Maps.Map := Package_Vars;
+               Visible_Constants : Type_Maps.Map;
+               Visible_Static_Constants : Static_Value_Maps.Map := Const_Env;
+               Local_Decl   : CM.Resolved_Object_Decl;
+            begin
+               Subprogram.Name := Info.Name;
+               Subprogram.Kind := Info.Kind;
+               Subprogram.Is_Synthetic := True;
+               Subprogram.Params := Info.Params;
+               Subprogram.Has_Return_Type := Info.Has_Return_Type;
+               Subprogram.Return_Type := Info.Return_Type;
+               Subprogram.Return_Is_Access_Def := Info.Return_Is_Access_Def;
+               Subprogram.Span := Info.Span;
+
+               for Object_Decl of Result.Objects loop
+                  if Object_Decl.Is_Constant then
+                     for Name of Object_Decl.Names loop
+                        Put_Type
+                          (Visible_Constants,
+                           UString_Value (Name),
+                           Object_Decl.Type_Info);
+                     end loop;
+                  end if;
+               end loop;
+
+               for Param of Info.Params loop
+                  Put_Type (Visible, UString_Value (Param.Name), Param.Type_Info);
+                  Remove_Type (Visible_Constants, UString_Value (Param.Name));
+                  Remove_Static_Value (Visible_Static_Constants, UString_Value (Param.Name));
+               end loop;
+
+               for Decl of Template.Decl.Declarations loop
+                  declare
+                     Normalized : constant CM.Object_Decl :=
+                       Normalize_Object_Decl
+                         (Decl,
+                          Visible,
+                          Functions,
+                          Type_Env,
+                          Visible_Static_Constants,
+                          Exact_Length_Maps.Empty_Map,
+                          UString_Value (Unit.Path));
+                  begin
+                     Local_Decl := (others => <>);
+                     Local_Decl.Names := Normalized.Names;
+                     Local_Decl.Type_Info := Normalized.Type_Info;
+                     Local_Decl.Is_Constant := Normalized.Is_Constant;
+                     Local_Decl.Has_Initializer := Normalized.Has_Initializer;
+                     Local_Decl.Has_Implicit_Default_Init := Normalized.Has_Implicit_Default_Init;
+                     Local_Decl.Span := Normalized.Span;
+                     Local_Decl.Initializer := Normalized.Initializer;
+                     if Local_Decl.Is_Constant
+                       and then Local_Decl.Has_Initializer
+                       and then Try_Static_Value
+                         (Local_Decl.Initializer,
+                          Visible_Static_Constants,
+                          Local_Decl.Static_Info)
+                     then
+                        null;
+                     end if;
+                  end;
+                  Subprogram.Declarations.Append (Local_Decl);
+                  for Name of Decl.Names loop
+                     Put_Type (Visible, UString_Value (Name), Local_Decl.Type_Info);
+                     Update_Constant_Visibility
+                        (Visible_Constants,
+                         UString_Value (Name),
+                         Local_Decl.Type_Info,
+                         Local_Decl.Is_Constant);
+                     Update_Static_Constant_Visibility
+                       (Visible_Static_Constants,
+                        UString_Value (Name),
+                        Local_Decl.Initializer,
+                        Local_Decl.Is_Constant,
+                        Visible_Static_Constants);
+                  end loop;
+               end loop;
+
+               declare
+                  Previous_Select_Context : constant Boolean :=
+                    Current_Select_In_Subprogram_Body;
+               begin
+                  Current_Select_In_Subprogram_Body := True;
+                  Subprogram.Statements :=
+                    Normalize_Statement_List
+                      (Template.Decl.Statements,
+                       Visible,
+                       Functions,
+                       Type_Env,
+                       Channel_Env,
+                       Imported_Objects,
+                       Visible_Constants,
+                       Visible_Static_Constants,
+                       Exact_Length_Maps.Empty_Map,
+                       UString_Value (Unit.Path),
+                       Has_Enclosing_Return => Info.Has_Return_Type,
+                       Enclosing_Return_Type => Info.Return_Type);
+                  Current_Select_In_Subprogram_Body := Previous_Select_Context;
+               exception
+                  when others =>
+                     Current_Select_In_Subprogram_Body := Previous_Select_Context;
+                     raise;
+               end;
+
+               Result.Subprograms.Append (Subprogram);
+            end;
+                  Specialization_Index := Specialization_Index + 1;
+               end;
+            end loop;
+         end;
+      end if;
 
       for Hidden_Target of Pending_Hidden_Targets loop
          Result.Types.Append (Get_Type (Type_Env, Hidden_Target));

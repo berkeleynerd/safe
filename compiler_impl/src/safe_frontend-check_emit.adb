@@ -52,6 +52,13 @@ package body Safe_Frontend.Check_Emit is
    function Shift_Expression_Node (Expr : CM.Expr_Access) return String;
 
    function Type_Json (Info : GM.Type_Descriptor) return String;
+   function Parameter_Spec_Node
+     (Param : CM.Parameter_Spec) return String;
+   function Formal_Part_Node
+     (Params : CM.Parameter_Vectors.Vector;
+      Span   : FT.Source_Span) return String;
+   function Subprogram_Spec_Node
+     (Spec : CM.Subprogram_Spec) return String;
 
    function Operator_String (Value : FT.UString) return String is
    begin
@@ -1388,6 +1395,28 @@ package body Safe_Frontend.Check_Emit is
               & "},""span"":"
               & JS.Span_Object (Decl.Span)
               & "}";
+         when CM.Type_Decl_Interface =>
+            declare
+               Members : String_Vectors.Vector;
+            begin
+               if not Decl.Interface_Members.Is_Empty then
+                  for Member of Decl.Interface_Members loop
+                     Members.Append (Subprogram_Spec_Node (Member));
+                  end loop;
+               end if;
+               return
+                 "{""node_type"":""TypeDeclaration"",""is_public"":"
+                 & JS.Bool_Literal (Decl.Is_Public)
+                 & ",""name"":"
+                 & JS.Quote (Decl.Name)
+                 & ",""discriminant_part"":null,""type_definition"":{""node_type"":""InterfaceTypeDefinition"",""members"":"
+                 & Json_List (Members)
+                 & ",""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "},""span"":"
+                 & JS.Span_Object (Decl.Span)
+                 & "}";
+            end;
          when CM.Type_Decl_Record =>
             declare
                Component_List : constant String := Component_List_Node (Decl);
@@ -2001,6 +2030,42 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Formal_Part_Node;
 
+   function Subprogram_Spec_Node
+     (Spec : CM.Subprogram_Spec) return String is
+   begin
+      if Spec.Has_Return_Type then
+         return
+           "{""node_type"":""FunctionSpecification"",""name"":"
+           & JS.Quote (Spec.Name)
+           & ",""receiver"":"
+           & (if Spec.Has_Receiver
+              then Parameter_Spec_Node (Spec.Receiver)
+              else "null")
+           & ",""formal_part"":"
+           & (if Spec.Params.Is_Empty then "null"
+              else Formal_Part_Node (Spec.Params, Spec.Span))
+           & ",""return_type"":"
+           & Object_Type_Node (Spec.Return_Type)
+           & ",""span"":"
+           & JS.Span_Object (Spec.Span)
+           & "}";
+      end if;
+
+      return
+        "{""node_type"":""ProcedureSpecification"",""name"":"
+        & JS.Quote (Spec.Name)
+        & ",""receiver"":"
+        & (if Spec.Has_Receiver
+           then Parameter_Spec_Node (Spec.Receiver)
+           else "null")
+        & ",""formal_part"":"
+        & (if Spec.Params.Is_Empty then "null"
+           else Formal_Part_Node (Spec.Params, Spec.Span))
+        & ",""span"":"
+        & JS.Span_Object (Spec.Span)
+        & "}";
+   end Subprogram_Spec_Node;
+
    function Signature_For (Subprogram : CM.Resolved_Subprogram) return String is
       Result : US.Unbounded_String := US.Null_Unbounded_String;
    begin
@@ -2060,20 +2125,9 @@ package body Safe_Frontend.Check_Emit is
          return
            "{""node_type"":""SubprogramBody"",""is_public"":"
            & JS.Bool_Literal (Parsed.Is_Public)
-           & ",""spec"":{""node_type"":""FunctionSpecification"",""name"":"
-           & JS.Quote (Parsed.Spec.Name)
-           & ",""receiver"":"
-           & (if Parsed.Spec.Has_Receiver
-              then Parameter_Spec_Node (Parsed.Spec.Receiver)
-              else "null")
-           & ",""formal_part"":"
-           & (if Parsed.Spec.Params.Is_Empty then "null"
-              else Formal_Part_Node (Parsed.Spec.Params, Parsed.Spec.Span))
-           & ",""return_type"":"
-           & Object_Type_Node (Parsed.Spec.Return_Type)
-           & ",""span"":"
-           & JS.Span_Object (Parsed.Spec.Span)
-           & "},""declarative_part"":"
+           & ",""spec"":"
+           & Subprogram_Spec_Node (Parsed.Spec)
+           & ",""declarative_part"":"
            & Json_List (Decls)
            & ",""body"":"
            & Sequence_Node (Parsed.Statements, Resolved.Statements, Parsed.Span)
@@ -2087,18 +2141,9 @@ package body Safe_Frontend.Check_Emit is
       return
         "{""node_type"":""SubprogramBody"",""is_public"":"
         & JS.Bool_Literal (Parsed.Is_Public)
-        & ",""spec"":{""node_type"":""ProcedureSpecification"",""name"":"
-        & JS.Quote (Parsed.Spec.Name)
-        & ",""receiver"":"
-        & (if Parsed.Spec.Has_Receiver
-           then Parameter_Spec_Node (Parsed.Spec.Receiver)
-           else "null")
-        & ",""formal_part"":"
-        & (if Parsed.Spec.Params.Is_Empty then "null"
-           else Formal_Part_Node (Parsed.Spec.Params, Parsed.Spec.Span))
-        & ",""span"":"
-        & JS.Span_Object (Parsed.Spec.Span)
-        & "},""declarative_part"":"
+        & ",""spec"":"
+        & Subprogram_Spec_Node (Parsed.Spec)
+        & ",""declarative_part"":"
         & Json_List (Decls)
         & ",""body"":"
         & Sequence_Node (Parsed.Statements, Resolved.Statements, Parsed.Span)
@@ -2216,6 +2261,8 @@ package body Safe_Frontend.Check_Emit is
                    (Item.Subp_Data,
                     (Name => Item.Subp_Data.Spec.Name,
                      Kind => Item.Subp_Data.Spec.Kind,
+                     Is_Synthetic => False,
+                     Is_Interface_Template => False,
                      Params => <>,
                      Has_Return_Type => False,
                      Return_Type => <>,
@@ -2363,16 +2410,18 @@ package body Safe_Frontend.Check_Emit is
    begin
       if not Resolved.Subprograms.Is_Empty then
          for Subp of Resolved.Subprograms loop
-            Items.Append
-              ("{""name"":"
-               & JS.Quote (Subp.Name)
-               & ",""kind"":"
-               & JS.Quote (Subp.Kind)
-               & ",""signature"":"
-               & JS.Quote (Signature_For (Subp))
-               & ",""span"":"
-               & JS.Span_Object (Subp.Span)
-               & "}");
+            if not Subp.Is_Interface_Template and then not Subp.Is_Synthetic then
+               Items.Append
+                 ("{""name"":"
+                  & JS.Quote (Subp.Name)
+                  & ",""kind"":"
+                  & JS.Quote (Subp.Kind)
+                  & ",""signature"":"
+                  & JS.Quote (Signature_For (Subp))
+                  & ",""span"":"
+                  & JS.Span_Object (Subp.Span)
+                  & "}");
+            end if;
          end loop;
       end if;
       if not Resolved.Tasks.Is_Empty then
@@ -2836,6 +2885,43 @@ package body Safe_Frontend.Check_Emit is
       Fields : String_Vectors.Vector;
    begin
       declare
+         function Signature_Param_Json
+           (Param : GM.Signature_Param) return String is
+         begin
+            return
+              "{""name"":"
+              & JS.Quote (Param.Name)
+              & ",""mode"":"
+              & JS.Quote (Param.Mode)
+              & ",""type_name"":"
+              & JS.Quote (Param.Type_Name)
+              & "}";
+         end Signature_Param_Json;
+
+         function Interface_Member_Json
+           (Member : GM.Interface_Member) return String
+         is
+            Params : String_Vectors.Vector;
+         begin
+            if not Member.Params.Is_Empty then
+               for Param of Member.Params loop
+                  Params.Append (Signature_Param_Json (Param));
+               end loop;
+            end if;
+            return
+              "{""name"":"
+              & JS.Quote (Member.Name)
+              & ",""params"":"
+              & Json_List (Params)
+              & ",""has_return_type"":"
+              & JS.Bool_Literal (Member.Has_Return_Type)
+              & ",""return_type"":"
+              & (if Member.Has_Return_Type then JS.Quote (Member.Return_Type) else "null")
+              & ",""return_is_access_def"":"
+              & JS.Bool_Literal (Member.Return_Is_Access_Def)
+              & "}";
+         end Interface_Member_Json;
+
          function Public_Type_Kind (Value : GM.Type_Descriptor) return String is
          begin
             if FT.To_String (Value.Kind) = "access" then
@@ -2928,6 +3014,16 @@ package body Safe_Frontend.Check_Emit is
                Fields.Append (JS.Quote (Field.Name) & ":" & JS.Quote (Field.Type_Name));
             end loop;
             Items.Append ("""fields"":{" & Join_Object_Fields (Fields) & "}");
+         end if;
+         if not Info.Interface_Members.Is_Empty then
+            declare
+               Members : String_Vectors.Vector;
+            begin
+               for Member of Info.Interface_Members loop
+                  Members.Append (Interface_Member_Json (Member));
+               end loop;
+               Items.Append ("""interface_members"":" & Json_List (Members));
+            end;
          end if;
          if Info.Has_Target then
             Items.Append ("""target"":" & JS.Quote (Info.Target));
@@ -3132,7 +3228,7 @@ package body Safe_Frontend.Check_Emit is
    begin
       return
         "{"
-        & """format"":""typed-v4"","
+        & """format"":""typed-v5"","
         & """target_bits"":" & Positive'Image (Resolved.Target_Bits) & ","
         & """unit_kind"":"
         & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))
@@ -3171,7 +3267,7 @@ package body Safe_Frontend.Check_Emit is
    begin
       return
         "{"
-        & """format"":""safei-v3"","
+        & """format"":""safei-v4"","
         & """target_bits"":" & Positive'Image (Resolved.Target_Bits) & ","
         & """unit_kind"":"
         & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))

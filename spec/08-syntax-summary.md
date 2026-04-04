@@ -119,6 +119,8 @@ basic_declaration ::=
 type_declaration ::=
     [ 'public' ] 'type' defining_identifier [ known_discriminant_part ]
         'is' type_definition ';'
+  | [ 'public' ] 'type' defining_identifier 'is' 'interface'
+        indented_interface_member_list
 
 incomplete_type_declaration ::=
     [ 'public' ] 'type' defining_identifier ';'
@@ -275,6 +277,14 @@ discrete_choice ::=
 
 derived_type_definition ::=
     [ 'limited' ] 'new' subtype_indication
+
+indented_interface_member_list ::=
+    INDENT
+        interface_member_specification { interface_member_specification }
+    DEDENT
+
+interface_member_specification ::=
+    function_specification ';'
 ```
 
 ## 8.5 Subtype Indications
@@ -724,6 +734,18 @@ function model:
   `value.method()` may resolve to `pkg.method(value)`.
 - Bare selectors such as `.length`, `.present`, `.value`, and ordinary field
   access keep their existing meaning unless immediately followed by `(...)`.
+
+For the post-PR11.11b surface, structural interfaces are also admitted with a
+strict subset:
+
+- interface declarations are `type name is interface` plus an indented suite
+  of signature-only members,
+- every interface member must use receiver syntax and the receiver type must be
+  the enclosing interface name,
+- interface types are admitted only in subprogram parameter positions in this
+  milestone,
+- public interface-constrained subprogram bodies remain deferred to a later
+  milestone.
 
 default_expression ::=
     expression

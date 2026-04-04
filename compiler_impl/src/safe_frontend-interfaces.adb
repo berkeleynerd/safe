@@ -419,6 +419,73 @@ package body Safe_Frontend.Interfaces is
       end if;
 
       declare
+         Members : constant JSON_Array := Json_Array_Or_Empty (Value, "interface_members");
+      begin
+         for Index in 1 .. Length (Members) loop
+            declare
+               Item   : constant JSON_Value := Get (Members, Index);
+               Member : GM.Interface_Member;
+            begin
+               if Item.Kind = JSON_Object_Type then
+                  if Has_Field (Item, "name")
+                    and then Get (Item, "name").Kind = JSON_String_Type
+                  then
+                     Member.Name := FT.To_UString (Get (Item, "name"));
+                  end if;
+
+                  declare
+                     Params : constant JSON_Array := Json_Array_Or_Empty (Item, "params");
+                  begin
+                     for Param_Index in 1 .. Length (Params) loop
+                        declare
+                           Param_Item : constant JSON_Value := Get (Params, Param_Index);
+                           Param      : GM.Signature_Param;
+                        begin
+                           if Param_Item.Kind = JSON_Object_Type then
+                              if Has_Field (Param_Item, "name")
+                                and then Get (Param_Item, "name").Kind = JSON_String_Type
+                              then
+                                 Param.Name := FT.To_UString (Get (Param_Item, "name"));
+                              end if;
+                              if Has_Field (Param_Item, "mode")
+                                and then Get (Param_Item, "mode").Kind = JSON_String_Type
+                              then
+                                 Param.Mode := FT.To_UString (Get (Param_Item, "mode"));
+                              end if;
+                              if Has_Field (Param_Item, "type_name")
+                                and then Get (Param_Item, "type_name").Kind = JSON_String_Type
+                              then
+                                 Param.Type_Name := FT.To_UString (Get (Param_Item, "type_name"));
+                              end if;
+                              Member.Params.Append (Param);
+                           end if;
+                        end;
+                     end loop;
+                  end;
+
+                  if Has_Field (Item, "has_return_type")
+                    and then Get (Item, "has_return_type").Kind = JSON_Boolean_Type
+                  then
+                     Member.Has_Return_Type := Get (Get (Item, "has_return_type"));
+                  end if;
+                  if Has_Field (Item, "return_type")
+                    and then Get (Item, "return_type").Kind = JSON_String_Type
+                  then
+                     Member.Return_Type := FT.To_UString (Get (Item, "return_type"));
+                  end if;
+                  if Has_Field (Item, "return_is_access_def")
+                    and then Get (Item, "return_is_access_def").Kind = JSON_Boolean_Type
+                  then
+                     Member.Return_Is_Access_Def := Get (Get (Item, "return_is_access_def"));
+                  end if;
+
+                  Result.Interface_Members.Append (Member);
+               end if;
+            end;
+         end loop;
+      end;
+
+      declare
          Variants : constant JSON_Array := Json_Array_Or_Empty (Value, "variant_fields");
       begin
          for Index in 1 .. Length (Variants) loop
@@ -858,19 +925,23 @@ package body Safe_Frontend.Interfaces is
       declare
          Format : constant String := Require_String (Root, "format", File_Path);
       begin
-         if Format /= "safei-v1" and then Format /= "safei-v2" and then Format /= "safei-v3" then
-            raise Constraint_Error with File_Path & ": format must be safei-v1, safei-v2, or safei-v3";
+         if Format /= "safei-v1"
+           and then Format /= "safei-v2"
+           and then Format /= "safei-v3"
+           and then Format /= "safei-v4"
+         then
+            raise Constraint_Error with File_Path & ": format must be safei-v1, safei-v2, safei-v3, or safei-v4";
          end if;
-         Is_Safei_V2 := Format in "safei-v2" | "safei-v3";
-         Is_Safei_V3 := Format = "safei-v3";
+         Is_Safei_V2 := Format in "safei-v2" | "safei-v3" | "safei-v4";
+         Is_Safei_V3 := Format in "safei-v3" | "safei-v4";
       end;
 
       if Is_Safei_V2 and then not Has_Field (Root, "unit_kind") then
-         raise Constraint_Error with File_Path & ": unit_kind is required for safei-v2/safei-v3";
+         raise Constraint_Error with File_Path & ": unit_kind is required for safei-v2/safei-v3/safei-v4";
       end if;
       if Is_Safei_V3 then
          if not Has_Field (Root, "target_bits") then
-            raise Constraint_Error with File_Path & ": target_bits is required for safei-v3";
+            raise Constraint_Error with File_Path & ": target_bits is required for safei-v3/safei-v4";
          elsif Get (Root, "target_bits").Kind /= JSON_Int_Type then
             raise Constraint_Error with File_Path & ": target_bits must be 32 or 64";
          else

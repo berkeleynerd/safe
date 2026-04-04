@@ -222,6 +222,12 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_imported_method_observe.safe",
         0,
     ),
+    (
+        "imported-interface",
+        REPO_ROOT / "tests" / "interfaces" / "provider_printable.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_printable.safe",
+        0,
+    ),
 ]
 
 INTERFACE_REJECT_CASES = [
@@ -236,6 +242,12 @@ INTERFACE_REJECT_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "provider_optional.safe",
         REPO_ROOT / "tests" / "interfaces" / "client_optional_method_ambiguous.safe",
         "ambiguous method call `unwrap_or_zero`",
+    ),
+    (
+        "ambiguous-interface-satisfaction",
+        REPO_ROOT / "tests" / "interfaces" / "provider_printable.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_printable_ambiguous.safe",
+        "does not satisfy interface",
     ),
 ]
 
@@ -281,6 +293,7 @@ AST_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr1110b_list_basics.safe",
     REPO_ROOT / "tests" / "positive" / "pr1110c_map_basics.safe",
     REPO_ROOT / "tests" / "positive" / "pr1111a_method_syntax.safe",
+    REPO_ROOT / "tests" / "positive" / "pr1111b_interface_local.safe",
 ]
 
 DIAGNOSTIC_GOLDEN_CASES = [
@@ -521,6 +534,11 @@ BUILD_SUCCESS_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr1111a_builtin_methods_build.safe",
         "30\n15\n20\n2\n1\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1111b_interface_builtin_build.safe",
+        "1\n20\n",
         False,
     ),
     (
@@ -815,6 +833,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "build" / "pr118d_for_of_growable_build.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_mutual_family.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_enum.safe",
+    REPO_ROOT / "tests" / "interfaces" / "provider_printable.safe",
     REPO_ROOT / "tests" / "interfaces" / "pr118k_try_while_contract.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_list.safe",
 ]

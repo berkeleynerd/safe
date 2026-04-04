@@ -32,7 +32,7 @@ This section enumerates every feature of ISO/IEC 8652:2023 (Ada 2022) that Safe 
 
 #### 3.9 Tagged Types and Type Extensions
 
-7. **Tagged types (§3.9).** Tagged type declarations, type extensions (§3.9.1), dispatching operations (§3.9.2), abstract types and subprograms (§3.9.3), and interface types (§3.9.4) are excluded. A conforming implementation shall reject any `tagged` type declaration, type extension declaration, `abstract` type or subprogram declaration, or interface type declaration.
+7. **Tagged types (§3.9).** Tagged type declarations, type extensions (§3.9.1), dispatching operations (§3.9.2), abstract types and subprograms (§3.9.3), and Ada interface types (§3.9.4) are excluded. A conforming implementation shall reject any `tagged` type declaration, type extension declaration, `abstract` type or subprogram declaration, or Ada interface type declaration. Safe structural interfaces introduced in PR11.11b are a distinct Safe-only construct; they are compile-time operation contracts, not Ada tagged/interface types.
 
 8. **Related exclusions:** Extension aggregates (§4.3.2), class-wide types, class-wide operations, and all constructs requiring tagged types are excluded as a consequence.
 

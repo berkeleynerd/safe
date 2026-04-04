@@ -3086,12 +3086,14 @@ package body Safe_Frontend.Check_Lower is
       end if;
 
       for Subprogram of Unit.Subprograms loop
-         Result.Graphs.Append
-           (Lower_Subprogram
-              (Subprogram,
-               Unit.Subprograms,
-               Type_Env,
-               Unit.Objects));
+         if not Subprogram.Is_Interface_Template then
+            Result.Graphs.Append
+              (Lower_Subprogram
+                 (Subprogram,
+                  Unit.Subprograms,
+                  Type_Env,
+                  Unit.Objects));
+         end if;
       end loop;
 
       for Task_Item of Unit.Tasks loop

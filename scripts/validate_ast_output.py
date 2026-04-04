@@ -49,6 +49,7 @@ ABSTRACT_TARGETS = {
         "FloatingPointDefinition",
         "UnconstrainedArrayDefinition",
         "ConstrainedArrayDefinition",
+        "InterfaceTypeDefinition",
         "RecordTypeDefinition",
     },
     "Name": {

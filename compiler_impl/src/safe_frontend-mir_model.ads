@@ -89,6 +89,28 @@ package Safe_Frontend.Mir_Model is
      (Index_Type   => Positive,
       Element_Type => Type_Field);
 
+   type Signature_Param is record
+      Name      : FT.UString := FT.To_UString ("");
+      Mode      : FT.UString := FT.To_UString ("");
+      Type_Name : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Signature_Param_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Signature_Param);
+
+   type Interface_Member is record
+      Name                 : FT.UString := FT.To_UString ("");
+      Params               : Signature_Param_Vectors.Vector;
+      Has_Return_Type      : Boolean := False;
+      Return_Type          : FT.UString := FT.To_UString ("");
+      Return_Is_Access_Def : Boolean := False;
+   end record;
+
+   package Interface_Member_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Interface_Member);
+
    type Scalar_Value_Kind is
      (Scalar_Value_None,
       Scalar_Value_Integer,
@@ -155,6 +177,7 @@ package Safe_Frontend.Mir_Model is
       Has_Length_Bound   : Boolean := False;
       Length_Bound       : Natural := 0;
       Fields             : Type_Field_Vectors.Vector;
+      Interface_Members  : Interface_Member_Vectors.Vector;
       Has_Target         : Boolean := False;
       Target             : FT.UString := FT.To_UString ("");
       Has_Base           : Boolean := False;

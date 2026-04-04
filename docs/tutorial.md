@@ -384,6 +384,26 @@ so `value.unwrap_or_zero()`, `items.append(3)`, `items.pop_last()`,
 `m.contains(key)`, `m.get(key)`, `m.set(key, value)`, and `m.remove(key)`
 all lower to the existing ordinary-call forms.
 
+`PR11.11b` then adds structural interfaces as compile-time operation
+contracts. They are not runtime base classes and do not add dynamic dispatch:
+
+```safe
+type printable is interface
+   function (self : printable) label returns string;
+
+type widget is record
+   text : string;
+
+function (self : widget) label returns string
+   return self.text;
+
+function render (item : printable) returns string
+   return item.label();
+```
+
+In this first interface slice, interface types are admitted only in parameter
+positions, and public interface-constrained subprogram bodies remain deferred.
+
 ## 6. "Silver By Construction": D27 In One Page
 
 Safe's Silver level is built around a simple premise:

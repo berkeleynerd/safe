@@ -153,6 +153,22 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Parameter_Spec);
 
+   type Subprogram_Spec is record
+      Kind                  : FT.UString := FT.To_UString ("");
+      Name                  : FT.UString := FT.To_UString ("");
+      Has_Receiver          : Boolean := False;
+      Receiver              : Parameter_Spec;
+      Params                : Parameter_Vectors.Vector;
+      Has_Return_Type       : Boolean := False;
+      Return_Type           : Type_Spec;
+      Return_Is_Access_Def  : Boolean := False;
+      Span                  : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Subprogram_Spec_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Subprogram_Spec);
+
    type Static_Value_Kind is
      (Static_Value_None,
       Static_Value_Integer,
@@ -235,6 +251,7 @@ package Safe_Frontend.Check_Model is
    type Type_Decl_Kind is
      (Type_Decl_Unknown,
       Type_Decl_Incomplete,
+      Type_Decl_Interface,
       Type_Decl_Integer,
       Type_Decl_Binary,
       Type_Decl_Float,
@@ -258,6 +275,7 @@ package Safe_Frontend.Check_Model is
       Indexes        : Array_Index_Vectors.Vector;
       Component_Type : Type_Spec;
       Components     : Component_Decl_Vectors.Vector;
+      Interface_Members : Subprogram_Spec_Vectors.Vector;
       Has_Discriminant : Boolean := False;
       Discriminant     : Discriminant_Spec;
       Discriminants    : Discriminant_Spec_Vectors.Vector;
@@ -413,18 +431,6 @@ package Safe_Frontend.Check_Model is
       Is_Synthetic  : Boolean := False;
    end record;
 
-   type Subprogram_Spec is record
-      Kind                  : FT.UString := FT.To_UString ("");
-      Name                  : FT.UString := FT.To_UString ("");
-      Has_Receiver          : Boolean := False;
-      Receiver              : Parameter_Spec;
-      Params                : Parameter_Vectors.Vector;
-      Has_Return_Type       : Boolean := False;
-      Return_Type           : Type_Spec;
-      Return_Is_Access_Def  : Boolean := False;
-      Span                  : FT.Source_Span := FT.Null_Span;
-   end record;
-
    type Subprogram_Body is record
       Is_Public    : Boolean := False;
       Spec         : Subprogram_Spec;
@@ -545,6 +551,8 @@ package Safe_Frontend.Check_Model is
    type Resolved_Subprogram is record
       Name                 : FT.UString := FT.To_UString ("");
       Kind                 : FT.UString := FT.To_UString ("");
+      Is_Synthetic         : Boolean := False;
+      Is_Interface_Template : Boolean := False;
       Params               : Symbol_Vectors.Vector;
       Has_Return_Type      : Boolean := False;
       Return_Type          : GM.Type_Descriptor;
