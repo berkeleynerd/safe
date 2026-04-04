@@ -12740,6 +12740,93 @@ package body Safe_Frontend.Check_Resolve is
          end if;
       end Reject_Package_Level_Enum_Collision;
 
+      procedure Reject_Shared_Wrapper_Name_Collisions is
+         procedure Reject_If_Collides
+           (Name         : String;
+            Span         : FT.Source_Span;
+            Shared_Root  : String;
+            Wrapper_Name : String) is
+         begin
+            if Canonical_Name (Name) = Canonical_Name (Wrapper_Name) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => UString_Value (Unit.Path),
+                     Span    => Span,
+                     Message =>
+                       "package-level name '" & Name
+                       & "' conflicts with compiler-generated shared wrapper name '"
+                       & Wrapper_Name
+                       & "' for shared object '" & Shared_Root & "'"));
+            end if;
+         end Reject_If_Collides;
+      begin
+         for Item of Unit.Items loop
+            if Item.Kind = CM.Item_Object_Decl
+              and then Item.Obj_Data.Is_Shared
+              and then not Item.Obj_Data.Names.Is_Empty
+            then
+               declare
+                  Shared_Root  : constant String :=
+                    UString_Value (Item.Obj_Data.Names (Item.Obj_Data.Names.First_Index));
+                  Wrapper_Name : constant String :=
+                    Shared_Wrapper_Object_Name (Shared_Root);
+               begin
+                  for Other of Unit.Items loop
+                     case Other.Kind is
+                        when CM.Item_Type_Decl =>
+                           Reject_If_Collides
+                             (UString_Value (Other.Type_Data.Name),
+                              Other.Type_Data.Span,
+                              Shared_Root,
+                              Wrapper_Name);
+                           for Literal of Other.Type_Data.Enum_Literals loop
+                              Reject_If_Collides
+                                (UString_Value (Literal),
+                                 Other.Type_Data.Span,
+                                 Shared_Root,
+                                 Wrapper_Name);
+                           end loop;
+                        when CM.Item_Subtype_Decl =>
+                           Reject_If_Collides
+                             (UString_Value (Other.Sub_Data.Name),
+                              Other.Sub_Data.Span,
+                              Shared_Root,
+                              Wrapper_Name);
+                        when CM.Item_Channel =>
+                           Reject_If_Collides
+                             (UString_Value (Other.Chan_Data.Name),
+                              Other.Chan_Data.Span,
+                              Shared_Root,
+                              Wrapper_Name);
+                        when CM.Item_Object_Decl =>
+                           for Name of Other.Obj_Data.Names loop
+                              Reject_If_Collides
+                                (UString_Value (Name),
+                                 Other.Obj_Data.Span,
+                                 Shared_Root,
+                                 Wrapper_Name);
+                           end loop;
+                        when CM.Item_Task =>
+                           Reject_If_Collides
+                             (UString_Value (Other.Task_Data.Name),
+                              Other.Task_Data.Span,
+                              Shared_Root,
+                              Wrapper_Name);
+                        when CM.Item_Subprogram =>
+                           Reject_If_Collides
+                             (UString_Value (Other.Subp_Data.Spec.Name),
+                              Other.Subp_Data.Span,
+                              Shared_Root,
+                              Wrapper_Name);
+                        when others =>
+                           null;
+                     end case;
+                  end loop;
+               end;
+            end if;
+         end loop;
+      end Reject_Shared_Wrapper_Name_Collisions;
+
       procedure Analyze_Recursive_Type_Families is
          procedure Register_Completed_Local_Type (Decl : CM.Type_Decl) is
             Name : constant String := UString_Value (Decl.Name);
@@ -13606,6 +13693,8 @@ package body Safe_Frontend.Check_Resolve is
                null;
          end case;
       end loop;
+
+      Reject_Shared_Wrapper_Name_Collisions;
 
       declare
          Visible : Type_Maps.Map := Package_Vars;
