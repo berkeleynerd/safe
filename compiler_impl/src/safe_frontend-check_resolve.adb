@@ -2156,7 +2156,8 @@ package body Safe_Frontend.Check_Resolve is
       return Kind /= "interface"
         and then Kind /= "access"
         and then Kind /= "incomplete"
-        and then Kind /= "generic_formal";
+        and then Kind /= "generic_formal"
+        and then not Contains_Channel_Reference_Subcomponent (Base, Type_Env);
    end Is_Generic_Actual_Type_Allowed;
 
    procedure Validate_Generic_Actuals
