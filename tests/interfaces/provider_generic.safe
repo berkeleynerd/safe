@@ -1,0 +1,9 @@
+package provider_generic
+
+   public type pair of (l, r) is record
+      left : l;
+      right : r;
+
+   public function identity of t (value : t) returns t
+      return value;
+

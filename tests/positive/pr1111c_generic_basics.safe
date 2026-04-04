@@ -1,0 +1,28 @@
+package pr1111c_generic_basics
+
+   subtype small_value is integer (0 to 100);
+
+   type pair of (l, r) is record
+      left : l;
+      right : r;
+
+   function identity of t (value : t) returns t
+      return value;
+
+   function sum_pair (item : pair of (small_value, small_value)) returns integer
+      return item.left + item.right;
+
+   function total returns integer
+      values : list of integer = [1, 2, 3];
+      maybe : optional integer = some (4);
+      copied_values : list of integer = identity of list of integer (values);
+      copied_maybe : optional integer = identity of optional integer (maybe);
+      ints : pair of (small_value, small_value) = (left = 10, right = 20);
+
+      if copied_values.length == 3 and then copied_maybe.present
+         if copied_maybe.value == 4 and then sum_pair (ints) == 30
+            return 1;
+         else
+            return 0;
+      else
+         return 0;

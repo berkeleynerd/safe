@@ -4,6 +4,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Json;
+with Safe_Frontend.Source;
 with Safe_Frontend.Mir_Model;
 with Safe_Frontend.Types;
 
@@ -11,6 +12,7 @@ package body Safe_Frontend.Check_Emit is
    package GM renames Safe_Frontend.Mir_Model;
    package FT renames Safe_Frontend.Types;
    package JS renames Safe_Frontend.Json;
+   package FS renames Safe_Frontend.Source;
    package US renames Ada.Strings.Unbounded;
 
    use type CM.Unit_Kind;
@@ -27,6 +29,7 @@ package body Safe_Frontend.Check_Emit is
    use type CM.Type_Decl_Kind;
    use type CM.Type_Spec_Kind;
    use type CM.Type_Spec_Access;
+   use type FT.Source_Span;
 
    function Package_Item_Node
      (Item             : CM.Package_Item;
@@ -59,6 +62,10 @@ package body Safe_Frontend.Check_Emit is
       Span   : FT.Source_Span) return String;
    function Subprogram_Spec_Node
      (Spec : CM.Subprogram_Spec) return String;
+   function Generic_Formals_Node
+     (Formals : CM.Generic_Formal_Vectors.Vector) return String;
+   function Generic_Arguments_Node
+     (Args : CM.Type_Spec_Access_Vectors.Vector) return String;
 
    function Operator_String (Value : FT.UString) return String is
    begin
@@ -141,6 +148,50 @@ package body Safe_Frontend.Check_Emit is
       return US.To_String (Result);
    end Join_Object_Fields;
 
+   function Source_Slice
+     (Path : String;
+      Span : FT.Source_Span) return String
+   is
+      Source      : constant FS.Source_File := FS.Load (Path);
+      Content     : constant String := FT.To_String (Source.Content);
+      Line        : Positive := 1;
+      Column      : Positive := 1;
+      Start_Index : Natural := 0;
+      End_Index   : Natural := 0;
+   begin
+      if Path'Length = 0 or else Span = FT.Null_Span or else Content'Length = 0 then
+         return "";
+      end if;
+
+      for Index in Content'Range loop
+         if Start_Index = 0
+           and then Line = Span.Start_Pos.Line
+           and then Column = Span.Start_Pos.Column
+         then
+            Start_Index := Index;
+         end if;
+
+         if Line = Span.End_Pos.Line and then Column = Span.End_Pos.Column then
+            End_Index := Index;
+         end if;
+
+         if Content (Index) = Ada.Characters.Latin_1.LF then
+            Line := Line + 1;
+            Column := 1;
+         else
+            Column := Column + 1;
+         end if;
+      end loop;
+
+      if Start_Index = 0 then
+         return "";
+      elsif End_Index = 0 then
+         End_Index := Content'Last;
+      end if;
+
+      return Content (Start_Index .. End_Index);
+   end Source_Slice;
+
    function Quoted_Names (Names : FT.UString_Vectors.Vector) return String is
       Result : String_Vectors.Vector;
    begin
@@ -190,8 +241,10 @@ package body Safe_Frontend.Check_Emit is
    end Package_Name_Node;
 
    function Name_From_String
-     (Name : String;
-      Span : FT.Source_Span) return String
+     (Name         : String;
+      Span         : FT.Source_Span;
+      Generic_Args : CM.Type_Spec_Access_Vectors.Vector :=
+        CM.Type_Spec_Access_Vectors.Empty_Vector) return String
    is
       Parts : String_Vectors.Vector;
       Start : Positive := Name'First;
@@ -199,7 +252,7 @@ package body Safe_Frontend.Check_Emit is
    begin
       if Name'Length = 0 then
          return
-           "{""node_type"":""DirectName"",""identifier"":"""",""span"":"
+           "{""node_type"":""DirectName"",""identifier"":"""",""generic_arguments"":null,""span"":"
            & JS.Span_Object (Span)
            & "}";
       end if;
@@ -220,6 +273,10 @@ package body Safe_Frontend.Check_Emit is
         US.To_Unbounded_String
           ("{""node_type"":""DirectName"",""identifier"":"
            & JS.Quote (Parts (Parts.First_Index))
+           & ",""generic_arguments"":"
+           & (if Natural (Parts.Length) = 1 and then not Generic_Args.Is_Empty
+              then Generic_Arguments_Node (Generic_Args)
+              else "null")
            & ",""span"":"
            & JS.Span_Object (Span)
            & "}");
@@ -232,6 +289,10 @@ package body Safe_Frontend.Check_Emit is
                  & US.To_String (Result)
                  & ",""selector"":"
                  & JS.Quote (Parts (Index))
+                 & ",""generic_arguments"":"
+                 & (if Index = Parts.Last_Index and then not Generic_Args.Is_Empty
+                    then Generic_Arguments_Node (Generic_Args)
+                    else "null")
                  & ",""resolved_kind"":null,""span"":"
                  & JS.Span_Object (Span)
                  & "}");
@@ -239,6 +300,53 @@ package body Safe_Frontend.Check_Emit is
       end if;
       return US.To_String (Result);
    end Name_From_String;
+
+   function Generic_Formals_Node
+     (Formals : CM.Generic_Formal_Vectors.Vector) return String
+   is
+      Items : String_Vectors.Vector;
+   begin
+      if not Formals.Is_Empty then
+         for Formal of Formals loop
+            Items.Append
+              ("{""node_type"":""GenericFormal"",""name"":"
+               & JS.Quote (Formal.Name)
+               & ",""constraint_name"":"
+               & (if Formal.Has_Constraint
+                  then Name_From_String
+                    (FT.To_String (Formal.Constraint_Name),
+                     Formal.Span)
+                  else "null")
+               & ",""span"":"
+               & JS.Span_Object (Formal.Span)
+               & "}");
+         end loop;
+      end if;
+      return Json_List (Items);
+   end Generic_Formals_Node;
+
+   function Generic_Arguments_Node
+     (Args : CM.Type_Spec_Access_Vectors.Vector) return String
+   is
+      Items : String_Vectors.Vector;
+   begin
+      if not Args.Is_Empty then
+         for Arg of Args loop
+            Items.Append (Object_Type_Node (Arg.all));
+         end loop;
+      end if;
+      return Json_List (Items);
+   end Generic_Arguments_Node;
+
+   function Generic_Formals_Field
+     (Formals : CM.Generic_Formal_Vectors.Vector) return String is
+   begin
+      return
+        ",""generic_formals"":"
+        & (if Formals.Is_Empty
+           then "null"
+           else Generic_Formals_Node (Formals));
+   end Generic_Formals_Field;
 
    function Name_Node (Expr : CM.Expr_Access) return String;
    function Type_Target_Node (Expr : CM.Expr_Access) return String;
@@ -291,6 +399,9 @@ package body Safe_Frontend.Check_Emit is
             return
               "{""node_type"":""DirectName"",""identifier"":"
               & JS.Quote (Expr.Name)
+              & ",""generic_arguments"":"
+              & (if Expr.Generic_Args.Is_Empty then "null"
+                 else Generic_Arguments_Node (Expr.Generic_Args))
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
@@ -300,6 +411,9 @@ package body Safe_Frontend.Check_Emit is
               & Name_Node (Expr.Prefix)
               & ",""selector"":"
               & JS.Quote (Expr.Selector)
+              & ",""generic_arguments"":"
+              & (if Expr.Generic_Args.Is_Empty then "null"
+                 else Generic_Arguments_Node (Expr.Generic_Args))
               & ",""resolved_kind"":"
               & Selector_Kind
               & ",""span"":"
@@ -456,7 +570,8 @@ package body Safe_Frontend.Check_Emit is
       elsif Bit_Width /= 0 then
          return Binary_Type_Definition_Node (Positive (Bit_Width), Spec.Span);
       end if;
-      return Name_From_String (FT.To_String (Spec.Name), Spec.Span);
+      return Name_From_String
+        (FT.To_String (Spec.Name), Spec.Span, Spec.Generic_Args);
    end Subtype_Mark_Node;
 
    function Constraint_Node
@@ -1247,6 +1362,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""span"":"
               & JS.Span_Object (Decl.Span)
               & "}";
@@ -1256,6 +1372,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""SignedIntegerTypeDefinition"",""low_bound"":"
@@ -1273,6 +1390,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":"
@@ -1286,6 +1404,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""FloatingPointDefinition"",""digits_expr"":"
@@ -1314,6 +1433,7 @@ package body Safe_Frontend.Check_Emit is
                  & JS.Bool_Literal (Decl.Is_Public)
                  & ",""name"":"
                  & JS.Quote (Decl.Name)
+                 & Generic_Formals_Field (Decl.Generic_Formals)
                  & ",""discriminant_part"":"
                  & Discriminant_Part_Node (Decl)
                  & ",""type_definition"":{""node_type"":""EnumerationTypeDefinition"",""enumerators"":"
@@ -1340,6 +1460,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""ConstrainedArrayDefinition"",""index_ranges"":"
@@ -1367,6 +1488,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""UnconstrainedArrayDefinition"",""index_subtypes"":"
@@ -1386,6 +1508,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""GrowableArrayDefinition"",""element_type"":"
@@ -1409,6 +1532,7 @@ package body Safe_Frontend.Check_Emit is
                  & JS.Bool_Literal (Decl.Is_Public)
                  & ",""name"":"
                  & JS.Quote (Decl.Name)
+                 & Generic_Formals_Field (Decl.Generic_Formals)
                  & ",""discriminant_part"":null,""type_definition"":{""node_type"":""InterfaceTypeDefinition"",""members"":"
                  & Json_List (Members)
                  & ",""span"":"
@@ -1426,6 +1550,7 @@ package body Safe_Frontend.Check_Emit is
                  & JS.Bool_Literal (Decl.Is_Public)
                  & ",""name"":"
                  & JS.Quote (Decl.Name)
+                 & Generic_Formals_Field (Decl.Generic_Formals)
                  & ",""discriminant_part"":"
                  & Discriminant_Part_Node (Decl)
                  & ",""type_definition"":{""node_type"":""RecordTypeDefinition"""
@@ -1449,6 +1574,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":"
@@ -1462,6 +1588,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Bool_Literal (Decl.Is_Public)
               & ",""name"":"
               & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
               & ",""discriminant_part"":"
               & Discriminant_Part_Node (Decl)
               & ",""type_definition"":{""node_type"":""SignedIntegerTypeDefinition"",""low_bound"":"
@@ -2037,6 +2164,10 @@ package body Safe_Frontend.Check_Emit is
          return
            "{""node_type"":""FunctionSpecification"",""name"":"
            & JS.Quote (Spec.Name)
+           & ",""generic_formals"":"
+           & (if Spec.Generic_Formals.Is_Empty
+              then "null"
+              else Generic_Formals_Node (Spec.Generic_Formals))
            & ",""receiver"":"
            & (if Spec.Has_Receiver
               then Parameter_Spec_Node (Spec.Receiver)
@@ -2054,6 +2185,10 @@ package body Safe_Frontend.Check_Emit is
       return
         "{""node_type"":""ProcedureSpecification"",""name"":"
         & JS.Quote (Spec.Name)
+        & ",""generic_formals"":"
+        & (if Spec.Generic_Formals.Is_Empty
+           then "null"
+           else Generic_Formals_Node (Spec.Generic_Formals))
         & ",""receiver"":"
         & (if Spec.Has_Receiver
            then Parameter_Spec_Node (Spec.Receiver)
@@ -2263,6 +2398,9 @@ package body Safe_Frontend.Check_Emit is
                      Kind => Item.Subp_Data.Spec.Kind,
                      Is_Synthetic => False,
                      Is_Interface_Template => False,
+                     Is_Generic_Template => False,
+                     Force_Body_Emission => False,
+                     Generic_Formals => <>,
                      Params => <>,
                      Has_Return_Type => False,
                      Return_Type => <>,
@@ -2410,7 +2548,10 @@ package body Safe_Frontend.Check_Emit is
    begin
       if not Resolved.Subprograms.Is_Empty then
          for Subp of Resolved.Subprograms loop
-            if not Subp.Is_Interface_Template and then not Subp.Is_Synthetic then
+            if not Subp.Is_Interface_Template
+              and then not Subp.Is_Generic_Template
+              and then not Subp.Is_Synthetic
+            then
                Items.Append
                  ("{""name"":"
                   & JS.Quote (Subp.Name)
@@ -2690,6 +2831,20 @@ package body Safe_Frontend.Check_Emit is
       Items            : String_Vectors.Vector;
       Subprogram_Index : Natural := 0;
       Params           : String_Vectors.Vector;
+      function Generic_Formal_Json
+        (Formal : CM.Generic_Formal) return String is
+      begin
+         return
+           "{""name"":"
+           & JS.Quote (Formal.Name)
+           & ",""has_constraint"":"
+           & JS.Bool_Literal (Formal.Has_Constraint)
+           & ",""constraint_name"":"
+           & (if Formal.Has_Constraint
+              then JS.Quote (Formal.Constraint_Name)
+              else "null")
+           & "}";
+      end Generic_Formal_Json;
    begin
       for Item of Parsed.Items loop
          if Item.Kind = CM.Item_Subprogram then
@@ -2705,22 +2860,35 @@ package body Safe_Frontend.Check_Emit is
                   for Param of Subp.Params loop
                      Params.Append (Param_Json (Param));
                   end loop;
-                  Items.Append
-                    ("{""name"":"
-                     & JS.Quote (Subp.Name)
-                     & ",""kind"":"
-                     & JS.Quote (Subp.Kind)
-                     & ",""signature"":"
-                     & JS.Quote (Signature_For (Subp))
-                     & ",""params"":"
-                     & Json_List (Params)
-                     & ",""has_return_type"":"
-                     & JS.Bool_Literal (Subp.Has_Return_Type)
-                     & ",""return_type"":"
-                     & (if Subp.Has_Return_Type then Type_Json (Subp.Return_Type) else "null")
-                     & ",""span"":"
-                     & JS.Span_Object (Subp.Span)
-                     & "}");
+                  declare
+                     Fields : String_Vectors.Vector;
+                  begin
+                     Fields.Append ("""name"":" & JS.Quote (Subp.Name));
+                     Fields.Append ("""kind"":" & JS.Quote (Subp.Kind));
+                     Fields.Append ("""signature"":" & JS.Quote (Signature_For (Subp)));
+                     Fields.Append ("""params"":" & Json_List (Params));
+                     Fields.Append ("""has_return_type"":" & JS.Bool_Literal (Subp.Has_Return_Type));
+                     Fields.Append
+                       ("""return_type"":"
+                        & (if Subp.Has_Return_Type then Type_Json (Subp.Return_Type) else "null"));
+                     if Subp.Is_Generic_Template then
+                        declare
+                           Formals : String_Vectors.Vector;
+                           Source  : constant String :=
+                             Source_Slice (FT.To_String (Parsed.Path), Item.Subp_Data.Span);
+                        begin
+                           if not Item.Subp_Data.Spec.Generic_Formals.Is_Empty then
+                              for Formal of Item.Subp_Data.Spec.Generic_Formals loop
+                                 Formals.Append (Generic_Formal_Json (Formal));
+                              end loop;
+                           end if;
+                           Fields.Append ("""generic_formals"":" & Json_List (Formals));
+                           Fields.Append ("""template_source"":" & JS.Quote (Source));
+                        end;
+                     end if;
+                     Fields.Append ("""span"":" & JS.Span_Object (Subp.Span));
+                     Items.Append ("{" & Join_Object_Fields (Fields) & "}");
+                  end;
                end;
             end if;
          end if;
@@ -2885,6 +3053,21 @@ package body Safe_Frontend.Check_Emit is
       Fields : String_Vectors.Vector;
    begin
       declare
+         function Generic_Formal_Json
+           (Formal : GM.Generic_Formal_Descriptor) return String is
+         begin
+            return
+              "{""name"":"
+              & JS.Quote (Formal.Name)
+              & ",""has_constraint"":"
+              & JS.Bool_Literal (Formal.Has_Constraint)
+              & ",""constraint_name"":"
+              & (if Formal.Has_Constraint
+                 then JS.Quote (Formal.Constraint_Name)
+                 else "null")
+              & "}";
+         end Generic_Formal_Json;
+
          function Signature_Param_Json
            (Param : GM.Signature_Param) return String is
          begin
@@ -3023,6 +3206,29 @@ package body Safe_Frontend.Check_Emit is
                   Members.Append (Interface_Member_Json (Member));
                end loop;
                Items.Append ("""interface_members"":" & Json_List (Members));
+            end;
+         end if;
+         if not Info.Generic_Formals.Is_Empty then
+            declare
+               Formals : String_Vectors.Vector;
+            begin
+               for Formal of Info.Generic_Formals loop
+                  Formals.Append (Generic_Formal_Json (Formal));
+               end loop;
+               Items.Append ("""generic_formals"":" & Json_List (Formals));
+            end;
+         end if;
+         if Info.Has_Generic_Origin then
+            Items.Append ("""generic_origin"":" & JS.Quote (Info.Generic_Origin));
+         end if;
+         if not Info.Generic_Actual_Types.Is_Empty then
+            declare
+               Actuals : String_Vectors.Vector;
+            begin
+               for Item of Info.Generic_Actual_Types loop
+                  Actuals.Append (JS.Quote (Item));
+               end loop;
+               Items.Append ("""generic_actual_types"":" & Json_List (Actuals));
             end;
          end if;
          if Info.Has_Target then
@@ -3228,7 +3434,7 @@ package body Safe_Frontend.Check_Emit is
    begin
       return
         "{"
-        & """format"":""typed-v5"","
+        & """format"":""typed-v6"","
         & """target_bits"":" & Positive'Image (Resolved.Target_Bits) & ","
         & """unit_kind"":"
         & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))
@@ -3267,7 +3473,7 @@ package body Safe_Frontend.Check_Emit is
    begin
       return
         "{"
-        & """format"":""safei-v4"","
+        & """format"":""safei-v5"","
         & """target_bits"":" & Positive'Image (Resolved.Target_Bits) & ","
         & """unit_kind"":"
         & JS.Quote ((if Parsed.Kind = CM.Unit_Entry then "entry" else "package"))

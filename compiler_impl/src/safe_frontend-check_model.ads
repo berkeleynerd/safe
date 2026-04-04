@@ -13,6 +13,10 @@ package Safe_Frontend.Check_Model is
    type Type_Spec;
    type Type_Spec_Access is access all Type_Spec;
 
+   package Type_Spec_Access_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Type_Spec_Access);
+
    type Expr_Kind is
      (Expr_Unknown,
       Expr_Int,
@@ -80,14 +84,22 @@ package Safe_Frontend.Check_Model is
       Args             : Expr_Access_Vectors.Vector;
       Fields           : Aggregate_Field_Vectors.Vector;
       Elements         : Expr_Access_Vectors.Vector;
+      Generic_Args     : Type_Spec_Access_Vectors.Vector;
       Subtype_Spec     : Type_Spec_Access := null;
       Has_Call_Span    : Boolean := False;
       Call_Span        : FT.Source_Span := FT.Null_Span;
    end record;
 
-   package Type_Spec_Access_Vectors is new Ada.Containers.Indefinite_Vectors
+   type Generic_Formal is record
+      Name            : FT.UString := FT.To_UString ("");
+      Has_Constraint  : Boolean := False;
+      Constraint_Name : FT.UString := FT.To_UString ("");
+      Span            : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Generic_Formal_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type   => Positive,
-      Element_Type => Type_Spec_Access);
+      Element_Type => Generic_Formal);
 
    type Type_Spec_Kind is
      (Type_Spec_Unknown,
@@ -126,6 +138,7 @@ package Safe_Frontend.Check_Model is
       Key_Type : Type_Spec_Access := null;
       Value_Type : Type_Spec_Access := null;
       Tuple_Elements : Type_Spec_Access_Vectors.Vector;
+      Generic_Args : Type_Spec_Access_Vectors.Vector;
       Has_Range_Constraint : Boolean := False;
       Range_Low            : Expr_Access := null;
       Range_High           : Expr_Access := null;
@@ -156,6 +169,7 @@ package Safe_Frontend.Check_Model is
    type Subprogram_Spec is record
       Kind                  : FT.UString := FT.To_UString ("");
       Name                  : FT.UString := FT.To_UString ("");
+      Generic_Formals       : Generic_Formal_Vectors.Vector;
       Has_Receiver          : Boolean := False;
       Receiver              : Parameter_Spec;
       Params                : Parameter_Vectors.Vector;
@@ -265,6 +279,7 @@ package Safe_Frontend.Check_Model is
    type Type_Decl is record
       Is_Public      : Boolean := False;
       Name           : FT.UString := FT.To_UString ("");
+      Generic_Formals : Generic_Formal_Vectors.Vector;
       Kind           : Type_Decl_Kind := Type_Decl_Unknown;
       Span           : FT.Source_Span := FT.Null_Span;
       Digits_Expr    : Expr_Access := null;
@@ -553,6 +568,9 @@ package Safe_Frontend.Check_Model is
       Kind                 : FT.UString := FT.To_UString ("");
       Is_Synthetic         : Boolean := False;
       Is_Interface_Template : Boolean := False;
+      Is_Generic_Template  : Boolean := False;
+      Force_Body_Emission  : Boolean := False;
+      Generic_Formals      : Generic_Formal_Vectors.Vector;
       Params               : Symbol_Vectors.Vector;
       Has_Return_Type      : Boolean := False;
       Return_Type          : GM.Type_Descriptor;

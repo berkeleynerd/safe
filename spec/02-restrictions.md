@@ -204,7 +204,7 @@ This section enumerates every feature of ISO/IEC 8652:2023 (Ada 2022) that Safe 
 
 #### 8.5 Renaming Declarations
 
-53. **Renaming declarations (§8.5).** Retained: object renaming (§8.5.1), package renaming (§8.5.3), subprogram renaming (§8.5.4). Exception renaming (§8.5.2) is excluded (exceptions are excluded). Generic renaming (§8.5.5) is excluded (generics are excluded).
+53. **Renaming declarations (§8.5).** Retained: object renaming (§8.5.1), package renaming (§8.5.3), subprogram renaming (§8.5.4). Exception renaming (§8.5.2) is excluded (exceptions are excluded). Ada generic renaming (§8.5.5) is excluded; Safe-native generics do not introduce a separate renaming form.
 
 #### 8.6 Overload Resolution
 
@@ -246,7 +246,7 @@ This section enumerates every feature of ISO/IEC 8652:2023 (Ada 2022) that Safe 
 
 ### 2.1.11 Section 12 — Generic Units (8652:2023 §12)
 
-69. **Generics (§12.1–§12.8).** Section 12 of 8652:2023 is excluded in its entirety. A conforming implementation shall reject any generic declaration, generic body, or generic instantiation. Rationale: generics require instantiation, which adds significant compiler complexity (D16).
+69. **Ada generic units (§12.1–§12.8).** Section 12 of 8652:2023 is excluded in its entirety. A conforming implementation shall reject any Ada generic declaration, generic body, or Ada generic instantiation. Safe instead admits its own native generic type and function surface (`type name of ...`, `function name of ...`) with frontend monomorphization; that Safe-native surface is specified elsewhere in this document set and is not an adoption of Ada §12.
 
 ### 2.1.12 Section 13 — Representation Issues (8652:2023 §13)
 
@@ -298,11 +298,11 @@ This section enumerates every feature of ISO/IEC 8652:2023 (Ada 2022) that Safe 
 
 #### Annex F — Information Systems
 
-88. **Information systems (Annex F).** Excluded in its entirety. Rationale: requires generics (decimal types operations use generic packages).
+88. **Information systems (Annex F).** Excluded in its entirety. Rationale: requires Ada generic decimal libraries and related Annex F runtime surface beyond the admitted Safe-native generic feature set.
 
 #### Annex G — Numerics
 
-89. **Numerics (Annex G).** The core numerics model from §3.5 is retained. Annex G extensions (complex types G.1, generic elementary functions G.2) are excluded (require generics).
+89. **Numerics (Annex G).** The core numerics model from §3.5 is retained. Annex G extensions (complex types G.1, generic elementary functions G.2) are excluded; they require broader numeric libraries and Ada generic packages beyond the admitted Safe-native generic feature set.
 
 #### Annex H — High Integrity Systems
 
@@ -1180,7 +1180,7 @@ A conforming implementation shall accept all three forms.
 
 All other domain-level failures — including but not limited to invalid input, missing data, communication timeouts, and format errors — should use the discriminated result convention.
 
-151. **Future evolution: parametric result type.** The current convention requires each API to define its own result type, because generics are excluded (paragraph 69). A future version of Safe may introduce a built-in parametric type constructor (e.g., `Result[T, E]`) and an error-propagation operator to reduce boilerplate. Such features would be additive — programs written using the per-type discriminated result convention defined in this section would remain conforming.
+151. **Future evolution: parametric result type.** The current convention still commonly uses per-API result records even after Safe-native generics, because a standard `result (T, E)` abstraction and error-propagation surface are not yet shipped. A future version of Safe may introduce a built-in parametric type constructor (e.g., `Result[T, E]`) and an error-propagation operator to reduce boilerplate. Such features would be additive — programs written using the per-type discriminated result convention defined in this section would remain conforming.
 
 151a. **Future evolution: task-level fault containment.** Safe's ownership model guarantees that a task's mutable state is unreachable from other tasks (Section 4, §4.2). This isolation property means that a fatal failure in one task cannot corrupt another task's state. A future version of Safe may exploit this property to contain certain fatal failures to the failing task rather than aborting the entire program. The following subsections sketch the design constraints such a feature would need to satisfy.
 

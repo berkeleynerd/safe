@@ -1,0 +1,23 @@
+package pr1111c_generic_constraint
+
+   type orderable is interface
+      function (self : orderable) rank returns integer;
+
+   type score is record
+      value : integer;
+
+   function (self : score) rank returns integer
+      return self.value;
+
+   function best_rank of t with t: orderable (left : t; right : t) returns integer
+      if left.rank() >= right.rank()
+         return left.rank();
+      else
+         return right.rank();
+
+   function total returns integer
+      low : score = (value = 3);
+      high : score = (value = 7);
+
+      return best_rank of score (low, high);
+

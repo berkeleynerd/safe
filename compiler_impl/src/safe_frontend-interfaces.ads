@@ -28,6 +28,9 @@ package Safe_Frontend.Interfaces is
       Has_Return_Type      : Boolean := False;
       Return_Type          : GM.Type_Descriptor;
       Return_Is_Access_Def : Boolean := False;
+      Generic_Formals      : GM.Generic_Formal_Descriptor_Vectors.Vector;
+      Has_Template_Source  : Boolean := False;
+      Template_Source      : FT.UString := FT.To_UString ("");
       Span                 : FT.Source_Span := FT.Null_Span;
       Effect_Summary       : GM.External_Effect_Summary;
       Channel_Summary      : GM.External_Channel_Summary;

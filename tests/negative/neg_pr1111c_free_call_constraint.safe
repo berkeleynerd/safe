@@ -1,0 +1,14 @@
+package neg_pr1111c_free_call_constraint
+
+   type printable is interface
+      function (self : printable) label returns string;
+
+   type widget is record
+      text : string;
+
+   function (self : widget) label returns string
+      return self.text;
+
+   function render of t with t: printable (item : t) returns string
+      return label (item);
+

@@ -7,9 +7,9 @@ compiler outputs.
 
 Frozen machine-facing artifacts:
 
-- `typed.json` with `format: "typed-v5"`
+- `typed.json` with `format: "typed-v6"`
 - `mir.json` with `format: "mir-v4"`
-- `safei.json` with `format: "safei-v4"`
+- `safei.json` with `format: "safei-v5"`
 - `diagnostics-v0` remains the current stable diagnostics shape
 
 Not part of the frozen machine-interface contract:
@@ -20,7 +20,7 @@ Not part of the frozen machine-interface contract:
 
 ## Required Top-Level Fields
 
-`typed-v5`, `mir-v4`, and `safei-v4` must all carry:
+`typed-v6`, `mir-v4`, and `safei-v5` must all carry:
 
 - `format`
 - `target_bits`
@@ -30,9 +30,19 @@ Not part of the frozen machine-interface contract:
 The contract validator requires the same `target_bits` value across the typed,
 MIR, and interface payloads from one emit run.
 
-`typed-v5` and `safei-v4` may additionally carry `interface_members` on public
-type descriptors for Safe structural interface declarations. This is part of
-the frozen contract surface from `PR11.11b` onward.
+`typed-v6` and `safei-v5` may additionally carry `interface_members` on public
+type descriptors for Safe structural interface declarations.
+
+From `PR11.11c` onward, `typed-v6` type descriptors may also carry:
+
+- `generic_formals`
+- `generic_origin`
+- `generic_actual_types`
+
+`safei-v5` public generic subprograms may also carry:
+
+- `generic_formals`
+- `template_source`
 
 ## CLI Surface
 

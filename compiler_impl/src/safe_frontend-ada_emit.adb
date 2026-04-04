@@ -6817,7 +6817,8 @@ package body Safe_Frontend.Ada_Emit is
       end Add_From_Statements;
    begin
       for Item of Unit.Types loop
-         if Has_Text (Item.Name)
+         if Item.Generic_Formals.Is_Empty
+           and then Has_Text (Item.Name)
            and then not Contains_Name (Seen, FT.To_String (Item.Name))
          then
             Seen.Append (Item.Name);
@@ -6832,7 +6833,9 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
 
       for Item of Unit.Types loop
-         Add_From_Info (Item);
+         if Item.Generic_Formals.Is_Empty then
+            Add_From_Info (Item);
+         end if;
       end loop;
       for Item of Unit.Objects loop
          Add_From_Info (Item.Type_Info);
@@ -6982,7 +6985,9 @@ package body Safe_Frontend.Ada_Emit is
       end Add_From_Statements;
    begin
       for Item of Unit.Types loop
-         Add_From_Info (Item);
+         if Item.Generic_Formals.Is_Empty then
+            Add_From_Info (Item);
+         end if;
       end loop;
       for Item of Unit.Objects loop
          Add_From_Info (Item.Type_Info);
@@ -7095,7 +7100,9 @@ package body Safe_Frontend.Ada_Emit is
       end Add_From_Statements;
    begin
       for Item of Unit.Types loop
-         Add_From_Info (Item);
+         if Item.Generic_Formals.Is_Empty then
+            Add_From_Info (Item);
+         end if;
       end loop;
       for Item of Unit.Objects loop
          Add_From_Info (Item.Type_Info);
@@ -18668,7 +18675,9 @@ package body Safe_Frontend.Ada_Emit is
          end if;
 
          for Subprogram of Unit.Subprograms loop
-            if not Subprogram.Is_Interface_Template then
+            if not Subprogram.Is_Interface_Template
+              and then not Subprogram.Is_Generic_Template
+            then
                declare
                   Name_Text : constant String := FT.To_String (Subprogram.Name);
                begin
@@ -19053,7 +19062,9 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       for Type_Item of Unit.Types loop
-         if FT.To_String (Type_Item.Kind) /= "interface" then
+         if Type_Item.Generic_Formals.Is_Empty
+           and then FT.To_String (Type_Item.Kind) /= "interface"
+         then
             Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
             if FT.To_String (Type_Item.Kind) = "record" then
                Append_Line (Spec_Inner);
@@ -19143,25 +19154,58 @@ package body Safe_Frontend.Ada_Emit is
 
       if not Unit.Subprograms.Is_Empty then
          for Subprogram of Unit.Subprograms loop
-            if not Subprogram.Is_Interface_Template then
+            if not Subprogram.Is_Interface_Template
+              and then not Subprogram.Is_Generic_Template
+            then
                declare
                   Expression_Image : constant String :=
-                    Render_Expression_Function_Image
-                      (Unit, Document, Subprogram, State);
+                    (if Subprogram.Force_Body_Emission
+                     then ""
+                     else
+                       Render_Expression_Function_Image
+                         (Unit, Document, Subprogram, State));
                begin
-                  Append_Line
-                    (Spec_Inner,
-                     Render_Ada_Subprogram_Keyword (Subprogram)
-                     & " "
-                     & FT.To_String (Subprogram.Name)
-                     & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
-                     & Render_Subprogram_Return (Unit, Document, Subprogram)
-                     & (if Expression_Image'Length > 0
-                        then " is (" & Expression_Image & ")"
-                        else "")
-                     & Render_Subprogram_Aspects (Unit, Document, Subprogram, Bronze, State)
-                     & ";",
-                     1);
+                  if Expression_Image'Length = 0 then
+                     Append_Line
+                       (Spec_Inner,
+                        Render_Ada_Subprogram_Keyword (Subprogram)
+                        & " "
+                        & FT.To_String (Subprogram.Name)
+                        & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
+                        & Render_Subprogram_Return (Unit, Document, Subprogram)
+                        & Render_Subprogram_Aspects (Unit, Document, Subprogram, Bronze, State)
+                        & ";",
+                        1);
+                  end if;
+               end;
+            end if;
+         end loop;
+
+         for Subprogram of Unit.Subprograms loop
+            if not Subprogram.Is_Interface_Template
+              and then not Subprogram.Is_Generic_Template
+            then
+               declare
+                  Expression_Image : constant String :=
+                    (if Subprogram.Force_Body_Emission
+                     then ""
+                     else
+                       Render_Expression_Function_Image
+                         (Unit, Document, Subprogram, State));
+               begin
+                  if Expression_Image'Length > 0 then
+                     Append_Line
+                       (Spec_Inner,
+                        Render_Ada_Subprogram_Keyword (Subprogram)
+                        & " "
+                        & FT.To_String (Subprogram.Name)
+                        & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
+                        & Render_Subprogram_Return (Unit, Document, Subprogram)
+                        & " is (" & Expression_Image & ")"
+                        & Render_Subprogram_Aspects (Unit, Document, Subprogram, Bronze, State)
+                        & ";",
+                        1);
+                  end if;
                end;
             end if;
          end loop;
@@ -19250,7 +19294,9 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Body_Inner);
 
       for Type_Item of Unit.Types loop
-         if FT.To_String (Type_Item.Kind) /= "interface" then
+         if Type_Item.Generic_Formals.Is_Empty
+           and then FT.To_String (Type_Item.Kind) /= "interface"
+         then
             Render_Growable_Array_Helper_Body
               (Body_Inner, Unit, Document, Type_Item, State);
          end if;
@@ -19300,7 +19346,10 @@ package body Safe_Frontend.Ada_Emit is
 
       for Subprogram of Unit.Subprograms loop
          if not Subprogram.Is_Interface_Template
-           and then Render_Expression_Function_Image (Unit, Document, Subprogram, State)'Length = 0
+           and then not Subprogram.Is_Generic_Template
+           and then
+             (Subprogram.Force_Body_Emission
+              or else Render_Expression_Function_Image (Unit, Document, Subprogram, State)'Length = 0)
          then
             Render_Subprogram_Body (Body_Inner, Unit, Document, Subprogram, State);
          end if;

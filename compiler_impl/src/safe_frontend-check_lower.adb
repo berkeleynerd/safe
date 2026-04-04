@@ -3086,7 +3086,9 @@ package body Safe_Frontend.Check_Lower is
       end if;
 
       for Subprogram of Unit.Subprograms loop
-         if not Subprogram.Is_Interface_Template then
+         if not Subprogram.Is_Interface_Template
+           and then not Subprogram.Is_Generic_Template
+         then
             Result.Graphs.Append
               (Lower_Subprogram
                  (Subprogram,

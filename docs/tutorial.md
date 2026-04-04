@@ -404,6 +404,33 @@ function render (item : printable) returns string
 In this first interface slice, interface types are admitted only in parameter
 positions, and public interface-constrained subprogram bodies remain deferred.
 
+`PR11.11c` then adds Safe-native user-defined generics. They are explicit and
+monomorphic: you spell the type arguments, and the compiler specializes each
+use site to ordinary concrete code before MIR.
+
+```safe
+type pair of (l, r) is record
+   left : l;
+   right : r;
+
+function identity of t (value : t) returns t
+   return value;
+
+function total returns integer
+   values : list of integer = [1, 2, 3];
+   copied : list of integer = identity of list of integer (values);
+
+   return copied.length;
+```
+
+The current generic surface is intentionally narrow:
+
+- declarations are package-level generic types and functions only,
+- function calls require explicit type arguments,
+- interface constraints use named clauses such as `with T: printable`,
+- generic actuals must still be ordinary admitted value types,
+- Ada-style `generic ... package` syntax remains outside Safe source.
+
 ## 6. "Silver By Construction": D27 In One Page
 
 Safe's Silver level is built around a simple premise:
@@ -570,9 +597,9 @@ Why this is attractive in a SPARK/Safe world:
 - The discriminant makes it illegal to access `.value` when `ok == false` (a property SPARK can prove).
 - It nudges you toward exhaustive handling and away from "ignore the error and keep going" bugs.
 
-Tradeoff: without generics, you will likely define many small `result_*`
-types, one per value/error pairing, until the language or standard library
-provides a better abstraction.
+Tradeoff: even with Safe-native generics, you will still often define small
+`result_*` types until the language or standard library ships a standard
+`result (T, E)` abstraction.
 
 Also note: Safe draws a sharp line between recoverable and non-recoverable failures. At least today, a failed `pragma Assert` or an allocation failure is defined to abort the program via a runtime abort handler, not to be handled in-user-code like an exception.
 
@@ -586,7 +613,7 @@ Also note: Safe draws a sharp line between recoverable and non-recoverable failu
   imported roots only when their sibling dependency sources are present.
   `safe deploy` remains narrower and still rejects roots with leading
   `with` clauses.
-- No generics, no tagged types, no overloading: abstraction techniques are intentionally limited.
+- No tagged types or overloading, and generic calls still require explicit type arguments.
 - The "Silver by construction" story means you will spend effort on numeric subtype design.
 - Some Ada habits are invalid in Safe (`'` attributes and qualified expressions, exceptions).
 - Tooling is incomplete today: the repo has a working compiler frontend and

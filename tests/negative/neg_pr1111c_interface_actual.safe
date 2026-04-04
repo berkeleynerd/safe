@@ -1,0 +1,16 @@
+package neg_pr1111c_interface_actual
+
+   type printable is interface
+      function (self : printable) label returns string;
+
+   type holder of t is record
+      value : t;
+
+   function total returns integer
+      var item : holder of printable;
+
+      if item.value.present
+         return 1;
+      else
+         return 0;
+

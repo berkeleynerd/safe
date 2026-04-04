@@ -49,6 +49,23 @@ def require_positive_int(value: Any, path: str) -> int:
     return value
 
 
+def validate_generic_formal_list(items: Any, path: str) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(items, path)):
+        entry = require_mapping(item, f"{path}[{index}]")
+        require_string(entry.get("name"), f"{path}[{index}].name")
+        has_constraint = require_boolean(
+            entry.get("has_constraint"),
+            f"{path}[{index}].has_constraint",
+        )
+        if has_constraint:
+            require_string(entry.get("constraint_name"), f"{path}[{index}].constraint_name")
+        elif entry.get("constraint_name") is not None:
+            fail(f"{path}[{index}].constraint_name must be null when has_constraint is false")
+        result.append(entry)
+    return result
+
+
 def validate_type_descriptor(value: Any, path: str) -> dict[str, Any]:
     descriptor = require_mapping(value, path)
     require_string(descriptor.get("name"), f"{path}.name")
@@ -100,6 +117,12 @@ def validate_type_descriptor(value: Any, path: str) -> dict[str, Any]:
                 member.get("return_is_access_def"),
                 f"{path}.interface_members[{index}].return_is_access_def",
             )
+    if "generic_formals" in descriptor:
+        validate_generic_formal_list(descriptor.get("generic_formals"), f"{path}.generic_formals")
+    if "generic_origin" in descriptor:
+        require_string(descriptor.get("generic_origin"), f"{path}.generic_origin")
+    if "generic_actual_types" in descriptor:
+        validate_string_list(descriptor.get("generic_actual_types"), f"{path}.generic_actual_types")
     return descriptor
 
 
@@ -409,8 +432,8 @@ def require_target_bits(value: Any, path: str) -> int:
 
 def validate_typed_payload(payload: Any, *, path: str, ast_payload: dict[str, Any]) -> dict[str, Any]:
     typed = require_mapping(payload, path)
-    if typed.get("format") != "typed-v5":
-        fail(f"{path}.format must be typed-v5")
+    if typed.get("format") != "typed-v6":
+        fail(f"{path}.format must be typed-v6")
     for field in (
         "target_bits",
         "unit_kind",
@@ -546,6 +569,11 @@ def validate_safei_subprograms(items: Any, path: str) -> list[dict[str, Any]]:
             fail(f"{path}[{index}].return_type must be null when has_return_type is false")
         if "return_is_access_def" in entry:
             require_boolean(entry.get("return_is_access_def"), f"{path}[{index}].return_is_access_def")
+        if "generic_formals" in entry:
+            validate_generic_formal_list(entry.get("generic_formals"), f"{path}[{index}].generic_formals")
+            require_string(entry.get("template_source"), f"{path}[{index}].template_source")
+        elif entry.get("template_source") is not None:
+            fail(f"{path}[{index}].template_source is only valid for generic subprograms")
         validate_span(entry.get("span"), f"{path}[{index}].span")
         result.append(entry)
     return result
@@ -593,8 +621,8 @@ def validate_safei_channel_access_summaries(items: Any, path: str) -> list[dict[
 
 def validate_safei_payload(payload: Any, *, path: str) -> dict[str, Any]:
     safei = require_mapping(payload, path)
-    if safei.get("format") != "safei-v4":
-        fail(f"{path}.format must be safei-v4")
+    if safei.get("format") != "safei-v5":
+        fail(f"{path}.format must be safei-v5")
     for field in (
         "target_bits",
         "unit_kind",

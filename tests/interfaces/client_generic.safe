@@ -1,0 +1,13 @@
+with provider_generic;
+
+package client_generic
+
+   function total returns integer
+      values : list of integer = [1, 2];
+      copied : list of integer = provider_generic.identity of list of integer (values);
+      item : provider_generic.pair of (integer, string) = (left = copied.length, right = "ok");
+
+      if item.left == 2 and then item.right == "ok"
+         return 1;
+      else
+         return 0;

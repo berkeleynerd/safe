@@ -486,6 +486,57 @@ package body Safe_Frontend.Interfaces is
       end;
 
       declare
+         Formals : constant JSON_Array := Json_Array_Or_Empty (Value, "generic_formals");
+      begin
+         for Index in 1 .. Length (Formals) loop
+            declare
+               Item   : constant JSON_Value := Get (Formals, Index);
+               Formal : GM.Generic_Formal_Descriptor;
+            begin
+               if Item.Kind = JSON_Object_Type then
+                  if Has_Field (Item, "name")
+                    and then Get (Item, "name").Kind = JSON_String_Type
+                  then
+                     Formal.Name := FT.To_UString (Get (Item, "name"));
+                  end if;
+                  if Has_Field (Item, "has_constraint")
+                    and then Get (Item, "has_constraint").Kind = JSON_Boolean_Type
+                  then
+                     Formal.Has_Constraint := Get (Get (Item, "has_constraint"));
+                  end if;
+                  if Has_Field (Item, "constraint_name")
+                    and then Get (Item, "constraint_name").Kind = JSON_String_Type
+                  then
+                     Formal.Constraint_Name := FT.To_UString (Get (Item, "constraint_name"));
+                  end if;
+                  Result.Generic_Formals.Append (Formal);
+               end if;
+            end;
+         end loop;
+      end;
+
+      if Has_Field (Value, "generic_origin")
+        and then Get (Value, "generic_origin").Kind = JSON_String_Type
+      then
+         Result.Has_Generic_Origin := True;
+         Result.Generic_Origin := FT.To_UString (Get (Value, "generic_origin"));
+      end if;
+
+      declare
+         Actuals : constant JSON_Array := Json_Array_Or_Empty (Value, "generic_actual_types");
+      begin
+         for Index in 1 .. Length (Actuals) loop
+            declare
+               Item : constant JSON_Value := Get (Actuals, Index);
+            begin
+               if Item.Kind = JSON_String_Type then
+                  Result.Generic_Actual_Types.Append (FT.To_UString (Get (Item)));
+               end if;
+            end;
+         end loop;
+      end;
+
+      declare
          Variants : constant JSON_Array := Json_Array_Or_Empty (Value, "variant_fields");
       begin
          for Index in 1 .. Length (Variants) loop
@@ -929,19 +980,20 @@ package body Safe_Frontend.Interfaces is
            and then Format /= "safei-v2"
            and then Format /= "safei-v3"
            and then Format /= "safei-v4"
+           and then Format /= "safei-v5"
          then
-            raise Constraint_Error with File_Path & ": format must be safei-v1, safei-v2, safei-v3, or safei-v4";
+            raise Constraint_Error with File_Path & ": format must be safei-v1, safei-v2, safei-v3, safei-v4, or safei-v5";
          end if;
-         Is_Safei_V2 := Format in "safei-v2" | "safei-v3" | "safei-v4";
-         Is_Safei_V3 := Format in "safei-v3" | "safei-v4";
+         Is_Safei_V2 := Format in "safei-v2" | "safei-v3" | "safei-v4" | "safei-v5";
+         Is_Safei_V3 := Format in "safei-v3" | "safei-v4" | "safei-v5";
       end;
 
       if Is_Safei_V2 and then not Has_Field (Root, "unit_kind") then
-         raise Constraint_Error with File_Path & ": unit_kind is required for safei-v2/safei-v3/safei-v4";
+         raise Constraint_Error with File_Path & ": unit_kind is required for safei-v2/safei-v3/safei-v4/safei-v5";
       end if;
       if Is_Safei_V3 then
          if not Has_Field (Root, "target_bits") then
-            raise Constraint_Error with File_Path & ": target_bits is required for safei-v3/safei-v4";
+            raise Constraint_Error with File_Path & ": target_bits is required for safei-v3/safei-v4/safei-v5";
          elsif Get (Root, "target_bits").Kind /= JSON_Int_Type then
             raise Constraint_Error with File_Path & ": target_bits must be 32 or 64";
          else
@@ -1151,6 +1203,43 @@ package body Safe_Frontend.Interfaces is
                      Subp.Params.Append (Symbol);
                   end;
                end loop;
+               declare
+                  Formals : constant JSON_Array := Json_Array_Or_Empty (Item, "generic_formals");
+               begin
+                  for Formal_Index in 1 .. Length (Formals) loop
+                     declare
+                        Formal_Item : constant JSON_Value := Get (Formals, Formal_Index);
+                        Formal      : GM.Generic_Formal_Descriptor;
+                     begin
+                        if Formal_Item.Kind = JSON_Object_Type then
+                           if Has_Field (Formal_Item, "name")
+                             and then Get (Formal_Item, "name").Kind = JSON_String_Type
+                           then
+                              Formal.Name := FT.To_UString (Get (Formal_Item, "name"));
+                           end if;
+                           if Has_Field (Formal_Item, "has_constraint")
+                             and then Get (Formal_Item, "has_constraint").Kind = JSON_Boolean_Type
+                           then
+                              Formal.Has_Constraint := Get (Get (Formal_Item, "has_constraint"));
+                           end if;
+                           if Has_Field (Formal_Item, "constraint_name")
+                             and then Get (Formal_Item, "constraint_name").Kind = JSON_String_Type
+                           then
+                              Formal.Constraint_Name := FT.To_UString (Get (Formal_Item, "constraint_name"));
+                           end if;
+                           Subp.Generic_Formals.Append (Formal);
+                        end if;
+                     end;
+                  end loop;
+               end;
+               if Has_Field (Item, "template_source") then
+                  if Get (Item, "template_source").Kind /= JSON_String_Type then
+                     raise Constraint_Error with
+                       File_Path & ": subprograms[].template_source must be a string";
+                  end if;
+                  Subp.Has_Template_Source := True;
+                  Subp.Template_Source := FT.To_UString (Get (Item, "template_source"));
+               end if;
                if not Effects.Is_Empty then
                   for Summary of Effects loop
                      if FT.To_String (Summary.Name)

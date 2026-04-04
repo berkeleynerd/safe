@@ -628,13 +628,23 @@ package body Safe_Frontend.Check_Parse is
 
    function Parse_Type_Spec_Internal
      (State            : in out Parser_State;
-      Allow_Access_Def : Boolean) return CM.Type_Spec;
+      Allow_Access_Def : Boolean;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec;
 
    function Parse_Subprogram_Spec
      (State : in out Parser_State) return CM.Subprogram_Spec;
 
+   function Parse_Generic_Formals
+     (State : in out Parser_State) return CM.Generic_Formal_Vectors.Vector;
+
+   function Parse_Generic_Args
+     (State            : in out Parser_State;
+      Allow_Access_Def : Boolean := False;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec_Access_Vectors.Vector;
+
    function Parse_Growable_Array_Type_Spec
-     (State : in out Parser_State) return CM.Type_Spec
+     (State             : in out Parser_State;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
       Start  : constant FL.Token := Expect (State, "array");
       Result : CM.Type_Spec;
@@ -643,13 +653,17 @@ package body Safe_Frontend.Check_Parse is
       Result.Kind := CM.Type_Spec_Growable_Array;
       Result.Element_Type :=
         new CM.Type_Spec'
-          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+          (Parse_Type_Spec_Internal
+             (State,
+              Allow_Access_Def => True,
+              Allow_Constraints => Allow_Constraints));
       Result.Span := CM.Join (Start.Span, Result.Element_Type.Span);
       return Result;
    end Parse_Growable_Array_Type_Spec;
 
    function Parse_List_Type_Spec
-     (State : in out Parser_State) return CM.Type_Spec
+     (State             : in out Parser_State;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
       Start  : constant FL.Token := Expect (State, "list");
       Result : CM.Type_Spec;
@@ -658,13 +672,17 @@ package body Safe_Frontend.Check_Parse is
       Result.Kind := CM.Type_Spec_List;
       Result.Element_Type :=
         new CM.Type_Spec'
-          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+          (Parse_Type_Spec_Internal
+             (State,
+              Allow_Access_Def => True,
+              Allow_Constraints => Allow_Constraints));
       Result.Span := CM.Join (Start.Span, Result.Element_Type.Span);
       return Result;
    end Parse_List_Type_Spec;
 
    function Parse_Map_Type_Spec
-     (State : in out Parser_State) return CM.Type_Spec
+     (State             : in out Parser_State;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
       Start  : constant FL.Token := Expect (State, "map");
       Result : CM.Type_Spec;
@@ -677,11 +695,17 @@ package body Safe_Frontend.Check_Parse is
       Result.Kind := CM.Type_Spec_Map;
       Result.Key_Type :=
         new CM.Type_Spec'
-          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+          (Parse_Type_Spec_Internal
+             (State,
+              Allow_Access_Def => True,
+              Allow_Constraints => Allow_Constraints));
       Require (State, ",");
       Result.Value_Type :=
         new CM.Type_Spec'
-          (Parse_Type_Spec_Internal (State, Allow_Access_Def => True));
+          (Parse_Type_Spec_Internal
+             (State,
+              Allow_Access_Def => True,
+              Allow_Constraints => Allow_Constraints));
       Ender := Expect (State, ")");
       Result.Span := CM.Join (Start.Span, Ender.Span);
       return Result;
@@ -724,7 +748,18 @@ package body Safe_Frontend.Check_Parse is
    begin
       case Spec.Kind is
          when CM.Type_Spec_Name | CM.Type_Spec_Subtype_Indication | CM.Type_Spec_Binary =>
-            return Spec.Name;
+            Result := Spec.Name;
+            if not Spec.Generic_Args.Is_Empty then
+               for Item of Spec.Generic_Args loop
+                  Result :=
+                    Result
+                    & FT.To_UString ("_")
+                    & FT.To_UString
+                        (Sanitize_Type_Name_Component
+                           (FT.To_String (Type_Spec_Internal_Name (Item.all))));
+               end loop;
+            end if;
+            return Result;
          when CM.Type_Spec_List | CM.Type_Spec_Growable_Array =>
             if Spec.Element_Type = null then
                return FT.To_UString ("__growable_array_value");
@@ -772,9 +807,119 @@ package body Safe_Frontend.Check_Parse is
       end case;
    end Type_Spec_Internal_Name;
 
+   function Parse_Generic_Formals
+     (State : in out Parser_State) return CM.Generic_Formal_Vectors.Vector
+   is
+      Result : CM.Generic_Formal_Vectors.Vector;
+      Item   : CM.Generic_Formal;
+   begin
+      Require (State, "of");
+      if Match (State, "(") then
+         loop
+            declare
+               Name : constant FL.Token := Expect_Identifier (State);
+            begin
+               Item := (others => <>);
+               Item.Name := Name.Lexeme;
+               Item.Span := Name.Span;
+               Result.Append (Item);
+            end;
+            exit when not Match (State, ",");
+         end loop;
+         Require (State, ")");
+      else
+         declare
+            Name : constant FL.Token := Expect_Identifier (State);
+         begin
+            Item.Name := Name.Lexeme;
+            Item.Span := Name.Span;
+            Result.Append (Item);
+         end;
+      end if;
+
+      if Match (State, "with") then
+         loop
+            declare
+               Constraint_Name : constant FL.Token := Expect_Identifier (State);
+               Matched         : Boolean := False;
+            begin
+               Require (State, ":");
+               declare
+                  Interface_Name : constant FL.Token := Expect_Identifier (State);
+               begin
+                  for Index in Result.First_Index .. Result.Last_Index loop
+                     declare
+                        Formal : CM.Generic_Formal := Result (Index);
+                     begin
+                        if FT.Lowercase (FT.To_String (Formal.Name)) =
+                          FT.Lowercase (FT.To_String (Constraint_Name.Lexeme))
+                        then
+                           if Formal.Has_Constraint then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path_String (State),
+                                    Span    => Constraint_Name.Span,
+                                    Message => "duplicate generic constraint for `" & FT.To_String (Formal.Name) & "`"));
+                           end if;
+                           Formal.Has_Constraint := True;
+                           Formal.Constraint_Name := Interface_Name.Lexeme;
+                           Formal.Span := CM.Join (Constraint_Name.Span, Interface_Name.Span);
+                           Result.Replace_Element (Index, Formal);
+                           Matched := True;
+                           exit;
+                        end if;
+                     end;
+                  end loop;
+               end;
+               if not Matched then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path_String (State),
+                        Span    => Constraint_Name.Span,
+                        Message => "unknown generic formal `" & FT.To_String (Constraint_Name.Lexeme) & "` in constraint map"));
+               end if;
+            end;
+            exit when not Match (State, ",");
+         end loop;
+      end if;
+
+      return Result;
+   end Parse_Generic_Formals;
+
+   function Parse_Generic_Args
+     (State            : in out Parser_State;
+      Allow_Access_Def : Boolean := False;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec_Access_Vectors.Vector
+   is
+      Result : CM.Type_Spec_Access_Vectors.Vector;
+   begin
+      Require (State, "of");
+      if Match (State, "(") then
+         loop
+            Result.Append
+              (new CM.Type_Spec'
+                 (Parse_Type_Spec_Internal
+                    (State,
+                     Allow_Access_Def => Allow_Access_Def,
+                     Allow_Constraints => Allow_Constraints)));
+            exit when not Match (State, ",");
+         end loop;
+         Require (State, ")");
+      else
+         Result.Append
+           (new CM.Type_Spec'
+              (Parse_Type_Spec_Internal
+                 (State,
+                  Allow_Access_Def => Allow_Access_Def,
+                  Allow_Constraints => Allow_Constraints)));
+      end if;
+      return Result;
+   end Parse_Generic_Args;
+
    function Parse_Optional_Type_Spec
      (State            : in out Parser_State;
-      Allow_Access_Def : Boolean) return CM.Type_Spec
+      Allow_Access_Def : Boolean;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
       Start  : constant FL.Token := Expect (State, "optional");
       Result : CM.Type_Spec;
@@ -782,7 +927,10 @@ package body Safe_Frontend.Check_Parse is
       Result.Kind := CM.Type_Spec_Optional;
       Result.Element_Type :=
         new CM.Type_Spec'
-          (Parse_Type_Spec_Internal (State, Allow_Access_Def => Allow_Access_Def));
+          (Parse_Type_Spec_Internal
+             (State,
+              Allow_Access_Def => Allow_Access_Def,
+              Allow_Constraints => Allow_Constraints));
       Result.Name := Type_Spec_Internal_Name (Result);
       Result.Span := CM.Join (Start.Span, Result.Element_Type.Span);
       return Result;
@@ -790,11 +938,13 @@ package body Safe_Frontend.Check_Parse is
 
    function Parse_Object_Type_Core
      (State            : in out Parser_State;
-      Allow_Access_Def : Boolean := False) return CM.Type_Spec;
+      Allow_Access_Def : Boolean := False;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec;
 
    function Parse_Tuple_Type_Spec
      (State            : in out Parser_State;
-     Allow_Access_Def : Boolean) return CM.Type_Spec
+      Allow_Access_Def : Boolean;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
       Start  : constant FL.Token := Expect (State, "(");
       Result : CM.Type_Spec;
@@ -804,7 +954,10 @@ package body Safe_Frontend.Check_Parse is
       loop
          declare
             Element : constant CM.Type_Spec :=
-              Parse_Type_Spec_Internal (State, Allow_Access_Def);
+              Parse_Type_Spec_Internal
+                (State,
+                 Allow_Access_Def => Allow_Access_Def,
+                 Allow_Constraints => Allow_Constraints);
          begin
             Result.Tuple_Elements.Append (new CM.Type_Spec'(Element));
          end;
@@ -873,7 +1026,8 @@ package body Safe_Frontend.Check_Parse is
 
    function Parse_Named_Type_Spec
      (State : in out Parser_State;
-      Kind  : CM.Type_Spec_Kind) return CM.Type_Spec
+      Kind  : CM.Type_Spec_Kind;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
       Name_Expr : constant CM.Expr_Access := Parse_Package_Name (State);
       Result    : CM.Type_Spec;
@@ -882,7 +1036,15 @@ package body Safe_Frontend.Check_Parse is
       Result.Kind := Kind;
       Result.Name := FT.To_UString (Name_To_String (Name_Expr));
 
-      if FT.To_String (Current (State).Lexeme) = "(" then
+      if Current_Lower (State) = "of" then
+         Result.Generic_Args :=
+           Parse_Generic_Args
+             (State,
+              Allow_Access_Def => Kind /= CM.Type_Spec_Subtype_Indication,
+              Allow_Constraints => Allow_Constraints);
+      end if;
+
+      if Allow_Constraints and then FT.To_String (Current (State).Lexeme) = "(" then
          declare
             Start_Paren : constant FL.Token := Expect (State, "(");
             Assoc       : CM.Constraint_Association;
@@ -949,7 +1111,8 @@ package body Safe_Frontend.Check_Parse is
 
    function Parse_Object_Type_Core
      (State            : in out Parser_State;
-      Allow_Access_Def : Boolean := False) return CM.Type_Spec
+      Allow_Access_Def : Boolean := False;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec
    is
    begin
       if Current_Lower (State) = "aliased" then
@@ -963,26 +1126,46 @@ package body Safe_Frontend.Check_Parse is
       elsif Current_Lower (State) = "binary" then
          return Parse_Binary_Type_Spec (State);
       elsif Current_Lower (State) = "optional" then
-         return Parse_Optional_Type_Spec (State, Allow_Access_Def);
+         return
+           Parse_Optional_Type_Spec
+             (State,
+              Allow_Access_Def,
+              Allow_Constraints => Allow_Constraints);
       elsif Current_Lower (State) = "list" then
-         return Parse_List_Type_Spec (State);
+         return Parse_List_Type_Spec (State, Allow_Constraints => Allow_Constraints);
       elsif Current_Lower (State) = "map" then
-         return Parse_Map_Type_Spec (State);
+         return Parse_Map_Type_Spec (State, Allow_Constraints => Allow_Constraints);
       elsif Current_Lower (State) = "array"
         and then FT.To_String (Next (State).Lexeme) /= "("
       then
-         return Parse_Growable_Array_Type_Spec (State);
+         return
+           Parse_Growable_Array_Type_Spec
+             (State,
+              Allow_Constraints => Allow_Constraints);
       elsif FT.To_String (Current (State).Lexeme) = "(" then
-         return Parse_Tuple_Type_Spec (State, Allow_Access_Def);
+         return
+           Parse_Tuple_Type_Spec
+             (State,
+              Allow_Access_Def,
+              Allow_Constraints => Allow_Constraints);
       end if;
-      return Parse_Named_Type_Spec (State, CM.Type_Spec_Name);
+      return
+        Parse_Named_Type_Spec
+          (State,
+           CM.Type_Spec_Name,
+           Allow_Constraints => Allow_Constraints);
    end Parse_Object_Type_Core;
 
    function Parse_Type_Spec_Internal
      (State            : in out Parser_State;
-      Allow_Access_Def : Boolean) return CM.Type_Spec is
+      Allow_Access_Def : Boolean;
+      Allow_Constraints : Boolean := True) return CM.Type_Spec is
    begin
-      return Parse_Object_Type_Core (State, Allow_Access_Def);
+      return
+        Parse_Object_Type_Core
+          (State,
+           Allow_Access_Def,
+           Allow_Constraints => Allow_Constraints);
    end Parse_Type_Spec_Internal;
 
    function Parse_Object_Type
@@ -1348,6 +1531,10 @@ package body Safe_Frontend.Check_Parse is
       Item.Is_Public := Is_Public;
       Item.Name := Name.Lexeme;
 
+      if Current_Lower (State) = "of" then
+         Item.Generic_Formals := Parse_Generic_Formals (State);
+      end if;
+
       if Current (State).Lexeme = FT.To_UString ("(") then
          Item.Discriminants := Parse_Discriminant_Spec_List (State);
          Item.Has_Discriminant := not Item.Discriminants.Is_Empty;
@@ -1586,6 +1773,10 @@ package body Safe_Frontend.Check_Parse is
 
       Name := Expect_Identifier (State);
       Result.Name := Name.Lexeme;
+
+      if Current_Lower (State) = "of" then
+         Result.Generic_Formals := Parse_Generic_Formals (State);
+      end if;
 
       if Match (State, "(") then
          loop
@@ -3160,6 +3351,19 @@ package body Safe_Frontend.Check_Parse is
                      Span    => Current (State).Span,
                      Message => "expected field selector after `.`"));
             end if;
+         elsif Current_Lower (State) = "of" then
+            if not Result.Generic_Args.Is_Empty then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path_String (State),
+                     Span    => Current (State).Span,
+                     Message => "duplicate generic argument list"));
+            end if;
+            Result.Generic_Args :=
+              Parse_Generic_Args
+                (State,
+                 Allow_Access_Def => False,
+                 Allow_Constraints => False);
          elsif FT.To_String (Current (State).Lexeme) = "(" then
             Open_Tok := Expect (State, "(");
             Next_Result := New_Expr;

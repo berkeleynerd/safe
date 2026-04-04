@@ -1,0 +1,26 @@
+package pr1111c_generic_build
+
+   type pair of (l, r) is record
+      left : l;
+      right : r;
+
+   function identity of t (value : t) returns t
+      return value;
+
+   function main returns integer
+      values : list of integer = [4, 5, 6];
+      copied : list of integer = identity of list of integer (values);
+      maybe : optional integer = some (9);
+      copied_maybe : optional integer = identity of optional integer (maybe);
+      totals : pair of (integer, integer) = (left = copied.length, right = 0);
+
+      if copied_maybe.present
+         totals.right = copied_maybe.value;
+      else
+         totals.right = 0;
+
+      print (totals.left);
+      return totals.right;
+
+   print (main);
+

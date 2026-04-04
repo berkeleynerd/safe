@@ -104,6 +104,7 @@
       "fields": [
         { "name": "is_public", "type": "Boolean", "optional": false },
         { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "generic_formals", "type": "Option<List<GenericFormal>>", "optional": true },
         { "name": "discriminant_part", "type": "Option<KnownDiscriminantPart>", "optional": true },
         { "name": "type_definition", "type": "NodeRef<TypeDefinition>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
@@ -626,6 +627,7 @@
       "source_section": "8.6",
       "fields": [
         { "name": "identifier", "type": "Identifier", "optional": false },
+        { "name": "generic_arguments", "type": "Option<List<SubtypeIndication | ListTypeSpec | MapTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -658,7 +660,18 @@
       "fields": [
         { "name": "prefix", "type": "NodeRef<Name>", "optional": false },
         { "name": "selector", "type": "Identifier", "optional": false },
+        { "name": "generic_arguments", "type": "Option<List<SubtypeIndication | ListTypeSpec | MapTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>>", "optional": true },
         { "name": "resolved_kind", "type": "Option<SelectedComponentKind>", "optional": true, "note": "Populated during semantic analysis: RecordField, Attribute, PackageMember, ImplicitDereference. The parser creates SelectedComponent for all X.Y forms; semantic analysis classifies each case per the resolution rule in spec/02-restrictions.md section 2.4.1." },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "GenericFormal",
+      "production": "generic_formal",
+      "source_section": "8.8",
+      "fields": [
+        { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "constraint_name", "type": "Option<Name>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -1226,6 +1239,7 @@
       "source_section": "8.8",
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "generic_formals", "type": "Option<List<GenericFormal>>", "optional": true },
         { "name": "receiver", "type": "Option<ParameterSpecification>", "optional": true },
         { "name": "formal_part", "type": "Option<FormalPart>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
@@ -1237,6 +1251,7 @@
       "source_section": "8.8",
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "generic_formals", "type": "Option<List<GenericFormal>>", "optional": true },
         { "name": "receiver", "type": "Option<ParameterSpecification>", "optional": true },
         { "name": "formal_part", "type": "Option<FormalPart>", "optional": true },
         { "name": "return_type", "type": "NodeRef<SubtypeIndication | ListTypeSpec | MapTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },

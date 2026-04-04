@@ -117,9 +117,11 @@ basic_declaration ::=
 
 ```
 type_declaration ::=
-    [ 'public' ] 'type' defining_identifier [ known_discriminant_part ]
+    [ 'public' ] 'type' defining_identifier
+        [ generic_formal_part ] [ known_discriminant_part ]
         'is' type_definition ';'
-  | [ 'public' ] 'type' defining_identifier 'is' 'interface'
+  | [ 'public' ] 'type' defining_identifier [ generic_formal_part ]
+        'is' 'interface'
         indented_interface_member_list
 
 incomplete_type_declaration ::=
@@ -285,6 +287,20 @@ indented_interface_member_list ::=
 
 interface_member_specification ::=
     function_specification ';'
+
+generic_formal_part ::=
+    'of' generic_formal_list [ generic_constraint_part ]
+
+generic_formal_list ::=
+    defining_identifier
+  | '(' defining_identifier { ',' defining_identifier } ')'
+
+generic_constraint_part ::=
+    'with' generic_constraint_association
+        { ',' generic_constraint_association }
+
+generic_constraint_association ::=
+    defining_identifier ':' subtype_mark
 ```
 
 ## 8.5 Subtype Indications
@@ -370,7 +386,7 @@ name ::=
   | function_call
 
 direct_name ::=
-    identifier
+    identifier [ generic_actual_part ]
 
 indexed_component ::=
     name '(' expression { ',' expression } ')'
@@ -379,10 +395,17 @@ slice ::=
     name '(' discrete_range ')'
 
 selected_component ::=
-    name '.' selector_name
+    name '.' selector_name [ generic_actual_part ]
 
 selector_name ::=
     identifier
+
+generic_actual_part ::=
+    'of' generic_actual_list
+
+generic_actual_list ::=
+    subtype_indication
+  | '(' subtype_indication { ',' subtype_indication } ')'
 
 type_conversion ::=
     type_target '(' expression ')'
@@ -704,6 +727,7 @@ subprogram_specification ::=
 
 function_specification ::=
     'function' [ receiver_parameter_clause ] defining_identifier
+        [ generic_formal_part ]
         [ formal_part ] [ 'returns' subtype_indication ]
 
 receiver_parameter_clause ::=
@@ -746,6 +770,20 @@ strict subset:
   milestone,
 - public interface-constrained subprogram bodies remain deferred to a later
   milestone.
+
+For the post-PR11.11c surface, Safe-native generics are also admitted with a
+strict subset:
+
+- generic declarations use Safe-native `of ...` syntax rather than Ada
+  `generic` units,
+- generic type declarations are package-level record or discriminated-record
+  declarations only in this milestone,
+- generic function calls require explicit type arguments, such as
+  `identity of integer (value)`,
+- multi-parameter and constrained forms use a trailing named constraint map,
+  such as `function max of T with T: orderable ...`,
+- public generic declarations may cross package boundaries, but all
+  concrete specializations lower away before MIR and emitted Ada.
 
 default_expression ::=
     expression

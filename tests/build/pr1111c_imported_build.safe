@@ -1,0 +1,15 @@
+with pr1111c_provider_build;
+
+package pr1111c_imported_build
+
+   function total returns integer
+      values : list of integer = [1, 2, 3];
+      copied : list of integer = pr1111c_provider_build.identity of list of integer (values);
+      item : pr1111c_provider_build.pair of (integer, string) = (left = copied.length, right = "ok");
+
+      if item.left == 3 and then item.right == "ok"
+         return 1;
+      else
+         return 0;
+
+   print (total);

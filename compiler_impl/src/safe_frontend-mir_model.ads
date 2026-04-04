@@ -111,6 +111,16 @@ package Safe_Frontend.Mir_Model is
      (Index_Type   => Positive,
       Element_Type => Interface_Member);
 
+   type Generic_Formal_Descriptor is record
+      Name            : FT.UString := FT.To_UString ("");
+      Has_Constraint  : Boolean := False;
+      Constraint_Name : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Generic_Formal_Descriptor_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Generic_Formal_Descriptor);
+
    type Scalar_Value_Kind is
      (Scalar_Value_None,
       Scalar_Value_Integer,
@@ -178,6 +188,10 @@ package Safe_Frontend.Mir_Model is
       Length_Bound       : Natural := 0;
       Fields             : Type_Field_Vectors.Vector;
       Interface_Members  : Interface_Member_Vectors.Vector;
+      Generic_Formals    : Generic_Formal_Descriptor_Vectors.Vector;
+      Has_Generic_Origin : Boolean := False;
+      Generic_Origin     : FT.UString := FT.To_UString ("");
+      Generic_Actual_Types : FT.UString_Vectors.Vector;
       Has_Target         : Boolean := False;
       Target             : FT.UString := FT.To_UString ("");
       Has_Base           : Boolean := False;
@@ -388,6 +402,9 @@ package Safe_Frontend.Mir_Model is
       Has_Return_Type      : Boolean := False;
       Return_Type          : Type_Descriptor;
       Return_Is_Access_Def : Boolean := False;
+      Generic_Formals      : Generic_Formal_Descriptor_Vectors.Vector;
+      Has_Template_Source  : Boolean := False;
+      Template_Source      : FT.UString := FT.To_UString ("");
       Span                 : FT.Source_Span := FT.Null_Span;
       Effect_Summary       : External_Effect_Summary;
       Channel_Summary      : External_Channel_Summary;
