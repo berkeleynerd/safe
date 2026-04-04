@@ -831,6 +831,8 @@ package body Safe_Frontend.Ada_Emit is
      (Unit   : CM.Resolved_Unit;
       Bronze : MB.Bronze_Result;
       Name   : String) return Boolean;
+   function Canonical_Name (Value : String) return String;
+   function Sanitize_Type_Name_Component (Value : String) return String;
    function Shared_Wrapper_Object_Name (Root_Name : String) return String;
    function Shared_Wrapper_Type_Name (Root_Name : String) return String;
    function Shared_Field_Getter_Name (Field_Name : String) return String;
@@ -939,9 +941,50 @@ package body Safe_Frontend.Ada_Emit is
       return False;
    end Channel_Uses_Unspecified_Task_Priority;
 
+   function Canonical_Name (Value : String) return String is
+   begin
+      return FT.Lowercase (Value);
+   end Canonical_Name;
+
+   function Sanitize_Type_Name_Component (Value : String) return String is
+      Result : FT.UString := FT.To_UString ("");
+      Last_Was_Underscore : Boolean := False;
+   begin
+      for Ch of Value loop
+         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
+            Result := Result & FT.To_UString ((1 => Ch));
+            Last_Was_Underscore := False;
+         else
+            if not Last_Was_Underscore then
+               Result := Result & FT.To_UString ("_");
+               Last_Was_Underscore := True;
+            end if;
+         end if;
+      end loop;
+
+      declare
+         Text : constant String := FT.To_String (Result);
+         First : Positive := Text'First;
+         Last  : Natural := Text'Last;
+      begin
+         while First <= Text'Last and then Text (First) = '_' loop
+            First := First + 1;
+         end loop;
+         while Last >= First and then Text (Last) = '_' loop
+            Last := Last - 1;
+         end loop;
+         if Last < First then
+            return "value";
+         end if;
+         return Text (First .. Last);
+      end;
+   end Sanitize_Type_Name_Component;
+
    function Shared_Wrapper_Object_Name (Root_Name : String) return String is
    begin
-      return "Safe_Shared_" & Root_Name;
+      return
+        "Safe_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
    end Shared_Wrapper_Object_Name;
 
    function Shared_Wrapper_Type_Name (Root_Name : String) return String is
@@ -951,12 +994,14 @@ package body Safe_Frontend.Ada_Emit is
 
    function Shared_Field_Getter_Name (Field_Name : String) return String is
    begin
-      return "Get_" & Field_Name;
+      return
+        "Get_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
    end Shared_Field_Getter_Name;
 
    function Shared_Field_Setter_Name (Field_Name : String) return String is
    begin
-      return "Set_" & Field_Name;
+      return
+        "Set_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
    end Shared_Field_Setter_Name;
 
    function Shared_Wrapper_Formal_Type
