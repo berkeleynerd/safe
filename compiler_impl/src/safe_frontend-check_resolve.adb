@@ -10814,6 +10814,29 @@ package body Safe_Frontend.Check_Resolve is
         (Statements : CM.Statement_Access_Vectors.Vector);
 
       procedure Validate_Expr (Expr : CM.Expr_Access) is
+         function Is_Interface_Method_Syntax return Boolean is
+         begin
+            if Expr = null
+              or else Expr.Callee = null
+              or else Expr.Callee.Kind /= CM.Expr_Select
+              or else Expr.Callee.Prefix = null
+              or else Expr.Callee.Prefix.Kind /= CM.Expr_Ident
+            then
+               return False;
+            end if;
+
+            declare
+               Prefix_Interface_Info : constant GM.Type_Descriptor :=
+                 Param_Interface_Type
+                   (UString_Value (Expr.Callee.Prefix.Name));
+            begin
+               return
+                 UString_Value (Prefix_Interface_Info.Name)'Length > 0
+                 and then Interface_Has_Member
+                   (Prefix_Interface_Info,
+                    FT.Lowercase (UString_Value (Expr.Callee.Selector)));
+            end;
+         end Is_Interface_Method_Syntax;
       begin
          if Expr = null then
             return;
@@ -10821,16 +10844,16 @@ package body Safe_Frontend.Check_Resolve is
 
          case Expr.Kind is
             when CM.Expr_Apply | CM.Expr_Call =>
-               if Expr.Callee /= null
-                 and then Expr.Callee.Kind /= CM.Expr_Select
-                 and then not Expr.Args.Is_Empty
-               then
+               if Expr.Callee /= null and then not Expr.Args.Is_Empty then
                   declare
                      Callee_Name : constant String :=
                        Method_Target_Tail_Name (Flatten_Name (Expr.Callee));
                      First_Arg : constant CM.Expr_Access := Expr.Args (Expr.Args.First_Index);
                   begin
-                     if First_Arg /= null and then First_Arg.Kind = CM.Expr_Ident then
+                     if not Is_Interface_Method_Syntax
+                       and then First_Arg /= null
+                       and then First_Arg.Kind = CM.Expr_Ident
+                     then
                         declare
                            Interface_Info : constant GM.Type_Descriptor :=
                              Param_Interface_Type (UString_Value (First_Arg.Name));
