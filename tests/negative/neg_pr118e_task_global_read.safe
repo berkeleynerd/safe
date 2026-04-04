@@ -5,10 +5,10 @@
 
 package neg_pr118e_task_global_read
 
-   shared : integer = 42;
+   global_value : integer = 42;
 
    task reader
       local : integer = 0;
 
       loop
-         local = shared;
+         local = global_value;

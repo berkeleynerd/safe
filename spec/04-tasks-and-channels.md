@@ -5,8 +5,9 @@
 This section specifies Safe's concurrency model. Safe provides concurrency
 through static tasks and typed channels as first-class language constructs.
 Tasks are declared at unit scope and create exactly one task each. Channels are
-typed, bounded-capacity FIFO queues. Tasks communicate exclusively
-through channels — no shared mutable state between tasks.
+typed, bounded-capacity FIFO queues. Tasks ordinarily communicate through
+channels; `PR11.12a` additionally admits a narrow same-unit `shared` record
+subset lowered to compiler-generated protected wrappers.
 
 ---
 
@@ -255,10 +256,13 @@ delay_arm ::=
 
 ### Legality Rules
 
-45. **No shared mutable state between tasks.** Each unit-level variable shall
-be accessed by at most one task. The implementation shall verify this at
-compile time. A conforming implementation shall reject any program where a
-unit-level variable is accessed by more than one task.
+45. **No unprotected shared mutable state between tasks.** Each unit-level
+variable that is not declared `shared` shall be accessed by at most one task.
+The implementation shall verify this at compile time. A conforming
+implementation shall reject any program where a non-`shared` unit-level
+variable is accessed by more than one task. `PR11.12a` shared records are the
+sole admitted exception and are lowered to compiler-generated protected
+wrappers with direct top-level field read/write access only.
 
 46. **Access determination.** A task accesses a unit-level variable if:
 

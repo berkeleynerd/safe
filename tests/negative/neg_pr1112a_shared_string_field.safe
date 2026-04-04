@@ -1,0 +1,6 @@
+package neg_pr1112a_shared_string_field
+
+   type settings is record
+      text : string;
+
+   shared cfg : settings;

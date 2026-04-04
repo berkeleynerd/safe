@@ -1420,7 +1420,7 @@ package body Safe_Frontend.Check_Emit is
             begin
                for Literal of Decl.Enum_Literals loop
                   Literals.Append
-                    ("{""node_type"":""DefiningIdentifier"",""name"":"
+                    ("{""node_type"":""EnumerationLiteral"",""kind"":""Identifier"",""value"":"
                      & JS.Quote (Literal)
                      & ",""span"":"
                      & JS.Span_Object (Decl.Span)
@@ -1434,7 +1434,7 @@ package body Safe_Frontend.Check_Emit is
                  & Generic_Formals_Field (Decl.Generic_Formals)
                  & ",""discriminant_part"":"
                  & Discriminant_Part_Node (Decl)
-                 & ",""type_definition"":{""node_type"":""EnumerationTypeDefinition"",""enumerators"":"
+                 & ",""type_definition"":{""node_type"":""EnumerationTypeDefinition"",""literals"":"
                  & Json_List (Literals)
                  & ",""span"":"
                  & JS.Span_Object (Decl.Span)
@@ -1615,6 +1615,8 @@ package body Safe_Frontend.Check_Emit is
       return
         "{""node_type"":""ObjectDeclaration"",""is_public"":"
         & JS.Bool_Literal (Decl.Is_Public)
+        & ",""is_shared"":"
+        & JS.Bool_Literal (Decl.Is_Shared)
         & ",""names"":"
         & Json_List (Names)
         & ",""is_aliased"":false,""is_constant"":"

@@ -4,11 +4,10 @@
 
 package neg_pr118e_task_global_length_attribute
 
-   shared : string (5) = "hello";
+   global_text : string (5) = "hello";
 
    task worker
       observed : integer = 0;
 
       loop
-         observed = shared.length;
-
+         observed = global_text.length;

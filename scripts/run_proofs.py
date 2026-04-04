@@ -35,6 +35,7 @@ from _lib.proof_inventory import (
     PR11_11A_CHECKPOINT_FIXTURES,
     PR11_11B_CHECKPOINT_FIXTURES,
     PR11_11C_CHECKPOINT_FIXTURES,
+    PR11_12A_CHECKPOINT_FIXTURES,
     PROOF_COVERAGE_ROOTS,
     iter_proof_coverage_paths,
 )
@@ -88,6 +89,7 @@ def validate_manifests() -> None:
     validate_manifest("PR11.11a checkpoint manifest", PR11_11A_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.11b checkpoint manifest", PR11_11B_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.11c checkpoint manifest", PR11_11C_CHECKPOINT_FIXTURES)
+    validate_manifest("PR11.12a checkpoint manifest", PR11_12A_CHECKPOINT_FIXTURES)
     validate_manifest("emitted proof regression manifest", EMITTED_PROOF_REGRESSION_FIXTURES)
     validate_manifest("emitted proof manifest", EMITTED_PROOF_FIXTURES)
     validate_manifest(
@@ -328,6 +330,11 @@ def main() -> int:
             temp_root=temp_root,
             toolchain=toolchain,
         )
+        checkpoint_12a_passed, checkpoint_12a_failures = run_fixture_group(
+            fixtures=PR11_12A_CHECKPOINT_FIXTURES,
+            temp_root=temp_root,
+            toolchain=toolchain,
+        )
         regression_passed, regression_failures = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
@@ -358,6 +365,7 @@ def main() -> int:
         + checkpoint_11a_passed
         + checkpoint_11b_passed
         + checkpoint_11c_passed
+        + checkpoint_12a_passed
         + regression_passed
     )
     total_failures = (
@@ -377,6 +385,7 @@ def main() -> int:
         + checkpoint_11a_failures
         + checkpoint_11b_failures
         + checkpoint_11c_failures
+        + checkpoint_12a_failures
         + regression_failures
     )
 
@@ -480,6 +489,12 @@ def main() -> int:
         passed=checkpoint_11c_passed,
         failures=checkpoint_11c_failures,
         title="PR11.11c checkpoint",
+        trailing_blank_line=True,
+    )
+    print_summary(
+        passed=checkpoint_12a_passed,
+        failures=checkpoint_12a_failures,
+        title="PR11.12a checkpoint",
         trailing_blank_line=True,
     )
     print_summary(

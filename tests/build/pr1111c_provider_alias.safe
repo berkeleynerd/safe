@@ -1,0 +1,18 @@
+package pr1111c_provider_alias
+
+   public type box of t is record
+      value : t;
+
+   public function helper of t (value : t; same : t) returns integer
+      if value == same
+         return 7;
+      else
+         return 0;
+
+   public function mirror of t (value : t; same : t) returns integer
+      item : box of integer = (value = helper of integer (1, 1));
+
+      if value == same and then item.value == 7
+         return item.value;
+      else
+         return 0;

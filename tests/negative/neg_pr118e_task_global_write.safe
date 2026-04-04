@@ -5,9 +5,9 @@
 
 package neg_pr118e_task_global_write
 
-   shared : integer = 0;
+   global_value : integer = 0;
 
    task writer
 
       loop
-         shared = 1;
+         global_value = 1;

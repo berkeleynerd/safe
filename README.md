@@ -205,7 +205,7 @@ incremental multi-file builds. The next larger milestones are:
   `optional T`)
 - **PR11.11** — User-defined generics
 
-See [`docs/PR11.x-series-proposed.md`](docs/PR11.x-series-proposed.md) for the
+See [`docs/roadmap.md`](docs/roadmap.md) for the
 full roadmap.
 
 ---
@@ -217,7 +217,7 @@ full roadmap.
 | Language specification | [`spec/00-front-matter.md`](spec/00-front-matter.md) |
 | Tutorial | [`docs/tutorial.md`](docs/tutorial.md) |
 | Design direction | [`docs/vision.md`](docs/vision.md) |
-| Current roadmap | [`docs/PR11.x-series-proposed.md`](docs/PR11.x-series-proposed.md) |
+| Current roadmap | [`docs/roadmap.md`](docs/roadmap.md) |
 | Translation rules | [`compiler/translation_rules.md`](compiler/translation_rules.md) |
 | Compiler workspace | [`compiler_impl/README.md`](compiler_impl/README.md) |
 | CLI walkthrough | [`docs/safec_end_to_end_cli_tutorial.md`](docs/safec_end_to_end_cli_tutorial.md) |

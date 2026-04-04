@@ -314,6 +314,7 @@ AST_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr1111a_method_syntax.safe",
     REPO_ROOT / "tests" / "positive" / "pr1111b_interface_local.safe",
     REPO_ROOT / "tests" / "positive" / "pr1111c_generic_basics.safe",
+    REPO_ROOT / "tests" / "positive" / "pr1112a_shared_field_access.safe",
 ]
 
 DIAGNOSTIC_GOLDEN_CASES = [
@@ -570,6 +571,16 @@ BUILD_SUCCESS_CASES = [
         REPO_ROOT / "tests" / "build" / "pr1111c_imported_build.safe",
         "1\n",
         False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1111c_imported_alias_and_collision_build.safe",
+        "10\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112a_shared_task_build.safe",
+        "4\n5\n3\n2\n",
+        True,
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
@@ -976,6 +987,11 @@ EMITTED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "embedded" / "select_single_ready_result.safe",
         ["Select_Polls", "Select_Iter", "delay 0.001;"],
     ),
+    (
+        "shared-root-no-raw-package-object",
+        REPO_ROOT / "tests" / "positive" / "pr1112a_shared_field_access.safe",
+        ["cfg : settings;", "cfg : settings :="],
+    ),
 ]
 
 EMITTED_REQUIRED_SHAPE_CASES = [
@@ -1065,6 +1081,18 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "_Next_Arm := 1;",
             ".Signal;",
             ".Await (Select_Timed_Out);",
+        ],
+    ),
+    (
+        "shared-root-protected-wrapper-lowering",
+        REPO_ROOT / "tests" / "positive" / "pr1112a_shared_field_access.safe",
+        [
+            "protected type Safe_Shared_cfg_Wrapper with Priority => System.Any_Priority'Last is",
+            "function Get_count return",
+            "procedure Set_count (Value : in",
+            "function Get_nested return",
+            "procedure Initialize (Value : in settings);",
+            "Safe_Shared_cfg : Safe_Shared_cfg_Wrapper;",
         ],
     ),
 ]

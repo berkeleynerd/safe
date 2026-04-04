@@ -1,0 +1,3 @@
+package neg_pr1112a_shared_non_record
+
+   shared value : integer = 1;

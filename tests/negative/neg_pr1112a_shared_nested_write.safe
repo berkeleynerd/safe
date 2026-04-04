@@ -1,0 +1,11 @@
+package neg_pr1112a_shared_nested_write
+
+   type nested_state is record
+      value : integer;
+
+   type settings is record
+      nested : nested_state;
+
+   shared cfg : settings = (nested = (value = 1));
+
+   cfg.nested.value = 2;

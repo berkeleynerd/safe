@@ -137,6 +137,7 @@
       "source_section": "8.3",
       "fields": [
         { "name": "is_public", "type": "Boolean", "optional": false },
+        { "name": "is_shared", "type": "Boolean", "optional": false },
         { "name": "names", "type": "NonEmptyList<Identifier>", "optional": false },
         { "name": "is_aliased", "type": "Boolean", "optional": false },
         { "name": "is_constant", "type": "Boolean", "optional": false },

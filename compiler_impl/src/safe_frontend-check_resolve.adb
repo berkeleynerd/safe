@@ -164,6 +164,7 @@ package body Safe_Frontend.Check_Resolve is
 
    Current_Target_Bits : Positive := 64;
    Current_Public_Channel_Names : String_Vectors.Vector;
+   Current_Shared_Object_Types : Type_Maps.Map;
    Current_Select_In_Subprogram_Body : Boolean := False;
    Synthetic_Helper_Types : Type_Maps.Map;
    Synthetic_Helper_Order : String_Vectors.Vector;
@@ -659,6 +660,29 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
+   function Is_Shared_Field_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String;
+
+   function Shared_Field_Getter_Name (Field_Name : String) return String;
+
+   function Shared_Field_Setter_Name (Field_Name : String) return String;
+
+   function Is_Shared_Object_Name (Name : String) return Boolean;
+
+   function Try_Shared_Top_Level_Field_Access
+     (Expr       : CM.Expr_Access;
+      Type_Env   : Type_Maps.Map;
+      Root_Name  : out FT.UString;
+      Field_Type : out GM.Type_Descriptor) return Boolean;
+
+   procedure Reject_Bare_Shared_Object_Expr
+     (Expr      : CM.Expr_Access;
+      Type_Env  : Type_Maps.Map;
+      Path      : String);
+
    function Is_Definite_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
@@ -763,6 +787,8 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Subprograms : GM.External_Vectors.Vector;
       Imported_Objects     : Type_Maps.Map;
       Imported_Static      : Static_Value_Maps.Map;
+      Generic_Types        : in out Generic_Type_Template_Maps.Map;
+      Generic_Functions    : in out Generic_Function_Template_Maps.Map;
       Visible_Types        : in out Type_Maps.Map;
       Visible_Functions    : in out Function_Maps.Map;
       Visible_Objects      : in out Type_Maps.Map;
@@ -808,6 +834,17 @@ package body Safe_Frontend.Check_Resolve is
    function Int_Expr
      (Value : CM.Wide_Integer;
       Span  : FT.Source_Span) return CM.Expr_Access;
+
+   function Ident_Expr
+     (Name      : String;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access;
+
+   function Selector_Expr
+     (Prefix    : CM.Expr_Access;
+      Selector  : String;
+      Span      : FT.Source_Span;
+      Type_Name : String) return CM.Expr_Access;
 
    function Binary_Expr
      (Left      : CM.Expr_Access;
@@ -911,6 +948,11 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
 
    function Is_Assignable_Target (Expr : CM.Expr_Access) return Boolean;
+
+   procedure Validate_Mut_Call_Arguments
+     (Expr      : CM.Expr_Access;
+      Functions : Function_Maps.Map;
+      Path      : String);
 
    function Resolve_Type
      (Name     : String;
@@ -1272,6 +1314,193 @@ package body Safe_Frontend.Check_Resolve is
         and then not Contains_Channel_Reference_Subcomponent (Info, Type_Env);
    end Is_Container_Element_Type_Allowed;
 
+   function Is_Shared_Field_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+   begin
+      if Is_Interface_Type (Base, Type_Env)
+        or else Kind in "access" | "incomplete" | "generic_formal" | "null"
+        or else Contains_Channel_Reference_Subcomponent (Base, Type_Env)
+      then
+         return False;
+      elsif Is_String_Type (Base, Type_Env) then
+         return Is_Bounded_String_Type (Info, Type_Env);
+      elsif Is_Optional_Type (Base, Type_Env) then
+         return Is_Shared_Field_Type_Allowed
+           (Optional_Payload_Type (Base, Type_Env), Type_Env);
+      elsif Kind = "array" then
+         return not Base.Growable
+           and then Base.Has_Component_Type
+           and then Is_Shared_Field_Type_Allowed
+             (Resolve_Type
+                (UString_Value (Base.Component_Type),
+                 Type_Env,
+                 "",
+                 FT.Null_Span),
+              Type_Env);
+      elsif Kind = "tuple" then
+         for Item of Base.Tuple_Element_Types loop
+            if not Is_Shared_Field_Type_Allowed
+              (Resolve_Type (UString_Value (Item), Type_Env, "", FT.Null_Span),
+               Type_Env)
+            then
+               return False;
+            end if;
+         end loop;
+         return True;
+      elsif Kind = "record" then
+         if Base.Has_Discriminant
+           or else not Base.Discriminants.Is_Empty
+           or else not Base.Variant_Fields.Is_Empty
+           or else Base.Is_Result_Builtin
+         then
+            return False;
+         end if;
+         for Field of Base.Fields loop
+            if not Is_Shared_Field_Type_Allowed
+              (Resolve_Type (UString_Value (Field.Type_Name), Type_Env, "", FT.Null_Span),
+               Type_Env)
+            then
+               return False;
+            end if;
+         end loop;
+         return True;
+      end if;
+
+      return Kind in "integer" | "float" | "binary" | "enum" | "subtype"
+        or else Is_Boolean_Type (Base, Type_Env);
+   end Is_Shared_Field_Type_Allowed;
+
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String is
+   begin
+      return
+        "Safe_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
+   end Shared_Wrapper_Object_Name;
+
+   function Shared_Field_Getter_Name (Field_Name : String) return String is
+   begin
+      return
+        "Get_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
+   end Shared_Field_Getter_Name;
+
+   function Shared_Field_Setter_Name (Field_Name : String) return String is
+   begin
+      return
+        "Set_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
+   end Shared_Field_Setter_Name;
+
+   function Is_Shared_Object_Name (Name : String) return Boolean is
+      Key : constant String := Canonical_Name (Name);
+   begin
+      return Key'Length > 0 and then Current_Shared_Object_Types.Contains (Key);
+   end Is_Shared_Object_Name;
+
+   function Try_Shared_Top_Level_Field_Access
+     (Expr       : CM.Expr_Access;
+      Type_Env   : Type_Maps.Map;
+      Root_Name  : out FT.UString;
+      Field_Type : out GM.Type_Descriptor) return Boolean
+   is
+      Shared_Type : GM.Type_Descriptor;
+   begin
+      Root_Name := FT.To_UString ("");
+      Field_Type := (others => <>);
+
+      if Expr = null
+        or else Expr.Kind /= CM.Expr_Select
+        or else Expr.Prefix = null
+        or else Expr.Prefix.Kind /= CM.Expr_Ident
+      then
+         return False;
+      end if;
+
+      declare
+         Root_Key : constant String := Canonical_Name (UString_Value (Expr.Prefix.Name));
+      begin
+         if Root_Key = "" or else not Current_Shared_Object_Types.Contains (Root_Key) then
+            return False;
+         end if;
+
+         Shared_Type := Current_Shared_Object_Types.Element (Root_Key);
+         for Field of Base_Type (Shared_Type, Type_Env).Fields loop
+            if Canonical_Name (UString_Value (Field.Name))
+              = Canonical_Name (UString_Value (Expr.Selector))
+            then
+               Root_Name := Expr.Prefix.Name;
+               Field_Type :=
+                 Resolve_Type (UString_Value (Field.Type_Name), Type_Env, "", FT.Null_Span);
+               return True;
+            end if;
+         end loop;
+      end;
+
+      return False;
+   end Try_Shared_Top_Level_Field_Access;
+
+   procedure Reject_Bare_Shared_Object_Expr
+     (Expr      : CM.Expr_Access;
+      Type_Env  : Type_Maps.Map;
+      Path      : String) is
+      Root_Name  : FT.UString;
+      Field_Type : GM.Type_Descriptor;
+   begin
+      if Expr = null then
+         return;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Ident =>
+            if Is_Shared_Object_Name (UString_Value (Expr.Name)) then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Expr.Span,
+                     Message =>
+                       "live shared variables are only admitted through field access in PR11.12a"));
+            end if;
+         when CM.Expr_Select =>
+            if not Try_Shared_Top_Level_Field_Access
+                    (Expr     => Expr,
+                     Type_Env => Type_Env,
+                     Root_Name => Root_Name,
+                     Field_Type => Field_Type)
+            then
+               Reject_Bare_Shared_Object_Expr (Expr.Prefix, Type_Env, Path);
+            end if;
+         when CM.Expr_Conversion | CM.Expr_Annotated =>
+            Reject_Bare_Shared_Object_Expr (Expr.Inner, Type_Env, Path);
+         when CM.Expr_Unary | CM.Expr_Try | CM.Expr_Some =>
+            Reject_Bare_Shared_Object_Expr (Expr.Prefix, Type_Env, Path);
+            Reject_Bare_Shared_Object_Expr (Expr.Inner, Type_Env, Path);
+         when CM.Expr_Binary =>
+            Reject_Bare_Shared_Object_Expr (Expr.Left, Type_Env, Path);
+            Reject_Bare_Shared_Object_Expr (Expr.Right, Type_Env, Path);
+         when CM.Expr_Allocator =>
+            Reject_Bare_Shared_Object_Expr (Expr.Value, Type_Env, Path);
+            Reject_Bare_Shared_Object_Expr (Expr.Target, Type_Env, Path);
+         when CM.Expr_Resolved_Index | CM.Expr_Call | CM.Expr_Apply =>
+            Reject_Bare_Shared_Object_Expr (Expr.Prefix, Type_Env, Path);
+            Reject_Bare_Shared_Object_Expr (Expr.Callee, Type_Env, Path);
+            for Item of Expr.Args loop
+               Reject_Bare_Shared_Object_Expr (Item, Type_Env, Path);
+            end loop;
+         when CM.Expr_Aggregate =>
+            for Item of Expr.Fields loop
+               Reject_Bare_Shared_Object_Expr (Item.Expr, Type_Env, Path);
+            end loop;
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               Reject_Bare_Shared_Object_Expr (Item, Type_Env, Path);
+            end loop;
+         when others =>
+            null;
+      end case;
+   end Reject_Bare_Shared_Object_Expr;
+
    function Try_Static_String_Length
      (Expr   : CM.Expr_Access;
       Length : out Natural) return Boolean
@@ -1362,7 +1591,7 @@ package body Safe_Frontend.Check_Resolve is
                      Type_Env,
                      Path,
                      Source_Expr.Elements (Index).Span);
-            end loop;
+               end loop;
             end if;
          end;
       elsif FT.Lowercase (UString_Value (Base_Target.Kind)) = "record"
@@ -2243,14 +2472,16 @@ package body Safe_Frontend.Check_Resolve is
    is
       Result : FT.UString :=
         FT.To_UString
-          (Prefix & Sanitize_Type_Name_Component (Method_Target_Tail_Name (Name)));
+          (Prefix & Sanitize_Type_Name_Component (Canonical_Name (Name)));
    begin
       if not Actual_Types.Is_Empty then
          for Item of Actual_Types loop
             Result :=
               Result
               & FT.To_UString ("_")
-              & FT.To_UString (Sanitize_Type_Name_Component (UString_Value (Item)));
+              & FT.To_UString
+                  (Sanitize_Type_Name_Component
+                     (Canonical_Name (UString_Value (Item))));
          end loop;
       end if;
       return UString_Value (Result);
@@ -2418,6 +2649,8 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Subprograms : GM.External_Vectors.Vector;
       Imported_Objects     : Type_Maps.Map;
       Imported_Static      : Static_Value_Maps.Map;
+      Generic_Types        : in out Generic_Type_Template_Maps.Map;
+      Generic_Functions    : in out Generic_Function_Template_Maps.Map;
       Visible_Types        : in out Type_Maps.Map;
       Visible_Functions    : in out Function_Maps.Map;
       Visible_Objects      : in out Type_Maps.Map;
@@ -2442,9 +2675,18 @@ package body Safe_Frontend.Check_Resolve is
             begin
                if From_Package (Qualified_Name)
                  and then Short_Name /= Qualified_Name
-                 and then not Has_Type (Visible_Types, Short_Name)
                then
-                  Put_Type (Visible_Types, Short_Name, Item);
+                  if not Has_Type (Visible_Types, Short_Name) then
+                     Put_Type (Visible_Types, Short_Name, Item);
+                  end if;
+                  if not Item.Generic_Formals.Is_Empty
+                    and then Generic_Types.Contains (Canonical_Name (Qualified_Name))
+                    and then not Generic_Types.Contains (Canonical_Name (Short_Name))
+                  then
+                     Generic_Types.Include
+                       (Canonical_Name (Short_Name),
+                        Generic_Types.Element (Canonical_Name (Qualified_Name)));
+                  end if;
                end if;
             end;
          end loop;
@@ -2459,31 +2701,40 @@ package body Safe_Frontend.Check_Resolve is
             begin
                if From_Package (Qualified_Name)
                  and then Short_Name /= Qualified_Name
-                 and then not Has_Function (Visible_Functions, Short_Name)
                then
-                  Info.Name := FT.To_UString (Short_Name);
-                  Info.Kind := Item.Kind;
-                  Info.Span := Item.Span;
-                  Info.Has_Return_Type := Item.Has_Return_Type;
-                  Info.Return_Is_Access_Def := Item.Return_Is_Access_Def;
-                  if Item.Has_Return_Type then
-                     Info.Return_Type := Item.Return_Type;
+                  if Item.Generic_Formals.Is_Empty then
+                     if not Has_Function (Visible_Functions, Short_Name) then
+                        Info.Name := FT.To_UString (Short_Name);
+                        Info.Kind := Item.Kind;
+                        Info.Span := Item.Span;
+                        Info.Has_Return_Type := Item.Has_Return_Type;
+                        Info.Return_Is_Access_Def := Item.Return_Is_Access_Def;
+                        if Item.Has_Return_Type then
+                           Info.Return_Type := Item.Return_Type;
+                        end if;
+                        if not Item.Params.Is_Empty then
+                           for Param of Item.Params loop
+                              declare
+                                 Symbol : CM.Symbol;
+                              begin
+                                 Symbol.Name := Param.Name;
+                                 Symbol.Kind := Param.Kind;
+                                 Symbol.Mode := Param.Mode;
+                                 Symbol.Type_Info := Param.Type_Info;
+                                 Symbol.Span := Param.Span;
+                                 Info.Params.Append (Symbol);
+                              end;
+                           end loop;
+                        end if;
+                        Put_Function (Visible_Functions, Short_Name, Info);
+                     end if;
+                  elsif Generic_Functions.Contains (Canonical_Name (Qualified_Name))
+                    and then not Generic_Functions.Contains (Canonical_Name (Short_Name))
+                  then
+                     Generic_Functions.Include
+                       (Canonical_Name (Short_Name),
+                        Generic_Functions.Element (Canonical_Name (Qualified_Name)));
                   end if;
-                  if not Item.Params.Is_Empty then
-                     for Param of Item.Params loop
-                        declare
-                           Symbol : CM.Symbol;
-                        begin
-                           Symbol.Name := Param.Name;
-                           Symbol.Kind := Param.Kind;
-                           Symbol.Mode := Param.Mode;
-                           Symbol.Type_Info := Param.Type_Info;
-                           Symbol.Span := Param.Span;
-                           Info.Params.Append (Symbol);
-                        end;
-                     end loop;
-                  end if;
-                  Put_Function (Visible_Functions, Short_Name, Info);
                end if;
             end;
          end loop;
@@ -5082,6 +5333,7 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Args.Append
                        (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
                   end loop;
+                  Validate_Mut_Call_Arguments (Result, Functions, Path);
                   if Is_Pop_Last_Builtin_Call (Result, Var_Types, Functions, Type_Env) then
                      if Natural (Result.Args.Length) /= 1 then
                         Raise_Diag
@@ -5242,8 +5494,38 @@ package body Safe_Frontend.Check_Resolve is
                end if;
             end;
          when CM.Expr_Select =>
-            Result := new CM.Expr_Node'(Expr.all);
-            Result.Prefix := Normalize_Expr (Expr.Prefix, Var_Types, Functions, Type_Env, Const_Env, Path);
+            declare
+               Shared_Root : FT.UString := FT.To_UString ("");
+               Shared_Field_Type : GM.Type_Descriptor;
+               Call_Result : CM.Expr_Access;
+            begin
+               if Try_Shared_Top_Level_Field_Access
+                 (Expr,
+                  Type_Env,
+                  Shared_Root,
+                  Shared_Field_Type)
+               then
+                  Call_Result := new CM.Expr_Node;
+                  Call_Result.Kind := CM.Expr_Call;
+                  Call_Result.Span := Expr.Span;
+                  Call_Result.Type_Name := Shared_Field_Type.Name;
+                  Call_Result.Callee :=
+                    Selector_Expr
+                      (Prefix    =>
+                         Ident_Expr
+                           (Shared_Wrapper_Object_Name (UString_Value (Shared_Root)),
+                            Expr.Prefix.Span,
+                            ""),
+                       Selector  => Shared_Field_Getter_Name (UString_Value (Expr.Selector)),
+                       Span      => Expr.Span,
+                       Type_Name => UString_Value (Shared_Field_Type.Name));
+                  Result := Call_Result;
+               else
+                  Result := new CM.Expr_Node'(Expr.all);
+                  Result.Prefix :=
+                    Normalize_Expr (Expr.Prefix, Var_Types, Functions, Type_Env, Const_Env, Path);
+               end if;
+            end;
          when CM.Expr_Binary =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Left := Normalize_Expr (Expr.Left, Var_Types, Functions, Type_Env, Const_Env, Path);
@@ -5890,6 +6172,7 @@ package body Safe_Frontend.Check_Resolve is
       Result : constant CM.Expr_Access :=
         Normalize_Expr (Expr, Var_Types, Functions, Type_Env, Const_Env, Path);
    begin
+      Reject_Bare_Shared_Object_Expr (Result, Type_Env, Path);
       Validate_Pr112_Expr_Boundaries (Result, Var_Types, Functions, Type_Env, Path);
       Validate_Print_Call_Context (Result, Var_Types, Functions, Type_Env, Path);
       if not Allow_Try then
@@ -6553,11 +6836,55 @@ package body Safe_Frontend.Check_Resolve is
             end if;
          end loop;
          return True;
+      elsif Is_Shared_Object_Name (Root_Name (Expr)) then
+         return False;
       elsif Expr.Kind = CM.Expr_Select then
          return UString_Value (Expr.Selector) not in "first" | "last" | "length" | "access";
       end if;
       return False;
    end Is_Assignable_Target;
+
+   procedure Validate_Mut_Call_Arguments
+     (Expr      : CM.Expr_Access;
+      Functions : Function_Maps.Map;
+      Path      : String)
+   is
+      Name     : constant String :=
+        (if Expr = null or else Expr.Callee = null then "" else Flatten_Name (Expr.Callee));
+      Info     : Function_Info;
+      Has_Info : Boolean := False;
+   begin
+      if Expr = null or else Expr.Kind /= CM.Expr_Call or else Name = "" then
+         return;
+      end if;
+
+      if Has_Function (Functions, Name) then
+         Info := Get_Function (Functions, Name);
+         Has_Info := True;
+      elsif Current_Generic_Function_Templates.Contains (Canonical_Name (Name)) then
+         Info := Current_Generic_Function_Templates.Element (Canonical_Name (Name)).Info;
+         Has_Info := True;
+      end if;
+
+      if not Has_Info or else Natural (Expr.Args.Length) /= Natural (Info.Params.Length) then
+         return;
+      end if;
+
+      for Index in Info.Params.First_Index .. Info.Params.Last_Index loop
+         if UString_Value (Info.Params (Index).Mode) = "mut"
+           and then not Is_Assignable_Target (Expr.Args (Index))
+         then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Expr.Args (Index).Span,
+                  Message =>
+                    "argument for `mut` parameter `"
+                    & UString_Value (Info.Params (Index).Name)
+                    & "` must be a writable name"));
+         end if;
+      end loop;
+   end Validate_Mut_Call_Arguments;
 
    function Resolve_Decl_Type
      (Decl      : CM.Object_Decl;
@@ -6801,8 +7128,57 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       Result.Type_Info := Resolve_Decl_Type (Decl, Type_Env, Const_Env, Path);
+      Result.Is_Shared := Decl.Is_Shared;
       Result.Has_Implicit_Default_Init := Decl.Has_Implicit_Default_Init;
       Result.Is_Constant := Decl.Is_Constant;
+      if Result.Is_Shared then
+         declare
+            Base : constant GM.Type_Descriptor := Base_Type (Result.Type_Info, Type_Env);
+            Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+         begin
+            if Natural (Decl.Names.Length) /= 1 then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Decl.Span,
+                     Message =>
+                       "`shared` declarations are limited to a single name in PR11.12a"));
+            elsif Decl.Is_Public then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Decl.Span,
+                     Message =>
+                       "`public shared` declarations are outside the current PR11.12a same-unit subset"));
+            elsif Decl.Is_Constant then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Decl.Span,
+                     Message =>
+                       "`shared` declarations cannot be constant in PR11.12a"));
+            elsif Kind /= "record"
+              or else Is_Optional_Type (Base, Type_Env)
+              or else Base.Has_Discriminant
+              or else not Base.Discriminants.Is_Empty
+              or else not Base.Variant_Fields.Is_Empty
+            then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Decl.Span,
+                     Message =>
+                       "`shared` declarations require plain non-discriminated record types in PR11.12a"));
+            elsif not Is_Shared_Field_Type_Allowed (Result.Type_Info, Type_Env) then
+               Raise_Diag
+                 (CM.Unsupported_Source_Construct
+                    (Path    => Path,
+                     Span    => Decl.Span,
+                     Message =>
+                       "shared record fields are limited to the admitted non-heap value subset in PR11.12a"));
+            end if;
+         end;
+      end if;
       if Decl.Has_Initializer and then Decl.Initializer /= null then
          if Decl.Initializer.Kind = CM.Expr_Apply
            and then Decl.Initializer.Callee /= null
@@ -7223,6 +7599,7 @@ package body Safe_Frontend.Check_Resolve is
          then CM.Type_Spec_Access_Vectors.Empty_Vector
          else Expr.Callee.Generic_Args);
       Template    : Generic_Function_Template_Info;
+      Template_Name : FT.UString := FT.To_UString ("");
       Actual_Type_Names : FT.UString_Vectors.Vector;
       Key         : FT.UString := FT.To_UString ("");
       Specialized_Name : FT.UString := FT.To_UString ("");
@@ -7239,6 +7616,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       Template := Current_Generic_Function_Templates.Element (Canonical_Name (Callee_Name));
+      Template_Name := Template.Info.Name;
       for Arg of Generic_Args loop
          Actual_Type_Names.Append
            (Resolve_Type_Spec (Arg.all, Type_Env, Const_Env, Path).Name);
@@ -7265,7 +7643,7 @@ package body Safe_Frontend.Check_Resolve is
                  & " arguments"));
       end if;
 
-      Key := FT.To_UString (Generic_Template_Key (Callee_Name, Actual_Type_Names));
+      Key := FT.To_UString (Generic_Template_Key (UString_Value (Template_Name), Actual_Type_Names));
       if Current_Generic_Specialization_By_Key.Contains (UString_Value (Key)) then
          Specialized_Name :=
            FT.To_UString
@@ -7277,7 +7655,7 @@ package body Safe_Frontend.Check_Resolve is
            FT.To_UString
              (Generic_Specialization_Name
                 ("Safe_Generic_",
-                 Callee_Name,
+                 UString_Value (Template_Name),
                  Actual_Type_Names));
          Clone.Spec.Name := Specialized_Name;
          Clone.Is_Public := False;
@@ -9203,122 +9581,239 @@ package body Safe_Frontend.Check_Resolve is
             end;
 
          when CM.Stmt_Assign =>
-            Result.Target :=
-              Normalize_Expr_Checked
-                (Stmt.Target, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
-            if not Is_Assignable_Target (Result.Target) then
-               Raise_Diag
-                 (CM.Source_Frontend_Error
-                    (Path    => Path,
-                     Span    => Result.Target.Span,
-                     Message => "assignment target must be a writable name"));
-            end if;
-            Ensure_Writable_Target
-              (Result.Target,
-               Imported_Objects,
-               Local_Constants,
-               Local_Static_Constants,
-               Path,
-               "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
             declare
-               Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Value,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
-               Target_Info : constant GM.Type_Descriptor :=
-                 Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
+               Shared_Root       : FT.UString := FT.To_UString ("");
+               Shared_Field_Type : GM.Type_Descriptor;
+               Root              : constant String := Root_Name (Stmt.Target);
+               Desugared         : Desugared_Expr_Result;
+               Setter_Call       : CM.Expr_Access;
+               Target_Info       : GM.Type_Descriptor;
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
-               Result.Value :=
-                 Contextualize_Expr_To_Target_Type
-                   (Desugared.Expr,
-                    Target_Info,
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Path);
-               Reject_Uncontextualized_None (Result.Value, Path);
-               if Result.Value.Kind = CM.Expr_Resolved_Index
-                 and then Result.Value.Prefix /= null
+               if Stmt.Target /= null
+                 and then Stmt.Target.Kind = CM.Expr_Ident
+                 and then Is_Shared_Object_Name (UString_Value (Stmt.Target.Name))
                then
-                  declare
-                     Target_Base   : constant GM.Type_Descriptor :=
-                       Base_Type (Target_Info, Type_Env);
-                     Prefix_Base   : constant GM.Type_Descriptor :=
-                       Base_Type
-                         (Expr_Type
-                            (Result.Value.Prefix,
-                             Var_Types,
-                             Functions,
-                             Type_Env),
-                          Type_Env);
-                     Target_Length : Natural := 0;
-                     Source_Length : Natural := 0;
-                  begin
-                     if FT.Lowercase (UString_Value (Target_Base.Kind)) = "array"
-                       and then not Target_Base.Growable
-                       and then FT.Lowercase (UString_Value (Prefix_Base.Kind)) = "array"
-                       and then Prefix_Base.Growable
-                       and then Fixed_Array_Cardinality (Target_Base, Type_Env, Target_Length)
-                       and then Static_Growable_Length
-                         (Result.Value,
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Stmt.Target.Span,
+                        Message =>
+                          "whole-record assignment to live shared variables is outside the current PR11.12a subset"));
+               elsif Root'Length > 0
+                 and then Is_Shared_Object_Name (Root)
+                 and then not Try_Shared_Top_Level_Field_Access
+                   (Stmt.Target,
+                    Type_Env,
+                    Shared_Root,
+                    Shared_Field_Type)
+               then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Stmt.Target.Span,
+                        Message =>
+                          "nested writes on shared variables are outside the current PR11.12a subset"));
+               elsif Try_Shared_Top_Level_Field_Access
+                 (Stmt.Target,
+                  Type_Env,
+                  Shared_Root,
+                  Shared_Field_Type)
+               then
+                  Desugared :=
+                    Desugar_Executable_Expr
+                      (Normalize_Expr_Checked
+                         (Stmt.Value,
                           Var_Types,
                           Functions,
                           Type_Env,
                           Local_Static_Constants,
-                          Source_Length)
-                       and then Source_Length = Target_Length
-                     then
-                        Result.Value.Type_Name := Target_Info.Name;
-                     end if;
-                  end;
-               end if;
-               if Static_Growable_To_Fixed_Narrowing_OK
-                 (Result.Value,
-                  Target_Info,
-                  Var_Types,
-                  Functions,
-                  Type_Env,
-                  Local_Static_Constants,
-                  Exact_Length_Facts)
-               then
-                  Result.Value.Type_Name := Target_Info.Name;
+                          Path,
+                          Allow_Try => True),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path);
+                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+                  Result.Kind := CM.Stmt_Call;
+                  Result.Target := null;
+                  Result.Value := null;
+                  Setter_Call := new CM.Expr_Node;
+                  Setter_Call.Kind := CM.Expr_Call;
+                  Setter_Call.Span := Stmt.Span;
+                  Setter_Call.Callee :=
+                    Selector_Expr
+                      (Prefix    =>
+                         Ident_Expr
+                           (Shared_Wrapper_Object_Name (UString_Value (Shared_Root)),
+                            Stmt.Target.Span,
+                            ""),
+                       Selector  => Shared_Field_Setter_Name (UString_Value (Stmt.Target.Selector)),
+                       Span      => Stmt.Target.Span,
+                       Type_Name => "");
+                  Result.Call := Setter_Call;
+                  Result.Call.Args.Append
+                    (Contextualize_Expr_To_Target_Type
+                       (Desugared.Expr,
+                        Shared_Field_Type,
+                        Var_Types,
+                        Functions,
+                        Type_Env,
+                        Path));
+                  if not Result.Call.Args.Is_Empty
+                    and then Result.Call.Args (Result.Call.Args.First_Index) /= null
+                    and then UString_Value
+                      (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
+                    and then UString_Value (Shared_Field_Type.Name)'Length > 0
+                  then
+                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
+                       Shared_Field_Type.Name;
+                  end if;
+                  Reject_Uncontextualized_None
+                    (Result.Call.Args (Result.Call.Args.First_Index), Path);
+                  Reject_Static_Bounded_String_Overflow
+                    (Result.Call.Args (Result.Call.Args.First_Index),
+                     Shared_Field_Type,
+                     Type_Env,
+                     Path,
+                     Result.Call.Args (Result.Call.Args.First_Index).Span);
+                  if not Compatible_Source_Expr_To_Target_Type
+                    (Result.Call.Args (Result.Call.Args.First_Index),
+                     Expr_Type
+                       (Result.Call.Args (Result.Call.Args.First_Index),
+                        Var_Types,
+                        Functions,
+                        Type_Env),
+                     Shared_Field_Type,
+                     Var_Types,
+                     Functions,
+                     Type_Env,
+                     Local_Static_Constants,
+                     Exact_Length_Facts)
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
+                           Message => "assignment value type does not match target type"));
+                  end if;
+               else
+                  Result.Target :=
+                    Normalize_Expr_Checked
+                      (Stmt.Target, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+                  if not Is_Assignable_Target (Result.Target) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Result.Target.Span,
+                           Message => "assignment target must be a writable name"));
+                  end if;
+                  Ensure_Writable_Target
+                    (Result.Target,
+                     Imported_Objects,
+                     Local_Constants,
+                     Local_Static_Constants,
+                     Path,
+                     "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
+                  Desugared :=
+                    Desugar_Executable_Expr
+                      (Normalize_Expr_Checked
+                         (Stmt.Value,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Local_Static_Constants,
+                          Path,
+                          Allow_Try => True),
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Has_Enclosing_Return,
+                       Enclosing_Return_Type,
+                       Path);
+                  Target_Info :=
+                    Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
+                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+                  Result.Value :=
+                    Contextualize_Expr_To_Target_Type
+                      (Desugared.Expr,
+                       Target_Info,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Path);
+                  Reject_Uncontextualized_None (Result.Value, Path);
+                  if Result.Value.Kind = CM.Expr_Resolved_Index
+                    and then Result.Value.Prefix /= null
+                  then
+                     declare
+                        Target_Base   : constant GM.Type_Descriptor :=
+                          Base_Type (Target_Info, Type_Env);
+                        Prefix_Base   : constant GM.Type_Descriptor :=
+                          Base_Type
+                            (Expr_Type
+                               (Result.Value.Prefix,
+                                Var_Types,
+                                Functions,
+                                Type_Env),
+                             Type_Env);
+                        Target_Length : Natural := 0;
+                        Source_Length : Natural := 0;
+                     begin
+                        if FT.Lowercase (UString_Value (Target_Base.Kind)) = "array"
+                          and then not Target_Base.Growable
+                          and then FT.Lowercase (UString_Value (Prefix_Base.Kind)) = "array"
+                          and then Prefix_Base.Growable
+                          and then Fixed_Array_Cardinality (Target_Base, Type_Env, Target_Length)
+                          and then Static_Growable_Length
+                            (Result.Value,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Local_Static_Constants,
+                             Source_Length)
+                          and then Source_Length = Target_Length
+                        then
+                           Result.Value.Type_Name := Target_Info.Name;
+                        end if;
+                     end;
+                  end if;
+                  if Static_Growable_To_Fixed_Narrowing_OK
+                    (Result.Value,
+                     Target_Info,
+                     Var_Types,
+                     Functions,
+                     Type_Env,
+                     Local_Static_Constants,
+                     Exact_Length_Facts)
+                  then
+                     Result.Value.Type_Name := Target_Info.Name;
+                  end if;
+                  Reject_Static_Bounded_String_Overflow
+                    (Result.Value,
+                     Expr_Type (Result.Target, Var_Types, Functions, Type_Env),
+                     Type_Env,
+                     Path,
+                     Result.Value.Span);
+                  if not Compatible_Source_Expr_To_Target_Type
+                    (Result.Value,
+                     Expr_Type (Result.Value, Var_Types, Functions, Type_Env),
+                     Expr_Type (Result.Target, Var_Types, Functions, Type_Env),
+                     Var_Types,
+                     Functions,
+                     Type_Env,
+                     Local_Static_Constants,
+                     Exact_Length_Facts)
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Result.Value.Span,
+                           Message => "assignment value type does not match target type"));
+                  end if;
                end if;
             end;
-            Reject_Static_Bounded_String_Overflow
-              (Result.Value,
-               Expr_Type (Result.Target, Var_Types, Functions, Type_Env),
-               Type_Env,
-               Path,
-               Result.Value.Span);
-            if not Compatible_Source_Expr_To_Target_Type
-              (Result.Value,
-               Expr_Type (Result.Value, Var_Types, Functions, Type_Env),
-               Expr_Type (Result.Target, Var_Types, Functions, Type_Env),
-               Var_Types,
-               Functions,
-               Type_Env,
-               Local_Static_Constants,
-               Exact_Length_Facts)
-            then
-               Raise_Diag
-                 (CM.Source_Frontend_Error
-                    (Path    => Path,
-                     Span    => Result.Value.Span,
-                     Message => "assignment value type does not match target type"));
-            end if;
 
          when CM.Stmt_Return =>
             if Stmt.Value /= null then
@@ -11561,7 +12056,11 @@ package body Safe_Frontend.Check_Resolve is
          Path,
          Spec.Span);
 
-      Instantiation_Key := FT.To_UString (Generic_Template_Key (Template_Name, Actual_Type_Names));
+      Instantiation_Key :=
+        FT.To_UString
+          (Generic_Template_Key
+             (UString_Value (Template.Info.Name),
+              Actual_Type_Names));
       if Current_Generic_Type_Instantiation_By_Key.Contains (UString_Value (Instantiation_Key)) then
          Concrete_Name :=
            FT.To_UString
@@ -11585,7 +12084,10 @@ package body Safe_Frontend.Check_Resolve is
 
       Concrete_Name :=
         FT.To_UString
-          (Generic_Specialization_Name ("__generic_", Template_Name, Actual_Type_Names));
+          (Generic_Specialization_Name
+             ("__generic_",
+              UString_Value (Template.Info.Name),
+              Actual_Type_Names));
       if Template.Has_Decl then
          Clone := Template.Decl;
          Clone.Generic_Formals.Clear;
@@ -12680,6 +13182,7 @@ package body Safe_Frontend.Check_Resolve is
    begin
       Current_Target_Bits := Normalized_Target_Bits;
       Current_Public_Channel_Names.Clear;
+      Current_Shared_Object_Types.Clear;
       Current_Select_In_Subprogram_Body := False;
       Current_Interface_Templates.Clear;
       Current_Pending_Interface_Specializations.Clear;
@@ -12960,6 +13463,7 @@ package body Safe_Frontend.Check_Resolve is
                   end loop;
                   Local_Decl.Names := Normalized.Names;
                   Local_Decl.Type_Info := Normalized.Type_Info;
+                  Local_Decl.Is_Shared := Normalized.Is_Shared;
                   Local_Decl.Is_Constant := Normalized.Is_Constant;
                   Local_Decl.Has_Initializer := Normalized.Has_Initializer;
                   Local_Decl.Has_Implicit_Default_Init := Normalized.Has_Implicit_Default_Init;
@@ -12975,6 +13479,11 @@ package body Safe_Frontend.Check_Resolve is
                   Result.Objects.Append (Local_Decl);
                   for Name of Normalized.Names loop
                      Put_Type (Package_Vars, UString_Value (Name), Normalized.Type_Info);
+                     if Local_Decl.Is_Shared then
+                        Current_Shared_Object_Types.Include
+                          (Canonical_Name (UString_Value (Name)),
+                           Normalized.Type_Info);
+                     end if;
                      if Local_Decl.Is_Constant
                        and then Local_Decl.Static_Info.Kind /= CM.Static_Value_None
                      then
@@ -13547,7 +14056,7 @@ package body Safe_Frontend.Check_Resolve is
                   end;
                   Specialization_Index := Specialization_Index + 1;
                end;
-               end loop;
+            end loop;
          end;
       end if;
 
@@ -13595,6 +14104,8 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Imported_Subprograms,
                      Imported_Objects,
                      Const_Env,
+                     Current_Generic_Type_Templates,
+                     Current_Generic_Function_Templates,
                      Local_Type_Env,
                      Local_Functions,
                      Local_Imported_Objects,

@@ -495,6 +495,11 @@ package body Safe_Frontend.Ada_Emit is
       Info     : GM.Type_Descriptor) return Boolean;
    function Binary_Ada_Name (Bit_Width : Positive) return String;
    function Render_Type_Name (Info : GM.Type_Descriptor) return String;
+   function Render_Type_Name_From_Text
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Name_Text : String;
+      State     : in out Emit_State) return String;
    function Render_Subtype_Indication
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -826,6 +831,29 @@ package body Safe_Frontend.Ada_Emit is
      (Unit   : CM.Resolved_Unit;
       Bronze : MB.Bronze_Result;
       Name   : String) return Boolean;
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String;
+   function Shared_Wrapper_Type_Name (Root_Name : String) return String;
+   function Shared_Field_Getter_Name (Field_Name : String) return String;
+   function Shared_Field_Setter_Name (Field_Name : String) return String;
+   function Shared_Wrapper_Formal_Type
+     (Unit          : CM.Resolved_Unit;
+      Document      : GM.Mir_Document;
+      Wrapper_Name  : String;
+      Selector_Name : String;
+      Position      : Positive;
+      Found         : out Boolean) return GM.Type_Descriptor;
+   procedure Render_Shared_Object_Spec
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Resolved_Object_Decl;
+      State    : in out Emit_State);
+   procedure Render_Shared_Object_Body
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Resolved_Object_Decl;
+      State    : in out Emit_State);
    procedure Render_Channel_Spec
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;
@@ -910,6 +938,195 @@ package body Safe_Frontend.Ada_Emit is
 
       return False;
    end Channel_Uses_Unspecified_Task_Priority;
+
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String is
+   begin
+      return "Safe_Shared_" & Root_Name;
+   end Shared_Wrapper_Object_Name;
+
+   function Shared_Wrapper_Type_Name (Root_Name : String) return String is
+   begin
+      return Shared_Wrapper_Object_Name (Root_Name) & "_Wrapper";
+   end Shared_Wrapper_Type_Name;
+
+   function Shared_Field_Getter_Name (Field_Name : String) return String is
+   begin
+      return "Get_" & Field_Name;
+   end Shared_Field_Getter_Name;
+
+   function Shared_Field_Setter_Name (Field_Name : String) return String is
+   begin
+      return "Set_" & Field_Name;
+   end Shared_Field_Setter_Name;
+
+   function Shared_Wrapper_Formal_Type
+     (Unit          : CM.Resolved_Unit;
+      Document      : GM.Mir_Document;
+      Wrapper_Name  : String;
+      Selector_Name : String;
+      Position      : Positive;
+      Found         : out Boolean) return GM.Type_Descriptor
+   is
+   begin
+      for Decl of Unit.Objects loop
+         if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+            declare
+               Root_Name : constant String :=
+                 FT.To_String (Decl.Names (Decl.Names.First_Index));
+            begin
+               if Shared_Wrapper_Object_Name (Root_Name) = Wrapper_Name then
+                  if Selector_Name = "Initialize" and then Position = 1 then
+                     Found := True;
+                     return Decl.Type_Info;
+                  elsif Position = 1 then
+                     for Field of Base_Type (Unit, Document, Decl.Type_Info).Fields loop
+                        if Shared_Field_Setter_Name (FT.To_String (Field.Name)) = Selector_Name then
+                           declare
+                              Field_Type_Name : constant String :=
+                                FT.To_String (Field.Type_Name);
+                              Bounded_Found : Boolean := False;
+                              Bounded_Info  : GM.Type_Descriptor := (others => <>);
+                           begin
+                              if Has_Type (Unit, Document, Field_Type_Name) then
+                                 Found := True;
+                                 return Lookup_Type (Unit, Document, Field_Type_Name);
+                              end if;
+
+                              Bounded_Info :=
+                                Synthetic_Bounded_String_Type
+                                  (Field_Type_Name, Bounded_Found);
+                              if Bounded_Found then
+                                 Found := True;
+                                 return Bounded_Info;
+                              end if;
+                           end;
+                        end if;
+                     end loop;
+                  end if;
+               end if;
+            end;
+         end if;
+      end loop;
+
+      Found := False;
+      return (others => <>);
+   end Shared_Wrapper_Formal_Type;
+
+   procedure Render_Shared_Object_Spec
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Resolved_Object_Decl;
+      State    : in out Emit_State)
+   is
+      Root_Name     : constant String := FT.To_String (Decl.Names (Decl.Names.First_Index));
+      Wrapper_Name  : constant String := Shared_Wrapper_Object_Name (Root_Name);
+      Type_Name     : constant String := Shared_Wrapper_Type_Name (Root_Name);
+      Record_Type   : constant String := Render_Type_Name (Decl.Type_Info);
+      Record_Default : constant String := Default_Value_Expr (Unit, Document, Decl.Type_Info);
+      Base_Info     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
+   begin
+      Append_Line
+        (Buffer,
+         "protected type "
+         & Type_Name
+         & " with Priority => System.Any_Priority'Last is",
+         1);
+      for Field of Base_Info.Fields loop
+         declare
+            Field_Type_Name : constant String :=
+              Render_Type_Name_From_Text
+                (Unit,
+                 Document,
+                 FT.To_String (Field.Type_Name),
+                 State);
+         begin
+            Append_Line
+              (Buffer,
+               "function "
+               & Shared_Field_Getter_Name (FT.To_String (Field.Name))
+               & " return "
+               & Field_Type_Name
+               & ";",
+               2);
+            Append_Line
+              (Buffer,
+               "procedure "
+               & Shared_Field_Setter_Name (FT.To_String (Field.Name))
+               & " (Value : in "
+               & Field_Type_Name
+               & ");",
+               2);
+         end;
+      end loop;
+      Append_Line
+        (Buffer,
+         "procedure Initialize (Value : in " & Record_Type & ");",
+         2);
+      Append_Line (Buffer, "private", 1);
+      Append_Line
+        (Buffer,
+         "State_Value : " & Record_Type & " := " & Record_Default & ";",
+         2);
+      Append_Line (Buffer, "end " & Type_Name & ";", 1);
+      Append_Line (Buffer, Wrapper_Name & " : " & Type_Name & ";", 1);
+      Append_Line (Buffer);
+   end Render_Shared_Object_Spec;
+
+   procedure Render_Shared_Object_Body
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Resolved_Object_Decl;
+      State    : in out Emit_State)
+   is
+      Root_Name    : constant String := FT.To_String (Decl.Names (Decl.Names.First_Index));
+      Type_Name    : constant String := Shared_Wrapper_Type_Name (Root_Name);
+      Base_Info    : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
+   begin
+      Append_Line (Buffer, "protected body " & Type_Name & " is", 1);
+      for Field of Base_Info.Fields loop
+         declare
+            Field_Type_Name : constant String :=
+              Render_Type_Name_From_Text
+                (Unit,
+                 Document,
+                 FT.To_String (Field.Type_Name),
+                 State);
+            Getter_Name : constant String := Shared_Field_Getter_Name (FT.To_String (Field.Name));
+            Setter_Name : constant String := Shared_Field_Setter_Name (FT.To_String (Field.Name));
+            Field_Image : constant String := FT.To_String (Field.Name);
+         begin
+            Append_Line
+              (Buffer,
+               "function " & Getter_Name & " return "
+               & Field_Type_Name & " is",
+               2);
+            Append_Line (Buffer, "begin", 2);
+            Append_Line (Buffer, "return State_Value." & Field_Image & ";", 3);
+            Append_Line (Buffer, "end " & Getter_Name & ";", 2);
+            Append_Line (Buffer);
+            Append_Line
+              (Buffer,
+               "procedure " & Setter_Name & " (Value : in "
+               & Field_Type_Name & ") is",
+               2);
+            Append_Line (Buffer, "begin", 2);
+            Append_Line (Buffer, "State_Value." & Field_Image & " := Value;", 3);
+            Append_Line (Buffer, "end " & Setter_Name & ";", 2);
+            Append_Line (Buffer);
+         end;
+      end loop;
+      Append_Line
+        (Buffer,
+         "procedure Initialize (Value : in " & Render_Type_Name (Decl.Type_Info) & ") is",
+         2);
+      Append_Line (Buffer, "begin", 2);
+      Append_Line (Buffer, "State_Value := Value;", 3);
+      Append_Line (Buffer, "end Initialize;", 2);
+      Append_Line (Buffer, "end " & Type_Name & ";", 1);
+      Append_Line (Buffer);
+   end Render_Shared_Object_Body;
 
    procedure Raise_Internal (Message : String) is
    begin
@@ -6172,6 +6389,31 @@ package body Safe_Frontend.Ada_Emit is
       return Ada_Safe_Name (FT.To_String (Info.Name));
    end Render_Type_Name;
 
+   function Render_Type_Name_From_Text
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Name_Text : String;
+      State     : in out Emit_State) return String
+   is
+      Info  : GM.Type_Descriptor := (others => <>);
+      Found : Boolean := False;
+   begin
+      if FT.Lowercase (Name_Text) = "string" then
+         State.Needs_Safe_String_RT := True;
+         return "Safe_String_RT.Safe_String";
+      end if;
+
+      Info := Synthetic_Bounded_String_Type (Name_Text, Found);
+      if Found then
+         Register_Bounded_String_Type (State, Info);
+         return Bounded_String_Type_Name (Info);
+      elsif Has_Type (Unit, Document, Name_Text) then
+         return Render_Type_Name (Lookup_Type (Unit, Document, Name_Text));
+      end if;
+
+      return Ada_Safe_Name (Name_Text);
+   end Render_Type_Name_From_Text;
+
    function Render_Subtype_Indication
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -6738,7 +6980,8 @@ package body Safe_Frontend.Ada_Emit is
             Add_From_Name (FT.To_String (Field.Type_Name));
          end loop;
 
-         if (FT.To_String (Info.Kind) = "subtype" and then not Info.Discriminant_Constraints.Is_Empty)
+         if Starts_With (Name_Text, "__optional_")
+           or else (FT.To_String (Info.Kind) = "subtype" and then not Info.Discriminant_Constraints.Is_Empty)
            or else (FT.To_String (Info.Kind) = "subtype"
                     and then Starts_With (FT.To_String (Info.Name), "__constraint")
                     and then Info.Has_Base
@@ -8105,6 +8348,34 @@ package body Safe_Frontend.Ada_Emit is
                Expr.Span,
                "real literal missing source text");
          when CM.Expr_String =>
+            if Has_Text (Expr.Type_Name) then
+               declare
+                  Literal_Type : GM.Type_Descriptor := (others => <>);
+                  Has_Literal_Type : Boolean := False;
+               begin
+                  if Type_Info_From_Name
+                    (Unit, Document, FT.To_String (Expr.Type_Name), Literal_Type)
+                  then
+                     Has_Literal_Type := True;
+                  else
+                     Literal_Type :=
+                       Synthetic_Bounded_String_Type
+                         (FT.To_String (Expr.Type_Name), Has_Literal_Type);
+                  end if;
+
+                  if Has_Literal_Type and then Is_Bounded_String_Type (Literal_Type) then
+                     Register_Bounded_String_Type (State, Literal_Type);
+                     if Has_Text (Expr.Text) then
+                        return
+                          Bounded_String_Instance_Name (Literal_Type)
+                          & ".To_Bounded ("
+                          & FT.To_String (Expr.Text)
+                          & ")";
+                     end if;
+                  end if;
+               end;
+            end if;
+
             if Has_Text (Expr.Text) then
                return FT.To_String (Expr.Text);
             end if;
@@ -8438,6 +8709,37 @@ package body Safe_Frontend.Ada_Emit is
                            exit when Used_Formal;
                         end if;
                      end loop;
+
+                     if not Used_Formal
+                       and then Expr.Callee /= null
+                       and then Expr.Callee.Kind = CM.Expr_Select
+                       and then Expr.Callee.Prefix /= null
+                       and then Expr.Callee.Prefix.Kind = CM.Expr_Ident
+                     then
+                        declare
+                           Shared_Formal_Found : Boolean := False;
+                           Shared_Formal_Type  : GM.Type_Descriptor :=
+                             Shared_Wrapper_Formal_Type
+                               (Unit,
+                                Document,
+                                FT.To_String (Expr.Callee.Prefix.Name),
+                                FT.To_String (Expr.Callee.Selector),
+                                Positive (Index),
+                                Shared_Formal_Found);
+                        begin
+                           if Shared_Formal_Found then
+                              Arg_Image :=
+                                SU.To_Unbounded_String
+                                  (Render_Expr_For_Target_Type
+                                     (Unit,
+                                      Document,
+                                      Expr.Args (Index),
+                                      Shared_Formal_Type,
+                                      State));
+                              Used_Formal := True;
+                           end if;
+                        end;
+                     end if;
 
                      if not Used_Formal then
                         Arg_Image :=
@@ -10087,10 +10389,14 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
 
       for Decl of Unit.Objects loop
-         if not Decl.Is_Constant then
+         if not Decl.Is_Constant and then not Decl.Is_Shared then
             for Name of Decl.Names loop
                Add_Unique (FT.To_String (Name));
             end loop;
+         elsif Decl.Is_Shared and then not Decl.Names.Is_Empty then
+            Add_Unique
+              (Shared_Wrapper_Object_Name
+                 (FT.To_String (Decl.Names (Decl.Names.First_Index))));
          end if;
       end loop;
 
@@ -10133,6 +10439,187 @@ package body Safe_Frontend.Ada_Emit is
             Items.Append (FT.To_UString (Name));
          end if;
       end Add_Unique;
+
+      function Is_Shared_Wrapper_Name (Name : String) return Boolean is
+      begin
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+               if Shared_Wrapper_Object_Name
+                    (FT.To_String (Decl.Names (Decl.Names.First_Index))) = Name
+               then
+                  return True;
+               end if;
+            end if;
+         end loop;
+         return False;
+      end Is_Shared_Wrapper_Name;
+
+      procedure Collect_Shared_From_Expr
+        (Expr   : CM.Expr_Access;
+         Reads  : in out FT.UString_Vectors.Vector;
+         Writes : in out FT.UString_Vectors.Vector);
+      procedure Collect_Shared_From_Statements
+        (Statements : CM.Statement_Access_Vectors.Vector;
+         Reads      : in out FT.UString_Vectors.Vector;
+         Writes     : in out FT.UString_Vectors.Vector);
+
+      procedure Collect_Shared_From_Expr
+        (Expr   : CM.Expr_Access;
+         Reads  : in out FT.UString_Vectors.Vector;
+         Writes : in out FT.UString_Vectors.Vector)
+      is
+      begin
+         if Expr = null then
+            return;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Ident =>
+               declare
+                  Name : constant String := FT.To_String (Expr.Name);
+               begin
+                  if Is_Shared_Wrapper_Name (Name) then
+                     Add_Unique (Reads, Name);
+                  end if;
+               end;
+            when CM.Expr_Select =>
+               Collect_Shared_From_Expr (Expr.Prefix, Reads, Writes);
+            when CM.Expr_Resolved_Index =>
+               Collect_Shared_From_Expr (Expr.Prefix, Reads, Writes);
+               for Arg of Expr.Args loop
+                  Collect_Shared_From_Expr (Arg, Reads, Writes);
+               end loop;
+            when CM.Expr_Call =>
+               if Expr.Callee /= null
+                 and then Expr.Callee.Kind = CM.Expr_Select
+                 and then Expr.Callee.Prefix /= null
+                 and then Expr.Callee.Prefix.Kind = CM.Expr_Ident
+               then
+                  declare
+                     Wrapper_Name : constant String :=
+                       FT.To_String (Expr.Callee.Prefix.Name);
+                     Selector_Name : constant String :=
+                       FT.To_String (Expr.Callee.Selector);
+                  begin
+                     if Is_Shared_Wrapper_Name (Wrapper_Name) then
+                        if Starts_With (Selector_Name, "Set_")
+                          or else Selector_Name = "Initialize"
+                        then
+                           Add_Unique (Writes, Wrapper_Name);
+                        elsif Starts_With (Selector_Name, "Get_") then
+                           Add_Unique (Reads, Wrapper_Name);
+                        end if;
+                     end if;
+                  end;
+               end if;
+               Collect_Shared_From_Expr (Expr.Prefix, Reads, Writes);
+               Collect_Shared_From_Expr (Expr.Callee, Reads, Writes);
+               for Arg of Expr.Args loop
+                  Collect_Shared_From_Expr (Arg, Reads, Writes);
+               end loop;
+            when CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary =>
+               Collect_Shared_From_Expr (Expr.Inner, Reads, Writes);
+               Collect_Shared_From_Expr (Expr.Target, Reads, Writes);
+            when CM.Expr_Binary =>
+               Collect_Shared_From_Expr (Expr.Left, Reads, Writes);
+               Collect_Shared_From_Expr (Expr.Right, Reads, Writes);
+            when CM.Expr_Aggregate =>
+               for Field of Expr.Fields loop
+                  Collect_Shared_From_Expr (Field.Expr, Reads, Writes);
+               end loop;
+            when CM.Expr_Tuple | CM.Expr_Array_Literal =>
+               for Item of Expr.Elements loop
+                  Collect_Shared_From_Expr (Item, Reads, Writes);
+               end loop;
+            when others =>
+               null;
+         end case;
+      end Collect_Shared_From_Expr;
+
+      procedure Collect_Shared_From_Statements
+        (Statements : CM.Statement_Access_Vectors.Vector;
+         Reads      : in out FT.UString_Vectors.Vector;
+         Writes     : in out FT.UString_Vectors.Vector)
+      is
+      begin
+         for Item of Statements loop
+            if Item /= null then
+               case Item.Kind is
+                  when CM.Stmt_Object_Decl =>
+                     Collect_Shared_From_Expr (Item.Decl.Initializer, Reads, Writes);
+                  when CM.Stmt_Destructure_Decl =>
+                     Collect_Shared_From_Expr (Item.Destructure.Initializer, Reads, Writes);
+                  when CM.Stmt_Assign =>
+                     Collect_Shared_From_Expr (Item.Target, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Value, Reads, Writes);
+                  when CM.Stmt_Call =>
+                     Collect_Shared_From_Expr (Item.Call, Reads, Writes);
+                  when CM.Stmt_Return | CM.Stmt_Delay =>
+                     Collect_Shared_From_Expr (Item.Value, Reads, Writes);
+                  when CM.Stmt_If =>
+                     Collect_Shared_From_Expr (Item.Condition, Reads, Writes);
+                     Collect_Shared_From_Statements (Item.Then_Stmts, Reads, Writes);
+                     for Part of Item.Elsifs loop
+                        Collect_Shared_From_Expr (Part.Condition, Reads, Writes);
+                        Collect_Shared_From_Statements (Part.Statements, Reads, Writes);
+                     end loop;
+                     if Item.Has_Else then
+                        Collect_Shared_From_Statements (Item.Else_Stmts, Reads, Writes);
+                     end if;
+                  when CM.Stmt_Case =>
+                     Collect_Shared_From_Expr (Item.Case_Expr, Reads, Writes);
+                     for Arm of Item.Case_Arms loop
+                        Collect_Shared_From_Statements (Arm.Statements, Reads, Writes);
+                     end loop;
+                  when CM.Stmt_While =>
+                     Collect_Shared_From_Expr (Item.Condition, Reads, Writes);
+                     Collect_Shared_From_Statements (Item.Body_Stmts, Reads, Writes);
+                  when CM.Stmt_For | CM.Stmt_Loop =>
+                     Collect_Shared_From_Expr (Item.Loop_Range.Name_Expr, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Loop_Range.Low_Expr, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Loop_Range.High_Expr, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Loop_Iterable, Reads, Writes);
+                     Collect_Shared_From_Statements (Item.Body_Stmts, Reads, Writes);
+                  when CM.Stmt_Send =>
+                     Collect_Shared_From_Expr (Item.Channel_Name, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Value, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Success_Var, Reads, Writes);
+                  when CM.Stmt_Receive =>
+                     Collect_Shared_From_Expr (Item.Channel_Name, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Target, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Success_Var, Reads, Writes);
+                  when CM.Stmt_Try_Send =>
+                     Collect_Shared_From_Expr (Item.Channel_Name, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Value, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Success_Var, Reads, Writes);
+                  when CM.Stmt_Try_Receive =>
+                     Collect_Shared_From_Expr (Item.Channel_Name, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Target, Reads, Writes);
+                     Collect_Shared_From_Expr (Item.Success_Var, Reads, Writes);
+                  when CM.Stmt_Match =>
+                     Collect_Shared_From_Expr (Item.Match_Expr, Reads, Writes);
+                     for Arm of Item.Match_Arms loop
+                        Collect_Shared_From_Statements (Arm.Statements, Reads, Writes);
+                     end loop;
+                  when CM.Stmt_Select =>
+                     for Arm of Item.Arms loop
+                        case Arm.Kind is
+                           when CM.Select_Arm_Channel =>
+                              Collect_Shared_From_Expr (Arm.Channel_Data.Channel_Name, Reads, Writes);
+                              Collect_Shared_From_Statements (Arm.Channel_Data.Statements, Reads, Writes);
+                           when CM.Select_Arm_Delay =>
+                              Collect_Shared_From_Expr (Arm.Delay_Data.Duration_Expr, Reads, Writes);
+                              Collect_Shared_From_Statements (Arm.Delay_Data.Statements, Reads, Writes);
+                           when others =>
+                              null;
+                        end case;
+                     end loop;
+                  when others =>
+                     null;
+               end case;
+            end if;
+         end loop;
+      end Collect_Shared_From_Statements;
 
       Result : SU.Unbounded_String := SU.To_Unbounded_String ("");
       First  : Boolean := True;
@@ -10182,6 +10669,30 @@ package body Safe_Frontend.Ada_Emit is
             end if;
          end;
       end loop;
+
+      declare
+         Shared_Reads  : FT.UString_Vectors.Vector;
+         Shared_Writes : FT.UString_Vectors.Vector;
+      begin
+         for Decl of Subprogram.Declarations loop
+            Collect_Shared_From_Expr (Decl.Initializer, Shared_Reads, Shared_Writes);
+         end loop;
+         Collect_Shared_From_Statements (Subprogram.Statements, Shared_Reads, Shared_Writes);
+         for Name of Shared_Reads loop
+            if Contains (Shared_Writes, FT.To_String (Name)) then
+               Add_Unique (In_Outs, FT.To_String (Name));
+            else
+               Add_Unique (Inputs, FT.To_String (Name));
+            end if;
+         end loop;
+         for Name of Shared_Writes loop
+            if Contains (Shared_Reads, FT.To_String (Name)) then
+               Add_Unique (In_Outs, FT.To_String (Name));
+            else
+               Add_Unique (Outputs, FT.To_String (Name));
+            end if;
+         end loop;
+      end;
 
       if Inputs.Is_Empty and then Outputs.Is_Empty and then In_Outs.Is_Empty then
          return "null";
@@ -13727,6 +14238,36 @@ package body Safe_Frontend.Ada_Emit is
                return True;
             end if;
          end loop;
+
+         if Call_Expr.Callee /= null
+           and then Call_Expr.Callee.Kind = CM.Expr_Select
+           and then Call_Expr.Callee.Prefix /= null
+           and then Call_Expr.Callee.Prefix.Kind = CM.Expr_Ident
+         then
+            declare
+               Shared_Formal_Found : Boolean := False;
+               Shared_Formal_Type  : constant GM.Type_Descriptor :=
+                 Shared_Wrapper_Formal_Type
+                   (Unit,
+                    Document,
+                    FT.To_String (Call_Expr.Callee.Prefix.Name),
+                    FT.To_String (Call_Expr.Callee.Selector),
+                    1,
+                    Shared_Formal_Found);
+               Formal : CM.Symbol;
+            begin
+               if Shared_Formal_Found then
+                  Formal.Name := FT.To_UString ("Value");
+                  Formal.Kind := FT.To_UString ("param");
+                  Formal.Mode := FT.To_UString ("in");
+                  Formal.Type_Info := Shared_Formal_Type;
+                  Subprogram.Name := Call_Expr.Callee.Selector;
+                  Subprogram.Kind := FT.To_UString ("procedure");
+                  Subprogram.Params.Append (Formal);
+                  return True;
+               end if;
+            end;
+         end if;
 
          return False;
       end Find_Called_Subprogram;
@@ -18631,6 +19172,7 @@ package body Safe_Frontend.Ada_Emit is
       Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
       Deferred_Package_Init_Names : FT.UString_Vectors.Vector;
       Emit_Result_Builtin_First : Boolean := False;
+      Emitted_Synthetic_Names : FT.UString_Vectors.Vector;
 
       procedure Add_Body_With (Name : String) is
       begin
@@ -18704,6 +19246,89 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
          return False;
       end Unit_Defines_Result_Type;
+
+      function Find_Synthetic_Type
+        (Name_Text : String;
+         Found     : out Boolean) return GM.Type_Descriptor
+      is
+      begin
+         for Type_Item of Synthetic_Types loop
+            if FT.To_String (Type_Item.Name) = Name_Text then
+               Found := True;
+               return Type_Item;
+            end if;
+         end loop;
+
+         if Starts_With (Name_Text, "__optional_") then
+            for Type_Item of Unit.Types loop
+               if Type_Item.Generic_Formals.Is_Empty
+                 and then FT.To_String (Type_Item.Name) = Name_Text
+               then
+                  Found := True;
+                  return Type_Item;
+               end if;
+            end loop;
+         end if;
+
+         Found := False;
+         return (others => <>);
+      end Find_Synthetic_Type;
+
+      procedure Emit_Synthetic_Type_Decl (Type_Item : GM.Type_Descriptor);
+      procedure Emit_Synthetic_Dependencies (Info : GM.Type_Descriptor);
+      procedure Emit_Synthetic_Dependencies_For_Name (Name_Text : String);
+
+      procedure Emit_Synthetic_Type_Decl (Type_Item : GM.Type_Descriptor) is
+         Name_Text : constant String := FT.To_String (Type_Item.Name);
+      begin
+         if Name_Text'Length = 0
+           or else Contains_Name (Emitted_Synthetic_Names, Name_Text)
+           or else (Emit_Result_Builtin_First and then Is_Result_Builtin (Type_Item))
+         then
+            return;
+         end if;
+
+         Emit_Synthetic_Dependencies (Type_Item);
+         Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
+         Append_Line (Spec_Inner);
+         Emitted_Synthetic_Names.Append (Type_Item.Name);
+      end Emit_Synthetic_Type_Decl;
+
+      procedure Emit_Synthetic_Dependencies_For_Name (Name_Text : String) is
+         Found     : Boolean := False;
+         Type_Item : GM.Type_Descriptor := (others => <>);
+      begin
+         if Name_Text'Length = 0 then
+            return;
+         end if;
+
+         Type_Item := Find_Synthetic_Type (Name_Text, Found);
+         if Found then
+            Emit_Synthetic_Type_Decl (Type_Item);
+         end if;
+      end Emit_Synthetic_Dependencies_For_Name;
+
+      procedure Emit_Synthetic_Dependencies (Info : GM.Type_Descriptor) is
+      begin
+         if Info.Has_Base then
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Base));
+         end if;
+         if Info.Has_Component_Type then
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Component_Type));
+         end if;
+         if Info.Has_Target then
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Target));
+         end if;
+         for Item of Info.Tuple_Element_Types loop
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Item));
+         end loop;
+         for Field of Info.Fields loop
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Field.Type_Name));
+         end loop;
+         for Field of Info.Variant_Fields loop
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Field.Type_Name));
+         end loop;
+      end Emit_Synthetic_Dependencies;
 
       function Should_Defer_Package_Object_Initializer
         (Decl  : CM.Resolved_Object_Decl;
@@ -18989,7 +19614,10 @@ package body Safe_Frontend.Ada_Emit is
          return Join_Names (Constituents);
       end Package_Select_Refined_State;
    begin
-      if not Unit.Channels.Is_Empty or else not Unit.Tasks.Is_Empty then
+      if not Unit.Channels.Is_Empty
+        or else not Unit.Tasks.Is_Empty
+        or else (for some Decl of Unit.Objects => Decl.Is_Shared)
+      then
          State.Needs_Gnat_Adc := True;
       end if;
       Collect_Bounded_String_Types (Unit, Document, State);
@@ -19059,24 +19687,27 @@ package body Safe_Frontend.Ada_Emit is
             Render_Type_Decl (Unit, Document, BT.Result_Type, State),
             1);
          Append_Line (Spec_Inner);
+         Emitted_Synthetic_Names.Append (BT.Result_Type.Name);
       end if;
 
       for Type_Item of Unit.Types loop
          if Type_Item.Generic_Formals.Is_Empty
            and then FT.To_String (Type_Item.Kind) /= "interface"
-         then
+           and then not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name))
+        then
+            Emit_Synthetic_Dependencies (Type_Item);
             Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
             if FT.To_String (Type_Item.Kind) = "record" then
                Append_Line (Spec_Inner);
+            end if;
+            if Has_Text (Type_Item.Name) then
+               Emitted_Synthetic_Names.Append (Type_Item.Name);
             end if;
          end if;
       end loop;
 
       for Type_Item of Synthetic_Types loop
-         if not (Emit_Result_Builtin_First and then Is_Result_Builtin (Type_Item)) then
-            Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
-            Append_Line (Spec_Inner);
-         end if;
+         Emit_Synthetic_Type_Decl (Type_Item);
       end loop;
 
       for Type_Item of Owner_Access_Helper_Types loop
@@ -19085,65 +19716,77 @@ package body Safe_Frontend.Ada_Emit is
 
       if not Unit.Objects.Is_Empty then
          for Decl of Unit.Objects loop
-            declare
-               Decl_Name : constant String :=
-                 (if Decl.Names.Is_Empty
-                  then ""
-                  else FT.To_String (Decl.Names (Decl.Names.First_Index)));
-               Defer_Package_Initializer : constant Boolean :=
-                 Should_Defer_Package_Object_Initializer
-                   (Decl, Deferred_Package_Init_Names);
-               Needs_Decl_Warning_Fence : constant Boolean :=
-                 not Decl.Is_Constant
-                 and then
-                    ((not Decl.Has_Initializer
-                      and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
-                    or else
-                      Defer_Package_Initializer
-                    or else
-                      (Decl.Has_Initializer
-                       and then Decl.Names.Length = 1
-                       and then
-                         (FT.Lowercase
-                            (FT.To_String
-                               (Base_Type (Unit, Document, Decl.Type_Info).Kind))
-                          = "boolean"
-                          or else
-                            FT.Lowercase
-                              (FT.To_String
-                                 (Base_Type (Unit, Document, Decl.Type_Info).Name))
-                            = "boolean")
-                       and then
-                         Statements_Use_Name (Unit.Statements, Decl_Name))
-                    or else
-                      (Decl.Has_Initializer
-                       and then Decl.Names.Length = 1
-                       and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
-                       and then
-                         Statements_Use_Name (Unit.Statements, Decl_Name)));
-            begin
-               if Needs_Decl_Warning_Fence then
-                  Append_Local_Warning_Suppression (Spec_Inner, 1);
-               end if;
-               Append_Line
-                 (Spec_Inner,
-                  Render_Object_Decl_Text
-                    (Unit,
-                     Document,
-                     State,
-                     Decl,
-                     Defer_Initializer => Defer_Package_Initializer),
-                  1);
-               if Needs_Decl_Warning_Fence then
-                  Append_Local_Warning_Restore (Spec_Inner, 1);
-               end if;
-               if Defer_Package_Initializer then
-                  Register_Deferred_Package_Init_Names
-                    (Decl, Deferred_Package_Init_Names);
-               end if;
-            end;
+            if not Decl.Is_Shared then
+               declare
+                  Decl_Name : constant String :=
+                    (if Decl.Names.Is_Empty
+                     then ""
+                     else FT.To_String (Decl.Names (Decl.Names.First_Index)));
+                  Defer_Package_Initializer : constant Boolean :=
+                    Should_Defer_Package_Object_Initializer
+                      (Decl, Deferred_Package_Init_Names);
+                  Needs_Decl_Warning_Fence : constant Boolean :=
+                    not Decl.Is_Constant
+                    and then
+                       ((not Decl.Has_Initializer
+                         and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
+                       or else
+                         Defer_Package_Initializer
+                       or else
+                         (Decl.Has_Initializer
+                          and then Decl.Names.Length = 1
+                          and then
+                            (FT.Lowercase
+                               (FT.To_String
+                                  (Base_Type (Unit, Document, Decl.Type_Info).Kind))
+                             = "boolean"
+                             or else
+                               FT.Lowercase
+                                 (FT.To_String
+                                    (Base_Type (Unit, Document, Decl.Type_Info).Name))
+                               = "boolean")
+                          and then
+                            Statements_Use_Name (Unit.Statements, Decl_Name))
+                       or else
+                         (Decl.Has_Initializer
+                          and then Decl.Names.Length = 1
+                          and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
+                          and then
+                            Statements_Use_Name (Unit.Statements, Decl_Name)));
+               begin
+                  if Needs_Decl_Warning_Fence then
+                     Append_Local_Warning_Suppression (Spec_Inner, 1);
+                  end if;
+                  Append_Line
+                    (Spec_Inner,
+                     Render_Object_Decl_Text
+                       (Unit,
+                        Document,
+                        State,
+                        Decl,
+                        Defer_Initializer => Defer_Package_Initializer),
+                     1);
+                  if Needs_Decl_Warning_Fence then
+                     Append_Local_Warning_Restore (Spec_Inner, 1);
+                  end if;
+                  if Defer_Package_Initializer then
+                     Register_Deferred_Package_Init_Names
+                       (Decl, Deferred_Package_Init_Names);
+                  end if;
+               end;
+            end if;
          end loop;
-         Append_Line (Spec_Inner);
+         if (for some Decl of Unit.Objects => not Decl.Is_Shared) then
+            Append_Line (Spec_Inner);
+         end if;
+      end if;
+
+      if (for some Decl of Unit.Objects => Decl.Is_Shared) then
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared then
+               Render_Shared_Object_Spec (Spec_Inner, Unit, Document, Decl, State);
+            end if;
+         end loop;
       end if;
 
       if not Unit.Channels.Is_Empty then
@@ -19320,6 +19963,11 @@ package body Safe_Frontend.Ada_Emit is
       if not Package_Dispatcher_Names.Is_Empty then
          Append_Line (Body_Inner);
       end if;
+      for Decl of Unit.Objects loop
+         if Decl.Is_Shared then
+            Render_Shared_Object_Body (Body_Inner, Unit, Document, Decl, State);
+         end if;
+      end loop;
       for Name of Package_Dispatcher_Timer_Names loop
          declare
             Timer_Text : constant String := FT.To_String (Name);
@@ -19362,6 +20010,9 @@ package body Safe_Frontend.Ada_Emit is
       if not Unit.Statements.Is_Empty
         or else not Deferred_Package_Init_Names.Is_Empty
         or else not Package_Dispatcher_Timer_Names.Is_Empty
+        or else
+          (for some Decl of Unit.Objects =>
+             Decl.Is_Shared and then Decl.Has_Initializer and then Decl.Initializer /= null)
       then
          Append_Gnatprove_Warning_Suppression
            (Body_Inner,
@@ -19399,7 +20050,29 @@ package body Safe_Frontend.Ada_Emit is
                end;
             end loop;
             for Decl of Unit.Objects loop
-               if Should_Defer_Package_Object_Initializer (Decl, Deferred_Names) then
+               if Decl.Is_Shared
+                 and then Decl.Has_Initializer
+                 and then Decl.Initializer /= null
+               then
+                  Append_Line
+                    (Body_Inner,
+                     Shared_Wrapper_Object_Name
+                       (FT.To_String (Decl.Names (Decl.Names.First_Index)))
+                     & ".Initialize ("
+                     & Render_Expr_For_Target_Type
+                         (Unit,
+                          Document,
+                          Decl.Initializer,
+                          Decl.Type_Info,
+                          State)
+                     & ");",
+                     2);
+               end if;
+            end loop;
+            for Decl of Unit.Objects loop
+               if not Decl.Is_Shared
+                 and then Should_Defer_Package_Object_Initializer (Decl, Deferred_Names)
+               then
                   for Name of Decl.Names loop
                      Append_Gnatprove_Warning_Suppression
                        (Body_Inner,

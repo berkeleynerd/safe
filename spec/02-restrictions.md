@@ -230,7 +230,7 @@ This section enumerates every feature of ISO/IEC 8652:2023 (Ada 2022) that Safe 
 
 63. **Task and entry attributes (§9.9).** Excluded. The attributes `Callable`, `Terminated`, `Count`, `Caller` (in dot notation) are excluded.
 
-64. **Shared variables (§9.10).** Safe prohibits shared mutable state between tasks (D28). The shared variable rules of §9.10 are superseded by Safe's task-variable ownership rule (Section 4, §4.5). Conflict check policies (§9.10.1) are excluded.
+64. **Shared variables (§9.10).** Retained with modifications. Safe excludes Ada's general shared-variable model and conflict-check policies (§9.10.1). In `PR11.12a`, Safe instead admits only package-level `shared` plain non-discriminated record variables, same-unit only, with compiler-generated protected wrappers and direct top-level field reads/writes. Whole-record snapshot/update, public/imported shared declarations, heap-backed/container fields, and exact ceiling analysis remain outside the current admitted subset.
 
 ### 2.1.9 Section 10 — Program Structure and Compilation Issues (8652:2023 §10)
 

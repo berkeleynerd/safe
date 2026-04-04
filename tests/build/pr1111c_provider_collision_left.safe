@@ -1,0 +1,7 @@
+package pr1111c_provider_collision_left
+
+   public function marker of t (value : t; same : t) returns integer
+      if value == same
+         return 1;
+      else
+         return 0;

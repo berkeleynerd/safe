@@ -44,13 +44,16 @@ ABSTRACT_TARGETS = {
         "SubprogramBody",
     },
     "TypeDefinition": {
+        "EnumerationTypeDefinition",
         "SignedIntegerTypeDefinition",
         "BinaryTypeDefinition",
         "FloatingPointDefinition",
         "UnconstrainedArrayDefinition",
         "ConstrainedArrayDefinition",
+        "GrowableArrayDefinition",
         "InterfaceTypeDefinition",
         "RecordTypeDefinition",
+        "DerivedTypeDefinition",
     },
     "Name": {
         "DirectName",

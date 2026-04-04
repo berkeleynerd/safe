@@ -2576,24 +2576,26 @@ package body Safe_Frontend.Check_Lower is
       Register_Scope (Work, Root_Scope);
 
       for Decl of Package_Objects loop
-         for Name of Decl.Names loop
-            Visible.Include (UString_Value (Name), Decl.Type_Info);
-            declare
-               Global_Local_Id : constant FT.UString :=
-                 Append_Local
-                   (Result.Locals,
-                    UString_Value (Name),
-                    "global",
-                    "in",
-                    Decl.Type_Info,
-                    Decl.Span,
-                    "scope0",
-                    Is_Constant => Decl.Is_Constant);
-            begin
-               Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
-                 (Global_Local_Id);
-            end;
-         end loop;
+         if not Decl.Is_Shared then
+            for Name of Decl.Names loop
+               Visible.Include (UString_Value (Name), Decl.Type_Info);
+               declare
+                  Global_Local_Id : constant FT.UString :=
+                    Append_Local
+                      (Result.Locals,
+                       UString_Value (Name),
+                       "global",
+                       "in",
+                       Decl.Type_Info,
+                       Decl.Span,
+                       "scope0",
+                       Is_Constant => Decl.Is_Constant);
+               begin
+                  Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+                    (Global_Local_Id);
+               end;
+            end loop;
+         end if;
       end loop;
 
       for Param of Subprogram.Params loop
@@ -2660,34 +2662,36 @@ package body Safe_Frontend.Check_Lower is
       end if;
 
       for Decl of Package_Objects loop
-         for Name of Decl.Names loop
-            if Decl.Has_Initializer and then Decl.Initializer /= null then
-               Assign_Op := (others => <>);
-               Assign_Op.Kind := GM.Op_Assign;
-               Assign_Op.Span := Decl.Span;
-               Assign_Op.Target :=
-                 Lower_Target
-                   (Ident_Expr
-                      (UString_Value (Name),
-                       Decl.Span,
-                       UString_Value (Decl.Type_Info.Name)),
-                    Visible,
-                    Type_Env);
-               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
-               Assign_Op.Type_Name := Decl.Type_Info.Name;
-               Assign_Op.Ownership_Effect :=
-                 Ownership_Assignment_Effect
-                   (Ident_Expr
-                      (UString_Value (Name),
-                       Decl.Span,
-                       UString_Value (Decl.Type_Info.Name)),
-                    Decl.Initializer,
-                    Visible,
-                    Type_Env);
-               Assign_Op.Declaration_Init := True;
-               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
-            end if;
-         end loop;
+         if not Decl.Is_Shared then
+            for Name of Decl.Names loop
+               if Decl.Has_Initializer and then Decl.Initializer /= null then
+                  Assign_Op := (others => <>);
+                  Assign_Op.Kind := GM.Op_Assign;
+                  Assign_Op.Span := Decl.Span;
+                  Assign_Op.Target :=
+                    Lower_Target
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Decl.Span,
+                          UString_Value (Decl.Type_Info.Name)),
+                       Visible,
+                       Type_Env);
+                  Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+                  Assign_Op.Type_Name := Decl.Type_Info.Name;
+                  Assign_Op.Ownership_Effect :=
+                    Ownership_Assignment_Effect
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Decl.Span,
+                          UString_Value (Decl.Type_Info.Name)),
+                       Decl.Initializer,
+                       Visible,
+                       Type_Env);
+                  Assign_Op.Declaration_Init := True;
+                  Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+               end if;
+            end loop;
+         end if;
       end loop;
 
       for Decl of Subprogram.Declarations loop
@@ -2774,24 +2778,26 @@ package body Safe_Frontend.Check_Lower is
       Register_Scope (Work, Root_Scope);
 
       for Decl of Unit.Objects loop
-         for Name of Decl.Names loop
-            Visible.Include (UString_Value (Name), Decl.Type_Info);
-            declare
-               Global_Local_Id : constant FT.UString :=
-                 Append_Local
-                   (Result.Locals,
-                    UString_Value (Name),
-                    "global",
-                    "in",
-                    Decl.Type_Info,
-                    Decl.Span,
-                    "scope0",
-                    Is_Constant => Decl.Is_Constant);
-            begin
-               Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
-                 (Global_Local_Id);
-            end;
-         end loop;
+         if not Decl.Is_Shared then
+            for Name of Decl.Names loop
+               Visible.Include (UString_Value (Name), Decl.Type_Info);
+               declare
+                  Global_Local_Id : constant FT.UString :=
+                    Append_Local
+                      (Result.Locals,
+                       UString_Value (Name),
+                       "global",
+                       "in",
+                       Decl.Type_Info,
+                       Decl.Span,
+                       "scope0",
+                       Is_Constant => Decl.Is_Constant);
+               begin
+                  Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+                    (Global_Local_Id);
+               end;
+            end loop;
+         end if;
       end loop;
 
       Collect_Scopes (Unit.Statements, Visible, "scope0", Work, Result.Locals);
@@ -2802,34 +2808,36 @@ package body Safe_Frontend.Check_Lower is
       Result.Entry_BB := Entry_Id;
 
       for Decl of Unit.Objects loop
-         for Name of Decl.Names loop
-            if Decl.Has_Initializer and then Decl.Initializer /= null then
-               Assign_Op := (others => <>);
-               Assign_Op.Kind := GM.Op_Assign;
-               Assign_Op.Span := Decl.Span;
-               Assign_Op.Target :=
-                 Lower_Target
-                   (Ident_Expr
-                      (UString_Value (Name),
-                       Decl.Span,
-                       UString_Value (Decl.Type_Info.Name)),
-                    Visible,
-                    Type_Env);
-               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
-               Assign_Op.Type_Name := Decl.Type_Info.Name;
-               Assign_Op.Ownership_Effect :=
+         if not Decl.Is_Shared then
+            for Name of Decl.Names loop
+               if Decl.Has_Initializer and then Decl.Initializer /= null then
+                  Assign_Op := (others => <>);
+                  Assign_Op.Kind := GM.Op_Assign;
+                  Assign_Op.Span := Decl.Span;
+                  Assign_Op.Target :=
+                    Lower_Target
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Decl.Span,
+                          UString_Value (Decl.Type_Info.Name)),
+                       Visible,
+                       Type_Env);
+                  Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+                  Assign_Op.Type_Name := Decl.Type_Info.Name;
+                  Assign_Op.Ownership_Effect :=
                  Ownership_Assignment_Effect
-                   (Ident_Expr
-                      (UString_Value (Name),
-                       Decl.Span,
-                       UString_Value (Decl.Type_Info.Name)),
-                    Decl.Initializer,
-                    Visible,
-                    Type_Env);
-               Assign_Op.Declaration_Init := True;
-               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
-            end if;
-         end loop;
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Decl.Span,
+                          UString_Value (Decl.Type_Info.Name)),
+                       Decl.Initializer,
+                       Visible,
+                       Type_Env);
+                  Assign_Op.Declaration_Init := True;
+                  Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+               end if;
+            end loop;
+         end if;
       end loop;
 
       End_Id :=
@@ -2891,24 +2899,26 @@ package body Safe_Frontend.Check_Lower is
       Register_Scope (Work, Root_Scope);
 
       for Decl of Package_Objects loop
-         for Name of Decl.Names loop
-            Visible.Include (UString_Value (Name), Decl.Type_Info);
-            declare
-               Global_Local_Id : constant FT.UString :=
-                 Append_Local
-                   (Result.Locals,
-                    UString_Value (Name),
-                    "global",
-                    "in",
-                    Decl.Type_Info,
-                    Decl.Span,
-                    "scope0",
-                    Is_Constant => Decl.Is_Constant);
-            begin
-               Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
-                 (Global_Local_Id);
-            end;
-         end loop;
+         if not Decl.Is_Shared then
+            for Name of Decl.Names loop
+               Visible.Include (UString_Value (Name), Decl.Type_Info);
+               declare
+                  Global_Local_Id : constant FT.UString :=
+                    Append_Local
+                      (Result.Locals,
+                       UString_Value (Name),
+                       "global",
+                       "in",
+                       Decl.Type_Info,
+                       Decl.Span,
+                       "scope0",
+                       Is_Constant => Decl.Is_Constant);
+               begin
+                  Work.Scopes (Work.Scope_Map.Element ("scope0")).Local_Ids.Append
+                    (Global_Local_Id);
+               end;
+            end loop;
+         end if;
       end loop;
 
       for Decl of Task_Item.Declarations loop
@@ -2943,34 +2953,36 @@ package body Safe_Frontend.Check_Lower is
       end if;
 
       for Decl of Package_Objects loop
-         for Name of Decl.Names loop
-            if Decl.Has_Initializer and then Decl.Initializer /= null then
-               Assign_Op := (others => <>);
-               Assign_Op.Kind := GM.Op_Assign;
-               Assign_Op.Span := Decl.Span;
-               Assign_Op.Target :=
-                 Lower_Target
-                   (Ident_Expr
-                      (UString_Value (Name),
-                       Decl.Span,
-                       UString_Value (Decl.Type_Info.Name)),
-                    Visible,
-                    Type_Env);
-               Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
-               Assign_Op.Type_Name := Decl.Type_Info.Name;
-               Assign_Op.Ownership_Effect :=
-                 Ownership_Assignment_Effect
-                   (Ident_Expr
-                      (UString_Value (Name),
-                       Decl.Span,
-                       UString_Value (Decl.Type_Info.Name)),
-                    Decl.Initializer,
-                    Visible,
-                    Type_Env);
-               Assign_Op.Declaration_Init := True;
-               Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
-            end if;
-         end loop;
+         if not Decl.Is_Shared then
+            for Name of Decl.Names loop
+               if Decl.Has_Initializer and then Decl.Initializer /= null then
+                  Assign_Op := (others => <>);
+                  Assign_Op.Kind := GM.Op_Assign;
+                  Assign_Op.Span := Decl.Span;
+                  Assign_Op.Target :=
+                    Lower_Target
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Decl.Span,
+                          UString_Value (Decl.Type_Info.Name)),
+                       Visible,
+                       Type_Env);
+                  Assign_Op.Value := Lower_Expr (Decl.Initializer, Visible, Type_Env);
+                  Assign_Op.Type_Name := Decl.Type_Info.Name;
+                  Assign_Op.Ownership_Effect :=
+                    Ownership_Assignment_Effect
+                      (Ident_Expr
+                         (UString_Value (Name),
+                          Decl.Span,
+                          UString_Value (Decl.Type_Info.Name)),
+                       Decl.Initializer,
+                       Visible,
+                       Type_Env);
+                  Assign_Op.Declaration_Init := True;
+                  Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
+               end if;
+            end loop;
+         end if;
       end loop;
 
       for Decl of Task_Item.Declarations loop

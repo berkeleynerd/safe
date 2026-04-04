@@ -225,6 +225,16 @@ PR11_11C_CHECKPOINT_FIXTURES = [
     "tests/build/pr1111c_generic_build.safe",
     "tests/build/pr1111c_provider_build.safe",
     "tests/build/pr1111c_imported_build.safe",
+    "tests/build/pr1111c_provider_collision_left.safe",
+    "tests/build/pr1111c_provider_collision_right.safe",
+    "tests/build/pr1111c_provider_alias.safe",
+    "tests/build/pr1111c_imported_alias_and_collision_build.safe",
+]
+
+
+PR11_12A_CHECKPOINT_FIXTURES = [
+    "tests/positive/pr1112a_shared_field_access.safe",
+    "tests/build/pr1112a_shared_task_build.safe",
 ]
 
 
@@ -299,6 +309,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_11A_CHECKPOINT_FIXTURES
     + PR11_11B_CHECKPOINT_FIXTURES
     + PR11_11C_CHECKPOINT_FIXTURES
+    + PR11_12A_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 

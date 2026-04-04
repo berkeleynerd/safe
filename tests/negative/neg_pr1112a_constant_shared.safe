@@ -1,0 +1,6 @@
+package neg_pr1112a_constant_shared
+
+   type settings is record
+      value : integer;
+   
+   shared cfg : constant settings = (value = 1);

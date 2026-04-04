@@ -16,7 +16,7 @@ package task_global_owner
          return 0
 
    task worker
-      shared : counter = 0;
+      local_count : counter = 0;
 
       loop
-         shared = bump (shared);
+         local_count = bump (local_count);

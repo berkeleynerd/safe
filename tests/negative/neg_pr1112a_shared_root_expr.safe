@@ -1,0 +1,11 @@
+package neg_pr1112a_shared_root_expr
+
+   type settings is record
+      value : integer;
+
+   shared cfg : settings = (value = 1);
+
+   function copy_of (item : settings) returns settings
+      return item;
+
+   local_copy : settings = copy_of (cfg);

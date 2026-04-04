@@ -1,12 +1,11 @@
 package provider_transitive_global
 
-   shared : integer = 0;
+   global_value : integer = 0;
 
    function touch_internal
 
-      shared = shared + 1;
+      global_value = global_value + 1;
 
    public function touch
 
       touch_internal;
-

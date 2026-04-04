@@ -486,7 +486,7 @@ package body Safe_Frontend.Check_Parse is
    begin
       if Lower = "public" then
          return True;
-      elsif Lower in "type" | "subtype" | "function" | "procedure" | "task" | "channel" then
+      elsif Lower in "type" | "subtype" | "function" | "procedure" | "task" | "channel" | "shared" then
          return True;
       elsif Current (State).Kind = FL.Identifier then
          return Looks_Like_Object_Declaration (State);
@@ -1855,6 +1855,30 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Object_Declaration;
 
+   function Parse_Shared_Object_Declaration
+     (State        : in out Parser_State;
+      Is_Public    : Boolean) return CM.Object_Decl
+   is
+      Start  : constant FL.Token := Expect (State, "shared");
+      First  : constant FL.Token := Expect_Identifier (State);
+      Result : CM.Object_Decl;
+      Semi   : FL.Token;
+   begin
+      Result.Is_Public := Is_Public;
+      Result.Is_Shared := True;
+      Result.Names.Append (First.Lexeme);
+      while Match (State, ",") loop
+         Result.Names.Append (Expect_Identifier (State).Lexeme);
+      end loop;
+      Parse_Object_Declaration_Tail (State, Result);
+      if not Result.Is_Constant and then not Result.Has_Initializer then
+         Result.Has_Implicit_Default_Init := True;
+      end if;
+      Semi := Expect (State, ";");
+      Result.Span := CM.Join (Start.Span, Semi.Span);
+      return Result;
+   end Parse_Shared_Object_Declaration;
+
    function Parse_Body_Local_Object_Declaration
      (State : in out Parser_State) return CM.Object_Decl
    is
@@ -2802,6 +2826,10 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Select_Statement (State);
       elsif Lower = "var" then
          return Parse_Var_Declaration_Statement (State);
+      elsif Lower = "shared" then
+         Reject_Unsupported
+           (State,
+            "local `shared` declarations are outside the current PR11.12a package-level subset");
       elsif Lower = "print" then
          return Parse_Print_Statement (State);
       elsif Lower in "begin" | "end" | "then" then
@@ -3653,6 +3681,10 @@ package body Safe_Frontend.Check_Parse is
          return Parse_Task_Declaration (State, Is_Public);
       elsif Lower = "channel" then
          return Parse_Channel_Declaration (State, Is_Public);
+      elsif Lower = "shared" then
+         Result.Kind := CM.Item_Object_Decl;
+         Result.Obj_Data := Parse_Shared_Object_Declaration (State, Is_Public);
+         return Result;
       elsif Lower = "for" then
          Reject_Removed_Source_Construct (State, "representation clause");
       elsif Lower in "generic" | "protected" | "accept" | "entry" then

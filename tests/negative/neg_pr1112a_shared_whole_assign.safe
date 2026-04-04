@@ -1,0 +1,9 @@
+package neg_pr1112a_shared_whole_assign
+
+   type settings is record
+      value : integer;
+
+   shared cfg : settings = (value = 1);
+   next : settings = (value = 2);
+
+   cfg = next;
