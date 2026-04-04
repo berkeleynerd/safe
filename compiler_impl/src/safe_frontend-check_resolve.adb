@@ -3615,7 +3615,24 @@ package body Safe_Frontend.Check_Resolve is
          if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
             return False;
          end if;
-         return True;
+         Arg :=
+           Contextualize_Expr_To_Target_Type
+             (Extra_Args (Extra_Args.First_Index),
+              Element_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              "");
+         return
+           Compatible_Source_Expr_To_Target_Type
+             (Arg,
+              Expr_Type (Arg, Var_Types, Functions, Type_Env),
+              Element_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Const_Env,
+              Exact_Length_Maps.Empty_Map);
       elsif Name = "pop_last" then
          if Natural (Extra_Args.Length) /= 0
            or else not Is_Assignable_Target (Receiver_Arg)

@@ -1532,7 +1532,7 @@ package body Safe_Frontend.Check_Parse is
             exit when not Match (State, ";");
          end loop;
          Close := Expect (State, ")").Span;
-      elsif not Result.Has_Receiver then
+      else
          Close := Name.Span;
       end if;
 

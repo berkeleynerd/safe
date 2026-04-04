@@ -208,6 +208,7 @@ PR11_10D_CHECKPOINT_FIXTURES = (
 
 PR11_11A_CHECKPOINT_FIXTURES = [
     "tests/positive/pr1111a_method_syntax.safe",
+    "tests/positive/pr1111a_method_append_overload.safe",
     "tests/build/pr1111a_builtin_methods_build.safe",
 ]
 

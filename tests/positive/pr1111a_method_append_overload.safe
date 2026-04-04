@@ -1,0 +1,12 @@
+package pr1111a_method_append_overload
+
+   function (self : list of integer) append (suffix : string) returns integer
+      if self.length == 2 and then suffix.length == 3
+         return 7;
+      else
+         return 0;
+
+   function total returns integer
+      values : list of integer = [1, 2];
+
+      return values.append ("Ada");
