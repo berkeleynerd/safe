@@ -1,0 +1,17 @@
+with pr1111c_provider_alias;
+with pr1111c_provider_collision_left;
+with pr1111c_provider_collision_right;
+
+package pr1111c_imported_alias_and_collision_build
+
+   function total returns integer
+      left : integer = pr1111c_provider_collision_left.marker of integer (0, 0);
+      right : integer = pr1111c_provider_collision_right.marker of integer (0, 0);
+      aliased_total : integer = pr1111c_provider_alias.mirror of integer (7, 7);
+
+      if left == 1 and then right == 2 and then aliased_total == 7
+         return 10;
+      else
+         return 0;
+
+   print (total);

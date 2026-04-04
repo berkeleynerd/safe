@@ -763,6 +763,8 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Subprograms : GM.External_Vectors.Vector;
       Imported_Objects     : Type_Maps.Map;
       Imported_Static      : Static_Value_Maps.Map;
+      Generic_Types        : in out Generic_Type_Template_Maps.Map;
+      Generic_Functions    : in out Generic_Function_Template_Maps.Map;
       Visible_Types        : in out Type_Maps.Map;
       Visible_Functions    : in out Function_Maps.Map;
       Visible_Objects      : in out Type_Maps.Map;
@@ -1362,7 +1364,7 @@ package body Safe_Frontend.Check_Resolve is
                      Type_Env,
                      Path,
                      Source_Expr.Elements (Index).Span);
-            end loop;
+               end loop;
             end if;
          end;
       elsif FT.Lowercase (UString_Value (Base_Target.Kind)) = "record"
@@ -1385,7 +1387,7 @@ package body Safe_Frontend.Check_Resolve is
                      Found := True;
                      exit;
                   end if;
-               end loop;
+            end loop;
                if Found then
                   Reject_Static_Bounded_String_Overflow
                     (Item.Expr,
@@ -2243,14 +2245,16 @@ package body Safe_Frontend.Check_Resolve is
    is
       Result : FT.UString :=
         FT.To_UString
-          (Prefix & Sanitize_Type_Name_Component (Method_Target_Tail_Name (Name)));
+          (Prefix & Sanitize_Type_Name_Component (Canonical_Name (Name)));
    begin
       if not Actual_Types.Is_Empty then
          for Item of Actual_Types loop
             Result :=
               Result
               & FT.To_UString ("_")
-              & FT.To_UString (Sanitize_Type_Name_Component (UString_Value (Item)));
+              & FT.To_UString
+                  (Sanitize_Type_Name_Component
+                     (Canonical_Name (UString_Value (Item))));
          end loop;
       end if;
       return UString_Value (Result);
@@ -2418,6 +2422,8 @@ package body Safe_Frontend.Check_Resolve is
       Imported_Subprograms : GM.External_Vectors.Vector;
       Imported_Objects     : Type_Maps.Map;
       Imported_Static      : Static_Value_Maps.Map;
+      Generic_Types        : in out Generic_Type_Template_Maps.Map;
+      Generic_Functions    : in out Generic_Function_Template_Maps.Map;
       Visible_Types        : in out Type_Maps.Map;
       Visible_Functions    : in out Function_Maps.Map;
       Visible_Objects      : in out Type_Maps.Map;
@@ -2442,9 +2448,18 @@ package body Safe_Frontend.Check_Resolve is
             begin
                if From_Package (Qualified_Name)
                  and then Short_Name /= Qualified_Name
-                 and then not Has_Type (Visible_Types, Short_Name)
                then
-                  Put_Type (Visible_Types, Short_Name, Item);
+                  if not Has_Type (Visible_Types, Short_Name) then
+                     Put_Type (Visible_Types, Short_Name, Item);
+                  end if;
+                  if not Item.Generic_Formals.Is_Empty
+                    and then Generic_Types.Contains (Canonical_Name (Qualified_Name))
+                    and then not Generic_Types.Contains (Canonical_Name (Short_Name))
+                  then
+                     Generic_Types.Include
+                       (Canonical_Name (Short_Name),
+                        Generic_Types.Element (Canonical_Name (Qualified_Name)));
+                  end if;
                end if;
             end;
          end loop;
@@ -2459,31 +2474,40 @@ package body Safe_Frontend.Check_Resolve is
             begin
                if From_Package (Qualified_Name)
                  and then Short_Name /= Qualified_Name
-                 and then not Has_Function (Visible_Functions, Short_Name)
                then
-                  Info.Name := FT.To_UString (Short_Name);
-                  Info.Kind := Item.Kind;
-                  Info.Span := Item.Span;
-                  Info.Has_Return_Type := Item.Has_Return_Type;
-                  Info.Return_Is_Access_Def := Item.Return_Is_Access_Def;
-                  if Item.Has_Return_Type then
-                     Info.Return_Type := Item.Return_Type;
+                  if Item.Generic_Formals.Is_Empty then
+                     if not Has_Function (Visible_Functions, Short_Name) then
+                        Info.Name := FT.To_UString (Short_Name);
+                        Info.Kind := Item.Kind;
+                        Info.Span := Item.Span;
+                        Info.Has_Return_Type := Item.Has_Return_Type;
+                        Info.Return_Is_Access_Def := Item.Return_Is_Access_Def;
+                        if Item.Has_Return_Type then
+                           Info.Return_Type := Item.Return_Type;
+                        end if;
+                        if not Item.Params.Is_Empty then
+                           for Param of Item.Params loop
+                              declare
+                                 Symbol : CM.Symbol;
+                              begin
+                                 Symbol.Name := Param.Name;
+                                 Symbol.Kind := Param.Kind;
+                                 Symbol.Mode := Param.Mode;
+                                 Symbol.Type_Info := Param.Type_Info;
+                                 Symbol.Span := Param.Span;
+                                 Info.Params.Append (Symbol);
+                              end;
+                           end loop;
+                        end if;
+                        Put_Function (Visible_Functions, Short_Name, Info);
+                     end if;
+                  elsif Generic_Functions.Contains (Canonical_Name (Qualified_Name))
+                    and then not Generic_Functions.Contains (Canonical_Name (Short_Name))
+                  then
+                     Generic_Functions.Include
+                       (Canonical_Name (Short_Name),
+                        Generic_Functions.Element (Canonical_Name (Qualified_Name)));
                   end if;
-                  if not Item.Params.Is_Empty then
-                     for Param of Item.Params loop
-                        declare
-                           Symbol : CM.Symbol;
-                        begin
-                           Symbol.Name := Param.Name;
-                           Symbol.Kind := Param.Kind;
-                           Symbol.Mode := Param.Mode;
-                           Symbol.Type_Info := Param.Type_Info;
-                           Symbol.Span := Param.Span;
-                           Info.Params.Append (Symbol);
-                        end;
-                     end loop;
-                  end if;
-                  Put_Function (Visible_Functions, Short_Name, Info);
                end if;
             end;
          end loop;
@@ -7223,6 +7247,7 @@ package body Safe_Frontend.Check_Resolve is
          then CM.Type_Spec_Access_Vectors.Empty_Vector
          else Expr.Callee.Generic_Args);
       Template    : Generic_Function_Template_Info;
+      Template_Name : FT.UString := FT.To_UString ("");
       Actual_Type_Names : FT.UString_Vectors.Vector;
       Key         : FT.UString := FT.To_UString ("");
       Specialized_Name : FT.UString := FT.To_UString ("");
@@ -7239,6 +7264,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       Template := Current_Generic_Function_Templates.Element (Canonical_Name (Callee_Name));
+      Template_Name := Template.Info.Name;
       for Arg of Generic_Args loop
          Actual_Type_Names.Append
            (Resolve_Type_Spec (Arg.all, Type_Env, Const_Env, Path).Name);
@@ -7265,7 +7291,7 @@ package body Safe_Frontend.Check_Resolve is
                  & " arguments"));
       end if;
 
-      Key := FT.To_UString (Generic_Template_Key (Callee_Name, Actual_Type_Names));
+      Key := FT.To_UString (Generic_Template_Key (UString_Value (Template_Name), Actual_Type_Names));
       if Current_Generic_Specialization_By_Key.Contains (UString_Value (Key)) then
          Specialized_Name :=
            FT.To_UString
@@ -7277,7 +7303,7 @@ package body Safe_Frontend.Check_Resolve is
            FT.To_UString
              (Generic_Specialization_Name
                 ("Safe_Generic_",
-                 Callee_Name,
+                 UString_Value (Template_Name),
                  Actual_Type_Names));
          Clone.Spec.Name := Specialized_Name;
          Clone.Is_Public := False;
@@ -11561,7 +11587,11 @@ package body Safe_Frontend.Check_Resolve is
          Path,
          Spec.Span);
 
-      Instantiation_Key := FT.To_UString (Generic_Template_Key (Template_Name, Actual_Type_Names));
+      Instantiation_Key :=
+        FT.To_UString
+          (Generic_Template_Key
+             (UString_Value (Template.Info.Name),
+              Actual_Type_Names));
       if Current_Generic_Type_Instantiation_By_Key.Contains (UString_Value (Instantiation_Key)) then
          Concrete_Name :=
            FT.To_UString
@@ -11585,7 +11615,10 @@ package body Safe_Frontend.Check_Resolve is
 
       Concrete_Name :=
         FT.To_UString
-          (Generic_Specialization_Name ("__generic_", Template_Name, Actual_Type_Names));
+          (Generic_Specialization_Name
+             ("__generic_",
+              UString_Value (Template.Info.Name),
+              Actual_Type_Names));
       if Template.Has_Decl then
          Clone := Template.Decl;
          Clone.Generic_Formals.Clear;
@@ -13595,6 +13628,8 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Imported_Subprograms,
                      Imported_Objects,
                      Const_Env,
+                     Current_Generic_Type_Templates,
+                     Current_Generic_Function_Templates,
                      Local_Type_Env,
                      Local_Functions,
                      Local_Imported_Objects,

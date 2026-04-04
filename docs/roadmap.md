@@ -70,6 +70,15 @@ Dependency chain:
 - PR11.11b follows PR11.11a (structural interfaces — Go-style named operation contracts with compile-time satisfaction).
 - PR11.11c follows PR11.11b (user-defined generics — parameterized types/functions with value-type and interface constraints).
 - PR11.12 follows PR11.11c (shared concurrent records — compiler-generated protected wrappers for thread-safe record access).
+- PR11.13 follows PR11.12 (user-defined sum types with exhaustive match).
+- PR11.14 follows PR11.13 (closures — value-capture-only first-class functions).
+- PR11.15 follows PR11.14 (string interpolation).
+- PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
+- PR11.17 follows PR11.16 (user-defined iteration protocol via standard interface).
+- PR11.18 follows PR11.17 (nested packages / module hierarchy).
+- PR11.19 follows PR11.18 (async/await via state-machine coroutines).
+- PR11.20 follows PR11.19 (bounded user-managed allocation pools).
+- PR11.21 follows PR11.20 (compile-time derive — auto-generated interface implementations for record/sum types).
 
 ---
 
@@ -2336,6 +2345,291 @@ shared containers (e.g., `shared cache : map of (string, integer)`).
 
 ---
 
+## PR11.13: User-Defined Sum Types
+
+Add user-defined tagged unions with exhaustive `match` destructuring.
+
+### Scope
+
+- `type shape is circle (radius : integer) or rectangle (width : integer; height : integer)`
+  declares a sum type with named variants and typed payloads.
+- `match value when circle (r) ... when rectangle (w, h) ...` destructures
+  with exhaustiveness checked at compile time.
+- Sum types are value types: copy on assignment, free on scope exit.
+- No inheritance, no subtyping between variants — each variant is a
+  distinct data shape under one type name.
+- Internally lowered to a discriminated record with an enum discriminant
+  and variant parts, reusing the existing discriminant-guard proof
+  machinery.
+
+### Proof impact
+
+Zero new proof model. The discriminant is a finite enum, `match` is
+exhaustive (compiler-enforced), and each variant's fields are accessed
+only in the correct arm. GNATprove already proves this pattern.
+
+### Dependency
+
+Follows PR11.12.
+
+---
+
+## PR11.14: Closures
+
+Add value-capture-only first-class functions.
+
+### Scope
+
+- Anonymous function syntax: `fn (x : integer) returns integer => x + 1`
+- Closures capture enclosing variables by value (copy at capture time),
+  not by reference. No mutable upvalue captures.
+- A closure is internally a record of captured values plus a function
+  pointer. The function pointer is statically known at each use site
+  through monomorphization via an interface constraint (e.g., a standard
+  `callable` interface).
+- Closure types are value types: copy on assignment, free on scope exit.
+- No dynamic dispatch — every closure call site is monomorphized.
+- Enables functional patterns: `items.filter(fn (x) => x > 0)`,
+  `items.map(fn (x) => x * 2)`, callback parameters.
+
+### Proof impact
+
+Zero new proof model. The closure body is proved as an ordinary function.
+Captured values are record fields with known types. The monomorphized
+call is a concrete function call that GNATprove handles natively.
+
+### Dependency
+
+Follows PR11.13. Sum types should exist first because closures returning
+sum types (e.g., `fn () returns optional integer`) are a common pattern.
+
+---
+
+## PR11.15: String Interpolation
+
+Add `f"..."` string interpolation syntax.
+
+### Scope
+
+- `f"count: {n}"` desugars to `"count: " & to_string(n)`.
+- `to_string` is a standard interface method that scalar types, enums,
+  strings, and optionals satisfy by default.
+- User-defined types can satisfy `to_string` through the existing
+  method/interface machinery from PR11.11a-b.
+- Interpolation expressions must be printable (satisfy `to_string`).
+  Complex expressions are allowed: `f"total: {a + b}"`.
+- No format specifiers in the first slice (no `{n:04d}`). Formatting
+  is post-v1.0 work.
+
+### Proof impact
+
+Zero. Pure desugaring to existing concatenation and `to_string` calls.
+
+### Dependency
+
+Follows PR11.14.
+
+---
+
+## PR11.16: Nominal Type Aliases
+
+Add distinct nominal types that prevent accidental mixing.
+
+### Scope
+
+- `type user_id is new integer (0 to 1000000)` creates a distinct type
+  with the same representation as its parent but no implicit conversion.
+- `user_id` and `integer` are incompatible in assignment, comparison,
+  and parameter passing without an explicit conversion.
+- Explicit conversion: `user_id (42)` and `integer (my_id)`.
+- Nominal types inherit the parent's operations (arithmetic, comparison)
+  but the result type is the nominal type, not the parent.
+- Nominal types are value types with the same proof surface as their
+  parent — range checks, overflow, and indexing all work identically.
+
+### Proof impact
+
+Zero new proof model. The nominal type has the same range and operations
+as its parent. GNATprove proves the same VCs.
+
+### Dependency
+
+Follows PR11.15.
+
+---
+
+## PR11.17: User-Defined Iteration Protocol
+
+Add a standard `iterable` interface so user-defined types can participate
+in `for item of x`.
+
+### Scope
+
+- Define a standard `iterable of T` interface with `has_next` and `next`
+  methods (or equivalent cursor-based protocol).
+- `for item of x` desugars to the protocol methods when `x` satisfies
+  `iterable of T`.
+- Built-in containers (`list`, `map`) already satisfy the protocol
+  through their existing iteration lowering.
+- User-defined types that implement the protocol gain `for ... of`
+  support automatically.
+
+### Proof impact
+
+Zero new proof model. The desugared loop body uses existing method calls
+and bounded iteration. GNATprove proves the concrete instantiation.
+
+### Dependency
+
+Follows PR11.16. Requires interfaces (PR11.11b) and generics (PR11.11c).
+
+---
+
+## PR11.18: Nested Packages / Module Hierarchy
+
+Add nested package declarations for structural code organization.
+
+### Scope
+
+- `package outer; package inner; ... end inner; end outer` allows
+  hierarchical namespacing.
+- Nested packages can be `public` or private.
+- Name resolution follows lexical scoping: inner packages see outer
+  declarations; outer code accesses inner declarations via
+  `inner.name`.
+- Import via `with outer.inner` brings the nested package into scope.
+- No new runtime behavior — namespacing is a compile-time concern only.
+
+### Proof impact
+
+Zero. Name resolution only. GNATprove sees the same flat Ada packages
+after emission.
+
+### Dependency
+
+Follows PR11.17.
+
+---
+
+## PR11.19: Async/Await via State-Machine Coroutines
+
+Add `async` functions and `await` expressions for structured concurrency
+within a single task.
+
+### Scope
+
+- `async function fetch_data returns result of string` declares an
+  async function that can suspend and resume.
+- `value = await fetch_data()` suspends the current coroutine until the
+  async function completes.
+- The compiler lowers async functions to state-machine enums with
+  explicit state transitions — no hidden stack allocation, no dynamic
+  task creation.
+- Coroutine frames are bounded and statically sized.
+- `await` is legal only inside `async` functions.
+- Async functions integrate with the `result` error model: an async
+  function returning `result of T` can use `try` to propagate failures
+  across `await` boundaries.
+
+### Proof impact
+
+The state machine is sequential code with explicit transitions.
+GNATprove proves each state transition as an ordinary function body.
+No new proof model — the emitted Ada is a `case` dispatch over an
+enum discriminant.
+
+### Dependency
+
+Follows PR11.18. Requires sum types (PR11.13) for the state-machine
+enum representation.
+
+---
+
+## PR11.20: Bounded User-Managed Allocation Pools
+
+Add fixed-capacity allocation pools for domain-specific data structures
+that the built-in containers do not cover.
+
+### Scope
+
+- `type node_pool is pool of node capacity 256` declares a fixed-size
+  pool of pre-allocated nodes.
+- `allocate(pool)` returns `optional node` — `some` if capacity remains,
+  `none` if full.
+- `deallocate(pool, item)` returns the item to the pool.
+- Pool lifetime is scope-bounded: all outstanding allocations are
+  reclaimed when the pool goes out of scope.
+- No unbounded heap allocation. The pool capacity is a compile-time
+  constant.
+- Pools are value types at the pool level (the pool itself copies/moves
+  as a unit) but items allocated from a pool are references within that
+  pool's storage.
+
+### Proof impact
+
+Pool capacity is static. Allocation failure surfaces as `optional`,
+which is already proved. Deallocation is scope-bounded. GNATprove can
+prove that indexing into pool storage is within bounds and that the pool
+count stays within capacity.
+
+### Dependency
+
+Follows PR11.19.
+
+---
+
+## PR11.21: Compile-Time Derive
+
+Add a `derive` directive that auto-generates interface implementations
+for record and sum types at compile time, replacing the need for runtime
+reflection.
+
+### Scope
+
+- `type sensor_reading is record derive printable, serializable`
+  instructs the compiler to generate implementations of the named
+  interfaces for the type.
+- The compiler reads the type's field list (names, types, order) at
+  compile time and emits concrete method bodies that satisfy each
+  derived interface.
+- Standard derivable interfaces in this milestone:
+  - `printable` — generates `to_string` that concatenates field names
+    and values
+  - `equatable` — generates `==` that compares fields structurally
+  - `serializable` — generates a field-visitor method that a
+    format-specific encoder can consume
+- `derive` works on records, discriminated records, and sum types
+  (PR11.13). It does not work on scalars, enums, or containers (which
+  already satisfy standard interfaces through builtins).
+- The `serializable` interface is format-agnostic: it exposes
+  field-by-field traversal (name, type tag, value) through a standard
+  visitor pattern. The actual encoding (protobuf, JSON, etc.) is a
+  library-level concern, not a compiler concern.
+- Derived implementations are ordinary generated functions that
+  GNATprove proves the same way it proves any other function. No
+  runtime type information, no dynamic field access.
+
+### Why this exists
+
+Without reflection, every type that needs serialization, printing, or
+equality must have hand-written implementations for each interface.
+`derive` eliminates that boilerplate while keeping the proof story
+intact — the compiler generates the code, not the programmer, and
+the generated code is proved.
+
+### Proof impact
+
+Zero new proof model. Derived method bodies are ordinary functions
+over known field types. GNATprove proves them identically to
+hand-written implementations.
+
+### Dependency
+
+Follows PR11.20. Requires interfaces (PR11.11b), generics (PR11.11c),
+and sum types (PR11.13). This is the last milestone in the PR11 series.
+
+---
+
 # PR12: Tooling and Developer Ergonomics
 
 The PR11 series delivers a language that is safe by construction. The PR12
@@ -2349,14 +2643,22 @@ that gap before the claims-hardening work begins.
 
 ## Dependency Chain
 
-- PR12.1 follows PR11.12 (compiled native `safe` CLI binary).
+- PR12.1 follows PR11.21 (compiled native `safe` CLI binary).
 - PR12.2 follows PR12.1 (single-archive distribution).
 - PR12.3 follows PR12.2 (`safe fmt` — code formatter).
 - PR12.4 follows PR12.3 (full LSP server).
 - PR12.5 follows PR12.4 (workspace mode — multi-package project discovery).
 - PR12.5a follows PR12.5 (complete VS Code extension).
 - PR12.6 follows PR12.5a (package management and dependency resolution).
-- v1.0 tag follows PR12.6.
+- PR12.7 follows PR12.6 (standard serialization library — protobuf, JSON, and format-agnostic derive integration).
+- PR12.8 follows PR12.7 (standard I/O library — file, stdin/stdout, arguments, with task-based I/O seams).
+- PR12.9 follows PR12.8 (`safe test` — built-in test framework and runner).
+- PR12.10 follows PR12.9 (`safe doc` — documentation generation from source).
+- PR12.11 follows PR12.10 (cross-compilation and target management).
+- PR12.12 follows PR12.11 (multi-error compiler recovery for IDE and AI agent workflows).
+- PR12.13 follows PR12.12 (source-level debugger integration).
+- PR12.14 follows PR12.13 (Rosetta Code completeness — Safe implementation of every Rosetta Code task in the corpus).
+- v1.0 tag follows PR12.14.
 
 ---
 
@@ -2576,21 +2878,313 @@ Follows PR12.5.
 
 ---
 
+## PR12.7: Standard Serialization Library
+
+Ship format-specific serialization libraries that consume the
+`serializable` interface from PR11.21's `derive` mechanism.
+
+### Scope
+
+- **Protobuf library:** `safe_protobuf` package providing `to_protobuf`
+  and `from_protobuf` functions that encode/decode any type satisfying
+  the `serializable` interface to/from protobuf binary wire format.
+  Schema generation from Safe type definitions (`.proto` output).
+- **JSON library:** `safe_json` package providing `to_json` and
+  `from_json` for human-readable interchange. No streaming parser in
+  the first slice — full document parse/emit only.
+- Both libraries consume the format-agnostic field-visitor interface
+  that `derive serializable` generates. The compiler does not know
+  about protobuf or JSON — the libraries do.
+- Both libraries are written in Safe, proved at Bronze/Silver, and
+  shipped in the standard distribution.
+- Error handling uses `result of T` throughout: `from_json(text)`
+  returns `result of my_type`, not a bare value.
+
+### Why here
+
+Serialization is the most common use case that reflection solves in
+other languages. With `derive serializable` (PR11.21) providing the
+compile-time type introspection and this milestone providing the
+format encoders, Safe covers the serialization story without reflection
+and with full proof coverage.
+
+### Dependency
+
+Follows PR12.6 (package management). The serialization libraries are
+the first standard-library packages that ship through the package
+manager.
+
+---
+
+## PR12.8: Standard I/O Library
+
+Ship a standard I/O library with task-based I/O seams for maximum
+assurance.
+
+### Design principle: I/O through tasks
+
+All I/O operations are mediated by dedicated persistent service tasks
+that own the I/O resources. User code communicates with I/O tasks
+through channels, never touching file descriptors or OS handles directly.
+This means:
+
+- User code remains fully provable (no `SPARK_Mode => Off` in user code)
+- I/O errors surface as `result of T` values through channels
+- The `SPARK_Mode => Off` boundary is isolated to the I/O task bodies,
+  which the programmer never declares or sees
+- Concurrent I/O from multiple tasks is serialized through channels —
+  no interleaving, no race conditions on file handles
+- The I/O seam architecture from `docs/vision.md` is realized here
+
+### Scope
+
+- **File I/O:** `file_read(path)` returns `result of string`,
+  `file_write(path, content)` returns `result of boolean`,
+  `file_lines(path)` returns `result of list of string`.
+  Internally, a persistent file-service task handles all file
+  operations.
+- **Stdin/stdout:** `read_line()` returns `result of string`.
+  `print` remains the existing builtin for output. A persistent
+  stdin-service task reads lines and sends them through an internal
+  channel.
+- **Command-line arguments:** `arguments()` returns `list of string`.
+  Arguments are captured at program startup and served as a pure
+  value — no task needed.
+- **Environment variables:** `env(name)` returns `optional string`.
+  Captured at startup, same as arguments.
+- All I/O functions return `result of T` for error handling through
+  `try`/`match`.
+- The library is written in Safe. The I/O task bodies wrap Ada's
+  `Ada.Text_IO`, `Ada.Directories`, and `Ada.Command_Line` behind
+  `SPARK_Mode => Off` boundaries. All user-facing code is proved.
+
+### Dependency
+
+Follows PR12.7 (serialization). File I/O is needed before Rosetta
+Code completeness (PR12.14).
+
+---
+
+## PR12.9: `safe test` — Built-In Test Framework
+
+Add a test framework and runner so users can write and execute tests
+for their own Safe code.
+
+### Scope
+
+- `safe test [file.safe]` discovers and runs test functions in the
+  specified file or in all `.safe` files in the current project.
+- Test functions are ordinary functions with a naming convention
+  (e.g., `function test_addition`) or a `test` attribute/annotation.
+- Assertions: `assert(condition)` and `assert_equal(expected, actual)`
+  as builtins that report source location on failure.
+- Test output: per-test pass/fail with source location, summary line
+  with total passed/failed counts, nonzero exit code on any failure.
+- `safe test --verbose` shows assertion failure details.
+- Test functions are not included in the built binary for `safe build`
+  / `safe run` — they are test-only.
+- Tests are proved the same way user code is proved: `safe prove` on
+  a test file verifies the test code is memory-safe and free of
+  runtime errors.
+
+### Dependency
+
+Follows PR12.8 (I/O library). Tests often need file I/O for fixture
+data.
+
+---
+
+## PR12.10: `safe doc` — Documentation Generation
+
+Generate API documentation from Safe source files.
+
+### Scope
+
+- `safe doc [file.safe | directory]` generates HTML documentation from
+  public type, function, and interface declarations.
+- Documentation comments use a simple convention: `--- ` triple-dash
+  comments preceding a declaration are treated as documentation.
+- Output includes: type signatures, function signatures with parameter
+  names and types, interface member listings, and cross-references
+  between types and functions.
+- Generated documentation is static HTML suitable for hosting.
+- `safe doc` is included in the distribution.
+
+### Dependency
+
+Follows PR12.9 (test framework).
+
+---
+
+## PR12.11: Cross-Compilation and Target Management
+
+Add a target abstraction so `safe build --target <name>` works without
+board-specific deploy incantations.
+
+### Scope
+
+- `safe build --target stm32f4` compiles for the STM32F4 target using
+  the appropriate GNAT cross-compiler and runtime.
+- `safe build --target riscv32` compiles for RISC-V (when the verified
+  backend exists).
+- Target definitions live in the distribution as declarative
+  configuration files specifying: compiler, runtime, linker script,
+  and default stack/heap sizes.
+- `safe deploy` becomes sugar over `safe build --target <board>` plus
+  flash/simulate.
+- `safe prove --target <name>` uses the target's integer width and
+  runtime model for proof.
+- User-defined target configurations are supported via project-level
+  target files.
+
+### Dependency
+
+Follows PR12.10 (documentation generation).
+
+---
+
+## PR12.12: Multi-Error Compiler Recovery
+
+Make the compiler recover from errors and report multiple diagnostics
+per compilation, instead of rejecting on the first error.
+
+### Scope
+
+- The parser, resolver, and type checker continue after encountering
+  an error, collecting diagnostics into a list rather than aborting.
+- The compiler reports up to N diagnostics (configurable, default 20)
+  per compilation unit.
+- Each diagnostic includes source location, error message, and fix
+  suggestion (where available).
+- The LSP server (PR12.4) benefits directly: the editor shows all
+  errors in a file, not just the first one.
+- AI agents benefit directly: one compilation attempt surfaces all
+  issues, enabling batch fixes rather than one-at-a-time iteration.
+- Error recovery must not produce false-positive diagnostics —
+  secondary errors caused by recovery from an earlier error should
+  be suppressed or clearly marked.
+
+### Dependency
+
+Follows PR12.11 (cross-compilation).
+
+---
+
+## PR12.13: Source-Level Debugger Integration
+
+Add Safe-to-Ada source mapping so a debugger can show Safe source lines
+while stepping through the emitted Ada binary.
+
+### Scope
+
+- The emitter generates DWARF debug information that maps emitted Ada
+  line numbers back to Safe source line numbers.
+- When debugging with GDB or LLDB, the debugger shows Safe source
+  lines, not Ada source lines.
+- Variable names in the debugger reflect Safe source names, not
+  emitted Ada mangled names.
+- The VS Code extension (PR12.5a) integrates with this mapping so
+  breakpoints set on Safe source lines work correctly.
+- This requires the emitter to carry a source-location mapping table
+  through emission and to generate appropriate debug pragmas or
+  DWARF annotations in the emitted Ada.
+
+### Dependency
+
+Follows PR12.12 (multi-error recovery).
+
+---
+
+## PR12.14: Rosetta Code Completeness
+
+Implement every task in the Rosetta Code corpus in Safe, proving that the
+language is practically expressive enough for real-world programming at
+least to that standard.
+
+### Scope
+
+- Port every task in the Rosetta Code task list
+  (https://rosettacode.org/wiki/Category:Programming_Tasks) that is
+  implementable within Safe's admitted surface.
+- Each implementation must:
+  - compile under `safe build`
+  - run correctly under `safe run` (where applicable)
+  - prove under `safe prove` (where the emitted Ada is within the
+    blocking proof surface)
+- Tasks that are fundamentally outside Safe's model (require reflection,
+  raw pointer arithmetic, OS-specific APIs, GUI, or networking beyond
+  the standard library) are documented as excluded with a reason, not
+  silently skipped.
+- All implementations live under `samples/rosetta/` organized by task
+  category, extending the existing Rosetta sample corpus.
+- This milestone is the practical expressiveness gate for v1.0: if a
+  common programming task cannot be written in Safe, that is either a
+  language gap to be filed or an honest exclusion to be documented.
+
+### Why before v1.0
+
+Rosetta Code is the closest thing to a universal "can this language do
+X?" benchmark. Completing the corpus before the v1.0 tag means:
+- Every expressiveness gap is discovered and either fixed or documented
+  before the language is declared stable
+- AI agents generating Safe code have a reference implementation for
+  every common programming pattern
+- The language's practical limitations are known and public, not
+  discovered by early adopters after release
+
+### Categories
+
+The Rosetta corpus spans:
+- String manipulation, sorting, searching, mathematical computation
+- Data structures (lists, maps, trees, graphs)
+- File I/O, text processing, parsing
+- Concurrency patterns (producer-consumer, dining philosophers, etc.)
+- Combinatorics, number theory, cryptographic primitives
+- Simple games, simulations, and interactive programs
+
+Each category exercises different parts of the Safe surface. Gaps
+discovered during implementation feed back into deferred-items tracking
+or late PR11/PR12 patches.
+
+### Acceptance criteria
+
+- Every Rosetta task is either implemented and passing or explicitly
+  excluded with a documented reason
+- Zero unnamed "we just did not get to it" gaps
+- The excluded list is published alongside the implementations so the
+  language's practical boundaries are transparent
+
+### Dependency
+
+Follows PR12.13 (debugger integration). The full language, tooling,
+I/O library, test framework, and documentation surface must be available
+before attempting comprehensive coverage.
+
+---
+
 ## v1.0 Tag
 
-After PR12.6, the Safe toolchain is:
+After PR12.14, the Safe toolchain is:
 
-- A compiled native CLI with build, run, prove, deploy, and fmt commands
+- A compiled native CLI with build, run, prove, test, doc, deploy, and
+  fmt commands
 - A single-archive distribution with no external dependencies
-- A full LSP server for IDE integration
+- A full LSP server for IDE integration with multi-error diagnostics
 - A complete VS Code extension with syntax highlighting, snippets, problem
   matchers, build tasks, debug launch, and one-click marketplace install
+- Source-level debugger integration (Safe source lines in GDB/LLDB)
 - Workspace mode with multi-package project support
 - A package manager with deterministic dependency resolution
+- Cross-compilation and target management (`--target stm32f4`, etc.)
+- Standard I/O library with task-based I/O seams for maximum assurance
+- Standard serialization libraries (protobuf + JSON) consuming the
+  `derive serializable` interface
+- Built-in test framework with assertions, discovery, and runner
+- Documentation generation from source
+- Complete Rosetta Code corpus coverage with every task implemented or
+  explicitly excluded with a documented reason
 - A language that is safe by construction for memory, concurrency, and
   absence of runtime errors
-- 180+ proved emitted fixtures, 14 companion templates, embedded
-  evidence lane
 
 This is the v1.0 baseline. The claims-hardening series (PR13) follows.
 

@@ -225,6 +225,10 @@ PR11_11C_CHECKPOINT_FIXTURES = [
     "tests/build/pr1111c_generic_build.safe",
     "tests/build/pr1111c_provider_build.safe",
     "tests/build/pr1111c_imported_build.safe",
+    "tests/build/pr1111c_provider_collision_left.safe",
+    "tests/build/pr1111c_provider_collision_right.safe",
+    "tests/build/pr1111c_provider_alias.safe",
+    "tests/build/pr1111c_imported_alias_and_collision_build.safe",
 ]
 
 
