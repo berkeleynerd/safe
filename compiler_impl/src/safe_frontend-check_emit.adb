@@ -1962,29 +1962,35 @@ package body Safe_Frontend.Check_Emit is
       end case;
    end Statement_Node;
 
+   function Parameter_Spec_Node
+     (Param : CM.Parameter_Spec) return String
+   is
+      Names : String_Vectors.Vector;
+   begin
+      for Name of Param.Names loop
+         Names.Append (JS.Quote (Name));
+      end loop;
+      return
+        "{""node_type"":""ParameterSpecification"",""names"":"
+        & Json_List (Names)
+        & ",""is_aliased"":false,""mode"":"
+        & JS.Quote (FT.To_String (Param.Mode))
+        & ",""param_type"":"
+        & Object_Type_Node (Param.Param_Type)
+        & ",""default_expression"":null,""span"":"
+        & JS.Span_Object (Param.Span)
+        & "}";
+   end Parameter_Spec_Node;
+
    function Formal_Part_Node
      (Params : CM.Parameter_Vectors.Vector;
       Span   : FT.Source_Span) return String
    is
       Items : String_Vectors.Vector;
-      Names : String_Vectors.Vector;
    begin
       if not Params.Is_Empty then
          for Param of Params loop
-            Names.Clear;
-            for Name of Param.Names loop
-               Names.Append (JS.Quote (Name));
-            end loop;
-            Items.Append
-              ("{""node_type"":""ParameterSpecification"",""names"":"
-               & Json_List (Names)
-               & ",""is_aliased"":false,""mode"":"
-               & JS.Quote (FT.To_String (Param.Mode))
-               & ",""param_type"":"
-               & Object_Type_Node (Param.Param_Type)
-               & ",""default_expression"":null,""span"":"
-               & JS.Span_Object (Param.Span)
-               & "}");
+            Items.Append (Parameter_Spec_Node (Param));
          end loop;
       end if;
       return
@@ -2056,6 +2062,10 @@ package body Safe_Frontend.Check_Emit is
            & JS.Bool_Literal (Parsed.Is_Public)
            & ",""spec"":{""node_type"":""FunctionSpecification"",""name"":"
            & JS.Quote (Parsed.Spec.Name)
+           & ",""receiver"":"
+           & (if Parsed.Spec.Has_Receiver
+              then Parameter_Spec_Node (Parsed.Spec.Receiver)
+              else "null")
            & ",""formal_part"":"
            & (if Parsed.Spec.Params.Is_Empty then "null"
               else Formal_Part_Node (Parsed.Spec.Params, Parsed.Spec.Span))
@@ -2079,6 +2089,10 @@ package body Safe_Frontend.Check_Emit is
         & JS.Bool_Literal (Parsed.Is_Public)
         & ",""spec"":{""node_type"":""ProcedureSpecification"",""name"":"
         & JS.Quote (Parsed.Spec.Name)
+        & ",""receiver"":"
+        & (if Parsed.Spec.Has_Receiver
+           then Parameter_Spec_Node (Parsed.Spec.Receiver)
+           else "null")
         & ",""formal_part"":"
         & (if Parsed.Spec.Params.Is_Empty then "null"
            else Formal_Part_Node (Parsed.Spec.Params, Parsed.Spec.Span))

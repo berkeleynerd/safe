@@ -416,6 +416,8 @@ package Safe_Frontend.Check_Model is
    type Subprogram_Spec is record
       Kind                  : FT.UString := FT.To_UString ("");
       Name                  : FT.UString := FT.To_UString ("");
+      Has_Receiver          : Boolean := False;
+      Receiver              : Parameter_Spec;
       Params                : Parameter_Vectors.Vector;
       Has_Return_Type       : Boolean := False;
       Return_Type           : Type_Spec;

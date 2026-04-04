@@ -3419,11 +3419,425 @@ package body Safe_Frontend.Check_Resolve is
             Message => "`print` supports only integer, string, boolean, or enum arguments"));
    end Validate_Print_Procedure_Call;
 
+   function Method_Target_Tail_Name (Name : String) return String is
+      Last_Dot : Natural := 0;
+   begin
+      for Index in reverse Name'Range loop
+         if Name (Index) = '.' then
+            Last_Dot := Index;
+            exit;
+         end if;
+      end loop;
+      if Last_Dot = 0 then
+         return Name;
+      end if;
+      return Name (Last_Dot + 1 .. Name'Last);
+   end Method_Target_Tail_Name;
+
+   function Name_Expr_From_String
+     (Name : String;
+      Span : FT.Source_Span) return CM.Expr_Access
+   is
+      Start  : Positive := Name'First;
+      Result : CM.Expr_Access := null;
+   begin
+      if Name'Length = 0 then
+         return null;
+      end if;
+
+      for Index in Name'Range loop
+         if Name (Index) = '.' then
+            declare
+               Part : constant String := Name (Start .. Index - 1);
+               Node : constant CM.Expr_Access := new CM.Expr_Node;
+            begin
+               if Result = null then
+                  Node.Kind := CM.Expr_Ident;
+                  Node.Name := FT.To_UString (Part);
+               else
+                  Node.Kind := CM.Expr_Select;
+                  Node.Prefix := Result;
+                  Node.Selector := FT.To_UString (Part);
+               end if;
+               Node.Span := Span;
+               Result := Node;
+            end;
+            Start := Index + 1;
+         end if;
+      end loop;
+
+      declare
+         Part : constant String := Name (Start .. Name'Last);
+         Node : constant CM.Expr_Access := new CM.Expr_Node;
+      begin
+         if Result = null then
+            Node.Kind := CM.Expr_Ident;
+            Node.Name := FT.To_UString (Part);
+         else
+            Node.Kind := CM.Expr_Select;
+            Node.Prefix := Result;
+            Node.Selector := FT.To_UString (Part);
+         end if;
+         Node.Span := Span;
+         return Node;
+      end;
+   end Name_Expr_From_String;
+
+   function Is_Method_Builtin_Name (Name : String) return Boolean is
+   begin
+      return Name in "append" | "pop_last" | "contains" | "get" | "set" | "remove";
+   end Is_Method_Builtin_Name;
+
+   function Function_Method_Call_Compatible
+     (Info         : Function_Info;
+      Receiver_Arg : CM.Expr_Access;
+      Extra_Args   : CM.Expr_Access_Vectors.Vector;
+      Var_Types    : Type_Maps.Map;
+      Functions    : Function_Maps.Map;
+      Type_Env     : Type_Maps.Map;
+      Const_Env    : Static_Value_Maps.Map) return Boolean
+   is
+      Receiver_Type : constant GM.Type_Descriptor :=
+        Expr_Type (Receiver_Arg, Var_Types, Functions, Type_Env);
+      function Has_Synthetic_Tail_Compatibility
+        (Source : GM.Type_Descriptor;
+         Target : GM.Type_Descriptor) return Boolean
+      is
+         Source_Base : constant GM.Type_Descriptor := Base_Type (Source, Type_Env);
+         Target_Base : constant GM.Type_Descriptor := Base_Type (Target, Type_Env);
+         Source_Tail : constant String :=
+           Method_Target_Tail_Name (UString_Value (Source_Base.Name));
+         Target_Tail : constant String :=
+           Method_Target_Tail_Name (UString_Value (Target_Base.Name));
+      begin
+         return Source_Tail'Length > 1
+           and then Target_Tail'Length > 1
+           and then Source_Tail (Source_Tail'First .. Source_Tail'First + 1) = "__"
+           and then Target_Tail (Target_Tail'First .. Target_Tail'First + 1) = "__"
+           and then FT.Lowercase (UString_Value (Source_Base.Kind)) =
+             FT.Lowercase (UString_Value (Target_Base.Kind))
+           and then Source_Tail = Target_Tail;
+      end Has_Synthetic_Tail_Compatibility;
+   begin
+      if Natural (Info.Params.Length) /= Natural (Extra_Args.Length) + 1 then
+         return False;
+      end if;
+
+      if UString_Value (Info.Params (Info.Params.First_Index).Mode) = "mut"
+        and then not Is_Assignable_Target (Receiver_Arg)
+      then
+         return False;
+      end if;
+
+      if not Compatible_Source_Expr_To_Target_Type
+        (Receiver_Arg,
+         Receiver_Type,
+         Info.Params (Info.Params.First_Index).Type_Info,
+         Var_Types,
+         Functions,
+         Type_Env,
+         Const_Env,
+         Exact_Length_Maps.Empty_Map)
+        and then not Has_Synthetic_Tail_Compatibility
+          (Receiver_Type,
+           Info.Params (Info.Params.First_Index).Type_Info)
+      then
+         return False;
+      end if;
+
+      if not Extra_Args.Is_Empty then
+         for Offset in 0 .. Natural (Extra_Args.Length) - 1 loop
+            declare
+               Param_Index : constant Positive := Info.Params.First_Index + 1 + Offset;
+               Param       : constant CM.Symbol := Info.Params (Param_Index);
+               Arg         : CM.Expr_Access := Extra_Args (Extra_Args.First_Index + Offset);
+            begin
+               if UString_Value (Param.Mode) = "mut"
+                 and then not Is_Assignable_Target (Arg)
+               then
+                  return False;
+               end if;
+
+               Arg :=
+                 Contextualize_Expr_To_Target_Type
+                   (Arg,
+                    Param.Type_Info,
+                    Var_Types,
+                    Functions,
+                    Type_Env,
+                    "");
+               if not Compatible_Source_Expr_To_Target_Type
+                 (Arg,
+                  Expr_Type (Arg, Var_Types, Functions, Type_Env),
+                  Param.Type_Info,
+                  Var_Types,
+                  Functions,
+                  Type_Env,
+                  Const_Env,
+                  Exact_Length_Maps.Empty_Map)
+                 and then not Has_Synthetic_Tail_Compatibility
+                   (Expr_Type (Arg, Var_Types, Functions, Type_Env),
+                    Param.Type_Info)
+               then
+                  return False;
+               end if;
+            end;
+         end loop;
+      end if;
+
+      return True;
+   end Function_Method_Call_Compatible;
+
+   function Builtin_Method_Call_Compatible
+     (Name         : String;
+      Receiver_Arg : CM.Expr_Access;
+      Extra_Args   : CM.Expr_Access_Vectors.Vector;
+      Var_Types    : Type_Maps.Map;
+      Functions    : Function_Maps.Map;
+      Type_Env     : Type_Maps.Map;
+      Const_Env    : Static_Value_Maps.Map) return Boolean
+   is
+      Receiver_Type : constant GM.Type_Descriptor :=
+        Expr_Type (Receiver_Arg, Var_Types, Functions, Type_Env);
+      Element_Type  : GM.Type_Descriptor;
+      Key_Type      : GM.Type_Descriptor;
+      Value_Type    : GM.Type_Descriptor;
+      Arg           : CM.Expr_Access;
+   begin
+      if Name = "append" then
+         if Natural (Extra_Args.Length) /= 1
+           or else not Is_Assignable_Target (Receiver_Arg)
+           or else not Is_Growable_Array_Type (Receiver_Type, Type_Env)
+         then
+            return False;
+         end if;
+         Element_Type := Growable_Array_Element_Type (Receiver_Type, Type_Env);
+         if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+            return False;
+         end if;
+         Arg :=
+           Contextualize_Expr_To_Target_Type
+             (Extra_Args (Extra_Args.First_Index),
+              Element_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              "");
+         return
+           Compatible_Source_Expr_To_Target_Type
+             (Arg,
+              Expr_Type (Arg, Var_Types, Functions, Type_Env),
+              Element_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Const_Env,
+              Exact_Length_Maps.Empty_Map);
+      elsif Name = "pop_last" then
+         if Natural (Extra_Args.Length) /= 0
+           or else not Is_Assignable_Target (Receiver_Arg)
+           or else not Is_Growable_Array_Type (Receiver_Type, Type_Env)
+         then
+            return False;
+         end if;
+         Element_Type := Growable_Array_Element_Type (Receiver_Type, Type_Env);
+         return Is_Container_Element_Type_Allowed (Element_Type, Type_Env);
+      elsif Name in "contains" | "get" | "remove" then
+         if Natural (Extra_Args.Length) /= 1
+           or else not Try_Map_Key_Value_Types (Receiver_Type, Type_Env, Key_Type, Value_Type)
+           or else not Is_Map_Key_Type_Allowed (Key_Type, Type_Env)
+           or else not Is_Container_Element_Type_Allowed (Value_Type, Type_Env)
+           or else (Name = "remove" and then not Is_Assignable_Target (Receiver_Arg))
+         then
+            return False;
+         end if;
+         Arg :=
+           Contextualize_Expr_To_Target_Type
+             (Extra_Args (Extra_Args.First_Index),
+              Key_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              "");
+         return
+           Compatible_Source_Expr_To_Target_Type
+             (Arg,
+              Expr_Type (Arg, Var_Types, Functions, Type_Env),
+              Key_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Const_Env,
+              Exact_Length_Maps.Empty_Map);
+      elsif Name = "set" then
+         if Natural (Extra_Args.Length) /= 2
+           or else not Is_Assignable_Target (Receiver_Arg)
+           or else not Try_Map_Key_Value_Types (Receiver_Type, Type_Env, Key_Type, Value_Type)
+           or else not Is_Map_Key_Type_Allowed (Key_Type, Type_Env)
+           or else not Is_Container_Element_Type_Allowed (Value_Type, Type_Env)
+         then
+            return False;
+         end if;
+         Arg :=
+           Contextualize_Expr_To_Target_Type
+             (Extra_Args (Extra_Args.First_Index),
+              Key_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              "");
+         if not Compatible_Source_Expr_To_Target_Type
+           (Arg,
+            Expr_Type (Arg, Var_Types, Functions, Type_Env),
+            Key_Type,
+            Var_Types,
+            Functions,
+            Type_Env,
+            Const_Env,
+            Exact_Length_Maps.Empty_Map)
+         then
+            return False;
+         end if;
+         Arg :=
+           Contextualize_Expr_To_Target_Type
+             (Extra_Args (Extra_Args.First_Index + 1),
+              Value_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              "");
+         return
+           Compatible_Source_Expr_To_Target_Type
+             (Arg,
+              Expr_Type (Arg, Var_Types, Functions, Type_Env),
+              Value_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Const_Env,
+              Exact_Length_Maps.Empty_Map);
+      end if;
+
+      return False;
+   end Builtin_Method_Call_Compatible;
+
+   function Rewrite_Method_Apply
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map) return CM.Expr_Access
+   is
+      Receiver_Arg : CM.Expr_Access := null;
+      Method_Name  : constant String :=
+        (if Expr = null
+              or else Expr.Callee = null
+              or else Expr.Callee.Kind /= CM.Expr_Select
+         then ""
+         else FT.Lowercase (UString_Value (Expr.Callee.Selector)));
+      Match_Count   : Natural := 0;
+      Match_Names   : String_Vectors.Vector;
+      Selected_Name : FT.UString := FT.To_UString ("");
+      Builtin_Visible : constant Boolean :=
+        Is_Method_Builtin_Name (Method_Name)
+        and then not Has_Function (Functions, Method_Name)
+        and then not Has_Type (Var_Types, Method_Name)
+        and then not Has_Type (Type_Env, Method_Name);
+      Result : CM.Expr_Access;
+   begin
+      if Method_Name = "" then
+         return null;
+      end if;
+
+      Receiver_Arg := Expr.Callee.Prefix;
+
+      if Has_Function (Functions, Method_Name)
+        and then Function_Method_Call_Compatible
+          (Get_Function (Functions, Method_Name),
+           Receiver_Arg,
+           Expr.Args,
+           Var_Types,
+           Functions,
+           Type_Env,
+           Const_Env)
+      then
+         Match_Count := Match_Count + 1;
+         Append_Unique_String (Match_Names, Method_Name);
+         Selected_Name := FT.To_UString (Method_Name);
+      end if;
+
+      for Cursor in Functions.Iterate loop
+         declare
+            Candidate_Name : constant String := Function_Maps.Key (Cursor);
+         begin
+            if Candidate_Name /= Method_Name
+              and then Method_Target_Tail_Name (Candidate_Name) = Method_Name
+              and then Function_Method_Call_Compatible
+                (Function_Maps.Element (Cursor),
+                 Receiver_Arg,
+                 Expr.Args,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Const_Env)
+            then
+               Match_Count := Match_Count + 1;
+               Append_Unique_String (Match_Names, Candidate_Name);
+               if UString_Value (Selected_Name)'Length = 0 then
+                  Selected_Name := FT.To_UString (Candidate_Name);
+               end if;
+            end if;
+         end;
+      end loop;
+
+      if Builtin_Visible
+        and then Builtin_Method_Call_Compatible
+          (Method_Name,
+           Receiver_Arg,
+           Expr.Args,
+           Var_Types,
+           Functions,
+           Type_Env,
+           Const_Env)
+      then
+         Match_Count := Match_Count + 1;
+         Append_Unique_String (Match_Names, "builtin " & Method_Name);
+         if UString_Value (Selected_Name)'Length = 0 then
+            Selected_Name := FT.To_UString (Method_Name);
+         end if;
+      end if;
+
+      if Match_Count = 0 then
+         return null;
+      elsif Match_Count > 1 then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => "",
+               Span    => Expr.Callee.Span,
+               Message =>
+                 "ambiguous method call `"
+                 & Method_Name
+                 & "`; compatible candidates: "
+                 & Join_String_Vector (Match_Names)));
+      end if;
+
+      Result := new CM.Expr_Node'(Expr.all);
+      Result.Kind := CM.Expr_Call;
+      Result.Callee := Name_Expr_From_String (UString_Value (Selected_Name), Expr.Callee.Span);
+      Result.Args.Clear;
+      Result.Args.Append (Receiver_Arg);
+      for Arg of Expr.Args loop
+         Result.Args.Append (Arg);
+      end loop;
+      return Result;
+   end Rewrite_Method_Apply;
+
    function Resolve_Apply
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
-      Type_Env  : Type_Maps.Map) return CM.Expr_Access
+      Type_Env  : Type_Maps.Map;
+      Const_Env : Static_Value_Maps.Map) return CM.Expr_Access
    is
    begin
       if Expr = null or else Expr.Kind /= CM.Expr_Apply then
@@ -3487,6 +3901,14 @@ package body Safe_Frontend.Check_Resolve is
                Result.Callee := Expr.Callee;
                Result.Args := Expr.Args;
             else
+               declare
+                  Rewritten : constant CM.Expr_Access :=
+                    Rewrite_Method_Apply (Expr, Var_Types, Functions, Type_Env, Const_Env);
+               begin
+                  if Rewritten /= null then
+                     return Rewritten;
+                  end if;
+               end;
                Prefix_Type := Expr_Type (Expr.Callee, Var_Types, Functions, Type_Env);
                if UString_Value (Prefix_Type.Kind) = "array"
                  or else Is_String_Type (Prefix_Type, Type_Env)
@@ -3560,7 +3982,7 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Expr_Apply =>
             declare
                Resolved : constant CM.Expr_Access :=
-                 Resolve_Apply (Expr, Var_Types, Functions, Type_Env);
+                 Resolve_Apply (Expr, Var_Types, Functions, Type_Env, Const_Env);
             begin
                if Resolved.Kind = CM.Expr_Resolved_Index then
                   Result := new CM.Expr_Node'(Resolved.all);
@@ -6970,6 +7392,13 @@ package body Safe_Frontend.Check_Resolve is
                   return Result;
                end;
             end if;
+            if Is_Append_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+                     Message => "`append(items, value)` mutates a writable list and must be used as a statement"));
+            end if;
             if Is_Set_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
                Raise_Diag
                  (CM.Source_Frontend_Error
@@ -9621,6 +10050,19 @@ package body Safe_Frontend.Check_Resolve is
       Result.Kind := Decl.Spec.Kind;
       Result.Span := Decl.Span;
       Result.Return_Is_Access_Def := Decl.Spec.Return_Is_Access_Def;
+      if Decl.Spec.Has_Receiver then
+         declare
+            Param_Type : constant GM.Type_Descriptor :=
+              Resolve_Type_Spec (Decl.Spec.Receiver.Param_Type, Type_Env, Const_Env, Path);
+         begin
+            Symbol.Name := Decl.Spec.Receiver.Names (Decl.Spec.Receiver.Names.First_Index);
+            Symbol.Kind := FT.To_UString ("param");
+            Symbol.Mode := Decl.Spec.Receiver.Mode;
+            Symbol.Span := Decl.Spec.Receiver.Span;
+            Symbol.Type_Info := Param_Type;
+            Result.Params.Append (Symbol);
+         end;
+      end if;
       for Param of Decl.Spec.Params loop
          declare
             Param_Type : constant GM.Type_Descriptor :=

@@ -1,0 +1,7 @@
+package neg_pr1111a_remove_stmt_method
+
+   function total returns integer
+      values : map of (integer, integer);
+
+      values.remove (1);
+      return 0;

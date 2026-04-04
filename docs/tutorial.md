@@ -355,6 +355,35 @@ function lookup_or_zero returns integer
       return 0;
 ```
 
+`PR11.11a` adds method syntax as sugar over the same first-parameter function
+model. You can declare a receiver explicitly:
+
+```safe
+type counter is record
+   value : integer;
+
+function (self : mut counter) bump
+   self.value = self.value + 1;
+
+function (self : counter) doubled returns integer
+   return self.value * 2;
+```
+
+And you can call any visible compatible first-parameter function that way:
+
+```safe
+function total returns integer
+   item : counter = (value = 20);
+
+   item.bump();
+   return item.doubled();
+```
+
+The same sugar applies to imported public functions and the container builtins,
+so `value.unwrap_or_zero()`, `items.append(3)`, `items.pop_last()`,
+`m.contains(key)`, `m.get(key)`, `m.set(key, value)`, and `m.remove(key)`
+all lower to the existing ordinary-call forms.
+
 ## 6. "Silver By Construction": D27 In One Page
 
 Safe's Silver level is built around a simple premise:

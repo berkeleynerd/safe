@@ -596,7 +596,10 @@ procedure_call_statement ::=
 
 The contextual builtins `append(items, value)`, `pop_last(items)`,
 `contains(m, key)`, `get(m, key)`, `set(m, key, value)`, and
-`remove(m, key)` use ordinary call syntax.
+`remove(m, key)` use ordinary call syntax. Under PR11.11a the same
+operations may also be written with selector-call sugar:
+`items.append(value)`, `items.pop_last()`, `m.contains(key)`,
+`m.get(key)`, `m.set(key, value)`, and `m.remove(key)`.
 
 - `append` is admitted only as a procedure-call statement on a writable
   `list of T` name.
@@ -690,7 +693,11 @@ subprogram_specification ::=
     function_specification
 
 function_specification ::=
-    'function' defining_identifier [ formal_part ] [ 'returns' subtype_indication ]
+    'function' [ receiver_parameter_clause ] defining_identifier
+        [ formal_part ] [ 'returns' subtype_indication ]
+
+receiver_parameter_clause ::=
+    '(' defining_identifier ':' [ 'mut' ] subtype_indication ')'
 
 formal_part ::=
     '(' parameter_specification { ';' parameter_specification } ')'
@@ -707,6 +714,16 @@ expression_function_declaration ::=
 
 designator ::=
     identifier
+
+Method-call sugar is source-level desugaring over the existing first-parameter
+function model:
+
+- `value.method(args)` rewrites to `method(value, args)` when exactly one
+  visible compatible first-parameter function or builtin exists.
+- Imported public functions may be called the same way:
+  `value.method()` may resolve to `pkg.method(value)`.
+- Bare selectors such as `.length`, `.present`, `.value`, and ordinary field
+  access keep their existing meaning unless immediately followed by `(...)`.
 
 default_expression ::=
     expression

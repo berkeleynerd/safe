@@ -1490,6 +1490,7 @@ package body Safe_Frontend.Check_Parse is
       Start : constant FL.Token := Current (State);
       Name  : FL.Token;
       Result : CM.Subprogram_Spec;
+      Receiver : CM.Parameter_Spec;
       Close  : FT.Source_Span := Start.Span;
    begin
       if Current_Lower (State) = "procedure" then
@@ -1507,6 +1508,21 @@ package body Safe_Frontend.Check_Parse is
 
       Result.Kind := FT.To_UString ("function");
       Advance (State);
+
+      if Match (State, "(") then
+         Receiver := Parse_Parameter (State);
+         if Natural (Receiver.Names.Length) /= 1 then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path_String (State),
+                  Span    => Receiver.Span,
+                  Message => "method receiver must declare exactly one parameter name"));
+         end if;
+         Close := Expect (State, ")").Span;
+         Result.Has_Receiver := True;
+         Result.Receiver := Receiver;
+      end if;
+
       Name := Expect_Identifier (State);
       Result.Name := Name.Lexeme;
 

@@ -1,0 +1,11 @@
+with provider_optional;
+
+package client_optional_method_ambiguous
+
+   function unwrap_or_zero (value : optional integer) returns integer
+      return 7;
+
+   function total returns integer
+      value : optional integer = provider_optional.maybe_count (true);
+
+      return value.unwrap_or_zero ();

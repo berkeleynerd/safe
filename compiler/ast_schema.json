@@ -1217,6 +1217,7 @@
       "source_section": "8.8",
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "receiver", "type": "Option<ParameterSpecification>", "optional": true },
         { "name": "formal_part", "type": "Option<FormalPart>", "optional": true },
         { "name": "span", "type": "Span", "optional": false }
       ]
@@ -1227,6 +1228,7 @@
       "source_section": "8.8",
       "fields": [
         { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "receiver", "type": "Option<ParameterSpecification>", "optional": true },
         { "name": "formal_part", "type": "Option<FormalPart>", "optional": true },
         { "name": "return_type", "type": "NodeRef<SubtypeIndication | ListTypeSpec | MapTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
