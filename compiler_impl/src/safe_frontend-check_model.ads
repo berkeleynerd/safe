@@ -552,6 +552,21 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Resolved_Object_Decl);
 
+   type Imported_Object_Decl is record
+      Name                 : FT.UString := FT.To_UString ("");
+      Type_Info            : GM.Type_Descriptor;
+      Is_Shared            : Boolean := False;
+      Has_Required_Ceiling : Boolean := False;
+      Required_Ceiling     : Long_Long_Integer := 0;
+      Is_Constant          : Boolean := False;
+      Static_Info          : Static_Value;
+      Span                 : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Imported_Object_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Imported_Object_Decl);
+
    type Resolved_Channel_Decl is record
       Is_Public    : Boolean := False;
       Name         : FT.UString := FT.To_UString ("");
@@ -614,6 +629,7 @@ package Safe_Frontend.Check_Model is
       Types        : GM.Type_Descriptor_Vectors.Vector;
       Imported_Types : GM.Type_Descriptor_Vectors.Vector;
       Objects      : Resolved_Object_Decl_Vectors.Vector;
+      Imported_Objects : Imported_Object_Decl_Vectors.Vector;
       Channels     : Resolved_Channel_Decl_Vectors.Vector;
       Imported_Channels : Resolved_Channel_Decl_Vectors.Vector;
       Subprograms  : Resolved_Subprogram_Vectors.Vector;

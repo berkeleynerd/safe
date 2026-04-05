@@ -1208,6 +1208,18 @@ package body Safe_Frontend.Interfaces is
                      raise Constraint_Error with File_Path & ": objects[].is_shared must be a boolean";
                   end if;
                end if;
+               if Has_Field (Item, "required_ceiling") then
+                  if Get (Item, "required_ceiling").Kind /= JSON_Int_Type then
+                     raise Constraint_Error with
+                       File_Path & ": objects[].required_ceiling must be an integer";
+                  end if;
+                  Object.Has_Required_Ceiling := True;
+                  Object.Required_Ceiling := Get (Get (Item, "required_ceiling"));
+                  if Object.Required_Ceiling <= 0 then
+                     raise Constraint_Error with
+                       File_Path & ": objects[].required_ceiling must be positive";
+                  end if;
+               end if;
                if Has_Field (Item, "is_constant") then
                   if Get (Item, "is_constant").Kind = JSON_Boolean_Type then
                      Object.Is_Constant := Get (Get (Item, "is_constant"));

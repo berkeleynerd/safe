@@ -2606,9 +2606,12 @@ computation across local and imported shared declarations.
 
 ### Scope
 
-- Compute each shared wrapper ceiling from the actual set of accessing
-  tasks/subprograms rather than `System.Any_Priority'Last`.
-- Extend that analysis across imported/public shared declarations.
+- Compute each private closed-world shared wrapper ceiling from the
+  actual set of accessing tasks/subprograms rather than
+  `System.Any_Priority'Last`.
+- Extend that analysis across imported/public shared declarations by
+  exporting additive shared `required_ceiling` metadata while keeping
+  public or otherwise open-ended shared roots conservative.
 - Make no new source-surface changes.
 - Defer only final proof closure.
 
@@ -2621,23 +2624,26 @@ rather than part of the initial surface wedge.
 ### Implementation changes
 
 - Analysis: extend the existing channel-style access-summary machinery to
-  track shared-root accesses.
-- Contract layer: export/import the shared access summaries needed for
-  cross-package ceiling computation.
+  track shared-root accesses and compute per-root shared ceilings.
+- Contract layer: export/import additive `required_ceiling` metadata on
+  public shared objects and reuse existing effect summaries for
+  transitive shared access.
 - Emitter: replace the fixed conservative priority with the computed
-  exact ceiling on each generated protected wrapper.
-- Docs/proof: retire the conservative-ceiling wording and add emitted
-  checks for computed protected priorities.
+  exact ceiling on private closed-world shared wrappers, while retaining
+  `System.Any_Priority'Last` for public/environment-open cases.
+- Docs/proof: retire the blanket conservative-ceiling wording and add
+  emitted checks for both exact and fallback protected priorities.
 
 ### Test coverage
 
-- Positive: local exact-ceiling case, multi-task access case,
-  cross-package exact-ceiling case, mixed channel/shared access case.
-- Negative: missing or malformed shared access-summary data rejected
-  rather than silently falling back to an unsafe ceiling.
+- Positive: local exact-ceiling case, multi-task access case, imported
+  shared contract case, and mixed channel/shared access case.
+- Negative: missing or malformed shared `required_ceiling` metadata is
+  rejected rather than silently defaulting to an unsafe value.
 - Proof: emitted proof and shape checks that wrapper priorities match the
-  analyzed ceiling; embedded smoke should include at least one shared
-  wrapper target.
+  analyzed ceiling for private shared roots and remain conservative for
+  public/open-ended roots; embedded smoke should include at least one
+  shared wrapper target.
 
 ### Dependency
 

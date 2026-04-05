@@ -875,12 +875,14 @@ package body Safe_Frontend.Ada_Emit is
       Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Decl     : CM.Resolved_Object_Decl;
+      Bronze   : MB.Bronze_Result;
       State    : in out Emit_State);
    procedure Render_Shared_Object_Body
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Decl     : CM.Resolved_Object_Decl;
+      Bronze   : MB.Bronze_Result;
       State    : in out Emit_State);
    procedure Render_Channel_Spec
      (Buffer   : in out SU.Unbounded_String;
@@ -966,6 +968,66 @@ package body Safe_Frontend.Ada_Emit is
 
       return False;
    end Channel_Uses_Unspecified_Task_Priority;
+
+   function Shared_Uses_Environment_Task
+     (Bronze : MB.Bronze_Result;
+      Name   : String) return Boolean
+   is
+   begin
+      if Bronze.Graphs.Is_Empty then
+         return False;
+      end if;
+
+      for Graph of Bronze.Graphs loop
+         if FT.To_String (Graph.Kind) = "unit_init" then
+            for Shared_Name of Graph.Shareds loop
+               if FT.To_String (Shared_Name) = Name then
+                  return True;
+               end if;
+            end loop;
+         end if;
+      end loop;
+
+      return False;
+   end Shared_Uses_Environment_Task;
+
+   function Shared_Uses_Unspecified_Task_Priority
+     (Unit   : CM.Resolved_Unit;
+      Bronze : MB.Bronze_Result;
+      Name   : String) return Boolean
+   is
+   begin
+      for Item of Bronze.Shared_Ceilings loop
+         if FT.To_String (Item.Shared_Name) = Name then
+            for Task_Name of Item.Task_Names loop
+               for Task_Item of Unit.Tasks loop
+                  if FT.To_String (Task_Item.Name) = FT.To_String (Task_Name)
+                    and then not Task_Item.Has_Explicit_Priority
+                  then
+                     return True;
+                  end if;
+               end loop;
+            end loop;
+            exit;
+         end if;
+      end loop;
+
+      return False;
+   end Shared_Uses_Unspecified_Task_Priority;
+
+   function Shared_Required_Ceiling
+     (Bronze : MB.Bronze_Result;
+      Name   : String) return Long_Long_Integer
+   is
+   begin
+      for Item of Bronze.Shared_Ceilings loop
+         if FT.To_String (Item.Shared_Name) = Name then
+            return Item.Priority;
+         end if;
+      end loop;
+
+      return 0;
+   end Shared_Required_Ceiling;
 
    function Canonical_Name (Value : String) return String is
    begin
@@ -1402,6 +1464,7 @@ package body Safe_Frontend.Ada_Emit is
       Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Decl     : CM.Resolved_Object_Decl;
+      Bronze   : MB.Bronze_Result;
       State    : in out Emit_State)
    is
       Root_Name     : constant String := FT.To_String (Decl.Names (Decl.Names.First_Index));
@@ -1413,6 +1476,12 @@ package body Safe_Frontend.Ada_Emit is
       Integer_Type_Name : constant String :=
         Render_Type_Name (Resolve_Type_Name (Unit, Document, "integer"));
       Is_Public_Shared : constant Boolean := Decl.Is_Public;
+      Uses_Environment_Ceiling : constant Boolean :=
+        Decl.Is_Public
+        or else Shared_Uses_Environment_Task (Bronze, Root_Name)
+        or else Shared_Uses_Unspecified_Task_Priority (Unit, Bronze, Root_Name);
+      Ceiling : constant Long_Long_Integer :=
+        Shared_Required_Ceiling (Bronze, Root_Name);
       Is_Container_Root : constant Boolean :=
         Is_Growable_Array_Type (Unit, Document, Decl.Type_Info);
       Element_Info : constant GM.Type_Descriptor :=
@@ -1608,7 +1677,11 @@ package body Safe_Frontend.Ada_Emit is
         (Buffer,
          "protected type "
          & Type_Name
-         & " with Priority => System.Any_Priority'Last is",
+         & " with Priority => "
+         & (if Uses_Environment_Ceiling
+            then "System.Any_Priority'Last"
+            else Trim_Image (Ceiling))
+         & " is",
          1);
       Append_Line
         (Buffer,
@@ -1723,6 +1796,7 @@ package body Safe_Frontend.Ada_Emit is
       Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Decl     : CM.Resolved_Object_Decl;
+      Bronze   : MB.Bronze_Result;
       State    : in out Emit_State)
    is
       Root_Name    : constant String := FT.To_String (Decl.Names (Decl.Names.First_Index));
@@ -1737,6 +1811,12 @@ package body Safe_Frontend.Ada_Emit is
         Is_Growable_Array_Type (Unit, Document, Decl.Type_Info);
       Integer_Type_Name : constant String :=
         Render_Type_Name (Resolve_Type_Name (Unit, Document, "integer"));
+      Uses_Environment_Ceiling : constant Boolean :=
+        Decl.Is_Public
+        or else Shared_Uses_Environment_Task (Bronze, Root_Name)
+        or else Shared_Uses_Unspecified_Task_Priority (Unit, Bronze, Root_Name);
+      Ceiling : constant Long_Long_Integer :=
+        Shared_Required_Ceiling (Bronze, Root_Name);
       Key_Info     : GM.Type_Descriptor := (others => <>);
       Value_Info   : GM.Type_Descriptor := (others => <>);
       Generated_Shared_Helpers : FT.UString_Vectors.Vector;
@@ -2470,7 +2550,11 @@ package body Safe_Frontend.Ada_Emit is
            (Buffer,
             "protected type "
             & Type_Name
-            & " with Priority => System.Any_Priority'Last is",
+            & " with Priority => "
+            & (if Uses_Environment_Ceiling
+               then "System.Any_Priority'Last"
+               else Trim_Image (Ceiling))
+            & " is",
             1);
          Append_Line
            (Buffer,
@@ -13534,6 +13618,37 @@ package body Safe_Frontend.Ada_Emit is
          return False;
       end Depends_Has_State_Output;
 
+      function Map_Shared_State_Name (Name : String) return String is
+      begin
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+               declare
+                  Root_Name : constant String :=
+                    FT.To_String (Decl.Names (Decl.Names.First_Index));
+               begin
+                  if Root_Name = Name then
+                     return Shared_Wrapper_Object_Name (Root_Name);
+                  end if;
+               end;
+            end if;
+         end loop;
+         return Name;
+      end Map_Shared_State_Name;
+
+      function Is_Shared_Wrapper_State_Name (Name : String) return Boolean is
+      begin
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+               if Shared_Wrapper_Object_Name
+                    (FT.To_String (Decl.Names (Decl.Names.First_Index))) = Name
+               then
+                  return True;
+               end if;
+            end if;
+         end loop;
+         return False;
+      end Is_Shared_Wrapper_State_Name;
+
    begin
       for Param of Subprogram.Params loop
          declare
@@ -13563,7 +13678,9 @@ package body Safe_Frontend.Ada_Emit is
       for Item of Summary.Reads loop
          declare
             Name : constant String :=
-              Normalize_Aspect_Name (FT.To_String (Subprogram.Name), FT.To_String (Item));
+              Map_Shared_State_Name
+                (Normalize_Aspect_Name
+                   (FT.To_String (Subprogram.Name), FT.To_String (Item)));
          begin
             if Starts_With (FT.To_String (Item), "param:")
               and then Is_Aspect_State_Name (Name)
@@ -13584,7 +13701,9 @@ package body Safe_Frontend.Ada_Emit is
       for Item of Summary.Writes loop
          declare
             Name : constant String :=
-              Normalize_Aspect_Name (FT.To_String (Subprogram.Name), FT.To_String (Item));
+              Map_Shared_State_Name
+                (Normalize_Aspect_Name
+                   (FT.To_String (Subprogram.Name), FT.To_String (Item)));
          begin
             if not Starts_With (FT.To_String (Item), "param:")
               and then FT.To_String (Item) /= "return"
@@ -13610,7 +13729,9 @@ package body Safe_Frontend.Ada_Emit is
       for Item of Summary.Depends loop
          declare
             Output_Name : constant String :=
-              Normalize_Aspect_Name (FT.To_String (Subprogram.Name), FT.To_String (Item.Output_Name));
+              Map_Shared_State_Name
+                (Normalize_Aspect_Name
+                   (FT.To_String (Subprogram.Name), FT.To_String (Item.Output_Name)));
          begin
             if not Starts_With (FT.To_String (Item.Output_Name), "param:")
               and then FT.To_String (Item.Output_Name) /= "return"
@@ -13622,7 +13743,9 @@ package body Safe_Frontend.Ada_Emit is
             for Input of Item.Inputs loop
                declare
                   Name : constant String :=
-                    Normalize_Aspect_Name (FT.To_String (Subprogram.Name), FT.To_String (Input));
+                    Map_Shared_State_Name
+                      (Normalize_Aspect_Name
+                         (FT.To_String (Subprogram.Name), FT.To_String (Input)));
                begin
                   if not Starts_With (FT.To_String (Input), "param:")
                     and then FT.To_String (Input) /= "return"
@@ -13649,7 +13772,9 @@ package body Safe_Frontend.Ada_Emit is
          declare
             Item : constant MB.Depends_Entry := Summary.Depends (Index);
             Output_Name : constant String :=
-              Normalize_Aspect_Name (FT.To_String (Subprogram.Name), FT.To_String (Item.Output_Name));
+              Map_Shared_State_Name
+                (Normalize_Aspect_Name
+                   (FT.To_String (Subprogram.Name), FT.To_String (Item.Output_Name)));
          begin
             if not Contains (Allowed_Outputs, Output_Name) then
                Raise_Internal
@@ -13667,9 +13792,10 @@ package body Safe_Frontend.Ada_Emit is
                   declare
                      Input_Text : constant String := FT.To_String (Input);
                      Name : constant String :=
-                       Normalize_Aspect_Name
-                         (FT.To_String (Subprogram.Name),
-                          Input_Text);
+                       Map_Shared_State_Name
+                         (Normalize_Aspect_Name
+                            (FT.To_String (Subprogram.Name),
+                             Input_Text));
                   begin
                      if Starts_With (Input_Text, "param:") then
                         if Contains (Allowed_Inputs, Name) then
@@ -13714,6 +13840,10 @@ package body Safe_Frontend.Ada_Emit is
                      Add_Unique (Inputs, FT.To_String (Input));
                   end if;
                end loop;
+
+               if Is_Shared_Wrapper_State_Name (Output_Name) then
+                  Add_Unique (Inputs, Output_Name);
+               end if;
 
                if Inputs.Is_Empty then
                   Result := Result & SU.To_Unbounded_String ("null");
@@ -22976,7 +23106,7 @@ package body Safe_Frontend.Ada_Emit is
       if (for some Decl of Unit.Objects => Decl.Is_Shared) then
          for Decl of Unit.Objects loop
             if Decl.Is_Shared then
-               Render_Shared_Object_Spec (Spec_Inner, Unit, Document, Decl, State);
+               Render_Shared_Object_Spec (Spec_Inner, Unit, Document, Decl, Bronze, State);
             end if;
          end loop;
       end if;
@@ -23157,7 +23287,7 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       for Decl of Unit.Objects loop
          if Decl.Is_Shared then
-            Render_Shared_Object_Body (Body_Inner, Unit, Document, Decl, State);
+            Render_Shared_Object_Body (Body_Inner, Unit, Document, Decl, Bronze, State);
          end if;
       end loop;
       for Name of Package_Dispatcher_Timer_Names loop

@@ -20,5 +20,9 @@ package Safe_Frontend.Mir_Analyze is
    function Analyze
      (Document : Safe_Frontend.Mir_Model.Mir_Document;
       Tasks    : Safe_Frontend.Check_Model.Resolved_Task_Vectors.Vector :=
-        Safe_Frontend.Check_Model.Resolved_Task_Vectors.Empty_Vector) return Analyze_Result;
+        Safe_Frontend.Check_Model.Resolved_Task_Vectors.Empty_Vector;
+      Objects : Safe_Frontend.Check_Model.Resolved_Object_Decl_Vectors.Vector :=
+        Safe_Frontend.Check_Model.Resolved_Object_Decl_Vectors.Empty_Vector;
+      Imported_Objects : Safe_Frontend.Check_Model.Imported_Object_Decl_Vectors.Vector :=
+        Safe_Frontend.Check_Model.Imported_Object_Decl_Vectors.Empty_Vector) return Analyze_Result;
 end Safe_Frontend.Mir_Analyze;

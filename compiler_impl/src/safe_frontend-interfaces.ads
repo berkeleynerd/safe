@@ -12,6 +12,8 @@ package Safe_Frontend.Interfaces is
       Name         : FT.UString := FT.To_UString ("");
       Type_Info    : GM.Type_Descriptor;
       Is_Shared    : Boolean := False;
+      Has_Required_Ceiling : Boolean := False;
+      Required_Ceiling     : Long_Long_Integer := 0;
       Is_Constant  : Boolean := False;
       Static_Info  : CM.Static_Value;
       Span         : FT.Source_Span := FT.Null_Span;

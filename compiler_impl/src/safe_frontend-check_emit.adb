@@ -2934,6 +2934,20 @@ package body Safe_Frontend.Check_Emit is
       return 0;
    end Channel_Required_Ceiling;
 
+   function Shared_Required_Ceiling
+     (Bronze : MB.Bronze_Result;
+      Name   : FT.UString) return Long_Long_Integer is
+   begin
+      if not Bronze.Shared_Ceilings.Is_Empty then
+         for Item of Bronze.Shared_Ceilings loop
+            if FT.To_String (Item.Shared_Name) = FT.To_String (Name) then
+               return Item.Priority;
+            end if;
+         end loop;
+      end if;
+      return 0;
+   end Shared_Required_Ceiling;
+
    function Public_Channels_Json
      (Resolved : CM.Resolved_Unit;
       Bronze   : MB.Bronze_Result) return String is
@@ -2970,7 +2984,8 @@ package body Safe_Frontend.Check_Emit is
 
    function Public_Objects_Json
      (Parsed   : CM.Parsed_Unit;
-      Resolved : CM.Resolved_Unit) return String
+      Resolved : CM.Resolved_Unit;
+      Bronze   : MB.Bronze_Result) return String
    is
       Items        : String_Vectors.Vector;
       Object_Index : Natural := 0;
@@ -2986,10 +3001,17 @@ package body Safe_Frontend.Check_Emit is
                   declare
                      Fields : String_Vectors.Vector;
                      Info   : constant CM.Resolved_Object_Decl := Resolved.Objects (Object_Index);
+                     Ceiling : constant Long_Long_Integer :=
+                       (if Info.Is_Shared
+                        then Shared_Required_Ceiling (Bronze, Info.Names (Info.Names.First_Index))
+                        else 0);
                   begin
                      Fields.Append ("""name"":" & JS.Quote (Name));
                      Fields.Append ("""type"":" & Type_Json (Info.Type_Info));
                      Fields.Append ("""is_shared"":" & JS.Bool_Literal (Info.Is_Shared));
+                     if Ceiling > 0 then
+                        Fields.Append ("""required_ceiling"":" & Long_Long_Integer'Image (Ceiling));
+                     end if;
                      Fields.Append ("""is_constant"":" & JS.Bool_Literal (Info.Is_Constant));
                      case Info.Static_Info.Kind is
                         when CM.Static_Value_Integer =>
@@ -3162,6 +3184,19 @@ package body Safe_Frontend.Check_Emit is
       Inputs           : String_Vectors.Vector;
       Outputs          : String_Vectors.Vector;
       Subprogram_Index : Natural := 0;
+      function Contains
+        (Items : String_Vectors.Vector;
+         Name  : String) return Boolean is
+      begin
+         if not Items.Is_Empty then
+            for Item of Items loop
+               if Item = JS.Quote (Name) then
+                  return True;
+               end if;
+            end loop;
+         end if;
+         return False;
+      end Contains;
    begin
       for Item of Parsed.Items loop
          if Item.Kind = CM.Item_Subprogram then
@@ -3183,6 +3218,14 @@ package body Safe_Frontend.Check_Emit is
                   end loop;
                   for Name of Summary.Writes loop
                      Writes.Append (JS.Quote (Name));
+                  end loop;
+                  for Name of Summary.Shareds loop
+                     if not Contains (Reads, FT.To_String (Name)) then
+                        Reads.Append (JS.Quote (Name));
+                     end if;
+                     if not Contains (Writes, FT.To_String (Name)) then
+                        Writes.Append (JS.Quote (Name));
+                     end if;
                   end loop;
                   for Name of Summary.Inputs loop
                      Inputs.Append (JS.Quote (Name));
@@ -3721,7 +3764,7 @@ package body Safe_Frontend.Check_Emit is
         & Public_Channels_Json (Resolved, Bronze)
         & ","
         & """objects"":"
-        & Public_Objects_Json (Parsed, Resolved)
+        & Public_Objects_Json (Parsed, Resolved, Bronze)
         & ","
         & """subprograms"":"
         & Public_Subprograms_Json (Parsed, Resolved)

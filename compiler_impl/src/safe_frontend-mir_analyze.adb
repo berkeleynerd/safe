@@ -6246,7 +6246,9 @@ package body Safe_Frontend.Mir_Analyze is
 
    function Analyze
      (Document : GM.Mir_Document;
-      Tasks    : CM.Resolved_Task_Vectors.Vector := CM.Resolved_Task_Vectors.Empty_Vector) return Analyze_Result
+      Tasks    : CM.Resolved_Task_Vectors.Vector := CM.Resolved_Task_Vectors.Empty_Vector;
+      Objects  : CM.Resolved_Object_Decl_Vectors.Vector := CM.Resolved_Object_Decl_Vectors.Empty_Vector;
+      Imported_Objects : CM.Imported_Object_Decl_Vectors.Vector := CM.Imported_Object_Decl_Vectors.Empty_Vector) return Analyze_Result
    is
       Bronze      : MB.Bronze_Result;
       Type_Env    : Type_Maps.Map;
@@ -6261,7 +6263,7 @@ package body Safe_Frontend.Mir_Analyze is
          return Error (UString_Value (Document.Path) & ": analyze-mir requires mir-v2, mir-v3, or mir-v4 input");
       end if;
 
-      Bronze := MB.Summarize (Document, Tasks, Path_String);
+      Bronze := MB.Summarize (Document, Tasks, Path_String, Objects, Imported_Objects);
       if not Bronze.Diagnostics.Is_Empty then
          for Item of Bronze.Diagnostics loop
             Append_Diagnostic (Diagnostics, Item, Sequence);

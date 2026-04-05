@@ -36,6 +36,7 @@ type descriptors for Safe structural interface declarations.
 `safei-v5` public object entries may additionally carry:
 
 - `is_shared`
+- `required_ceiling`
 
 From `PR11.11c` onward, `typed-v6` type descriptors may also carry:
 

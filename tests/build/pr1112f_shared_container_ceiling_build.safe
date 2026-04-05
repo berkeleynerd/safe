@@ -1,0 +1,17 @@
+package pr1112f_shared_container_ceiling_build
+
+   shared values : list of integer;
+
+   task worker with priority = 14
+      done : boolean = false;
+      last : optional integer;
+
+      loop
+         if not done
+            append (values, 1);
+            append (values, 2);
+            last = values.pop_last ();
+            print (14);
+            done = true;
+         else
+            delay 0.01;

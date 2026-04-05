@@ -1,0 +1,25 @@
+package pr1112f_mixed_channel_shared_build
+
+   subtype message is integer (0 to 10);
+
+   type settings is record
+      count : integer;
+
+   shared cfg : settings;
+   channel data_ch : message capacity 2;
+
+   task worker with priority = 18, sends data_ch
+      done : boolean = false;
+      sent : boolean = false;
+
+      loop
+         if not done
+            cfg.count = 1;
+            send data_ch, 1, sent;
+            if sent
+               print (18);
+            else
+               print (0);
+            done = true;
+         else
+            delay 0.01;

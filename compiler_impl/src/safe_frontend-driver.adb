@@ -531,7 +531,9 @@ package body Safe_Frontend.Driver is
          Mir_Result : constant Safe_Frontend.Mir_Analyze.Analyze_Result :=
            Safe_Frontend.Mir_Analyze.Analyze
              (CL.Lower (Pipeline.Resolved),
-              Pipeline.Resolved.Tasks);
+              Pipeline.Resolved.Tasks,
+              Pipeline.Resolved.Objects,
+              Pipeline.Resolved.Imported_Objects);
       begin
          if not Mir_Result.Success then
             Ada.Text_IO.Put_Line
@@ -593,9 +595,18 @@ package body Safe_Frontend.Driver is
          Mir_Doc    : constant Safe_Frontend.Mir_Model.Mir_Document :=
            CL.Lower (Pipeline.Resolved);
          Bronze     : constant MB.Bronze_Result :=
-           MB.Summarize (Mir_Doc, Pipeline.Resolved.Tasks, Path);
+           MB.Summarize
+             (Mir_Doc,
+              Pipeline.Resolved.Tasks,
+              Path,
+              Pipeline.Resolved.Objects,
+              Pipeline.Resolved.Imported_Objects);
          Mir_Result : constant Safe_Frontend.Mir_Analyze.Analyze_Result :=
-           Safe_Frontend.Mir_Analyze.Analyze (Mir_Doc, Pipeline.Resolved.Tasks);
+           Safe_Frontend.Mir_Analyze.Analyze
+             (Mir_Doc,
+              Pipeline.Resolved.Tasks,
+              Pipeline.Resolved.Objects,
+              Pipeline.Resolved.Imported_Objects);
          Stem       : constant String := Source_Stem (Path);
          Ast_Text   : constant String := CE.Ast_Json (Pipeline.Parsed, Pipeline.Resolved);
          Typed_Text : constant String := CE.Typed_Json (Pipeline.Parsed, Pipeline.Resolved);

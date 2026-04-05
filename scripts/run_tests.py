@@ -116,6 +116,12 @@ INTERFACE_CASES = [
         0,
     ),
     (
+        "shared-provider-ceiling",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_ceiling.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_shared_provider_ceiling.safe",
+        0,
+    ),
+    (
         "transitive-global-rejected",
         REPO_ROOT / "tests" / "interfaces" / "provider_transitive_global.safe",
         REPO_ROOT / "tests" / "interfaces" / "client_transitive_global_ok.safe",
@@ -663,6 +669,21 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr1112f_shared_record_ceiling_build.safe",
+        "20\n",
+        True,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112f_shared_container_ceiling_build.safe",
+        "14\n",
+        True,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112f_mixed_channel_shared_build.safe",
+        "18\n",
+        True,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
         "ok\n",
         False,
@@ -958,6 +979,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "interfaces" / "provider_generic.safe",
     REPO_ROOT / "tests" / "interfaces" / "pr118k_try_while_contract.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_list.safe",
+    REPO_ROOT / "tests" / "interfaces" / "provider_shared_ceiling.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [
@@ -970,6 +992,11 @@ OUTPUT_CONTRACT_REJECT_CASES = [
         "safei-template-source-key-on-non-generic",
         REPO_ROOT / "tests" / "interfaces" / "provider_binary.safe",
         "subprograms[0].template_source is only valid for generic subprograms",
+    ),
+    (
+        "safei-shared-required-ceiling-nonpositive",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_ceiling.safe",
+        "objects[0].required_ceiling must be a positive integer",
     ),
 ]
 
@@ -1263,6 +1290,35 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "Safe_Shared_data.Append (6);",
             "Safe_Shared_data.Append (7);",
             "Safe_Shared_data.Pop_Last",
+        ],
+    ),
+    (
+        "shared-private-record-exact-ceiling",
+        REPO_ROOT / "tests" / "build" / "pr1112f_shared_record_ceiling_build.safe",
+        [
+            "protected type Safe_Shared_cfg_Wrapper with Priority => 20 is",
+        ],
+    ),
+    (
+        "shared-private-container-exact-ceiling",
+        REPO_ROOT / "tests" / "build" / "pr1112f_shared_container_ceiling_build.safe",
+        [
+            "protected type Safe_Shared_values_Wrapper with Priority => 14 is",
+        ],
+    ),
+    (
+        "shared-public-provider-fallback-ceiling",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_ceiling.safe",
+        [
+            "protected type Safe_Shared_cfg_Wrapper with Priority => System.Any_Priority'Last is",
+        ],
+    ),
+    (
+        "shared-mixed-channel-ceiling",
+        REPO_ROOT / "tests" / "build" / "pr1112f_mixed_channel_shared_build.safe",
+        [
+            "protected type Safe_Shared_cfg_Wrapper with Priority => 18 is",
+            "protected type data_ch_Channel with Priority => 18 is",
         ],
     ),
 ]
@@ -2579,13 +2635,21 @@ def run_output_contract_reject_case(
     stem = source.stem.lower()
     safei_path = iface_dir / f"{stem}.safei.json"
     payload = json.loads(safei_path.read_text(encoding="utf-8"))
-    subprograms = payload.get("subprograms")
-    if not isinstance(subprograms, list) or not subprograms:
-        return False, "emitted safei has no subprograms to mutate"
     if label == "safei-bad-return-flag":
+        subprograms = payload.get("subprograms")
+        if not isinstance(subprograms, list) or not subprograms:
+            return False, "emitted safei has no subprograms to mutate"
         subprograms[0]["return_is_access_def"] = "bad"
     elif label == "safei-template-source-key-on-non-generic":
+        subprograms = payload.get("subprograms")
+        if not isinstance(subprograms, list) or not subprograms:
+            return False, "emitted safei has no subprograms to mutate"
         subprograms[0]["template_source"] = None
+    elif label == "safei-shared-required-ceiling-nonpositive":
+        objects = payload.get("objects")
+        if not isinstance(objects, list) or not objects:
+            return False, "emitted safei has no objects to mutate"
+        objects[0]["required_ceiling"] = 0
     else:
         return False, f"unknown output contract reject case {label}"
     safei_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

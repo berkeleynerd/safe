@@ -32,6 +32,12 @@ package body Safe_Frontend.Mir_Bronze is
       Equivalent_Keys => "=",
       "="             => String_Sets."=");
 
+   package Name_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => String,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
    type Marker_Binding is record
       Markers   : String_Sets.Set;
       Use_Spans : Span_Maps.Map;
@@ -70,6 +76,8 @@ package body Safe_Frontend.Mir_Bronze is
       Priority       : Long_Long_Integer := 0;
       Direct_Reads   : String_Sets.Set;
       Direct_Writes  : String_Sets.Set;
+      Direct_Shared_Reads  : String_Sets.Set;
+      Direct_Shared_Writes : String_Sets.Set;
       Direct_Channels : String_Sets.Set;
       Direct_Sends  : String_Sets.Set;
       Direct_Receives : String_Sets.Set;
@@ -79,6 +87,8 @@ package body Safe_Frontend.Mir_Bronze is
       Direct_Outputs : String_Sets.Set;
       Reads          : String_Sets.Set;
       Writes         : String_Sets.Set;
+      Shared_Reads   : String_Sets.Set;
+      Shared_Writes  : String_Sets.Set;
       Channels       : String_Sets.Set;
       Sends          : String_Sets.Set;
       Receives       : String_Sets.Set;
@@ -121,6 +131,11 @@ package body Safe_Frontend.Mir_Bronze is
    pragma No_Return (Raise_Internal);
 
    function Lower (Value : String) return String renames FT.Lowercase;
+   function Canonical_Name (Value : String) return String;
+   function Tail_Name (Value : String) return String;
+   function Sanitize_Type_Name_Component (Value : String) return String;
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String;
+   function Shared_Public_Helper_Base_Name (Root_Name : String) return String;
    function Starts_With (Text : String; Prefix : String) return Boolean;
    function Ends_With (Text : String; Suffix : String) return Boolean;
    function Is_Synthetic_Attribute_Marker
@@ -150,6 +165,7 @@ package body Safe_Frontend.Mir_Bronze is
    procedure Sort_Graph_Summaries (Items : in out Graph_Summary_Vectors.Vector);
    procedure Sort_Ownership (Items : in out Ownership_Vectors.Vector);
    procedure Sort_Ceilings (Items : in out Ceiling_Vectors.Vector);
+   procedure Sort_Shared_Ceilings (Items : in out Shared_Ceiling_Vectors.Vector);
    function To_Vector (Items : String_Sets.Set) return FT.UString_Vectors.Vector;
    function To_Set (Items : FT.UString_Vectors.Vector) return String_Sets.Set;
    function Local_Metadata (Graph : GM.Graph_Entry) return Local_Maps.Map;
@@ -169,6 +185,33 @@ package body Safe_Frontend.Mir_Bronze is
       Use_Spans : in out Span_Maps.Map;
       Span      : FT.Source_Span;
       Binding   : access Marker_Binding := null);
+   procedure Note_Shared_Read
+     (Name         : String;
+      Shared_Reads : in out String_Sets.Set;
+      Inputs       : in out String_Sets.Set;
+      Use_Spans    : in out Span_Maps.Map;
+      Span         : FT.Source_Span);
+   procedure Note_Shared_Write
+     (Name          : String;
+      Shared_Writes : in out String_Sets.Set;
+      Outputs       : in out String_Sets.Set;
+      Use_Spans     : in out Span_Maps.Map;
+      Span          : FT.Source_Span);
+   function Try_Shared_Call
+     (Call_Name              : String;
+      Shared_Wrappers        : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map;
+      Root_Name              : out FT.UString;
+      Operation              : out FT.UString) return Boolean;
+   procedure Mark_Shared_Call
+     (Root_Name     : String;
+      Operation     : String;
+      Shared_Reads  : in out String_Sets.Set;
+      Shared_Writes : in out String_Sets.Set;
+      Inputs        : in out String_Sets.Set;
+      Outputs       : in out String_Sets.Set;
+      Use_Spans     : in out Span_Maps.Map;
+      Span          : FT.Source_Span);
    procedure Collect_Output_Binding
      (Expr    : GM.Expr_Access;
       Locals  : Local_Maps.Map;
@@ -178,13 +221,20 @@ package body Safe_Frontend.Mir_Bronze is
       Locals      : Local_Maps.Map;
       Callable_Names : String_Sets.Set;
       Signatures  : Signature_Maps.Map;
+      Shared_Wrappers : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map;
       Reads       : in out String_Sets.Set;
+      Shared_Reads : in out String_Sets.Set;
+      Shared_Writes : in out String_Sets.Set;
       Calls       : in out String_Sets.Set;
       Inputs      : in out String_Sets.Set;
+      Outputs     : in out String_Sets.Set;
       Use_Spans   : in out Span_Maps.Map;
       Call_Sites  : in out Call_Site_Vectors.Vector;
       Binding     : access Marker_Binding := null);
-   function External_Summary (Value : GM.External_Entry) return Direct_Summary;
+   function External_Summary
+     (Value               : GM.External_Entry;
+      Shared_Object_Names : String_Sets.Set) return Direct_Summary;
    function Formal_Index
      (Signature   : Callable_Signature;
       Formal_Name : String) return Natural;
@@ -218,6 +268,67 @@ package body Safe_Frontend.Mir_Bronze is
    begin
       raise Bronze_Internal with Message;
    end Raise_Internal;
+
+   function Canonical_Name (Value : String) return String is
+   begin
+      return FT.Lowercase (Value);
+   end Canonical_Name;
+
+   function Tail_Name (Value : String) return String is
+      Dot : constant Natural :=
+        Ada.Strings.Fixed.Index (Value, ".", Ada.Strings.Backward);
+   begin
+      if Dot = 0 or else Dot = Value'Last then
+         return Value;
+      end if;
+      return Value (Dot + 1 .. Value'Last);
+   end Tail_Name;
+
+   function Sanitize_Type_Name_Component (Value : String) return String is
+      Result : FT.UString := FT.To_UString ("");
+      Last_Was_Underscore : Boolean := False;
+   begin
+      for Ch of Value loop
+         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
+            Result := FT.US."&" (Result, FT.To_UString ((1 => Ch)));
+            Last_Was_Underscore := False;
+         elsif not Last_Was_Underscore then
+            Result := FT.US."&" (Result, FT.To_UString ("_"));
+            Last_Was_Underscore := True;
+         end if;
+      end loop;
+
+      declare
+         Text  : constant String := FT.To_String (Result);
+         First : Positive := Text'First;
+         Last  : Natural := Text'Last;
+      begin
+         while First <= Text'Last and then Text (First) = '_' loop
+            First := First + 1;
+         end loop;
+         while Last >= First and then Text (Last) = '_' loop
+            Last := Last - 1;
+         end loop;
+         if Last < First then
+            return "value";
+         end if;
+         return Text (First .. Last);
+      end;
+   end Sanitize_Type_Name_Component;
+
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String is
+   begin
+      return
+        "Safe_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
+   end Shared_Wrapper_Object_Name;
+
+   function Shared_Public_Helper_Base_Name (Root_Name : String) return String is
+   begin
+      return
+        "Safe_Public_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
+   end Shared_Public_Helper_Base_Name;
 
    function Starts_With (Text : String; Prefix : String) return Boolean is
    begin
@@ -472,6 +583,30 @@ package body Safe_Frontend.Mir_Bronze is
       end loop;
    end Sort_Ceilings;
 
+   procedure Sort_Shared_Ceilings
+     (Items : in out Shared_Ceiling_Vectors.Vector)
+   is
+   begin
+      if Items.Length <= 1 then
+         return;
+      end if;
+
+      for I in Items.First_Index .. Items.Last_Index loop
+         for J in I + 1 .. Items.Last_Index loop
+            if Lower (UString_Value (Items (J).Shared_Name))
+              < Lower (UString_Value (Items (I).Shared_Name))
+            then
+               declare
+                  Temp : constant Shared_Ceiling_Entry := Items (I);
+               begin
+                  Items.Replace_Element (I, Items (J));
+                  Items.Replace_Element (J, Temp);
+               end;
+            end if;
+         end loop;
+      end loop;
+   end Sort_Shared_Ceilings;
+
    function To_Vector (Items : String_Sets.Set) return FT.UString_Vectors.Vector is
       Result : FT.UString_Vectors.Vector;
       Cursor : String_Sets.Cursor := Items.First;
@@ -582,6 +717,119 @@ package body Safe_Frontend.Mir_Bronze is
       end if;
    end Note_Write;
 
+   procedure Note_Shared_Read
+     (Name         : String;
+      Shared_Reads : in out String_Sets.Set;
+      Inputs       : in out String_Sets.Set;
+      Use_Spans    : in out Span_Maps.Map;
+      Span         : FT.Source_Span)
+   is
+   begin
+      if Name = "" then
+         return;
+      end if;
+
+      Shared_Reads.Include (Name);
+      Inputs.Include ("global:" & Name);
+      Note_Use_Span (Name, Span, Use_Spans);
+   end Note_Shared_Read;
+
+   procedure Note_Shared_Write
+     (Name          : String;
+      Shared_Writes : in out String_Sets.Set;
+      Outputs       : in out String_Sets.Set;
+      Use_Spans     : in out Span_Maps.Map;
+      Span          : FT.Source_Span)
+   is
+   begin
+      if Name = "" then
+         return;
+      end if;
+
+      Shared_Writes.Include (Name);
+      Outputs.Include ("global:" & Name);
+      Note_Use_Span (Name, Span, Use_Spans);
+   end Note_Shared_Write;
+
+   function Try_Shared_Call
+     (Call_Name              : String;
+      Shared_Wrappers        : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map;
+      Root_Name              : out FT.UString;
+      Operation              : out FT.UString) return Boolean
+   is
+      Canonical_Call : constant String := Canonical_Name (Call_Name);
+      Dot            : constant Natural :=
+        Ada.Strings.Fixed.Index (Canonical_Call, ".", Ada.Strings.Backward);
+      Cursor         : Name_Maps.Cursor;
+   begin
+      Root_Name := FT.To_UString ("");
+      Operation := FT.To_UString ("");
+
+      if Dot > 1 and then Dot < Canonical_Call'Last then
+         declare
+            Wrapper : constant String :=
+              Canonical_Call (Canonical_Call'First .. Dot - 1);
+         begin
+            if Shared_Wrappers.Contains (Wrapper) then
+               Root_Name := FT.To_UString (Shared_Wrappers.Element (Wrapper));
+               Operation := FT.To_UString (Canonical_Call (Dot + 1 .. Canonical_Call'Last));
+               return True;
+            end if;
+         end;
+      end if;
+
+      Cursor := Shared_Helper_Prefixes.First;
+      while Name_Maps.Has_Element (Cursor) loop
+         declare
+            Prefix : constant String := Name_Maps.Key (Cursor);
+         begin
+            if Starts_With (Canonical_Call, Prefix)
+              and then Canonical_Call'Length > Prefix'Length
+            then
+               Root_Name := FT.To_UString (Name_Maps.Element (Cursor));
+               Operation :=
+                 FT.To_UString (Canonical_Call (Prefix'Length + 1 .. Canonical_Call'Last));
+               return True;
+            end if;
+            Name_Maps.Next (Cursor);
+         end;
+      end loop;
+
+      return False;
+   end Try_Shared_Call;
+
+   procedure Mark_Shared_Call
+     (Root_Name     : String;
+      Operation     : String;
+      Shared_Reads  : in out String_Sets.Set;
+      Shared_Writes : in out String_Sets.Set;
+      Inputs        : in out String_Sets.Set;
+      Outputs       : in out String_Sets.Set;
+      Use_Spans     : in out Span_Maps.Map;
+      Span          : FT.Source_Span)
+   is
+      Op : constant String := Lower (Operation);
+   begin
+      if Root_Name = "" then
+         return;
+      elsif Op = "pop_last" or else Op = "remove" then
+         Note_Shared_Read (Root_Name, Shared_Reads, Inputs, Use_Spans, Span);
+         Note_Shared_Write (Root_Name, Shared_Writes, Outputs, Use_Spans, Span);
+      elsif Op = "append"
+        or else Op = "set"
+        or else Op = "initialize"
+        or else Starts_With (Op, "set_")
+      then
+         Note_Shared_Write (Root_Name, Shared_Writes, Outputs, Use_Spans, Span);
+      elsif Op = "contains"
+        or else Op = "get"
+        or else Starts_With (Op, "get_")
+      then
+         Note_Shared_Read (Root_Name, Shared_Reads, Inputs, Use_Spans, Span);
+      end if;
+   end Mark_Shared_Call;
+
    procedure Collect_Output_Binding
      (Expr    : GM.Expr_Access;
       Locals  : Local_Maps.Map;
@@ -623,16 +871,23 @@ package body Safe_Frontend.Mir_Bronze is
       Locals      : Local_Maps.Map;
       Callable_Names : String_Sets.Set;
       Signatures  : Signature_Maps.Map;
+      Shared_Wrappers : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map;
       Reads       : in out String_Sets.Set;
+      Shared_Reads : in out String_Sets.Set;
+      Shared_Writes : in out String_Sets.Set;
       Calls       : in out String_Sets.Set;
       Inputs      : in out String_Sets.Set;
+      Outputs     : in out String_Sets.Set;
       Use_Spans   : in out Span_Maps.Map;
       Call_Sites  : in out Call_Site_Vectors.Vector;
       Binding     : access Marker_Binding := null)
    is
-      Root   : FT.UString := FT.To_UString ("");
-      Callee : FT.UString := FT.To_UString ("");
-      Full   : FT.UString := FT.To_UString ("");
+      Root        : FT.UString := FT.To_UString ("");
+      Callee      : FT.UString := FT.To_UString ("");
+      Full        : FT.UString := FT.To_UString ("");
+      Shared_Root : FT.UString := FT.To_UString ("");
+      Shared_Op   : FT.UString := FT.To_UString ("");
    begin
       if Expr = null then
          return;
@@ -688,9 +943,14 @@ package body Safe_Frontend.Mir_Bronze is
                   Locals,
                   Callable_Names,
                   Signatures,
+                  Shared_Wrappers,
+                  Shared_Helper_Prefixes,
                   Reads,
+                  Shared_Reads,
+                  Shared_Writes,
                   Calls,
                   Inputs,
+                  Outputs,
                   Use_Spans,
                   Call_Sites,
                   Binding);
@@ -701,9 +961,14 @@ package body Safe_Frontend.Mir_Bronze is
                Locals,
                Callable_Names,
                Signatures,
+               Shared_Wrappers,
+               Shared_Helper_Prefixes,
                Reads,
+               Shared_Reads,
+               Shared_Writes,
                Calls,
                Inputs,
+               Outputs,
                Use_Spans,
                Call_Sites,
                Binding);
@@ -714,9 +979,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Reads,
+                     Shared_Reads,
+                     Shared_Writes,
                      Calls,
                      Inputs,
+                     Outputs,
                      Use_Spans,
                      Call_Sites,
                      Binding);
@@ -728,9 +998,14 @@ package body Safe_Frontend.Mir_Bronze is
                Locals,
                Callable_Names,
                Signatures,
+               Shared_Wrappers,
+               Shared_Helper_Prefixes,
                Reads,
+               Shared_Reads,
+               Shared_Writes,
                Calls,
                Inputs,
+               Outputs,
                Use_Spans,
                Call_Sites,
                Binding);
@@ -740,9 +1015,14 @@ package body Safe_Frontend.Mir_Bronze is
                Locals,
                Callable_Names,
                Signatures,
+               Shared_Wrappers,
+               Shared_Helper_Prefixes,
                Reads,
+               Shared_Reads,
+               Shared_Writes,
                Calls,
                Inputs,
+               Outputs,
                Use_Spans,
                Call_Sites,
                Binding);
@@ -751,9 +1031,14 @@ package body Safe_Frontend.Mir_Bronze is
                Locals,
                Callable_Names,
                Signatures,
+               Shared_Wrappers,
+               Shared_Helper_Prefixes,
                Reads,
+               Shared_Reads,
+               Shared_Writes,
                Calls,
                Inputs,
+               Outputs,
                Use_Spans,
                Call_Sites,
                Binding);
@@ -763,9 +1048,14 @@ package body Safe_Frontend.Mir_Bronze is
                Locals,
                Callable_Names,
                Signatures,
+               Shared_Wrappers,
+               Shared_Helper_Prefixes,
                Reads,
+               Shared_Reads,
+               Shared_Writes,
                Calls,
                Inputs,
+               Outputs,
                Use_Spans,
                Call_Sites,
                Binding);
@@ -777,9 +1067,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Reads,
+                     Shared_Reads,
+                     Shared_Writes,
                      Calls,
                      Inputs,
+                     Outputs,
                      Use_Spans,
                      Call_Sites,
                      Binding);
@@ -787,7 +1082,44 @@ package body Safe_Frontend.Mir_Bronze is
             end if;
          when GM.Expr_Call =>
             Callee := FT.To_UString (Flatten_Name (Expr.Callee));
-            if UString_Value (Callee) /= "" and then Callable_Names.Contains (UString_Value (Callee)) then
+            if UString_Value (Callee) /= ""
+              and then Try_Shared_Call
+                (UString_Value (Callee),
+                 Shared_Wrappers,
+                 Shared_Helper_Prefixes,
+                 Root_Name  => Shared_Root,
+                 Operation  => Shared_Op)
+            then
+               Mark_Shared_Call
+                 (Root_Name     => UString_Value (Shared_Root),
+                  Operation     => UString_Value (Shared_Op),
+                  Shared_Reads  => Shared_Reads,
+                  Shared_Writes => Shared_Writes,
+                  Inputs        => Inputs,
+                  Outputs       => Outputs,
+                  Use_Spans     => Use_Spans,
+                  Span          => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span));
+               if not Expr.Args.Is_Empty then
+                  for Arg of Expr.Args loop
+                     Walk_Expr
+                       (Arg,
+                        Locals,
+                        Callable_Names,
+                        Signatures,
+                        Shared_Wrappers,
+                        Shared_Helper_Prefixes,
+                        Reads,
+                        Shared_Reads,
+                        Shared_Writes,
+                        Calls,
+                        Inputs,
+                        Outputs,
+                        Use_Spans,
+                        Call_Sites,
+                        Binding);
+                  end loop;
+               end if;
+            elsif UString_Value (Callee) /= "" and then Callable_Names.Contains (UString_Value (Callee)) then
                Calls.Include (UString_Value (Callee));
                Note_Use_Span
                  (UString_Value (Callee),
@@ -821,9 +1153,14 @@ package body Safe_Frontend.Mir_Bronze is
                                  Locals,
                                  Callable_Names,
                                  Signatures,
+                                 Shared_Wrappers,
+                                 Shared_Helper_Prefixes,
                                  Reads,
+                                 Shared_Reads,
+                                 Shared_Writes,
                                  Calls,
                                  Inputs,
+                                 Outputs,
                                  Use_Spans,
                                  Call_Sites,
                                  Actual_Input'Access);
@@ -850,9 +1187,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Reads,
+                     Shared_Reads,
+                     Shared_Writes,
                      Calls,
                      Inputs,
+                     Outputs,
                      Use_Spans,
                      Call_Sites,
                      Binding);
@@ -863,17 +1205,36 @@ package body Safe_Frontend.Mir_Bronze is
       end case;
    end Walk_Expr;
 
-   function External_Summary (Value : GM.External_Entry) return Direct_Summary is
+   function External_Summary
+     (Value               : GM.External_Entry;
+      Shared_Object_Names : String_Sets.Set) return Direct_Summary
+   is
       Result : Direct_Summary;
    begin
       Result.Name := Value.Name;
       Result.Kind := Value.Kind;
       Result.Span := Value.Span;
       for Item of Value.Effect_Summary.Reads loop
-         Result.Direct_Reads.Include (UString_Value (Item));
+         declare
+            Name : constant String := UString_Value (Item);
+         begin
+            if Shared_Object_Names.Contains (Name) then
+               Result.Direct_Shared_Reads.Include (Name);
+            else
+               Result.Direct_Reads.Include (Name);
+            end if;
+         end;
       end loop;
       for Item of Value.Effect_Summary.Writes loop
-         Result.Direct_Writes.Include (UString_Value (Item));
+         declare
+            Name : constant String := UString_Value (Item);
+         begin
+            if Shared_Object_Names.Contains (Name) then
+               Result.Direct_Shared_Writes.Include (Name);
+            else
+               Result.Direct_Writes.Include (Name);
+            end if;
+         end;
       end loop;
       for Item of Value.Effect_Summary.Inputs loop
          Result.Direct_Inputs.Include (UString_Value (Item));
@@ -898,6 +1259,8 @@ package body Safe_Frontend.Mir_Bronze is
       end if;
       Result.Reads := Result.Direct_Reads;
       Result.Writes := Result.Direct_Writes;
+      Result.Shared_Reads := Result.Direct_Shared_Reads;
+      Result.Shared_Writes := Result.Direct_Shared_Writes;
       Result.Channels := Result.Direct_Channels;
       Result.Sends := Result.Direct_Sends;
       Result.Receives := Result.Direct_Receives;
@@ -1090,7 +1453,9 @@ package body Safe_Frontend.Mir_Bronze is
       Callable_Names : String_Sets.Set;
       Signatures : Signature_Maps.Map;
       Init_Set   : in out String_Sets.Set;
-      Global_Spans : in out Span_Maps.Map) return Direct_Summary
+      Global_Spans : in out Span_Maps.Map;
+      Shared_Wrappers : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map) return Direct_Summary
    is
       Result : Direct_Summary;
       Locals : constant Local_Maps.Map := Local_Metadata (Graph);
@@ -1121,9 +1486,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Result.Direct_Reads,
+                     Result.Direct_Shared_Reads,
+                     Result.Direct_Shared_Writes,
                      Result.Direct_Calls,
                      Result.Direct_Inputs,
+                     Result.Direct_Outputs,
                      Result.Use_Spans,
                      Result.Call_Sites);
                   Root := FT.To_UString (Root_Name (Op.Target));
@@ -1148,9 +1518,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Result.Direct_Reads,
+                     Result.Direct_Shared_Reads,
+                     Result.Direct_Shared_Writes,
                      Result.Direct_Calls,
                      Result.Direct_Inputs,
+                     Result.Direct_Outputs,
                      Result.Use_Spans,
                      Result.Call_Sites);
                when GM.Op_Channel_Send =>
@@ -1159,9 +1534,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Result.Direct_Reads,
+                     Result.Direct_Shared_Reads,
+                     Result.Direct_Shared_Writes,
                      Result.Direct_Calls,
                      Result.Direct_Inputs,
+                     Result.Direct_Outputs,
                      Result.Use_Spans,
                      Result.Call_Sites);
                   Root := FT.To_UString (Flatten_Name (Op.Channel));
@@ -1190,9 +1570,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Result.Direct_Reads,
+                     Result.Direct_Shared_Reads,
+                     Result.Direct_Shared_Writes,
                      Result.Direct_Calls,
                      Result.Direct_Inputs,
+                     Result.Direct_Outputs,
                      Result.Use_Spans,
                      Result.Call_Sites);
                   Root := FT.To_UString (Flatten_Name (Op.Channel));
@@ -1235,9 +1620,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Result.Direct_Reads,
+                     Result.Direct_Shared_Reads,
+                     Result.Direct_Shared_Writes,
                      Result.Direct_Calls,
                      Result.Direct_Inputs,
+                     Result.Direct_Outputs,
                      Result.Use_Spans,
                      Result.Call_Sites);
                when others =>
@@ -1252,9 +1642,14 @@ package body Safe_Frontend.Mir_Bronze is
                   Locals,
                   Callable_Names,
                   Signatures,
+                  Shared_Wrappers,
+                  Shared_Helper_Prefixes,
                   Result.Direct_Reads,
+                  Result.Direct_Shared_Reads,
+                  Result.Direct_Shared_Writes,
                   Result.Direct_Calls,
                   Result.Direct_Inputs,
+                  Result.Direct_Outputs,
                   Result.Use_Spans,
                   Result.Call_Sites);
             when GM.Terminator_Return =>
@@ -1264,9 +1659,14 @@ package body Safe_Frontend.Mir_Bronze is
                      Locals,
                      Callable_Names,
                      Signatures,
+                     Shared_Wrappers,
+                     Shared_Helper_Prefixes,
                      Result.Direct_Reads,
+                     Result.Direct_Shared_Reads,
+                     Result.Direct_Shared_Writes,
                      Result.Direct_Calls,
                      Result.Direct_Inputs,
+                     Result.Direct_Outputs,
                      Result.Use_Spans,
                      Result.Call_Sites);
                   Result.Direct_Outputs.Include ("return");
@@ -1289,9 +1689,14 @@ package body Safe_Frontend.Mir_Bronze is
                            Locals,
                            Callable_Names,
                            Signatures,
+                           Shared_Wrappers,
+                           Shared_Helper_Prefixes,
                            Result.Direct_Reads,
+                           Result.Direct_Shared_Reads,
+                           Result.Direct_Shared_Writes,
                            Result.Direct_Calls,
                            Result.Direct_Inputs,
+                           Result.Direct_Outputs,
                            Result.Use_Spans,
                            Result.Call_Sites);
                      end if;
@@ -1304,6 +1709,8 @@ package body Safe_Frontend.Mir_Bronze is
 
       Result.Reads := Result.Direct_Reads;
       Result.Writes := Result.Direct_Writes;
+      Result.Shared_Reads := Result.Direct_Shared_Reads;
+      Result.Shared_Writes := Result.Direct_Shared_Writes;
       Result.Channels := Result.Direct_Channels;
       Result.Sends := Result.Direct_Sends;
       Result.Receives := Result.Direct_Receives;
@@ -1341,7 +1748,10 @@ package body Safe_Frontend.Mir_Bronze is
    function Summarize
      (Document    : GM.Mir_Document;
       Tasks       : CM.Resolved_Task_Vectors.Vector := CM.Resolved_Task_Vectors.Empty_Vector;
-      Path_String : String := "") return Bronze_Result
+      Path_String : String := "";
+      Objects     : CM.Resolved_Object_Decl_Vectors.Vector := CM.Resolved_Object_Decl_Vectors.Empty_Vector;
+      Imported_Objects : CM.Imported_Object_Decl_Vectors.Vector := CM.Imported_Object_Decl_Vectors.Empty_Vector)
+      return Bronze_Result
    is
       Result        : Bronze_Result;
       Callable_Names : String_Sets.Set;
@@ -1352,7 +1762,12 @@ package body Safe_Frontend.Mir_Bronze is
       Task_Access   : Set_Maps.Map;
       Task_Calls    : Set_Maps.Map;
       Channel_Tasks : Set_Maps.Map;
+      Shared_Tasks  : Set_Maps.Map;
       Channel_Base_Ceilings : Integer_Maps.Map;
+      Shared_Base_Ceilings  : Integer_Maps.Map;
+      Shared_Wrappers       : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map;
+      Imported_Shared_Names : String_Sets.Set;
       Changed       : Boolean := True;
       Cursor        : Summary_Maps.Cursor;
    begin
@@ -1361,10 +1776,65 @@ package body Safe_Frontend.Mir_Bronze is
          Signatures.Include (UString_Value (Graph.Name), Signature_For (Graph));
       end loop;
 
+      for Decl of Objects loop
+         if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+            declare
+               Root_Name : constant String :=
+                 UString_Value (Decl.Names (Decl.Names.First_Index));
+            begin
+               Shared_Wrappers.Include
+                 (Canonical_Name (Shared_Wrapper_Object_Name (Root_Name)),
+                  Root_Name);
+               if Decl.Is_Public then
+                  Shared_Helper_Prefixes.Include
+                    (Canonical_Name
+                       (Shared_Public_Helper_Base_Name (Root_Name) & "_"),
+                     Root_Name);
+               end if;
+            end;
+         end if;
+      end loop;
+
+      for Item of Imported_Objects loop
+         if Item.Is_Shared then
+            declare
+               Qualified_Name : constant String := UString_Value (Item.Name);
+               Package_Dot    : constant Natural :=
+                 Ada.Strings.Fixed.Index
+                   (Qualified_Name,
+                    ".",
+                    Ada.Strings.Backward);
+               Package_Name   : constant String :=
+                 (if Package_Dot > 1
+                  then Qualified_Name (Qualified_Name'First .. Package_Dot - 1)
+                  else "");
+               Root_Name      : constant String := Tail_Name (Qualified_Name);
+            begin
+               Imported_Shared_Names.Include (Qualified_Name);
+               if Item.Has_Required_Ceiling then
+                  Shared_Base_Ceilings.Include
+                    (Qualified_Name,
+                     Item.Required_Ceiling);
+               end if;
+               if Package_Name /= "" then
+                  Shared_Helper_Prefixes.Include
+                    (Canonical_Name
+                       (Package_Name
+                        & "."
+                        & Shared_Public_Helper_Base_Name (Root_Name)
+                        & "_"),
+                     Qualified_Name);
+               end if;
+            end;
+         end if;
+      end loop;
+
       for External of Document.Externals loop
          Callable_Names.Include (UString_Value (External.Name));
          Signatures.Include (UString_Value (External.Name), Signature_For (External));
-         Summaries.Include (UString_Value (External.Name), External_Summary (External));
+         Summaries.Include
+           (UString_Value (External.Name),
+            External_Summary (External, Imported_Shared_Names));
       end loop;
 
       for Channel of Document.Channels loop
@@ -1376,7 +1846,14 @@ package body Safe_Frontend.Mir_Bronze is
       for Graph of Document.Graphs loop
          declare
             Summary : constant Direct_Summary :=
-              Summary_For (Graph, Callable_Names, Signatures, Init_Set, Global_Spans);
+              Summary_For
+                (Graph,
+                 Callable_Names,
+                 Signatures,
+                 Init_Set,
+                 Global_Spans,
+                 Shared_Wrappers,
+                 Shared_Helper_Prefixes);
          begin
             Summaries.Include (UString_Value (Graph.Name), Summary);
          end;
@@ -1403,6 +1880,8 @@ package body Safe_Frontend.Mir_Bronze is
                            begin
                               Updated.Reads.Union (Callee_Summary.Reads);
                               Updated.Writes.Union (Callee_Summary.Writes);
+                              Updated.Shared_Reads.Union (Callee_Summary.Shared_Reads);
+                              Updated.Shared_Writes.Union (Callee_Summary.Shared_Writes);
                               Updated.Channels.Union (Callee_Summary.Channels);
                               Updated.Sends.Union (Callee_Summary.Sends);
                               Updated.Receives.Union (Callee_Summary.Receives);
@@ -1447,6 +1926,50 @@ package body Safe_Frontend.Mir_Bronze is
                               end;
                               declare
                                  Entity_Cursor : String_Sets.Cursor := Callee_Summary.Writes.First;
+                              begin
+                                 while String_Sets.Has_Element (Entity_Cursor) loop
+                                    declare
+                                       Entity_Name : constant String := String_Sets.Element (Entity_Cursor);
+                                    begin
+                                       if not Updated.Use_Spans.Contains (Entity_Name) then
+                                          if Summary.Use_Spans.Contains (Callee) then
+                                             Updated.Use_Spans.Include
+                                               (Entity_Name,
+                                                Summary.Use_Spans.Element (Callee));
+                                          elsif Callee_Summary.Use_Spans.Contains (Entity_Name) then
+                                             Updated.Use_Spans.Include
+                                               (Entity_Name,
+                                                Callee_Summary.Use_Spans.Element (Entity_Name));
+                                          end if;
+                                       end if;
+                                       String_Sets.Next (Entity_Cursor);
+                                    end;
+                                 end loop;
+                              end;
+                              declare
+                                 Entity_Cursor : String_Sets.Cursor := Callee_Summary.Shared_Reads.First;
+                              begin
+                                 while String_Sets.Has_Element (Entity_Cursor) loop
+                                    declare
+                                       Entity_Name : constant String := String_Sets.Element (Entity_Cursor);
+                                    begin
+                                       if not Updated.Use_Spans.Contains (Entity_Name) then
+                                          if Summary.Use_Spans.Contains (Callee) then
+                                             Updated.Use_Spans.Include
+                                               (Entity_Name,
+                                                Summary.Use_Spans.Element (Callee));
+                                          elsif Callee_Summary.Use_Spans.Contains (Entity_Name) then
+                                             Updated.Use_Spans.Include
+                                               (Entity_Name,
+                                                Callee_Summary.Use_Spans.Element (Entity_Name));
+                                          end if;
+                                       end if;
+                                       String_Sets.Next (Entity_Cursor);
+                                    end;
+                                 end loop;
+                              end;
+                              declare
+                                 Entity_Cursor : String_Sets.Cursor := Callee_Summary.Shared_Writes.First;
                               begin
                                  while String_Sets.Has_Element (Entity_Cursor) loop
                                     declare
@@ -1519,6 +2042,8 @@ package body Safe_Frontend.Mir_Bronze is
 
                if Updated.Reads /= Summary.Reads
                  or else Updated.Writes /= Summary.Writes
+                 or else Updated.Shared_Reads /= Summary.Shared_Reads
+                 or else Updated.Shared_Writes /= Summary.Shared_Writes
                  or else Updated.Channels /= Summary.Channels
                  or else Updated.Sends /= Summary.Sends
                  or else Updated.Receives /= Summary.Receives
@@ -1547,6 +2072,12 @@ package body Safe_Frontend.Mir_Bronze is
             Item.Priority := Summary.Priority;
             Item.Reads := To_Vector (Summary.Reads);
             Item.Writes := To_Vector (Summary.Writes);
+            declare
+               Shareds : String_Sets.Set := Summary.Shared_Reads;
+            begin
+               Shareds.Union (Summary.Shared_Writes);
+               Item.Shareds := To_Vector (Shareds);
+            end;
             Item.Channels := To_Vector (Summary.Channels);
             Item.Sends := To_Vector (Summary.Sends);
             Item.Receives := To_Vector (Summary.Receives);
@@ -1559,8 +2090,10 @@ package body Safe_Frontend.Mir_Bronze is
             if Summary.Is_Task then
                declare
                   Accessed : String_Sets.Set := Summary.Reads;
+                  Shared_Accessed : String_Sets.Set := Summary.Shared_Reads;
                begin
                   Accessed.Union (Summary.Writes);
+                  Shared_Accessed.Union (Summary.Shared_Writes);
                   if not Accessed.Is_Empty then
                      declare
                         Global_Cursor : String_Sets.Cursor := Accessed.First;
@@ -1609,6 +2142,26 @@ package body Safe_Frontend.Mir_Bronze is
                                  Task_Access.Include (Global_Name, Owners);
                               end if;
                               String_Sets.Next (Global_Cursor);
+                           end;
+                        end loop;
+                     end;
+                  end if;
+
+                  if not Shared_Accessed.Is_Empty then
+                     declare
+                        Shared_Cursor : String_Sets.Cursor := Shared_Accessed.First;
+                     begin
+                        while String_Sets.Has_Element (Shared_Cursor) loop
+                           declare
+                              Shared_Name : constant String := String_Sets.Element (Shared_Cursor);
+                              Shared_Task_Set : String_Sets.Set;
+                           begin
+                              if Shared_Tasks.Contains (Shared_Name) then
+                                 Shared_Task_Set := Shared_Tasks.Element (Shared_Name);
+                              end if;
+                              Shared_Task_Set.Include (UString_Value (Summary.Name));
+                              Shared_Tasks.Include (Shared_Name, Shared_Task_Set);
+                              String_Sets.Next (Shared_Cursor);
                            end;
                         end loop;
                      end;
@@ -1778,6 +2331,40 @@ package body Safe_Frontend.Mir_Bronze is
          end loop;
       end;
 
+      declare
+         Shared_Cursor : Set_Maps.Cursor := Shared_Tasks.First;
+      begin
+         while Set_Maps.Has_Element (Shared_Cursor) loop
+            declare
+               Shared_Name : constant String := Set_Maps.Key (Shared_Cursor);
+               Tasks       : constant String_Sets.Set := Set_Maps.Element (Shared_Cursor);
+               Task_Names  : FT.UString_Vectors.Vector := To_Vector (Tasks);
+               Priority    : Long_Long_Integer := 0;
+               Ceiling     : Shared_Ceiling_Entry;
+            begin
+               if not Task_Names.Is_Empty then
+                  for Task_Name of Task_Names loop
+                     if Summaries.Contains (UString_Value (Task_Name))
+                       and then Summaries.Element (UString_Value (Task_Name)).Priority > Priority
+                     then
+                        Priority := Summaries.Element (UString_Value (Task_Name)).Priority;
+                     end if;
+                  end loop;
+                  if Shared_Base_Ceilings.Contains (Shared_Name)
+                    and then Shared_Base_Ceilings.Element (Shared_Name) > Priority
+                  then
+                     Priority := Shared_Base_Ceilings.Element (Shared_Name);
+                  end if;
+                  Ceiling.Shared_Name := FT.To_UString (Shared_Name);
+                  Ceiling.Priority := Priority;
+                  Ceiling.Task_Names := Task_Names;
+                  Result.Shared_Ceilings.Append (Ceiling);
+               end if;
+               Set_Maps.Next (Shared_Cursor);
+            end;
+         end loop;
+      end;
+
       if not Tasks.Is_Empty then
          Cursor := Summaries.First;
          while Summary_Maps.Has_Element (Cursor) loop
@@ -1889,6 +2476,7 @@ package body Safe_Frontend.Mir_Bronze is
       Sort_Graph_Summaries (Result.Graphs);
       Sort_Ownership (Result.Ownership);
       Sort_Ceilings (Result.Ceilings);
+      Sort_Shared_Ceilings (Result.Shared_Ceilings);
 
       return Result;
    end Summarize;

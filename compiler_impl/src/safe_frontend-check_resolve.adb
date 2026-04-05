@@ -15173,8 +15173,19 @@ package body Safe_Frontend.Check_Resolve is
                  Canonicalize_Imported_Synthetic_Type
                    (Qualify_Type_Info (Object_Item.Type_Info, Package_Name),
                     Type_Env);
+               Qualified_Static : constant CM.Static_Value :=
+                 Qualify_Static_Value (Object_Item.Static_Info, Package_Name);
             begin
                Put_Type (Imported_Objects, Qualified_Name, Qualified_Type);
+               Result.Imported_Objects.Append
+                 ((Name                 => FT.To_UString (Qualified_Name),
+                   Type_Info            => Qualified_Type,
+                   Is_Shared            => Object_Item.Is_Shared,
+                   Has_Required_Ceiling => Object_Item.Has_Required_Ceiling,
+                   Required_Ceiling     => Object_Item.Required_Ceiling,
+                   Is_Constant          => Object_Item.Is_Constant,
+                   Static_Info          => Qualified_Static,
+                   Span                 => Object_Item.Span));
                if Object_Item.Is_Shared then
                   Current_Imported_Shared_Object_Types.Include
                     (Canonical_Name (Qualified_Name),
@@ -15186,7 +15197,7 @@ package body Safe_Frontend.Check_Resolve is
                   Put_Static_Value
                     (Const_Env,
                      Qualified_Name,
-                     Qualify_Static_Value (Object_Item.Static_Info, Package_Name));
+                     Qualified_Static);
                end if;
             end;
          end loop;
