@@ -1645,7 +1645,6 @@ package body Safe_Frontend.Ada_Emit is
                Append_Line (Buffer, "end " & Shared_Copy_Helper_Name (Info) & ";", 1);
                Append_Line (Buffer);
 
-               Append_Local_Warning_Suppression (Buffer, 1);
                Append_Line
                  (Buffer,
                   "procedure "
@@ -1672,7 +1671,6 @@ package body Safe_Frontend.Ada_Emit is
                   "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
                   2);
                Append_Line (Buffer, "end " & Shared_Free_Helper_Name (Info) & ";", 1);
-               Append_Local_Warning_Restore (Buffer, 1);
                Append_Line (Buffer);
                return;
             end;
@@ -1793,7 +1791,6 @@ package body Safe_Frontend.Ada_Emit is
          Append_Line (Buffer, "end " & Shared_Copy_Helper_Name (Info) & ";", 1);
          Append_Line (Buffer);
 
-         Append_Local_Warning_Suppression (Buffer, 1);
          Append_Line
            (Buffer,
             "procedure "
@@ -1848,7 +1845,6 @@ package body Safe_Frontend.Ada_Emit is
             "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
             2);
          Append_Line (Buffer, "end " & Shared_Free_Helper_Name (Info) & ";", 1);
-         Append_Local_Warning_Restore (Buffer, 1);
          Append_Line (Buffer);
       end Render_Shared_Value_Helpers;
 
@@ -20302,66 +20298,102 @@ package body Safe_Frontend.Ada_Emit is
       function Has_Unemitted_Growable_Dependency
         (Info : GM.Type_Descriptor) return Boolean
       is
-         Base_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Root_Name : constant String := FT.To_String (Info.Name);
+
+         function Info_Has_Unemitted_Growable_Dependency
+           (Current : GM.Type_Descriptor;
+            Seen    : in out FT.UString_Vectors.Vector) return Boolean;
 
          function Name_Has_Unemitted_Growable_Dependency
-           (Name_Text : String) return Boolean
+           (Name_Text : String;
+            Seen      : in out FT.UString_Vectors.Vector) return Boolean
          is
          begin
             if Name_Text'Length = 0 then
                return False;
             end if;
 
+            if Contains_Name (Seen, Name_Text) then
+               return False;
+            end if;
+
             declare
                Resolved_Info : constant GM.Type_Descriptor :=
                  Resolve_Type_Name (Unit, Document, Name_Text);
-               Resolved_Name : constant String := FT.To_String (Resolved_Info.Name);
             begin
-               return
-                 FT.To_String (Resolved_Info.Kind) = "array"
-                 and then Resolved_Info.Growable
-                 and then Resolved_Name /= FT.To_String (Info.Name)
-                 and then not Contains_Name (Emitted_Synthetic_Names, Resolved_Name);
+               Seen.Append (FT.To_UString (Name_Text));
+               return Info_Has_Unemitted_Growable_Dependency (Resolved_Info, Seen);
             exception
                when others =>
                   return False;
             end;
          end Name_Has_Unemitted_Growable_Dependency;
+
+         function Info_Has_Unemitted_Growable_Dependency
+           (Current : GM.Type_Descriptor;
+            Seen    : in out FT.UString_Vectors.Vector) return Boolean
+         is
+            Base_Info      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Current);
+            Base_Name_Text : constant String := FT.To_String (Base_Info.Name);
+         begin
+            if FT.To_String (Base_Info.Kind) = "array"
+              and then Base_Info.Growable
+              and then Base_Name_Text /= Root_Name
+              and then not Contains_Name (Emitted_Synthetic_Names, Base_Name_Text)
+            then
+               return True;
+            end if;
+
+            if Current.Has_Base
+              and then
+                Name_Has_Unemitted_Growable_Dependency
+                  (FT.To_String (Current.Base), Seen)
+            then
+               return True;
+            end if;
+            if Base_Info.Has_Component_Type
+              and then
+                Name_Has_Unemitted_Growable_Dependency
+                  (FT.To_String (Base_Info.Component_Type), Seen)
+            then
+               return True;
+            end if;
+            if Base_Info.Has_Target
+              and then
+                Name_Has_Unemitted_Growable_Dependency
+                  (FT.To_String (Base_Info.Target), Seen)
+            then
+               return True;
+            end if;
+            for Item of Base_Info.Tuple_Element_Types loop
+               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Item), Seen) then
+                  return True;
+               end if;
+            end loop;
+            for Field of Base_Info.Fields loop
+               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name), Seen) then
+                  return True;
+               end if;
+            end loop;
+            for Field of Base_Info.Variant_Fields loop
+               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name), Seen) then
+                  return True;
+               end if;
+            end loop;
+
+            return False;
+         end Info_Has_Unemitted_Growable_Dependency;
       begin
-         if Info.Has_Base
-           and then Name_Has_Unemitted_Growable_Dependency (FT.To_String (Info.Base))
-         then
-            return True;
-         end if;
-         if Base_Info.Has_Component_Type
-           and then
-             Name_Has_Unemitted_Growable_Dependency
-               (FT.To_String (Base_Info.Component_Type))
-         then
-            return True;
-         end if;
-         if Base_Info.Has_Target
-           and then
-             Name_Has_Unemitted_Growable_Dependency
-               (FT.To_String (Base_Info.Target))
-         then
-            return True;
-         end if;
-         for Item of Base_Info.Tuple_Element_Types loop
-            if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Item)) then
+         declare
+            Seen : FT.UString_Vectors.Vector;
+         begin
+            if Root_Name'Length > 0 then
+               Seen.Append (FT.To_UString (Root_Name));
+            end if;
+            if Info_Has_Unemitted_Growable_Dependency (Info, Seen) then
                return True;
             end if;
-         end loop;
-         for Field of Base_Info.Fields loop
-            if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name)) then
-               return True;
-            end if;
-         end loop;
-         for Field of Base_Info.Variant_Fields loop
-            if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name)) then
-               return True;
-            end if;
-         end loop;
+         end;
 
          declare
             Probe_State : Emit_State := State;
