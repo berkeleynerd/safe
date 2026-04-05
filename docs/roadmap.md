@@ -86,6 +86,15 @@ Dependency chain:
 - PR11.19 follows PR11.18 (async/await via state-machine coroutines).
 - PR11.20 follows PR11.19 (bounded user-managed allocation pools).
 - PR11.21 follows PR11.20 (compile-time derive — auto-generated interface implementations for record/sum types).
+- PR11.22 follows PR11.21 (codebase hygiene — parent milestone for refactoring and cleanup).
+- PR11.22a follows PR11.21 (CLAUDE.md and documentation refresh).
+- PR11.22b follows PR11.22a (abandoned branch cleanup and model enum hygiene).
+- PR11.22c follows PR11.22b (emitter monster-function decomposition).
+- PR11.22d follows PR11.22c (emitter deduplication and vestigial code removal).
+- PR11.22e follows PR11.22d (emitter file split into domain-focused modules).
+- PR11.22f follows PR11.22e (resolver cleanup and builtin-resolution consolidation).
+- PR11.22g follows PR11.22f (test infrastructure modularization).
+- PR11.22h follows PR11.22g (shared stdlib contract audit and body-drift check).
 
 ---
 
@@ -2526,7 +2535,7 @@ fields first, parameterized shared containers second.”
 ### Test coverage
 
 - Positive: `shared values : list of integer`, `shared cache : map of
-  (string, integer)`, shared growable-array append/pop/get/set/remove,
+  (string, integer)`, shared growable-array `.length`/append/pop, and
   whole-value snapshot of a shared container root.
 - Negative: unsupported shared root types, direct indexed mutation on a
   live shared root, unsupported live iteration, disallowed element/key/
@@ -3249,7 +3258,248 @@ hand-written implementations.
 ### Dependency
 
 Follows PR11.20. Requires interfaces (PR11.11b), generics (PR11.11c),
-and sum types (PR11.13). This is the last milestone in the PR11 series.
+and sum types (PR11.13).
+
+---
+
+# PR11.22: Codebase Hygiene
+
+Clean up accumulated technical debt, decompose oversized files, remove
+vestigial code paths, and harden the codebase before the tooling series
+begins. This is maintenance work, not feature work — no language surface
+changes.
+
+The audit identified these priorities from a comprehensive code scan:
+
+- `safe_frontend-ada_emit.adb`: 19.7K lines, 477 functions, 11 functions
+  over 200 lines (largest: `Render_Statements` at 3,194 lines)
+- `safe_frontend-check_resolve.adb`: 13.8K lines, 282 functions
+- `scripts/run_tests.py`: 3.2K lines absorbing every test category
+- 14 abandoned local branches from shipped milestones
+- CLAUDE.md stale (missing CLI commands, stdlib, proof inventory)
+- Vestigial `Stmt_Try_Send` emitter paths (12 references)
+- Channel emission triplication (protected/record-backed/ghost-model)
+- Generic actual type validation gap (top-level-only, not deep)
+- Shared stdlib body drift risk between `Safe_Array_RT` and
+  `Safe_Array_Identity_RT`
+
+---
+
+## PR11.22a: Documentation and Configuration Refresh
+
+Bring CLAUDE.md, repo documentation references, and developer guidance
+up to date with the current toolchain state.
+
+### Scope
+
+- Update CLAUDE.md to reflect:
+  - `safe build`, `safe run`, `safe prove`, `safe deploy` CLI commands
+  - Incremental build system (`.safe-build/`)
+  - Shared stdlib (`compiler_impl/stdlib/`)
+  - Embedded evidence lane and Renode concurrency suite
+  - Proof inventory (`scripts/_lib/proof_inventory.py`)
+  - Roadmap file renamed to `docs/roadmap.md`
+- Verify no broken internal anchor links in `docs/roadmap.md`
+- Move `docs/pr118g2-proof-journal.md` to `docs/archive/` with a
+  historical header
+- Clean up `~/tmp/` working documents (backups, superseded inventories)
+
+### Dependency
+
+Follows PR11.21. Zero risk — documentation only.
+
+---
+
+## PR11.22b: Branch Cleanup and Model Enum Hygiene
+
+Delete abandoned local branches and audit the check model for vestigial
+enum variants.
+
+### Scope
+
+- Delete 14+ stale local branches from shipped milestones (pr114, pr115,
+  pr116, pr117, pr1161, pr1162, pr134, root-archive-cleanup,
+  safe-wrapper-build-output, embedded-smoke-stm32f4, revert-pr117-*,
+  pr-125)
+- Delete stale remote branches that were merged but not cleaned up
+- Audit `Stmt_Try_Send` in `safe_frontend-check_model.ads`:
+  - Keep the enum variant for migration-diagnostic purposes (parser
+    creates it, resolver rejects it with a helpful message)
+  - Document the decision in a code comment
+
+### Dependency
+
+Follows PR11.22a. Zero risk — branch deletion and documentation.
+
+---
+
+## PR11.22c: Emitter Monster-Function Decomposition
+
+Split the largest functions in `safe_frontend-ada_emit.adb` into
+focused per-kind helpers.
+
+### Scope
+
+Priority targets (>500 lines each):
+
+| Function | Lines | Split strategy |
+|----------|-------|---------------|
+| `Render_Statements` | 3,194 | Extract per-statement-kind procedures |
+| `Emit` (top-level) | 1,071 | Split into type/channel/subprogram/init phases |
+| `Render_Channel_Body` | 885 | Split heap/non-heap and protected/record paths |
+| `Render_Expr` | 695 | Extract per-expression-kind helpers |
+| `Render_Subprogram_Body` | 672 | Extract traversal lowering, variant detection, warning infrastructure |
+| `Render_Type_Decl` | 512 | Split record/enum/array/access paths |
+
+- Each split must preserve exact emitted-Ada output (diff the emitted
+  output of every proof fixture before and after)
+- No behavioral changes — pure structural refactoring
+
+### Dependency
+
+Follows PR11.22b. Medium effort, medium risk. Full `run_proofs.py`
+required before and after.
+
+---
+
+## PR11.22d: Emitter Deduplication and Vestigial Code Removal
+
+Remove dead code paths and factor shared patterns in the emitter.
+
+### Scope
+
+- Remove or `Raise_Internal` the vestigial `Stmt_Try_Send` emission
+  paths (6 sites in `ada_emit.adb`) — the resolver already rejects
+  `try_send`, so these paths are unreachable
+- Audit and remove `pragma Unreferenced` sites that indicate dead
+  helper functions with unused parameters (15 sites)
+- Factor shared channel-emission helpers: the three channel models
+  (protected concurrent, record-backed sequential, ghost-model scalar)
+  share buffer management, index arithmetic, and element staging
+  patterns that should be common helpers
+- Consolidate redundant warning-suppression helpers (10+ pairs that
+  differ only in reason strings)
+- Unify type-name sanitization functions if redundant implementations
+  exist
+
+### Dependency
+
+Follows PR11.22c. The function splits make deduplication easier to
+identify and verify.
+
+---
+
+## PR11.22e: Emitter File Split
+
+Decompose `safe_frontend-ada_emit.adb` (19.7K lines) into focused
+domain modules.
+
+### Scope
+
+Split into approximately 5 child packages:
+
+| File | Domain | Approximate content |
+|------|--------|-------------------|
+| `ada_emit-types.adb` | Type declaration emission | Record, enum, array, access, synthetic types |
+| `ada_emit-channels.adb` | Channel and dispatcher emission | Protected/record/ghost channel specs and bodies |
+| `ada_emit-statements.adb` | Statement emission | The per-kind helpers from PR11.22c |
+| `ada_emit-expressions.adb` | Expression rendering | Per-expression-kind helpers |
+| `ada_emit-proofs.adb` | Proof infrastructure | Warning suppression, static-fact emission, pragma helpers |
+
+- The parent `ada_emit.adb` becomes a thin dispatcher that calls into
+  child packages
+- Ada child-package visibility rules mean the split is structurally
+  enforced, not just organizational
+- Same verification requirement: emitted Ada must be unchanged for
+  every proof fixture
+
+### Dependency
+
+Follows PR11.22d. Large effort but mechanical — each child package
+takes a well-defined subset of the existing function bodies.
+
+---
+
+## PR11.22f: Resolver Cleanup and Builtin Consolidation
+
+Clean up the resolver's accumulated builtin-recognition sprawl and
+close the generic actual type gap.
+
+### Scope
+
+- Fix the generic actual type validation gap: add deep reference-bearing
+  check (`Contains_Channel_Reference_Subcomponent`) to
+  `Is_Generic_Actual_Type_Allowed` (one-line fix identified during
+  PR #201 review)
+- Audit builtin recognition for `append`, `pop_last`, `contains`, `get`,
+  `set`, `remove`, `some`, `none` — verify no duplicated lookup patterns
+  and consistent precedence (user names win over builtins)
+- Remove dead `Stmt_Try_Send` normalization/lowering paths if any exist
+  beyond the intentional rejection diagnostic
+- Identify functions >200 lines and split by kind where beneficial
+
+### Dependency
+
+Follows PR11.22e. The emitter split reduces coupling so resolver changes
+are lower risk.
+
+---
+
+## PR11.22g: Test Infrastructure Modularization
+
+Split `scripts/run_tests.py` (3.2K lines) into focused modules.
+
+### Scope
+
+Split into:
+
+| Module | Contents |
+|--------|----------|
+| `run_tests.py` | Main entry point and summary reporting only |
+| `_lib/test_negative.py` | Negative fixture runner |
+| `_lib/test_build.py` | Build/run fixture runner |
+| `_lib/test_interface.py` | Interface pair runner |
+| `_lib/test_emitted_shape.py` | Emitted-shape regression runner |
+| `_lib/test_incremental.py` | Incremental build/prove regressions |
+| `_lib/test_proof_coverage.py` | Proof inventory coverage gate |
+| `_lib/test_fixtures.py` | Data declarations (case lists, expected outputs) |
+
+- Test output format and exit codes must not change
+- CI integration must not change — `python3 scripts/run_tests.py`
+  remains the entry point
+
+### Dependency
+
+Follows PR11.22f. Medium effort, low risk.
+
+---
+
+## PR11.22h: Shared Stdlib Contract Audit
+
+Verify contract completeness and body consistency across the shared
+stdlib packages.
+
+### Scope
+
+- Verify every shared stdlib function spec has:
+  - `Global => null` (or appropriate global annotation)
+  - `Depends` where applicable
+  - `Always_Terminates` on terminating procedures
+  - Consistent length/element postconditions across `Safe_Array_RT`
+    and `Safe_Array_Identity_RT`
+- Check for body drift between `Safe_Array_RT` and
+  `Safe_Array_Identity_RT` — both have `From_Array`, `Clone`, `Copy`,
+  `Free`, `Element`, `Slice`, `Concat`, `Replace_Element` and the
+  identity variant adds elementwise equality postconditions. Bug fixes
+  in one must be mirrored in the other.
+- Verify `Safe_String_RT` contract completeness
+- Verify `Safe_Bounded_Strings` expression-function completions are
+  consistent with their spec contracts
+
+### Dependency
+
+Follows PR11.22g. This is the last PR11 milestone. Safety-critical
+audit — medium effort, high value.
 
 ---
 
@@ -3266,7 +3516,7 @@ that gap before the claims-hardening work begins.
 
 ## Dependency Chain
 
-- PR12.1 follows PR11.21 (compiled native `safe` CLI binary).
+- PR12.1 follows PR11.22h (compiled native `safe` CLI binary).
 - PR12.2 follows PR12.1 (single-archive distribution).
 - PR12.3 follows PR12.2 (`safe fmt` — code formatter).
 - PR12.4 follows PR12.3 (full LSP server).

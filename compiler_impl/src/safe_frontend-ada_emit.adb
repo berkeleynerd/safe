@@ -209,6 +209,7 @@ package body Safe_Frontend.Ada_Emit is
       Enum_Type_Name : String) return String;
    function Sanitized_Helper_Name (Name : String) return String;
    function Array_Runtime_Instance_Name (Info : GM.Type_Descriptor) return String;
+   function Array_Runtime_Free_Element_Name (Info : GM.Type_Descriptor) return String;
    function Normalize_Aspect_Name
      (Subprogram_Name : String;
       Raw_Name        : String) return String;
@@ -324,6 +325,12 @@ package body Safe_Frontend.Ada_Emit is
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean;
+   function Try_Map_Key_Value_Types
+     (Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Info       : GM.Type_Descriptor;
+      Key_Type   : out GM.Type_Descriptor;
+      Value_Type : out GM.Type_Descriptor) return Boolean;
    function Constant_Cleanup_Uses_Shared_Runtime_Free
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
@@ -841,6 +848,13 @@ package body Safe_Frontend.Ada_Emit is
    function Shared_Wrapper_Type_Name (Root_Name : String) return String;
    function Shared_Get_All_Name return String;
    function Shared_Set_All_Name return String;
+   function Shared_Get_Length_Name return String;
+   function Shared_Append_Name return String;
+   function Shared_Pop_Last_Name return String;
+   function Shared_Contains_Name return String;
+   function Shared_Get_Name return String;
+   function Shared_Set_Name return String;
+   function Shared_Remove_Name return String;
    function Shared_Field_Getter_Name (Field_Name : String) return String;
    function Shared_Field_Setter_Name (Field_Name : String) return String;
 
@@ -1011,6 +1025,41 @@ package body Safe_Frontend.Ada_Emit is
       return "Set_All";
    end Shared_Set_All_Name;
 
+   function Shared_Get_Length_Name return String is
+   begin
+      return "Get_Length";
+   end Shared_Get_Length_Name;
+
+   function Shared_Append_Name return String is
+   begin
+      return "Append";
+   end Shared_Append_Name;
+
+   function Shared_Pop_Last_Name return String is
+   begin
+      return "Pop_Last";
+   end Shared_Pop_Last_Name;
+
+   function Shared_Contains_Name return String is
+   begin
+      return "Contains";
+   end Shared_Contains_Name;
+
+   function Shared_Get_Name return String is
+   begin
+      return "Get";
+   end Shared_Get_Name;
+
+   function Shared_Set_Name return String is
+   begin
+      return "Set";
+   end Shared_Set_Name;
+
+   function Shared_Remove_Name return String is
+   begin
+      return "Remove";
+   end Shared_Remove_Name;
+
    function Shared_Field_Getter_Name (Field_Name : String) return String is
    begin
       return
@@ -1105,6 +1154,11 @@ package body Safe_Frontend.Ada_Emit is
             declare
                Root_Name : constant String :=
                  FT.To_String (Decl.Names (Decl.Names.First_Index));
+               Root_Type  : constant GM.Type_Descriptor :=
+                 Base_Type (Unit, Document, Decl.Type_Info);
+               Element_Type : GM.Type_Descriptor := (others => <>);
+               Key_Type     : GM.Type_Descriptor := (others => <>);
+               Value_Type   : GM.Type_Descriptor := (others => <>);
             begin
                if Shared_Wrapper_Object_Name (Root_Name) = Wrapper_Name then
                   if Selector_Name in "Initialize" | "Set_All"
@@ -1112,8 +1166,93 @@ package body Safe_Frontend.Ada_Emit is
                   then
                      Found := True;
                      return Decl.Type_Info;
+                  elsif Selector_Name = Shared_Pop_Last_Name
+                    and then Position = 1
+                    and then Is_Growable_Array_Type (Unit, Document, Root_Type)
+                    and then not Try_Map_Key_Value_Types
+                      (Unit,
+                       Document,
+                       Root_Type,
+                       Key_Type,
+                       Value_Type)
+                  then
+                     Element_Type :=
+                       Resolve_Type_Name
+                         (Unit,
+                          Document,
+                          FT.To_String (Root_Type.Component_Type));
+                     Found := True;
+                     return
+                       Resolve_Type_Name
+                         (Unit,
+                          Document,
+                          "__optional_" & Sanitize_Type_Name_Component
+                            (FT.To_String (Element_Type.Name)));
+                  elsif Selector_Name = Shared_Append_Name
+                    and then Position = 1
+                    and then Is_Growable_Array_Type (Unit, Document, Root_Type)
+                    and then not Try_Map_Key_Value_Types
+                      (Unit,
+                       Document,
+                       Root_Type,
+                       Key_Type,
+                       Value_Type)
+                  then
+                     Element_Type :=
+                       Resolve_Type_Name
+                         (Unit,
+                          Document,
+                          FT.To_String (Root_Type.Component_Type));
+                     Found := True;
+                     return Element_Type;
+                  elsif Selector_Name in Shared_Contains_Name | Shared_Get_Name | Shared_Remove_Name
+                    and then Position = 1
+                    and then Try_Map_Key_Value_Types
+                      (Unit,
+                       Document,
+                       Root_Type,
+                       Key_Type,
+                       Value_Type)
+                  then
+                     Found := True;
+                     return Key_Type;
+                  elsif Selector_Name = Shared_Set_Name
+                    and then Try_Map_Key_Value_Types
+                      (Unit,
+                       Document,
+                       Root_Type,
+                       Key_Type,
+                       Value_Type)
+                  then
+                     if Position = 1 then
+                        Found := True;
+                        return Key_Type;
+                     elsif Position = 2 then
+                        Found := True;
+                        return Value_Type;
+                     end if;
+                  elsif Selector_Name = Shared_Remove_Name
+                    and then Try_Map_Key_Value_Types
+                      (Unit,
+                       Document,
+                       Root_Type,
+                       Key_Type,
+                       Value_Type)
+                  then
+                     if Position = 1 then
+                        Found := True;
+                        return Key_Type;
+                     elsif Position = 2 then
+                        Found := True;
+                        return
+                          Resolve_Type_Name
+                            (Unit,
+                             Document,
+                             "__optional_" & Sanitize_Type_Name_Component
+                               (FT.To_String (Value_Type.Name)));
+                     end if;
                   elsif Position = 1 then
-                     for Field of Base_Type (Unit, Document, Decl.Type_Info).Fields loop
+                     for Field of Root_Type.Fields loop
                         if Shared_Field_Setter_Name (FT.To_String (Field.Name)) = Selector_Name then
                            declare
                               Field_Type_Name : constant String :=
@@ -1159,6 +1298,27 @@ package body Safe_Frontend.Ada_Emit is
       Record_Type   : constant String := Render_Type_Name (Decl.Type_Info);
       Record_Default : constant String := Default_Value_Expr (Unit, Document, Decl.Type_Info);
       Base_Info     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
+      Integer_Type_Name : constant String :=
+        Render_Type_Name (Resolve_Type_Name (Unit, Document, "integer"));
+      Is_Container_Root : constant Boolean :=
+        Is_Growable_Array_Type (Unit, Document, Decl.Type_Info);
+      Element_Info : constant GM.Type_Descriptor :=
+        (if Is_Container_Root
+         then Resolve_Type_Name (Unit, Document, FT.To_String (Base_Info.Component_Type))
+         else (others => <>));
+      Key_Info     : GM.Type_Descriptor := (others => <>);
+      Value_Info   : GM.Type_Descriptor := (others => <>);
+
+      function Optional_Type_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return
+           Render_Type_Name_From_Text
+             (Unit,
+              Document,
+              "__optional_" & Sanitize_Type_Name_Component (FT.To_String (Info.Name)),
+              State);
+      end Optional_Type_Name;
+
       procedure Append_Nested_Setter_Specs
         (Info       : GM.Type_Descriptor;
          Path_Names : FT.UString_Vectors.Vector)
@@ -1207,38 +1367,81 @@ package body Safe_Frontend.Ada_Emit is
         (Buffer,
          "procedure " & Shared_Set_All_Name & " (Value : in " & Record_Type & ");",
          2);
-      for Field of Base_Info.Fields loop
+      if Is_Container_Root then
+         Append_Line
+           (Buffer,
+            "function " & Shared_Get_Length_Name & " return " & Integer_Type_Name & ";",
+            2);
+         if Try_Map_Key_Value_Types (Unit, Document, Decl.Type_Info, Key_Info, Value_Info) then
+            Append_Line
+              (Buffer,
+               "function " & Shared_Contains_Name & " (Key : in "
+               & Render_Type_Name (Key_Info) & ") return boolean;",
+               2);
+            Append_Line
+              (Buffer,
+               "function " & Shared_Get_Name & " (Key : in "
+               & Render_Type_Name (Key_Info) & ") return "
+               & Optional_Type_Name (Value_Info) & ";",
+               2);
+            Append_Line
+              (Buffer,
+               "procedure " & Shared_Set_Name & " (Key : in "
+               & Render_Type_Name (Key_Info) & "; Value : in "
+               & Render_Type_Name (Value_Info) & ");",
+               2);
+            Append_Line
+              (Buffer,
+               "procedure " & Shared_Remove_Name & " (Key : in "
+               & Render_Type_Name (Key_Info) & "; Result : out "
+               & Optional_Type_Name (Value_Info) & ");",
+               2);
+         else
+            Append_Line
+              (Buffer,
+               "procedure " & Shared_Append_Name & " (Value : in "
+               & Render_Type_Name (Element_Info) & ");",
+               2);
+            Append_Line
+              (Buffer,
+               "procedure " & Shared_Pop_Last_Name & " (Result : out "
+               & Optional_Type_Name (Element_Info) & ");",
+               2);
+         end if;
+      else
+         for Field of Base_Info.Fields loop
+            declare
+               Field_Type_Name : constant String :=
+                 Render_Type_Name_From_Text
+                   (Unit,
+                    Document,
+                    FT.To_String (Field.Type_Name),
+                    State);
+            begin
+               Append_Line
+                 (Buffer,
+                  "function "
+                  & Shared_Field_Getter_Name (FT.To_String (Field.Name))
+                  & " return "
+                  & Field_Type_Name
+                  & ";",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "procedure "
+                  & Shared_Field_Setter_Name (FT.To_String (Field.Name))
+                  & " (Value : in "
+                  & Field_Type_Name
+                  & ");",
+                  2);
+            end;
+         end loop;
          declare
-            Field_Type_Name : constant String :=
-              Render_Type_Name_From_Text
-                (Unit,
-                 Document,
-                 FT.To_String (Field.Type_Name),
-                 State);
+            Empty_Path : FT.UString_Vectors.Vector;
          begin
-            Append_Line
-              (Buffer,
-               "function "
-               & Shared_Field_Getter_Name (FT.To_String (Field.Name))
-               & " return "
-               & Field_Type_Name
-               & ";",
-               2);
-            Append_Line
-              (Buffer,
-               "procedure "
-               & Shared_Field_Setter_Name (FT.To_String (Field.Name))
-               & " (Value : in "
-               & Field_Type_Name
-               & ");",
-               2);
+            Append_Nested_Setter_Specs (Decl.Type_Info, Empty_Path);
          end;
-      end loop;
-      declare
-         Empty_Path : FT.UString_Vectors.Vector;
-      begin
-         Append_Nested_Setter_Specs (Decl.Type_Info, Empty_Path);
-      end;
+      end if;
       Append_Line
         (Buffer,
          "procedure Initialize (Value : in " & Record_Type & ");",
@@ -1267,8 +1470,21 @@ package body Safe_Frontend.Ada_Emit is
       Base_Info    : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
       Heap_Root    : constant Boolean :=
         Has_Heap_Value_Type (Unit, Document, Decl.Type_Info);
+      Is_Container_Root : constant Boolean :=
+        Is_Growable_Array_Type (Unit, Document, Decl.Type_Info);
+      Integer_Type_Name : constant String :=
+        Render_Type_Name (Resolve_Type_Name (Unit, Document, "integer"));
       Generated_Shared_Helpers : FT.UString_Vectors.Vector;
       Runtime_Dependency_Types  : FT.UString_Vectors.Vector;
+
+      function Optional_Type_Info (Info : GM.Type_Descriptor) return GM.Type_Descriptor is
+      begin
+         return
+           Lookup_Type
+             (Unit,
+              Document,
+              "__optional_" & Sanitize_Type_Name_Component (FT.To_String (Info.Name)));
+      end Optional_Type_Info;
 
       function Shared_Helper_Key (Info : GM.Type_Descriptor) return String is
       begin
@@ -1596,9 +1812,16 @@ package body Safe_Frontend.Ada_Emit is
             end if;
          end Append_Record_Free_Statements;
       begin
-         if not Needs_Generated_Shared_Helper (Info)
-           or else Contains_Name (Generated_Shared_Helpers, Type_Key)
-         then
+         if Contains_Name (Generated_Shared_Helpers, Type_Key) then
+            return;
+         end if;
+
+         if not Needs_Generated_Shared_Helper (Info) then
+            if Is_Growable_Array_Type (Unit, Document, Base)
+              and then Base.Has_Component_Type
+            then
+               Ensure_Helper (FT.To_String (Base.Component_Type));
+            end if;
             return;
          end if;
 
@@ -1929,10 +2152,14 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       Append_Line (Buffer, "begin", 2);
       if Heap_Root then
-         Append_Line
-           (Buffer,
-            Shared_Copy_Helper_Name (Decl.Type_Info) & " (Result, State_Value);",
-            3);
+         if Is_Container_Root then
+            Append_Copy_Value ("Result", "State_Value", Decl.Type_Info, 3);
+         else
+            Append_Line
+              (Buffer,
+               Shared_Copy_Helper_Name (Decl.Type_Info) & " (Result, State_Value);",
+               3);
+         end if;
          Append_Line (Buffer, "return Result;", 3);
       else
          Append_Line (Buffer, "return State_Value;", 3);
@@ -1950,86 +2177,578 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "begin", 2);
       if Heap_Root then
          Append_Free_Value ("State_Value", Decl.Type_Info, 3);
-         Append_Line
-           (Buffer,
-            Shared_Copy_Helper_Name (Decl.Type_Info) & " (State_Value, Value);",
-            3);
+         if Is_Container_Root then
+            Append_Copy_Value ("State_Value", "Value", Decl.Type_Info, 3);
+         else
+            Append_Line
+              (Buffer,
+               Shared_Copy_Helper_Name (Decl.Type_Info) & " (State_Value, Value);",
+               3);
+         end if;
       else
          Append_Line (Buffer, "State_Value := Value;", 3);
       end if;
       Append_Line (Buffer, "end " & Shared_Set_All_Name & ";", 2);
       Append_Line (Buffer);
-      for Field of Base_Info.Fields loop
+      if Is_Container_Root then
          declare
-            Field_Info : constant GM.Type_Descriptor :=
-              Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-            Field_Type_Name : constant String :=
-              Render_Type_Name_From_Text
-                (Unit,
-                 Document,
-                 FT.To_String (Field.Type_Name),
-                 State);
-            Getter_Name : constant String := Shared_Field_Getter_Name (FT.To_String (Field.Name));
-            Setter_Name : constant String := Shared_Field_Setter_Name (FT.To_String (Field.Name));
-            Field_Image : constant String := FT.To_String (Field.Name);
+            Runtime_Name : constant String := Array_Runtime_Instance_Name (Base_Info);
+            Element_Free_Name : constant String :=
+              Array_Runtime_Free_Element_Name (Base_Info);
+            Element_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name (Unit, Document, FT.To_String (Base_Info.Component_Type));
+            Key_Info     : GM.Type_Descriptor := (others => <>);
+            Value_Info   : GM.Type_Descriptor := (others => <>);
          begin
             Append_Line
               (Buffer,
-               "function " & Getter_Name & " return "
-               & Field_Type_Name & " is",
+               "function " & Shared_Get_Length_Name & " return "
+               & Integer_Type_Name & " is",
                2);
-            if Heap_Root then
-               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
-            end if;
-            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-               Append_Line
-                 (Buffer,
-                  "Result : " & Field_Type_Name & " := "
-                  & Default_Value_Expr (Unit, Document, Field_Info)
-                  & ";",
-                  2);
-            end if;
+            Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
             Append_Line (Buffer, "begin", 2);
-            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-               Append_Copy_Value
-                 ("Result",
-                  "State_Value." & Field_Image,
-                  Field_Info,
-                  3);
-               Append_Line (Buffer, "return Result;", 3);
-            else
-               Append_Line (Buffer, "return State_Value." & Field_Image & ";", 3);
-            end if;
-            Append_Line (Buffer, "end " & Getter_Name & ";", 2);
-            Append_Line (Buffer);
             Append_Line
               (Buffer,
-               "procedure " & Setter_Name & " (Value : in "
-               & Field_Type_Name & ") is",
-               2);
-            if Heap_Root then
-               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
-            end if;
-            Append_Line (Buffer, "begin", 2);
-            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-               Append_Free_Value ("State_Value." & Field_Image, Field_Info, 3);
-               Append_Copy_Value
-                 ("State_Value." & Field_Image,
-                  "Value",
-                  Field_Info,
-                  3);
-            else
-               Append_Line (Buffer, "State_Value." & Field_Image & " := Value;", 3);
-            end if;
-            Append_Line (Buffer, "end " & Setter_Name & ";", 2);
+               "return " & Integer_Type_Name & " (" & Runtime_Name & ".Length (State_Value));",
+               3);
+            Append_Line (Buffer, "end " & Shared_Get_Length_Name & ";", 2);
             Append_Line (Buffer);
+
+            if Try_Map_Key_Value_Types (Unit, Document, Decl.Type_Info, Key_Info, Value_Info) then
+               declare
+                  Entry_Type_Name     : constant String := Render_Type_Name (Element_Info);
+                  Key_Type_Name       : constant String := Render_Type_Name (Key_Info);
+                  Value_Type_Name     : constant String := Render_Type_Name (Value_Info);
+                  Optional_Value_Info : constant GM.Type_Descriptor :=
+                    Optional_Type_Info (Value_Info);
+                  Optional_Value_Name : constant String :=
+                    Render_Type_Name (Optional_Value_Info);
+
+                  function Key_Equality_Image
+                    (Left_Image  : String;
+                     Right_Image : String) return String
+                  is
+                     Base_Key : constant GM.Type_Descriptor :=
+                       Base_Type (Unit, Document, Key_Info);
+                     Key_Kind : constant String :=
+                       FT.Lowercase (FT.To_String (Base_Key.Kind));
+                     Key_Name : constant String :=
+                       FT.Lowercase (FT.To_String (Base_Key.Name));
+                  begin
+                     if Is_Plain_String_Type (Unit, Document, Key_Info) then
+                        return
+                          "Safe_String_RT.To_String ("
+                          & Left_Image
+                          & ") = Safe_String_RT.To_String ("
+                          & Right_Image
+                          & ")";
+                     elsif Is_Bounded_String_Type (Key_Info)
+                       or else Key_Kind = "string"
+                       or else Key_Name = "string"
+                     then
+                        return Left_Image & " = " & Right_Image;
+                     end if;
+
+                     return Left_Image & " = " & Right_Image;
+                  end Key_Equality_Image;
+               begin
+                  Append_Line
+                    (Buffer,
+                     "function " & Shared_Contains_Name & " (Key : in "
+                     & Key_Type_Name & ") return boolean is",
+                     2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     "Length_Value : constant Natural := " & Runtime_Name & ".Length (State_Value);",
+                     2);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
+                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
+                  Append_Line (Buffer, "declare", 5);
+                  Append_Line
+                    (Buffer,
+                     "Current_Entry : " & Entry_Type_Name & " := "
+                     & Runtime_Name & ".Element (State_Value, Index);",
+                     6);
+                  Append_Line (Buffer, "begin", 5);
+                  Append_Line
+                    (Buffer,
+                     "if "
+                     & Key_Equality_Image
+                       ("Current_Entry." & Tuple_Field_Name (1),
+                        "Key")
+                     & " then",
+                     6);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     7);
+                  Append_Line (Buffer, "return True;", 7);
+                  Append_Line (Buffer, "end if;", 6);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     6);
+                  Append_Line (Buffer, "end;", 5);
+                  Append_Line (Buffer, "end loop;", 4);
+                  Append_Line (Buffer, "end if;", 3);
+                  Append_Line (Buffer, "return False;", 3);
+                  Append_Line (Buffer, "end " & Shared_Contains_Name & ";", 2);
+                  Append_Line (Buffer);
+
+                  Append_Line
+                    (Buffer,
+                     "function " & Shared_Get_Name & " (Key : in "
+                     & Key_Type_Name & ") return " & Optional_Value_Name & " is",
+                     2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     "Length_Value : constant Natural := " & Runtime_Name & ".Length (State_Value);",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "Result : " & Optional_Value_Name & " := "
+                     & Default_Value_Expr (Unit, Document, Optional_Value_Info) & ";",
+                     2);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
+                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
+                  Append_Line (Buffer, "declare", 5);
+                  Append_Line
+                    (Buffer,
+                     "Current_Entry : " & Entry_Type_Name & " := "
+                     & Runtime_Name & ".Element (State_Value, Index);",
+                     6);
+                  Append_Line (Buffer, "begin", 5);
+                  Append_Line
+                    (Buffer,
+                     "if "
+                     & Key_Equality_Image
+                       ("Current_Entry." & Tuple_Field_Name (1),
+                        "Key")
+                     & " then",
+                     6);
+                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                     Append_Line (Buffer, "Result.present := True;", 7);
+                     Append_Copy_Value
+                       ("Result.value",
+                        "Current_Entry." & Tuple_Field_Name (2),
+                        Value_Info,
+                        7);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "Result := (present => True, value => Current_Entry." & Tuple_Field_Name (2) & ");",
+                        7);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     7);
+                  Append_Line (Buffer, "return Result;", 7);
+                  Append_Line (Buffer, "end if;", 6);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     6);
+                  Append_Line (Buffer, "end;", 5);
+                  Append_Line (Buffer, "end loop;", 4);
+                  Append_Line (Buffer, "end if;", 3);
+                  Append_Line (Buffer, "return Result;", 3);
+                  Append_Line (Buffer, "end " & Shared_Get_Name & ";", 2);
+                  Append_Line (Buffer);
+
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Shared_Set_Name & " (Key : in "
+                     & Key_Type_Name & "; Value : in " & Value_Type_Name & ") is",
+                     2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     "Length_Value : constant Natural := " & Runtime_Name & ".Length (State_Value);",
+                     2);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
+                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
+                  Append_Line (Buffer, "declare", 5);
+                  Append_Line
+                    (Buffer,
+                     "Current_Entry : " & Entry_Type_Name & " := "
+                     & Runtime_Name & ".Element (State_Value, Index);",
+                     6);
+                  Append_Line
+                    (Buffer,
+                     "New_Entry : " & Entry_Type_Name & " := (others => <>);",
+                     6);
+                  Append_Line (Buffer, "begin", 5);
+                  Append_Line
+                    (Buffer,
+                     "if "
+                     & Key_Equality_Image
+                       ("Current_Entry." & Tuple_Field_Name (1),
+                        "Key")
+                     & " then",
+                     6);
+                  if Has_Heap_Value_Type (Unit, Document, Key_Info) then
+                     Append_Copy_Value
+                       ("New_Entry." & Tuple_Field_Name (1),
+                        "Key",
+                        Key_Info,
+                        7);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "New_Entry." & Tuple_Field_Name (1) & " := Key;",
+                        7);
+                  end if;
+                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                     Append_Copy_Value
+                       ("New_Entry." & Tuple_Field_Name (2),
+                        "Value",
+                        Value_Info,
+                        7);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "New_Entry." & Tuple_Field_Name (2) & " := Value;",
+                        7);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     Runtime_Name & ".Replace_Element (State_Value, Index, New_Entry);",
+                     7);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     7);
+                  Append_Line (Buffer, "return;", 7);
+                  Append_Line (Buffer, "end if;", 6);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     6);
+                  Append_Line (Buffer, "end;", 5);
+                  Append_Line (Buffer, "end loop;", 4);
+                  Append_Line (Buffer, "end if;", 3);
+                  Append_Line (Buffer, "declare", 3);
+                  Append_Line
+                    (Buffer,
+                     "New_Entry : " & Entry_Type_Name & " := (others => <>);",
+                     4);
+                  Append_Line (Buffer, "begin", 3);
+                  if Has_Heap_Value_Type (Unit, Document, Key_Info) then
+                     Append_Copy_Value
+                       ("New_Entry." & Tuple_Field_Name (1),
+                        "Key",
+                        Key_Info,
+                        4);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "New_Entry." & Tuple_Field_Name (1) & " := Key;",
+                        4);
+                  end if;
+                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                     Append_Copy_Value
+                       ("New_Entry." & Tuple_Field_Name (2),
+                        "Value",
+                        Value_Info,
+                        4);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "New_Entry." & Tuple_Field_Name (2) & " := Value;",
+                        4);
+                  end if;
+                  Append_Line (Buffer, "declare", 4);
+                  Append_Line
+                    (Buffer,
+                     "Tail : " & Root_Type & " := "
+                     & Runtime_Name & ".From_Array ((1 => New_Entry));",
+                     5);
+                  Append_Line
+                    (Buffer,
+                     "Updated : constant " & Root_Type & " := "
+                     & Runtime_Name & ".Concat (State_Value, Tail);",
+                     5);
+                  Append_Line (Buffer, "begin", 4);
+                  Append_Free_Value ("State_Value", Decl.Type_Info, 5);
+                  Append_Free_Value ("Tail", Decl.Type_Info, 5);
+                  Append_Line (Buffer, "State_Value := Updated;", 5);
+                  Append_Line (Buffer, "end;", 4);
+                  Append_Line (Buffer, "end;", 3);
+                  Append_Line (Buffer, "end " & Shared_Set_Name & ";", 2);
+                  Append_Line (Buffer);
+
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Shared_Remove_Name & " (Key : in "
+                     & Key_Type_Name & "; Result : out "
+                     & Optional_Value_Name & ") is",
+                     2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     "Length_Value : constant Natural := " & Runtime_Name & ".Length (State_Value);",
+                     2);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Line
+                    (Buffer,
+                     "Result := " & Default_Value_Expr (Unit, Document, Optional_Value_Info) & ";",
+                     3);
+                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
+                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
+                  Append_Line (Buffer, "declare", 5);
+                  Append_Line
+                    (Buffer,
+                     "Current_Entry : " & Entry_Type_Name & " := "
+                     & Runtime_Name & ".Element (State_Value, Index);",
+                     6);
+                  Append_Line (Buffer, "begin", 5);
+                  Append_Line
+                    (Buffer,
+                     "if "
+                     & Key_Equality_Image
+                       ("Current_Entry." & Tuple_Field_Name (1),
+                        "Key")
+                     & " then",
+                     6);
+                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                     Append_Line (Buffer, "Result.present := True;", 7);
+                     Append_Copy_Value
+                       ("Result.value",
+                        "Current_Entry." & Tuple_Field_Name (2),
+                        Value_Info,
+                        7);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "Result := (present => True, value => Current_Entry." & Tuple_Field_Name (2) & ");",
+                        7);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     7);
+                  Append_Line
+                    (Buffer,
+                     "if Index < Positive (Length_Value) then",
+                     7);
+                  Append_Line (Buffer, "declare", 8);
+                  Append_Line
+                    (Buffer,
+                     "Replacement_Entry : " & Entry_Type_Name & " := "
+                     & Runtime_Name & ".Element (State_Value, Positive (Length_Value));",
+                     9);
+                  Append_Line (Buffer, "begin", 8);
+                  Append_Line
+                    (Buffer,
+                     Runtime_Name & ".Replace_Element (State_Value, Index, Replacement_Entry);",
+                     9);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Replacement_Entry);",
+                     9);
+                  Append_Line (Buffer, "end;", 8);
+                  Append_Line (Buffer, "end if;", 7);
+                  Append_Line (Buffer, "declare", 7);
+                  Append_Line
+                    (Buffer,
+                     "Updated : constant " & Root_Type & " := "
+                     & "(if Length_Value = 1 then " & Runtime_Name & ".Empty else "
+                     & Runtime_Name & ".Slice (State_Value, 1, Length_Value - 1));",
+                     8);
+                  Append_Line (Buffer, "begin", 7);
+                  Append_Free_Value ("State_Value", Decl.Type_Info, 8);
+                  Append_Line (Buffer, "State_Value := Updated;", 8);
+                  Append_Line (Buffer, "end;", 7);
+                  Append_Line (Buffer, "return;", 7);
+                  Append_Line (Buffer, "end if;", 6);
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Current_Entry);",
+                     6);
+                  Append_Line (Buffer, "end;", 5);
+                  Append_Line (Buffer, "end loop;", 4);
+                  Append_Line (Buffer, "end if;", 3);
+                  Append_Line (Buffer, "end " & Shared_Remove_Name & ";", 2);
+                  Append_Line (Buffer);
+               end;
+            else
+               declare
+                  Element_Type_Name     : constant String := Render_Type_Name (Element_Info);
+                  Optional_Element_Info : constant GM.Type_Descriptor :=
+                    Optional_Type_Info (Element_Info);
+                  Optional_Element_Name : constant String :=
+                    Render_Type_Name (Optional_Element_Info);
+               begin
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Shared_Append_Name & " (Value : in "
+                     & Element_Type_Name & ") is",
+                     2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     "Tail : " & Root_Type & " := "
+                     & Runtime_Name & ".From_Array ((1 => Value));",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "Updated : constant " & Root_Type & " := "
+                     & Runtime_Name & ".Concat (State_Value, Tail);",
+                     2);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Free_Value ("State_Value", Decl.Type_Info, 3);
+                  Append_Free_Value ("Tail", Decl.Type_Info, 3);
+                  Append_Line (Buffer, "State_Value := Updated;", 3);
+                  Append_Line (Buffer, "end " & Shared_Append_Name & ";", 2);
+                  Append_Line (Buffer);
+
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Shared_Pop_Last_Name & " (Result : out "
+                     & Optional_Element_Name & ") is",
+                     2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     "Length_Value : constant Natural := "
+                     & Runtime_Name & ".Length (State_Value);",
+                     2);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Line
+                    (Buffer,
+                     "Result := " & Default_Value_Expr (Unit, Document, Optional_Element_Info) & ";",
+                     3);
+                  Append_Line (Buffer, "if Length_Value = 0 then", 3);
+                  Append_Line (Buffer, "return;", 4);
+                  Append_Line (Buffer, "end if;", 3);
+                  Append_Line (Buffer, "declare", 3);
+                  Append_Line
+                    (Buffer,
+                     "Last_Value : " & Element_Type_Name & " := "
+                     & Runtime_Name & ".Element (State_Value, Positive (Length_Value));",
+                     4);
+                  Append_Line (Buffer, "begin", 3);
+                  if Has_Heap_Value_Type (Unit, Document, Element_Info) then
+                     Append_Line (Buffer, "Result.present := True;", 4);
+                     Append_Copy_Value ("Result.value", "Last_Value", Element_Info, 4);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "Result := (present => True, value => Last_Value);",
+                        4);
+                  end if;
+                  Append_Line
+                    (Buffer,
+                     Element_Free_Name & " (Last_Value);",
+                     4);
+                  Append_Line (Buffer, "end;", 3);
+                  Append_Line (Buffer, "declare", 3);
+                  Append_Line
+                    (Buffer,
+                     "Updated : constant " & Root_Type & " := "
+                     & "(if Length_Value = 1 then " & Runtime_Name & ".Empty else "
+                     & Runtime_Name & ".Slice (State_Value, 1, Length_Value - 1));",
+                     4);
+                  Append_Line (Buffer, "begin", 3);
+                  Append_Free_Value ("State_Value", Decl.Type_Info, 4);
+                  Append_Line (Buffer, "State_Value := Updated;", 4);
+                  Append_Line (Buffer, "end;", 3);
+                  Append_Line (Buffer, "end " & Shared_Pop_Last_Name & ";", 2);
+                  Append_Line (Buffer);
+               end;
+            end if;
          end;
-      end loop;
-      declare
-         Empty_Path : FT.UString_Vectors.Vector;
-      begin
-         Append_Nested_Setter_Bodies (Decl.Type_Info, Empty_Path);
-      end;
+      else
+         for Field of Base_Info.Fields loop
+            declare
+               Field_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+               Field_Type_Name : constant String :=
+                 Render_Type_Name_From_Text
+                   (Unit,
+                    Document,
+                    FT.To_String (Field.Type_Name),
+                    State);
+               Getter_Name : constant String := Shared_Field_Getter_Name (FT.To_String (Field.Name));
+               Setter_Name : constant String := Shared_Field_Setter_Name (FT.To_String (Field.Name));
+               Field_Image : constant String := FT.To_String (Field.Name);
+            begin
+               Append_Line
+                 (Buffer,
+                  "function " & Getter_Name & " return "
+                  & Field_Type_Name & " is",
+                  2);
+               if Heap_Root then
+                  Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+               end if;
+               if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                  Append_Line
+                    (Buffer,
+                     "Result : " & Field_Type_Name & " := "
+                     & Default_Value_Expr (Unit, Document, Field_Info)
+                     & ";",
+                     2);
+               end if;
+               Append_Line (Buffer, "begin", 2);
+               if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                  Append_Copy_Value
+                    ("Result",
+                     "State_Value." & Field_Image,
+                     Field_Info,
+                     3);
+                  Append_Line (Buffer, "return Result;", 3);
+               else
+                  Append_Line (Buffer, "return State_Value." & Field_Image & ";", 3);
+               end if;
+               Append_Line (Buffer, "end " & Getter_Name & ";", 2);
+               Append_Line (Buffer);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Setter_Name & " (Value : in "
+                  & Field_Type_Name & ") is",
+                  2);
+               if Heap_Root then
+                  Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+               end if;
+               Append_Line (Buffer, "begin", 2);
+               if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                  Append_Free_Value ("State_Value." & Field_Image, Field_Info, 3);
+                  Append_Copy_Value
+                    ("State_Value." & Field_Image,
+                     "Value",
+                     Field_Info,
+                     3);
+               else
+                  Append_Line (Buffer, "State_Value." & Field_Image & " := Value;", 3);
+               end if;
+               Append_Line (Buffer, "end " & Setter_Name & ";", 2);
+               Append_Line (Buffer);
+            end;
+         end loop;
+         declare
+            Empty_Path : FT.UString_Vectors.Vector;
+         begin
+            Append_Nested_Setter_Bodies (Decl.Type_Info, Empty_Path);
+         end;
+      end if;
       Append_Line
         (Buffer,
          "procedure Initialize (Value : in " & Root_Type & ") is",
@@ -2040,10 +2759,14 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "begin", 2);
       if Heap_Root then
          Append_Free_Value ("State_Value", Decl.Type_Info, 3);
-         Append_Line
-           (Buffer,
-            Shared_Copy_Helper_Name (Decl.Type_Info) & " (State_Value, Value);",
-            3);
+         if Is_Container_Root then
+            Append_Copy_Value ("State_Value", "Value", Decl.Type_Info, 3);
+         else
+            Append_Line
+              (Buffer,
+               Shared_Copy_Helper_Name (Decl.Type_Info) & " (State_Value, Value);",
+               3);
+         end if;
       else
          Append_Line (Buffer, "State_Value := Value;", 3);
       end if;
@@ -4845,6 +5568,51 @@ package body Safe_Frontend.Ada_Emit is
       return FT.Lowercase (FT.To_String (Base.Kind)) = "array"
         and then Base.Growable;
    end Is_Growable_Array_Type;
+
+   function Try_Map_Key_Value_Types
+     (Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Info       : GM.Type_Descriptor;
+      Key_Type   : out GM.Type_Descriptor;
+      Value_Type : out GM.Type_Descriptor) return Boolean
+   is
+      Base       : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Entry_Type : GM.Type_Descriptor := (others => <>);
+   begin
+      Key_Type := (others => <>);
+      Value_Type := (others => <>);
+
+      if not Is_Growable_Array_Type (Unit, Document, Base)
+        or else not Base.Has_Component_Type
+      then
+         return False;
+      end if;
+
+      Entry_Type :=
+        Base_Type
+          (Unit,
+           Document,
+           Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type)));
+      if FT.Lowercase (FT.To_String (Entry_Type.Kind)) /= "tuple"
+        or else Natural (Entry_Type.Tuple_Element_Types.Length) /= 2
+      then
+         return False;
+      end if;
+
+      Key_Type :=
+        Resolve_Type_Name
+          (Unit,
+           Document,
+           FT.To_String
+             (Entry_Type.Tuple_Element_Types (Entry_Type.Tuple_Element_Types.First_Index)));
+      Value_Type :=
+        Resolve_Type_Name
+          (Unit,
+           Document,
+           FT.To_String
+             (Entry_Type.Tuple_Element_Types (Entry_Type.Tuple_Element_Types.First_Index + 1)));
+      return True;
+   end Try_Map_Key_Value_Types;
 
    function Constant_Cleanup_Uses_Shared_Runtime_Free
      (Unit      : CM.Resolved_Unit;
@@ -15175,25 +15943,34 @@ package body Safe_Frontend.Ada_Emit is
            and then Call_Expr.Callee.Prefix.Kind = CM.Expr_Ident
          then
             declare
-               Shared_Formal_Found : Boolean := False;
-               Shared_Formal_Type  : constant GM.Type_Descriptor :=
-                 Shared_Wrapper_Formal_Type
-                   (Unit,
-                    Document,
-                    FT.To_String (Call_Expr.Callee.Prefix.Name),
-                    FT.To_String (Call_Expr.Callee.Selector),
-                    1,
-                    Shared_Formal_Found);
                Formal : CM.Symbol;
             begin
-               if Shared_Formal_Found then
-                  Formal.Name := FT.To_UString ("Value");
-                  Formal.Kind := FT.To_UString ("param");
-                  Formal.Mode := FT.To_UString ("in");
-                  Formal.Type_Info := Shared_Formal_Type;
+               for Position in 1 .. Natural (Call_Expr.Args.Length) loop
+                  declare
+                     Shared_Formal_Found : Boolean := False;
+                     Shared_Formal_Type  : constant GM.Type_Descriptor :=
+                       Shared_Wrapper_Formal_Type
+                         (Unit,
+                          Document,
+                          FT.To_String (Call_Expr.Callee.Prefix.Name),
+                          FT.To_String (Call_Expr.Callee.Selector),
+                          Position,
+                          Shared_Formal_Found);
+                  begin
+                     exit when not Shared_Formal_Found;
+                     Formal.Name :=
+                       FT.To_UString
+                         ("Value_" & Ada.Strings.Fixed.Trim (Positive'Image (Position), Ada.Strings.Both));
+                     Formal.Kind := FT.To_UString ("param");
+                     Formal.Mode := FT.To_UString ("in");
+                     Formal.Type_Info := Shared_Formal_Type;
+                     Subprogram.Params.Append (Formal);
+                  end;
+               end loop;
+
+               if not Subprogram.Params.Is_Empty then
                   Subprogram.Name := Call_Expr.Callee.Selector;
                   Subprogram.Kind := FT.To_UString ("procedure");
-                  Subprogram.Params.Append (Formal);
                   return True;
                end if;
             end;

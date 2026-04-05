@@ -1,0 +1,49 @@
+package pr1112d_shared_map_root_build
+
+   shared cache : map of (string, integer);
+   snapshot : map of (string, integer);
+   replacement : map of (string, integer);
+   item : optional integer;
+   removed : optional integer;
+
+   function seeded returns map of (string, integer)
+      var values : map of (string, integer);
+
+      set (values, "one", 1);
+      return values;
+
+   function load_replacement
+      set (replacement, "ten", 10);
+
+   function unwrap (item : optional integer) returns integer
+      if item.present
+         return item.value;
+      else
+         return -1;
+
+   function lookup_or_none (source : map of (string, integer); key : string) returns integer
+      var found : optional integer;
+
+      found = get (source, key);
+      return unwrap (found);
+
+   cache = seeded ();
+   cache.set ("two", 2);
+
+   print (cache.length);
+   item = cache.get ("two");
+   print (unwrap (item));
+
+   if cache.contains ("one")
+      print (1);
+   else
+      print (0);
+
+   removed = cache.remove ("one");
+   print (unwrap (removed));
+   print (cache.length);
+
+   load_replacement ();
+   cache = replacement;
+   snapshot = cache;
+   print (lookup_or_none (snapshot, "ten"));

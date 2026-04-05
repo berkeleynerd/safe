@@ -604,6 +604,21 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_list_root_build.safe",
+        "4\n4\n3\n9\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_map_root_build.safe",
+        "2\n2\n1\n1\n1\n10\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_growable_root_build.safe",
+        "3\n7\n2\n9\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
         "ok\n",
         False,
@@ -1158,6 +1173,54 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "Safe_Shared_cfg_settings_Copy (State_Value, Value);",
         ],
     ),
+    (
+        "shared-list-root-wrapper-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_list_root_build.safe",
+        [
+            "protected type Safe_Shared_values_Wrapper with Priority => System.Any_Priority'Last is",
+            "function Get_All return Safe_growable_array_integer;",
+            "procedure Set_All (Value : in Safe_growable_array_integer);",
+            "function Get_Length return Long_Long_Integer;",
+            "procedure Append (Value : in Long_Long_Integer);",
+            "procedure Pop_Last (Result : out",
+            "Safe_Shared_values.Append (3);",
+            "Safe_Shared_values.Append (4);",
+            "Safe_Shared_values.Pop_Last",
+        ],
+    ),
+    (
+        "shared-map-root-wrapper-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_map_root_build.safe",
+        [
+            "protected type Safe_Shared_cache_Wrapper with Priority => System.Any_Priority'Last is",
+            "function Get_All return Safe_growable_array_tuple_string_integer;",
+            "procedure Set_All (Value : in Safe_growable_array_tuple_string_integer);",
+            "function Get_Length return Long_Long_Integer;",
+            "function Contains (Key : in",
+            "function Get (Key : in",
+            "procedure Set (Key : in",
+            "procedure Remove (Key : in",
+            "Safe_Shared_cache.Set (Safe_String_RT.From_Literal (\"two\"), 2);",
+            "Safe_Shared_cache.Get (Safe_String_RT.From_Literal (\"two\"))",
+            "Safe_Shared_cache.Contains (Safe_String_RT.From_Literal (\"one\"))",
+            "Safe_Shared_cache.Remove (Safe_String_RT.From_Literal (\"one\"), removed);",
+        ],
+    ),
+    (
+        "shared-growable-root-wrapper-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_growable_root_build.safe",
+        [
+            "protected type Safe_Shared_data_Wrapper with Priority => System.Any_Priority'Last is",
+            "function Get_All return Safe_growable_array_integer;",
+            "procedure Set_All (Value : in Safe_growable_array_integer);",
+            "function Get_Length return Long_Long_Integer;",
+            "procedure Append (Value : in Long_Long_Integer);",
+            "procedure Pop_Last (Result : out",
+            "Safe_Shared_data.Append (6);",
+            "Safe_Shared_data.Append (7);",
+            "Safe_Shared_data.Pop_Last",
+        ],
+    ),
 ]
 
 EMITTED_PROTECTED_BODY_SHAPE_CASES = [
@@ -1211,6 +1274,24 @@ EMITTED_PROTECTED_BODY_SHAPE_CASES = [
             "State_Value.names := Value;",
             "return State_Value.data;",
             "State_Value.data := Value;",
+        ],
+    ),
+    (
+        "shared-list-root-protected-body-no-raw-state-assignments",
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_list_root_build.safe",
+        "Safe_Shared_values_Wrapper",
+        [
+            "return State_Value;",
+            "State_Value := Value;",
+        ],
+    ),
+    (
+        "shared-map-root-protected-body-no-raw-state-assignments",
+        REPO_ROOT / "tests" / "build" / "pr1112d_shared_map_root_build.safe",
+        "Safe_Shared_cache_Wrapper",
+        [
+            "return State_Value;",
+            "State_Value := Value;",
         ],
     ),
 ]

@@ -664,11 +664,37 @@ package body Safe_Frontend.Check_Resolve is
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
+   function Is_Shared_Record_Root_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Shared_Container_Root_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Shared_Root_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
    function Shared_Wrapper_Object_Name (Root_Name : String) return String;
 
    function Shared_Get_All_Name return String;
 
    function Shared_Set_All_Name return String;
+
+   function Shared_Get_Length_Name return String;
+
+   function Shared_Append_Name return String;
+
+   function Shared_Pop_Last_Name return String;
+
+   function Shared_Contains_Name return String;
+
+   function Shared_Get_Name return String;
+
+   function Shared_Set_Name return String;
+
+   function Shared_Remove_Name return String;
 
    function Shared_Field_Getter_Name (Field_Name : String) return String;
 
@@ -682,7 +708,23 @@ package body Safe_Frontend.Check_Resolve is
       Root_Type : GM.Type_Descriptor;
       Span      : FT.Source_Span) return CM.Expr_Access;
 
+   function Shared_Wrapper_Call_Expr
+     (Root_Name : String;
+      Selector  : String;
+      Span      : FT.Source_Span;
+      Type_Name : String := "") return CM.Expr_Access;
+
    function Is_Shared_Object_Name (Name : String) return Boolean;
+
+   function Try_Shared_Root_Name_Expr
+     (Expr      : CM.Expr_Access;
+      Root_Name : out FT.UString;
+      Root_Type : out GM.Type_Descriptor) return Boolean;
+
+   function Try_Shared_Wrapper_Root_Name_Expr
+     (Expr      : CM.Expr_Access;
+      Root_Name : out FT.UString;
+      Root_Type : out GM.Type_Descriptor) return Boolean;
 
    function Try_Shared_Top_Level_Field_Access
      (Expr       : CM.Expr_Access;
@@ -1406,6 +1448,37 @@ package body Safe_Frontend.Check_Resolve is
         or else Is_Boolean_Type (Base, Type_Env);
    end Is_Shared_Field_Type_Allowed;
 
+   function Is_Shared_Record_Root_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+      Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
+   begin
+      return Kind = "record"
+        and then not Is_Optional_Type (Base, Type_Env)
+        and then not Base.Has_Discriminant
+        and then Base.Discriminants.Is_Empty
+        and then Base.Variant_Fields.Is_Empty;
+   end Is_Shared_Record_Root_Type;
+
+   function Is_Shared_Container_Root_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return Is_Growable_Array_Type (Info, Type_Env);
+   end Is_Shared_Container_Root_Type;
+
+   function Is_Shared_Root_Type_Allowed
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return
+        (Is_Shared_Record_Root_Type (Info, Type_Env)
+         or else Is_Shared_Container_Root_Type (Info, Type_Env))
+        and then Is_Shared_Field_Type_Allowed (Info, Type_Env);
+   end Is_Shared_Root_Type_Allowed;
+
    function Shared_Wrapper_Object_Name (Root_Name : String) return String is
    begin
       return
@@ -1422,6 +1495,41 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return "Set_All";
    end Shared_Set_All_Name;
+
+   function Shared_Get_Length_Name return String is
+   begin
+      return "Get_Length";
+   end Shared_Get_Length_Name;
+
+   function Shared_Append_Name return String is
+   begin
+      return "Append";
+   end Shared_Append_Name;
+
+   function Shared_Pop_Last_Name return String is
+   begin
+      return "Pop_Last";
+   end Shared_Pop_Last_Name;
+
+   function Shared_Contains_Name return String is
+   begin
+      return "Contains";
+   end Shared_Contains_Name;
+
+   function Shared_Get_Name return String is
+   begin
+      return "Get";
+   end Shared_Get_Name;
+
+   function Shared_Set_Name return String is
+   begin
+      return "Set";
+   end Shared_Set_Name;
+
+   function Shared_Remove_Name return String is
+   begin
+      return "Remove";
+   end Shared_Remove_Name;
 
    function Shared_Field_Getter_Name (Field_Name : String) return String is
    begin
@@ -1455,11 +1563,26 @@ package body Safe_Frontend.Check_Resolve is
       Root_Type : GM.Type_Descriptor;
       Span      : FT.Source_Span) return CM.Expr_Access
    is
+   begin
+      return
+        Shared_Wrapper_Call_Expr
+          (Root_Name  => Root_Name,
+           Selector   => Shared_Get_All_Name,
+           Span       => Span,
+           Type_Name  => UString_Value (Root_Type.Name));
+   end Shared_Snapshot_Expr;
+
+   function Shared_Wrapper_Call_Expr
+     (Root_Name : String;
+      Selector  : String;
+      Span      : FT.Source_Span;
+      Type_Name : String := "") return CM.Expr_Access
+   is
       Result : constant CM.Expr_Access := new CM.Expr_Node;
    begin
       Result.Kind := CM.Expr_Call;
       Result.Span := Span;
-      Result.Type_Name := Root_Type.Name;
+      Result.Type_Name := FT.To_UString (Type_Name);
       Result.Callee :=
         Selector_Expr
           (Prefix    =>
@@ -1467,17 +1590,77 @@ package body Safe_Frontend.Check_Resolve is
                (Shared_Wrapper_Object_Name (Root_Name),
                 Span,
                 ""),
-           Selector  => Shared_Get_All_Name,
+           Selector  => Selector,
            Span      => Span,
-           Type_Name => UString_Value (Root_Type.Name));
+           Type_Name => Type_Name);
       return Result;
-   end Shared_Snapshot_Expr;
+   end Shared_Wrapper_Call_Expr;
 
    function Is_Shared_Object_Name (Name : String) return Boolean is
       Key : constant String := Canonical_Name (Name);
    begin
       return Key'Length > 0 and then Current_Shared_Object_Types.Contains (Key);
    end Is_Shared_Object_Name;
+
+   function Try_Shared_Root_Name_Expr
+     (Expr      : CM.Expr_Access;
+      Root_Name : out FT.UString;
+      Root_Type : out GM.Type_Descriptor) return Boolean
+   is
+   begin
+      Root_Name := FT.To_UString ("");
+      Root_Type := (others => <>);
+
+      if Expr = null or else Expr.Kind /= CM.Expr_Ident then
+         return False;
+      end if;
+
+      declare
+         Root_Key : constant String := Canonical_Name (UString_Value (Expr.Name));
+      begin
+         if Root_Key = ""
+           or else not Current_Shared_Object_Types.Contains (Root_Key)
+         then
+            return False;
+         end if;
+
+         Root_Name := Expr.Name;
+         Root_Type := Current_Shared_Object_Types.Element (Root_Key);
+         return True;
+      end;
+   end Try_Shared_Root_Name_Expr;
+
+   function Try_Shared_Wrapper_Root_Name_Expr
+     (Expr      : CM.Expr_Access;
+      Root_Name : out FT.UString;
+      Root_Type : out GM.Type_Descriptor) return Boolean
+   is
+   begin
+      Root_Name := FT.To_UString ("");
+      Root_Type := (others => <>);
+
+      if Expr = null or else Expr.Kind /= CM.Expr_Ident then
+         return False;
+      end if;
+
+      declare
+         Wrapper_Key : constant String := Canonical_Name (UString_Value (Expr.Name));
+      begin
+         for Cursor in Current_Shared_Object_Types.Iterate loop
+            declare
+               Candidate_Root : constant String := Type_Maps.Key (Cursor);
+            begin
+               if Canonical_Name (Shared_Wrapper_Object_Name (Candidate_Root)) = Wrapper_Key then
+                  Root_Name := FT.To_UString (Candidate_Root);
+                  Root_Type := Type_Maps.Element (Cursor);
+                  return True;
+               end if;
+            end;
+         end loop;
+      end;
+
+      return False;
+   end Try_Shared_Wrapper_Root_Name_Expr;
 
    function Try_Shared_Top_Level_Field_Access
      (Expr       : CM.Expr_Access;
@@ -5442,6 +5625,150 @@ package body Safe_Frontend.Check_Resolve is
       Result   : CM.Expr_Access;
       Field    : CM.Aggregate_Field;
       Enum_Expr : CM.Expr_Access;
+
+      function Shared_Container_Snapshot_Message return String is
+      begin
+         return
+           "live shared container operations are limited to `.length`, `append`, `pop_last`, `contains`, `get`, `set`, and `remove` in PR11.12d; snapshot the shared value first for indexing, iteration, slicing, or other method calls";
+      end Shared_Container_Snapshot_Message;
+
+      function Is_Admitted_Shared_Container_Method_Name (Name : String) return Boolean is
+      begin
+         return Name in "append" | "pop_last" | "contains" | "get" | "set" | "remove";
+      end Is_Admitted_Shared_Container_Method_Name;
+
+      function Rewrite_Shared_Container_Expr_Call
+        (Call_Expr : CM.Expr_Access) return CM.Expr_Access
+      is
+         Root_Name    : FT.UString := FT.To_UString ("");
+         Root_Type    : GM.Type_Descriptor;
+         Result_Expr  : CM.Expr_Access := null;
+         Element_Type : GM.Type_Descriptor;
+         Key_Type     : GM.Type_Descriptor;
+         Value_Type   : GM.Type_Descriptor;
+         Key_Expr     : CM.Expr_Access := null;
+         Builtin_Name : constant String :=
+           (if Is_Pop_Last_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
+            then "pop_last"
+            elsif Is_Contains_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
+            then "contains"
+            elsif Is_Get_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
+            then "get"
+            elsif Is_Remove_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
+            then "remove"
+            else "");
+      begin
+         if Builtin_Name = ""
+           or else Call_Expr = null
+           or else Natural (Call_Expr.Args.Length) = 0
+           or else not Try_Shared_Root_Name_Expr
+             (Call_Expr.Args (Call_Expr.Args.First_Index),
+              Root_Name,
+              Root_Type)
+           or else not Is_Shared_Container_Root_Type (Root_Type, Type_Env)
+         then
+            return null;
+         end if;
+
+         if Builtin_Name = "pop_last" then
+            if Natural (Call_Expr.Args.Length) /= 1
+              or else not Is_Growable_Array_Type (Root_Type, Type_Env)
+              or else Try_Map_Key_Value_Types (Root_Type, Type_Env, Key_Type, Value_Type)
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => (if Call_Expr.Has_Call_Span then Call_Expr.Call_Span else Call_Expr.Span),
+                     Message => "`pop_last` expects a shared `list of T` or growable `array of T` root"));
+            end if;
+
+            Element_Type := Growable_Array_Element_Type (Root_Type, Type_Env);
+            Result_Expr :=
+              Shared_Wrapper_Call_Expr
+                (UString_Value (Root_Name),
+                 Shared_Pop_Last_Name,
+                 Call_Expr.Span,
+                 UString_Value (Make_Optional_Type (Element_Type, Type_Env).Name));
+            return Result_Expr;
+         end if;
+
+         if Natural (Call_Expr.Args.Length) /= 2 then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => (if Call_Expr.Has_Call_Span then Call_Expr.Call_Span else Call_Expr.Span),
+                  Message => "`" & Builtin_Name & "(m, key)` expects exactly two arguments"));
+         elsif not Try_Map_Key_Value_Types (Root_Type, Type_Env, Key_Type, Value_Type) then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Call_Expr.Args (Call_Expr.Args.First_Index).Span,
+                  Message => "`" & Builtin_Name & "` expects a shared `map of (K, V)` root"));
+         elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+            Raise_Diag
+              (CM.Unsupported_Source_Construct
+                 (Path    => Path,
+                  Span    => Call_Expr.Args (Call_Expr.Args.First_Index).Span,
+                  Message =>
+                    "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+         elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+            Raise_Diag
+              (CM.Unsupported_Source_Construct
+                 (Path    => Path,
+                  Span    => Call_Expr.Args (Call_Expr.Args.First_Index).Span,
+                  Message =>
+                    "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+         end if;
+
+         Key_Expr :=
+           Normalize_Expr
+             (Call_Expr.Args (Call_Expr.Args.First_Index + 1),
+              Var_Types,
+              Functions,
+              Type_Env,
+              Const_Env,
+              Path);
+         Key_Expr :=
+           Contextualize_Expr_To_Target_Type
+             (Key_Expr,
+              Key_Type,
+              Var_Types,
+              Functions,
+              Type_Env,
+              Path);
+         Reject_Uncontextualized_None (Key_Expr, Path);
+         if not Compatible_Source_Expr_To_Target_Type
+           (Key_Expr,
+            Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
+            Key_Type,
+            Var_Types,
+            Functions,
+            Type_Env,
+            Const_Env,
+            Exact_Length_Maps.Empty_Map)
+         then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Key_Expr.Span,
+                  Message => "`" & Builtin_Name & "` key type does not match the map key type"));
+         end if;
+
+         Result_Expr :=
+           Shared_Wrapper_Call_Expr
+             (UString_Value (Root_Name),
+              (if Builtin_Name = "contains"
+               then Shared_Contains_Name
+               elsif Builtin_Name = "get"
+               then Shared_Get_Name
+               else Shared_Remove_Name),
+              Call_Expr.Span,
+              (if Builtin_Name = "contains"
+               then UString_Value (BT.Boolean_Type.Name)
+               else UString_Value (Make_Optional_Type (Value_Type, Type_Env).Name)));
+         Result_Expr.Args.Append (Key_Expr);
+         return Result_Expr;
+      end Rewrite_Shared_Container_Expr_Call;
    begin
       if Expr = null then
          return null;
@@ -5457,8 +5784,39 @@ package body Safe_Frontend.Check_Resolve is
             declare
                Resolved : constant CM.Expr_Access :=
                  Resolve_Apply (Expr, Var_Types, Functions, Type_Env, Const_Env, Path);
+               Shared_Root : FT.UString := FT.To_UString ("");
+               Shared_Type : GM.Type_Descriptor;
             begin
+               if Expr.Callee /= null
+                 and then Expr.Callee.Kind = CM.Expr_Select
+                 and then Try_Shared_Root_Name_Expr
+                   (Expr.Callee.Prefix,
+                    Shared_Root,
+                    Shared_Type)
+                 and then Is_Shared_Container_Root_Type (Shared_Type, Type_Env)
+                 and then not Is_Admitted_Shared_Container_Method_Name
+                   (Canonical_Name (UString_Value (Expr.Callee.Selector)))
+               then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Expr.Callee.Span,
+                        Message => Shared_Container_Snapshot_Message));
+               end if;
+
                if Resolved.Kind = CM.Expr_Resolved_Index then
+                  if Try_Shared_Root_Name_Expr
+                    (Resolved.Prefix,
+                     Shared_Root,
+                     Shared_Type)
+                    and then Is_Shared_Container_Root_Type (Shared_Type, Type_Env)
+                  then
+                     Raise_Diag
+                       (CM.Unsupported_Source_Construct
+                          (Path    => Path,
+                           Span    => Resolved.Span,
+                           Message => Shared_Container_Snapshot_Message));
+                  end if;
                   Result := new CM.Expr_Node'(Resolved.all);
                   Result.Prefix :=
                     Normalize_Expr (Resolved.Prefix, Var_Types, Functions, Type_Env, Const_Env, Path);
@@ -5476,6 +5834,14 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Args.Append
                        (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
                   end loop;
+                  declare
+                     Shared_Rewrite : constant CM.Expr_Access :=
+                       Rewrite_Shared_Container_Expr_Call (Resolved);
+                  begin
+                     if Shared_Rewrite /= null then
+                        return Shared_Rewrite;
+                     end if;
+                  end;
                   Validate_Mut_Call_Arguments (Result, Functions, Path);
                   if Is_Pop_Last_Builtin_Call (Result, Var_Types, Functions, Type_Env) then
                      if Natural (Result.Args.Length) /= 1 then
@@ -5657,8 +6023,22 @@ package body Safe_Frontend.Check_Resolve is
                Shared_Root : FT.UString := FT.To_UString ("");
                Shared_Field_Type : GM.Type_Descriptor;
                Call_Result : CM.Expr_Access;
+               Shared_Root_Type : GM.Type_Descriptor;
             begin
-               if Try_Shared_Top_Level_Field_Access
+               if UString_Value (Expr.Selector) = "length"
+                 and then Try_Shared_Root_Name_Expr
+                   (Expr.Prefix,
+                    Shared_Root,
+                    Shared_Root_Type)
+                 and then Is_Shared_Container_Root_Type (Shared_Root_Type, Type_Env)
+               then
+                  Result :=
+                    Shared_Wrapper_Call_Expr
+                      (UString_Value (Shared_Root),
+                       Shared_Get_Length_Name,
+                       Expr.Span,
+                       UString_Value (Default_Integer.Name));
+               elsif Try_Shared_Top_Level_Field_Access
                  (Expr,
                   Type_Env,
                   Shared_Root,
@@ -7142,6 +7522,29 @@ package body Safe_Frontend.Check_Resolve is
          end if;
       end if;
 
+      if Expr.Kind = CM.Expr_Call
+        and then Expr.Callee /= null
+        and then Expr.Callee.Kind = CM.Expr_Select
+      then
+         declare
+            Shared_Root      : FT.UString := FT.To_UString ("");
+            Shared_Root_Type : GM.Type_Descriptor;
+            Selector_Name    : constant String :=
+              Canonical_Name (UString_Value (Expr.Callee.Selector));
+         begin
+            if Try_Shared_Wrapper_Root_Name_Expr
+              (Expr.Callee.Prefix,
+               Shared_Root,
+               Shared_Root_Type)
+              and then
+                (Selector_Name = Canonical_Name (Shared_Pop_Last_Name)
+                 or else Selector_Name = Canonical_Name (Shared_Remove_Name))
+            then
+               return Expr;
+            end if;
+         end;
+      end if;
+
       Raise_Diag
         (CM.Source_Frontend_Error
            (Path    => Path,
@@ -7292,8 +7695,6 @@ package body Safe_Frontend.Check_Resolve is
       Result.Is_Constant := Decl.Is_Constant;
       if Result.Is_Shared then
          declare
-            Base : constant GM.Type_Descriptor := Base_Type (Result.Type_Info, Type_Env);
-            Kind : constant String := FT.Lowercase (UString_Value (Base.Kind));
          begin
             if Natural (Decl.Names.Length) /= 1 then
                Raise_Diag
@@ -7301,40 +7702,29 @@ package body Safe_Frontend.Check_Resolve is
                     (Path    => Path,
                      Span    => Decl.Span,
                      Message =>
-                       "`shared` declarations are limited to a single name in PR11.12a"));
+                       "`shared` declarations are limited to a single name in PR11.12d"));
             elsif Decl.Is_Public then
                Raise_Diag
                  (CM.Unsupported_Source_Construct
                     (Path    => Path,
                      Span    => Decl.Span,
                      Message =>
-                       "`public shared` declarations are outside the current PR11.12a same-unit subset"));
+                       "`public shared` declarations are outside the current PR11.12d same-unit subset"));
             elsif Decl.Is_Constant then
                Raise_Diag
                  (CM.Unsupported_Source_Construct
                     (Path    => Path,
                      Span    => Decl.Span,
                      Message =>
-                       "`shared` declarations cannot be constant in PR11.12a"));
-            elsif Kind /= "record"
-              or else Is_Optional_Type (Base, Type_Env)
-              or else Base.Has_Discriminant
-              or else not Base.Discriminants.Is_Empty
-              or else not Base.Variant_Fields.Is_Empty
+                       "`shared` declarations cannot be constant in PR11.12d"));
+            elsif not Is_Shared_Root_Type_Allowed (Result.Type_Info, Type_Env)
             then
                Raise_Diag
-                 (CM.Unsupported_Source_Construct
-                    (Path    => Path,
-                     Span    => Decl.Span,
-                     Message =>
-                       "`shared` declarations require plain non-discriminated record types in PR11.12a"));
-            elsif not Is_Shared_Field_Type_Allowed (Result.Type_Info, Type_Env) then
-               Raise_Diag
-                 (CM.Unsupported_Source_Construct
-                    (Path    => Path,
-                     Span    => Decl.Span,
-                     Message =>
-                       "shared record fields are limited to the admitted copy-safe value subset in PR11.12c"));
+                (CM.Unsupported_Source_Construct
+                   (Path    => Path,
+                    Span    => Decl.Span,
+                    Message =>
+                       "`shared` declarations require plain non-discriminated record types or built-in container roots in PR11.12d"));
             end if;
          end;
       end if;
@@ -8058,6 +8448,19 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Synthetic_Assign_Stmt;
 
+   function Synthetic_Call_Stmt
+     (Call : CM.Expr_Access;
+      Span : FT.Source_Span) return CM.Statement_Access
+   is
+      Result : constant CM.Statement_Access := new CM.Statement;
+   begin
+      Result.Kind := CM.Stmt_Call;
+      Result.Is_Synthetic := True;
+      Result.Span := Span;
+      Result.Call := Call;
+      return Result;
+   end Synthetic_Call_Stmt;
+
    function Synthetic_Return_Stmt
      (Value : CM.Expr_Access;
       Span  : FT.Source_Span) return CM.Statement_Access
@@ -8319,6 +8722,128 @@ package body Safe_Frontend.Check_Resolve is
             end loop;
 
          when CM.Expr_Call | CM.Expr_Apply =>
+            if Expr.Kind = CM.Expr_Call
+              and then Expr.Callee /= null
+              and then Expr.Callee.Kind = CM.Expr_Select
+            then
+               declare
+                  Shared_Root      : FT.UString := FT.To_UString ("");
+                  Shared_Root_Type : GM.Type_Descriptor;
+                  Selector_Name    : constant String :=
+                    Canonical_Name (UString_Value (Expr.Callee.Selector));
+               begin
+                  if Try_Shared_Wrapper_Root_Name_Expr
+                    (Expr.Callee.Prefix,
+                     Shared_Root,
+                     Shared_Root_Type)
+                    and then Is_Shared_Container_Root_Type
+                      (Shared_Root_Type,
+                       Type_Env)
+                  then
+                     if Selector_Name = Canonical_Name (Shared_Pop_Last_Name)
+                       and then Expr.Args.Is_Empty
+                     then
+                        declare
+                           Element_Type : constant GM.Type_Descriptor :=
+                             Growable_Array_Element_Type
+                               (Shared_Root_Type,
+                                Type_Env);
+                           Optional_Type : constant GM.Type_Descriptor :=
+                             Make_Optional_Type (Element_Type, Type_Env);
+                           Result_Name : constant FT.UString :=
+                             FT.To_UString (Next_Synthetic_Name ("Safe_Shared_Pop_Last"));
+                           Call_Expr   : constant CM.Expr_Access :=
+                             new CM.Expr_Node'(Expr.all);
+                        begin
+                           Result.Preludes.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Result_Name),
+                                 Optional_Type,
+                                 Build_Optional_None_Expr
+                                   (Optional_Type,
+                                    Expr.Span),
+                                 Expr.Span,
+                                 Is_Constant => False));
+                           Call_Expr.Args.Append
+                             (Ident_Expr
+                                (UString_Value (Result_Name),
+                                 Expr.Span,
+                                 UString_Value (Optional_Type.Name)));
+                           Result.Preludes.Append
+                             (Synthetic_Call_Stmt (Call_Expr, Expr.Span));
+                           Result.Expr :=
+                             Ident_Expr
+                               (UString_Value (Result_Name),
+                                Expr.Span,
+                                UString_Value (Optional_Type.Name));
+                           return Result;
+                        end;
+                     elsif Selector_Name = Canonical_Name (Shared_Remove_Name)
+                       and then Natural (Expr.Args.Length) = 1
+                     then
+                        declare
+                           Key_Child : constant Desugared_Expr_Result :=
+                             Desugar_Executable_Expr
+                               (Expr.Args (Expr.Args.First_Index),
+                                Var_Types,
+                                Functions,
+                                Type_Env,
+                                Has_Enclosing_Return,
+                                Enclosing_Return_Type,
+                                Path,
+                                Reject_Short_Circuit_Try);
+                           Key_Type   : GM.Type_Descriptor;
+                           Value_Type : GM.Type_Descriptor;
+                           Optional_Type : GM.Type_Descriptor := Default_Integer;
+                           Result_Name : constant FT.UString :=
+                             FT.To_UString (Next_Synthetic_Name ("Safe_Shared_Remove"));
+                           Call_Expr   : constant CM.Expr_Access :=
+                             new CM.Expr_Node'(Expr.all);
+                        begin
+                           if not Try_Map_Key_Value_Types
+                             (Shared_Root_Type,
+                              Type_Env,
+                              Key_Type,
+                              Value_Type)
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Expr.Span,
+                                    Message => "`remove` expects a shared `map of (K, V)` root"));
+                           end if;
+
+                           Optional_Type := Make_Optional_Type (Value_Type, Type_Env);
+                           Append_Statements (Result.Preludes, Key_Child.Preludes);
+                           Result.Preludes.Append
+                             (Synthetic_Object_Decl_Stmt
+                                (UString_Value (Result_Name),
+                                 Optional_Type,
+                                 Build_Optional_None_Expr
+                                   (Optional_Type,
+                                    Expr.Span),
+                                 Expr.Span,
+                                 Is_Constant => False));
+                           Call_Expr.Args.Clear;
+                           Call_Expr.Args.Append (Key_Child.Expr);
+                           Call_Expr.Args.Append
+                             (Ident_Expr
+                                (UString_Value (Result_Name),
+                                 Expr.Span,
+                                 UString_Value (Optional_Type.Name)));
+                           Result.Preludes.Append
+                             (Synthetic_Call_Stmt (Call_Expr, Expr.Span));
+                           Result.Expr :=
+                             Ident_Expr
+                               (UString_Value (Result_Name),
+                                Expr.Span,
+                                UString_Value (Optional_Type.Name));
+                           return Result;
+                        end;
+                     end if;
+                  end if;
+               end;
+            end if;
             if Is_Pop_Last_Builtin_Call (Expr, Var_Types, Functions, Type_Env) then
                declare
                   List_Expr      : constant CM.Expr_Access :=
@@ -10010,12 +10535,26 @@ package body Safe_Frontend.Check_Resolve is
                elsif Root'Length > 0
                  and then Is_Shared_Object_Name (Root)
                then
-                  Raise_Diag
-                    (CM.Unsupported_Source_Construct
-                       (Path    => Path,
-                        Span    => Stmt.Target.Span,
-                        Message =>
-                          "nested writes on shared variables are limited to selector paths in PR11.12b"));
+                  declare
+                     Shared_Root_Type : constant GM.Type_Descriptor :=
+                       Current_Shared_Object_Types.Element (Canonical_Name (Root));
+                  begin
+                     if Is_Shared_Container_Root_Type (Shared_Root_Type, Type_Env) then
+                        Raise_Diag
+                          (CM.Unsupported_Source_Construct
+                             (Path    => Path,
+                              Span    => Stmt.Target.Span,
+                              Message =>
+                                "live shared container writes are limited to whole-root assignment and admitted builtin operations in PR11.12d; snapshot the shared value first for indexing or slicing"));
+                     else
+                        Raise_Diag
+                          (CM.Unsupported_Source_Construct
+                             (Path    => Path,
+                              Span    => Stmt.Target.Span,
+                              Message =>
+                                "nested writes on shared record variables are limited to selector paths in PR11.12b"));
+                     end if;
+                  end;
                else
                   Result.Target :=
                     Normalize_Expr_Checked
@@ -10034,33 +10573,110 @@ package body Safe_Frontend.Check_Resolve is
                      Local_Static_Constants,
                      Path,
                      "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
-                  Desugared :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
+                  Target_Info :=
+                    Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
+                  declare
+                     Target_Expr : constant CM.Expr_Access := Result.Target;
+                     Normalized_Value : constant CM.Expr_Access :=
+                       Normalize_Expr_Checked
                          (Stmt.Value,
                           Var_Types,
                           Functions,
                           Type_Env,
                           Local_Static_Constants,
                           Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
-                  Target_Info :=
-                    Expr_Type (Result.Target, Var_Types, Functions, Type_Env);
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
-                  Result.Value :=
-                    Contextualize_Expr_To_Target_Type
-                      (Desugared.Expr,
-                       Target_Info,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Path);
+                          Allow_Try => True);
+                     Shared_Root : FT.UString := FT.To_UString ("");
+                     Shared_Root_Type : GM.Type_Descriptor;
+                     Selector_Name : constant String :=
+                       (if Normalized_Value /= null
+                           and then Normalized_Value.Kind = CM.Expr_Call
+                           and then Normalized_Value.Callee /= null
+                           and then Normalized_Value.Callee.Kind = CM.Expr_Select
+                        then Canonical_Name (UString_Value (Normalized_Value.Callee.Selector))
+                        else "");
+                  begin
+                     if Normalized_Value /= null
+                       and then Normalized_Value.Kind = CM.Expr_Call
+                       and then Normalized_Value.Callee /= null
+                       and then Normalized_Value.Callee.Kind = CM.Expr_Select
+                       and then Try_Shared_Wrapper_Root_Name_Expr
+                         (Normalized_Value.Callee.Prefix,
+                          Shared_Root,
+                          Shared_Root_Type)
+                       and then
+                         ((Selector_Name = Canonical_Name (Shared_Pop_Last_Name)
+                           and then Normalized_Value.Args.Is_Empty)
+                          or else
+                          (Selector_Name = Canonical_Name (Shared_Remove_Name)
+                           and then Natural (Normalized_Value.Args.Length) = 1))
+                     then
+                        if not Compatible_Source_Expr_To_Target_Type
+                          (Normalized_Value,
+                           Expr_Type (Normalized_Value, Var_Types, Functions, Type_Env),
+                           Target_Info,
+                           Var_Types,
+                           Functions,
+                           Type_Env,
+                           Local_Static_Constants,
+                           Exact_Length_Facts)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Normalized_Value.Span,
+                                 Message => "assignment value type does not match target type"));
+                        end if;
+
+                        Result.Kind := CM.Stmt_Call;
+                        Result.Target := null;
+                        Result.Value := null;
+                        Result.Call := new CM.Expr_Node'(Normalized_Value.all);
+                        if Selector_Name = Canonical_Name (Shared_Remove_Name) then
+                           declare
+                              Key_Desugared : constant Desugared_Expr_Result :=
+                                Desugar_Executable_Expr
+                                  (Normalized_Value.Args (Normalized_Value.Args.First_Index),
+                                   Var_Types,
+                                   Functions,
+                                   Type_Env,
+                                   Has_Enclosing_Return,
+                                   Enclosing_Return_Type,
+                                   Path);
+                           begin
+                              Append_Statements
+                                (Expanded,
+                                 Normalize_Preludes (Key_Desugared.Preludes));
+                              Result.Call.Args.Clear;
+                              Result.Call.Args.Append (Key_Desugared.Expr);
+                           end;
+                        else
+                           Result.Call.Args.Clear;
+                        end if;
+                        Result.Call.Args.Append (Target_Expr);
+                        Expanded.Append (Result);
+                        return Expanded;
+                     end if;
+
+                     Desugared :=
+                       Desugar_Executable_Expr
+                         (Normalized_Value,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type,
+                          Path);
+                     Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+                     Result.Value :=
+                       Contextualize_Expr_To_Target_Type
+                         (Desugared.Expr,
+                          Target_Info,
+                          Var_Types,
+                          Functions,
+                          Type_Env,
+                          Path);
+                  end;
                   Reject_Uncontextualized_None (Result.Value, Path);
                   if Result.Value.Kind = CM.Expr_Resolved_Index
                     and then Result.Value.Prefix /= null
@@ -10430,6 +11046,25 @@ package body Safe_Frontend.Check_Resolve is
                            Message => "`for ... of` requires an array or string object name"));
                   end if;
 
+                  declare
+                     Shared_Root : FT.UString := FT.To_UString ("");
+                     Shared_Type : GM.Type_Descriptor;
+                  begin
+                     if Try_Shared_Root_Name_Expr
+                       (Result.Loop_Iterable,
+                        Shared_Root,
+                        Shared_Type)
+                       and then Is_Shared_Container_Root_Type (Shared_Type, Type_Env)
+                     then
+                        Raise_Diag
+                          (CM.Unsupported_Source_Construct
+                             (Path    => Path,
+                              Span    => Result.Loop_Iterable.Span,
+                              Message =>
+                                "live shared container iteration is outside PR11.12d; snapshot the shared value first"));
+                     end if;
+                  end;
+
                   Iterable_Type :=
                     Expr_Type (Result.Loop_Iterable, Var_Types, Functions, Type_Env);
                   Base_Type_Info := Base_Type (Iterable_Type, Type_Env);
@@ -10568,6 +11203,10 @@ package body Safe_Frontend.Check_Resolve is
 
          when CM.Stmt_Call =>
             declare
+               Resolved_Call : constant CM.Expr_Access :=
+                 (if Stmt.Call /= null and then Stmt.Call.Kind = CM.Expr_Apply
+                  then Resolve_Apply (Stmt.Call, Var_Types, Functions, Type_Env, Local_Static_Constants, Path)
+                  else Stmt.Call);
                Normalized_Call : constant CM.Expr_Access :=
                  Normalize_Expr
                    (Stmt.Call,
@@ -10576,6 +11215,308 @@ package body Safe_Frontend.Check_Resolve is
                     Type_Env,
                     Local_Static_Constants);
             begin
+               if Resolved_Call /= null
+                 and then Resolved_Call.Kind = CM.Expr_Call
+                 and then not Resolved_Call.Args.Is_Empty
+               then
+                  declare
+                     Shared_Root : FT.UString := FT.To_UString ("");
+                     Shared_Type : GM.Type_Descriptor;
+                  begin
+                     if Try_Shared_Root_Name_Expr
+                       (Resolved_Call.Args (Resolved_Call.Args.First_Index),
+                        Shared_Root,
+                        Shared_Type)
+                       and then Is_Shared_Container_Root_Type (Shared_Type, Type_Env)
+                     then
+                        if Is_Append_Builtin_Call
+                          (Resolved_Call, Var_Types, Functions, Type_Env)
+                        then
+                           declare
+                              Element_Type : GM.Type_Descriptor;
+                              Key_Type     : GM.Type_Descriptor;
+                              Value_Type   : GM.Type_Descriptor;
+                              Desugared    : Desugared_Expr_Result;
+                           begin
+                              if Natural (Resolved_Call.Args.Length) /= 2 then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Resolved_Call.Has_Call_Span
+                                                   then Resolved_Call.Call_Span
+                                                   else Resolved_Call.Span),
+                                       Message => "`append(items, value)` expects exactly two arguments"));
+                              elsif not Is_Growable_Array_Type (Shared_Type, Type_Env)
+                                or else Try_Map_Key_Value_Types (Shared_Type, Type_Env, Key_Type, Value_Type)
+                              then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                       Message => "`append` expects a shared `list of T` or growable `array of T` root"));
+                              end if;
+
+                              Element_Type := Growable_Array_Element_Type (Shared_Type, Type_Env);
+                              if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                                 Raise_Diag
+                                   (CM.Unsupported_Source_Construct
+                                      (Path    => Path,
+                                       Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                       Message =>
+                                         "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                              end if;
+
+                              Desugared :=
+                                Desugar_Executable_Expr
+                                  (Normalize_Expr_Checked
+                                     (Resolved_Call.Args (Resolved_Call.Args.First_Index + 1),
+                                      Var_Types,
+                                      Functions,
+                                      Type_Env,
+                                      Local_Static_Constants,
+                                      Path,
+                                      Allow_Try => True),
+                                   Var_Types,
+                                   Functions,
+                                   Type_Env,
+                                   Has_Enclosing_Return,
+                                   Enclosing_Return_Type,
+                                   Path);
+                              Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+
+                              Result.Kind := CM.Stmt_Call;
+                              Result.Target := null;
+                              Result.Value := null;
+                              Result.Call :=
+                                Shared_Wrapper_Call_Expr
+                                  (UString_Value (Shared_Root),
+                                   Shared_Append_Name,
+                                   Stmt.Span);
+                              Result.Call.Args.Append
+                                (Contextualize_Expr_To_Target_Type
+                                   (Desugared.Expr,
+                                    Element_Type,
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env,
+                                    Path));
+                              Reject_Uncontextualized_None
+                                (Result.Call.Args (Result.Call.Args.First_Index),
+                                 Path);
+                              if not Compatible_Source_Expr_To_Target_Type
+                                (Result.Call.Args (Result.Call.Args.First_Index),
+                                 Expr_Type
+                                   (Result.Call.Args (Result.Call.Args.First_Index),
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env),
+                                 Element_Type,
+                                 Var_Types,
+                                 Functions,
+                                 Type_Env,
+                                 Local_Static_Constants,
+                                 Exact_Length_Facts)
+                              then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
+                                       Message => "`append` value type does not match the list element type"));
+                              end if;
+                              Expanded.Append (Result);
+                              return Expanded;
+                           end;
+                        elsif Is_Set_Builtin_Call
+                          (Resolved_Call, Var_Types, Functions, Type_Env)
+                        then
+                           declare
+                              Key_Type    : GM.Type_Descriptor;
+                              Value_Type  : GM.Type_Descriptor;
+                              Key_Desugared : Desugared_Expr_Result;
+                              Value_Desugared : Desugared_Expr_Result;
+                           begin
+                              if Natural (Resolved_Call.Args.Length) /= 3 then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Resolved_Call.Has_Call_Span
+                                                   then Resolved_Call.Call_Span
+                                                   else Resolved_Call.Span),
+                                       Message => "`set(m, key, value)` expects exactly three arguments"));
+                              elsif not Try_Map_Key_Value_Types (Shared_Type, Type_Env, Key_Type, Value_Type) then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                       Message => "`set` expects a shared `map of (K, V)` root"));
+                              elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+                                 Raise_Diag
+                                   (CM.Unsupported_Source_Construct
+                                      (Path    => Path,
+                                       Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                       Message =>
+                                         "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+                              elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+                                 Raise_Diag
+                                   (CM.Unsupported_Source_Construct
+                                      (Path    => Path,
+                                       Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                       Message =>
+                                         "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+                              end if;
+
+                              Key_Desugared :=
+                                Desugar_Executable_Expr
+                                  (Normalize_Expr_Checked
+                                     (Resolved_Call.Args (Resolved_Call.Args.First_Index + 1),
+                                      Var_Types,
+                                      Functions,
+                                      Type_Env,
+                                      Local_Static_Constants,
+                                      Path,
+                                      Allow_Try => True),
+                                   Var_Types,
+                                   Functions,
+                                   Type_Env,
+                                   Has_Enclosing_Return,
+                                   Enclosing_Return_Type,
+                                   Path);
+                              Value_Desugared :=
+                                Desugar_Executable_Expr
+                                  (Normalize_Expr_Checked
+                                     (Resolved_Call.Args (Resolved_Call.Args.First_Index + 2),
+                                      Var_Types,
+                                      Functions,
+                                      Type_Env,
+                                      Local_Static_Constants,
+                                      Path,
+                                      Allow_Try => True),
+                                   Var_Types,
+                                   Functions,
+                                   Type_Env,
+                                   Has_Enclosing_Return,
+                                   Enclosing_Return_Type,
+                                   Path);
+                              Append_Statements (Expanded, Normalize_Preludes (Key_Desugared.Preludes));
+                              Append_Statements (Expanded, Normalize_Preludes (Value_Desugared.Preludes));
+
+                              Result.Kind := CM.Stmt_Call;
+                              Result.Target := null;
+                              Result.Value := null;
+                              Result.Call :=
+                                Shared_Wrapper_Call_Expr
+                                  (UString_Value (Shared_Root),
+                                   Shared_Set_Name,
+                                   Stmt.Span);
+                              Result.Call.Args.Append
+                                (Contextualize_Expr_To_Target_Type
+                                   (Key_Desugared.Expr,
+                                    Key_Type,
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env,
+                                    Path));
+                              Result.Call.Args.Append
+                                (Contextualize_Expr_To_Target_Type
+                                   (Value_Desugared.Expr,
+                                    Value_Type,
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env,
+                                    Path));
+                              Reject_Uncontextualized_None
+                                (Result.Call.Args (Result.Call.Args.First_Index),
+                                 Path);
+                              Reject_Uncontextualized_None
+                                (Result.Call.Args (Result.Call.Args.First_Index + 1),
+                                 Path);
+                              if not Compatible_Source_Expr_To_Target_Type
+                                (Result.Call.Args (Result.Call.Args.First_Index),
+                                 Expr_Type
+                                   (Result.Call.Args (Result.Call.Args.First_Index),
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env),
+                                 Key_Type,
+                                 Var_Types,
+                                 Functions,
+                                 Type_Env,
+                                 Local_Static_Constants,
+                                 Exact_Length_Facts)
+                              then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
+                                       Message => "`set` key type does not match the map key type"));
+                              elsif not Compatible_Source_Expr_To_Target_Type
+                                (Result.Call.Args (Result.Call.Args.First_Index + 1),
+                                 Expr_Type
+                                   (Result.Call.Args (Result.Call.Args.First_Index + 1),
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env),
+                                 Value_Type,
+                                 Var_Types,
+                                 Functions,
+                                 Type_Env,
+                                 Local_Static_Constants,
+                                 Exact_Length_Facts)
+                              then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Result.Call.Args (Result.Call.Args.First_Index + 1).Span,
+                                       Message => "`set` value type does not match the map value type"));
+                              end if;
+                              Expanded.Append (Result);
+                              return Expanded;
+                           end;
+                        elsif Is_Pop_Last_Builtin_Call
+                          (Resolved_Call, Var_Types, Functions, Type_Env)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => (if Resolved_Call.Has_Call_Span
+                                             then Resolved_Call.Call_Span
+                                             else Resolved_Call.Span),
+                                 Message => "`pop_last(items)` returns an `optional T` value and must be used in an expression"));
+                        elsif Is_Contains_Builtin_Call
+                          (Resolved_Call, Var_Types, Functions, Type_Env)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => (if Resolved_Call.Has_Call_Span
+                                             then Resolved_Call.Call_Span
+                                             else Resolved_Call.Span),
+                                 Message => "`contains(m, key)` returns a `boolean` value and must be used in an expression"));
+                        elsif Is_Get_Builtin_Call
+                          (Resolved_Call, Var_Types, Functions, Type_Env)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => (if Resolved_Call.Has_Call_Span
+                                             then Resolved_Call.Call_Span
+                                             else Resolved_Call.Span),
+                                 Message => "`get(m, key)` returns an `optional V` value and must be used in an expression"));
+                        elsif Is_Remove_Builtin_Call
+                          (Resolved_Call, Var_Types, Functions, Type_Env)
+                        then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => (if Resolved_Call.Has_Call_Span
+                                             then Resolved_Call.Call_Span
+                                             else Resolved_Call.Span),
+                                 Message => "`remove(m, key)` mutates a map and returns an `optional V` value, so it must be used in an expression"));
+                        end if;
+                     end if;
+                  end;
+               end if;
+
                if Is_Append_Builtin_Call
                  (Normalized_Call, Var_Types, Functions, Type_Env)
                then

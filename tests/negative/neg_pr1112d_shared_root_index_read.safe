@@ -1,0 +1,6 @@
+package neg_pr1112d_shared_root_index_read
+
+   shared values : list of integer;
+
+   function check
+      print (values (1));

@@ -1,0 +1,6 @@
+package neg_pr1112d_shared_root_index_write
+
+   shared values : list of integer;
+
+   function update
+      values (1) = 2;

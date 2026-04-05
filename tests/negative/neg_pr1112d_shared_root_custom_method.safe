@@ -1,0 +1,9 @@
+package neg_pr1112d_shared_root_custom_method
+
+   function (items : list of integer) mirrored_length returns integer
+      return items.length;
+
+   shared values : list of integer;
+
+   function check
+      print (values.mirrored_length ());
