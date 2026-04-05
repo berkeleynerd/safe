@@ -4123,6 +4123,10 @@ package body Safe_Frontend.Mir_Analyze is
             return Left.Bool_Value = Right.Bool_Value;
          when GM.Scalar_Value_Character =>
             return UString_Value (Left.Text) = UString_Value (Right.Text);
+         when GM.Scalar_Value_Enum =>
+            return
+              UString_Value (Left.Text) = UString_Value (Right.Text)
+              and then UString_Value (Left.Type_Name) = UString_Value (Right.Type_Name);
          when others =>
             return False;
       end case;
@@ -4154,6 +4158,11 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Expr_Bool =>
             Value.Kind := GM.Scalar_Value_Boolean;
             Value.Bool_Value := Inner.Bool_Value;
+            return True;
+         when GM.Expr_Enum_Literal =>
+            Value.Kind := GM.Scalar_Value_Enum;
+            Value.Text := Inner.Name;
+            Value.Type_Name := Inner.Type_Name;
             return True;
          when others =>
             return False;

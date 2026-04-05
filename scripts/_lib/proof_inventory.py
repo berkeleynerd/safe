@@ -62,6 +62,7 @@ PR11_8A_CHECKPOINT_FIXTURES = [
     "tests/positive/pr113_tuple_destructure.safe",
     "tests/positive/pr113_structured_result.safe",
     "tests/positive/pr113_variant_guard.safe",
+    "tests/positive/pr214_enum_variant_guard.safe",
     "tests/positive/constant_discriminant_default.safe",
     "tests/positive/result_equality_check.safe",
     "tests/positive/result_guarded_access.safe",
