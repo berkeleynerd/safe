@@ -6,7 +6,7 @@ This section specifies Safe's concurrency model. Safe provides concurrency
 through static tasks and typed channels as first-class language constructs.
 Tasks are declared at unit scope and create exactly one task each. Channels are
 typed, bounded-capacity FIFO queues. Tasks ordinarily communicate through
-channels; `PR11.12a` and `PR11.12b` additionally admit a narrow same-unit
+channels; `PR11.12a` through `PR11.12c` additionally admit a narrow same-unit
 `shared` record subset lowered to compiler-generated protected wrappers.
 
 ---
@@ -260,12 +260,13 @@ delay_arm ::=
 variable that is not declared `shared` shall be accessed by at most one task.
 The implementation shall verify this at compile time. A conforming
 implementation shall reject any program where a non-`shared` unit-level
-variable is accessed by more than one task. `PR11.12a` and `PR11.12b` shared
-records are the sole admitted exception. In `PR11.12b`, same-unit shared
-records admit direct top-level field read/write access, bare snapshot reads of
-the whole record, whole-record updates, and nested writes rooted in the shared
-record. The admitted payload subset remains the non-heap, non-reference-bearing
-record subset.
+variable is accessed by more than one task. `PR11.12a` through `PR11.12c`
+shared records are the sole admitted exception. In `PR11.12b`, same-unit
+shared records admit direct top-level field read/write access, bare snapshot
+reads of the whole record, whole-record updates, and nested writes rooted in
+the shared record. `PR11.12c` broadens the admitted field payload subset to
+copy-safe heap-backed value fields including plain `string`, growable arrays,
+`list of T`, `map of (K, V)`, and `optional T` when `T` is itself admitted.
 
 46. **Access determination.** A task accesses a unit-level variable if:
 

@@ -1789,9 +1789,9 @@ package body Safe_Frontend.Check_Emit is
          when CM.Stmt_Assign =>
             return
               "{""node_type"":""AssignmentStatement"",""target"":"
-              & Name_Node (Resolved_Expr.Target)
+              & Name_Node ((if Resolved_Expr.Target /= null then Resolved_Expr.Target else Parsed.Target))
               & ",""expression"":"
-              & Expression_Node (Resolved_Expr.Value)
+              & Expression_Node ((if Resolved_Expr.Value /= null then Resolved_Expr.Value else Parsed.Value))
               & ",""ownership_action"":null,""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";

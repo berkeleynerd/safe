@@ -1360,13 +1360,12 @@ package body Safe_Frontend.Check_Resolve is
       then
          return False;
       elsif Is_String_Type (Base, Type_Env) then
-         return Is_Bounded_String_Type (Info, Type_Env);
+         return True;
       elsif Is_Optional_Type (Base, Type_Env) then
          return Is_Shared_Field_Type_Allowed
            (Optional_Payload_Type (Base, Type_Env), Type_Env);
       elsif Kind = "array" then
-         return not Base.Growable
-           and then Base.Has_Component_Type
+         return Base.Has_Component_Type
            and then Is_Shared_Field_Type_Allowed
              (Resolve_Type
                 (UString_Value (Base.Component_Type),
@@ -7335,7 +7334,7 @@ package body Safe_Frontend.Check_Resolve is
                     (Path    => Path,
                      Span    => Decl.Span,
                      Message =>
-                       "shared record fields are limited to the admitted non-heap value subset in PR11.12a"));
+                       "shared record fields are limited to the admitted copy-safe value subset in PR11.12c"));
             end if;
          end;
       end if;
