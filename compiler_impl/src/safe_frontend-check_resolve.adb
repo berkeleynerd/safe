@@ -6466,6 +6466,15 @@ package body Safe_Frontend.Check_Resolve is
                            Actual_Count : constant Natural :=
                              Natural (Resolved.Args.Length);
                         begin
+                           if Expected_Count = 0 and then Actual_Count = 0 then
+                              Raise_Diag
+                                (CM.Unsupported_Source_Construct
+                                   (Path    => Path,
+                                    Span    => (if Resolved.Has_Call_Span then Resolved.Call_Span else Resolved.Span),
+                                    Message =>
+                                      "zero-payload sum variants use the bare variant name in PR11.13a"));
+                           end if;
+
                            if Actual_Count /= Expected_Count then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -14104,6 +14113,7 @@ package body Safe_Frontend.Check_Resolve is
                         Text      => FT.To_UString (Tag_Literal),
                         Type_Name => Tag_Info.Name);
                      Constructor     : Sum_Constructor_Info;
+                     Field_Seen      : String_Index_Maps.Map;
                   begin
                      if Seen.Contains (Variant_Key) then
                         Raise_Diag
@@ -14129,6 +14139,8 @@ package body Safe_Frontend.Check_Resolve is
                         declare
                            Source_Field_Name : constant String :=
                              UString_Value (Field_Decl.Names (Field_Decl.Names.First_Index));
+                           Source_Field_Key : constant String :=
+                             Canonical_Name (Source_Field_Name);
                            Field_Type : constant GM.Type_Descriptor :=
                              Resolve_Type_Spec
                                (Field_Decl.Field_Type,
@@ -14148,6 +14160,17 @@ package body Safe_Frontend.Check_Resolve is
                                     Span    => Field_Decl.Span,
                                     Message =>
                                       "sum variant payload fields declare exactly one name in PR11.13a"));
+                           elsif Field_Seen.Contains (Source_Field_Key) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Field_Decl.Span,
+                                    Message =>
+                                      "duplicate payload field `"
+                                      & Source_Field_Name
+                                      & "` in sum variant `"
+                                      & UString_Value (Variant.Name)
+                                      & "`"));
                            elsif Is_Interface_Type (Field_Type, Type_Env) then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -14162,6 +14185,10 @@ package body Safe_Frontend.Check_Resolve is
                                     Message =>
                                       "sum variant payloads are limited to the admitted value-type subset in PR11.13a"));
                            end if;
+
+                           Field_Seen.Include
+                             (Source_Field_Key,
+                              Positive (Natural (Constructor.Fields.Length) + 1));
 
                            Item.Name := Internal_Field_Name;
                            Item.Type_Name := Field_Type.Name;
@@ -15154,6 +15181,7 @@ package body Safe_Frontend.Check_Resolve is
          Path      : String) is
       begin
          if Has_Enum_Literal (Const_Env, Name)
+           or else Has_Sum_Constructor (Name)
            or else Visible_Value_Name_Exists (Name, Value_Env)
            or else Has_Function (Functions, Name)
            or else Has_Type (Type_Env, Name)

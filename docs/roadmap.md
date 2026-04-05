@@ -2993,8 +2993,8 @@ positional variant constructors.
   generated enum discriminant and variant parts, reusing existing
   discriminated-record infrastructure.
 - No `match` destructuring in this slice — variant construction
-  only. The value can be assigned, passed, returned, compared for
-  variant kind via discriminant, and printed.
+  only. The value can be assigned, passed, returned, and compared
+  using the existing whole-value equality surface.
 - Same-unit only in this slice; public/imported deferred to PR11.13c.
 - No typed/MIR/safei version bump.
 
