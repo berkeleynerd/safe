@@ -1678,7 +1678,7 @@ package body Safe_Frontend.Ada_Emit is
          "protected type "
          & Type_Name
          & " with Priority => "
-         & (if Uses_Environment_Ceiling
+         & (if Uses_Environment_Ceiling or else Ceiling <= 0
             then "System.Any_Priority'Last"
             else Trim_Image (Ceiling))
          & " is",
@@ -2551,7 +2551,7 @@ package body Safe_Frontend.Ada_Emit is
             "protected type "
             & Type_Name
             & " with Priority => "
-            & (if Uses_Environment_Ceiling
+            & (if Uses_Environment_Ceiling or else Ceiling <= 0
                then "System.Any_Priority'Last"
                else Trim_Image (Ceiling))
             & " is",

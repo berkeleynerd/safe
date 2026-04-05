@@ -3197,6 +3197,16 @@ package body Safe_Frontend.Check_Emit is
          end if;
          return False;
       end Contains;
+      function Qualified_Shared_Effect_Name (Name : String) return String is
+      begin
+         if Name = ""
+           or else Ada.Strings.Fixed.Index (Name, ".") > 0
+           or else FT.To_String (Resolved.Package_Name) = ""
+         then
+            return Name;
+         end if;
+         return FT.To_String (Resolved.Package_Name) & "." & Name;
+      end Qualified_Shared_Effect_Name;
    begin
       for Item of Parsed.Items loop
          if Item.Kind = CM.Item_Subprogram then
@@ -3220,12 +3230,17 @@ package body Safe_Frontend.Check_Emit is
                      Writes.Append (JS.Quote (Name));
                   end loop;
                   for Name of Summary.Shareds loop
-                     if not Contains (Reads, FT.To_String (Name)) then
-                        Reads.Append (JS.Quote (Name));
-                     end if;
-                     if not Contains (Writes, FT.To_String (Name)) then
-                        Writes.Append (JS.Quote (Name));
-                     end if;
+                     declare
+                        Shared_Name : constant String :=
+                          Qualified_Shared_Effect_Name (FT.To_String (Name));
+                     begin
+                        if not Contains (Reads, Shared_Name) then
+                           Reads.Append (JS.Quote (Shared_Name));
+                        end if;
+                        if not Contains (Writes, Shared_Name) then
+                           Writes.Append (JS.Quote (Shared_Name));
+                        end if;
+                     end;
                   end loop;
                   for Name of Summary.Inputs loop
                      Inputs.Append (JS.Quote (Name));

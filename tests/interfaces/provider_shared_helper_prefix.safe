@@ -1,0 +1,11 @@
+package provider_shared_helper_prefix
+
+   public type settings is record
+      count : integer;
+
+   public shared cfg : settings;
+   public shared cfg_more : settings;
+
+   public function touch_more
+
+      cfg_more.count = 1;

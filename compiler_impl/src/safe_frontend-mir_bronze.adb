@@ -762,6 +762,8 @@ package body Safe_Frontend.Mir_Bronze is
       Dot            : constant Natural :=
         Ada.Strings.Fixed.Index (Canonical_Call, ".", Ada.Strings.Backward);
       Cursor         : Name_Maps.Cursor;
+      Best_Length    : Natural := 0;
+      Best_Root      : FT.UString := FT.To_UString ("");
    begin
       Root_Name := FT.To_UString ("");
       Operation := FT.To_UString ("");
@@ -786,15 +788,21 @@ package body Safe_Frontend.Mir_Bronze is
          begin
             if Starts_With (Canonical_Call, Prefix)
               and then Canonical_Call'Length > Prefix'Length
+              and then Prefix'Length > Best_Length
             then
-               Root_Name := FT.To_UString (Name_Maps.Element (Cursor));
-               Operation :=
-                 FT.To_UString (Canonical_Call (Prefix'Length + 1 .. Canonical_Call'Last));
-               return True;
+               Best_Length := Prefix'Length;
+               Best_Root := FT.To_UString (Name_Maps.Element (Cursor));
             end if;
             Name_Maps.Next (Cursor);
          end;
       end loop;
+
+      if Best_Length > 0 then
+         Root_Name := Best_Root;
+         Operation :=
+           FT.To_UString (Canonical_Call (Best_Length + 1 .. Canonical_Call'Last));
+         return True;
+      end if;
 
       return False;
    end Try_Shared_Call;
