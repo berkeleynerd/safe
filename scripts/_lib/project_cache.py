@@ -91,6 +91,7 @@ def emit_source(
 def ensure_project_emitted(
     *,
     safec: Path,
+    safec_hash: str,
     source: Path,
     env: dict[str, str],
     run_check: bool,
@@ -124,6 +125,7 @@ def ensure_project_emitted(
             metadata=metadata,
             direct_dependencies=direct_dependencies,
             dependency_interfaces=dependency_interfaces,
+            safec_hash=safec_hash,
         ):
             emitted_units.append(unit)
             continue
@@ -188,6 +190,7 @@ def ensure_project_emitted(
             direct_dependencies=direct_dependencies,
             dependency_interfaces=dependency_interfaces,
             artifact_hashes=unit_artifact_hashes(paths, unit),
+            safec_hash=safec_hash,
         )
         emitted_units.append(unit)
 
@@ -417,12 +420,14 @@ def record_unit_state(
     direct_dependencies: list[str],
     dependency_interfaces: dict[str, str],
     artifact_hashes: dict[str, str],
+    safec_hash: str,
 ) -> None:
     entry = {
         **metadata,
         "direct_dependencies": direct_dependencies,
         "dependency_interfaces": dependency_interfaces,
         "artifact_hashes": artifact_hashes,
+        "safec_hash": safec_hash,
     }
     entry["emit_signature"] = sha256_text(
         json.dumps(
@@ -431,6 +436,7 @@ def record_unit_state(
                 "direct_dependencies": direct_dependencies,
                 "dependency_interfaces": dependency_interfaces,
                 "artifact_hashes": artifact_hashes,
+                "safec_hash": safec_hash,
             },
             sort_keys=True,
         )
@@ -445,6 +451,7 @@ def unit_entry_is_current(
     metadata: dict[str, int | str],
     direct_dependencies: list[str],
     dependency_interfaces: dict[str, str],
+    safec_hash: str,
 ) -> bool:
     if previous is None:
         return False
@@ -453,6 +460,8 @@ def unit_entry_is_current(
     if previous.get("direct_dependencies") != direct_dependencies:
         return False
     if previous.get("dependency_interfaces") != dependency_interfaces:
+        return False
+    if previous.get("safec_hash") != safec_hash:
         return False
     artifact_hashes = previous.get("artifact_hashes", {})
     if not artifact_hashes or not unit_artifacts_present(paths, artifact_hashes):

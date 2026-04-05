@@ -1,0 +1,15 @@
+with pr1112e_provider_shared_record;
+
+package pr1112e_imported_shared_record_build
+
+   snapshot : pr1112e_provider_shared_record.settings;
+
+   snapshot = pr1112e_provider_shared_record.cfg;
+   print (snapshot.count);
+
+   pr1112e_provider_shared_record.cfg.count = 5;
+   pr1112e_provider_shared_record.cfg.nested.depth = 7;
+   print (pr1112e_provider_shared_record.cfg.nested.depth);
+
+   pr1112e_provider_shared_record.cfg = (count = 8, nested = (depth = 9));
+   print (pr1112e_provider_shared_record.cfg.count);

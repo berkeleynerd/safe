@@ -241,6 +241,30 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_generic_constraint.safe",
         0,
     ),
+    (
+        "shared-record",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_record.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_shared_record.safe",
+        0,
+    ),
+    (
+        "shared-list",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_list.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_shared_list.safe",
+        0,
+    ),
+    (
+        "shared-map",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_map.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_shared_map.safe",
+        0,
+    ),
+    (
+        "shared-mut-rejected",
+        REPO_ROOT / "tests" / "interfaces" / "provider_shared_list.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_shared_mut_reject.safe",
+        1,
+    ),
 ]
 
 INTERFACE_REJECT_CASES = [
@@ -621,6 +645,21 @@ BUILD_SUCCESS_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr1112d_shared_growable_root_build.safe",
         "3\n7\n2\n9\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112e_imported_shared_record_build.safe",
+        "1\n7\n8\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112e_imported_shared_list_build.safe",
+        "2\n3\n9\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112e_imported_shared_map_build.safe",
+        "2\n2\n1\n0\n",
         False,
     ),
     (

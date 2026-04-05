@@ -538,6 +538,7 @@ package Safe_Frontend.Check_Model is
    type Resolved_Object_Decl is record
       Names           : FT.UString_Vectors.Vector;
       Type_Info       : GM.Type_Descriptor;
+      Is_Public       : Boolean := False;
       Is_Shared       : Boolean := False;
       Is_Constant     : Boolean := False;
       Has_Initializer : Boolean := False;

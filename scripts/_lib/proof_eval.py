@@ -590,8 +590,10 @@ def run_cached_source_proof(
     )
 
     try:
+        safec_hash = sha256_file(toolchain.safec)
         shared_paths, state, sources = ensure_project_emitted(
             safec=toolchain.safec,
+            safec_hash=safec_hash,
             source=source,
             env=toolchain.env,
             run_check=run_check,
@@ -614,7 +616,7 @@ def run_cached_source_proof(
         source=source,
         sources=sources,
         state=state,
-        safec_hash=sha256_file(toolchain.safec),
+        safec_hash=safec_hash,
         gnatprove_id=tool_identity(toolchain.gnatprove),
         flow_switches=FLOW_SWITCHES,
         prove_switches=PROVE_SWITCHES if prove_switches is None else prove_switches,

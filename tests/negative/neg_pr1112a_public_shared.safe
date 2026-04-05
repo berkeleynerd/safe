@@ -1,6 +1,0 @@
-package neg_pr1112a_public_shared
-
-   type settings is record
-      value : integer;
-
-   public shared cfg : settings = (value = 1);

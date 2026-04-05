@@ -33,6 +33,10 @@ MIR, and interface payloads from one emit run.
 `typed-v6` and `safei-v5` may additionally carry `interface_members` on public
 type descriptors for Safe structural interface declarations.
 
+`safei-v5` public object entries may additionally carry:
+
+- `is_shared`
+
 From `PR11.11c` onward, `typed-v6` type descriptors may also carry:
 
 - `generic_formals`

@@ -1,0 +1,3 @@
+package provider_shared_map
+
+   public shared cache : map of (string, integer);

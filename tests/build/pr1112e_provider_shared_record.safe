@@ -1,0 +1,10 @@
+package pr1112e_provider_shared_record
+
+   public type nested_state is record
+      depth : integer;
+
+   public type settings is record
+      count : integer;
+      nested : nested_state;
+
+   public shared cfg : settings = (count = 1, nested = (depth = 2));

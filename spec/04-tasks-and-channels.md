@@ -6,8 +6,9 @@ This section specifies Safe's concurrency model. Safe provides concurrency
 through static tasks and typed channels as first-class language constructs.
 Tasks are declared at unit scope and create exactly one task each. Channels are
 typed, bounded-capacity FIFO queues. Tasks ordinarily communicate through
-channels; `PR11.12a` through `PR11.12d` additionally admit a narrow same-unit
-`shared` subset lowered to compiler-generated protected wrappers.
+channels; `PR11.12a` through `PR11.12e` additionally admit a narrow `shared`
+subset lowered to compiler-generated protected wrappers, including public and
+imported shared declarations in `PR11.12e`.
 
 ---
 
@@ -260,19 +261,21 @@ delay_arm ::=
 variable that is not declared `shared` shall be accessed by at most one task.
 The implementation shall verify this at compile time. A conforming
 implementation shall reject any program where a non-`shared` unit-level
-variable is accessed by more than one task. `PR11.12a` through `PR11.12d`
-shared roots are the sole admitted exception. In `PR11.12b`, same-unit
-shared records admit direct top-level field read/write access, bare snapshot
-reads of the whole record, whole-record updates, and nested writes rooted in
-the shared record. `PR11.12c` broadens the admitted record-field payload
-subset to copy-safe heap-backed value fields including plain `string`,
-growable arrays, `list of T`, `map of (K, V)`, and `optional T` when `T` is
-itself admitted. `PR11.12d` additionally admits same-unit shared built-in
-container roots (`list of T`, growable `array of T`, and `map of (K, V)`)
-with whole-value snapshot/update plus the limited live protected-operation
-surface `.length`, `append`, `pop_last`, `contains`, `get`, `set`, and
-`remove`. Direct indexed mutation, live iteration, and other live container
-operations still require snapshotting the shared value first.
+variable is accessed by more than one task. `PR11.12a` through `PR11.12e`
+shared roots are the sole admitted exception. In `PR11.12b`, shared records
+admit direct top-level field read/write access, bare snapshot reads of the
+whole record, whole-record updates, and nested writes rooted in the shared
+record. `PR11.12c` broadens the admitted record-field payload subset to
+copy-safe heap-backed value fields including plain `string`, growable arrays,
+`list of T`, `map of (K, V)`, and `optional T` when `T` is itself admitted.
+`PR11.12d` additionally admits shared built-in container roots (`list of T`,
+growable `array of T`, and `map of (K, V)`) with whole-value snapshot/update
+plus the limited live protected-operation surface `.length`, `append`,
+`pop_last`, `contains`, `get`, `set`, and `remove`. `PR11.12e` additionally
+admits `public shared` declarations and imported use of that same shared
+surface across package boundaries. Direct indexed mutation, live iteration,
+and other live container operations still require snapshotting the shared
+value first.
 
 46. **Access determination.** A task accesses a unit-level variable if:
 

@@ -2664,7 +2664,71 @@ package body Safe_Frontend.Check_Emit is
       Subtype_Only  : Boolean) return String
    is
       Items      : String_Vectors.Vector;
+      Seen_Names : String_Vectors.Vector;
       Type_Index : Natural := 0;
+      function Has_Prefix (Text, Prefix : String) return Boolean is
+      begin
+         return Text'Length >= Prefix'Length
+           and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
+      end Has_Prefix;
+
+      function Contains_Seen (Name : String) return Boolean is
+      begin
+         for Item of Seen_Names loop
+            if Item = Name then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Contains_Seen;
+
+      function Find_Type (Name : String; Info : out GM.Type_Descriptor) return Boolean is
+      begin
+         for Item of Resolved.Types loop
+            if FT.To_String (Item.Name) = Name then
+               Info := Item;
+               return True;
+            end if;
+         end loop;
+         Info := (others => <>);
+         return False;
+      end Find_Type;
+
+      function Find_Type_Or_Builtin
+        (Name : String;
+         Info : out GM.Type_Descriptor) return Boolean
+      is
+      begin
+         if Find_Type (Name, Info) then
+            return True;
+         end if;
+
+         Info := (others => <>);
+         if Name = "integer" or else Name = "long_long_integer" then
+            Info.Name := FT.To_UString (Name);
+            Info.Kind := FT.To_UString ("integer");
+            return True;
+         elsif Name = "boolean" then
+            Info.Name := FT.To_UString (Name);
+            Info.Kind := FT.To_UString ("boolean");
+            return True;
+         elsif Name = "string" then
+            Info.Name := FT.To_UString (Name);
+            Info.Kind := FT.To_UString ("string");
+            return True;
+         elsif Name = "float" or else Name = "long_float" then
+            Info.Name := FT.To_UString (Name);
+            Info.Kind := FT.To_UString ("float");
+            return True;
+         elsif Has_Prefix (Name, "__binary_") then
+            Info.Name := FT.To_UString (Name);
+            Info.Kind := FT.To_UString ("binary");
+            return True;
+         end if;
+
+         return False;
+      end Find_Type_Or_Builtin;
+
       function Is_Hidden_Reference_Target
         (Info : GM.Type_Descriptor) return Boolean is
          Target_Name : constant String := FT.To_String (Info.Name);
@@ -2672,6 +2736,140 @@ package body Safe_Frontend.Check_Emit is
          return Target_Name'Length > 16
            and then Target_Name (Target_Name'First .. Target_Name'First + 15) = "safe_ref_target_";
       end Is_Hidden_Reference_Target;
+
+      function Is_Synthetic_Public_Type (Info : GM.Type_Descriptor) return Boolean is
+         Name_Text : constant String := FT.To_String (Info.Name);
+      begin
+         return Name_Text'Length > 0
+           and then
+             (Has_Prefix (Name_Text, "__growable_array_")
+              or else Has_Prefix (Name_Text, "__tuple")
+              or else Has_Prefix (Name_Text, "__optional_")
+              or else Has_Prefix (Name_Text, "__bounded_string_"));
+      end Is_Synthetic_Public_Type;
+
+      function Sanitize_Type_Name_Component (Name : String) return String is
+         Result : US.Unbounded_String := US.Null_Unbounded_String;
+      begin
+         for Ch of Name loop
+            if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
+               US.Append (Result, (1 => Ch));
+            else
+               US.Append (Result, "_");
+            end if;
+         end loop;
+         return US.To_String (Result);
+      end Sanitize_Type_Name_Component;
+
+      function Synthetic_Optional_Type
+        (Element_Info : GM.Type_Descriptor) return GM.Type_Descriptor
+      is
+         Result  : GM.Type_Descriptor;
+         Disc    : GM.Discriminant_Descriptor;
+         Field   : GM.Type_Field;
+         Variant : GM.Variant_Field;
+      begin
+         Result.Name :=
+           FT.To_UString
+             ("__optional_"
+              & Sanitize_Type_Name_Component (FT.To_String (Element_Info.Name)));
+         Result.Kind := FT.To_UString ("record");
+         Result.Has_Discriminant := True;
+         Result.Discriminant_Name := FT.To_UString ("present");
+         Result.Discriminant_Type := FT.To_UString ("boolean");
+         Result.Has_Discriminant_Default := True;
+         Result.Discriminant_Default_Bool := False;
+
+         Disc.Name := FT.To_UString ("present");
+         Disc.Type_Name := FT.To_UString ("boolean");
+         Disc.Has_Default := True;
+         Disc.Default_Value.Kind := GM.Scalar_Value_Boolean;
+         Disc.Default_Value.Bool_Value := False;
+         Result.Discriminants.Append (Disc);
+
+         Field.Name := FT.To_UString ("value");
+         Field.Type_Name := Element_Info.Name;
+         Result.Fields.Append (Field);
+
+         Variant.Name := FT.To_UString ("value");
+         Variant.Type_Name := Element_Info.Name;
+         Variant.Choice.Kind := GM.Scalar_Value_Boolean;
+         Variant.Choice.Bool_Value := True;
+         Variant.When_True := True;
+         Result.Variant_Discriminant_Name := FT.To_UString ("present");
+         Result.Variant_Fields.Append (Variant);
+         return Result;
+      end Synthetic_Optional_Type;
+
+      procedure Append_Public_Type (Info : GM.Type_Descriptor);
+      procedure Append_Public_Shared_Helper_Types (Info : GM.Type_Descriptor);
+
+      procedure Append_Public_Type (Info : GM.Type_Descriptor) is
+         Name_Text : constant String := FT.To_String (Info.Name);
+
+         procedure Append_From_Name (Name : String) is
+            Lookup_Info : GM.Type_Descriptor := (others => <>);
+         begin
+            if Name'Length = 0 then
+               return;
+            elsif Find_Type (Name, Lookup_Info) then
+               Append_Public_Type (Lookup_Info);
+            end if;
+         end Append_From_Name;
+      begin
+         if Name_Text'Length = 0
+           or else Contains_Seen (Name_Text)
+         then
+            return;
+         end if;
+
+         Seen_Names.Append (Name_Text);
+
+         if Info.Has_Base then
+            Append_From_Name (FT.To_String (Info.Base));
+         end if;
+         if Info.Has_Component_Type then
+            Append_From_Name (FT.To_String (Info.Component_Type));
+         end if;
+         for Item of Info.Tuple_Element_Types loop
+            Append_From_Name (FT.To_String (Item));
+         end loop;
+         for Field of Info.Fields loop
+            Append_From_Name (FT.To_String (Field.Type_Name));
+         end loop;
+         for Field of Info.Variant_Fields loop
+            Append_From_Name (FT.To_String (Field.Type_Name));
+         end loop;
+
+         if Is_Synthetic_Public_Type (Info) then
+            Items.Append (Type_Json (Info));
+         end if;
+      end Append_Public_Type;
+
+      procedure Append_Public_Shared_Helper_Types (Info : GM.Type_Descriptor) is
+         Component_Info : GM.Type_Descriptor := (others => <>);
+         Value_Info     : GM.Type_Descriptor := (others => <>);
+      begin
+         if FT.To_String (Info.Kind) /= "array"
+           or else not Info.Growable
+           or else not Info.Has_Component_Type
+           or else not Find_Type_Or_Builtin
+             (FT.To_String (Info.Component_Type), Component_Info)
+         then
+            return;
+         end if;
+
+         if FT.To_String (Component_Info.Kind) = "tuple"
+           and then Natural (Component_Info.Tuple_Element_Types.Length) = 2
+           and then Find_Type_Or_Builtin
+             (FT.To_String (Component_Info.Tuple_Element_Types (2)),
+              Value_Info)
+         then
+            Append_Public_Type (Synthetic_Optional_Type (Value_Info));
+         else
+            Append_Public_Type (Synthetic_Optional_Type (Component_Info));
+         end if;
+      end Append_Public_Shared_Helper_Types;
    begin
       for Item of Parsed.Items loop
          if Item.Kind in CM.Item_Type_Decl | CM.Item_Subtype_Decl then
@@ -2681,6 +2879,7 @@ package body Safe_Frontend.Check_Emit is
             then
                if Item.Kind = CM.Item_Type_Decl then
                   if not Subtype_Only and then Item.Type_Data.Is_Public then
+                     Seen_Names.Append (FT.To_String (Resolved.Types (Type_Index).Name));
                      Items.Append (Type_Json (Resolved.Types (Type_Index)));
                   elsif Subtype_Only
                     and then Item.Type_Data.Is_Public
@@ -2688,6 +2887,7 @@ package body Safe_Frontend.Check_Emit is
                     and then Type_Index + 1 in Resolved.Types.First_Index .. Resolved.Types.Last_Index
                     and then Is_Hidden_Reference_Target (Resolved.Types (Type_Index + 1))
                   then
+                     Seen_Names.Append (FT.To_String (Resolved.Types (Type_Index + 1).Name));
                      Items.Append (Type_Json (Resolved.Types (Type_Index + 1)));
                   end if;
                   if Resolved.Types (Type_Index).Has_Target
@@ -2700,11 +2900,23 @@ package body Safe_Frontend.Check_Emit is
                  and then Subtype_Only
                  and then Item.Sub_Data.Is_Public
                then
+                  Seen_Names.Append (FT.To_String (Resolved.Types (Type_Index).Name));
                   Items.Append (Type_Json (Resolved.Types (Type_Index)));
                end if;
             end if;
          end if;
       end loop;
+
+      if not Subtype_Only and then not Resolved.Objects.Is_Empty then
+         for Item of Resolved.Objects loop
+            if Item.Is_Public then
+               Append_Public_Type (Item.Type_Info);
+               if Item.Is_Shared then
+                  Append_Public_Shared_Helper_Types (Item.Type_Info);
+               end if;
+            end if;
+         end loop;
+      end if;
       return Json_List (Items);
    end Public_Types_Json;
 
@@ -2777,6 +2989,7 @@ package body Safe_Frontend.Check_Emit is
                   begin
                      Fields.Append ("""name"":" & JS.Quote (Name));
                      Fields.Append ("""type"":" & Type_Json (Info.Type_Info));
+                     Fields.Append ("""is_shared"":" & JS.Bool_Literal (Info.Is_Shared));
                      Fields.Append ("""is_constant"":" & JS.Bool_Literal (Info.Is_Constant));
                      case Info.Static_Info.Kind is
                         when CM.Static_Value_Integer =>
@@ -3193,6 +3406,9 @@ package body Safe_Frontend.Check_Emit is
          end if;
          if Info.Has_Component_Type then
             Items.Append ("""component_type"":" & JS.Quote (Info.Component_Type));
+         end if;
+         if Info.Growable then
+            Items.Append ("""growable"":true");
          end if;
          if Info.Unconstrained then
             Items.Append ("""unconstrained"":true");

@@ -846,6 +846,10 @@ package body Safe_Frontend.Ada_Emit is
    function Sanitize_Type_Name_Component (Value : String) return String;
    function Shared_Wrapper_Object_Name (Root_Name : String) return String;
    function Shared_Wrapper_Type_Name (Root_Name : String) return String;
+   function Shared_Public_Helper_Base_Name (Root_Name : String) return String;
+   function Shared_Public_Helper_Name
+     (Root_Name : String;
+      Operation : String) return String;
    function Shared_Get_All_Name return String;
    function Shared_Set_All_Name return String;
    function Shared_Get_Length_Name return String;
@@ -860,11 +864,10 @@ package body Safe_Frontend.Ada_Emit is
 
    function Shared_Nested_Field_Setter_Name
      (Path_Names : FT.UString_Vectors.Vector) return String;
-   function Shared_Wrapper_Formal_Type
+   function Shared_Call_Formal_Type
      (Unit          : CM.Resolved_Unit;
       Document      : GM.Mir_Document;
-      Wrapper_Name  : String;
-      Selector_Name : String;
+      Call_Expr      : CM.Expr_Access;
       Position      : Positive;
       Found         : out Boolean) return GM.Type_Descriptor;
    procedure Render_Shared_Object_Spec
@@ -1015,6 +1018,21 @@ package body Safe_Frontend.Ada_Emit is
       return Shared_Wrapper_Object_Name (Root_Name) & "_Wrapper";
    end Shared_Wrapper_Type_Name;
 
+   function Shared_Public_Helper_Base_Name (Root_Name : String) return String is
+   begin
+      return
+        "Safe_Public_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
+   end Shared_Public_Helper_Base_Name;
+
+   function Shared_Public_Helper_Name
+     (Root_Name : String;
+      Operation : String) return String
+   is
+   begin
+      return Shared_Public_Helper_Base_Name (Root_Name) & "_" & Operation;
+   end Shared_Public_Helper_Name;
+
    function Shared_Get_All_Name return String is
    begin
       return "Get_All";
@@ -1103,14 +1121,145 @@ package body Safe_Frontend.Ada_Emit is
         and then not (Name_Text'Length > 11 and then Name_Text (Name_Text'First .. Name_Text'First + 10) = "__optional_");
    end Is_Plain_Shared_Nested_Record;
 
-   function Shared_Wrapper_Formal_Type
+   function Shared_Call_Formal_Type
      (Unit          : CM.Resolved_Unit;
       Document      : GM.Mir_Document;
-      Wrapper_Name  : String;
-      Selector_Name : String;
+      Call_Expr     : CM.Expr_Access;
       Position      : Positive;
       Found         : out Boolean) return GM.Type_Descriptor
    is
+      Root_Type        : GM.Type_Descriptor := (others => <>);
+      Selector_Name    : FT.UString := FT.To_UString ("");
+
+      function Optional_Type_Info (Info : GM.Type_Descriptor) return GM.Type_Descriptor is
+      begin
+         return
+           Lookup_Type
+             (Unit,
+              Document,
+              "__optional_" & Sanitize_Type_Name_Component (FT.To_String (Info.Name)));
+      end Optional_Type_Info;
+
+      function Try_Shared_Call_Target return Boolean is
+         Flat_Callee : constant String :=
+           (if Call_Expr = null or else Call_Expr.Callee = null
+            then ""
+            else CM.Flatten_Name (Call_Expr.Callee));
+         Dot_Index : Natural := 0;
+      begin
+         if Call_Expr = null
+           or else Call_Expr.Callee = null
+         then
+            return False;
+         end if;
+
+         for Index in reverse Flat_Callee'Range loop
+            if Flat_Callee (Index) = '.' then
+               Dot_Index := Index;
+               exit;
+            end if;
+         end loop;
+
+         if Dot_Index > 0 then
+            declare
+               Prefix_Name : constant String :=
+                 Flat_Callee (Flat_Callee'First .. Dot_Index - 1);
+               Prefix_Key : constant String := FT.Lowercase (Prefix_Name);
+               Selector_Text : constant String :=
+                  Flat_Callee (Dot_Index + 1 .. Flat_Callee'Last);
+            begin
+               for Decl of Unit.Objects loop
+                  if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+                     declare
+                        Wrapper_Key : constant String :=
+                          FT.Lowercase
+                            (Shared_Wrapper_Object_Name
+                               (FT.To_String (Decl.Names (Decl.Names.First_Index))));
+                     begin
+                        if Prefix_Key = Wrapper_Key
+                          or else
+                            (Prefix_Key'Length > Wrapper_Key'Length
+                             and then Prefix_Key
+                               (Prefix_Key'Last - Wrapper_Key'Length .. Prefix_Key'Last)
+                                 = "." & Wrapper_Key)
+                        then
+                           Root_Type := Decl.Type_Info;
+                           Selector_Name := FT.To_UString (Selector_Text);
+                           return True;
+                        end if;
+                     end;
+                  end if;
+               end loop;
+            end;
+         end if;
+
+         if Call_Expr.Callee.Kind = CM.Expr_Select
+           and then Call_Expr.Callee.Prefix /= null
+           and then Call_Expr.Callee.Prefix.Kind = CM.Expr_Ident
+         then
+            for Decl of Unit.Objects loop
+               if Decl.Is_Shared and then not Decl.Names.Is_Empty then
+                  declare
+                     Wrapper_Key : constant String :=
+                       FT.Lowercase
+                         (Shared_Wrapper_Object_Name
+                            (FT.To_String (Decl.Names (Decl.Names.First_Index))));
+                     Prefix_Key : constant String :=
+                       FT.Lowercase (FT.To_String (Call_Expr.Callee.Prefix.Name));
+                  begin
+                     if Prefix_Key = Wrapper_Key
+                       or else
+                         (Prefix_Key'Length > Wrapper_Key'Length
+                          and then Prefix_Key
+                            (Prefix_Key'Last - Wrapper_Key'Length .. Prefix_Key'Last)
+                              = "." & Wrapper_Key)
+                     then
+                        Root_Type := Decl.Type_Info;
+                        Selector_Name := Call_Expr.Callee.Selector;
+                        return True;
+                     end if;
+                  end;
+               end if;
+            end loop;
+         end if;
+
+         declare
+            Helper_Name : constant String :=
+              (if Call_Expr.Callee.Kind = CM.Expr_Ident
+               then FT.To_String (Call_Expr.Callee.Name)
+               elsif Call_Expr.Callee.Kind = CM.Expr_Select
+               then FT.To_String (Call_Expr.Callee.Selector)
+               else "");
+            Helper_Key : constant String := FT.Lowercase (Helper_Name);
+         begin
+            for Decl of Unit.Objects loop
+               if Decl.Is_Shared
+                 and then Decl.Is_Public
+                 and then not Decl.Names.Is_Empty
+               then
+                  declare
+                     Root_Name : constant String :=
+                       FT.To_String (Decl.Names (Decl.Names.First_Index));
+                     Prefix : constant String :=
+                       Shared_Public_Helper_Base_Name (Root_Name) & "_";
+                     Prefix_Key : constant String := FT.Lowercase (Prefix);
+                  begin
+                     if Starts_With (Helper_Key, Prefix_Key)
+                       and then Helper_Key'Length > Prefix_Key'Length
+                     then
+                        Root_Type := Decl.Type_Info;
+                        Selector_Name :=
+                          FT.To_UString (Helper_Name (Prefix'Length + 1 .. Helper_Name'Last));
+                        return True;
+                     end if;
+                  end;
+               end if;
+            end loop;
+         end;
+
+         return False;
+      end Try_Shared_Call_Target;
+
       function Nested_Setter_Type
         (Info       : GM.Type_Descriptor;
          Path_Names : FT.UString_Vectors.Vector) return GM.Type_Descriptor
@@ -1122,11 +1271,12 @@ package body Safe_Frontend.Ada_Emit is
                Next_Path       : FT.UString_Vectors.Vector := Path_Names;
                Field_Type_Name : constant String := FT.To_String (Field.Type_Name);
                Field_Info      : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, Field_Type_Name);
+                 Lookup_Type (Unit, Document, Field_Type_Name);
             begin
                Next_Path.Append (Field.Name);
                if Natural (Next_Path.Length) >= 2
-                 and then Shared_Nested_Field_Setter_Name (Next_Path) = Selector_Name
+                 and then FT.Lowercase (Shared_Nested_Field_Setter_Name (Next_Path))
+                   = FT.Lowercase (FT.To_String (Selector_Name))
                then
                   Found := True;
                   return Field_Info;
@@ -1149,141 +1299,103 @@ package body Safe_Frontend.Ada_Emit is
          return (others => <>);
       end Nested_Setter_Type;
    begin
-      for Decl of Unit.Objects loop
-         if Decl.Is_Shared and then not Decl.Names.Is_Empty then
-            declare
-               Root_Name : constant String :=
-                 FT.To_String (Decl.Names (Decl.Names.First_Index));
-               Root_Type  : constant GM.Type_Descriptor :=
-                 Base_Type (Unit, Document, Decl.Type_Info);
-               Element_Type : GM.Type_Descriptor := (others => <>);
-               Key_Type     : GM.Type_Descriptor := (others => <>);
-               Value_Type   : GM.Type_Descriptor := (others => <>);
-            begin
-               if Shared_Wrapper_Object_Name (Root_Name) = Wrapper_Name then
-                  if Selector_Name in "Initialize" | "Set_All"
-                    and then Position = 1
-                  then
-                     Found := True;
-                     return Decl.Type_Info;
-                  elsif Selector_Name = Shared_Pop_Last_Name
-                    and then Position = 1
-                    and then Is_Growable_Array_Type (Unit, Document, Root_Type)
-                    and then not Try_Map_Key_Value_Types
-                      (Unit,
-                       Document,
-                       Root_Type,
-                       Key_Type,
-                       Value_Type)
-                  then
-                     Element_Type :=
-                       Resolve_Type_Name
-                         (Unit,
-                          Document,
-                          FT.To_String (Root_Type.Component_Type));
-                     Found := True;
-                     return
-                       Resolve_Type_Name
-                         (Unit,
-                          Document,
-                          "__optional_" & Sanitize_Type_Name_Component
-                            (FT.To_String (Element_Type.Name)));
-                  elsif Selector_Name = Shared_Append_Name
-                    and then Position = 1
-                    and then Is_Growable_Array_Type (Unit, Document, Root_Type)
-                    and then not Try_Map_Key_Value_Types
-                      (Unit,
-                       Document,
-                       Root_Type,
-                       Key_Type,
-                       Value_Type)
-                  then
-                     Element_Type :=
-                       Resolve_Type_Name
-                         (Unit,
-                          Document,
-                          FT.To_String (Root_Type.Component_Type));
-                     Found := True;
-                     return Element_Type;
-                  elsif Selector_Name in Shared_Contains_Name | Shared_Get_Name | Shared_Remove_Name
-                    and then Position = 1
-                    and then Try_Map_Key_Value_Types
-                      (Unit,
-                       Document,
-                       Root_Type,
-                       Key_Type,
-                       Value_Type)
-                  then
-                     Found := True;
-                     return Key_Type;
-                  elsif Selector_Name = Shared_Set_Name
-                    and then Try_Map_Key_Value_Types
-                      (Unit,
-                       Document,
-                       Root_Type,
-                       Key_Type,
-                       Value_Type)
-                  then
-                     if Position = 1 then
-                        Found := True;
-                        return Key_Type;
-                     elsif Position = 2 then
-                        Found := True;
-                        return Value_Type;
-                     end if;
-                  elsif Selector_Name = Shared_Remove_Name
-                    and then Try_Map_Key_Value_Types
-                      (Unit,
-                       Document,
-                       Root_Type,
-                       Key_Type,
-                       Value_Type)
-                  then
-                     if Position = 1 then
-                        Found := True;
-                        return Key_Type;
-                     elsif Position = 2 then
-                        Found := True;
-                        return
-                          Resolve_Type_Name
-                            (Unit,
-                             Document,
-                             "__optional_" & Sanitize_Type_Name_Component
-                               (FT.To_String (Value_Type.Name)));
-                     end if;
-                  elsif Position = 1 then
-                     for Field of Root_Type.Fields loop
-                        if Shared_Field_Setter_Name (FT.To_String (Field.Name)) = Selector_Name then
-                           declare
-                              Field_Type_Name : constant String :=
-                                FT.To_String (Field.Type_Name);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name (Unit, Document, Field_Type_Name);
-                           begin
-                              Found := True;
-                              return Field_Info;
-                           end;
-                        end if;
-                     end loop;
+      Found := False;
 
-                     declare
-                        Path_Names  : FT.UString_Vectors.Vector;
-                        Nested_Info : constant GM.Type_Descriptor :=
-                          Nested_Setter_Type (Decl.Type_Info, Path_Names);
-                     begin
-                        if Found then
-                           return Nested_Info;
-                        end if;
-                     end;
-                  end if;
+      if Call_Expr = null
+        or else Call_Expr.Kind /= CM.Expr_Call
+        or else Call_Expr.Args.Is_Empty
+        or else Position > Call_Expr.Args.Last_Index
+      then
+         return (others => <>);
+      end if;
+
+      if not Try_Shared_Call_Target then
+         return (others => <>);
+      end if;
+
+      declare
+         Root_Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Root_Type);
+         Selector_Text : constant String := FT.To_String (Selector_Name);
+         Selector_Key  : constant String := FT.Lowercase (Selector_Text);
+         Element_Type  : GM.Type_Descriptor := (others => <>);
+         Key_Type      : GM.Type_Descriptor := (others => <>);
+         Value_Type    : GM.Type_Descriptor := (others => <>);
+      begin
+         if Selector_Key in FT.Lowercase ("Initialize") | FT.Lowercase ("Set_All")
+           and then Position = 1
+         then
+            Found := True;
+            return Root_Type;
+         elsif Is_Growable_Array_Type (Unit, Document, Root_Base)
+           and then Try_Map_Key_Value_Types
+             (Unit,
+              Document,
+              Root_Base,
+              Key_Type,
+              Value_Type)
+         then
+            if Selector_Key in FT.Lowercase (Shared_Contains_Name) | FT.Lowercase (Shared_Get_Name)
+              and then Position = 1
+            then
+               Found := True;
+               return Key_Type;
+            elsif Selector_Key = FT.Lowercase (Shared_Set_Name) then
+               if Position = 1 then
+                  Found := True;
+                  return Key_Type;
+               elsif Position = 2 then
+                  Found := True;
+                  return Value_Type;
+               end if;
+            elsif Selector_Key = FT.Lowercase (Shared_Remove_Name) then
+               if Position = 1 then
+                  Found := True;
+                  return Key_Type;
+               elsif Position = 2 then
+                  Found := True;
+                  return Optional_Type_Info (Value_Type);
+               end if;
+            end if;
+         elsif Is_Growable_Array_Type (Unit, Document, Root_Base)
+           and then Root_Base.Has_Component_Type
+         then
+            Element_Type :=
+              Lookup_Type (Unit, Document, FT.To_String (Root_Base.Component_Type));
+            if Selector_Key = FT.Lowercase (Shared_Append_Name)
+              and then Position = 1
+            then
+               Found := True;
+               return Element_Type;
+            elsif Selector_Key = FT.Lowercase (Shared_Pop_Last_Name)
+              and then Position = 1
+            then
+               Found := True;
+               return Optional_Type_Info (Element_Type);
+            end if;
+         elsif Position = 1 then
+            for Field of Root_Base.Fields loop
+               if FT.Lowercase
+                    (Shared_Field_Setter_Name (FT.To_String (Field.Name))) = Selector_Key
+               then
+                  Found := True;
+                  return Lookup_Type (Unit, Document, FT.To_String (Field.Type_Name));
+               end if;
+            end loop;
+
+            declare
+               Empty_Path : FT.UString_Vectors.Vector;
+               Nested_Info : constant GM.Type_Descriptor :=
+                 Nested_Setter_Type (Root_Type, Empty_Path);
+            begin
+               if Found then
+                  return Nested_Info;
                end if;
             end;
          end if;
-      end loop;
+      end;
 
-      Found := False;
       return (others => <>);
-   end Shared_Wrapper_Formal_Type;
+   end Shared_Call_Formal_Type;
 
    procedure Render_Shared_Object_Spec
      (Buffer   : in out SU.Unbounded_String;
@@ -1300,6 +1412,7 @@ package body Safe_Frontend.Ada_Emit is
       Base_Info     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
       Integer_Type_Name : constant String :=
         Render_Type_Name (Resolve_Type_Name (Unit, Document, "integer"));
+      Is_Public_Shared : constant Boolean := Decl.Is_Public;
       Is_Container_Root : constant Boolean :=
         Is_Growable_Array_Type (Unit, Document, Decl.Type_Info);
       Element_Info : constant GM.Type_Descriptor :=
@@ -1319,6 +1432,16 @@ package body Safe_Frontend.Ada_Emit is
               State);
       end Optional_Type_Name;
 
+      function Public_Helper_Name (Operation : String) return String is
+      begin
+         return Shared_Public_Helper_Name (Root_Name, Operation);
+      end Public_Helper_Name;
+
+      function Public_Shared_Function_Suffix return String is
+      begin
+         return " with Volatile_Function";
+      end Public_Shared_Function_Suffix;
+
       procedure Append_Nested_Setter_Specs
         (Info       : GM.Type_Descriptor;
          Path_Names : FT.UString_Vectors.Vector)
@@ -1330,20 +1453,33 @@ package body Safe_Frontend.Ada_Emit is
                Next_Path       : FT.UString_Vectors.Vector := Path_Names;
                Field_Type_Name : constant String := FT.To_String (Field.Type_Name);
                Field_Info      : constant GM.Type_Descriptor :=
-                 (if Has_Type (Unit, Document, Field_Type_Name)
-                  then Lookup_Type (Unit, Document, Field_Type_Name)
-                  else (others => <>));
+                 Resolve_Type_Name (Unit, Document, Field_Type_Name);
             begin
                Next_Path.Append (Field.Name);
                if Natural (Next_Path.Length) >= 2 then
                   Append_Line
                     (Buffer,
                      "procedure "
-                     & Shared_Nested_Field_Setter_Name (Next_Path)
+                     & (if Is_Public_Shared
+                        then Public_Helper_Name
+                          (Shared_Nested_Field_Setter_Name (Next_Path))
+                        else Shared_Nested_Field_Setter_Name (Next_Path))
                      & " (Value : in "
                      & Render_Type_Name_From_Text (Unit, Document, Field_Type_Name, State)
                      & ");",
-                     2);
+                     (if Is_Public_Shared then 1 else 2));
+                  if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                     State.Needs_Safe_String_RT := True;
+                     Append_Line
+                       (Buffer,
+                        "procedure "
+                        & (if Is_Public_Shared
+                           then Public_Helper_Name
+                             (Shared_Nested_Field_Setter_Name (Next_Path))
+                           else Shared_Nested_Field_Setter_Name (Next_Path))
+                        & " (Value : in String);",
+                        (if Is_Public_Shared then 1 else 2));
+                  end if;
                end if;
 
                if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
@@ -1353,6 +1489,121 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
       end Append_Nested_Setter_Specs;
    begin
+      if Is_Public_Shared then
+         Append_Line
+           (Buffer,
+            "function " & Public_Helper_Name (Shared_Get_All_Name)
+            & " return " & Record_Type
+            & Public_Shared_Function_Suffix
+            & ";",
+            1);
+         Append_Line
+           (Buffer,
+            "procedure " & Public_Helper_Name (Shared_Set_All_Name)
+            & " (Value : in " & Record_Type & ");",
+            1);
+         if Is_Container_Root then
+            Append_Line
+              (Buffer,
+               "function " & Public_Helper_Name (Shared_Get_Length_Name)
+               & " return " & Integer_Type_Name
+               & Public_Shared_Function_Suffix
+               & ";",
+               1);
+            if Try_Map_Key_Value_Types (Unit, Document, Decl.Type_Info, Key_Info, Value_Info) then
+               Append_Line
+                 (Buffer,
+                  "function " & Public_Helper_Name (Shared_Contains_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & ") return boolean"
+                  & Public_Shared_Function_Suffix
+                  & ";",
+                  1);
+               Append_Line
+                 (Buffer,
+                  "function " & Public_Helper_Name (Shared_Get_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & ") return " & Optional_Type_Name (Value_Info)
+                  & Public_Shared_Function_Suffix
+                  & ";",
+                  1);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Public_Helper_Name (Shared_Set_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & "; Value : in " & Render_Type_Name (Value_Info) & ");",
+                  1);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Public_Helper_Name (Shared_Remove_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & "; Result : out " & Optional_Type_Name (Value_Info) & ");",
+                  1);
+            else
+               Append_Line
+                 (Buffer,
+                  "procedure " & Public_Helper_Name (Shared_Append_Name)
+                  & " (Value : in " & Render_Type_Name (Element_Info) & ");",
+                  1);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Public_Helper_Name (Shared_Pop_Last_Name)
+                  & " (Result : out " & Optional_Type_Name (Element_Info) & ");",
+                  1);
+            end if;
+         else
+            for Field of Base_Info.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+                  Field_Type_Name : constant String :=
+                    Render_Type_Name_From_Text
+                      (Unit,
+                       Document,
+                       FT.To_String (Field.Type_Name),
+                       State);
+               begin
+                  Append_Line
+                    (Buffer,
+                     "function "
+                     & Public_Helper_Name
+                         (Shared_Field_Getter_Name (FT.To_String (Field.Name)))
+                     & " return "
+                     & Field_Type_Name
+                     & Public_Shared_Function_Suffix
+                     & ";",
+                     1);
+                  Append_Line
+                    (Buffer,
+                     "procedure "
+                     & Public_Helper_Name
+                         (Shared_Field_Setter_Name (FT.To_String (Field.Name)))
+                     & " (Value : in "
+                     & Field_Type_Name
+                     & ");",
+                     1);
+                  if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                     State.Needs_Safe_String_RT := True;
+                     Append_Line
+                       (Buffer,
+                        "procedure "
+                        & Public_Helper_Name
+                            (Shared_Field_Setter_Name (FT.To_String (Field.Name)))
+                        & " (Value : in String);",
+                        1);
+                  end if;
+               end;
+            end loop;
+            declare
+               Empty_Path : FT.UString_Vectors.Vector;
+            begin
+               Append_Nested_Setter_Specs (Decl.Type_Info, Empty_Path);
+            end;
+         end if;
+         Append_Line (Buffer);
+         return;
+      end if;
+
       Append_Line
         (Buffer,
          "protected type "
@@ -1411,6 +1662,8 @@ package body Safe_Frontend.Ada_Emit is
       else
          for Field of Base_Info.Fields loop
             declare
+               Field_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
                Field_Type_Name : constant String :=
                  Render_Type_Name_From_Text
                    (Unit,
@@ -1434,6 +1687,15 @@ package body Safe_Frontend.Ada_Emit is
                   & Field_Type_Name
                   & ");",
                   2);
+               if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                  State.Needs_Safe_String_RT := True;
+                  Append_Line
+                    (Buffer,
+                     "procedure "
+                     & Shared_Field_Setter_Name (FT.To_String (Field.Name))
+                     & " (Value : in String);",
+                     2);
+               end if;
             end;
          end loop;
          declare
@@ -1468,23 +1730,37 @@ package body Safe_Frontend.Ada_Emit is
       Type_Name    : constant String := Shared_Wrapper_Type_Name (Root_Name);
       Root_Type    : constant String := Render_Type_Name (Decl.Type_Info);
       Base_Info    : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
+      Is_Public_Shared : constant Boolean := Decl.Is_Public;
       Heap_Root    : constant Boolean :=
         Has_Heap_Value_Type (Unit, Document, Decl.Type_Info);
       Is_Container_Root : constant Boolean :=
         Is_Growable_Array_Type (Unit, Document, Decl.Type_Info);
       Integer_Type_Name : constant String :=
         Render_Type_Name (Resolve_Type_Name (Unit, Document, "integer"));
+      Key_Info     : GM.Type_Descriptor := (others => <>);
+      Value_Info   : GM.Type_Descriptor := (others => <>);
       Generated_Shared_Helpers : FT.UString_Vectors.Vector;
       Runtime_Dependency_Types  : FT.UString_Vectors.Vector;
 
-      function Optional_Type_Info (Info : GM.Type_Descriptor) return GM.Type_Descriptor is
+      function Optional_Type_Name (Info : GM.Type_Descriptor) return String is
       begin
          return
-           Lookup_Type
+           Render_Type_Name_From_Text
              (Unit,
               Document,
-              "__optional_" & Sanitize_Type_Name_Component (FT.To_String (Info.Name)));
-      end Optional_Type_Info;
+              "__optional_" & Sanitize_Type_Name_Component (FT.To_String (Info.Name)),
+              State);
+      end Optional_Type_Name;
+
+      function Optional_Default_Expr (Info : GM.Type_Descriptor) return String is
+      begin
+         return Optional_Type_Name (Info) & "'(present => False)";
+      end Optional_Default_Expr;
+
+      function Public_Helper_Name (Operation : String) return String is
+      begin
+         return Shared_Public_Helper_Name (Root_Name, Operation);
+      end Public_Helper_Name;
 
       function Shared_Helper_Key (Info : GM.Type_Descriptor) return String is
       begin
@@ -2118,6 +2394,27 @@ package body Safe_Frontend.Ada_Emit is
                      "end " & Shared_Nested_Field_Setter_Name (Next_Path) & ";",
                      2);
                   Append_Line (Buffer);
+                  if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                     State.Needs_Safe_String_RT := True;
+                     Append_Line
+                       (Buffer,
+                        "procedure "
+                        & Shared_Nested_Field_Setter_Name (Next_Path)
+                        & " (Value : in String) is",
+                        2);
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                     Append_Line (Buffer, "begin", 2);
+                     Append_Line
+                       (Buffer,
+                        Shared_Nested_Field_Setter_Name (Next_Path)
+                        & " (Safe_String_RT.From_Literal (Value));",
+                        3);
+                     Append_Line
+                       (Buffer,
+                        "end " & Shared_Nested_Field_Setter_Name (Next_Path) & ";",
+                        2);
+                     Append_Line (Buffer);
+                  end if;
                end if;
 
                if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
@@ -2126,7 +2423,506 @@ package body Safe_Frontend.Ada_Emit is
             end;
          end loop;
       end Append_Nested_Setter_Bodies;
+
+      procedure Append_Private_Wrapper_Declarations is
+         Record_Default : constant String :=
+           Default_Value_Expr (Unit, Document, Decl.Type_Info);
+
+         procedure Append_Nested_Setter_Specs
+           (Info       : GM.Type_Descriptor;
+            Path_Names : FT.UString_Vectors.Vector)
+         is
+            Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         begin
+            for Field of Base.Fields loop
+               declare
+                  Next_Path       : FT.UString_Vectors.Vector := Path_Names;
+                  Field_Type_Name : constant String := FT.To_String (Field.Type_Name);
+                  Field_Info      : constant GM.Type_Descriptor :=
+                    (if Has_Type (Unit, Document, Field_Type_Name)
+                     then Lookup_Type (Unit, Document, Field_Type_Name)
+                     else (others => <>));
+               begin
+                  Next_Path.Append (Field.Name);
+                  if Natural (Next_Path.Length) >= 2 then
+                     Append_Line
+                       (Buffer,
+                        "procedure "
+                        & Shared_Nested_Field_Setter_Name (Next_Path)
+                        & " (Value : in "
+                        & Render_Type_Name_From_Text
+                            (Unit,
+                             Document,
+                             Field_Type_Name,
+                             State)
+                        & ");",
+                        2);
+                  end if;
+
+                  if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
+                     Append_Nested_Setter_Specs (Field_Info, Next_Path);
+                  end if;
+               end;
+            end loop;
+         end Append_Nested_Setter_Specs;
+      begin
+         Append_Line
+           (Buffer,
+            "protected type "
+            & Type_Name
+            & " with Priority => System.Any_Priority'Last is",
+            1);
+         Append_Line
+           (Buffer,
+            "function " & Shared_Get_All_Name & " return " & Root_Type & ";",
+            2);
+         Append_Line
+           (Buffer,
+            "procedure " & Shared_Set_All_Name & " (Value : in " & Root_Type & ");",
+            2);
+         if Is_Container_Root then
+            Append_Line
+              (Buffer,
+               "function " & Shared_Get_Length_Name & " return "
+               & Integer_Type_Name & ";",
+               2);
+            if Try_Map_Key_Value_Types (Unit, Document, Decl.Type_Info, Key_Info, Value_Info) then
+               Append_Line
+                 (Buffer,
+                  "function " & Shared_Contains_Name & " (Key : in "
+                  & Render_Type_Name (Key_Info) & ") return boolean;",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "function " & Shared_Get_Name & " (Key : in "
+                  & Render_Type_Name (Key_Info) & ") return "
+                  & Optional_Type_Name (Value_Info) & ";",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Shared_Set_Name & " (Key : in "
+                  & Render_Type_Name (Key_Info) & "; Value : in "
+                  & Render_Type_Name (Value_Info) & ");",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Shared_Remove_Name & " (Key : in "
+                  & Render_Type_Name (Key_Info) & "; Result : out "
+                  & Optional_Type_Name (Value_Info) & ");",
+                  2);
+            else
+               Append_Line
+                 (Buffer,
+                  "procedure " & Shared_Append_Name & " (Value : in "
+                  & Render_Type_Name (Resolve_Type_Name
+                    (Unit,
+                     Document,
+                     FT.To_String (Base_Info.Component_Type))) & ");",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "procedure " & Shared_Pop_Last_Name & " (Result : out "
+                  & Optional_Type_Name
+                      (Resolve_Type_Name
+                         (Unit,
+                          Document,
+                          FT.To_String (Base_Info.Component_Type)))
+                  & ");",
+                  2);
+            end if;
+         else
+            for Field of Base_Info.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+                  Field_Type_Name : constant String :=
+                    Render_Type_Name_From_Text
+                      (Unit,
+                       Document,
+                       FT.To_String (Field.Type_Name),
+                       State);
+               begin
+                  Append_Line
+                    (Buffer,
+                     "function "
+                     & Shared_Field_Getter_Name (FT.To_String (Field.Name))
+                     & " return "
+                     & Field_Type_Name
+                     & ";",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "procedure "
+                     & Shared_Field_Setter_Name (FT.To_String (Field.Name))
+                     & " (Value : in "
+                     & Field_Type_Name
+                     & ");",
+                     2);
+               end;
+            end loop;
+            declare
+               Empty_Path : FT.UString_Vectors.Vector;
+            begin
+               Append_Nested_Setter_Specs (Decl.Type_Info, Empty_Path);
+            end;
+         end if;
+         Append_Line
+           (Buffer,
+            "procedure Initialize (Value : in " & Root_Type & ");",
+            2);
+         Append_Line (Buffer, "private", 1);
+         Append_Line
+           (Buffer,
+            "State_Value : " & Root_Type & " := " & Record_Default & ";",
+            2);
+         Append_Line (Buffer, "end " & Type_Name & ";", 1);
+         Append_Line (Buffer, Wrapper_Name & " : " & Type_Name & ";", 1);
+         Append_Line (Buffer);
+      end Append_Private_Wrapper_Declarations;
+
+      procedure Append_Public_Helper_Bodies is
+         procedure Append_Public_Nested_Setter_Bodies
+           (Info       : GM.Type_Descriptor;
+            Path_Names : FT.UString_Vectors.Vector)
+         is
+            Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         begin
+            for Field of Base.Fields loop
+               declare
+                  Next_Path       : FT.UString_Vectors.Vector := Path_Names;
+                  Field_Type_Name : constant String := FT.To_String (Field.Type_Name);
+                  Field_Info      : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, Field_Type_Name);
+               begin
+                  Next_Path.Append (Field.Name);
+                  if Natural (Next_Path.Length) >= 2 then
+                     Append_Line
+                       (Buffer,
+                        "procedure " & Public_Helper_Name
+                          (Shared_Nested_Field_Setter_Name (Next_Path))
+                        & " (Value : in "
+                        & Render_Type_Name_From_Text
+                            (Unit,
+                             Document,
+                             Field_Type_Name,
+                             State)
+                        & ") is",
+                        1);
+                     Append_Line (Buffer, "begin", 1);
+                     Append_Line
+                       (Buffer,
+                        Wrapper_Name & "." & Shared_Nested_Field_Setter_Name (Next_Path)
+                        & " (Value);",
+                        2);
+                     Append_Line
+                       (Buffer,
+                        "end " & Public_Helper_Name
+                          (Shared_Nested_Field_Setter_Name (Next_Path)) & ";",
+                        1);
+                     Append_Line (Buffer);
+                     if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                        State.Needs_Safe_String_RT := True;
+                        Append_Line
+                          (Buffer,
+                           "procedure " & Public_Helper_Name
+                             (Shared_Nested_Field_Setter_Name (Next_Path))
+                           & " (Value : in String) is",
+                           1);
+                        Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+                        Append_Line (Buffer, "begin", 1);
+                        Append_Line
+                          (Buffer,
+                           Wrapper_Name & "." & Shared_Nested_Field_Setter_Name (Next_Path)
+                           & " (Safe_String_RT.From_Literal (Value));",
+                           2);
+                        Append_Line
+                          (Buffer,
+                           "end " & Public_Helper_Name
+                             (Shared_Nested_Field_Setter_Name (Next_Path)) & ";",
+                           1);
+                        Append_Line (Buffer);
+                     end if;
+                  end if;
+
+                  if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
+                     Append_Public_Nested_Setter_Bodies (Field_Info, Next_Path);
+                  end if;
+               end;
+            end loop;
+         end Append_Public_Nested_Setter_Bodies;
+      begin
+         Append_Line
+           (Buffer,
+            "function " & Public_Helper_Name (Shared_Get_All_Name)
+            & " return " & Root_Type & " is",
+            1);
+         Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+         Append_Line (Buffer, "begin", 1);
+         Append_Line
+           (Buffer,
+            "return " & Wrapper_Name & "." & Shared_Get_All_Name & ";",
+            2);
+         Append_Line
+           (Buffer,
+            "end " & Public_Helper_Name (Shared_Get_All_Name) & ";",
+            1);
+         Append_Line (Buffer);
+
+         Append_Line
+           (Buffer,
+            "procedure " & Public_Helper_Name (Shared_Set_All_Name)
+            & " (Value : in " & Root_Type & ") is",
+            1);
+         Append_Line (Buffer, "begin", 1);
+         Append_Line
+           (Buffer,
+            Wrapper_Name & "." & Shared_Set_All_Name & " (Value);",
+            2);
+         Append_Line
+           (Buffer,
+            "end " & Public_Helper_Name (Shared_Set_All_Name) & ";",
+            1);
+         Append_Line (Buffer);
+
+         if Is_Container_Root then
+            Append_Line
+              (Buffer,
+               "function " & Public_Helper_Name (Shared_Get_Length_Name)
+               & " return " & Integer_Type_Name & " is",
+               1);
+            Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+            Append_Line (Buffer, "begin", 1);
+            Append_Line
+              (Buffer,
+               "return " & Wrapper_Name & "." & Shared_Get_Length_Name & ";",
+               2);
+            Append_Line
+              (Buffer,
+               "end " & Public_Helper_Name (Shared_Get_Length_Name) & ";",
+               1);
+            Append_Line (Buffer);
+
+            if Try_Map_Key_Value_Types (Unit, Document, Decl.Type_Info, Key_Info, Value_Info) then
+               Append_Line
+                 (Buffer,
+                  "function " & Public_Helper_Name (Shared_Contains_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & ") return boolean is",
+                  1);
+               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+               Append_Line (Buffer, "begin", 1);
+               Append_Line
+                 (Buffer,
+                  "return " & Wrapper_Name & "." & Shared_Contains_Name
+                  & " (Key);",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "end " & Public_Helper_Name (Shared_Contains_Name) & ";",
+                  1);
+               Append_Line (Buffer);
+
+               Append_Line
+                 (Buffer,
+                  "function " & Public_Helper_Name (Shared_Get_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & ") return " & Optional_Type_Name (Value_Info)
+                  & " is",
+                  1);
+               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+               Append_Line (Buffer, "begin", 1);
+               Append_Line
+                 (Buffer,
+                  "return " & Wrapper_Name & "." & Shared_Get_Name
+                  & " (Key);",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "end " & Public_Helper_Name (Shared_Get_Name) & ";",
+                  1);
+               Append_Line (Buffer);
+
+               Append_Line
+                 (Buffer,
+                  "procedure " & Public_Helper_Name (Shared_Set_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & "; Value : in " & Render_Type_Name (Value_Info)
+                  & ") is",
+                  1);
+               Append_Line (Buffer, "begin", 1);
+               Append_Line
+                 (Buffer,
+                  Wrapper_Name & "." & Shared_Set_Name & " (Key, Value);",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "end " & Public_Helper_Name (Shared_Set_Name) & ";",
+                  1);
+               Append_Line (Buffer);
+
+               Append_Line
+                 (Buffer,
+                  "procedure " & Public_Helper_Name (Shared_Remove_Name)
+                  & " (Key : in " & Render_Type_Name (Key_Info)
+                  & "; Result : out "
+                  & Optional_Type_Name (Value_Info)
+                  & ") is",
+                  1);
+               Append_Line (Buffer, "begin", 1);
+               Append_Line
+                 (Buffer,
+                  Wrapper_Name & "." & Shared_Remove_Name
+                  & " (Key, Result);",
+                  2);
+               Append_Line
+                 (Buffer,
+                  "end " & Public_Helper_Name (Shared_Remove_Name) & ";",
+                  1);
+               Append_Line (Buffer);
+            else
+               declare
+                  Element_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Base_Info.Component_Type));
+               begin
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Public_Helper_Name (Shared_Append_Name)
+                     & " (Value : in " & Render_Type_Name (Element_Info)
+                     & ") is",
+                     1);
+                  Append_Line (Buffer, "begin", 1);
+                  Append_Line
+                    (Buffer,
+                     Wrapper_Name & "." & Shared_Append_Name & " (Value);",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "end " & Public_Helper_Name (Shared_Append_Name) & ";",
+                     1);
+                  Append_Line (Buffer);
+
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Public_Helper_Name (Shared_Pop_Last_Name)
+                     & " (Result : out "
+                     & Optional_Type_Name (Element_Info)
+                     & ") is",
+                     1);
+                  Append_Line (Buffer, "begin", 1);
+                  Append_Line
+                    (Buffer,
+                     Wrapper_Name & "." & Shared_Pop_Last_Name
+                     & " (Result);",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "end " & Public_Helper_Name (Shared_Pop_Last_Name) & ";",
+                     1);
+                  Append_Line (Buffer);
+               end;
+            end if;
+         else
+            for Field of Base_Info.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+                  Field_Type_Name : constant String :=
+                    Render_Type_Name_From_Text
+                      (Unit,
+                       Document,
+                       FT.To_String (Field.Type_Name),
+                       State);
+               begin
+                  Append_Line
+                    (Buffer,
+                     "function "
+                     & Public_Helper_Name
+                         (Shared_Field_Getter_Name (FT.To_String (Field.Name)))
+                     & " return "
+                     & Field_Type_Name
+                     & " is",
+                     1);
+                  Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+                  Append_Line (Buffer, "begin", 1);
+                  Append_Line
+                    (Buffer,
+                     "return " & Wrapper_Name & "."
+                     & Shared_Field_Getter_Name (FT.To_String (Field.Name))
+                     & ";",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "end "
+                     & Public_Helper_Name
+                         (Shared_Field_Getter_Name (FT.To_String (Field.Name)))
+                     & ";",
+                     1);
+                  Append_Line (Buffer);
+
+                  Append_Line
+                    (Buffer,
+                     "procedure "
+                     & Public_Helper_Name
+                         (Shared_Field_Setter_Name (FT.To_String (Field.Name)))
+                     & " (Value : in "
+                     & Field_Type_Name
+                     & ") is",
+                     1);
+                  Append_Line (Buffer, "begin", 1);
+                  Append_Line
+                    (Buffer,
+                     Wrapper_Name & "."
+                     & Shared_Field_Setter_Name (FT.To_String (Field.Name))
+                     & " (Value);",
+                     2);
+                  Append_Line
+                    (Buffer,
+                     "end "
+                     & Public_Helper_Name
+                         (Shared_Field_Setter_Name (FT.To_String (Field.Name)))
+                     & ";",
+                     1);
+                  Append_Line (Buffer);
+                  if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                     State.Needs_Safe_String_RT := True;
+                     Append_Line
+                       (Buffer,
+                        "procedure "
+                        & Public_Helper_Name
+                            (Shared_Field_Setter_Name (FT.To_String (Field.Name)))
+                        & " (Value : in String) is",
+                        1);
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+                     Append_Line (Buffer, "begin", 1);
+                     Append_Line
+                       (Buffer,
+                        Wrapper_Name & "."
+                        & Shared_Field_Setter_Name (FT.To_String (Field.Name))
+                        & " (Safe_String_RT.From_Literal (Value));",
+                        2);
+                     Append_Line
+                       (Buffer,
+                        "end "
+                        & Public_Helper_Name
+                            (Shared_Field_Setter_Name (FT.To_String (Field.Name)))
+                        & ";",
+                        1);
+                     Append_Line (Buffer);
+                  end if;
+               end;
+            end loop;
+            declare
+               Empty_Path : FT.UString_Vectors.Vector;
+            begin
+               Append_Public_Nested_Setter_Bodies (Decl.Type_Info, Empty_Path);
+            end;
+         end if;
+      end Append_Public_Helper_Bodies;
    begin
+      if Is_Public_Shared then
+         Append_Private_Wrapper_Declarations;
+      end if;
+
       if Heap_Root then
          Append_Local_Warning_Suppression (Buffer, 1);
          Mark_Shared_Runtime_Dependencies (Decl.Type_Info);
@@ -2219,10 +3015,8 @@ package body Safe_Frontend.Ada_Emit is
                   Entry_Type_Name     : constant String := Render_Type_Name (Element_Info);
                   Key_Type_Name       : constant String := Render_Type_Name (Key_Info);
                   Value_Type_Name     : constant String := Render_Type_Name (Value_Info);
-                  Optional_Value_Info : constant GM.Type_Descriptor :=
-                    Optional_Type_Info (Value_Info);
                   Optional_Value_Name : constant String :=
-                    Render_Type_Name (Optional_Value_Info);
+                    Optional_Type_Name (Value_Info);
 
                   function Key_Equality_Image
                     (Left_Image  : String;
@@ -2314,7 +3108,7 @@ package body Safe_Frontend.Ada_Emit is
                   Append_Line
                     (Buffer,
                      "Result : " & Optional_Value_Name & " := "
-                     & Default_Value_Expr (Unit, Document, Optional_Value_Info) & ";",
+                     & Optional_Default_Expr (Value_Info) & ";",
                      2);
                   Append_Line (Buffer, "begin", 2);
                   Append_Line (Buffer, "if Length_Value > 0 then", 3);
@@ -2513,7 +3307,7 @@ package body Safe_Frontend.Ada_Emit is
                   Append_Line (Buffer, "begin", 2);
                   Append_Line
                     (Buffer,
-                     "Result := " & Default_Value_Expr (Unit, Document, Optional_Value_Info) & ";",
+                     "Result := " & Optional_Default_Expr (Value_Info) & ";",
                      3);
                   Append_Line (Buffer, "if Length_Value > 0 then", 3);
                   Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
@@ -2596,10 +3390,8 @@ package body Safe_Frontend.Ada_Emit is
             else
                declare
                   Element_Type_Name     : constant String := Render_Type_Name (Element_Info);
-                  Optional_Element_Info : constant GM.Type_Descriptor :=
-                    Optional_Type_Info (Element_Info);
                   Optional_Element_Name : constant String :=
-                    Render_Type_Name (Optional_Element_Info);
+                    Optional_Type_Name (Element_Info);
                begin
                   Append_Line
                     (Buffer,
@@ -2642,7 +3434,7 @@ package body Safe_Frontend.Ada_Emit is
                   Append_Line (Buffer, "begin", 2);
                   Append_Line
                     (Buffer,
-                     "Result := " & Default_Value_Expr (Unit, Document, Optional_Element_Info) & ";",
+                     "Result := " & Optional_Default_Expr (Element_Info) & ";",
                      3);
                   Append_Line (Buffer, "if Length_Value = 0 then", 3);
                   Append_Line (Buffer, "return;", 4);
@@ -2749,6 +3541,21 @@ package body Safe_Frontend.Ada_Emit is
                end if;
                Append_Line (Buffer, "end " & Setter_Name & ";", 2);
                Append_Line (Buffer);
+               if Is_Plain_String_Type (Unit, Document, Field_Info) then
+                  State.Needs_Safe_String_RT := True;
+                  Append_Line
+                    (Buffer,
+                     "procedure " & Setter_Name & " (Value : in String) is",
+                     2);
+                  Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  Append_Line (Buffer, "begin", 2);
+                  Append_Line
+                    (Buffer,
+                     Setter_Name & " (Safe_String_RT.From_Literal (Value));",
+                     3);
+                  Append_Line (Buffer, "end " & Setter_Name & ";", 2);
+                  Append_Line (Buffer);
+               end if;
             end;
          end loop;
          declare
@@ -2784,6 +3591,9 @@ package body Safe_Frontend.Ada_Emit is
          Append_Local_Warning_Restore (Buffer, 1);
       end if;
       Append_Line (Buffer);
+      if Is_Public_Shared then
+         Append_Public_Helper_Bodies;
+      end if;
    end Render_Shared_Object_Body;
 
    procedure Raise_Internal (Message : String) is
@@ -4754,6 +5564,69 @@ package body Safe_Frontend.Ada_Emit is
       return (others => <>);
    end Lookup_Type;
 
+   function Synthetic_Type_Tail_Name (Name : String) return String is
+      Dot_Index : Natural := 0;
+   begin
+      for Index in reverse Name'Range loop
+         if Name (Index) = '.' then
+            Dot_Index := Index;
+            exit;
+         end if;
+      end loop;
+      if Dot_Index = 0 then
+         return Name;
+      end if;
+      return Name (Dot_Index + 1 .. Name'Last);
+   end Synthetic_Type_Tail_Name;
+
+   function Preferred_Imported_Synthetic_Type
+     (Unit : CM.Resolved_Unit;
+      Info : GM.Type_Descriptor) return GM.Type_Descriptor
+   is
+      Name_Text : constant String := FT.To_String (Info.Name);
+      Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
+      Kind_Text : constant String := FT.Lowercase (FT.To_String (Info.Kind));
+      function Matches
+        (Candidate : GM.Type_Descriptor) return Boolean is
+         Candidate_Kind : constant String :=
+           FT.Lowercase (FT.To_String (Candidate.Kind));
+      begin
+         return
+           Synthetic_Type_Tail_Name (FT.To_String (Candidate.Name)) = Tail_Name
+           and then
+             (Kind_Text = ""
+              or else Candidate_Kind = ""
+              or else Candidate_Kind = Kind_Text);
+      end Matches;
+   begin
+      if Tail_Name'Length < 2
+        or else Tail_Name (Tail_Name'First .. Tail_Name'First + 1) /= "__"
+      then
+         return Info;
+      end if;
+
+      for Item of Unit.Imported_Types loop
+         if Matches (Item) then
+            return Item;
+         end if;
+      end loop;
+
+      for Item of Unit.Imported_Subprograms loop
+         if Item.Has_Return_Type and then Matches (Item.Return_Type) then
+            return Item.Return_Type;
+         end if;
+         if not Item.Params.Is_Empty then
+            for Param of Item.Params loop
+               if Matches (Param.Type_Info) then
+                  return Param.Type_Info;
+               end if;
+            end loop;
+         end if;
+      end loop;
+
+      return Info;
+   end Preferred_Imported_Synthetic_Type;
+
    function Is_Builtin_Integer_Name (Name : String) return Boolean is
    begin
       return Name in "integer" | "long_long_integer";
@@ -4774,7 +5647,7 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return GM.Type_Descriptor
    is
-      Result : GM.Type_Descriptor := Info;
+      Result : GM.Type_Descriptor := Preferred_Imported_Synthetic_Type (Unit, Info);
    begin
       while FT.To_String (Result.Kind) = "subtype"
         and then Result.Has_Base
@@ -5677,22 +6550,22 @@ package body Safe_Frontend.Ada_Emit is
 
    function Array_Runtime_Instance_Name (Info : GM.Type_Descriptor) return String is
    begin
-      return Ada_Safe_Name (FT.To_String (Info.Name)) & "_RT";
+      return Ada_Qualified_Name (FT.To_String (Info.Name)) & "_RT";
    end Array_Runtime_Instance_Name;
 
    function Array_Runtime_Default_Element_Name (Info : GM.Type_Descriptor) return String is
    begin
-      return Ada_Safe_Name (FT.To_String (Info.Name)) & "_Default_Element";
+      return Ada_Qualified_Name (FT.To_String (Info.Name)) & "_Default_Element";
    end Array_Runtime_Default_Element_Name;
 
    function Array_Runtime_Clone_Element_Name (Info : GM.Type_Descriptor) return String is
    begin
-      return Ada_Safe_Name (FT.To_String (Info.Name)) & "_Clone_Element";
+      return Ada_Qualified_Name (FT.To_String (Info.Name)) & "_Clone_Element";
    end Array_Runtime_Clone_Element_Name;
 
    function Array_Runtime_Free_Element_Name (Info : GM.Type_Descriptor) return String is
    begin
-      return Ada_Safe_Name (FT.To_String (Info.Name)) & "_Free_Element";
+      return Ada_Qualified_Name (FT.To_String (Info.Name)) & "_Free_Element";
    end Array_Runtime_Free_Element_Name;
 
    function Resolve_Type_Name
@@ -6172,7 +7045,10 @@ package body Safe_Frontend.Ada_Emit is
       if Expr = null or else not Has_Text (Expr.Type_Name) then
          return (others => <>);
       elsif Has_Type (Unit, Document, FT.To_String (Expr.Type_Name)) then
-         return Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+         return
+           Preferred_Imported_Synthetic_Type
+             (Unit,
+              Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name)));
       elsif FT.Lowercase (FT.To_String (Expr.Type_Name)) = "string" then
          return BT.String_Type;
       elsif FT.Lowercase (FT.To_String (Expr.Type_Name)) = "boolean" then
@@ -8039,14 +8915,14 @@ package body Safe_Frontend.Ada_Emit is
            (if Info.Not_Null then "not null " else "")
            & "access "
            & (if Info.Is_Constant then "constant " else "")
-           & Ada_Safe_Name (FT.To_String (Info.Target));
+           & Ada_Qualified_Name (FT.To_String (Info.Target));
       elsif FT.To_String (Info.Kind) = "subtype"
         and then not Info.Discriminant_Constraints.Is_Empty
         and then not Starts_With (FT.To_String (Info.Name), "__constraint")
       then
          Result :=
            SU.To_Unbounded_String
-             (Ada_Safe_Name
+             (Ada_Qualified_Name
                 ((if Info.Has_Base then FT.To_String (Info.Base) else FT.To_String (Info.Name)))
               & " (");
          for Index in Info.Discriminant_Constraints.First_Index .. Info.Discriminant_Constraints.Last_Index loop
@@ -8075,7 +8951,7 @@ package body Safe_Frontend.Ada_Emit is
         and then Info.Has_Low
         and then Info.Has_High
       then
-         return Ada_Safe_Name (FT.To_String (Info.Name));
+         return Ada_Qualified_Name (FT.To_String (Info.Name));
       elsif FT.Lowercase (FT.To_String (Info.Kind)) = "string"
         and then not Info.Has_Length_Bound
       then
@@ -8089,7 +8965,7 @@ package body Safe_Frontend.Ada_Emit is
       elsif Is_Bounded_String_Type (Info) then
          return Bounded_String_Type_Name (Info);
       end if;
-      return Ada_Safe_Name (FT.To_String (Info.Name));
+      return Ada_Qualified_Name (FT.To_String (Info.Name));
    end Render_Type_Name;
 
    function Render_Type_Name_From_Text
@@ -8119,11 +8995,13 @@ package body Safe_Frontend.Ada_Emit is
 
    function Render_Subtype_Indication
      (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Info     : GM.Type_Descriptor) return String
+     Document : GM.Mir_Document;
+     Info     : GM.Type_Descriptor) return String
    is
-      Base_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      Base_Name : constant String := Render_Type_Name (Info);
+      Preferred_Info : constant GM.Type_Descriptor :=
+        Preferred_Imported_Synthetic_Type (Unit, Info);
+      Base_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Preferred_Info);
+      Base_Name : constant String := Render_Type_Name (Preferred_Info);
       Lower_Base_Name : constant String := FT.Lowercase (Base_Name);
    begin
       if not Info.Not_Null then
@@ -8157,9 +9035,13 @@ package body Safe_Frontend.Ada_Emit is
    is
    begin
       if Has_Type (Unit, Document, Name) then
-         return Render_Type_Name (Lookup_Type (Unit, Document, Name));
+         return
+           Render_Type_Name
+             (Preferred_Imported_Synthetic_Type
+                (Unit,
+                 Lookup_Type (Unit, Document, Name)));
       end if;
-      return Ada_Safe_Name (Name);
+      return Ada_Qualified_Name (Name);
    end Render_Type_Name;
 
    function Default_Value_Expr (Type_Name : String) return String is
@@ -8173,7 +9055,7 @@ package body Safe_Frontend.Ada_Emit is
       elsif Starts_With (Type_Name, "__growable_array_")
         or else Starts_With (Type_Name, "Safe_growable_array_")
       then
-         return Ada_Safe_Name (Type_Name) & "_RT.Empty";
+         return Ada_Qualified_Name (Type_Name) & "_RT.Empty";
       elsif Starts_With (Type_Name, "access ")
         or else Starts_With (Type_Name, "not null access ")
         or else Starts_With (Type_Name, "access constant ")
@@ -8181,7 +9063,7 @@ package body Safe_Frontend.Ada_Emit is
       then
          return "null";
       end if;
-      return Ada_Safe_Name (Type_Name) & "'First";
+      return Ada_Qualified_Name (Type_Name) & "'First";
    end Default_Value_Expr;
 
    function Default_Value_Expr
@@ -8189,21 +9071,23 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return String
    is
-      Type_Name : constant String := Render_Type_Name (Info);
-      Kind      : constant String := FT.To_String (Info.Kind);
+      Preferred_Info : constant GM.Type_Descriptor :=
+        Preferred_Imported_Synthetic_Type (Unit, Info);
+      Type_Name : constant String := Render_Type_Name (Preferred_Info);
+      Kind      : constant String := FT.To_String (Preferred_Info.Kind);
       Result    : SU.Unbounded_String;
    begin
-      if Is_Bounded_String_Type (Info) then
-         return Bounded_String_Instance_Name (Info) & ".Empty";
+      if Is_Bounded_String_Type (Preferred_Info) then
+         return Bounded_String_Instance_Name (Preferred_Info) & ".Empty";
       elsif FT.Lowercase (Kind) = "string" then
          return "Safe_String_RT.Empty";
-      elsif FT.Lowercase (Kind) = "array" and then Info.Growable then
-         return Array_Runtime_Instance_Name (Info) & ".Empty";
+      elsif FT.Lowercase (Kind) = "array" and then Preferred_Info.Growable then
+         return Array_Runtime_Instance_Name (Preferred_Info) & ".Empty";
       elsif Kind = "access" then
          return "null";
-      elsif Kind = "array" and then not Info.Index_Types.Is_Empty then
+      elsif Kind = "array" and then not Preferred_Info.Index_Types.Is_Empty then
          Result := SU.To_Unbounded_String ("");
-         for Index in 1 .. Natural (Info.Index_Types.Length) loop
+         for Index in 1 .. Natural (Preferred_Info.Index_Types.Length) loop
             Result := Result & SU.To_Unbounded_String ("(others => ");
          end loop;
          Result :=
@@ -8215,12 +9099,12 @@ package body Safe_Frontend.Ada_Emit is
                    Resolve_Type_Name
                      (Unit,
                       Document,
-                      FT.To_String (Info.Component_Type))));
-         for Index in 1 .. Natural (Info.Index_Types.Length) loop
+                      FT.To_String (Preferred_Info.Component_Type))));
+         for Index in 1 .. Natural (Preferred_Info.Index_Types.Length) loop
             Result := Result & SU.To_Unbounded_String (")");
          end loop;
          return SU.To_String (Result);
-      elsif Is_Result_Builtin (Info) then
+      elsif Is_Result_Builtin (Preferred_Info) then
          return Render_Result_Empty_Aggregate;
       elsif Kind = "record"
         or else
@@ -8234,7 +9118,7 @@ package body Safe_Frontend.Ada_Emit is
               (if Kind = "subtype"
                then Render_Type_Name (Base_Info)
                elsif Has_Text (Info.Name)
-               then Ada_Safe_Name (FT.To_String (Info.Name))
+               then Render_Type_Name (Preferred_Info)
                else Render_Type_Name (Info));
             First_Association : Boolean := True;
             Disc_Name : constant String :=
@@ -8620,6 +9504,46 @@ package body Safe_Frontend.Ada_Emit is
       procedure Add_From_Info (Info : GM.Type_Descriptor);
       procedure Add_From_Statements (Statements : CM.Statement_Access_Vectors.Vector);
 
+      function Synthetic_Optional_Type
+        (Element_Info : GM.Type_Descriptor) return GM.Type_Descriptor
+      is
+         Result  : GM.Type_Descriptor;
+         Disc    : GM.Discriminant_Descriptor;
+         Field   : GM.Type_Field;
+         Variant : GM.Variant_Field;
+      begin
+         Result.Name :=
+           FT.To_UString
+             ("__optional_"
+              & Sanitize_Type_Name_Component (FT.To_String (Element_Info.Name)));
+         Result.Kind := FT.To_UString ("record");
+         Result.Has_Discriminant := True;
+         Result.Discriminant_Name := FT.To_UString ("present");
+         Result.Discriminant_Type := FT.To_UString ("boolean");
+         Result.Has_Discriminant_Default := True;
+         Result.Discriminant_Default_Bool := False;
+
+         Disc.Name := FT.To_UString ("present");
+         Disc.Type_Name := FT.To_UString ("boolean");
+         Disc.Has_Default := True;
+         Disc.Default_Value.Kind := GM.Scalar_Value_Boolean;
+         Disc.Default_Value.Bool_Value := False;
+         Result.Discriminants.Append (Disc);
+
+         Field.Name := FT.To_UString ("value");
+         Field.Type_Name := Element_Info.Name;
+         Result.Fields.Append (Field);
+
+         Variant.Name := FT.To_UString ("value");
+         Variant.Type_Name := Element_Info.Name;
+         Variant.Choice.Kind := GM.Scalar_Value_Boolean;
+         Variant.Choice.Bool_Value := True;
+         Variant.When_True := True;
+         Result.Variant_Discriminant_Name := FT.To_UString ("present");
+         Result.Variant_Fields.Append (Variant);
+         return Result;
+      end Synthetic_Optional_Type;
+
       procedure Add_Unique (Info : GM.Type_Descriptor) is
       begin
          if Has_Text (Info.Name)
@@ -8788,6 +9712,23 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
       for Item of Unit.Objects loop
          Add_From_Info (Item.Type_Info);
+         if Item.Is_Shared and then Is_Growable_Array_Type (Unit, Document, Item.Type_Info) then
+            declare
+               Element_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String (Base_Type (Unit, Document, Item.Type_Info).Component_Type));
+               Key_Info     : GM.Type_Descriptor := (others => <>);
+               Value_Info   : GM.Type_Descriptor := (others => <>);
+            begin
+               if Try_Map_Key_Value_Types (Unit, Document, Item.Type_Info, Key_Info, Value_Info) then
+                  Add_From_Info (Synthetic_Optional_Type (Value_Info));
+               else
+                  Add_From_Info (Synthetic_Optional_Type (Element_Info));
+               end if;
+            end;
+         end if;
       end loop;
       for Item of Unit.Channels loop
          Add_From_Info (Item.Element_Type);
@@ -10418,18 +11359,14 @@ package body Safe_Frontend.Ada_Emit is
 
                      if not Used_Formal
                        and then Expr.Callee /= null
-                       and then Expr.Callee.Kind = CM.Expr_Select
-                       and then Expr.Callee.Prefix /= null
-                       and then Expr.Callee.Prefix.Kind = CM.Expr_Ident
                      then
                         declare
                            Shared_Formal_Found : Boolean := False;
                            Shared_Formal_Type  : GM.Type_Descriptor :=
-                             Shared_Wrapper_Formal_Type
+                             Shared_Call_Formal_Type
                                (Unit,
                                 Document,
-                                FT.To_String (Expr.Callee.Prefix.Name),
-                                FT.To_String (Expr.Callee.Selector),
+                                Expr,
                                 Positive (Index),
                                 Shared_Formal_Found);
                         begin
@@ -10448,9 +11385,38 @@ package body Safe_Frontend.Ada_Emit is
                      end if;
 
                      if not Used_Formal then
-                        Arg_Image :=
-                          SU.To_Unbounded_String
-                            (Render_Expr (Unit, Document, Expr.Args (Index), State));
+                        declare
+                           Arg_Type : GM.Type_Descriptor := (others => <>);
+                           Maybe_Shared_Call : constant Boolean :=
+                             Ada.Strings.Fixed.Index (Lower_Callee, "safe_shared_") > 0
+                             or else Ada.Strings.Fixed.Index (Lower_Callee, "safe_public_shared_") > 0;
+                        begin
+                           if Maybe_Shared_Call
+                             and then Expr.Args (Index) /= null
+                             and then Expr.Args (Index).Kind = CM.Expr_String
+                           then
+                              Arg_Type := Expr_Type_Info (Unit, Document, Expr.Args (Index));
+                           end if;
+
+                           if Has_Text (Arg_Type.Name)
+                             and then
+                               (Is_Plain_String_Type (Unit, Document, Arg_Type)
+                                or else Is_Bounded_String_Type (Arg_Type))
+                           then
+                              Arg_Image :=
+                                SU.To_Unbounded_String
+                                  (Render_Expr_For_Target_Type
+                                     (Unit,
+                                      Document,
+                                      Expr.Args (Index),
+                                      Arg_Type,
+                                      State));
+                           else
+                              Arg_Image :=
+                                SU.To_Unbounded_String
+                                  (Render_Expr (Unit, Document, Expr.Args (Index), State));
+                           end if;
+                        end;
                      end if;
 
                      Result := Result & Arg_Image;
@@ -10782,7 +11748,7 @@ package body Safe_Frontend.Ada_Emit is
       Info        : GM.Type_Descriptor;
    begin
       if Expr.Kind = CM.Expr_String then
-         return Value_Image;
+         return Render_String_Expr (Unit, Document, Expr, State);
       elsif Expr.Kind = CM.Expr_Bool then
          return "(if " & Value_Image & " then ""true"" else ""false"")";
       elsif Expr.Kind = CM.Expr_Int then
@@ -12099,7 +13065,10 @@ package body Safe_Frontend.Ada_Emit is
             for Name of Decl.Names loop
                Add_Unique (FT.To_String (Name));
             end loop;
-         elsif Decl.Is_Shared and then not Decl.Names.Is_Empty then
+         elsif Decl.Is_Shared
+           and then not Decl.Is_Public
+           and then not Decl.Names.Is_Empty
+         then
             Add_Unique
               (Shared_Wrapper_Object_Name
                  (FT.To_String (Decl.Names (Decl.Names.First_Index))));
@@ -12160,6 +13129,66 @@ package body Safe_Frontend.Ada_Emit is
          return False;
       end Is_Shared_Wrapper_Name;
 
+      function Try_Shared_Public_Helper
+        (Name         : String;
+         Wrapper_Name : out FT.UString;
+         Operation    : out FT.UString) return Boolean is
+      begin
+         Wrapper_Name := FT.To_UString ("");
+         Operation := FT.To_UString ("");
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared
+              and then Decl.Is_Public
+              and then not Decl.Names.Is_Empty
+            then
+               declare
+                  Root_Name    : constant String :=
+                    FT.To_String (Decl.Names (Decl.Names.First_Index));
+                  Candidate_Wrapper : constant String :=
+                    Shared_Wrapper_Object_Name (Root_Name);
+                  Prefix      : constant String :=
+                    Shared_Public_Helper_Base_Name (Root_Name) & "_";
+               begin
+                  if Starts_With (Name, Prefix) and then Name'Length > Prefix'Length then
+                     Wrapper_Name := FT.To_UString (Candidate_Wrapper);
+                     Operation := FT.To_UString (Name (Prefix'Length + 1 .. Name'Last));
+                     return True;
+                  end if;
+               end;
+            end if;
+         end loop;
+
+         return False;
+      end Try_Shared_Public_Helper;
+
+      procedure Mark_Shared_Call
+        (Wrapper_Name  : String;
+         Selector_Name : String;
+         Reads         : in out FT.UString_Vectors.Vector;
+         Writes        : in out FT.UString_Vectors.Vector) is
+      begin
+         if Wrapper_Name'Length = 0 then
+            return;
+         end if;
+
+         if Selector_Name = Shared_Pop_Last_Name
+           or else Selector_Name = Shared_Remove_Name
+         then
+            Add_Unique (Reads, Wrapper_Name);
+            Add_Unique (Writes, Wrapper_Name);
+         elsif Selector_Name = Shared_Append_Name
+           or else Selector_Name = Shared_Set_Name
+           or else Selector_Name = "Initialize"
+           or else Starts_With (Selector_Name, "Set_")
+         then
+            Add_Unique (Writes, Wrapper_Name);
+         elsif Selector_Name = Shared_Contains_Name
+           or else Starts_With (Selector_Name, "Get_")
+         then
+            Add_Unique (Reads, Wrapper_Name);
+         end if;
+      end Mark_Shared_Call;
+
       procedure Collect_Shared_From_Expr
         (Expr   : CM.Expr_Access;
          Reads  : in out FT.UString_Vectors.Vector;
@@ -12196,25 +13225,43 @@ package body Safe_Frontend.Ada_Emit is
                   Collect_Shared_From_Expr (Arg, Reads, Writes);
                end loop;
             when CM.Expr_Call =>
-               if Expr.Callee /= null
-                 and then Expr.Callee.Kind = CM.Expr_Select
-                 and then Expr.Callee.Prefix /= null
-                 and then Expr.Callee.Prefix.Kind = CM.Expr_Ident
-               then
+               if Expr.Callee /= null then
                   declare
-                     Wrapper_Name : constant String :=
-                       FT.To_String (Expr.Callee.Prefix.Name);
-                     Selector_Name : constant String :=
-                       FT.To_String (Expr.Callee.Selector);
+                     Wrapper_Name  : FT.UString := FT.To_UString ("");
+                     Selector_Name : FT.UString := FT.To_UString ("");
                   begin
-                     if Is_Shared_Wrapper_Name (Wrapper_Name) then
-                        if Starts_With (Selector_Name, "Set_")
-                          or else Selector_Name = "Initialize"
+                     if Expr.Callee.Kind = CM.Expr_Select
+                       and then Expr.Callee.Prefix /= null
+                       and then Expr.Callee.Prefix.Kind = CM.Expr_Ident
+                       and then Is_Shared_Wrapper_Name
+                         (FT.To_String (Expr.Callee.Prefix.Name))
+                     then
+                        Wrapper_Name := Expr.Callee.Prefix.Name;
+                        Selector_Name := Expr.Callee.Selector;
+                     elsif Expr.Callee.Kind = CM.Expr_Ident then
+                        if Try_Shared_Public_Helper
+                          (FT.To_String (Expr.Callee.Name),
+                           Wrapper_Name,
+                           Selector_Name)
                         then
-                           Add_Unique (Writes, Wrapper_Name);
-                        elsif Starts_With (Selector_Name, "Get_") then
-                           Add_Unique (Reads, Wrapper_Name);
+                           null;
                         end if;
+                     elsif Expr.Callee.Kind = CM.Expr_Select then
+                        if Try_Shared_Public_Helper
+                          (FT.To_String (Expr.Callee.Selector),
+                           Wrapper_Name,
+                           Selector_Name)
+                        then
+                           null;
+                        end if;
+                     end if;
+
+                     if FT.To_String (Wrapper_Name)'Length > 0 then
+                        Mark_Shared_Call
+                          (FT.To_String (Wrapper_Name),
+                           FT.To_String (Selector_Name),
+                           Reads,
+                           Writes);
                      end if;
                   end;
                end if;
@@ -15925,6 +16972,14 @@ package body Safe_Frontend.Ada_Emit is
             then ""
             else CM.Flatten_Name (Call_Expr.Callee));
          Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
+         Selector_Name : constant String :=
+           (if Call_Expr = null or else Call_Expr.Callee = null
+            then ""
+            elsif Call_Expr.Callee.Kind = CM.Expr_Ident
+            then FT.To_String (Call_Expr.Callee.Name)
+            elsif Call_Expr.Callee.Kind = CM.Expr_Select
+            then FT.To_String (Call_Expr.Callee.Selector)
+            else "");
       begin
          Subprogram := (others => <>);
          if Call_Expr = null
@@ -15945,11 +17000,7 @@ package body Safe_Frontend.Ada_Emit is
             end if;
          end loop;
 
-         if Call_Expr.Callee /= null
-           and then Call_Expr.Callee.Kind = CM.Expr_Select
-           and then Call_Expr.Callee.Prefix /= null
-           and then Call_Expr.Callee.Prefix.Kind = CM.Expr_Ident
-         then
+         if Call_Expr.Callee /= null then
             declare
                Formal : CM.Symbol;
             begin
@@ -15957,11 +17008,10 @@ package body Safe_Frontend.Ada_Emit is
                   declare
                      Shared_Formal_Found : Boolean := False;
                      Shared_Formal_Type  : constant GM.Type_Descriptor :=
-                       Shared_Wrapper_Formal_Type
+                       Shared_Call_Formal_Type
                          (Unit,
                           Document,
-                          FT.To_String (Call_Expr.Callee.Prefix.Name),
-                          FT.To_String (Call_Expr.Callee.Selector),
+                          Call_Expr,
                           Position,
                           Shared_Formal_Found);
                   begin
@@ -15972,10 +17022,10 @@ package body Safe_Frontend.Ada_Emit is
                      Formal.Kind := FT.To_UString ("param");
                      Formal.Mode :=
                        FT.To_UString
-                         ((if FT.To_String (Call_Expr.Callee.Selector) = Shared_Pop_Last_Name
+                         ((if Selector_Name = Shared_Pop_Last_Name
                                and then Position = Natural (Call_Expr.Args.Length)
                            then "out"
-                           elsif FT.To_String (Call_Expr.Callee.Selector) = Shared_Remove_Name
+                           elsif Selector_Name = Shared_Remove_Name
                              and then Position = Natural (Call_Expr.Args.Length)
                            then "out"
                            else "in"));
@@ -15985,7 +17035,7 @@ package body Safe_Frontend.Ada_Emit is
                end loop;
 
                if not Subprogram.Params.Is_Empty then
-                  Subprogram.Name := Call_Expr.Callee.Selector;
+                  Subprogram.Name := FT.To_UString (Selector_Name);
                   Subprogram.Kind := FT.To_UString ("procedure");
                   return True;
                end if;
@@ -16093,10 +17143,54 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
 
          if not Needs_Copy_Back then
-            Append_Line
-              (Buffer,
-               Render_Expr (Unit, Document, Call_Expr, State) & ";",
-               Depth);
+            declare
+               Call_Image : SU.Unbounded_String :=
+                 SU.To_Unbounded_String
+                   (Render_Expr (Unit, Document, Call_Expr.Callee, State) & " (");
+            begin
+               for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
+                  declare
+                     Arg_Image  : SU.Unbounded_String;
+                     Used_Formal : Boolean := False;
+                  begin
+                     if Arg_Index /= Call_Expr.Args.First_Index then
+                        Call_Image := Call_Image & SU.To_Unbounded_String (", ");
+                     end if;
+
+                     if Arg_Index <= Target_Subprogram.Params.Last_Index then
+                        declare
+                           Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
+                        begin
+                           if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
+                              Arg_Image :=
+                                SU.To_Unbounded_String
+                                  (Render_Expr_For_Target_Type
+                                     (Unit,
+                                      Document,
+                                      Call_Expr.Args (Arg_Index),
+                                      Formal.Type_Info,
+                                      State));
+                              Used_Formal := True;
+                           end if;
+                        end;
+                     end if;
+
+                     if not Used_Formal then
+                        Arg_Image :=
+                          SU.To_Unbounded_String
+                            (Render_Expr
+                               (Unit,
+                                Document,
+                                Call_Expr.Args (Arg_Index),
+                                State));
+                     end if;
+
+                     Call_Image := Call_Image & Arg_Image;
+                  end;
+               end loop;
+               Call_Image := Call_Image & SU.To_Unbounded_String (")");
+               Append_Line (Buffer, SU.To_String (Call_Image) & ";", Depth);
+            end;
             return;
          end if;
 
@@ -21004,10 +22098,15 @@ package body Safe_Frontend.Ada_Emit is
 
       procedure Emit_Synthetic_Type_Decl (Type_Item : GM.Type_Descriptor) is
          Name_Text : constant String := FT.To_String (Type_Item.Name);
+         Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
       begin
          if Name_Text'Length = 0
            or else Contains_Name (Emitted_Synthetic_Names, Name_Text)
            or else (Emit_Result_Builtin_First and then Is_Result_Builtin (Type_Item))
+           or else
+             (Ada.Strings.Fixed.Index (Name_Text, ".") > 0
+              and then Tail_Name'Length > 2
+              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__")
          then
             return;
          end if;
@@ -21472,10 +22571,170 @@ package body Safe_Frontend.Ada_Emit is
         "Safe_Select_Internal_State";
       Generated_Elaborate_Name : constant String :=
         "Safe_Generated_Elaborate_" & FT.To_String (Unit.Package_Name);
+      Package_Body_Spark_Mode : constant String :=
+        (if (for some Decl of Unit.Objects => Decl.Is_Shared and then Decl.Is_Public)
+         then "Off"
+         else "On");
+      function Expr_Uses_Public_Shared_Helper
+        (Expr : CM.Expr_Access) return Boolean;
+      function Statements_Use_Public_Shared_Helper
+        (Statements : CM.Statement_Access_Vectors.Vector) return Boolean;
+
+      function Expr_Uses_Public_Shared_Helper
+        (Expr : CM.Expr_Access) return Boolean
+      is
+         function Call_Name_Uses_Public_Shared_Helper return Boolean is
+            Flat_Name : constant String :=
+              (if Expr = null or else Expr.Callee = null
+               then ""
+               else FT.Lowercase (CM.Flatten_Name (Expr.Callee)));
+         begin
+            return
+              Flat_Name'Length > 0
+              and then Ada.Strings.Fixed.Index (Flat_Name, "safe_public_shared_") > 0;
+         end Call_Name_Uses_Public_Shared_Helper;
+      begin
+         if Expr = null then
+            return False;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Call =>
+               if Call_Name_Uses_Public_Shared_Helper then
+                  return True;
+               end if;
+               if Expr_Uses_Public_Shared_Helper (Expr.Callee) then
+                  return True;
+               end if;
+               for Arg of Expr.Args loop
+                  if Expr_Uses_Public_Shared_Helper (Arg) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when CM.Expr_Select =>
+               return Expr_Uses_Public_Shared_Helper (Expr.Prefix);
+            when CM.Expr_Resolved_Index =>
+               if Expr_Uses_Public_Shared_Helper (Expr.Prefix) then
+                  return True;
+               end if;
+               for Arg of Expr.Args loop
+                  if Expr_Uses_Public_Shared_Helper (Arg) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when CM.Expr_Conversion =>
+               return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+            when CM.Expr_Binary =>
+               return
+                 Expr_Uses_Public_Shared_Helper (Expr.Left)
+                 or else Expr_Uses_Public_Shared_Helper (Expr.Right);
+            when CM.Expr_Unary =>
+               return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+            when CM.Expr_Aggregate =>
+               for Field of Expr.Fields loop
+                  if Expr_Uses_Public_Shared_Helper (Field.Expr) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when CM.Expr_Tuple =>
+               for Item of Expr.Elements loop
+                  if Expr_Uses_Public_Shared_Helper (Item) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when others =>
+               return False;
+         end case;
+      end Expr_Uses_Public_Shared_Helper;
+
+      function Statements_Use_Public_Shared_Helper
+        (Statements : CM.Statement_Access_Vectors.Vector) return Boolean
+      is
+      begin
+         for Item of Statements loop
+            if Item = null then
+               null;
+            else
+               case Item.Kind is
+                  when CM.Stmt_Object_Decl =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Decl.Initializer) then
+                        return True;
+                     end if;
+                  when CM.Stmt_Assign =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Target)
+                       or else Expr_Uses_Public_Shared_Helper (Item.Value)
+                     then
+                        return True;
+                     end if;
+                  when CM.Stmt_Call =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Call) then
+                        return True;
+                     end if;
+                  when CM.Stmt_Return =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Value) then
+                        return True;
+                     end if;
+                  when CM.Stmt_If =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Condition)
+                       or else Statements_Use_Public_Shared_Helper (Item.Then_Stmts)
+                     then
+                        return True;
+                     end if;
+                     for Part of Item.Elsifs loop
+                        if Expr_Uses_Public_Shared_Helper (Part.Condition)
+                          or else Statements_Use_Public_Shared_Helper (Part.Statements)
+                        then
+                           return True;
+                        end if;
+                     end loop;
+                     if Item.Has_Else
+                       and then Statements_Use_Public_Shared_Helper (Item.Else_Stmts)
+                     then
+                        return True;
+                     end if;
+                  when CM.Stmt_Case =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Case_Expr) then
+                        return True;
+                     end if;
+                     for Arm of Item.Case_Arms loop
+                        if Statements_Use_Public_Shared_Helper (Arm.Statements) then
+                           return True;
+                        end if;
+                     end loop;
+                  when CM.Stmt_While =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Condition)
+                       or else Statements_Use_Public_Shared_Helper (Item.Body_Stmts)
+                     then
+                        return True;
+                     end if;
+                  when CM.Stmt_For =>
+                     if Expr_Uses_Public_Shared_Helper (Item.Loop_Iterable)
+                       or else Statements_Use_Public_Shared_Helper (Item.Body_Stmts)
+                     then
+                        return True;
+                     end if;
+                  when others =>
+                     null;
+               end case;
+            end if;
+         end loop;
+         return False;
+      end Statements_Use_Public_Shared_Helper;
+
       Needs_Spark_Off_Elaboration_Helper : constant Boolean :=
         (for some Decl of Unit.Objects =>
             Decl.Is_Shared
-            and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info));
+            and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
+        or else Statements_Use_Public_Shared_Helper (Unit.Statements);
+      Omit_Initializes_Aspect : constant Boolean :=
+        not Unit.Statements.Is_Empty
+        or else
+        (for some Decl of Unit.Objects => Decl.Is_Shared and then Decl.Is_Public)
+        or else Statements_Use_Public_Shared_Helper (Unit.Statements);
 
       function Package_Select_Refined_State return String is
          Constituents : FT.UString_Vectors.Vector;
@@ -21531,7 +22790,15 @@ package body Safe_Frontend.Ada_Emit is
          & FT.To_String (Unit.Package_Name)
          & ASCII.LF
          & Indentation (1)
-         & "with SPARK_Mode => On,"
+         & "with SPARK_Mode => On"
+         & (if not Package_Dispatcher_Names.Is_Empty
+               or else not Package_Dispatcher_Timer_Names.Is_Empty
+               or else not Package_Select_Rotation_Names.Is_Empty
+               or else not Omit_Initializes_Aspect
+            then
+               ","
+            else
+               "")
          & ASCII.LF
          & (if not Package_Dispatcher_Names.Is_Empty
                or else not Package_Dispatcher_Timer_Names.Is_Empty
@@ -21540,14 +22807,23 @@ package body Safe_Frontend.Ada_Emit is
                Indentation (1)
                & "     Abstract_State => ("
                & Package_Select_Abstract_State_Name
-               & " with External),"
+               & " with External)"
+               & (if Omit_Initializes_Aspect
+                  then
+                     ""
+                  else
+                     ",")
                & ASCII.LF
             else
                "")
-         & Indentation (1)
-         & "     Initializes => "
-         & Render_Initializes_Aspect (Unit, Document, Bronze)
-         & ASCII.LF
+         & (if Omit_Initializes_Aspect
+            then
+               ""
+            else
+               Indentation (1)
+               & "     Initializes => "
+               & Render_Initializes_Aspect (Unit, Document, Bronze)
+               & ASCII.LF)
          & "is");
       Append_Line (Spec_Inner, "pragma Elaborate_Body;", 1);
       Append_Line (Spec_Inner);
@@ -21569,10 +22845,19 @@ package body Safe_Frontend.Ada_Emit is
       end if;
 
       for Type_Item of Unit.Types loop
+         declare
+            Name_Text : constant String := FT.To_String (Type_Item.Name);
+            Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
+            Skip_Imported_Synthetic : constant Boolean :=
+              Ada.Strings.Fixed.Index (Name_Text, ".") > 0
+              and then Tail_Name'Length > 2
+              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__";
+         begin
          if Type_Item.Generic_Formals.Is_Empty
            and then FT.To_String (Type_Item.Kind) /= "interface"
+           and then not Skip_Imported_Synthetic
            and then not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name))
-        then
+         then
             if Has_Unemitted_Growable_Dependency (Type_Item) then
                Deferred_User_Types.Append (Type_Item);
             else
@@ -21586,6 +22871,7 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             end if;
          end if;
+         end;
       end loop;
 
       for Type_Item of Synthetic_Types loop
@@ -21593,7 +22879,17 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
 
       for Type_Item of Deferred_User_Types loop
-         if not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name)) then
+         declare
+            Name_Text : constant String := FT.To_String (Type_Item.Name);
+            Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
+            Skip_Imported_Synthetic : constant Boolean :=
+              Ada.Strings.Fixed.Index (Name_Text, ".") > 0
+              and then Tail_Name'Length > 2
+              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__";
+         begin
+         if not Skip_Imported_Synthetic
+           and then not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name))
+         then
             Emit_Synthetic_Dependencies (Type_Item);
             Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
             if FT.To_String (Type_Item.Kind) = "record" then
@@ -21603,6 +22899,7 @@ package body Safe_Frontend.Ada_Emit is
                Emitted_Synthetic_Names.Append (Type_Item.Name);
             end if;
          end if;
+         end;
       end loop;
 
       for Type_Item of Owner_Access_Helper_Types loop
@@ -21813,7 +23110,7 @@ package body Safe_Frontend.Ada_Emit is
         (Body_Inner,
          "package body "
          & FT.To_String (Unit.Package_Name)
-         & " with SPARK_Mode => On"
+         & " with SPARK_Mode => " & Package_Body_Spark_Mode
          & (if not Package_Dispatcher_Names.Is_Empty
                or else not Package_Dispatcher_Timer_Names.Is_Empty
                or else not Package_Select_Rotation_Names.Is_Empty
@@ -22113,6 +23410,9 @@ package body Safe_Frontend.Ada_Emit is
       end if;
       if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Interfaces.") > 0 then
          Add_Body_With ("Interfaces");
+      end if;
+      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "System.") > 0 then
+         Add_Body_With ("System");
       end if;
       if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Real_Time.Timing_Events.") > 0 then
          Add_Body_With ("Ada.Real_Time");

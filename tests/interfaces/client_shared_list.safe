@@ -1,0 +1,19 @@
+with provider_shared_list;
+
+package client_shared_list
+
+   function total returns integer
+      snapshot : list of integer;
+      last : optional integer;
+
+      snapshot = provider_shared_list.values;
+      append (provider_shared_list.values, 3);
+      last = provider_shared_list.values.pop_last ();
+      provider_shared_list.values = [8, 9];
+
+      if last.present
+         if snapshot.length == 2
+            if last.value == 3
+               if provider_shared_list.values.length == 2
+                  return 1;
+      return 0;
