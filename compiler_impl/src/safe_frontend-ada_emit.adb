@@ -1228,7 +1228,7 @@ package body Safe_Frontend.Ada_Emit is
               (if Call_Expr.Callee.Kind = CM.Expr_Ident
                then FT.To_String (Call_Expr.Callee.Name)
                elsif Call_Expr.Callee.Kind = CM.Expr_Select
-               then FT.To_String (Call_Expr.Callee.Selector)
+               then CM.Flatten_Name (Call_Expr.Callee)
                else "");
             Helper_Key : constant String := FT.Lowercase (Helper_Name);
          begin
@@ -13248,7 +13248,7 @@ package body Safe_Frontend.Ada_Emit is
                         end if;
                      elsif Expr.Callee.Kind = CM.Expr_Select then
                         if Try_Shared_Public_Helper
-                          (FT.To_String (Expr.Callee.Selector),
+                          (CM.Flatten_Name (Expr.Callee),
                            Wrapper_Name,
                            Selector_Name)
                         then

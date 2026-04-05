@@ -31,7 +31,6 @@ package body Safe_Frontend.Check_Resolve is
    use type CM.Type_Decl_Kind;
    use type CM.Type_Spec_Kind;
    use type CM.Unit_Kind;
-   use type CM.Wide_Integer;
    use type GM.Scalar_Value_Kind;
    use type FT.UString;
 
@@ -751,8 +750,6 @@ package body Safe_Frontend.Check_Resolve is
       Type_Name : String := "") return CM.Expr_Access;
 
    function Is_Shared_Object_Name (Name : String) return Boolean;
-
-   function Is_Public_Shared_Object_Name (Name : String) return Boolean;
 
    function Try_Shared_Root_Expr
      (Expr   : CM.Expr_Access;
@@ -1767,12 +1764,6 @@ package body Safe_Frontend.Check_Resolve is
       return Key'Length > 0 and then Current_Shared_Object_Types.Contains (Key);
    end Is_Shared_Object_Name;
 
-   function Is_Public_Shared_Object_Name (Name : String) return Boolean is
-      Key : constant String := Canonical_Name (Name);
-   begin
-      return Key'Length > 0 and then Current_Public_Shared_Object_Types.Contains (Key);
-   end Is_Public_Shared_Object_Name;
-
    function Try_Shared_Root_Expr
      (Expr   : CM.Expr_Access;
       Shared : out Shared_Object_Ref) return Boolean
@@ -2275,20 +2266,48 @@ package body Safe_Frontend.Check_Resolve is
       return Name (Dot_Index + 1 .. Name'Last);
    end Synthetic_Type_Tail_Name;
 
+   function Is_Qualified_Synthetic_Name (Name : String) return Boolean is
+   begin
+      for Ch of Name loop
+         if Ch = '.' then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Is_Qualified_Synthetic_Name;
+
+   function Synthetic_Type_Identity_Matches
+     (Candidate_Name : String;
+      Existing_Name  : String) return Boolean is
+   begin
+      if Canonical_Name (Candidate_Name) = Canonical_Name (Existing_Name) then
+         return True;
+      end if;
+
+      if Is_Qualified_Synthetic_Name (Candidate_Name)
+        and then Is_Qualified_Synthetic_Name (Existing_Name)
+      then
+         return False;
+      end if;
+
+      return Synthetic_Type_Tail_Name (Candidate_Name) =
+        Synthetic_Type_Tail_Name (Existing_Name);
+   end Synthetic_Type_Identity_Matches;
+
    function Reuse_Equivalent_Synthetic_Type
      (Candidate : GM.Type_Descriptor;
       Type_Env  : Type_Maps.Map) return GM.Type_Descriptor
    is
-      Candidate_Tail : constant String :=
-        Synthetic_Type_Tail_Name (UString_Value (Candidate.Name));
+      Candidate_Name : constant String := UString_Value (Candidate.Name);
       Candidate_Kind : constant String :=
         FT.Lowercase (UString_Value (Candidate.Kind));
       function Matches (Existing : GM.Type_Descriptor) return Boolean is
+         Existing_Name : constant String := UString_Value (Existing.Name);
          Existing_Kind : constant String :=
            FT.Lowercase (UString_Value (Existing.Kind));
       begin
          return
-           Synthetic_Type_Tail_Name (UString_Value (Existing.Name)) = Candidate_Tail
+           Synthetic_Type_Identity_Matches (Candidate_Name, Existing_Name)
            and then
              (Candidate_Kind = ""
               or else Existing_Kind = ""
@@ -2330,11 +2349,12 @@ package body Safe_Frontend.Check_Resolve is
       Tail_Text : constant String := Synthetic_Type_Tail_Name (Name_Text);
       Kind_Text : constant String := FT.Lowercase (UString_Value (Info.Kind));
       function Matches (Existing : GM.Type_Descriptor) return Boolean is
+         Existing_Name : constant String := UString_Value (Existing.Name);
          Existing_Kind : constant String :=
            FT.Lowercase (UString_Value (Existing.Kind));
       begin
          return
-           Synthetic_Type_Tail_Name (UString_Value (Existing.Name)) = Tail_Text
+           Synthetic_Type_Identity_Matches (Name_Text, Existing_Name)
            and then
              (Kind_Text = ""
               or else Existing_Kind = ""
