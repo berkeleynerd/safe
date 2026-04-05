@@ -2659,10 +2659,13 @@ Close the `PR11.12` family as a checkpoint and ledger milestone.
 
 - Add a parent `PR11.12` checkpoint manifest as the union of the
   proof-backed shared fixtures from `PR11.12a` through `PR11.12f`.
+- Report that parent union in `run_proofs.py` as `PR11.12 checkpoint`
+  while keeping the child `PR11.12a` through `PR11.12f` summaries intact.
 - Refresh the verification matrix, roadmap, and restrictions/spec text so
   the shipped shared-wrapper surface is represented as one closed family.
 - Allow named runtime-only exclusions only when they remain explicit and
-  justified; keep zero unnamed uncovered shared fixtures.
+  justified; keep zero unnamed uncovered shared fixtures and zero
+  shared-specific exclusions unless a real unavoidable proof gap appears.
 - Leave the companion/template side unchanged unless the shipped shared
   wrapper surface exposes a real repeated proof-model gap.
 

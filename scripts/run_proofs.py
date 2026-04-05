@@ -41,6 +41,7 @@ from _lib.proof_inventory import (
     PR11_12D_CHECKPOINT_FIXTURES,
     PR11_12E_CHECKPOINT_FIXTURES,
     PR11_12F_CHECKPOINT_FIXTURES,
+    PR11_12_CHECKPOINT_FIXTURES,
     PROOF_COVERAGE_ROOTS,
     iter_proof_coverage_paths,
 )
@@ -100,6 +101,7 @@ def validate_manifests() -> None:
     validate_manifest("PR11.12d checkpoint manifest", PR11_12D_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.12e checkpoint manifest", PR11_12E_CHECKPOINT_FIXTURES)
     validate_manifest("PR11.12f checkpoint manifest", PR11_12F_CHECKPOINT_FIXTURES)
+    validate_manifest("PR11.12 checkpoint manifest", PR11_12_CHECKPOINT_FIXTURES)
     validate_manifest("emitted proof regression manifest", EMITTED_PROOF_REGRESSION_FIXTURES)
     validate_manifest("emitted proof manifest", EMITTED_PROOF_FIXTURES)
     validate_manifest(
@@ -257,6 +259,8 @@ def main() -> int:
     checkpoint_12d_failures: list[tuple[str, str]] = []
     checkpoint_12e_passed = 0
     checkpoint_12e_failures: list[tuple[str, str]] = []
+    checkpoint_12_passed = 0
+    checkpoint_12_failures: list[tuple[str, str]] = []
     regression_passed = 0
     regression_failures: list[tuple[str, str]] = []
 
@@ -391,6 +395,22 @@ def main() -> int:
     )
     checkpoint_10d_failures = (
         checkpoint_10a_failures + checkpoint_10b_failures + checkpoint_10c_failures
+    )
+    checkpoint_12_passed = (
+        checkpoint_12a_passed
+        + checkpoint_12b_passed
+        + checkpoint_12c_passed
+        + checkpoint_12d_passed
+        + checkpoint_12e_passed
+        + checkpoint_12f_passed
+    )
+    checkpoint_12_failures = (
+        checkpoint_12a_failures
+        + checkpoint_12b_failures
+        + checkpoint_12c_failures
+        + checkpoint_12d_failures
+        + checkpoint_12e_failures
+        + checkpoint_12f_failures
     )
 
     total_passed = (
@@ -580,6 +600,12 @@ def main() -> int:
         passed=checkpoint_12f_passed,
         failures=checkpoint_12f_failures,
         title="PR11.12f checkpoint",
+        trailing_blank_line=True,
+    )
+    print_summary(
+        passed=checkpoint_12_passed,
+        failures=checkpoint_12_failures,
+        title="PR11.12 checkpoint",
         trailing_blank_line=True,
     )
     print_summary(
