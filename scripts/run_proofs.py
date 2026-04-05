@@ -259,6 +259,8 @@ def main() -> int:
     checkpoint_12d_failures: list[tuple[str, str]] = []
     checkpoint_12e_passed = 0
     checkpoint_12e_failures: list[tuple[str, str]] = []
+    checkpoint_12f_passed = 0
+    checkpoint_12f_failures: list[tuple[str, str]] = []
     checkpoint_12_passed = 0
     checkpoint_12_failures: list[tuple[str, str]] = []
     regression_passed = 0
