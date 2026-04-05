@@ -1,0 +1,41 @@
+name: Claude Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          review_on_open: true
+          timeout_minutes: 15
+          prompt: |
+            Focus exclusively on security concerns in this pull request:
+
+            1. Command injection in scripts (Python subprocess calls,
+               shell=True, unsanitized paths)
+            2. Path traversal in file operations (emitter output paths,
+               cache paths, temp directories)
+            3. Supply chain risks in CI (unpinned downloads, missing
+               checksums, mutable external artifacts)
+            4. Proof integrity risks (new pragma Assume, new SPARK_Mode
+               Off, new Skip_Proof that could mask safety violations)
+            5. Deserialization safety (JSON parsing of safei/typed/MIR
+               files from untrusted sources)
+
+            Do NOT flag: Ada style, Python style, documentation gaps,
+            test coverage, or performance concerns. Only flag concrete
+            security vulnerabilities with specific file/line references.
