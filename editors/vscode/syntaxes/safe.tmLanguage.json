@@ -83,15 +83,15 @@
       "patterns": [
         {
           "name": "invalid.deprecated.safe",
-          "match": "\\b(begin|end|then)\\b"
+          "match": "\\b(begin|end|then|access|new|try_send|out|in\\s+out)\\b"
         },
         {
           "name": "keyword.control.safe",
-          "match": "\\b(package|public|is|if|else|loop|while|for|return|returns|record|type|subtype|range|to|access|function|task|channel|capacity|from|send|receive|try_send|try_receive|sends|receives|select|delay|new|with|constant|var|null|and|or|xor|not|mod|rem|case|when|others|exit|digits|binary|print)\\b"
+          "match": "\\b(package|public|is|if|else|loop|while|for|return|returns|record|type|subtype|range|to|function|task|channel|capacity|from|send|receive|try_receive|sends|receives|select|delay|with|constant|var|null|and|or|xor|not|mod|rem|case|when|others|exit|digits|binary|print|try|match|optional|list|map|of|interface|shared|mut)\\b"
         },
         {
           "name": "storage.modifier.safe",
-          "match": "\\b(out|in|in\\s+out|priority|pragma)\\b"
+          "match": "\\b(priority|pragma)\\b"
         }
       ]
     },
@@ -107,7 +107,7 @@
       "patterns": [
         {
           "name": "support.type.builtin.safe",
-          "match": "\\b(boolean|integer|character|string|float|long_float|duration|result)\\b"
+          "match": "\\b(boolean|integer|string|float|long_float|duration|result)\\b"
         }
       ]
     },
@@ -115,7 +115,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.safe",
-          "match": "\\b(ok|fail)\\b"
+          "match": "\\b(ok|fail|some|none|append|pop_last|contains|get|set|remove)\\b"
         }
       ]
     },
@@ -123,7 +123,7 @@
       "patterns": [
         {
           "name": "support.function.attribute.safe",
-          "match": "(?<!\\d)\\.(access|first|last|length|range|image|valid)\\b"
+          "match": "(?<!\\d)\\.(first|last|length|range|image|valid|present|value)\\b"
         }
       ]
     },
@@ -147,7 +147,7 @@
       "patterns": [
         {
           "name": "keyword.operator.safe",
-          "match": "<<|>>|==|!=|<=|>=|[-+*/<>=]"
+          "match": "<<|>>|==|!=|<=|>=|[-+*/<>=&]"
         }
       ]
     }
