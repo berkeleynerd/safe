@@ -1,7 +1,7 @@
 name: Claude Code Review
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
@@ -15,7 +15,7 @@ jobs:
   review:
     # Run on PR events, or on issue comments that mention @claude
     if: >
-      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        contains(github.event.comment.body, '@claude'))
@@ -24,10 +24,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: refs/pull/${{ github.event.pull_request.number || github.event.issue.number }}/merge
 
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
           trigger_phrase: "@claude"
-          review_on_open: true
-          timeout_minutes: 30
