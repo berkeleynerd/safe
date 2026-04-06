@@ -1,0 +1,12 @@
+package neg_pr1113b_match_missing_binders
+
+   type shape is circle (radius : integer) or idle;
+
+   function value returns integer
+
+      current : shape = circle (1);
+      match current
+         when circle
+            return 0
+         when idle
+            return 0

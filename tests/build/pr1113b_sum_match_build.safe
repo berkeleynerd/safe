@@ -1,0 +1,45 @@
+package pr1113b_sum_match_build
+
+   type shape is circle (radius : integer) or rectangle (width : integer; height : integer) or label (text : string) or idle;
+
+   function score (value : shape) returns integer
+
+      match value
+         when label (text)
+            if text == "hi"
+               return 10
+            return 11
+         when circle (radius)
+            return radius
+         when idle
+            return 0
+         when rectangle (width, height)
+            if width == 3 and then height == 4
+               return 12
+            return width
+
+   function make returns shape
+      return rectangle (3, 4)
+
+   function direct returns integer
+
+      match make ()
+         when label (text)
+            if text == "hi"
+               return 10
+            return 11
+         when circle (radius)
+            return radius
+         when idle
+            return 0
+         when rectangle (width, height)
+            if width == 3 and then height == 4
+               return 12
+            return width
+
+   ok : boolean = score (label ("hi")) == 10 and then score (circle (5)) == 5 and then score (idle) == 0 and then direct () == 12;
+
+   if ok
+      print (1)
+   else
+      print (0)

@@ -553,6 +553,9 @@ package body Safe_Frontend.Mir_Analyze is
      (Expr  : GM.Expr_Access;
       Value : out GM.Scalar_Value) return Boolean;
    function Variant_Discriminant_Name (Info : GM.Type_Descriptor) return String;
+   function Constrained_Discriminant_Value
+     (Info  : GM.Type_Descriptor;
+      Value : out GM.Scalar_Value) return Boolean;
    function Variant_Field_Allows
      (Field      : GM.Variant_Field;
       Value      : GM.Scalar_Value;
@@ -1944,6 +1947,7 @@ package body Safe_Frontend.Mir_Analyze is
       Base_Name_Text : constant String := Root_Name (Expr.Prefix);
       Found       : Boolean := False;
       Fact        : Discriminant_Fact;
+      Constraint_Value : GM.Scalar_Value;
       Diag        : MD.Diagnostic := Null_Diagnostic;
       Disc_Name_Text : FT.UString := FT.To_UString ("");
    begin
@@ -1961,6 +1965,12 @@ package body Safe_Frontend.Mir_Analyze is
       for Field of Prefix_Type.Variant_Fields loop
          if UString_Value (Field.Name) = UString_Value (Expr.Selector) then
             Found := True;
+            if Constrained_Discriminant_Value (Prefix_Type, Constraint_Value)
+              and then Variant_Field_Allows
+                (Field, Constraint_Value, Prefix_Type.Variant_Fields)
+            then
+               return;
+            end if;
             if Current.Discriminants.Contains (Base_Name_Text) then
                Fact := Current.Discriminants.Element (Base_Name_Text);
             end if;
@@ -3667,20 +3677,32 @@ package body Safe_Frontend.Mir_Analyze is
                Ensure_Access_Safe (Expr.Prefix.Prefix, Expr.Prefix.Span, Current, Var_Types, Type_Env, Functions);
             end if;
             Prefix := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
-            if Lower (UString_Value (Prefix.Kind)) = "record" then
-               Ensure_Discriminant_Safe (Expr, Current, Var_Types, Type_Env, Functions);
-               return Range_Interval (Field_Type (Prefix, UString_Value (Expr.Selector), Type_Env));
-            elsif Lower (UString_Value (Prefix.Kind)) = "tuple" then
-               return Range_Interval (Field_Type (Prefix, UString_Value (Expr.Selector), Type_Env));
-            elsif UString_Value (Expr.Selector) = "length"
-              and then Lower (UString_Value (Prefix.Kind)) in "string" | "array"
-            then
-               return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
-            elsif Lower (UString_Value (Prefix.Kind)) = "access" then
-               Ensure_Access_Safe (Expr.Prefix, Expr.Span, Current, Var_Types, Type_Env, Functions);
-               Ensure_Discriminant_Safe (Expr, Current, Var_Types, Type_Env, Functions);
-               return Range_Interval (Field_Type (Access_Target_Type (Prefix, Type_Env), UString_Value (Expr.Selector), Type_Env));
-            end if;
+            declare
+               Prefix_Base : GM.Type_Descriptor := Prefix;
+               Prefix_Kind : FT.UString;
+            begin
+               if Lower (UString_Value (Prefix.Kind)) = "subtype"
+                 and then Prefix.Has_Base
+               then
+                  Prefix_Base :=
+                    Resolve_Type (UString_Value (Prefix.Base), Var_Types, Type_Env);
+               end if;
+               Prefix_Kind := FT.To_UString (Lower (UString_Value (Prefix_Base.Kind)));
+               if UString_Value (Prefix_Kind) = "record" then
+                  Ensure_Discriminant_Safe (Expr, Current, Var_Types, Type_Env, Functions);
+                  return Range_Interval (Field_Type (Prefix_Base, UString_Value (Expr.Selector), Type_Env));
+               elsif UString_Value (Prefix_Kind) = "tuple" then
+                  return Range_Interval (Field_Type (Prefix_Base, UString_Value (Expr.Selector), Type_Env));
+               elsif UString_Value (Expr.Selector) = "length"
+                 and then UString_Value (Prefix_Kind) in "string" | "array"
+               then
+                  return (Low => 0, High => INT64_HIGH, Excludes_Zero => False);
+               elsif UString_Value (Prefix_Kind) = "access" then
+                  Ensure_Access_Safe (Expr.Prefix, Expr.Span, Current, Var_Types, Type_Env, Functions);
+                  Ensure_Discriminant_Safe (Expr, Current, Var_Types, Type_Env, Functions);
+                  return Range_Interval (Field_Type (Access_Target_Type (Prefix_Base, Type_Env), UString_Value (Expr.Selector), Type_Env));
+               end if;
+            end;
             declare
                Diag : MD.Diagnostic := Null_Diagnostic;
             begin
@@ -4123,6 +4145,9 @@ package body Safe_Frontend.Mir_Analyze is
             return Left.Bool_Value = Right.Bool_Value;
          when GM.Scalar_Value_Character =>
             return UString_Value (Left.Text) = UString_Value (Right.Text);
+         when GM.Scalar_Value_Enum =>
+            return UString_Value (Left.Type_Name) = UString_Value (Right.Type_Name)
+              and then UString_Value (Left.Text) = UString_Value (Right.Text);
          when others =>
             return False;
       end case;
@@ -4155,6 +4180,11 @@ package body Safe_Frontend.Mir_Analyze is
             Value.Kind := GM.Scalar_Value_Boolean;
             Value.Bool_Value := Inner.Bool_Value;
             return True;
+         when GM.Expr_Enum_Literal =>
+            Value.Kind := GM.Scalar_Value_Enum;
+            Value.Text := Inner.Name;
+            Value.Type_Name := Inner.Type_Name;
+            return Has_Text (Value.Type_Name);
          when others =>
             return False;
       end case;
@@ -4186,6 +4216,39 @@ package body Safe_Frontend.Mir_Analyze is
       end loop;
       return True;
    end Variant_Field_Allows;
+
+   function Constrained_Discriminant_Value
+     (Info  : GM.Type_Descriptor;
+      Value : out GM.Scalar_Value) return Boolean
+   is
+      Disc_Name_Text : constant String := Variant_Discriminant_Name (Info);
+   begin
+      Value := (others => <>);
+      if Disc_Name_Text = "" or else Info.Discriminant_Constraints.Is_Empty then
+         return False;
+      end if;
+
+      for Constraint of Info.Discriminant_Constraints loop
+         if Constraint.Is_Named
+           and then UString_Value (Constraint.Name) = Disc_Name_Text
+         then
+            Value := Constraint.Value;
+            return True;
+         end if;
+      end loop;
+
+      if Info.Discriminant_Constraints.Length = 1
+        and then not Info.Discriminant_Constraints
+          (Info.Discriminant_Constraints.First_Index).Is_Named
+      then
+         Value :=
+           Info.Discriminant_Constraints
+             (Info.Discriminant_Constraints.First_Index).Value;
+         return True;
+      end if;
+
+      return False;
+   end Constrained_Discriminant_Value;
 
    procedure Apply_Discriminant_Refinement
      (Current  : in out State;

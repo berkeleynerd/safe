@@ -1,0 +1,12 @@
+package neg_pr1113b_match_variant_on_result
+
+   function current returns (result, integer)
+      return (ok (), 1)
+
+   function value returns integer
+
+      match current ()
+         when ok (item)
+            return item
+         when circle (radius)
+            return radius

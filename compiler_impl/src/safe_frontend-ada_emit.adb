@@ -9084,7 +9084,7 @@ package body Safe_Frontend.Ada_Emit is
                   Result :=
                     Result
                     & SU.To_Unbounded_String
-                        (FT.To_String (Constraint.Name) & " => ");
+                        (Ada_Safe_Name (FT.To_String (Constraint.Name)) & " => ");
                end if;
                Result :=
                  Result & SU.To_Unbounded_String (Render_Scalar_Value (Constraint.Value));
@@ -11993,7 +11993,7 @@ package body Safe_Frontend.Ada_Emit is
                   State.Needs_Ada_Strings_Unbounded := True;
                   return "Ada.Strings.Unbounded.To_String (" & Prefix_Image & ".Message)";
                end if;
-               return Selected_Prefix & "." & Selector_Name;
+               return Selected_Prefix & "." & Ada_Safe_Name (Selector_Name);
             end;
          when CM.Expr_Resolved_Index =>
             if Expr.Prefix /= null
@@ -15163,7 +15163,7 @@ package body Safe_Frontend.Ada_Emit is
                   State.Needs_Ada_Strings_Unbounded := True;
                   return "Ada.Strings.Unbounded.To_String (" & Prefix_Image & ".Message)";
                end if;
-               return Prefix_Image & "." & Selector_Name;
+               return Prefix_Image & "." & Ada_Safe_Name (Selector_Name);
             end;
          when CM.Expr_Resolved_Index =>
             Result :=

@@ -350,13 +350,15 @@ package Safe_Frontend.Check_Model is
    type Match_Arm_Kind is
      (Match_Arm_Unknown,
       Match_Arm_Ok,
-      Match_Arm_Fail);
+      Match_Arm_Fail,
+      Match_Arm_Variant);
 
    type Match_Arm is record
-      Kind       : Match_Arm_Kind := Match_Arm_Unknown;
-      Binder     : FT.UString := FT.To_UString ("");
-      Statements : Statement_Access_Vectors.Vector;
-      Span       : FT.Source_Span := FT.Null_Span;
+      Kind         : Match_Arm_Kind := Match_Arm_Unknown;
+      Variant_Name : FT.UString := FT.To_UString ("");
+      Binders      : FT.UString_Vectors.Vector;
+      Statements   : Statement_Access_Vectors.Vector;
+      Span         : FT.Source_Span := FT.Null_Span;
    end record;
 
    package Match_Arm_Vectors is new Ada.Containers.Indefinite_Vectors

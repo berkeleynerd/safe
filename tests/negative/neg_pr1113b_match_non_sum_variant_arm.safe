@@ -1,0 +1,7 @@
+package neg_pr1113b_match_non_sum_variant_arm
+
+   function value returns integer
+
+      match 41
+         when circle (radius)
+            return radius

@@ -1,0 +1,12 @@
+package neg_pr1113b_match_duplicate_binders
+
+   type shape is rectangle (width : integer; height : integer) or idle;
+
+   function value returns integer
+
+      current : shape = rectangle (2, 3);
+      match current
+         when rectangle (side, side)
+            return side
+         when idle
+            return 0
