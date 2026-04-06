@@ -102,6 +102,13 @@ def load_snapshot() -> dict[str, object]:
 
 
 def compare_snapshot(*, snapshot: dict[str, object], current_hash: str, safec: Path) -> int:
+    snapshot_version = snapshot.get("version")
+    if snapshot_version != SNAPSHOT_VERSION:
+        raise RuntimeError(
+            "snapshot version mismatch: "
+            f"expected {SNAPSHOT_VERSION}, got {snapshot_version!r}"
+        )
+
     snapshot_hash = snapshot.get("compiler_hash")
     if snapshot_hash != current_hash:
         print(
@@ -126,10 +133,13 @@ def compare_snapshot(*, snapshot: dict[str, object], current_hash: str, safec: P
         if extra:
             failures.append("snapshot has extra fixtures: " + ", ".join(extra))
 
-    for fixture_rel in expected_fixture_keys:
+    for fixture_rel in current_fixture_keys:
         print(f"[snapshot_emitted_ada] {fixture_rel}", flush=True)
         actual = emit_fixture(safec=safec, source=REPO_ROOT / fixture_rel)
-        expected = manifest_fixtures[fixture_rel]
+        expected = manifest_fixtures.get(fixture_rel)
+        if expected is None:
+            failures.append(f"MISMATCH: {fixture_rel}\n  fixture missing from snapshot")
+            continue
         if not isinstance(expected, dict):
             failures.append(f"MISMATCH: {fixture_rel}\n  snapshot entry is not a file-hash mapping")
             continue
