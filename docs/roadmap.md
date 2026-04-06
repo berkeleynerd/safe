@@ -2464,8 +2464,9 @@ before shared container roots, per the locked ordering.
   reference-bearing composites rejected.
 - Emitter/runtime: make protected getters/setters and whole-record
   operations clone, copy, and free heap-backed payloads exactly once.
-- Lowering: ensure nested updates over heap-backed subrecords route
-  through snapshot/update rather than leaking live aliases.
+- Lowering: keep direct field and whole-record rewrites from `PR11.12b`,
+  and extend the dedicated protected nested-setter path so heap-backed
+  leaf updates remain atomic without routing through outer snapshot/update.
 - Docs/proof: document copy-based heap semantics and add emitted
   proof/runtime witnesses for clone/free safety.
 

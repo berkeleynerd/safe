@@ -1,0 +1,60 @@
+package pr1112c_shared_container_fields_build
+
+   type settings is record
+      items : list of integer;
+      names : map of (string, string);
+      data  : array of integer;
+
+   shared cfg : settings;
+   snap : settings;
+
+   function seeded_items returns list of integer
+      var values : list of integer = [1, 2];
+
+      append (values, 3);
+      return values;
+
+   function seeded_names returns map of (string, string)
+      var values : map of (string, string);
+
+      set (values, "ada", "Ada");
+      set (values, "bob", "Bob");
+      return values;
+
+   function seeded_data returns array of integer
+      var values : array of integer = [4, 5, 6];
+
+      return values;
+
+   function replacement returns settings
+      var items : list of integer = [7];
+      var names : map of (string, string);
+      var data : array of integer = [9];
+
+      append (items, 8);
+      set (names, "ada", "Ada");
+      return (items = items, names = names, data = data);
+
+   function lookup_or_none (source : map of (string, string); key : string) returns string
+      var item : optional string = get (source, key);
+      if item.present
+         return item.value;
+      else
+         return "none";
+
+   function load_fields
+      cfg.items = seeded_items ();
+      cfg.names = seeded_names ();
+      cfg.data = seeded_data ();
+
+   load_fields ();
+   snap = cfg;
+   print (snap.items.length);
+   print (lookup_or_none (snap.names, "bob"));
+   print (snap.data.length);
+
+   cfg = replacement ();
+   snap = cfg;
+   print (snap.items.length);
+   print (lookup_or_none (snap.names, "ada"));
+   print (snap.data.length);

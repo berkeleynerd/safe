@@ -589,6 +589,21 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr1112c_shared_string_build.safe",
+        "start\ninner\nworld\nBob\nright\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112c_shared_container_fields_build.safe",
+        "3\nBob\n3\n2\nAda\n1\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1112c_layered_growable_type_build.safe",
+        "3\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
         "ok\n",
         False,
@@ -913,6 +928,7 @@ EMITTED_PRAGMA_ALLOWLIST = {
     'pragma Warnings (GNATprove, Off, "is set by", Reason => "generated timer cancel result is intentionally ignored");',
     'pragma Warnings (GNATprove, Off, "is set by", Reason => "generated dispatcher wake result is intentionally ignored on no-delay select paths");',
     'pragma Warnings (GNATprove, Off, "has no effect", Reason => "generated package elaboration helper is intentional");',
+    'pragma Warnings (GNATprove, Off, "implicit aspect Always_Terminates", Reason => "generated package elaboration helper termination is accepted");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "for-of loop item cleanup is intentional");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "generated local cleanup is intentional");',
     'pragma Warnings (GNATprove, Off, "statement has no effect", Reason => "task-local branching is intentionally isolated");',
@@ -1117,6 +1133,31 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "Safe_Shared_cfg.Set_Path_nested_depth (7);",
         ],
     ),
+    (
+        "shared-root-heap-wrapper-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1112c_shared_string_build.safe",
+        [
+            "function Get_All return settings is",
+            "function Get_text return Safe_String_RT.Safe_String is",
+            "Safe_String_RT.Clone (State_Value.text)",
+            "Safe_String_RT.Free (State_Value.text);",
+            "procedure Set_Path_nested_label (Value : in Safe_String_RT.Safe_String);",
+            "Safe_String_RT.Free (State_Value.nested.label);",
+        ],
+    ),
+    (
+        "shared-root-container-wrapper-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1112c_shared_container_fields_build.safe",
+        [
+            "function Get_items return Safe_growable_array_integer is",
+            "Result := Safe_growable_array_integer_RT.Clone (State_Value.items);",
+            "Safe_growable_array_integer_RT.Free (State_Value.items);",
+            "State_Value.items := Safe_growable_array_integer_RT.Clone (Value);",
+            "Safe_Shared_cfg_settings_Copy (Result, State_Value);",
+            "Safe_Shared_cfg_settings_Free (State_Value);",
+            "Safe_Shared_cfg_settings_Copy (State_Value, Value);",
+        ],
+    ),
 ]
 
 EMITTED_PROTECTED_BODY_SHAPE_CASES = [
@@ -1142,6 +1183,34 @@ EMITTED_PROTECTED_BODY_SHAPE_CASES = [
             "Safe_String_RT.Clone",
             "Safe_String_RT.Copy",
             "Safe_String_RT.Free",
+        ],
+    ),
+    (
+        "shared-root-heap-protected-body-no-raw-state-assignments",
+        REPO_ROOT / "tests" / "build" / "pr1112c_shared_string_build.safe",
+        "Safe_Shared_cfg_Wrapper",
+        [
+            "return State_Value;",
+            "State_Value := Value;",
+            "return State_Value.text;",
+            "State_Value.text := Value;",
+            "return State_Value.nested;",
+            "State_Value.nested := Value;",
+            "State_Value.nested.label := Value;",
+        ],
+    ),
+    (
+        "shared-root-container-protected-body-no-raw-state-assignments",
+        REPO_ROOT / "tests" / "build" / "pr1112c_shared_container_fields_build.safe",
+        "Safe_Shared_cfg_Wrapper",
+        [
+            "return State_Value;",
+            "return State_Value.items;",
+            "State_Value.items := Value;",
+            "return State_Value.names;",
+            "State_Value.names := Value;",
+            "return State_Value.data;",
+            "State_Value.data := Value;",
         ],
     ),
 ]

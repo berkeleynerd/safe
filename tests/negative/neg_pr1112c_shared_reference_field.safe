@@ -1,0 +1,9 @@
+package neg_pr1112c_shared_reference_field
+
+   type node is record
+      next : node;
+
+   type settings is record
+      item : node;
+
+   shared cfg : settings;

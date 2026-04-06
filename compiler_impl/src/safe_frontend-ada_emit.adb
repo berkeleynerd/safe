@@ -247,6 +247,10 @@ package body Safe_Frontend.Ada_Emit is
       Document  : GM.Mir_Document;
       Name      : String;
       Type_Info : out GM.Type_Descriptor) return Boolean;
+   function Resolve_Type_Name
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Name     : String) return GM.Type_Descriptor;
    function Lookup_Object_Type
      (Unit      : CM.Resolved_Unit;
       Name      : String;
@@ -1069,33 +1073,17 @@ package body Safe_Frontend.Ada_Emit is
                Next_Path       : FT.UString_Vectors.Vector := Path_Names;
                Field_Type_Name : constant String := FT.To_String (Field.Type_Name);
                Field_Info      : constant GM.Type_Descriptor :=
-                 (if Has_Type (Unit, Document, Field_Type_Name)
-                  then Lookup_Type (Unit, Document, Field_Type_Name)
-                  else (others => <>));
+                 Resolve_Type_Name (Unit, Document, Field_Type_Name);
             begin
                Next_Path.Append (Field.Name);
                if Natural (Next_Path.Length) >= 2
                  and then Shared_Nested_Field_Setter_Name (Next_Path) = Selector_Name
                then
                   Found := True;
-                  if Has_Type (Unit, Document, Field_Type_Name) then
-                     return Field_Info;
-                  else
-                     declare
-                        Bounded_Found : Boolean := False;
-                        Bounded_Info  : constant GM.Type_Descriptor :=
-                          Synthetic_Bounded_String_Type (Field_Type_Name, Bounded_Found);
-                     begin
-                        if Bounded_Found then
-                           return Bounded_Info;
-                        end if;
-                     end;
-                  end if;
+                  return Field_Info;
                end if;
 
-               if Has_Type (Unit, Document, Field_Type_Name)
-                 and then Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info)
-               then
+               if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
                   declare
                      Nested_Info : constant GM.Type_Descriptor :=
                        Nested_Setter_Type (Field_Info, Next_Path);
@@ -1130,21 +1118,11 @@ package body Safe_Frontend.Ada_Emit is
                            declare
                               Field_Type_Name : constant String :=
                                 FT.To_String (Field.Type_Name);
-                              Bounded_Found : Boolean := False;
-                              Bounded_Info  : GM.Type_Descriptor := (others => <>);
+                              Field_Info : constant GM.Type_Descriptor :=
+                                Resolve_Type_Name (Unit, Document, Field_Type_Name);
                            begin
-                              if Has_Type (Unit, Document, Field_Type_Name) then
-                                 Found := True;
-                                 return Lookup_Type (Unit, Document, Field_Type_Name);
-                              end if;
-
-                              Bounded_Info :=
-                                Synthetic_Bounded_String_Type
-                                  (Field_Type_Name, Bounded_Found);
-                              if Bounded_Found then
-                                 Found := True;
-                                 return Bounded_Info;
-                              end if;
+                              Found := True;
+                              return Field_Info;
                            end;
                         end if;
                      end loop;
@@ -1208,9 +1186,7 @@ package body Safe_Frontend.Ada_Emit is
                      2);
                end if;
 
-               if Has_Type (Unit, Document, Field_Type_Name)
-                 and then Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info)
-               then
+               if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
                   Append_Nested_Setter_Specs (Field_Info, Next_Path);
                end if;
             end;
@@ -1285,8 +1261,593 @@ package body Safe_Frontend.Ada_Emit is
       State    : in out Emit_State)
    is
       Root_Name    : constant String := FT.To_String (Decl.Names (Decl.Names.First_Index));
+      Wrapper_Name : constant String := Shared_Wrapper_Object_Name (Root_Name);
       Type_Name    : constant String := Shared_Wrapper_Type_Name (Root_Name);
+      Root_Type    : constant String := Render_Type_Name (Decl.Type_Info);
       Base_Info    : constant GM.Type_Descriptor := Base_Type (Unit, Document, Decl.Type_Info);
+      Heap_Root    : constant Boolean :=
+        Has_Heap_Value_Type (Unit, Document, Decl.Type_Info);
+      Generated_Shared_Helpers : FT.UString_Vectors.Vector;
+      Runtime_Dependency_Types  : FT.UString_Vectors.Vector;
+
+      function Shared_Helper_Key (Info : GM.Type_Descriptor) return String is
+      begin
+         return Render_Type_Name (Info);
+      end Shared_Helper_Key;
+
+      function Shared_Helper_Base_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return Wrapper_Name & "_" & Sanitized_Helper_Name (Shared_Helper_Key (Info));
+      end Shared_Helper_Base_Name;
+
+      function Shared_Copy_Helper_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return Shared_Helper_Base_Name (Info) & "_Copy";
+      end Shared_Copy_Helper_Name;
+
+      function Shared_Free_Helper_Name (Info : GM.Type_Descriptor) return String is
+      begin
+         return Shared_Helper_Base_Name (Info) & "_Free";
+      end Shared_Free_Helper_Name;
+
+      function Needs_Generated_Shared_Helper
+        (Info : GM.Type_Descriptor) return Boolean
+      is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+      begin
+         return Has_Heap_Value_Type (Unit, Document, Base)
+           and then not Is_Plain_String_Type (Unit, Document, Base)
+           and then not Is_Growable_Array_Type (Unit, Document, Base)
+           and then (Kind = "array" or else Kind = "record" or else Is_Tuple_Type (Base));
+      end Needs_Generated_Shared_Helper;
+
+      procedure Mark_Shared_Runtime_Dependencies (Info : GM.Type_Descriptor);
+
+      procedure Mark_Shared_Runtime_Dependencies (Info : GM.Type_Descriptor) is
+         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Type_Key : constant String := Shared_Helper_Key (Info);
+
+         procedure Add_From_Name (Name_Text : String) is
+         begin
+            if Name_Text'Length = 0 then
+               return;
+            end if;
+
+            Mark_Shared_Runtime_Dependencies
+              (Resolve_Type_Name (Unit, Document, Name_Text));
+         end Add_From_Name;
+      begin
+         if Contains_Name (Runtime_Dependency_Types, Type_Key) then
+            return;
+         end if;
+
+         Runtime_Dependency_Types.Append (FT.To_UString (Type_Key));
+
+         if Is_Plain_String_Type (Unit, Document, Base) then
+            State.Needs_Safe_String_RT := True;
+            return;
+         elsif Is_Growable_Array_Type (Unit, Document, Base) then
+            State.Needs_Safe_Array_RT := True;
+            Add_From_Name (FT.To_String (Base.Component_Type));
+            return;
+         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "array"
+           and then Base.Has_Component_Type
+         then
+            Add_From_Name (FT.To_String (Base.Component_Type));
+         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "record" then
+            for Field of Base.Fields loop
+               Add_From_Name (FT.To_String (Field.Type_Name));
+            end loop;
+            for Field of Base.Variant_Fields loop
+               Add_From_Name (FT.To_String (Field.Type_Name));
+            end loop;
+         elsif Is_Tuple_Type (Base) then
+            for Item of Base.Tuple_Element_Types loop
+               Add_From_Name (FT.To_String (Item));
+            end loop;
+         end if;
+      end Mark_Shared_Runtime_Dependencies;
+
+      procedure Append_Copy_Value
+        (Target_Text : String;
+         Source_Text : String;
+         Info        : GM.Type_Descriptor;
+         Depth       : Natural)
+      is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      begin
+         if Is_Plain_String_Type (Unit, Document, Base) then
+            Append_Line
+              (Buffer,
+               Target_Text & " := Safe_String_RT.Clone (" & Source_Text & ");",
+               Depth);
+         elsif Is_Growable_Array_Type (Unit, Document, Base) then
+            Append_Line
+              (Buffer,
+               Target_Text
+               & " := "
+               & Array_Runtime_Instance_Name (Base)
+               & ".Clone ("
+               & Source_Text
+               & ");",
+               Depth);
+         elsif Needs_Generated_Shared_Helper (Info) then
+            Append_Line
+              (Buffer,
+               Shared_Copy_Helper_Name (Info)
+               & " ("
+               & Target_Text
+               & ", "
+               & Source_Text
+               & ");",
+               Depth);
+         else
+            Append_Line (Buffer, Target_Text & " := " & Source_Text & ";", Depth);
+         end if;
+      end Append_Copy_Value;
+
+      procedure Append_Free_Value
+        (Target_Text : String;
+         Info        : GM.Type_Descriptor;
+         Depth       : Natural)
+      is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      begin
+         if Is_Plain_String_Type (Unit, Document, Base) then
+            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Text & ");", Depth);
+         elsif Is_Growable_Array_Type (Unit, Document, Base) then
+            Append_Line
+              (Buffer,
+               Array_Runtime_Instance_Name (Base) & ".Free (" & Target_Text & ");",
+               Depth);
+         elsif Needs_Generated_Shared_Helper (Info) then
+            Append_Line
+              (Buffer,
+               Shared_Free_Helper_Name (Info) & " (" & Target_Text & ");",
+               Depth);
+         end if;
+      end Append_Free_Value;
+
+      procedure Render_Shared_Value_Helpers (Info : GM.Type_Descriptor);
+
+      procedure Render_Shared_Value_Helpers (Info : GM.Type_Descriptor) is
+         Base      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind      : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+         Type_Key  : constant String := Shared_Helper_Key (Info);
+         Type_Name : constant String := Render_Type_Name (Info);
+
+         procedure Ensure_Helper (Name_Text : String) is
+         begin
+            if Name_Text'Length = 0 then
+               return;
+            end if;
+
+            Render_Shared_Value_Helpers
+              (Resolve_Type_Name (Unit, Document, Name_Text));
+         end Ensure_Helper;
+
+         function Same_Choice
+           (Left, Right : GM.Variant_Field) return Boolean is
+         begin
+            return Left.Is_Others = Right.Is_Others
+              and then
+                (if Left.Is_Others
+                 then True
+                 else Left.Choice.Kind = Right.Choice.Kind
+                   and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
+         end Same_Choice;
+
+         procedure Append_Record_Copy_Assignments (Depth : Natural) is
+         begin
+            for Field of Base.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                     Append_Copy_Value
+                       ("Target." & FT.To_String (Field.Name),
+                        "Source." & FT.To_String (Field.Name),
+                        Field_Info,
+                        Depth);
+                  end if;
+               end;
+            end loop;
+
+            if not Base.Variant_Fields.Is_Empty then
+               declare
+                  Disc_Name : constant String :=
+                    FT.To_String
+                      ((if Has_Text (Base.Variant_Discriminant_Name)
+                        then Base.Variant_Discriminant_Name
+                        else Base.Discriminant_Name));
+                  Index : Positive := Base.Variant_Fields.First_Index;
+               begin
+                  if Disc_Name'Length = 0 then
+                     return;
+                  end if;
+
+                  Append_Line (Buffer, "case Source." & Disc_Name & " is", Depth);
+                  while Index <= Base.Variant_Fields.Last_Index loop
+                     declare
+                        First_Field : constant GM.Variant_Field :=
+                          Base.Variant_Fields (Index);
+                        Emitted_Statements : Boolean := False;
+                     begin
+                        Append_Line
+                          (Buffer,
+                           "when "
+                           & (if First_Field.Is_Others
+                              then "others"
+                              else Render_Scalar_Value (First_Field.Choice))
+                           & " =>",
+                           Depth + 1);
+                        loop
+                           declare
+                              Variant_Field : constant GM.Variant_Field :=
+                                Base.Variant_Fields (Index);
+                              Field_Info : constant GM.Type_Descriptor :=
+                                Resolve_Type_Name
+                                  (Unit,
+                                   Document,
+                                   FT.To_String (Variant_Field.Type_Name));
+                           begin
+                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                                 Append_Copy_Value
+                                   ("Target." & FT.To_String (Variant_Field.Name),
+                                    "Source." & FT.To_String (Variant_Field.Name),
+                                    Field_Info,
+                                    Depth + 2);
+                                 Emitted_Statements := True;
+                              end if;
+                           end;
+                           exit when Index = Base.Variant_Fields.Last_Index;
+                           exit when not Same_Choice
+                             (First_Field,
+                              Base.Variant_Fields (Index + 1));
+                           Index := Index + 1;
+                        end loop;
+                        if not Emitted_Statements then
+                           Append_Line (Buffer, "null;", Depth + 2);
+                        end if;
+                        Index := Index + 1;
+                     end;
+                  end loop;
+                  Append_Line (Buffer, "end case;", Depth);
+               end;
+            end if;
+         end Append_Record_Copy_Assignments;
+
+         procedure Append_Record_Free_Statements (Depth : Natural) is
+         begin
+            for Field of Base.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                     Append_Free_Value
+                       ("Value." & FT.To_String (Field.Name), Field_Info, Depth);
+                  end if;
+               end;
+            end loop;
+
+            if not Base.Variant_Fields.Is_Empty then
+               declare
+                  Disc_Name : constant String :=
+                    FT.To_String
+                      ((if Has_Text (Base.Variant_Discriminant_Name)
+                        then Base.Variant_Discriminant_Name
+                        else Base.Discriminant_Name));
+                  Index : Positive := Base.Variant_Fields.First_Index;
+               begin
+                  if Disc_Name'Length = 0 then
+                     return;
+                  end if;
+
+                  Append_Line (Buffer, "case Value." & Disc_Name & " is", Depth);
+                  while Index <= Base.Variant_Fields.Last_Index loop
+                     declare
+                        First_Field : constant GM.Variant_Field :=
+                          Base.Variant_Fields (Index);
+                        Emitted_Statements : Boolean := False;
+                     begin
+                        Append_Line
+                          (Buffer,
+                           "when "
+                           & (if First_Field.Is_Others
+                              then "others"
+                              else Render_Scalar_Value (First_Field.Choice))
+                           & " =>",
+                           Depth + 1);
+                        loop
+                           declare
+                              Variant_Field : constant GM.Variant_Field :=
+                                Base.Variant_Fields (Index);
+                              Field_Info : constant GM.Type_Descriptor :=
+                                Resolve_Type_Name
+                                  (Unit,
+                                   Document,
+                                   FT.To_String (Variant_Field.Type_Name));
+                           begin
+                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                                 Append_Free_Value
+                                   ("Value." & FT.To_String (Variant_Field.Name),
+                                    Field_Info,
+                                    Depth + 2);
+                                 Emitted_Statements := True;
+                              end if;
+                           end;
+                           exit when Index = Base.Variant_Fields.Last_Index;
+                           exit when not Same_Choice
+                             (First_Field,
+                              Base.Variant_Fields (Index + 1));
+                           Index := Index + 1;
+                        end loop;
+                        if not Emitted_Statements then
+                           Append_Line (Buffer, "null;", Depth + 2);
+                        end if;
+                        Index := Index + 1;
+                     end;
+                  end loop;
+                  Append_Line (Buffer, "end case;", Depth);
+               end;
+            end if;
+         end Append_Record_Free_Statements;
+      begin
+         if not Needs_Generated_Shared_Helper (Info)
+           or else Contains_Name (Generated_Shared_Helpers, Type_Key)
+         then
+            return;
+         end if;
+
+         if Starts_With (FT.To_String (Base.Name), "__optional_") then
+            declare
+               Payload_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String
+                      (Base.Variant_Fields (Base.Variant_Fields.First_Index).Type_Name));
+            begin
+               Ensure_Helper
+                 (FT.To_String
+                    (Base.Variant_Fields (Base.Variant_Fields.First_Index).Type_Name));
+               Generated_Shared_Helpers.Append (FT.To_UString (Type_Key));
+
+               Append_Line
+                 (Buffer,
+                  "procedure "
+                  & Shared_Copy_Helper_Name (Info)
+                  & " (Target : out "
+                  & Type_Name
+                  & "; Source : "
+                  & Type_Name
+                  & ");",
+                  1);
+               Append_Line
+                 (Buffer,
+                  "procedure "
+                  & Shared_Copy_Helper_Name (Info)
+                  & " (Target : out "
+                  & Type_Name
+                  & "; Source : "
+                  & Type_Name
+                  & ") is",
+                  1);
+               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+               Append_Line (Buffer, "begin", 1);
+               Append_Line (Buffer, "Target := Source;", 2);
+               Append_Line (Buffer, "if Source.present then", 2);
+               Append_Copy_Value ("Target.value", "Source.value", Payload_Info, 3);
+               Append_Line (Buffer, "end if;", 2);
+               Append_Line (Buffer, "end " & Shared_Copy_Helper_Name (Info) & ";", 1);
+               Append_Line (Buffer);
+
+               Append_Line
+                 (Buffer,
+                  "procedure "
+                  & Shared_Free_Helper_Name (Info)
+                  & " (Value : in out "
+                  & Type_Name
+                  & ");",
+                  1);
+               Append_Line
+                 (Buffer,
+                  "procedure "
+                  & Shared_Free_Helper_Name (Info)
+                  & " (Value : in out "
+                  & Type_Name
+                  & ") is",
+                  1);
+               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+               Append_Line (Buffer, "begin", 1);
+               Append_Line (Buffer, "if Value.present then", 2);
+               Append_Free_Value ("Value.value", Payload_Info, 3);
+               Append_Line (Buffer, "end if;", 2);
+               Append_Line
+                 (Buffer,
+                  "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
+                  2);
+               Append_Line (Buffer, "end " & Shared_Free_Helper_Name (Info) & ";", 1);
+               Append_Line (Buffer);
+               return;
+            end;
+         end if;
+
+         if Kind = "array" and then Base.Has_Component_Type then
+            Ensure_Helper (FT.To_String (Base.Component_Type));
+         elsif Kind = "record" then
+            for Field of Base.Fields loop
+               Ensure_Helper (FT.To_String (Field.Type_Name));
+            end loop;
+            for Field of Base.Variant_Fields loop
+               Ensure_Helper (FT.To_String (Field.Type_Name));
+            end loop;
+         elsif Is_Tuple_Type (Base) then
+            for Item of Base.Tuple_Element_Types loop
+               Ensure_Helper (FT.To_String (Item));
+            end loop;
+         end if;
+
+         Generated_Shared_Helpers.Append (FT.To_UString (Type_Key));
+
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Shared_Copy_Helper_Name (Info)
+            & " (Target : out "
+            & Type_Name
+            & "; Source : "
+            & Type_Name
+            & ");",
+            1);
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Shared_Copy_Helper_Name (Info)
+            & " (Target : out "
+            & Type_Name
+            & "; Source : "
+            & Type_Name
+            & ") is",
+            1);
+         Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+         Append_Line (Buffer, "begin", 1);
+         if Kind = "array" and then Base.Has_Component_Type then
+            declare
+               Component_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
+            begin
+               Append_Line (Buffer, "for Index in Source'Range loop", 2);
+               Append_Copy_Value
+                 ("Target (Index)",
+                  "Source (Index)",
+                  Component_Info,
+                  3);
+               Append_Line (Buffer, "end loop;", 2);
+            end;
+         elsif Kind = "record" then
+            if not Base.Variant_Fields.Is_Empty
+              or else Has_Text (Base.Discriminant_Name)
+              or else Has_Text (Base.Variant_Discriminant_Name)
+            then
+               Append_Line (Buffer, "Target := Source;", 2);
+               Append_Record_Copy_Assignments (2);
+            else
+               for Field of Base.Fields loop
+                  declare
+                     Field_Info : constant GM.Type_Descriptor :=
+                       Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+                  begin
+                     if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                        Append_Copy_Value
+                          ("Target." & FT.To_String (Field.Name),
+                           "Source." & FT.To_String (Field.Name),
+                           Field_Info,
+                           2);
+                     else
+                        Append_Line
+                          (Buffer,
+                           "Target."
+                           & FT.To_String (Field.Name)
+                           & " := Source."
+                           & FT.To_String (Field.Name)
+                           & ";",
+                           2);
+                     end if;
+                  end;
+               end loop;
+            end if;
+         elsif Is_Tuple_Type (Base) then
+            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
+               declare
+                  Item_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name
+                      (Unit,
+                       Document,
+                       FT.To_String (Base.Tuple_Element_Types (Index)));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
+                     Append_Copy_Value
+                       ("Target." & Tuple_Field_Name (Positive (Index)),
+                        "Source." & Tuple_Field_Name (Positive (Index)),
+                        Item_Info,
+                        2);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "Target."
+                        & Tuple_Field_Name (Positive (Index))
+                        & " := Source."
+                        & Tuple_Field_Name (Positive (Index))
+                        & ";",
+                        2);
+                  end if;
+               end;
+            end loop;
+         end if;
+         Append_Line (Buffer, "end " & Shared_Copy_Helper_Name (Info) & ";", 1);
+         Append_Line (Buffer);
+
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Shared_Free_Helper_Name (Info)
+            & " (Value : in out "
+            & Type_Name
+            & ");",
+            1);
+         Append_Line
+           (Buffer,
+            "procedure "
+            & Shared_Free_Helper_Name (Info)
+            & " (Value : in out "
+            & Type_Name
+            & ") is",
+            1);
+         Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
+         Append_Line (Buffer, "begin", 1);
+         if Kind = "array" and then Base.Has_Component_Type then
+            declare
+               Component_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
+            begin
+               if Has_Heap_Value_Type (Unit, Document, Component_Info) then
+                  Append_Line (Buffer, "for Index in Value'Range loop", 2);
+                  Append_Free_Value ("Value (Index)", Component_Info, 3);
+                  Append_Line (Buffer, "end loop;", 2);
+               end if;
+            end;
+         elsif Kind = "record" then
+            Append_Record_Free_Statements (2);
+         elsif Is_Tuple_Type (Base) then
+            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
+               declare
+                  Item_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name
+                      (Unit,
+                       Document,
+                       FT.To_String (Base.Tuple_Element_Types (Index)));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
+                     Append_Free_Value
+                       ("Value." & Tuple_Field_Name (Positive (Index)),
+                        Item_Info,
+                        2);
+                  end if;
+               end;
+            end loop;
+         end if;
+         Append_Line
+           (Buffer,
+            "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
+            2);
+         Append_Line (Buffer, "end " & Shared_Free_Helper_Name (Info) & ";", 1);
+         Append_Line (Buffer);
+      end Render_Shared_Value_Helpers;
+
       procedure Append_Nested_Setter_Bodies
         (Info       : GM.Type_Descriptor;
          Path_Names : FT.UString_Vectors.Vector)
@@ -1298,9 +1859,7 @@ package body Safe_Frontend.Ada_Emit is
                Next_Path       : FT.UString_Vectors.Vector := Path_Names;
                Field_Type_Name : constant String := FT.To_String (Field.Type_Name);
                Field_Info      : constant GM.Type_Descriptor :=
-                 (if Has_Type (Unit, Document, Field_Type_Name)
-                  then Lookup_Type (Unit, Document, Field_Type_Name)
-                  else (others => <>));
+                 Resolve_Type_Name (Unit, Document, Field_Type_Name);
                Field_Path      : SU.Unbounded_String := SU.To_Unbounded_String ("State_Value");
             begin
                Next_Path.Append (Field.Name);
@@ -1317,8 +1876,20 @@ package body Safe_Frontend.Ada_Emit is
                      & Render_Type_Name_From_Text (Unit, Document, Field_Type_Name, State)
                      & ") is",
                      2);
+                  if Heap_Root then
+                     Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+                  end if;
                   Append_Line (Buffer, "begin", 2);
-                  Append_Line (Buffer, SU.To_String (Field_Path) & " := Value;", 3);
+                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                     Append_Free_Value (SU.To_String (Field_Path), Field_Info, 3);
+                     Append_Copy_Value
+                       (SU.To_String (Field_Path),
+                        "Value",
+                        Field_Info,
+                        3);
+                  else
+                     Append_Line (Buffer, SU.To_String (Field_Path) & " := Value;", 3);
+                  end if;
                   Append_Line
                     (Buffer,
                      "end " & Shared_Nested_Field_Setter_Name (Next_Path) & ";",
@@ -1326,36 +1897,72 @@ package body Safe_Frontend.Ada_Emit is
                   Append_Line (Buffer);
                end if;
 
-               if Has_Type (Unit, Document, Field_Type_Name)
-                 and then Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info)
-               then
+               if Is_Plain_Shared_Nested_Record (Unit, Document, Field_Info) then
                   Append_Nested_Setter_Bodies (Field_Info, Next_Path);
                end if;
             end;
          end loop;
       end Append_Nested_Setter_Bodies;
    begin
+      if Heap_Root then
+         Append_Local_Warning_Suppression (Buffer, 1);
+         Mark_Shared_Runtime_Dependencies (Decl.Type_Info);
+         Render_Shared_Value_Helpers (Decl.Type_Info);
+      end if;
+
       Append_Line (Buffer, "protected body " & Type_Name & " is", 1);
       Append_Line
         (Buffer,
          "function " & Shared_Get_All_Name & " return "
-         & Render_Type_Name (Decl.Type_Info) & " is",
+         & Root_Type & " is",
          2);
+      if Heap_Root then
+         Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+      end if;
+      if Heap_Root then
+         Append_Line
+           (Buffer,
+            "Result : " & Root_Type & " := "
+            & Default_Value_Expr (Unit, Document, Decl.Type_Info)
+            & ";",
+            2);
+      end if;
       Append_Line (Buffer, "begin", 2);
-      Append_Line (Buffer, "return State_Value;", 3);
+      if Heap_Root then
+         Append_Line
+           (Buffer,
+            Shared_Copy_Helper_Name (Decl.Type_Info) & " (Result, State_Value);",
+            3);
+         Append_Line (Buffer, "return Result;", 3);
+      else
+         Append_Line (Buffer, "return State_Value;", 3);
+      end if;
       Append_Line (Buffer, "end " & Shared_Get_All_Name & ";", 2);
       Append_Line (Buffer);
       Append_Line
         (Buffer,
          "procedure " & Shared_Set_All_Name & " (Value : in "
-         & Render_Type_Name (Decl.Type_Info) & ") is",
+         & Root_Type & ") is",
          2);
+      if Heap_Root then
+         Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+      end if;
       Append_Line (Buffer, "begin", 2);
-      Append_Line (Buffer, "State_Value := Value;", 3);
+      if Heap_Root then
+         Append_Free_Value ("State_Value", Decl.Type_Info, 3);
+         Append_Line
+           (Buffer,
+            Shared_Copy_Helper_Name (Decl.Type_Info) & " (State_Value, Value);",
+            3);
+      else
+         Append_Line (Buffer, "State_Value := Value;", 3);
+      end if;
       Append_Line (Buffer, "end " & Shared_Set_All_Name & ";", 2);
       Append_Line (Buffer);
       for Field of Base_Info.Fields loop
          declare
+            Field_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
             Field_Type_Name : constant String :=
               Render_Type_Name_From_Text
                 (Unit,
@@ -1371,8 +1978,28 @@ package body Safe_Frontend.Ada_Emit is
                "function " & Getter_Name & " return "
                & Field_Type_Name & " is",
                2);
+            if Heap_Root then
+               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+            end if;
+            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+               Append_Line
+                 (Buffer,
+                  "Result : " & Field_Type_Name & " := "
+                  & Default_Value_Expr (Unit, Document, Field_Info)
+                  & ";",
+                  2);
+            end if;
             Append_Line (Buffer, "begin", 2);
-            Append_Line (Buffer, "return State_Value." & Field_Image & ";", 3);
+            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+               Append_Copy_Value
+                 ("Result",
+                  "State_Value." & Field_Image,
+                  Field_Info,
+                  3);
+               Append_Line (Buffer, "return Result;", 3);
+            else
+               Append_Line (Buffer, "return State_Value." & Field_Image & ";", 3);
+            end if;
             Append_Line (Buffer, "end " & Getter_Name & ";", 2);
             Append_Line (Buffer);
             Append_Line
@@ -1380,8 +2007,20 @@ package body Safe_Frontend.Ada_Emit is
                "procedure " & Setter_Name & " (Value : in "
                & Field_Type_Name & ") is",
                2);
+            if Heap_Root then
+               Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+            end if;
             Append_Line (Buffer, "begin", 2);
-            Append_Line (Buffer, "State_Value." & Field_Image & " := Value;", 3);
+            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+               Append_Free_Value ("State_Value." & Field_Image, Field_Info, 3);
+               Append_Copy_Value
+                 ("State_Value." & Field_Image,
+                  "Value",
+                  Field_Info,
+                  3);
+            else
+               Append_Line (Buffer, "State_Value." & Field_Image & " := Value;", 3);
+            end if;
             Append_Line (Buffer, "end " & Setter_Name & ";", 2);
             Append_Line (Buffer);
          end;
@@ -1393,12 +2032,26 @@ package body Safe_Frontend.Ada_Emit is
       end;
       Append_Line
         (Buffer,
-         "procedure Initialize (Value : in " & Render_Type_Name (Decl.Type_Info) & ") is",
+         "procedure Initialize (Value : in " & Root_Type & ") is",
          2);
+      if Heap_Root then
+         Append_Line (Buffer, "pragma SPARK_Mode (Off);", 3);
+      end if;
       Append_Line (Buffer, "begin", 2);
-      Append_Line (Buffer, "State_Value := Value;", 3);
+      if Heap_Root then
+         Append_Free_Value ("State_Value", Decl.Type_Info, 3);
+         Append_Line
+           (Buffer,
+            Shared_Copy_Helper_Name (Decl.Type_Info) & " (State_Value, Value);",
+            3);
+      else
+         Append_Line (Buffer, "State_Value := Value;", 3);
+      end if;
       Append_Line (Buffer, "end Initialize;", 2);
       Append_Line (Buffer, "end " & Type_Name & ";", 1);
+      if Heap_Root then
+         Append_Local_Warning_Restore (Buffer, 1);
+      end if;
       Append_Line (Buffer);
    end Render_Shared_Object_Body;
 
@@ -7207,6 +7860,8 @@ package body Safe_Frontend.Ada_Emit is
             return;
          elsif Has_Type (Unit, Document, Name) then
             Add_From_Info (Lookup_Type (Unit, Document, Name));
+         elsif Starts_With (Name, "__growable_array_") then
+            Add_From_Info (Resolve_Type_Name (Unit, Document, Name));
          elsif Starts_With (Name, "__bounded_string_") then
             declare
                Found : Boolean := False;
@@ -7255,6 +7910,7 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
 
          if Starts_With (Name_Text, "__optional_")
+           or else (FT.To_String (Info.Kind) = "array" and then Info.Growable)
            or else (FT.To_String (Info.Kind) = "subtype" and then not Info.Discriminant_Constraints.Is_Empty)
            or else (FT.To_String (Info.Kind) = "subtype"
                     and then Starts_With (FT.To_String (Info.Name), "__constraint")
@@ -19444,6 +20100,7 @@ package body Safe_Frontend.Ada_Emit is
       Body_Withs : FT.UString_Vectors.Vector;
       Synthetic_Types : GM.Type_Descriptor_Vectors.Vector;
       Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
+      Deferred_User_Types : GM.Type_Descriptor_Vectors.Vector;
       Deferred_Package_Init_Names : FT.UString_Vectors.Vector;
       Emit_Result_Builtin_First : Boolean := False;
       Emitted_Synthetic_Names : FT.UString_Vectors.Vector;
@@ -19577,32 +20234,182 @@ package body Safe_Frontend.Ada_Emit is
          end if;
 
          Type_Item := Find_Synthetic_Type (Name_Text, Found);
+         if not Found then
+            declare
+               Resolved_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, Name_Text);
+               Resolved_Name : constant String := FT.To_String (Resolved_Info.Name);
+               Resolved_Kind : constant String := FT.To_String (Resolved_Info.Kind);
+            begin
+               if Resolved_Name /= Name_Text then
+                  Type_Item := Find_Synthetic_Type (Resolved_Name, Found);
+               end if;
+               if not Found
+                 and then Has_Text (Resolved_Info.Name)
+                 and then
+                   (Starts_With (Resolved_Name, "__optional_")
+                    or else (Resolved_Kind = "array" and then Resolved_Info.Growable)
+                    or else (Resolved_Kind = "subtype"
+                             and then not Resolved_Info.Discriminant_Constraints.Is_Empty)
+                    or else (Resolved_Kind = "subtype"
+                             and then Starts_With (Resolved_Name, "__constraint")
+                             and then Resolved_Info.Has_Base
+                             and then Resolved_Info.Has_Low
+                             and then Resolved_Info.Has_High)
+                    or else Is_Tuple_Type (Resolved_Info)
+                    or else Is_Result_Builtin (Resolved_Info))
+               then
+                  Type_Item := Resolved_Info;
+                  Found := True;
+               end if;
+            exception
+               when others =>
+                  null;
+            end;
+         end if;
          if Found then
             Emit_Synthetic_Type_Decl (Type_Item);
          end if;
       end Emit_Synthetic_Dependencies_For_Name;
 
       procedure Emit_Synthetic_Dependencies (Info : GM.Type_Descriptor) is
+         Base_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
       begin
          if Info.Has_Base then
             Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Base));
          end if;
-         if Info.Has_Component_Type then
-            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Component_Type));
+         if Base_Info.Has_Component_Type then
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Base_Info.Component_Type));
          end if;
-         if Info.Has_Target then
-            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Target));
+         if Base_Info.Has_Target then
+            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Base_Info.Target));
          end if;
-         for Item of Info.Tuple_Element_Types loop
+         for Item of Base_Info.Tuple_Element_Types loop
             Emit_Synthetic_Dependencies_For_Name (FT.To_String (Item));
          end loop;
-         for Field of Info.Fields loop
+         for Field of Base_Info.Fields loop
             Emit_Synthetic_Dependencies_For_Name (FT.To_String (Field.Type_Name));
          end loop;
-         for Field of Info.Variant_Fields loop
+         for Field of Base_Info.Variant_Fields loop
             Emit_Synthetic_Dependencies_For_Name (FT.To_String (Field.Type_Name));
          end loop;
       end Emit_Synthetic_Dependencies;
+
+      function Has_Unemitted_Growable_Dependency
+        (Info : GM.Type_Descriptor) return Boolean
+      is
+         Root_Name : constant String := FT.To_String (Info.Name);
+
+         function Info_Has_Unemitted_Growable_Dependency
+           (Current : GM.Type_Descriptor;
+            Seen    : in out FT.UString_Vectors.Vector) return Boolean;
+
+         function Name_Has_Unemitted_Growable_Dependency
+           (Name_Text : String;
+            Seen      : in out FT.UString_Vectors.Vector) return Boolean
+         is
+         begin
+            if Name_Text'Length = 0 then
+               return False;
+            end if;
+
+            if Contains_Name (Seen, Name_Text) then
+               return False;
+            end if;
+
+            declare
+               Resolved_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name (Unit, Document, Name_Text);
+            begin
+               Seen.Append (FT.To_UString (Name_Text));
+               return Info_Has_Unemitted_Growable_Dependency (Resolved_Info, Seen);
+            exception
+               when others =>
+                  return False;
+            end;
+         end Name_Has_Unemitted_Growable_Dependency;
+
+         function Info_Has_Unemitted_Growable_Dependency
+           (Current : GM.Type_Descriptor;
+            Seen    : in out FT.UString_Vectors.Vector) return Boolean
+         is
+            Base_Info      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Current);
+            Base_Name_Text : constant String := FT.To_String (Base_Info.Name);
+         begin
+            if FT.To_String (Base_Info.Kind) = "array"
+              and then Base_Info.Growable
+              and then Base_Name_Text /= Root_Name
+              and then not Contains_Name (Emitted_Synthetic_Names, Base_Name_Text)
+            then
+               return True;
+            end if;
+
+            if Current.Has_Base
+              and then
+                Name_Has_Unemitted_Growable_Dependency
+                  (FT.To_String (Current.Base), Seen)
+            then
+               return True;
+            end if;
+            if Base_Info.Has_Component_Type
+              and then
+                Name_Has_Unemitted_Growable_Dependency
+                  (FT.To_String (Base_Info.Component_Type), Seen)
+            then
+               return True;
+            end if;
+            if Base_Info.Has_Target
+              and then
+                Name_Has_Unemitted_Growable_Dependency
+                  (FT.To_String (Base_Info.Target), Seen)
+            then
+               return True;
+            end if;
+            for Item of Base_Info.Tuple_Element_Types loop
+               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Item), Seen) then
+                  return True;
+               end if;
+            end loop;
+            for Field of Base_Info.Fields loop
+               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name), Seen) then
+                  return True;
+               end if;
+            end loop;
+            for Field of Base_Info.Variant_Fields loop
+               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name), Seen) then
+                  return True;
+               end if;
+            end loop;
+
+            return False;
+         end Info_Has_Unemitted_Growable_Dependency;
+      begin
+         declare
+            Seen : FT.UString_Vectors.Vector;
+         begin
+            if Root_Name'Length > 0 then
+               Seen.Append (FT.To_UString (Root_Name));
+            end if;
+            if Info_Has_Unemitted_Growable_Dependency (Info, Seen) then
+               return True;
+            end if;
+         end;
+
+         declare
+            Probe_State : Emit_State := State;
+            Decl_Image  : constant String :=
+              Render_Type_Decl (Unit, Document, Info, Probe_State);
+         begin
+            return
+              not Starts_With (FT.To_String (Info.Name), "__growable_array_")
+              and then Ada.Strings.Fixed.Index (Decl_Image, "Safe_growable_array_") > 0
+              and then (for some Type_Item of Synthetic_Types =>
+                          FT.To_String (Type_Item.Kind) = "array"
+                          and then Type_Item.Growable
+                          and then not Contains_Name
+                            (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name)));
+         end;
+      end Has_Unemitted_Growable_Dependency;
 
       function Should_Defer_Package_Object_Initializer
         (Decl  : CM.Resolved_Object_Decl;
@@ -19872,6 +20679,10 @@ package body Safe_Frontend.Ada_Emit is
         "Safe_Select_Internal_State";
       Generated_Elaborate_Name : constant String :=
         "Safe_Generated_Elaborate_" & FT.To_String (Unit.Package_Name);
+      Needs_Spark_Off_Elaboration_Helper : constant Boolean :=
+        (for some Decl of Unit.Objects =>
+            Decl.Is_Shared
+            and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info));
 
       function Package_Select_Refined_State return String is
          Constituents : FT.UString_Vectors.Vector;
@@ -19969,6 +20780,27 @@ package body Safe_Frontend.Ada_Emit is
            and then FT.To_String (Type_Item.Kind) /= "interface"
            and then not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name))
         then
+            if Has_Unemitted_Growable_Dependency (Type_Item) then
+               Deferred_User_Types.Append (Type_Item);
+            else
+               Emit_Synthetic_Dependencies (Type_Item);
+               Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
+               if FT.To_String (Type_Item.Kind) = "record" then
+                  Append_Line (Spec_Inner);
+               end if;
+               if Has_Text (Type_Item.Name) then
+                  Emitted_Synthetic_Names.Append (Type_Item.Name);
+               end if;
+            end if;
+         end if;
+      end loop;
+
+      for Type_Item of Synthetic_Types loop
+         Emit_Synthetic_Type_Decl (Type_Item);
+      end loop;
+
+      for Type_Item of Deferred_User_Types loop
+         if not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name)) then
             Emit_Synthetic_Dependencies (Type_Item);
             Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
             if FT.To_String (Type_Item.Kind) = "record" then
@@ -19978,10 +20810,6 @@ package body Safe_Frontend.Ada_Emit is
                Emitted_Synthetic_Names.Append (Type_Item.Name);
             end if;
          end if;
-      end loop;
-
-      for Type_Item of Synthetic_Types loop
-         Emit_Synthetic_Type_Decl (Type_Item);
       end loop;
 
       for Type_Item of Owner_Access_Helper_Types loop
@@ -20296,7 +21124,25 @@ package body Safe_Frontend.Ada_Emit is
          declare
             Elaborate_Precondition : constant String := Package_Elaborate_Precondition;
          begin
-            if Elaborate_Precondition'Length > 0 then
+            if Needs_Spark_Off_Elaboration_Helper then
+               if Elaborate_Precondition'Length > 0 then
+                  Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
+                  Append_Line
+                    (Body_Inner,
+                     "  with Pre => " & Elaborate_Precondition & ",",
+                     1);
+                  Append_Line
+                    (Body_Inner,
+                     "       Always_Terminates;",
+                     1);
+               else
+                  Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
+                  Append_Line (Body_Inner, "  with Always_Terminates;", 1);
+               end if;
+               Append_Line (Body_Inner);
+               Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name & " is", 1);
+               Append_Line (Body_Inner, "pragma SPARK_Mode (Off);", 2);
+            elsif Elaborate_Precondition'Length > 0 then
                Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
                Append_Line
                  (Body_Inner,
