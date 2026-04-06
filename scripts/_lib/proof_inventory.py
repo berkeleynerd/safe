@@ -426,6 +426,24 @@ EMITTED_PROOF_EXCLUSIONS = [
         owner="runtime-regression-only",
         milestone="PR11.10c",
     ),
+    EmittedProofExclusion(
+        path="tests/interfaces/pr119a_select_delay_receive.safe",
+        reason="runtime-only entry-unit select-with-delay witness; current generated elaboration helper is accepted for build/run coverage but not yet proof-closed",
+        owner="runtime-regression-only",
+        milestone="PR11.9a",
+    ),
+    EmittedProofExclusion(
+        path="tests/interfaces/pr119a_select_delay_timeout.safe",
+        reason="runtime-only entry-unit select-with-delay witness; current generated elaboration helper is accepted for build/run coverage but not yet proof-closed",
+        owner="runtime-regression-only",
+        milestone="PR11.9a",
+    ),
+    EmittedProofExclusion(
+        path="tests/interfaces/pr119a_select_zero_delay_ready.safe",
+        reason="runtime-only entry-unit select-with-delay witness; current generated elaboration helper is accepted for build/run coverage but not yet proof-closed",
+        owner="runtime-regression-only",
+        milestone="PR11.9a",
+    ),
 ]
 
 

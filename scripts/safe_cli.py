@@ -276,7 +276,7 @@ def proof_skip_reason(exc: Exception) -> str:
 
 def repo_relative_source(source: Path) -> str | None:
     try:
-        return str(source.resolve().relative_to(REPO_ROOT))
+        return source.resolve().relative_to(REPO_ROOT).as_posix()
     except ValueError:
         return None
 
