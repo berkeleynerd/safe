@@ -5998,6 +5998,22 @@ package body Safe_Frontend.Ada_Emit is
       return Lookup_In_Statements (Unit.Statements);
    end Lookup_Local_Object_Type;
 
+   function Type_Info_From_Name_Or_Synthetic
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Name      : String;
+      Type_Info : out GM.Type_Descriptor) return Boolean
+   is
+      Found_Synthetic : Boolean := False;
+   begin
+      if Type_Info_From_Name (Unit, Document, Name, Type_Info) then
+         return True;
+      end if;
+
+      Type_Info := Synthetic_Bounded_String_Type (Name, Found_Synthetic);
+      return Found_Synthetic;
+   end Type_Info_From_Name_Or_Synthetic;
+
    function Lookup_Selected_Type
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
@@ -6015,7 +6031,8 @@ package body Safe_Frontend.Ada_Emit is
         and then Is_Access_Type (Base)
         and then Base.Has_Target
       then
-         return Type_Info_From_Name (Unit, Document, FT.To_String (Base.Target), Type_Info);
+         return Type_Info_From_Name_Or_Synthetic
+           (Unit, Document, FT.To_String (Base.Target), Type_Info);
       end if;
 
       if Is_Access_Type (Base) and then Base.Has_Target then
@@ -6035,7 +6052,7 @@ package body Safe_Frontend.Ada_Emit is
          begin
             if Tuple_Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index then
                return
-                 Type_Info_From_Name
+                 Type_Info_From_Name_Or_Synthetic
                    (Unit,
                     Document,
                     FT.To_String (Base.Tuple_Element_Types (Tuple_Index)),
@@ -6052,7 +6069,7 @@ package body Safe_Frontend.Ada_Emit is
            and then FT.To_String (Base.Discriminant_Name) = Selector
          then
             return
-              Type_Info_From_Name
+              Type_Info_From_Name_Or_Synthetic
                 (Unit,
                  Document,
                  FT.To_String (Base.Discriminant_Type),
@@ -6062,7 +6079,7 @@ package body Safe_Frontend.Ada_Emit is
          for Field of Base.Fields loop
             if FT.To_String (Field.Name) = Selector then
                return
-                 Type_Info_From_Name
+                 Type_Info_From_Name_Or_Synthetic
                    (Unit,
                     Document,
                     FT.To_String (Field.Type_Name),
@@ -6139,7 +6156,7 @@ package body Safe_Frontend.Ada_Emit is
                begin
                   if Base.Has_Component_Type then
                      return
-                       Type_Info_From_Name
+                       Type_Info_From_Name_Or_Synthetic
                          (Unit,
                           Document,
                           FT.To_String (Base.Component_Type),
@@ -8449,7 +8466,7 @@ package body Safe_Frontend.Ada_Emit is
       Expr     : CM.Expr_Access;
       State    : in out Emit_State) return String
    is
-      Info : constant GM.Type_Descriptor := Expr_Type_Info (Unit, Document, Expr);
+      Info : GM.Type_Descriptor := Expr_Type_Info (Unit, Document, Expr);
    begin
       State.Needs_Safe_String_RT := True;
 
@@ -8518,6 +8535,16 @@ package body Safe_Frontend.Ada_Emit is
            & ", "
            & Render_Heap_String_Expr (Unit, Document, Expr.Right, State)
            & ")";
+      end if;
+
+      if not Has_Text (Info.Name) and then not Has_Text (Info.Kind) then
+         declare
+            Resolved_Info : GM.Type_Descriptor := (others => <>);
+         begin
+            if Resolve_Print_Type (Unit, Document, Expr, State, Resolved_Info) then
+               Info := Resolved_Info;
+            end if;
+         end;
       end if;
 
       if Is_Plain_String_Type (Unit, Document, Info) then
@@ -8711,6 +8738,10 @@ package body Safe_Frontend.Ada_Emit is
          end;
       end if;
 
+      if not Has_Expr_Type then
+         Has_Expr_Type := Resolve_Print_Type (Unit, Document, Expr, State, Expr_Type_Info);
+      end if;
+
       if Expr.Kind = CM.Expr_Ident then
          declare
             Static_Image : SU.Unbounded_String := SU.Null_Unbounded_String;
@@ -8769,6 +8800,21 @@ package body Safe_Frontend.Ada_Emit is
                     & High_Image
                     & ")";
                end;
+            end if;
+
+            if Has_Expr_Type and then Is_Plain_String_Type (Unit, Document, Expr_Type_Info) then
+               State.Needs_Safe_String_RT := True;
+               return
+                 "Safe_String_RT.To_String ("
+                 & Render_Heap_String_Expr (Unit, Document, Expr, State)
+                 & ")";
+            elsif Has_Expr_Type and then Is_Bounded_String_Type (Expr_Type_Info) then
+               Register_Bounded_String_Type (State, Expr_Type_Info);
+               return
+                 Bounded_String_Instance_Name (Expr_Type_Info)
+                 & ".To_String ("
+                 & Render_Expr (Unit, Document, Expr, State)
+                 & ")";
             end if;
          end;
       elsif Has_Expr_Type and then Is_Plain_String_Type (Unit, Document, Expr_Type_Info) then
@@ -11777,7 +11823,10 @@ package body Safe_Frontend.Ada_Emit is
                      return True;
                   else
                      Info := Expr_Type_Info (Unit, Document, Item);
-                     return Has_Text (Info.Kind) or else Has_Text (Info.Name);
+                     if Has_Text (Info.Kind) or else Has_Text (Info.Name) then
+                        return True;
+                     end if;
+                     return Resolve_Print_Type (Unit, Document, Item, State, Info);
                   end if;
                end Is_Stringish_Expr;
 
