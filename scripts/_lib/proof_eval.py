@@ -35,17 +35,36 @@ FLOW_SWITCHES = [
     "--warnings=error",
 ]
 
-PROVE_SWITCHES = [
-    "--mode=prove",
-    "--level=2",
-    "--prover=cvc5,z3,altergo",
-    "-j4",
-    "--steps=0",
-    "--timeout=120",
-    "--report=all",
-    "--warnings=error",
-    "--checks-as-errors=on",
-]
+
+def prove_switches_for_level(level: int) -> list[str]:
+    if level == 1:
+        return [
+            "--mode=prove",
+            "--level=1",
+            "--prover=cvc5,z3",
+            "-j4",
+            "--steps=0",
+            "--timeout=30",
+            "--report=all",
+            "--warnings=error",
+            "--checks-as-errors=on",
+        ]
+    if level == 2:
+        return [
+            "--mode=prove",
+            "--level=2",
+            "--prover=cvc5,z3,altergo",
+            "-j4",
+            "--steps=0",
+            "--timeout=120",
+            "--report=all",
+            "--warnings=error",
+            "--checks-as-errors=on",
+        ]
+    raise ValueError(f"unsupported proof level: {level}")
+
+
+PROVE_SWITCHES = prove_switches_for_level(2)
 
 
 SummaryCell = dict[str, int | str]
@@ -863,6 +882,7 @@ __all__ = [
     "parse_gnatprove_summary",
     "prepare_proof_root",
     "prepare_proof_toolchain",
+    "prove_switches_for_level",
     "run_cached_source_proof",
     "run_command",
     "run_gnatprove_project",

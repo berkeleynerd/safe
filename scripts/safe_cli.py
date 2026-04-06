@@ -35,6 +35,7 @@ from _lib.project_cache import (
     ensure_project_emitted,
     ensure_safe_build_root,
     reset_project_cache,
+    reset_cached_source_proof,
     reset_root_workdirs,
     save_project_state,
     source_key,
@@ -42,9 +43,11 @@ from _lib.project_cache import (
 )
 from _lib.proof_eval import (
     prepare_proof_toolchain,
+    prove_switches_for_level,
     run_cached_source_proof,
     summary_counts,
 )
+from _lib.proof_inventory import EXCLUDED_PROOF_PATHS
 from _lib.pr111_language_eval import (
     COMPILER_ROOT,
     REPO_ROOT,
@@ -59,10 +62,10 @@ from _lib.pr111_language_eval import (
 
 
 USAGE = """usage:
-  safe build [--clean] [--target-bits 32|64] <file.safe>
-  safe prove [--verbose] [--target-bits 32|64] [file.safe]
+  safe build [--clean] [--clean-proofs] [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>
+  safe prove [--verbose] [--level 1|2] [--target-bits 32|64] [file.safe]
   safe deploy [--target stm32f4] --board stm32f4-discovery [--simulate] [--watch-symbol NAME --expect-value N] [--timeout SECONDS] <file.safe>
-  safe run   [--target-bits 32|64] <file.safe>
+  safe run   [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>
   safe check <safec check args...>
   safe emit  <safec emit args...>
 """
@@ -122,16 +125,37 @@ def add_target_bits_argument(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def add_proof_level_argument(parser: argparse.ArgumentParser, *, default: int) -> None:
+    parser.add_argument(
+        "--level",
+        type=int,
+        choices=(1, 2),
+        default=default,
+        help=f"GNATprove proof level (default: {default}).",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="safe build",
-        description="Build a Safe source into a native executable.",
+        description="Build a Safe source into a native executable and, by default, prove the selected root.",
     )
     parser.add_argument(
         "--clean",
         action="store_true",
         help="Clear the local build cache for this project before rebuilding.",
     )
+    parser.add_argument(
+        "--clean-proofs",
+        action="store_true",
+        help="Clear cached proof results for the selected root before proving.",
+    )
+    parser.add_argument(
+        "--no-prove",
+        action="store_true",
+        help="Skip the post-build root proof step.",
+    )
+    add_proof_level_argument(parser, default=1)
     add_target_bits_argument(parser)
     parser.add_argument("source", help="Safe source to build.")
     return parser
@@ -147,6 +171,7 @@ def prove_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Replay captured failing-stage tool output.",
     )
+    add_proof_level_argument(parser, default=2)
     add_target_bits_argument(parser)
     parser.add_argument(
         "source",
@@ -159,8 +184,14 @@ def prove_parser() -> argparse.ArgumentParser:
 def run_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="safe run",
-        description="Build and run a Safe source as a native executable.",
+        description="Build, prove by default, and run a Safe source as a native executable.",
     )
+    parser.add_argument(
+        "--no-prove",
+        action="store_true",
+        help="Skip the post-build root proof step.",
+    )
+    add_proof_level_argument(parser, default=1)
     add_target_bits_argument(parser)
     parser.add_argument("source", help="Safe source to run.")
     return parser
@@ -235,7 +266,51 @@ def parse_run_args(args: list[str]) -> argparse.Namespace | int:
         return int(exc.code)
 
 
-def build_source(source_arg: str, *, clean: bool, target_bits: int) -> tuple[dict[str, str], Path] | int:
+def proof_skip_reason(exc: Exception) -> str:
+    text = str(exc)
+    prefix = "required command not found: "
+    if text.startswith(prefix):
+        return f"{text.removeprefix(prefix)} not found"
+    return text
+
+
+def repo_relative_source(source: Path) -> str | None:
+    try:
+        return str(source.resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return None
+
+
+def source_uses_default_proof_gate(source: Path) -> bool:
+    repo_relative = repo_relative_source(source)
+    if repo_relative is None:
+        return False
+    return repo_relative not in EXCLUDED_PROOF_PATHS
+
+
+def report_proof_failure(command_label: str, result: object) -> None:
+    print(f"safe {command_label}: PROOF FAILED", file=sys.stderr)
+    stage_output = getattr(result, "stage_output", {})
+    stage = getattr(result, "stage", "")
+    captured = stage_output.get(stage, "")
+    if captured:
+        print(captured, end="" if captured.endswith("\n") else "\n", file=sys.stderr)
+        return
+    detail = getattr(result, "detail", "")
+    if detail:
+        print(f"  {detail}", file=sys.stderr)
+
+
+def build_source(
+    source_arg: str,
+    *,
+    clean: bool,
+    clean_proofs: bool,
+    no_prove: bool,
+    prove_level: int,
+    target_bits: int,
+    command_label: str,
+) -> tuple[dict[str, str], Path] | int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
     safec_hash = sha256_file(safec)
@@ -258,10 +333,10 @@ def build_source(source_arg: str, *, clean: bool, target_bits: int) -> tuple[dic
         if exc.output:
             print(exc.output, end="" if exc.output.endswith("\n") else "\n", file=sys.stderr)
         else:
-            print(f"safe build: {exc.detail}", file=sys.stderr)
+            print(f"safe {command_label}: {exc.detail}", file=sys.stderr)
         return 1
     except RuntimeError as exc:
-        print(f"safe build: {exc}", file=sys.stderr)
+        print(f"safe {command_label}: {exc}", file=sys.stderr)
         return 1
 
     paths = ensure_safe_build_root(source, target_bits=target_bits)
@@ -277,26 +352,55 @@ def build_source(source_arg: str, *, clean: bool, target_bits: int) -> tuple[dic
         target_bits=target_bits,
     )
     cached = state["builds"].get(source_key(source))
+    executable: Path
     if cached and cached.get("fingerprint") == fingerprint and paths["exe"].exists():
-        return env, ensure_safe_build_executable(paths)
+        executable = ensure_safe_build_executable(paths)
+    else:
+        build_code = run_quiet_stage(safe_build_command(paths), cwd=COMPILER_ROOT, env=env)
+        if build_code != 0:
+            state["builds"].pop(source_key(source), None)
+            save_project_state(shared_paths, state)
+            return build_code
 
-    build_code = run_quiet_stage(safe_build_command(paths), cwd=COMPILER_ROOT, env=env)
-    if build_code != 0:
-        state["builds"].pop(source_key(source), None)
+        executable = ensure_safe_build_executable(paths)
+        state["builds"][source_key(source)] = {
+            "fingerprint": fingerprint,
+            "executable": str(executable),
+        }
         save_project_state(shared_paths, state)
-        return build_code
 
-    executable = ensure_safe_build_executable(paths)
-    state["builds"][source_key(source)] = {
-        "fingerprint": fingerprint,
-        "executable": str(executable),
-    }
-    save_project_state(shared_paths, state)
+    if clean_proofs:
+        reset_cached_source_proof(shared_paths, state, source, target_bits=target_bits)
+
+    if not no_prove and source_uses_default_proof_gate(source):
+        try:
+            toolchain = prepare_proof_toolchain(env=env, build_frontend=False)
+        except (FileNotFoundError, RuntimeError) as exc:
+            print(f"safe {command_label}: proof skipped ({proof_skip_reason(exc)})", file=sys.stderr)
+        else:
+            result = run_cached_source_proof(
+                toolchain=toolchain,
+                source=source,
+                run_check=False,
+                prove_switches=prove_switches_for_level(prove_level),
+                target_bits=target_bits,
+            )
+            if not result.passed:
+                report_proof_failure(command_label, result)
+                return 1
     return env, executable
 
 
 def safe_build(args: argparse.Namespace) -> int:
-    built = build_source(args.source, clean=args.clean, target_bits=args.target_bits)
+    built = build_source(
+        args.source,
+        clean=args.clean,
+        clean_proofs=args.clean_proofs,
+        no_prove=args.no_prove,
+        prove_level=args.level,
+        target_bits=args.target_bits,
+        command_label="build",
+    )
     if isinstance(built, int):
         return built
     _, executable = built
@@ -305,7 +409,15 @@ def safe_build(args: argparse.Namespace) -> int:
 
 
 def safe_run(args: argparse.Namespace) -> int:
-    built = build_source(args.source, clean=False, target_bits=args.target_bits)
+    built = build_source(
+        args.source,
+        clean=False,
+        clean_proofs=False,
+        no_prove=args.no_prove,
+        prove_level=args.level,
+        target_bits=args.target_bits,
+        command_label="run",
+    )
     if isinstance(built, int):
         return built
     env, executable = built
@@ -366,6 +478,7 @@ def safe_prove(args: argparse.Namespace) -> int:
             toolchain=toolchain,
             source=source,
             run_check=True,
+            prove_switches=prove_switches_for_level(args.level),
             target_bits=args.target_bits,
         )
         label = display_source_for_user(source, cwd=cwd)

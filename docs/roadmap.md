@@ -81,23 +81,19 @@ Dependency chain:
 - PR11.13a follows PR11.12g (sum type declaration and variant construction — pipeline validation wedge).
 - PR11.13b follows PR11.13a (exhaustive match destructuring with payload bindings).
 - PR11.13c follows PR11.13b (cross-package sum types and proof closure checkpoint).
-- PR11.14 follows PR11.13c (closures — value-capture-only first-class functions).
-- PR11.15 follows PR11.14 (string interpolation).
-- PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
-- PR11.17 follows PR11.16 (user-defined iteration protocol via standard interface).
-- PR11.18 follows PR11.17 (nested packages / module hierarchy).
-- PR11.19 follows PR11.18 (async/await via state-machine coroutines).
-- PR11.20 follows PR11.19 (bounded user-managed allocation pools).
-- PR11.21 follows PR11.20 (compile-time derive — auto-generated interface implementations for record/sum types).
-- PR11.22 follows PR11.21 (codebase hygiene — parent milestone for refactoring and cleanup).
-- PR11.22a follows PR11.21 (CLAUDE.md and documentation refresh).
+- PR11.22 follows PR11.13c (codebase hygiene — pulled forward to de-risk remaining features).
+- PR11.22a follows PR11.13c (CLAUDE.md and documentation refresh).
 - PR11.22b follows PR11.22a (abandoned branch cleanup and model enum hygiene).
 - PR11.22c follows PR11.22b (emitter monster-function decomposition).
 - PR11.22d follows PR11.22c (emitter deduplication and vestigial code removal).
 - PR11.22e follows PR11.22d (emitter file split into domain-focused modules).
 - PR11.22f follows PR11.22e (resolver cleanup and builtin-resolution consolidation).
-- PR11.22g follows PR11.22f (test infrastructure modularization).
+- PR11.15 follows PR11.22f (string interpolation — low risk, high usability).
+- PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
+- PR11.14 follows PR11.16 (closures — deferred past hygiene to reduce implementation risk).
+- PR11.22g follows PR11.14 (test infrastructure modularization).
 - PR11.22h follows PR11.22g (shared stdlib contract audit and body-drift check).
+- PR11.17–PR11.21 moved to PR14 series (deferred past all existing work; see PR14 below).
 
 ---
 
@@ -2704,38 +2700,6 @@ Follows PR11.12f.
 
 ---
 
-## PR11.14: Closures
-
-Add value-capture-only first-class functions.
-
-### Scope
-
-- Anonymous function syntax: `fn (x : integer) returns integer => x + 1`
-- Closures capture enclosing variables by value (copy at capture time),
-  not by reference. No mutable upvalue captures.
-- A closure is internally a record of captured values plus a function
-  pointer. The function pointer is statically known at each use site
-  through monomorphization via an interface constraint (e.g., a standard
-  `callable` interface).
-- Closure types are value types: copy on assignment, free on scope exit.
-- No dynamic dispatch — every closure call site is monomorphized.
-- Enables functional patterns: `items.filter(fn (x) => x > 0)`,
-  `items.map(fn (x) => x * 2)`, callback parameters.
-
-### Proof impact
-
-Zero new proof model. The closure body is proved as an ordinary function.
-Captured values are record fields with known types. The monomorphized
-call is a concrete function call that GNATprove handles natively.
-
-### Dependency
-
-Follows completion of the PR11.13 family (through PR11.13c). Sum types
-should exist first because closures returning sum types (e.g.,
-`fn () returns optional integer`) are a common pattern.
-
----
-
 ## PR11.15: String Interpolation
 
 Add `f"..."` string interpolation syntax.
@@ -2758,7 +2722,8 @@ Zero. Pure desugaring to existing concatenation and `to_string` calls.
 
 ### Dependency
 
-Follows PR11.14.
+Follows PR11.22f (resolver cleanup). Moved earlier in the series
+because it is pure syntactic sugar with zero proof impact.
 
 ---
 
@@ -2789,175 +2754,52 @@ Follows PR11.15.
 
 ---
 
-## PR11.17: User-Defined Iteration Protocol
+## PR11.14: Closures
 
-Add a standard `iterable` interface so user-defined types can participate
-in `for item of x`.
+Add value-capture-only first-class functions.
 
 ### Scope
 
-- Define a standard `iterable of T` interface with `has_next` and `next`
-  methods (or equivalent cursor-based protocol).
-- `for item of x` desugars to the protocol methods when `x` satisfies
-  `iterable of T`.
-- Built-in containers (`list`, `map`) already satisfy the protocol
-  through their existing iteration lowering.
-- User-defined types that implement the protocol gain `for ... of`
-  support automatically.
+- Anonymous function syntax: `fn (x : integer) returns integer => x + 1`
+- Closures capture enclosing variables by value (copy at capture time),
+  not by reference. No mutable upvalue captures.
+- A closure is internally a record of captured values plus a function
+  pointer. The function pointer is statically known at each use site
+  through monomorphization via an interface constraint (e.g., a standard
+  `callable` interface).
+- Closure types are value types: copy on assignment, free on scope exit.
+- No dynamic dispatch — every closure call site is monomorphized.
+- Enables functional patterns: `items.filter(fn (x) => x > 0)`,
+  `items.map(fn (x) => x * 2)`, callback parameters.
 
 ### Proof impact
 
-Zero new proof model. The desugared loop body uses existing method calls
-and bounded iteration. GNATprove proves the concrete instantiation.
+Zero new proof model. The closure body is proved as an ordinary function.
+Captured values are record fields with known types. The monomorphized
+call is a concrete function call that GNATprove handles natively.
 
 ### Dependency
 
-Follows PR11.16. Requires interfaces (PR11.11b) and generics (PR11.11c).
+Follows PR11.16 (nominal type aliases). Deferred past the PR11.22c–e
+emitter hygiene pass so the monomorphization implementation lands in a
+clean, decomposed emitter rather than the current 19.7K-line monolith.
 
 ---
 
-## PR11.18: Nested Packages / Module Hierarchy
+## PR11.17–PR11.21: Moved to PR14 Series
 
-Add nested package declarations for structural code organization.
+The following milestones were moved out of the PR11 series on 2026-04-06
+to focus implementation effort on the highest-value features and codebase
+hygiene before adding new language surface:
 
-### Scope
+- **PR11.17 → PR14.1:** User-Defined Iteration Protocol
+- **PR11.18 → PR14.2:** Nested Packages / Module Hierarchy
+- **PR11.19 → PR14.3:** Async/Await via State-Machine Coroutines
+- **PR11.20 → PR14.4:** Bounded User-Managed Allocation Pools
+- **PR11.21 → PR14.5:** Compile-Time Derive
 
-- `package outer; package inner; ... end inner; end outer` allows
-  hierarchical namespacing.
-- Nested packages can be `public` or private.
-- Name resolution follows lexical scoping: inner packages see outer
-  declarations; outer code accesses inner declarations via
-  `inner.name`.
-- Import via `with outer.inner` brings the nested package into scope.
-- No new runtime behavior — namespacing is a compile-time concern only.
-
-### Proof impact
-
-Zero. Name resolution only. GNATprove sees the same flat Ada packages
-after emission.
-
-### Dependency
-
-Follows PR11.17.
-
----
-
-## PR11.19: Async/Await via State-Machine Coroutines
-
-Add `async` functions and `await` expressions for structured concurrency
-within a single task.
-
-### Scope
-
-- `async function fetch_data returns result of string` declares an
-  async function that can suspend and resume.
-- `value = await fetch_data()` suspends the current coroutine until the
-  async function completes.
-- The compiler lowers async functions to state-machine enums with
-  explicit state transitions — no hidden stack allocation, no dynamic
-  task creation.
-- Coroutine frames are bounded and statically sized.
-- `await` is legal only inside `async` functions.
-- Async functions integrate with the `result` error model: an async
-  function returning `result of T` can use `try` to propagate failures
-  across `await` boundaries.
-
-### Proof impact
-
-The state machine is sequential code with explicit transitions.
-GNATprove proves each state transition as an ordinary function body.
-No new proof model — the emitted Ada is a `case` dispatch over an
-enum discriminant.
-
-### Dependency
-
-Follows PR11.18. Requires sum types (PR11.13) for the state-machine
-enum representation.
-
----
-
-## PR11.20: Bounded User-Managed Allocation Pools
-
-Add fixed-capacity allocation pools for domain-specific data structures
-that the built-in containers do not cover.
-
-### Scope
-
-- `type node_pool is pool of node capacity 256` declares a fixed-size
-  pool of pre-allocated nodes.
-- `allocate(pool)` returns `optional node` — `some` if capacity remains,
-  `none` if full.
-- `deallocate(pool, item)` returns the item to the pool.
-- Pool lifetime is scope-bounded: all outstanding allocations are
-  reclaimed when the pool goes out of scope.
-- No unbounded heap allocation. The pool capacity is a compile-time
-  constant.
-- Pools are value types at the pool level (the pool itself copies/moves
-  as a unit) but items allocated from a pool are references within that
-  pool's storage.
-
-### Proof impact
-
-Pool capacity is static. Allocation failure surfaces as `optional`,
-which is already proved. Deallocation is scope-bounded. GNATprove can
-prove that indexing into pool storage is within bounds and that the pool
-count stays within capacity.
-
-### Dependency
-
-Follows PR11.19.
-
----
-
-## PR11.21: Compile-Time Derive
-
-Add a `derive` directive that auto-generates interface implementations
-for record and sum types at compile time, replacing the need for runtime
-reflection.
-
-### Scope
-
-- `type sensor_reading is record derive printable, serializable`
-  instructs the compiler to generate implementations of the named
-  interfaces for the type.
-- The compiler reads the type's field list (names, types, order) at
-  compile time and emits concrete method bodies that satisfy each
-  derived interface.
-- Standard derivable interfaces in this milestone:
-  - `printable` — generates `to_string` that concatenates field names
-    and values
-  - `equatable` — generates `==` that compares fields structurally
-  - `serializable` — generates a field-visitor method that a
-    format-specific encoder can consume
-- `derive` works on records, discriminated records, and sum types
-  (PR11.13). It does not work on scalars, enums, or containers (which
-  already satisfy standard interfaces through builtins).
-- The `serializable` interface is format-agnostic: it exposes
-  field-by-field traversal (name, type tag, value) through a standard
-  visitor pattern. The actual encoding (protobuf, JSON, etc.) is a
-  library-level concern, not a compiler concern.
-- Derived implementations are ordinary generated functions that
-  GNATprove proves the same way it proves any other function. No
-  runtime type information, no dynamic field access.
-
-### Why this exists
-
-Without reflection, every type that needs serialization, printing, or
-equality must have hand-written implementations for each interface.
-`derive` eliminates that boilerplate while keeping the proof story
-intact — the compiler generates the code, not the programmer, and
-the generated code is proved.
-
-### Proof impact
-
-Zero new proof model. Derived method bodies are ordinary functions
-over known field types. GNATprove proves them identically to
-hand-written implementations.
-
-### Dependency
-
-Follows PR11.20. Requires interfaces (PR11.11b), generics (PR11.11c),
-and sum types (PR11.13). This is the last milestone in the PR11 series.
+These items are deferred past all existing work (PR11, PR12, PR13).
+See the PR14 section below for the preserved milestone definitions.
 
 ---
 
@@ -3130,7 +2972,7 @@ up to date with the current toolchain state.
 
 ### Dependency
 
-Follows PR11.21. Zero risk — documentation only.
+Follows PR11.13c. Zero risk — documentation only.
 
 ---
 
@@ -3322,8 +3164,8 @@ stdlib packages.
 
 ### Dependency
 
-Follows PR11.22g. This is the last PR11 milestone. Safety-critical
-audit — medium effort, high value.
+Follows PR11.22g. Safety-critical audit — medium effort, high value.
+This is the last PR11 milestone.
 
 ---
 
@@ -3347,7 +3189,7 @@ that gap before the claims-hardening work begins.
 - PR12.5 follows PR12.4 (workspace mode — multi-package project discovery).
 - PR12.5a follows PR12.5 (complete VS Code extension).
 - PR12.6 follows PR12.5a (package management and dependency resolution).
-- PR12.7 follows PR12.6 (standard serialization library — protobuf, JSON, and format-agnostic derive integration).
+- PR12.7 follows PR12.6 (standard serialization library — protobuf, JSON; format-agnostic derive integration deferred to PR14.5).
 - PR12.8 follows PR12.7 (standard I/O library — file, stdin/stdout, arguments, with task-based I/O seams).
 - PR12.9 follows PR12.8 (`safe test` — built-in test framework and runner).
 - PR12.10 follows PR12.9 (`safe doc` — documentation generation from source).
@@ -3383,7 +3225,7 @@ makes the distribution self-contained.
 
 ### Dependency
 
-Follows PR11.12g.
+Follows PR11.22h.
 
 ---
 
@@ -3600,10 +3442,12 @@ Ship format-specific serialization libraries that consume the
 ### Why here
 
 Serialization is the most common use case that reflection solves in
-other languages. With `derive serializable` (PR11.21) providing the
-compile-time type introspection and this milestone providing the
-format encoders, Safe covers the serialization story without reflection
-and with full proof coverage.
+other languages. In this first slice, the serialization libraries operate
+on explicit field-accessor functions that the user (or AI agent) writes.
+When `derive serializable` ships in PR14.5, the libraries will also
+consume the auto-generated visitor interface, eliminating that
+boilerplate. The libraries are designed so the derive integration is
+additive — no breaking changes.
 
 ### Dependency
 
@@ -4472,6 +4316,213 @@ Still-open design questions within the tracked roadmap:
 3. **What is the v1.0 target date (if any)?** The milestone sequence is defined
    but no timeline is attached. A target date would help prioritize "not
    scheduled" items and resolve the TBD register.
+
+---
+
+# PR14: Language Expansion Series
+
+The PR14 series contains language features originally planned for PR11
+that were deferred on 2026-04-06 to focus implementation effort on
+shipping a clean, well-proved, well-tooled language before adding more
+surface area. These features are valuable but none were blocking real
+programs or the AI-first value proposition at the time of deferral.
+
+PR14 follows the completion of PR11, PR12, and PR13. The milestone
+definitions are preserved from their original PR11 positions so the
+scope and rationale remain clear.
+
+## Dependency Chain
+
+- PR14.1 follows PR13.8 (user-defined iteration protocol).
+- PR14.2 follows PR14.1 (nested packages / module hierarchy).
+- PR14.3 follows PR14.2 (async/await via state-machine coroutines).
+- PR14.4 follows PR14.3 (bounded user-managed allocation pools).
+- PR14.5 follows PR14.4 (compile-time derive).
+
+---
+
+## PR14.1: User-Defined Iteration Protocol
+
+*Moved from PR11.17.*
+
+Add a standard `iterable` interface so user-defined types can participate
+in `for item of x`.
+
+### Scope
+
+- Define a standard `iterable of T` interface with `has_next` and `next`
+  methods (or equivalent cursor-based protocol).
+- `for item of x` desugars to the protocol methods when `x` satisfies
+  `iterable of T`.
+- Built-in containers (`list`, `map`) already satisfy the protocol
+  through their existing iteration lowering.
+- User-defined types that implement the protocol gain `for ... of`
+  support automatically.
+
+### Proof impact
+
+Zero new proof model. The desugared loop body uses existing method calls
+and bounded iteration. GNATprove proves the concrete instantiation.
+
+### Dependency
+
+Follows PR13.8. Requires interfaces (PR11.11b) and generics (PR11.11c).
+
+---
+
+## PR14.2: Nested Packages / Module Hierarchy
+
+*Moved from PR11.18.*
+
+Add nested package declarations for structural code organization.
+
+### Scope
+
+- `package outer; package inner; ... end inner; end outer` allows
+  hierarchical namespacing.
+- Nested packages can be `public` or private.
+- Name resolution follows lexical scoping: inner packages see outer
+  declarations; outer code accesses inner declarations via
+  `inner.name`.
+- Import via `with outer.inner` brings the nested package into scope.
+- No new runtime behavior — namespacing is a compile-time concern only.
+
+### Proof impact
+
+Zero. Name resolution only. GNATprove sees the same flat Ada packages
+after emission.
+
+### Dependency
+
+Follows PR14.1.
+
+---
+
+## PR14.3: Async/Await via State-Machine Coroutines
+
+*Moved from PR11.19.*
+
+Add `async` functions and `await` expressions for structured concurrency
+within a single task.
+
+### Scope
+
+- `async function fetch_data returns result of string` declares an
+  async function that can suspend and resume.
+- `value = await fetch_data()` suspends the current coroutine until the
+  async function completes.
+- The compiler lowers async functions to state-machine enums with
+  explicit state transitions — no hidden stack allocation, no dynamic
+  task creation.
+- Coroutine frames are bounded and statically sized.
+- `await` is legal only inside `async` functions.
+- Async functions integrate with the `result` error model: an async
+  function returning `result of T` can use `try` to propagate failures
+  across `await` boundaries.
+
+### Proof impact
+
+The state machine is sequential code with explicit transitions.
+GNATprove proves each state transition as an ordinary function body.
+No new proof model — the emitted Ada is a `case` dispatch over an
+enum discriminant.
+
+### Dependency
+
+Follows PR14.2. Requires sum types (PR11.13) for the state-machine
+enum representation.
+
+---
+
+## PR14.4: Bounded User-Managed Allocation Pools
+
+*Moved from PR11.20.*
+
+Add fixed-capacity allocation pools for domain-specific data structures
+that the built-in containers do not cover.
+
+### Scope
+
+- `type node_pool is pool of node capacity 256` declares a fixed-size
+  pool of pre-allocated nodes.
+- `allocate(pool)` returns `optional node` — `some` if capacity remains,
+  `none` if full.
+- `deallocate(pool, item)` returns the item to the pool.
+- Pool lifetime is scope-bounded: all outstanding allocations are
+  reclaimed when the pool goes out of scope.
+- No unbounded heap allocation. The pool capacity is a compile-time
+  constant.
+- Pools are value types at the pool level (the pool itself copies/moves
+  as a unit) but items allocated from a pool are references within that
+  pool's storage.
+
+### Proof impact
+
+Pool capacity is static. Allocation failure surfaces as `optional`,
+which is already proved. Deallocation is scope-bounded. GNATprove can
+prove that indexing into pool storage is within bounds and that the pool
+count stays within capacity.
+
+### Dependency
+
+Follows PR14.3.
+
+---
+
+## PR14.5: Compile-Time Derive
+
+*Moved from PR11.21.*
+
+Add a `derive` directive that auto-generates interface implementations
+for record and sum types at compile time, replacing the need for runtime
+reflection.
+
+### Scope
+
+- `type sensor_reading is record derive printable, serializable`
+  instructs the compiler to generate implementations of the named
+  interfaces for the type.
+- The compiler reads the type's field list (names, types, order) at
+  compile time and emits concrete method bodies that satisfy each
+  derived interface.
+- Standard derivable interfaces in this milestone:
+  - `printable` — generates `to_string` that concatenates field names
+    and values
+  - `equatable` — generates `==` that compares fields structurally
+  - `serializable` — generates a field-visitor method that a
+    format-specific encoder can consume
+- `derive` works on records, discriminated records, and sum types
+  (PR11.13). It does not work on scalars, enums, or containers (which
+  already satisfy standard interfaces through builtins).
+- The `serializable` interface is format-agnostic: it exposes
+  field-by-field traversal (name, type tag, value) through a standard
+  visitor pattern. The actual encoding (protobuf, JSON, etc.) is a
+  library-level concern, not a compiler concern.
+- Derived implementations are ordinary generated functions that
+  GNATprove proves the same way it proves any other function. No
+  runtime type information, no dynamic field access.
+- Once shipped, PR12.7 (standard serialization library) gains the
+  auto-generated visitor integration that was deferred from its
+  initial delivery.
+
+### Why this exists
+
+Without reflection, every type that needs serialization, printing, or
+equality must have hand-written implementations for each interface.
+`derive` eliminates that boilerplate while keeping the proof story
+intact — the compiler generates the code, not the programmer, and
+the generated code is proved.
+
+### Proof impact
+
+Zero new proof model. Derived method bodies are ordinary functions
+over known field types. GNATprove proves them identically to
+hand-written implementations.
+
+### Dependency
+
+Follows PR14.4. Requires interfaces (PR11.11b), generics (PR11.11c),
+and sum types (PR11.13).
 
 ---
 
