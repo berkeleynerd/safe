@@ -498,6 +498,7 @@ def safe_build_paths(source: Path, *, target_bits: int = 64) -> dict[str, Path]:
         "root": root,
         "obj": root / "obj",
         "gpr": root / "build.gpr",
+        "gnat_adc": root / "gnat.adc",
         "main": root / "main.adb",
         "exe": root / executable_name(),
     }
@@ -544,7 +545,7 @@ def emitted_primary_unit_for_source(ada_dir: Path, source: Path) -> str:
     return body.stem
 
 
-def safe_build_project_text(*, ada_dir: Path, has_gnat_adc: bool) -> str:
+def safe_build_project_text(*, ada_dir: Path, gnat_adc_path: Path | None) -> str:
     lines = [
         "project Build is",
         f'   for Source_Dirs use (".", "{ada_dir}", "{STDLIB_ADA_DIR}");',
@@ -552,16 +553,39 @@ def safe_build_project_text(*, ada_dir: Path, has_gnat_adc: bool) -> str:
         '   for Exec_Dir use ".";',
         '   for Main use ("main.adb");',
     ]
-    if has_gnat_adc:
+    if gnat_adc_path is not None:
         lines.extend(
             [
+                f"   -- gnat_adc_hash: {sha256_file(gnat_adc_path)}",
                 "   package Compiler is",
-                f'      for Default_Switches ("Ada") use ("-gnatec={ada_dir / "gnat.adc"}");',
+                f'      for Default_Switches ("Ada") use ("-gnatec={gnat_adc_path}");',
                 "   end Compiler;",
             ]
         )
     lines.append("end Build;")
     return "\n".join(lines) + "\n"
+
+
+def build_gnat_adc_text(*, shared_adc_text: str, uses_timing_events: bool) -> str:
+    if not uses_timing_events:
+        return shared_adc_text
+    # Timing-event select lowering binds cleanly only without the emitted
+    # sequential elaboration pragma on the hosted native build path.
+    return "".join(
+        line
+        for line in shared_adc_text.splitlines(keepends=True)
+        if "Partition_Elaboration_Policy" not in line
+    )
+
+
+def emitted_uses_timing_events(ada_dir: Path) -> bool:
+    for body in sorted(ada_dir.glob("*.adb")):
+        try:
+            if "Ada.Real_Time.Timing_Events." in body.read_text(encoding="utf-8"):
+                return True
+        except FileNotFoundError:
+            continue
+    return False
 
 
 def proof_project_text(*, ada_dir: Path, has_gnat_adc: bool) -> str:
@@ -594,7 +618,22 @@ def write_safe_build_support_files(paths: dict[str, Path], *, ada_dir: Path, sou
         if current_main != main_text:
             paths["main"].write_text(main_text, encoding="utf-8")
 
-    project_text = safe_build_project_text(ada_dir=ada_dir, has_gnat_adc=(ada_dir / "gnat.adc").exists())
+    gnat_adc_path: Path | None = None
+    shared_gnat_adc = ada_dir / "gnat.adc"
+    if shared_gnat_adc.exists():
+        build_gnat_adc = paths["gnat_adc"]
+        build_adc_text = build_gnat_adc_text(
+            shared_adc_text=shared_gnat_adc.read_text(encoding="utf-8"),
+            uses_timing_events=emitted_uses_timing_events(ada_dir),
+        )
+        current_adc = build_gnat_adc.read_text(encoding="utf-8") if build_gnat_adc.exists() else None
+        if current_adc != build_adc_text:
+            build_gnat_adc.write_text(build_adc_text, encoding="utf-8")
+        gnat_adc_path = build_gnat_adc
+    elif paths["gnat_adc"].exists():
+        paths["gnat_adc"].unlink()
+
+    project_text = safe_build_project_text(ada_dir=ada_dir, gnat_adc_path=gnat_adc_path)
     current_project = paths["gpr"].read_text(encoding="utf-8") if paths["gpr"].exists() else None
     if current_project != project_text:
         paths["gpr"].write_text(project_text, encoding="utf-8")

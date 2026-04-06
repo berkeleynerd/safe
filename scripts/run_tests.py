@@ -547,6 +547,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr212_string_literal_build.safe",
+        "111\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr1110a_optional_string_build.safe",
         "Ada\n",
         False,
@@ -700,6 +705,21 @@ BUILD_SUCCESS_CASES = [
         REPO_ROOT / "tests" / "build" / "pr1112f_mixed_channel_shared_build.safe",
         "18\n",
         True,
+    ),
+    (
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_receive.safe",
+        "7\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_timeout.safe",
+        "9\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_zero_delay_ready.safe",
+        "4\n",
+        False,
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",

@@ -2517,13 +2517,19 @@ package body Safe_Frontend.Check_Parse is
          Result.Match_Arms.Append (Arm);
       end loop;
 
+      if Result.Match_Arms.Is_Empty then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path_String (State),
+               Span    => Result.Match_Expr.Span,
+               Message => "match statements require at least one arm"));
+      end if;
+
       Require_Dedent (State, "match arms must align under `match`");
       Result.Span :=
         CM.Join
           (Start.Span,
-           (if Result.Match_Arms.Is_Empty
-            then Result.Match_Expr.Span
-            else Result.Match_Arms (Result.Match_Arms.Last_Index).Span));
+           Result.Match_Arms (Result.Match_Arms.Last_Index).Span);
       return Result;
    end Parse_Match_Statement;
 

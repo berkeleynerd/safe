@@ -4146,8 +4146,9 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Scalar_Value_Character =>
             return UString_Value (Left.Text) = UString_Value (Right.Text);
          when GM.Scalar_Value_Enum =>
-            return UString_Value (Left.Type_Name) = UString_Value (Right.Type_Name)
-              and then UString_Value (Left.Text) = UString_Value (Right.Text);
+            return
+              UString_Value (Left.Text) = UString_Value (Right.Text)
+              and then UString_Value (Left.Type_Name) = UString_Value (Right.Type_Name);
          when others =>
             return False;
       end case;
@@ -4184,7 +4185,7 @@ package body Safe_Frontend.Mir_Analyze is
             Value.Kind := GM.Scalar_Value_Enum;
             Value.Text := Inner.Name;
             Value.Type_Name := Inner.Type_Name;
-            return Has_Text (Value.Type_Name);
+            return True;
          when others =>
             return False;
       end case;

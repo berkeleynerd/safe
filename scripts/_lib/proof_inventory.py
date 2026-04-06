@@ -62,6 +62,7 @@ PR11_8A_CHECKPOINT_FIXTURES = [
     "tests/positive/pr113_tuple_destructure.safe",
     "tests/positive/pr113_structured_result.safe",
     "tests/positive/pr113_variant_guard.safe",
+    "tests/positive/pr214_enum_variant_guard.safe",
     "tests/positive/constant_discriminant_default.safe",
     "tests/positive/result_equality_check.safe",
     "tests/positive/result_guarded_access.safe",
@@ -349,6 +350,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/constant_shadow_mutable.safe",
     "tests/positive/emitter_surface_proc.safe",
     "tests/positive/emitter_surface_record.safe",
+    "tests/build/pr212_string_literal_build.safe",
     "tests/build/pr119d_send_single_eval_build.safe",
 ]
 

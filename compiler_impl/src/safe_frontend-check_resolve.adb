@@ -13903,7 +13903,36 @@ package body Safe_Frontend.Check_Resolve is
                            if Total_Arms = 1 then
                               Result.Kind := CM.Stmt_If;
                               Result.Condition := Bool_Expr (True, Arm.Span);
-                              Result.Then_Stmts := Branch_Statements;
+                              if Constructor.Fields.Is_Empty then
+                                 Result.Then_Stmts := Branch_Statements;
+                              else
+                                 declare
+                                    Constrained_Name : constant String :=
+                                      "Safe_Match_Only_" &
+                                      Ada.Strings.Fixed.Trim
+                                        (Natural'Image (Arm_Index),
+                                         Ada.Strings.Both);
+                                    Constrained_Type : constant GM.Type_Descriptor :=
+                                      Sum_Arm_Subtype (Constructor);
+                                    Payload_Prefix : constant CM.Expr_Access :=
+                                      Ident_Expr
+                                        (Constrained_Name,
+                                         Arm.Span,
+                                         UString_Value (Constrained_Type.Name));
+                                 begin
+                                    Result.Then_Stmts :=
+                                      Normalize_Sum_Arm_Statements
+                                        (Arm,
+                                         Constructor,
+                                         Payload_Prefix => Payload_Prefix);
+                                    Result.Then_Stmts.Prepend
+                                      (Synthetic_Object_Decl_Stmt
+                                         (Constrained_Name,
+                                          Constrained_Type,
+                                          Match_Value,
+                                          Arm.Span));
+                                 end;
+                              end if;
                            elsif Arm_Index = 1 then
                               Result.Kind := CM.Stmt_If;
                               Result.Condition := Build_Sum_Arm_Condition (Constructor, Arm.Span);
