@@ -77,8 +77,11 @@ Dependency chain:
 - PR11.12e follows PR11.12d (public/imported shared declarations with the full local read/write surface exported across packages).
 - PR11.12f follows PR11.12e (exact shared ceiling-priority analysis from cross-package access summaries).
 - PR11.12g follows PR11.12f (shared-wrapper proof closure and roadmap/spec alignment).
-- PR11.13 follows PR11.12g (user-defined sum types with exhaustive match).
-- PR11.14 follows PR11.13 (closures — value-capture-only first-class functions).
+- PR11.13 follows PR11.12g (user-defined sum types with exhaustive match — parent milestone).
+- PR11.13a follows PR11.12g (sum type declaration and variant construction — pipeline validation wedge).
+- PR11.13b follows PR11.13a (exhaustive match destructuring with payload bindings).
+- PR11.13c follows PR11.13b (cross-package sum types and proof closure checkpoint).
+- PR11.14 follows PR11.13c (closures — value-capture-only first-class functions).
 - PR11.15 follows PR11.14 (string interpolation).
 - PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
 - PR11.17 follows PR11.16 (user-defined iteration protocol via standard interface).
@@ -2701,35 +2704,6 @@ Follows PR11.12f.
 
 ---
 
-## PR11.13: User-Defined Sum Types
-
-Add user-defined tagged unions with exhaustive `match` destructuring.
-
-### Scope
-
-- `type shape is circle (radius : integer) or rectangle (width : integer; height : integer)`
-  declares a sum type with named variants and typed payloads.
-- `match value when circle (r) ... when rectangle (w, h) ...` destructures
-  with exhaustiveness checked at compile time.
-- Sum types are value types: copy on assignment, free on scope exit.
-- No inheritance, no subtyping between variants — each variant is a
-  distinct data shape under one type name.
-- Internally lowered to a discriminated record with an enum discriminant
-  and variant parts, reusing the existing discriminant-guard proof
-  machinery.
-
-### Proof impact
-
-Zero new proof model. The discriminant is a finite enum, `match` is
-exhaustive (compiler-enforced), and each variant's fields are accessed
-only in the correct arm. GNATprove already proves this pattern.
-
-### Dependency
-
-Follows PR11.12g.
-
----
-
 ## PR11.14: Closures
 
 Add value-capture-only first-class functions.
@@ -2756,8 +2730,9 @@ call is a concrete function call that GNATprove handles natively.
 
 ### Dependency
 
-Follows PR11.13. Sum types should exist first because closures returning
-sum types (e.g., `fn () returns optional integer`) are a common pattern.
+Follows completion of the PR11.13 family (through PR11.13c). Sum types
+should exist first because closures returning sum types (e.g.,
+`fn () returns optional integer`) are a common pattern.
 
 ---
 
@@ -2989,288 +2964,128 @@ and sum types (PR11.13). This is the last milestone in the PR11 series.
 ## PR11.13: User-Defined Sum Types
 
 Add user-defined tagged unions with exhaustive `match` destructuring.
+Lands as three sub-milestones.
+
+### Phasing
+
+- **PR11.13a** — Declaration and variant construction (pipeline wedge)
+- **PR11.13b** — Exhaustive match destructuring with payload bindings
+- **PR11.13c** — Cross-package export/import and proof closure
+
+---
+
+## PR11.13a: Sum Type Declaration and Construction
+
+First sum-type wedge. Introduces the type declaration syntax and
+positional variant constructors.
 
 ### Scope
 
-- `type shape is circle (radius : integer) or rectangle (width : integer; height : integer)`
-  declares a sum type with named variants and typed payloads.
-- `match value when circle (r) ... when rectangle (w, h) ...` destructures
-  with exhaustiveness checked at compile time.
+- Admit sum type declarations:
+  `type shape is circle (radius : integer) or rectangle (width : integer; height : integer)`
+- Each variant has a name and zero or more named typed payload fields.
+- Variant names are unique within the sum type.
+- Payload field types must be admitted value types (same admission
+  rules as record fields, optional payloads, and container elements).
+- Positional variant constructors: `circle (5)` and
+  `rectangle (3, 4)` produce sum-type values.
 - Sum types are value types: copy on assignment, free on scope exit.
-- No inheritance, no subtyping between variants — each variant is a
-  distinct data shape under one type name.
-- Internally lowered to a discriminated record with an enum discriminant
-  and variant parts, reusing the existing discriminant-guard proof
-  machinery.
+- Internally lowered to a discriminated record with a compiler-
+  generated enum discriminant and variant parts, reusing existing
+  discriminated-record infrastructure.
+- No `match` destructuring in this slice — variant construction
+  only. The value can be assigned, passed, returned, compared for
+  variant kind via discriminant, and printed.
+- Same-unit only in this slice; public/imported deferred to PR11.13c.
+- No typed/MIR/safei version bump.
+
+### Why this first
+
+This validates the type-declaration pipeline, the internal lowering
+to discriminated records, and the construction/emission path. If the
+pipeline has a problem, finding it on construction alone is simpler
+than also debugging match destructuring.
 
 ### Proof impact
 
-Zero new proof model. The discriminant is a finite enum, `match` is
-exhaustive (compiler-enforced), and each variant's fields are accessed
-only in the correct arm. GNATprove already proves this pattern.
+Zero. The lowered discriminated record uses existing proof machinery.
 
 ### Dependency
 
-Follows PR11.12.
+Follows PR11.12g.
 
 ---
 
-## PR11.14: Closures
+## PR11.13b: Exhaustive Match on Sum Types
 
-Add value-capture-only first-class functions.
+The payoff slice. Extends `match` from `(result, T)` tuples to
+user-defined sum types with payload bindings.
 
 ### Scope
 
-- Anonymous function syntax: `fn (x : integer) returns integer => x + 1`
-- Closures capture enclosing variables by value (copy at capture time),
-  not by reference. No mutable upvalue captures.
-- A closure is internally a record of captured values plus a function
-  pointer. The function pointer is statically known at each use site
-  through monomorphization via an interface constraint (e.g., a standard
-  `callable` interface).
-- Closure types are value types: copy on assignment, free on scope exit.
-- No dynamic dispatch — every closure call site is monomorphized.
-- Enables functional patterns: `items.filter(fn (x) => x > 0)`,
-  `items.map(fn (x) => x * 2)`, callback parameters.
+- Extend `match` to accept sum-type scrutinees:
+  ```
+  match value
+     when circle (r)
+        -- r : integer is bound here
+     when rectangle (w, h)
+        -- w : integer, h : integer are bound here
+  ```
+- Exhaustiveness: every variant must have exactly one arm. Missing
+  variants and duplicate variants are rejected at compile time.
+- Payload bindings are immutable locals scoped to the arm body.
+- Zero-payload variants use bare `when variant_name` (no parentheses).
+- `match` on sum types remains statement-only (same as PR11.8k
+  `match` on results).
+- The compiler desugars sum-type `match` to an `if`/`elsif` chain
+  on the hidden enum discriminant with variant-field access in each
+  arm, reusing the existing `match` lowering path from PR11.8k.
+- Same-unit only in this slice.
+- No typed/MIR/safei version bump.
 
 ### Proof impact
 
-Zero new proof model. The closure body is proved as an ordinary function.
-Captured values are record fields with known types. The monomorphized
-call is a concrete function call that GNATprove handles natively.
+Zero. The desugared `if`/`elsif` chain is ordinary control flow.
+Variant-field access uses the existing discriminant-guard machinery
+that GNATprove already proves.
 
 ### Dependency
 
-Follows PR11.13. Sum types should exist first because closures returning
-sum types (e.g., `fn () returns optional integer`) are a common pattern.
+Follows PR11.13a.
 
 ---
 
-## PR11.15: String Interpolation
+## PR11.13c: Cross-Package Sum Types and Proof Closure
 
-Add `f"..."` string interpolation syntax.
+Close the PR11.13 parent milestone with public/imported sum types
+and a proof checkpoint.
 
 ### Scope
 
-- `f"count: {n}"` desugars to `"count: " & to_string(n)`.
-- `to_string` is a standard interface method that scalar types, enums,
-  strings, and optionals satisfy by default.
-- User-defined types can satisfy `to_string` through the existing
-  method/interface machinery from PR11.11a-b.
-- Interpolation expressions must be printable (satisfy `to_string`).
-  Complex expressions are allowed: `f"total: {a + b}"`.
-- No format specifiers in the first slice (no `{n:04d}`). Formatting
-  is post-v1.0 work.
+- Admit `public type shape is circle (...) or rectangle (...)` for
+  cross-package export.
+- Export sum-type metadata (variant names, payload fields, internal
+  discriminant identity) through safei contracts.
+- Imported sum types support the full construction + match surface
+  in client units.
+- Add PR11.13c checkpoint fixtures covering:
+  - Local sum type construction and match
+  - Cross-package imported sum type construction and match
+  - Sum type with heap-backed payload fields (string, list)
+  - Proof that the emitted discriminated record proves clean
+- Update verification matrix and proof inventory.
+- Artifact version bump if the safei contract requires new required
+  fields for sum-type metadata; additive optional fields do not
+  require a bump.
 
 ### Proof impact
 
-Zero. Pure desugaring to existing concatenation and `to_string` calls.
+Zero new proof model. Each fixture proves as an ordinary
+discriminated-record program.
 
 ### Dependency
 
-Follows PR11.14.
-
----
-
-## PR11.16: Nominal Type Aliases
-
-Add distinct nominal types that prevent accidental mixing.
-
-### Scope
-
-- `type user_id is new integer (0 to 1000000)` creates a distinct type
-  with the same representation as its parent but no implicit conversion.
-- `user_id` and `integer` are incompatible in assignment, comparison,
-  and parameter passing without an explicit conversion.
-- Explicit conversion: `user_id (42)` and `integer (my_id)`.
-- Nominal types inherit the parent's operations (arithmetic, comparison)
-  but the result type is the nominal type, not the parent.
-- Nominal types are value types with the same proof surface as their
-  parent — range checks, overflow, and indexing all work identically.
-
-### Proof impact
-
-Zero new proof model. The nominal type has the same range and operations
-as its parent. GNATprove proves the same VCs.
-
-### Dependency
-
-Follows PR11.15.
-
----
-
-## PR11.17: User-Defined Iteration Protocol
-
-Add a standard `iterable` interface so user-defined types can participate
-in `for item of x`.
-
-### Scope
-
-- Define a standard `iterable of T` interface with `has_next` and `next`
-  methods (or equivalent cursor-based protocol).
-- `for item of x` desugars to the protocol methods when `x` satisfies
-  `iterable of T`.
-- Built-in containers (`list`, `map`) already satisfy the protocol
-  through their existing iteration lowering.
-- User-defined types that implement the protocol gain `for ... of`
-  support automatically.
-
-### Proof impact
-
-Zero new proof model. The desugared loop body uses existing method calls
-and bounded iteration. GNATprove proves the concrete instantiation.
-
-### Dependency
-
-Follows PR11.16. Requires interfaces (PR11.11b) and generics (PR11.11c).
-
----
-
-## PR11.18: Nested Packages / Module Hierarchy
-
-Add nested package declarations for structural code organization.
-
-### Scope
-
-- `package outer; package inner; ... end inner; end outer` allows
-  hierarchical namespacing.
-- Nested packages can be `public` or private.
-- Name resolution follows lexical scoping: inner packages see outer
-  declarations; outer code accesses inner declarations via
-  `inner.name`.
-- Import via `with outer.inner` brings the nested package into scope.
-- No new runtime behavior — namespacing is a compile-time concern only.
-
-### Proof impact
-
-Zero. Name resolution only. GNATprove sees the same flat Ada packages
-after emission.
-
-### Dependency
-
-Follows PR11.17.
-
----
-
-## PR11.19: Async/Await via State-Machine Coroutines
-
-Add `async` functions and `await` expressions for structured concurrency
-within a single task.
-
-### Scope
-
-- `async function fetch_data returns result of string` declares an
-  async function that can suspend and resume.
-- `value = await fetch_data()` suspends the current coroutine until the
-  async function completes.
-- The compiler lowers async functions to state-machine enums with
-  explicit state transitions — no hidden stack allocation, no dynamic
-  task creation.
-- Coroutine frames are bounded and statically sized.
-- `await` is legal only inside `async` functions.
-- Async functions integrate with the `result` error model: an async
-  function returning `result of T` can use `try` to propagate failures
-  across `await` boundaries.
-
-### Proof impact
-
-The state machine is sequential code with explicit transitions.
-GNATprove proves each state transition as an ordinary function body.
-No new proof model — the emitted Ada is a `case` dispatch over an
-enum discriminant.
-
-### Dependency
-
-Follows PR11.18. Requires sum types (PR11.13) for the state-machine
-enum representation.
-
----
-
-## PR11.20: Bounded User-Managed Allocation Pools
-
-Add fixed-capacity allocation pools for domain-specific data structures
-that the built-in containers do not cover.
-
-### Scope
-
-- `type node_pool is pool of node capacity 256` declares a fixed-size
-  pool of pre-allocated nodes.
-- `allocate(pool)` returns `optional node` — `some` if capacity remains,
-  `none` if full.
-- `deallocate(pool, item)` returns the item to the pool.
-- Pool lifetime is scope-bounded: all outstanding allocations are
-  reclaimed when the pool goes out of scope.
-- No unbounded heap allocation. The pool capacity is a compile-time
-  constant.
-- Pools are value types at the pool level (the pool itself copies/moves
-  as a unit) but items allocated from a pool are references within that
-  pool's storage.
-
-### Proof impact
-
-Pool capacity is static. Allocation failure surfaces as `optional`,
-which is already proved. Deallocation is scope-bounded. GNATprove can
-prove that indexing into pool storage is within bounds and that the pool
-count stays within capacity.
-
-### Dependency
-
-Follows PR11.19.
-
----
-
-## PR11.21: Compile-Time Derive
-
-Add a `derive` directive that auto-generates interface implementations
-for record and sum types at compile time, replacing the need for runtime
-reflection.
-
-### Scope
-
-- `type sensor_reading is record derive printable, serializable`
-  instructs the compiler to generate implementations of the named
-  interfaces for the type.
-- The compiler reads the type's field list (names, types, order) at
-  compile time and emits concrete method bodies that satisfy each
-  derived interface.
-- Standard derivable interfaces in this milestone:
-  - `printable` — generates `to_string` that concatenates field names
-    and values
-  - `equatable` — generates `==` that compares fields structurally
-  - `serializable` — generates a field-visitor method that a
-    format-specific encoder can consume
-- `derive` works on records, discriminated records, and sum types
-  (PR11.13). It does not work on scalars, enums, or containers (which
-  already satisfy standard interfaces through builtins).
-- The `serializable` interface is format-agnostic: it exposes
-  field-by-field traversal (name, type tag, value) through a standard
-  visitor pattern. The actual encoding (protobuf, JSON, etc.) is a
-  library-level concern, not a compiler concern.
-- Derived implementations are ordinary generated functions that
-  GNATprove proves the same way it proves any other function. No
-  runtime type information, no dynamic field access.
-
-### Why this exists
-
-Without reflection, every type that needs serialization, printing, or
-equality must have hand-written implementations for each interface.
-`derive` eliminates that boilerplate while keeping the proof story
-intact — the compiler generates the code, not the programmer, and
-the generated code is proved.
-
-### Proof impact
-
-Zero new proof model. Derived method bodies are ordinary functions
-over known field types. GNATprove proves them identically to
-hand-written implementations.
-
-### Dependency
-
-Follows PR11.20. Requires interfaces (PR11.11b), generics (PR11.11c),
-and sum types (PR11.13).
-
----
-
+Follows PR11.13b. This is the checkpoint that closes the PR11.13
 # PR11.22: Codebase Hygiene
 
 Clean up accumulated technical debt, decompose oversized files, remove
