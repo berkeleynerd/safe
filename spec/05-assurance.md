@@ -197,7 +197,7 @@ and for concurrent tasks the relative ordering of printed lines is unspecified.
 
 ### 5.4.1 Data Race Freedom
 
-32. The channel-based tasking model guarantees data race freedom as a language property: no shared mutable state exists between tasks. All inter-task communication is through channels (Section 4, §4.5).
+32. The tasking model guarantees data race freedom as a language property: user-declared unprotected shared mutable state is excluded, and any admitted `shared` root is lowered to a compiler-generated protected wrapper with copy-based operations (Section 4, §4.5). Inter-task communication is therefore through channels plus the narrow `shared` subset admitted in `PR11.12a` through `PR11.12e`.
 
 33. The implementation shall verify this through task-variable ownership analysis (Section 4, §4.5): each package-level variable is accessed by at most one task.
 

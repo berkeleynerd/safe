@@ -504,6 +504,8 @@ def validate_safei_object_list(items: Any, path: str) -> list[dict[str, Any]]:
         entry = require_mapping(item, f"{path}[{index}]")
         require_string(entry.get("name"), f"{path}[{index}].name")
         validate_type_descriptor(entry.get("type"), f"{path}[{index}].type")
+        if "is_shared" in entry:
+            require_boolean(entry.get("is_shared"), f"{path}[{index}].is_shared")
         is_constant = entry.get("is_constant", False)
         if "is_constant" in entry:
             is_constant = require_boolean(entry.get("is_constant"), f"{path}[{index}].is_constant")

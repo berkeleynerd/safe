@@ -1,0 +1,23 @@
+with pr1112e_provider_shared_list;
+
+package pr1112e_imported_shared_list_build
+
+   snapshot : list of integer;
+   last : optional integer;
+
+   function unwrap (item : optional integer) returns integer
+      if item.present
+         return item.value;
+      else
+         return -1;
+
+   snapshot = pr1112e_provider_shared_list.values;
+   print (snapshot.length);
+
+   append (pr1112e_provider_shared_list.values, 3);
+   last = pr1112e_provider_shared_list.values.pop_last ();
+   print (unwrap (last));
+
+   pr1112e_provider_shared_list.values = [8, 9];
+   snapshot = pr1112e_provider_shared_list.values;
+   print (snapshot (2));

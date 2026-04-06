@@ -205,8 +205,8 @@ GNATprove session artifacts are not committed and are not part of the reproducib
 The Safe specification defines a concurrency model based on:
 
 - **Static tasks** with priority annotations (Section 4, D28).
-- **Channels** as the sole inter-task communication mechanism (Section 4, 4.2--4.3).
-- **No shared mutable state** between tasks (Section 4, 4.5; Section 5, 5.4.1).
+- **Channels** as the primary inter-task communication mechanism (Section 4, 4.2--4.3).
+- **No unprotected shared mutable state** between tasks, with only the compiler-generated `shared` wrapper subset admitted (Section 4, 4.5; Section 5, 5.4.1).
 - **No Ada tasking constructs** -- no `task type`, no `protected type`, no `entry`, no `accept`, no `select` (as user-declared constructs).
 
 The Safe spec references Ravenscar/Jorvik profile constraints as design precedent:

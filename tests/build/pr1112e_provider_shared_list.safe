@@ -1,0 +1,3 @@
+package pr1112e_provider_shared_list
+
+   public shared values : list of integer = [1, 2];

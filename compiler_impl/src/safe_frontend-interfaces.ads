@@ -11,6 +11,7 @@ package Safe_Frontend.Interfaces is
    type Imported_Object is record
       Name         : FT.UString := FT.To_UString ("");
       Type_Info    : GM.Type_Descriptor;
+      Is_Shared    : Boolean := False;
       Is_Constant  : Boolean := False;
       Static_Info  : CM.Static_Value;
       Span         : FT.Source_Span := FT.Null_Span;

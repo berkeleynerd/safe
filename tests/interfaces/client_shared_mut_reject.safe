@@ -1,0 +1,9 @@
+with provider_shared_list;
+
+package client_shared_mut_reject
+
+   function grow (items : mut list of integer)
+      append (items, 1);
+
+   function update
+      grow (provider_shared_list.values);

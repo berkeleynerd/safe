@@ -238,6 +238,7 @@ def parse_run_args(args: list[str]) -> argparse.Namespace | int:
 def build_source(source_arg: str, *, clean: bool, target_bits: int) -> tuple[dict[str, str], Path] | int:
     env = ensure_sdkroot(os.environ.copy())
     safec = safec_path()
+    safec_hash = sha256_file(safec)
     source = require_source_file(resolve_source_arg(source_arg))
 
     if clean:
@@ -247,6 +248,7 @@ def build_source(source_arg: str, *, clean: bool, target_bits: int) -> tuple[dic
     try:
         shared_paths, state, sources = ensure_project_emitted(
             safec=safec,
+            safec_hash=safec_hash,
             source=source,
             env=env,
             run_check=True,
@@ -268,7 +270,7 @@ def build_source(source_arg: str, *, clean: bool, target_bits: int) -> tuple[dic
         source=source,
         sources=sources,
         state=state,
-        safec_hash=sha256_file(safec),
+        safec_hash=safec_hash,
         main_text=main_text,
         project_text=project_text,
         shared_paths=shared_paths,
