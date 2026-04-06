@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "3daa9a3298d0dd88ec690a45654e1bef95f1e967606a8bc329994ede68e2533e",
+  "compiler_hash": "306eb91a9cc8b006a44301308c80c4d14cdaa8cfbbbe401a9324a937f1d3e4a7",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -160,8 +160,44 @@
       "pr1113a_sum_build.ads": "de361f3f6d3f7a269c1ab6c8241708ef83e13e38de59804ad9ab13fb22304878"
     },
     "tests/build/pr1113b_sum_match_build.safe": {
-      "pr1113b_sum_match_build.adb": "5511c4d8d91d7fb0ef8e6067c9877474d797a0b817c6a71ecd77e543cdb094fb",
+      "pr1113b_sum_match_build.adb": "634e4840f5baee08c5ee89bb5b41c0a60776c817896c50e74a7a1386b0dd89ae",
       "pr1113b_sum_match_build.ads": "7fb5cb5980c6a40d54d5f43aaa75aa1a0edcca2533f7f84ebf73ee09e70d97b5"
+    },
+    "tests/build/pr1113c_imported_overlap_build.safe": {
+      "pr1113c_imported_overlap_build.adb": "95a1a9e53b95f29986ca8862be867793a4a3e9ed187e2c392cc715243ab90a85",
+      "pr1113c_imported_overlap_build.ads": "0d74d3b7685775902e54b86880ee2b2934210d51dc67d3aa7b3dd8e5edd22e0d",
+      "pr1113c_provider_device.adb": "4204c9bc8f1e31e9e2142c9e2c024fb33769ad21e12fd1cfe9fb49e4c297d012",
+      "pr1113c_provider_device.ads": "c92ffeceeac7cf40eab844e685d1eb636b3207df6e62ea5b88b4c5b44bee558e",
+      "pr1113c_provider_job.adb": "9457bf82119bfead2d8326d37c0c9ce2dab8257e111e41e1f6b3b81fdc58b60c",
+      "pr1113c_provider_job.ads": "71136176ce823186cd5d6bbe4d5d14122792bee7d532d67fe12fbc7bc8e73f00"
+    },
+    "tests/build/pr1113c_imported_string_sum_build.safe": {
+      "pr1113c_imported_string_sum_build.adb": "c9ea86d9a0c1ac0eb285fe4f9741db078390c47800a7722420513ace3a8ff4e0",
+      "pr1113c_imported_string_sum_build.ads": "85cc441580f9e020ea0a3b9e2af151a3c3d90db9f3c0feaf7e4cdff7fff69c7a",
+      "pr1113c_provider_message.adb": "97e27fcff307bf6d73d143b1f8220eab4a9ee2f33491903a2df5d0508e8d1e32",
+      "pr1113c_provider_message.ads": "1ebea64e3d925b90b25e3202b0837a55f1acc83ff29e7a80a0caaa442176b712"
+    },
+    "tests/build/pr1113c_imported_sum_build.safe": {
+      "pr1113c_imported_sum_build.adb": "464a414dff197d52109afb84435a81b9b868920f99616ffd3a81cfd31f14fdb9",
+      "pr1113c_imported_sum_build.ads": "71f61226bff73e5327af5425d0efee8f1ff3f05c75399358f04ead83bcd1a173",
+      "pr1113c_provider_shape.adb": "99eabfaeff7ea42000d3b9d535f9718a6b6abaa95dbf5105d371d7ab5116a82e",
+      "pr1113c_provider_shape.ads": "45ca4a11f30e157b2fc8037e0fe23e13d31a3b6bb5d1da61c8fd933be8d37b1d"
+    },
+    "tests/build/pr1113c_provider_device.safe": {
+      "pr1113c_provider_device.adb": "4204c9bc8f1e31e9e2142c9e2c024fb33769ad21e12fd1cfe9fb49e4c297d012",
+      "pr1113c_provider_device.ads": "c92ffeceeac7cf40eab844e685d1eb636b3207df6e62ea5b88b4c5b44bee558e"
+    },
+    "tests/build/pr1113c_provider_job.safe": {
+      "pr1113c_provider_job.adb": "9457bf82119bfead2d8326d37c0c9ce2dab8257e111e41e1f6b3b81fdc58b60c",
+      "pr1113c_provider_job.ads": "71136176ce823186cd5d6bbe4d5d14122792bee7d532d67fe12fbc7bc8e73f00"
+    },
+    "tests/build/pr1113c_provider_message.safe": {
+      "pr1113c_provider_message.adb": "97e27fcff307bf6d73d143b1f8220eab4a9ee2f33491903a2df5d0508e8d1e32",
+      "pr1113c_provider_message.ads": "1ebea64e3d925b90b25e3202b0837a55f1acc83ff29e7a80a0caaa442176b712"
+    },
+    "tests/build/pr1113c_provider_shape.safe": {
+      "pr1113c_provider_shape.adb": "99eabfaeff7ea42000d3b9d535f9718a6b6abaa95dbf5105d371d7ab5116a82e",
+      "pr1113c_provider_shape.ads": "45ca4a11f30e157b2fc8037e0fe23e13d31a3b6bb5d1da61c8fd933be8d37b1d"
     },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",
@@ -533,7 +569,7 @@
       "pr1113a_sum_construction.ads": "71596077c7680d120c1288216ccf3e68ff8f43517e43308ed528e906bddfad98"
     },
     "tests/positive/pr1113b_sum_match.safe": {
-      "pr1113b_sum_match.adb": "6ff31168755817c8e66bb5a2a6c312791bde35229501307762de24f0c5da0a24",
+      "pr1113b_sum_match.adb": "7628d20eae1f7cbe4a792b7b23ed22dcb7f0032e647c29f2a5eac097f08a0f98",
       "pr1113b_sum_match.ads": "425f9f11fff9440081c6afbb4f145e3eae06263151f4d952c4170e250ebe5e1e"
     },
     "tests/positive/pr112_case_scrutinee_once.safe": {
