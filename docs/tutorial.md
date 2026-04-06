@@ -95,8 +95,12 @@ full language, but it now handles local imported roots incrementally:
 - roots with leading `with` clauses build and run when their sibling dependency
   sources are present in the same directory
 - shared incremental state lives under `PROJECT/.safe-build/`
+- `safe build` and `safe run` now reuse the cached root-proof path by default
+  for the current repo-local wrapper flow; `--no-prove` skips it and
+  `--level 1|2` selects proof depth
 - the model is still `safe build <root.safe>`, not workspace-mode discovery
-- `safe prove` reuses the same cache and imported-root dependency closure
+- `safe prove` reuses the same cache and imported-root dependency closure, with
+  level 2 remaining the default audit depth
 
 ### 3.0 Fallible Values: `(result, T)`, `try`, and `match`
 

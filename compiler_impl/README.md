@@ -70,10 +70,10 @@ The current repo-local compiler commands are:
 
 The repo also keeps a small wrapper CLI at `../scripts/safe_cli.py`:
 
-- `python3 ../scripts/safe_cli.py build [--clean] [--target-bits 32|64] <file.safe>`
-- `python3 ../scripts/safe_cli.py deploy --board stm32f4-discovery [--simulate] <file.safe>`
-- `python3 ../scripts/safe_cli.py run [--target-bits 32|64] <file.safe>`
-- `python3 ../scripts/safe_cli.py prove [--target-bits 32|64] [file.safe]`
+- `python3 ../scripts/safe_cli.py build [--clean] [--clean-proofs] [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>`
+- `python3 ../scripts/safe_cli.py deploy [--target stm32f4] --board stm32f4-discovery [--simulate] <file.safe>`
+- `python3 ../scripts/safe_cli.py run [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>`
+- `python3 ../scripts/safe_cli.py prove [--verbose] [--level 1|2] [--target-bits 32|64] [file.safe]`
 - `python3 ../scripts/safe_cli.py check ...`
 - `python3 ../scripts/safe_cli.py emit ...`
 
@@ -86,6 +86,9 @@ this branch. They support:
 - a shared per-directory incremental cache under `PROJECT/.safe-build/`
   partitioned by `target-32` / `target-64` for both `safe build`/`safe run`
   and `safe prove`
+- proof-on-build for the current repo-local wrapper flow:
+  `safe build` and `safe run` run the cached root proof step by default,
+  `--no-prove` skips it, and `--level` selects GNATprove depth
 
 The current model is still root-file based, not workspace mode. `safe deploy`
 remains narrower: it is currently limited to `stm32f4-discovery`, and roots
@@ -105,11 +108,11 @@ contract is documented in [`../docs/artifact_contract.md`](../docs/artifact_cont
 - `<stem>.ast.json`
   The parser AST, shaped to [`../compiler/ast_schema.json`](../compiler/ast_schema.json).
 - `<stem>.typed.json`
-  The typed frontend snapshot (`typed-v5`).
+  The typed frontend snapshot (`typed-v6`).
 - `<stem>.mir.json`
   The lowered MIR document (`mir-v4`).
 - `<stem>.safei.json`
-  The dependency interface contract (`safei-v4`).
+  The dependency interface contract (`safei-v5`).
 
 When `--ada-out-dir <dir>` is provided, `safec emit` also writes emitted
 Ada/SPARK artifacts:
@@ -191,7 +194,7 @@ run the unit.
 
 - Python remains repo glue and orchestration only. The compiler itself is the
   Ada-native `safec` binary.
-- Cross-unit resolution uses emitted `safei-v4` interfaces plus
+- Cross-unit resolution uses emitted `safei-v5` interfaces plus
   `--interface-search-dir`.
 - [`../docs/emitted_output_verification_matrix.md`](../docs/emitted_output_verification_matrix.md)
   is the current statement of what is compile-only versus `flow` / `prove`
