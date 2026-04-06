@@ -696,6 +696,21 @@ BUILD_SUCCESS_CASES = [
         True,
     ),
     (
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_receive.safe",
+        "7\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_delay_timeout.safe",
+        "9\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "interfaces" / "pr119a_select_zero_delay_ready.safe",
+        "4\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
         "ok\n",
         False,
