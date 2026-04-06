@@ -97,7 +97,7 @@ full language, but it now handles local imported roots incrementally:
 - shared incremental state lives under `PROJECT/.safe-build/`
 - `safe build` and `safe run` now reuse the cached root-proof path by default
   for the current repo-local wrapper flow; `--no-prove` skips it and
-  `--level 1|2` selects proof depth
+  `--level 1|2` selects proof depth, with level 1 as the default
 - the model is still `safe build <root.safe>`, not workspace-mode discovery
 - `safe prove` reuses the same cache and imported-root dependency closure, with
   level 2 remaining the default audit depth

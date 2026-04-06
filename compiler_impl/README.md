@@ -70,10 +70,10 @@ The current repo-local compiler commands are:
 
 The repo also keeps a small wrapper CLI at `../scripts/safe_cli.py`:
 
-- `python3 ../scripts/safe_cli.py build [--clean] [--clean-proofs] [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>`
+- `python3 ../scripts/safe_cli.py build [--clean] [--clean-proofs] [--no-prove] [--level 1|2 (default: 1)] [--target-bits 32|64] <file.safe>`
 - `python3 ../scripts/safe_cli.py deploy [--target stm32f4] --board stm32f4-discovery [--simulate] <file.safe>`
-- `python3 ../scripts/safe_cli.py run [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>`
-- `python3 ../scripts/safe_cli.py prove [--verbose] [--level 1|2] [--target-bits 32|64] [file.safe]`
+- `python3 ../scripts/safe_cli.py run [--no-prove] [--level 1|2 (default: 1)] [--target-bits 32|64] <file.safe>`
+- `python3 ../scripts/safe_cli.py prove [--verbose] [--level 1|2 (default: 2)] [--target-bits 32|64] [file.safe]`
 - `python3 ../scripts/safe_cli.py check ...`
 - `python3 ../scripts/safe_cli.py emit ...`
 

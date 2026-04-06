@@ -35,7 +35,8 @@ All three commands accept `--target-bits 32|64` and partition their shared
 `.safe-build/` cache by target width.
 `safe build` and `safe run` also accept `--no-prove`; `safe build` adds
 `--clean-proofs`; and both `safe build` / `safe run` plus `safe prove` accept
-`--level 1|2`.
+`--level 1|2` (`safe build` and `safe run` default to level 1; `safe prove`
+defaults to level 2).
 `safe build`, `safe run`, and `safe prove` now all accept local imported roots
 with leading `with` clauses when the sibling dependency sources are present.
 They share a per-directory `.safe-build/` cache, but the model is still

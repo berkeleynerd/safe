@@ -45,9 +45,9 @@ python3 scripts/snapshot_emitted_ada.py --check
 ## Guidance
 
 - The repo-local wrapper CLI in `scripts/safe_cli.py` supports:
-  - `safe build [--clean] [--clean-proofs] [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>`
-  - `safe run [--no-prove] [--level 1|2] [--target-bits 32|64] <file.safe>`
-  - `safe prove [--verbose] [--level 1|2] [--target-bits 32|64] [file.safe]`
+  - `safe build [--clean] [--clean-proofs] [--no-prove] [--level 1|2 (default: 1)] [--target-bits 32|64] <file.safe>`
+  - `safe run [--no-prove] [--level 1|2 (default: 1)] [--target-bits 32|64] <file.safe>`
+  - `safe prove [--verbose] [--level 1|2 (default: 2)] [--target-bits 32|64] [file.safe]`
   - `safe deploy [--target stm32f4] --board stm32f4-discovery [--simulate] <file.safe>`
 - `safe build`, `safe run`, and `safe prove` share the per-project
   incremental cache under `.safe-build/`.
