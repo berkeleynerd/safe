@@ -87,6 +87,30 @@ package body Safe_Frontend.Check_Resolve is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
 
+   type Sum_Constructor_Field_Info is record
+      Name      : FT.UString := FT.To_UString ("");
+      Type_Name : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Sum_Constructor_Field_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Sum_Constructor_Field_Info);
+
+   type Sum_Constructor_Info is record
+      Name             : FT.UString := FT.To_UString ("");
+      Sum_Type_Name    : FT.UString := FT.To_UString ("");
+      Tag_Type_Name    : FT.UString := FT.To_UString ("");
+      Tag_Literal_Name : FT.UString := FT.To_UString ("");
+      Fields           : Sum_Constructor_Field_Vectors.Vector;
+      Span             : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Sum_Constructor_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Sum_Constructor_Info,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
    function Equal_Static_Value
      (Left, Right : CM.Static_Value) return Boolean is
    begin
@@ -200,6 +224,9 @@ package body Safe_Frontend.Check_Resolve is
    Current_Generic_Specialization_By_Key : String_Maps.Map;
    Current_Synthetic_Functions : Function_Maps.Map;
    Current_Generic_Function_Env : Function_Maps.Map;
+   Current_Sum_Constructors : Sum_Constructor_Maps.Map;
+   Current_Sum_Tag_Types : Type_Maps.Map;
+   Current_Sum_Type_Tag_Names : String_Maps.Map;
 
    function UString_Value (Value : FT.UString) return String is
    begin
@@ -288,6 +315,8 @@ package body Safe_Frontend.Check_Resolve is
    function Type_Decl_Kind_Label (Kind : CM.Type_Decl_Kind) return String is
    begin
       case Kind is
+         when CM.Type_Decl_Sum =>
+            return "sum";
          when CM.Type_Decl_Record =>
             return "record";
          when CM.Type_Decl_Interface =>
@@ -1037,7 +1066,27 @@ package body Safe_Frontend.Check_Resolve is
 
    function Hidden_Reference_Target_Name (Name : String) return String;
 
+   function Sum_Tag_Type_Name (Sum_Name : String) return String;
+
+   function Sum_Tag_Literal_Name
+     (Sum_Name     : String;
+      Variant_Name : String) return String;
+
+   function Has_Sum_Constructor (Name : String) return Boolean;
+
+   function Get_Sum_Constructor (Name : String) return Sum_Constructor_Info;
+
+   function Sum_Discriminant_Name (Sum_Name : String) return String;
+
+   function Sum_Variant_Field_Name
+     (Variant_Name : String;
+      Field_Name   : String) return String;
+
    function Is_Discrete_Case_Type
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean;
+
+   function Is_Sum_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean;
 
@@ -1357,7 +1406,7 @@ package body Safe_Frontend.Check_Resolve is
 
    function Is_Optional_Type
      (Info     : GM.Type_Descriptor;
-      Type_Env : Type_Maps.Map) return Boolean
+     Type_Env : Type_Maps.Map) return Boolean
    is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
       Name : constant String := FT.Lowercase (UString_Value (Base.Name));
@@ -1381,9 +1430,18 @@ package body Safe_Frontend.Check_Resolve is
       end;
    end Is_Optional_Type;
 
-   function Is_Plain_Record_Type
+   function Is_Sum_Type
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
+   begin
+      return Current_Sum_Type_Tag_Names.Contains (Canonical_Name (UString_Value (Base.Name)));
+   end Is_Sum_Type;
+
+   function Is_Plain_Record_Type
+     (Info     : GM.Type_Descriptor;
+     Type_Env : Type_Maps.Map) return Boolean
    is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
    begin
@@ -2648,6 +2706,41 @@ package body Safe_Frontend.Check_Resolve is
       Result.Fields.Append (Field);
       return Result;
    end Build_Optional_Some_Expr;
+
+   function Build_Sum_Constructor_Expr
+     (Constructor : Sum_Constructor_Info;
+      Args        : CM.Expr_Access_Vectors.Vector;
+      Span        : FT.Source_Span) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access := new CM.Expr_Node;
+      Field  : CM.Aggregate_Field;
+      Tag_Expr : constant CM.Expr_Access := new CM.Expr_Node'
+        (Kind      => CM.Expr_Enum_Literal,
+         Span      => Span,
+         Type_Name => Constructor.Tag_Type_Name,
+         Name      => Constructor.Tag_Literal_Name,
+         others    => <>);
+   begin
+      Result.Kind := CM.Expr_Aggregate;
+      Result.Span := Span;
+      Result.Type_Name := Constructor.Sum_Type_Name;
+
+      Field.Field_Name := FT.To_UString (Sum_Discriminant_Name (UString_Value (Constructor.Sum_Type_Name)));
+      Field.Expr := Tag_Expr;
+      Field.Span := Span;
+      Result.Fields.Append (Field);
+
+      if not Constructor.Fields.Is_Empty then
+         for Index in Constructor.Fields.First_Index .. Constructor.Fields.Last_Index loop
+            Field.Field_Name := Constructor.Fields (Index).Name;
+            Field.Expr := Args (Index);
+            Field.Span := (if Args (Index) = null then Span else Args (Index).Span);
+            Result.Fields.Append (Field);
+         end loop;
+      end if;
+
+      return Result;
+   end Build_Sum_Constructor_Expr;
 
    function Hidden_Reference_Target_Name (Name : String) return String is
    begin
@@ -3957,6 +4050,51 @@ package body Safe_Frontend.Check_Resolve is
       end;
    end Sanitize_Type_Name_Component;
 
+   function Sum_Tag_Type_Name (Sum_Name : String) return String is
+   begin
+      return "__sum_tag_" & Sanitize_Type_Name_Component (Canonical_Name (Sum_Name));
+   end Sum_Tag_Type_Name;
+
+   function Sum_Tag_Literal_Name
+     (Sum_Name     : String;
+      Variant_Name : String) return String
+   is
+   begin
+      return
+        "__sum_variant_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Sum_Name))
+        & "_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Variant_Name));
+   end Sum_Tag_Literal_Name;
+
+   function Has_Sum_Constructor (Name : String) return Boolean is
+   begin
+      return Current_Sum_Constructors.Contains (Canonical_Name (Name));
+   end Has_Sum_Constructor;
+
+   function Get_Sum_Constructor (Name : String) return Sum_Constructor_Info is
+   begin
+      return Current_Sum_Constructors.Element (Canonical_Name (Name));
+   end Get_Sum_Constructor;
+
+   function Sum_Discriminant_Name (Sum_Name : String) return String is
+      pragma Unreferenced (Sum_Name);
+   begin
+      return "__sum_tag";
+   end Sum_Discriminant_Name;
+
+   function Sum_Variant_Field_Name
+     (Variant_Name : String;
+      Field_Name   : String) return String
+   is
+   begin
+      return
+        "__sum_field_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Variant_Name))
+        & "_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
+   end Sum_Variant_Field_Name;
+
    function Tuple_Type_Name
      (Element_Types : FT.UString_Vectors.Vector) return FT.UString
    is
@@ -4646,7 +4784,14 @@ package body Safe_Frontend.Check_Resolve is
                return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             Name := Expr.Name;
-            if Has_Type (Var_Types, UString_Value (Name)) then
+            if Has_Sum_Constructor (UString_Value (Name)) then
+               return
+                 Resolve_Type
+                   (UString_Value (Get_Sum_Constructor (UString_Value (Name)).Sum_Type_Name),
+                    Type_Env,
+                    "",
+                    FT.Null_Span);
+            elsif Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
             elsif Has_Function (Functions, UString_Value (Name)) then
                declare
@@ -4768,7 +4913,14 @@ package body Safe_Frontend.Check_Resolve is
                return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             Name := FT.To_UString (Flatten_Name (Expr.Callee));
-            if Has_Function (Functions, UString_Value (Name)) then
+            if Has_Sum_Constructor (UString_Value (Name)) then
+               return
+                 Resolve_Type
+                   (UString_Value (Get_Sum_Constructor (UString_Value (Name)).Sum_Type_Name),
+                    Type_Env,
+                    "",
+                    FT.Null_Span);
+            elsif Has_Function (Functions, UString_Value (Name)) then
                declare
                   Info : constant Function_Info := Get_Function (Functions, UString_Value (Name));
                begin
@@ -5915,6 +6067,12 @@ package body Safe_Frontend.Check_Resolve is
                      Message =>
                        "generic function `" & UString_Value (Callee_Name)
                        & "` requires explicit type arguments in PR11.11c"));
+            elsif Expr.Callee.Generic_Args.Is_Empty
+              and then Has_Sum_Constructor (UString_Value (Callee_Name))
+            then
+               Result.Kind := CM.Expr_Call;
+               Result.Callee := Expr.Callee;
+               Result.Args := Expr.Args;
             elsif Has_Type (Var_Types, UString_Value (Callee_Name))
               and then
                 (UString_Value
@@ -5957,6 +6115,19 @@ package body Safe_Frontend.Check_Resolve is
                Result.Args := Expr.Args;
             end if;
          else
+            if Expr.Callee /= null
+              and then Expr.Callee.Kind = CM.Expr_Select
+            then
+               Prefix_Type := Expr_Type (Expr.Callee.Prefix, Var_Types, Functions, Type_Env);
+               if Is_Sum_Type (Prefix_Type, Type_Env) then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Expr.Callee.Span,
+                        Message =>
+                          "sum variant inspection and payload access are deferred to PR11.13b `match`"));
+               end if;
+            end if;
             if Expr.Callee /= null
               and then Expr.Callee.Kind = CM.Expr_Select
               and then
@@ -6060,6 +6231,12 @@ package body Safe_Frontend.Check_Resolve is
            & " snapshot the shared value first for indexing, iteration,"
            & " slicing, or other method calls";
       end Shared_Container_Snapshot_Message;
+
+      function Sum_Inspection_Message return String is
+      begin
+         return
+           "sum variant inspection and payload access are deferred to PR11.13b `match`";
+      end Sum_Inspection_Message;
 
       function Is_Admitted_Shared_Container_Method_Name (Name : String) return Boolean is
       begin
@@ -6223,6 +6400,16 @@ package body Safe_Frontend.Check_Resolve is
                if Expr.Callee /= null
                  and then Expr.Callee.Kind = CM.Expr_Select
                then
+                  if Is_Sum_Type
+                    (Expr_Type (Expr.Callee.Prefix, Var_Types, Functions, Type_Env),
+                     Type_Env)
+                  then
+                     Raise_Diag
+                       (CM.Unsupported_Source_Construct
+                          (Path    => Path,
+                           Span    => Expr.Callee.Span,
+                           Message => Sum_Inspection_Message));
+                  end if;
                   if Try_Shared_Root_Expr
                     (Expr.Callee.Prefix,
                      Shared)
@@ -6264,176 +6451,281 @@ package body Safe_Frontend.Check_Resolve is
                        (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
                   end loop;
                elsif Resolved.Kind = CM.Expr_Call then
-                  Result := new CM.Expr_Node'(Resolved.all);
-                  Result.Callee :=
-                    Normalize_Expr (Resolved.Callee, Var_Types, Functions, Type_Env, Const_Env, Path);
-                  Result.Args.Clear;
-                  for Item of Resolved.Args loop
-                     Result.Args.Append
-                       (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
-                  end loop;
                   declare
-                     Shared_Rewrite : constant CM.Expr_Access :=
-                       Rewrite_Shared_Container_Expr_Call (Resolved);
+                     Callee_Name : constant String := Flatten_Name (Resolved.Callee);
                   begin
-                     if Shared_Rewrite /= null then
-                        return Shared_Rewrite;
-                     end if;
-                  end;
-                  Validate_Mut_Call_Arguments (Result, Functions, Path);
-                  if Is_Pop_Last_Builtin_Call (Result, Var_Types, Functions, Type_Env) then
-                     if Natural (Result.Args.Length) /= 1 then
-                        Raise_Diag
-                          (CM.Source_Frontend_Error
-                             (Path    => Path,
-                              Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
-                              Message => "`pop_last(items)` expects exactly one argument"));
-                     elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
-                        Raise_Diag
-                          (CM.Source_Frontend_Error
-                             (Path    => Path,
-                              Span    => Result.Args (Result.Args.First_Index).Span,
-                              Message => "`pop_last` first argument must be a writable list name"));
-                     else
+                     if Has_Sum_Constructor (Callee_Name) then
                         declare
-                           List_Type : constant GM.Type_Descriptor :=
-                             Expr_Type
-                               (Result.Args (Result.Args.First_Index),
-                                Var_Types,
-                                Functions,
-                                Type_Env);
-                           Element_Type : GM.Type_Descriptor;
+                           Constructor : constant Sum_Constructor_Info :=
+                             Get_Sum_Constructor (Callee_Name);
+                           Constructor_Args : CM.Expr_Access_Vectors.Vector;
+                           Normalized_Arg : CM.Expr_Access;
+                           Expected_Type : GM.Type_Descriptor;
+                           Expected_Count : constant Natural :=
+                             Natural (Constructor.Fields.Length);
+                           Actual_Count : constant Natural :=
+                             Natural (Resolved.Args.Length);
                         begin
-                           if not Is_Growable_Array_Type (List_Type, Type_Env) then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Result.Args (Result.Args.First_Index).Span,
-                                    Message => "`pop_last` expects a `mut list of T` first argument"));
-                           end if;
-                           Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
-                           if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                           if Expected_Count = 0 and then Actual_Count = 0 then
                               Raise_Diag
                                 (CM.Unsupported_Source_Construct
                                    (Path    => Path,
-                                    Span    => Result.Args (Result.Args.First_Index).Span,
+                                    Span    => (if Resolved.Has_Call_Span then Resolved.Call_Span else Resolved.Span),
                                     Message =>
-                                      "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                                      "zero-payload sum variants use the bare variant name in PR11.13a"));
                            end if;
-                           Result.Type_Name :=
-                             Make_Optional_Type (Element_Type, Type_Env).Name;
-                        end;
-                     end if;
-                  elsif Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                    or else Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                    or else Is_Remove_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                  then
-                     declare
-                        Builtin_Name : constant String :=
-                          (if Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                           then "contains"
-                           elsif Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                           then "get"
-                           else "remove");
-                     begin
-                        if Natural (Result.Args.Length) /= 2 then
-                           Raise_Diag
-                             (CM.Source_Frontend_Error
-                                (Path    => Path,
-                                 Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
-                                 Message => "`" & Builtin_Name & "(m, key)` expects exactly two arguments"));
-                        end if;
 
+                           if Actual_Count /= Expected_Count then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => (if Resolved.Has_Call_Span then Resolved.Call_Span else Resolved.Span),
+                                    Message =>
+                                      "sum variant constructor `"
+                                      & Callee_Name
+                                      & "` expects "
+                                      & Ada.Strings.Fixed.Trim
+                                          (Natural'Image (Expected_Count),
+                                           Ada.Strings.Both)
+                                      & " argument"
+                                      & (if Expected_Count = 1 then "" else "s")));
+                           end if;
+
+                           if not Constructor.Fields.Is_Empty then
+                              for Index in Constructor.Fields.First_Index .. Constructor.Fields.Last_Index loop
+                                 Expected_Type :=
+                                   Resolve_Type
+                                     (UString_Value (Constructor.Fields (Index).Type_Name),
+                                      Type_Env,
+                                      Path,
+                                      Resolved.Args
+                                        (Resolved.Args.First_Index
+                                         + (Index - Constructor.Fields.First_Index)).Span);
+                                 Normalized_Arg :=
+                                   Normalize_Expr
+                                     (Resolved.Args
+                                        (Resolved.Args.First_Index
+                                         + (Index - Constructor.Fields.First_Index)),
+                                      Var_Types,
+                                      Functions,
+                                      Type_Env,
+                                      Const_Env,
+                                      Path);
+                                 Normalized_Arg :=
+                                   Contextualize_Expr_To_Target_Type
+                                     (Normalized_Arg,
+                                      Expected_Type,
+                                      Var_Types,
+                                      Functions,
+                                      Type_Env,
+                                      Path);
+                                 Stamp_Contextual_String_Literal
+                                   (Normalized_Arg,
+                                    Expected_Type,
+                                    Type_Env);
+                                 Reject_Uncontextualized_None (Normalized_Arg, Path);
+                                 if not Compatible_Source_Expr_To_Target_Type
+                                   (Normalized_Arg,
+                                    Expr_Type (Normalized_Arg, Var_Types, Functions, Type_Env),
+                                    Expected_Type,
+                                    Var_Types,
+                                    Functions,
+                                    Type_Env,
+                                    Const_Env,
+                                    Exact_Length_Maps.Empty_Map)
+                                 then
+                                    Raise_Diag
+                                      (CM.Source_Frontend_Error
+                                         (Path    => Path,
+                                          Span    => Normalized_Arg.Span,
+                                          Message =>
+                                            "sum variant constructor `"
+                                            & Callee_Name
+                                            & "` argument does not match the payload type"));
+                                 end if;
+                                 Constructor_Args.Append (Normalized_Arg);
+                              end loop;
+                           end if;
+
+                           Result :=
+                             Build_Sum_Constructor_Expr
+                               (Constructor,
+                                Constructor_Args,
+                                Resolved.Span);
+                        end;
+                     else
+                        Result := new CM.Expr_Node'(Resolved.all);
+                        Result.Callee :=
+                          Normalize_Expr (Resolved.Callee, Var_Types, Functions, Type_Env, Const_Env, Path);
+                        Result.Args.Clear;
+                        for Item of Resolved.Args loop
+                           Result.Args.Append
+                             (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
+                        end loop;
                         declare
-                           Map_Expr    : constant CM.Expr_Access :=
-                             Result.Args (Result.Args.First_Index);
-                           Key_Expr    : CM.Expr_Access :=
-                             Result.Args (Result.Args.First_Index + 1);
-                           Map_Type    : constant GM.Type_Descriptor :=
-                             Expr_Type (Map_Expr, Var_Types, Functions, Type_Env);
-                           Key_Type    : GM.Type_Descriptor;
-                           Value_Type  : GM.Type_Descriptor;
+                           Shared_Rewrite : constant CM.Expr_Access :=
+                             Rewrite_Shared_Container_Expr_Call (Resolved);
                         begin
-                           if Builtin_Name = "remove"
-                             and then not Is_Assignable_Target (Map_Expr)
-                           then
+                           if Shared_Rewrite /= null then
+                              return Shared_Rewrite;
+                           end if;
+                        end;
+                        Validate_Mut_Call_Arguments (Result, Functions, Path);
+                        if Is_Pop_Last_Builtin_Call (Result, Var_Types, Functions, Type_Env) then
+                           if Natural (Result.Args.Length) /= 1 then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
                                    (Path    => Path,
-                                    Span    => Map_Expr.Span,
-                                    Message => "`remove` first argument must be a writable map name"));
-                           elsif not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                                    Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
+                                    Message => "`pop_last(items)` expects exactly one argument"));
+                           elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
                                    (Path    => Path,
-                                    Span    => Map_Expr.Span,
-                                    Message => "`" & Builtin_Name & "` expects a `map of (K, V)` first argument"));
-                           elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
-                              Raise_Diag
-                                (CM.Unsupported_Source_Construct
-                                   (Path    => Path,
-                                    Span    => Map_Expr.Span,
-                                    Message =>
-                                      "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
-                           elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
-                              Raise_Diag
-                                (CM.Unsupported_Source_Construct
-                                   (Path    => Path,
-                                    Span    => Map_Expr.Span,
-                                    Message =>
-                                      "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+                                    Span    => Result.Args (Result.Args.First_Index).Span,
+                                    Message => "`pop_last` first argument must be a writable list name"));
                            else
-                              Key_Expr :=
-                                Contextualize_Expr_To_Target_Type
-                                  (Key_Expr,
-                                   Key_Type,
-                                   Var_Types,
-                                   Functions,
-                                   Type_Env,
-                                   Path);
-                              Reject_Uncontextualized_None (Key_Expr, Path);
-                              if not Compatible_Source_Expr_To_Target_Type
-                                (Key_Expr,
-                                 Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
-                                 Key_Type,
-                                 Var_Types,
-                                 Functions,
-                                 Type_Env,
-                                 Const_Env,
-                                 Exact_Length_Maps.Empty_Map)
-                              then
+                              declare
+                                 List_Type : constant GM.Type_Descriptor :=
+                                   Expr_Type
+                                     (Result.Args (Result.Args.First_Index),
+                                      Var_Types,
+                                      Functions,
+                                      Type_Env);
+                                 Element_Type : GM.Type_Descriptor;
+                              begin
+                                 if not Is_Growable_Array_Type (List_Type, Type_Env) then
+                                    Raise_Diag
+                                      (CM.Source_Frontend_Error
+                                         (Path    => Path,
+                                          Span    => Result.Args (Result.Args.First_Index).Span,
+                                          Message => "`pop_last` expects a `mut list of T` first argument"));
+                                 end if;
+                                 Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
+                                 if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                                    Raise_Diag
+                                      (CM.Unsupported_Source_Construct
+                                         (Path    => Path,
+                                          Span    => Result.Args (Result.Args.First_Index).Span,
+                                          Message =>
+                                            "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                                 end if;
+                                 Result.Type_Name :=
+                                   Make_Optional_Type (Element_Type, Type_Env).Name;
+                              end;
+                           end if;
+                        elsif Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                          or else Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                          or else Is_Remove_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                        then
+                           declare
+                              Builtin_Name : constant String :=
+                                (if Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                                 then "contains"
+                                 elsif Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
+                                 then "get"
+                                 else "remove");
+                           begin
+                              if Natural (Result.Args.Length) /= 2 then
                                  Raise_Diag
                                    (CM.Source_Frontend_Error
                                       (Path    => Path,
-                                       Span    => Key_Expr.Span,
-                                       Message => "`" & Builtin_Name & "` key type does not match the map key type"));
+                                       Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
+                                       Message => "`" & Builtin_Name & "(m, key)` expects exactly two arguments"));
                               end if;
-                              Result.Args.Replace_Element (Result.Args.First_Index + 1, Key_Expr);
-                              if Builtin_Name = "contains" then
-                                 Result.Type_Name := FT.To_UString ("boolean");
-                              else
-                                 Result.Type_Name := Make_Optional_Type (Value_Type, Type_Env).Name;
-                              end if;
-                           end if;
-                        end;
-                     end;
-                  end if;
-                  Result :=
-                    Specialize_Generic_Call
-                      (Result,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Const_Env,
-                       Path);
-                  Result :=
-                    Specialize_Interface_Call
-                      (Result,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Const_Env,
-                       Path);
+
+                              declare
+                                 Map_Expr    : constant CM.Expr_Access :=
+                                   Result.Args (Result.Args.First_Index);
+                                 Key_Expr    : CM.Expr_Access :=
+                                   Result.Args (Result.Args.First_Index + 1);
+                                 Map_Type    : constant GM.Type_Descriptor :=
+                                   Expr_Type (Map_Expr, Var_Types, Functions, Type_Env);
+                                 Key_Type    : GM.Type_Descriptor;
+                                 Value_Type  : GM.Type_Descriptor;
+                              begin
+                                 if Builtin_Name = "remove"
+                                   and then not Is_Assignable_Target (Map_Expr)
+                                 then
+                                    Raise_Diag
+                                      (CM.Source_Frontend_Error
+                                         (Path    => Path,
+                                          Span    => Map_Expr.Span,
+                                          Message => "`remove` first argument must be a writable map name"));
+                                 elsif not Try_Map_Key_Value_Types (Map_Type, Type_Env, Key_Type, Value_Type) then
+                                    Raise_Diag
+                                      (CM.Source_Frontend_Error
+                                         (Path    => Path,
+                                          Span    => Map_Expr.Span,
+                                          Message => "`" & Builtin_Name & "` expects a `map of (K, V)` first argument"));
+                                 elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+                                    Raise_Diag
+                                      (CM.Unsupported_Source_Construct
+                                         (Path    => Path,
+                                          Span    => Map_Expr.Span,
+                                          Message =>
+                                            "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+                                 elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+                                    Raise_Diag
+                                      (CM.Unsupported_Source_Construct
+                                         (Path    => Path,
+                                          Span    => Map_Expr.Span,
+                                          Message =>
+                                            "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+                                 else
+                                    Key_Expr :=
+                                      Contextualize_Expr_To_Target_Type
+                                        (Key_Expr,
+                                         Key_Type,
+                                         Var_Types,
+                                         Functions,
+                                         Type_Env,
+                                         Path);
+                                    Reject_Uncontextualized_None (Key_Expr, Path);
+                                    if not Compatible_Source_Expr_To_Target_Type
+                                      (Key_Expr,
+                                       Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
+                                       Key_Type,
+                                       Var_Types,
+                                       Functions,
+                                       Type_Env,
+                                       Const_Env,
+                                       Exact_Length_Maps.Empty_Map)
+                                    then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => Key_Expr.Span,
+                                             Message => "`" & Builtin_Name & "` key type does not match the map key type"));
+                                    end if;
+                                    Result.Args.Replace_Element (Result.Args.First_Index + 1, Key_Expr);
+                                    if Builtin_Name = "contains" then
+                                       Result.Type_Name := FT.To_UString ("boolean");
+                                    else
+                                       Result.Type_Name := Make_Optional_Type (Value_Type, Type_Env).Name;
+                                    end if;
+                                 end if;
+                              end;
+                           end;
+                        end if;
+                        Result :=
+                          Specialize_Generic_Call
+                            (Result,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Const_Env,
+                             Path);
+                        Result :=
+                          Specialize_Interface_Call
+                            (Result,
+                             Var_Types,
+                             Functions,
+                             Type_Env,
+                             Const_Env,
+                             Path);
+                     end if;
+                  end;
                else
                   Result := new CM.Expr_Node'(Resolved.all);
                   Result.Inner :=
@@ -6441,7 +6733,34 @@ package body Safe_Frontend.Check_Resolve is
                end if;
             end;
          when CM.Expr_Ident =>
-            if Is_Shared_Object_Name (UString_Value (Expr.Name)) then
+            if Has_Sum_Constructor (UString_Value (Expr.Name)) then
+               declare
+                  Constructor : constant Sum_Constructor_Info :=
+                    Get_Sum_Constructor (UString_Value (Expr.Name));
+                  Empty_Args  : CM.Expr_Access_Vectors.Vector;
+               begin
+                  if not Constructor.Fields.Is_Empty then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message =>
+                             "sum variant constructor `"
+                             & UString_Value (Expr.Name)
+                             & "` requires "
+                             & Ada.Strings.Fixed.Trim
+                                 (Natural'Image (Natural (Constructor.Fields.Length)),
+                                  Ada.Strings.Both)
+                             & " argument"
+                             & (if Natural (Constructor.Fields.Length) = 1 then "" else "s")));
+                  end if;
+                  Result :=
+                    Build_Sum_Constructor_Expr
+                      (Constructor,
+                       Empty_Args,
+                       Expr.Span);
+               end;
+            elsif Is_Shared_Object_Name (UString_Value (Expr.Name)) then
                declare
                   Shared : Shared_Object_Ref;
                begin
@@ -6494,10 +6813,20 @@ package body Safe_Frontend.Check_Resolve is
                   Call_Result :=
                     Shared_Call_Expr
                       (Shared,
-                       Shared_Field_Getter_Name (UString_Value (Expr.Selector)),
+                      Shared_Field_Getter_Name (UString_Value (Expr.Selector)),
                        Expr.Span,
                        UString_Value (Shared_Field_Type.Name));
                   Result := Call_Result;
+               end if;
+               if Result = null
+                 and then Is_Sum_Type
+                   (Expr_Type (Expr.Prefix, Var_Types, Functions, Type_Env), Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Expr.Span,
+                        Message => Sum_Inspection_Message));
                end if;
                if Result = null then
                   Result := new CM.Expr_Node'(Expr.all);
@@ -13726,6 +14055,173 @@ package body Safe_Frontend.Check_Resolve is
                Result := Make_Growable_Array_Type (Component, Type_Env);
                Result.Name := Decl.Name;
             end;
+         when CM.Type_Decl_Sum =>
+            declare
+               Self_Name     : constant String := UString_Value (Decl.Name);
+               Tag_Name      : constant String := Sum_Tag_Type_Name (Self_Name);
+               Tag_Info      : GM.Type_Descriptor;
+               Record_Result : GM.Type_Descriptor;
+               Disc_Desc     : GM.Discriminant_Descriptor;
+               Item          : GM.Type_Field;
+               Seen          : String_Index_Maps.Map;
+               Variant_Field : GM.Variant_Field;
+               Variant_Ordinal : Long_Long_Integer := 0;
+            begin
+               if Decl.Is_Public then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path,
+                        Span    => Decl.Span,
+                        Message =>
+                          "public sum type declarations are deferred to PR11.13c"));
+               elsif Decl.Sum_Variants.Is_Empty then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Span,
+                        Message => "sum types require at least one variant"));
+               end if;
+
+               Tag_Info.Name := FT.To_UString (Tag_Name);
+               Tag_Info.Kind := FT.To_UString ("enum");
+               Tag_Info.Has_Low := True;
+               Tag_Info.Low := 0;
+               Tag_Info.Has_High := True;
+               Tag_Info.High := Long_Long_Integer (Natural (Decl.Sum_Variants.Length) - 1);
+
+               Record_Result.Name := Decl.Name;
+               Record_Result.Kind := FT.To_UString ("record");
+               Record_Result.Has_Discriminant := True;
+               Record_Result.Discriminant_Name :=
+                 FT.To_UString (Sum_Discriminant_Name (Self_Name));
+               Record_Result.Discriminant_Type := Tag_Info.Name;
+               Record_Result.Variant_Discriminant_Name := Record_Result.Discriminant_Name;
+
+               Disc_Desc.Name := Record_Result.Discriminant_Name;
+               Disc_Desc.Type_Name := Tag_Info.Name;
+               Disc_Desc.Has_Default := True;
+
+               for Variant of Decl.Sum_Variants loop
+                  declare
+                     Variant_Key     : constant String := Canonical_Name (UString_Value (Variant.Name));
+                     Tag_Literal     : constant String :=
+                       Sum_Tag_Literal_Name (Self_Name, UString_Value (Variant.Name));
+                     Choice          : constant GM.Scalar_Value :=
+                       (Kind      => GM.Scalar_Value_Enum,
+                        Int_Value => 0,
+                        Bool_Value => False,
+                        Text      => FT.To_UString (Tag_Literal),
+                        Type_Name => Tag_Info.Name);
+                     Constructor     : Sum_Constructor_Info;
+                     Field_Seen      : String_Index_Maps.Map;
+                  begin
+                     if Seen.Contains (Variant_Key) then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Variant.Span,
+                              Message =>
+                                "duplicate sum variant `" & UString_Value (Variant.Name) & "`"));
+                     end if;
+                     Seen.Include (Variant_Key, Positive (Variant_Ordinal + 1));
+                     Tag_Info.Enum_Literals.Append (FT.To_UString (Tag_Literal));
+                     if Variant_Ordinal = 0 then
+                        Disc_Desc.Default_Value := Choice;
+                     end if;
+
+                     Constructor.Name := Variant.Name;
+                     Constructor.Sum_Type_Name := Decl.Name;
+                     Constructor.Tag_Type_Name := Tag_Info.Name;
+                     Constructor.Tag_Literal_Name := FT.To_UString (Tag_Literal);
+                     Constructor.Span := Variant.Span;
+
+                     for Field_Decl of Variant.Components loop
+                        declare
+                           Source_Field_Name : constant String :=
+                             UString_Value (Field_Decl.Names (Field_Decl.Names.First_Index));
+                           Source_Field_Key : constant String :=
+                             Canonical_Name (Source_Field_Name);
+                           Field_Type : constant GM.Type_Descriptor :=
+                             Resolve_Type_Spec
+                               (Field_Decl.Field_Type,
+                                Type_Env,
+                                Const_Env,
+                                Path);
+                           Field_Info : Sum_Constructor_Field_Info;
+                           Internal_Field_Name : constant FT.UString :=
+                             FT.To_UString
+                               (Sum_Variant_Field_Name
+                                  (UString_Value (Variant.Name), Source_Field_Name));
+                        begin
+                           if Natural (Field_Decl.Names.Length) /= 1 then
+                              Raise_Diag
+                                (CM.Unsupported_Source_Construct
+                                   (Path    => Path,
+                                    Span    => Field_Decl.Span,
+                                    Message =>
+                                      "sum variant payload fields declare exactly one name in PR11.13a"));
+                           elsif Field_Seen.Contains (Source_Field_Key) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Field_Decl.Span,
+                                    Message =>
+                                      "duplicate payload field `"
+                                      & Source_Field_Name
+                                      & "` in sum variant `"
+                                      & UString_Value (Variant.Name)
+                                      & "`"));
+                           elsif Is_Interface_Type (Field_Type, Type_Env) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Field_Decl.Span,
+                                    Message => "interface types are only admitted in parameter positions in PR11.11b"));
+                           elsif not Is_Container_Element_Type_Allowed (Field_Type, Type_Env) then
+                              Raise_Diag
+                                (CM.Unsupported_Source_Construct
+                                   (Path    => Path,
+                                    Span    => Field_Decl.Span,
+                                    Message =>
+                                      "sum variant payloads are limited to the admitted value-type subset in PR11.13a"));
+                           end if;
+
+                           Field_Seen.Include
+                             (Source_Field_Key,
+                              Positive (Natural (Constructor.Fields.Length) + 1));
+
+                           Item.Name := Internal_Field_Name;
+                           Item.Type_Name := Field_Type.Name;
+                           Record_Result.Fields.Append (Item);
+
+                           Variant_Field.Name := Internal_Field_Name;
+                           Variant_Field.Type_Name := Field_Type.Name;
+                           Variant_Field.Is_Others := False;
+                           Variant_Field.Choice := Choice;
+                           Record_Result.Variant_Fields.Append (Variant_Field);
+
+                           Field_Info.Name := Internal_Field_Name;
+                           Field_Info.Type_Name := Field_Type.Name;
+                           Constructor.Fields.Append (Field_Info);
+                        end;
+                     end loop;
+
+                     if not Current_Sum_Constructors.Contains (Variant_Key) then
+                        Current_Sum_Constructors.Include (Variant_Key, Constructor);
+                     end if;
+                     Variant_Ordinal := Variant_Ordinal + 1;
+                  end;
+               end loop;
+
+               Record_Result.Discriminants.Append (Disc_Desc);
+               Put_Type (Type_Env, Tag_Name, Tag_Info);
+               if not Current_Sum_Tag_Types.Contains (Canonical_Name (Tag_Name)) then
+                  Current_Sum_Tag_Types.Include (Canonical_Name (Tag_Name), Tag_Info);
+               end if;
+               Current_Sum_Type_Tag_Names.Include
+                 (Canonical_Name (Self_Name), Tag_Name);
+               Result := Record_Result;
+            end;
          when CM.Type_Decl_Record =>
             declare
                Record_Result          : GM.Type_Descriptor;
@@ -14685,6 +15181,7 @@ package body Safe_Frontend.Check_Resolve is
          Path      : String) is
       begin
          if Has_Enum_Literal (Const_Env, Name)
+           or else Has_Sum_Constructor (Name)
            or else Visible_Value_Name_Exists (Name, Value_Env)
            or else Has_Function (Functions, Name)
            or else Has_Type (Type_Env, Name)
@@ -14699,6 +15196,29 @@ package body Safe_Frontend.Check_Resolve is
                     & "' conflicts with another visible package-level name"));
          end if;
       end Reject_Enum_Literal_Collision;
+
+      procedure Reject_Sum_Constructor_Collision
+        (Name      : String;
+         Value_Env : Type_Maps.Map;
+         Span      : FT.Source_Span;
+         Path      : String) is
+      begin
+         if Has_Sum_Constructor (Name)
+           or else Has_Enum_Literal (Const_Env, Name)
+           or else Visible_Value_Name_Exists (Name, Value_Env)
+           or else Has_Function (Functions, Name)
+           or else Has_Type (Type_Env, Name)
+           or else Has_Type (Channel_Env, Name)
+         then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Span,
+                  Message =>
+                    "sum variant constructor '" & Name
+                    & "' conflicts with another visible package-level name"));
+         end if;
+      end Reject_Sum_Constructor_Collision;
 
       procedure Register_Enum_Literals
         (Info      : GM.Type_Descriptor;
@@ -14744,6 +15264,22 @@ package body Safe_Frontend.Check_Resolve is
                     & "' conflicts with an enum literal already visible in this package"));
          end if;
       end Reject_Package_Level_Enum_Collision;
+
+      procedure Reject_Package_Level_Sum_Constructor_Collision
+        (Name : String;
+         Span : FT.Source_Span;
+         Path : String) is
+      begin
+         if Has_Sum_Constructor (Name) then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Span,
+                  Message =>
+                    "package-level name '" & Name
+                    & "' conflicts with a sum variant constructor already visible in this package"));
+         end if;
+      end Reject_Package_Level_Sum_Constructor_Collision;
 
       procedure Reject_Shared_Wrapper_Name_Collisions is
          procedure Reject_If_Collides
@@ -14896,6 +15432,12 @@ package body Safe_Frontend.Check_Resolve is
             Deps : in out String_Vectors.Vector) is
          begin
             case Decl.Kind is
+               when CM.Type_Decl_Sum =>
+                  for Variant of Decl.Sum_Variants loop
+                     for Field_Decl of Variant.Components loop
+                        Collect_Type_Spec_Dependencies (Field_Decl.Field_Type, Deps);
+                     end loop;
+                  end loop;
                when CM.Type_Decl_Record =>
                   if Decl.Has_Discriminant then
                      Collect_Type_Spec_Dependencies (Decl.Discriminant.Disc_Type, Deps);
@@ -15337,6 +15879,9 @@ package body Safe_Frontend.Check_Resolve is
       Current_Generic_Specialization_By_Key.Clear;
       Current_Synthetic_Functions.Clear;
       Current_Generic_Function_Env.Clear;
+      Current_Sum_Constructors.Clear;
+      Current_Sum_Tag_Types.Clear;
+      Current_Sum_Type_Tag_Names.Clear;
       Synthetic_Helper_Types.Clear;
       Synthetic_Helper_Order.Clear;
       Synthetic_Optional_Types.Clear;
@@ -15465,6 +16010,20 @@ package body Safe_Frontend.Check_Resolve is
                else
                   declare
                      Name : constant String := UString_Value (Item.Type_Data.Name);
+                     pragma Unreferenced (Name);
+                  begin
+                     if Item.Type_Data.Kind = CM.Type_Decl_Sum then
+                        for Variant of Item.Type_Data.Sum_Variants loop
+                           Reject_Sum_Constructor_Collision
+                             (UString_Value (Variant.Name),
+                              Package_Vars,
+                              Variant.Span,
+                              UString_Value (Unit.Path));
+                        end loop;
+                     end if;
+                  end;
+                  declare
+                     Name : constant String := UString_Value (Item.Type_Data.Name);
                      Info : constant GM.Type_Descriptor :=
                        Resolve_Type_Declaration
                          (Item.Type_Data,
@@ -15478,13 +16037,27 @@ package body Safe_Frontend.Check_Resolve is
                        (Name,
                         Item.Type_Data.Span,
                         UString_Value (Unit.Path));
+                     Reject_Package_Level_Sum_Constructor_Collision
+                       (Name,
+                        Item.Type_Data.Span,
+                        UString_Value (Unit.Path));
                      if not Is_Builtin_Name (UString_Value (Info.Name)) then
                         declare
                            Hidden_Target : constant String :=
                              (if FT.Lowercase (UString_Value (Info.Kind)) = "access" and then Info.Has_Target
                               then UString_Value (Info.Target)
                               else "");
+                           Sum_Tag_Name : constant String :=
+                             (if Item.Type_Data.Kind = CM.Type_Decl_Sum
+                              then Sum_Tag_Type_Name (UString_Value (Item.Type_Data.Name))
+                              else "");
                         begin
+                           if Sum_Tag_Name'Length > 0
+                             and then Current_Sum_Tag_Types.Contains (Canonical_Name (Sum_Tag_Name))
+                           then
+                              Result.Types.Append
+                                (Current_Sum_Tag_Types.Element (Canonical_Name (Sum_Tag_Name)));
+                           end if;
                            Result.Types.Append (Info);
                            if Hidden_Target'Length > 0
                              and then Hidden_Target'Length >= 16
@@ -15523,6 +16096,10 @@ package body Safe_Frontend.Check_Resolve is
                            Message => "interface types are only admitted in parameter positions in PR11.11b"));
                   end if;
                   Reject_Package_Level_Enum_Collision
+                    (UString_Value (Item.Sub_Data.Name),
+                     Item.Sub_Data.Span,
+                     UString_Value (Unit.Path));
+                  Reject_Package_Level_Sum_Constructor_Collision
                     (UString_Value (Item.Sub_Data.Name),
                      Item.Sub_Data.Span,
                      UString_Value (Unit.Path));
@@ -15568,6 +16145,10 @@ package body Safe_Frontend.Check_Resolve is
                     (UString_Value (Item.Chan_Data.Name),
                      Item.Chan_Data.Span,
                      UString_Value (Unit.Path));
+                  Reject_Package_Level_Sum_Constructor_Collision
+                    (UString_Value (Item.Chan_Data.Name),
+                     Item.Chan_Data.Span,
+                     UString_Value (Unit.Path));
                   Result.Channels.Append (Channel_Decl);
                   if Channel_Decl.Is_Public then
                      Append_Unique_String
@@ -15595,6 +16176,10 @@ package body Safe_Frontend.Check_Resolve is
                begin
                   for Name of Item.Obj_Data.Names loop
                      Reject_Package_Level_Enum_Collision
+                       (UString_Value (Name),
+                        Item.Obj_Data.Span,
+                        UString_Value (Unit.Path));
+                     Reject_Package_Level_Sum_Constructor_Collision
                        (UString_Value (Name),
                         Item.Obj_Data.Span,
                         UString_Value (Unit.Path));
@@ -15739,6 +16324,10 @@ package body Safe_Frontend.Check_Resolve is
                            (Decl => Item.Subp_Data, Info => Info));
                      end if;
                      Reject_Package_Level_Enum_Collision
+                       (UString_Value (Item.Subp_Data.Spec.Name),
+                        Item.Subp_Data.Span,
+                        UString_Value (Unit.Path));
+                     Reject_Package_Level_Sum_Constructor_Collision
                        (UString_Value (Item.Subp_Data.Spec.Name),
                         Item.Subp_Data.Span,
                         UString_Value (Unit.Path));

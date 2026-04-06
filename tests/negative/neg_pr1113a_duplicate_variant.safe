@@ -1,0 +1,3 @@
+package neg_pr1113a_duplicate_variant
+
+   type shape is circle (radius : integer) or circle (diameter : integer);

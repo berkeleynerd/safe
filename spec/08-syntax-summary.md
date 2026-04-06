@@ -36,6 +36,12 @@ For the post-PR11.10a surface, built-in optional values are admitted through
 limited to the admitted value-type subset; inferred reference families,
 channels, and tasks are outside this wedge.
 
+For the post-PR11.13a surface, same-unit sum type declarations and variant
+construction are admitted through `type name is variant or variant ...`, bare
+zero-payload variant constructors, and positional payload-bearing variant
+constructors. Public/imported sum types, direct payload inspection, and
+`match` over sum values remain deferred to later slices.
+
 For the post-PR11.8c.2 surface, a compilation unit may be either an explicit
 package unit or a packageless entry unit. Executable statements are admitted at
 unit scope after declarations. Once the first unit-scope statement appears,
@@ -165,6 +171,7 @@ subprogram_renaming_declaration ::=
 ```
 type_definition ::=
     enumeration_type_definition
+  | sum_type_definition
   | signed_integer_type_definition
   | binary_type_definition
   | floating_point_definition
@@ -176,6 +183,17 @@ type_definition ::=
 
 enumeration_type_definition ::=
     '(' enumeration_literal { ',' enumeration_literal } ')'
+
+sum_type_definition ::=
+    sum_variant_specification { 'or' sum_variant_specification }
+
+sum_variant_specification ::=
+    defining_identifier
+  | defining_identifier '(' sum_payload_field_declaration
+        { ';' sum_payload_field_declaration } ')'
+
+sum_payload_field_declaration ::=
+    defining_identifier ':' subtype_indication
 
 enumeration_literal ::=
     defining_identifier

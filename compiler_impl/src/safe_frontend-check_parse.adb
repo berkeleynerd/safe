@@ -379,6 +379,12 @@ package body Safe_Frontend.Check_Parse is
    function Parse_Enumeration_Type
      (State : in out Parser_State;
       Start : FL.Token) return CM.Type_Decl;
+   function Parse_Sum_Type
+     (State : in out Parser_State;
+      Start : FL.Token;
+      Decl  : CM.Type_Decl) return CM.Type_Decl;
+
+   function Starts_Sum_Type_Definition (State : Parser_State) return Boolean;
    function Parse_Case_Statement
      (State : in out Parser_State) return CM.Statement_Access;
    function Parse_Statement
@@ -1364,6 +1370,114 @@ package body Safe_Frontend.Check_Parse is
       return Decl;
    end Parse_Component_Decl;
 
+   function Parse_Sum_Type
+     (State : in out Parser_State;
+      Start : FL.Token;
+      Decl  : CM.Type_Decl) return CM.Type_Decl
+   is
+      Result : CM.Type_Decl := Decl;
+      Variant : CM.Sum_Variant_Decl;
+   begin
+      if Result.Has_Discriminant then
+         Raise_Diag
+           (CM.Unsupported_Source_Construct
+              (Path    => Path_String (State),
+               Span    => Result.Discriminant.Span,
+               Message =>
+                 "sum type declarations define their own hidden tag and do not admit explicit discriminants in PR11.13a"));
+      end if;
+
+      loop
+         declare
+            Variant_Name : constant FL.Token := Expect_Identifier (State);
+         begin
+            Variant.Name := Variant_Name.Lexeme;
+            Variant.Components.Clear;
+            Variant.Span := Variant_Name.Span;
+
+            if Match (State, "(") then
+               if FT.To_String (Current (State).Lexeme) = ")" then
+                  Raise_Diag
+                    (CM.Unsupported_Source_Construct
+                       (Path    => Path_String (State),
+                        Span    => Current (State).Span,
+                        Message =>
+                          "zero-payload sum variants use the bare variant name in PR11.13a"));
+               end if;
+
+               loop
+                  declare
+                     Field_Name : constant FL.Token := Expect_Identifier (State);
+                     Field_Decl : CM.Component_Decl;
+                  begin
+                     if FT.To_String (Current (State).Lexeme) = "," then
+                        Raise_Diag
+                          (CM.Unsupported_Source_Construct
+                             (Path    => Path_String (State),
+                              Span    => Current (State).Span,
+                              Message =>
+                                "sum variant payload fields declare exactly one name in PR11.13a"));
+                     end if;
+                     Require (State, ":");
+                     Field_Decl.Names.Append (Field_Name.Lexeme);
+                     Field_Decl.Field_Type := Parse_Object_Type (State);
+                     Field_Decl.Span := CM.Join (Field_Name.Span, Field_Decl.Field_Type.Span);
+                     if Match (State, "=") then
+                        Raise_Diag
+                          (CM.Unsupported_Source_Construct
+                             (Path    => Path_String (State),
+                              Span    => Current (State).Span,
+                              Message =>
+                                "sum variant payload defaults are deferred past PR11.13a"));
+                     end if;
+                     Variant.Components.Append (Field_Decl);
+                     Variant.Span := CM.Join (Variant_Name.Span, Field_Decl.Span);
+                  end;
+
+                  exit when not Match (State, ";");
+               end loop;
+
+               Variant.Span := CM.Join (Variant_Name.Span, Expect (State, ")").Span);
+            end if;
+
+            Result.Sum_Variants.Append (Variant);
+         end;
+
+         exit when not Match (State, "or");
+      end loop;
+
+      Result.Kind := CM.Type_Decl_Sum;
+      Result.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+      return Result;
+   end Parse_Sum_Type;
+
+   function Starts_Sum_Type_Definition (State : Parser_State) return Boolean is
+      Cursor : Natural := State.Index;
+      Depth  : Natural := 0;
+      Token  : FL.Token;
+   begin
+      while Cursor <= Natural (State.Tokens.Last_Index) loop
+         Token := State.Tokens (Positive (Cursor));
+         exit when Token.Kind = FL.End_Of_File or else Token.Kind = FL.Dedent;
+
+         if FT.To_String (Token.Lexeme) = "(" then
+            Depth := Depth + 1;
+         elsif FT.To_String (Token.Lexeme) = ")" then
+            if Depth > 0 then
+               Depth := Depth - 1;
+            end if;
+         elsif FT.To_String (Token.Lexeme) = ";" and then Depth = 0 then
+            exit;
+         elsif FT.Lowercase (FT.To_String (Token.Lexeme)) = "or" and then Depth = 0 then
+            return True;
+         end if;
+
+         Cursor := Cursor + 1;
+      end loop;
+
+      return False;
+   end Starts_Sum_Type_Definition;
+
    function Parse_Discriminant_Spec_List
      (State : in out Parser_State) return CM.Discriminant_Spec_Vectors.Vector
    is
@@ -1664,6 +1778,13 @@ package body Safe_Frontend.Check_Parse is
               (State,
                "access_type_definition",
                "PR11.8e infers references from recursive record types; named access types are removed");
+         elsif (Current (State).Kind = FL.Identifier
+                  or else Current (State).Kind = FL.Keyword)
+           and then Starts_Sum_Type_Definition (State)
+         then
+            Item := Parse_Sum_Type (State, Start, Item);
+            Item.Is_Public := Is_Public;
+            Item.Name := Name.Lexeme;
          else
             Reject_Unsupported
               (State,

@@ -1,0 +1,5 @@
+package neg_pr1113a_sum_print
+
+   type shape is circle (radius : integer) or idle;
+
+   print (idle);

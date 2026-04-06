@@ -319,6 +319,35 @@
       ]
     },
     {
+      "node_type": "SumTypeDefinition",
+      "production": "sum_type_definition",
+      "source_section": "8.4",
+      "fields": [
+        { "name": "variants", "type": "NonEmptyList<SumVariant>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "SumVariant",
+      "production": "sum_variant_specification",
+      "source_section": "8.4",
+      "fields": [
+        { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "fields", "type": "List<SumPayloadField>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
+      "node_type": "SumPayloadField",
+      "production": "sum_payload_field_declaration",
+      "source_section": "8.4",
+      "fields": [
+        { "name": "name", "type": "Identifier", "optional": false },
+        { "name": "type_spec", "type": "NodeRef<SubtypeIndication | ListTypeSpec | MapTypeSpec | GrowableArrayTypeSpec | TupleTypeSpec | OptionalTypeSpec>", "optional": false },
+        { "name": "span", "type": "Span", "optional": false }
+      ]
+    },
+    {
       "node_type": "IndexSubtypeDefinition",
       "production": "index_subtype_definition",
       "source_section": "8.4",
@@ -1590,7 +1619,7 @@
     },
     {
       "name": "TypeDefinitionKind",
-      "values": ["Enumeration", "SignedInteger", "Binary", "FloatingPoint", "OrdinaryFixedPoint", "DecimalFixedPoint", "UnconstrainedArray", "ConstrainedArray", "GrowableArray", "Record", "AccessToObject", "Derived"]
+      "values": ["Enumeration", "SignedInteger", "Binary", "FloatingPoint", "OrdinaryFixedPoint", "DecimalFixedPoint", "UnconstrainedArray", "ConstrainedArray", "GrowableArray", "Interface", "Sum", "Record", "AccessToObject", "Derived"]
     },
     {
       "name": "ConstraintKind",

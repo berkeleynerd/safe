@@ -62,6 +62,12 @@ package body Safe_Frontend.Check_Emit is
       Span   : FT.Source_Span) return String;
    function Subprogram_Spec_Node
      (Spec : CM.Subprogram_Spec) return String;
+   function Sum_Payload_Field_Node
+     (Field : CM.Component_Decl) return String;
+   function Sum_Variant_Node
+     (Variant : CM.Sum_Variant_Decl) return String;
+   function Sum_Type_Definition_Node
+     (Decl : CM.Type_Decl) return String;
    function Generic_Formals_Node
      (Formals : CM.Generic_Formal_Vectors.Vector) return String;
    function Generic_Arguments_Node
@@ -1180,6 +1186,64 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Component_List_Node;
 
+   function Sum_Payload_Field_Node
+     (Field : CM.Component_Decl) return String
+   is
+      Name_Text : constant String :=
+        (if Field.Names.Is_Empty
+         then ""
+         else FT.To_String (Field.Names (Field.Names.First_Index)));
+   begin
+      return
+        "{""node_type"":""SumPayloadField"",""name"":"
+        & JS.Quote (Name_Text)
+        & ",""type_spec"":"
+        & Object_Type_Node (Field.Field_Type)
+        & ",""span"":"
+        & JS.Span_Object (Field.Span)
+        & "}";
+   end Sum_Payload_Field_Node;
+
+   function Sum_Variant_Node
+     (Variant : CM.Sum_Variant_Decl) return String
+   is
+      Fields : String_Vectors.Vector;
+   begin
+      if not Variant.Components.Is_Empty then
+         for Field of Variant.Components loop
+            Fields.Append (Sum_Payload_Field_Node (Field));
+         end loop;
+      end if;
+
+      return
+        "{""node_type"":""SumVariant"",""name"":"
+        & JS.Quote (Variant.Name)
+        & ",""fields"":"
+        & Json_List (Fields)
+        & ",""span"":"
+        & JS.Span_Object (Variant.Span)
+        & "}";
+   end Sum_Variant_Node;
+
+   function Sum_Type_Definition_Node
+     (Decl : CM.Type_Decl) return String
+   is
+      Variants : String_Vectors.Vector;
+   begin
+      if not Decl.Sum_Variants.Is_Empty then
+         for Variant of Decl.Sum_Variants loop
+            Variants.Append (Sum_Variant_Node (Variant));
+         end loop;
+      end if;
+
+      return
+        "{""node_type"":""SumTypeDefinition"",""variants"":"
+        & Json_List (Variants)
+        & ",""span"":"
+        & JS.Span_Object (Decl.Span)
+        & "}";
+   end Sum_Type_Definition_Node;
+
    function Primary_Node (Expr : CM.Expr_Access) return String is
       Null_Span : constant FT.Source_Span :=
         (if Expr = null then FT.Null_Span else Expr.Span);
@@ -1539,6 +1603,18 @@ package body Safe_Frontend.Check_Emit is
                  & JS.Span_Object (Decl.Span)
                  & "}";
             end;
+         when CM.Type_Decl_Sum =>
+            return
+              "{""node_type"":""TypeDeclaration"",""is_public"":"
+              & JS.Bool_Literal (Decl.Is_Public)
+              & ",""name"":"
+              & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
+              & ",""discriminant_part"":null,""type_definition"":"
+              & Sum_Type_Definition_Node (Decl)
+              & ",""span"":"
+              & JS.Span_Object (Decl.Span)
+              & "}";
          when CM.Type_Decl_Record =>
             declare
                Component_List : constant String := Component_List_Node (Decl);

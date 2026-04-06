@@ -1,0 +1,3 @@
+package neg_pr1113a_payload_default
+
+   type shape is circle (radius : integer = 0) or idle;

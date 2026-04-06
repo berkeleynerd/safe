@@ -1,0 +1,5 @@
+package neg_pr1113a_late_enum_literal_collision
+
+   type shape is idle or reading (count : integer);
+
+   type mode is (ready, idle);

@@ -249,6 +249,16 @@ package Safe_Frontend.Check_Model is
      (Index_Type   => Positive,
       Element_Type => Variant_Alternative);
 
+   type Sum_Variant_Decl is record
+      Name       : FT.UString := FT.To_UString ("");
+      Components : Component_Decl_Vectors.Vector;
+      Span       : FT.Source_Span := FT.Null_Span;
+   end record;
+
+   package Sum_Variant_Decl_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Sum_Variant_Decl);
+
    type Array_Index_Kind is (Array_Index_Unknown, Array_Index_Subtype, Array_Index_Range);
 
    type Array_Index is record
@@ -274,6 +284,7 @@ package Safe_Frontend.Check_Model is
       Type_Decl_Constrained_Array,
       Type_Decl_Unconstrained_Array,
       Type_Decl_Growable_Array,
+      Type_Decl_Sum,
       Type_Decl_Record,
       Type_Decl_Access);
 
@@ -291,6 +302,7 @@ package Safe_Frontend.Check_Model is
       Indexes        : Array_Index_Vectors.Vector;
       Component_Type : Type_Spec;
       Components     : Component_Decl_Vectors.Vector;
+      Sum_Variants   : Sum_Variant_Decl_Vectors.Vector;
       Interface_Members : Subprogram_Spec_Vectors.Vector;
       Has_Discriminant : Boolean := False;
       Discriminant     : Discriminant_Spec;

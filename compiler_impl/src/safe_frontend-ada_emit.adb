@@ -9298,7 +9298,7 @@ package body Safe_Frontend.Ada_Emit is
                     Result
                     & SU.To_Unbounded_String
                         ((if Constraint.Is_Named
-                          then FT.To_String (Constraint.Name) & " => "
+                          then Ada_Safe_Name (FT.To_String (Constraint.Name)) & " => "
                           else "")
                          & Render_Scalar_Value (Constraint.Value));
                   First_Association := False;
@@ -9307,7 +9307,7 @@ package body Safe_Frontend.Ada_Emit is
                for Disc of Base_Info.Discriminants loop
                   if Disc.Has_Default then
                      Append_Association
-                       (FT.To_String (Disc.Name),
+                       (Ada_Safe_Name (FT.To_String (Disc.Name)),
                         Render_Scalar_Value (Disc.Default_Value));
                   end if;
                end loop;
@@ -9316,7 +9316,7 @@ package body Safe_Frontend.Ada_Emit is
                  and then Base_Info.Has_Discriminant_Default
                then
                   Append_Association
-                    (FT.To_String (Base_Info.Discriminant_Name),
+                    (Ada_Safe_Name (FT.To_String (Base_Info.Discriminant_Name)),
                      (if Base_Info.Discriminant_Default_Bool then "true" else "false"));
                end if;
             end if;
@@ -9327,7 +9327,7 @@ package body Safe_Frontend.Ada_Emit is
                begin
                   if not Is_Variant_Field_Name (Field_Name) then
                      Append_Association
-                       (Field_Name,
+                       (Ada_Safe_Name (Field_Name),
                         Default_Value_Expr
                           (Unit,
                            Document,
@@ -9342,7 +9342,7 @@ package body Safe_Frontend.Ada_Emit is
             for Field of Base_Info.Variant_Fields loop
                if Variant_Field_Is_Active (Field) then
                   Append_Association
-                    (FT.To_String (Field.Name),
+                    (Ada_Safe_Name (FT.To_String (Field.Name)),
                      Default_Value_Expr
                        (Unit,
                         Document,
@@ -9445,7 +9445,7 @@ package body Safe_Frontend.Ada_Emit is
                     Result
                     & SU.To_Unbounded_String
                         ((if Constraint.Is_Named
-                          then FT.To_String (Constraint.Name) & " => "
+                          then Ada_Safe_Name (FT.To_String (Constraint.Name)) & " => "
                           else "")
                          & Render_Scalar_Value (Constraint.Value));
                   First_Association := False;
@@ -9454,7 +9454,7 @@ package body Safe_Frontend.Ada_Emit is
                for Disc of Info.Discriminants loop
                   if Disc.Has_Default then
                      Append_Association
-                       (FT.To_String (Disc.Name),
+                       (Ada_Safe_Name (FT.To_String (Disc.Name)),
                         Render_Scalar_Value (Disc.Default_Value));
                   end if;
                end loop;
@@ -9463,14 +9463,14 @@ package body Safe_Frontend.Ada_Emit is
                  and then Info.Has_Discriminant_Default
                then
                   Append_Association
-                    (FT.To_String (Info.Discriminant_Name),
+                    (Ada_Safe_Name (FT.To_String (Info.Discriminant_Name)),
                      (if Info.Discriminant_Default_Bool then "true" else "false"));
                end if;
             end if;
 
             for Index in Info.Fields.First_Index .. Info.Fields.Last_Index loop
                Append_Association
-                 (FT.To_String (Info.Fields (Index).Name),
+                 (Ada_Safe_Name (FT.To_String (Info.Fields (Index).Name)),
                   Default_Value_Expr (FT.To_String (Info.Fields (Index).Type_Name)));
             end loop;
             Result := Result & SU.To_Unbounded_String (")");
@@ -10658,6 +10658,56 @@ package body Safe_Frontend.Ada_Emit is
                return not (Has_True and Has_False);
             end Needs_Null_Others_Branch;
 
+            procedure Append_Missing_Enum_Null_Branches is
+               Disc_Type_Info : GM.Type_Descriptor := (others => <>);
+               Has_Disc_Type  : constant Boolean :=
+                 Has_Text (Type_Item.Discriminant_Type)
+                 and then Has_Type (Unit, Document, FT.To_String (Type_Item.Discriminant_Type));
+
+               function Has_Explicit_Choice (Choice_Name : String) return Boolean is
+               begin
+                  for Field of Type_Item.Variant_Fields loop
+                     if not Field.Is_Others
+                       and then Render_Scalar_Value (Field.Choice) = Choice_Name
+                     then
+                        return True;
+                     end if;
+                  end loop;
+                  return False;
+               end Has_Explicit_Choice;
+            begin
+               if Has_Others_Choice or else not Has_Disc_Type then
+                  return;
+               end if;
+
+               Disc_Type_Info :=
+                 Lookup_Type (Unit, Document, FT.To_String (Type_Item.Discriminant_Type));
+               if FT.To_String (Disc_Type_Info.Kind) /= "enum" then
+                  return;
+               end if;
+
+               for Literal of Disc_Type_Info.Enum_Literals loop
+                  declare
+                     Choice_Name : constant String :=
+                       Ada_Safe_Name (FT.To_String (Literal));
+                  begin
+                     if not Has_Explicit_Choice (Choice_Name) then
+                        Result :=
+                          Result
+                          & SU.To_Unbounded_String
+                              (Indentation (1)
+                               & "when "
+                               & Choice_Name
+                               & " =>"
+                               & ASCII.LF
+                               & Indentation (2)
+                               & "null;"
+                               & ASCII.LF);
+                     end if;
+                  end;
+               end loop;
+            end Append_Missing_Enum_Null_Branches;
+
             procedure Append_Field_Line
               (Field_Name : String;
                Field_Type : String;
@@ -10691,7 +10741,7 @@ package body Safe_Frontend.Ada_Emit is
                      Result :=
                        Result
                        & SU.To_Unbounded_String
-                           (FT.To_String (Disc.Name)
+                           (Ada_Safe_Name (FT.To_String (Disc.Name))
                             & " : "
                             & Ada_Safe_Name (FT.To_String (Disc.Type_Name))
                             & (if Disc.Has_Default
@@ -10705,7 +10755,7 @@ package body Safe_Frontend.Ada_Emit is
                  Result
                  & SU.To_Unbounded_String
                      (" ("
-                      & FT.To_String (Type_Item.Discriminant_Name)
+                      & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Name))
                       & " : "
                       & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Type))
                       & (if Type_Item.Has_Discriminant_Default
@@ -10717,7 +10767,7 @@ package body Safe_Frontend.Ada_Emit is
             for Field of Type_Item.Fields loop
                if not Is_Variant_Field_Name (FT.To_String (Field.Name)) then
                   Append_Field_Line
-                    (FT.To_String (Field.Name),
+                    (Ada_Safe_Name (FT.To_String (Field.Name)),
                      Render_Type_Name_From_Text (FT.To_String (Field.Type_Name)),
                      1);
                end if;
@@ -10728,10 +10778,11 @@ package body Safe_Frontend.Ada_Emit is
                  & SU.To_Unbounded_String
                      (Indentation (1)
                       & "case "
-                      & FT.To_String
+                      & Ada_Safe_Name
+                          (FT.To_String
                           ((if Has_Text (Type_Item.Variant_Discriminant_Name)
                             then Type_Item.Variant_Discriminant_Name
-                            else Type_Item.Discriminant_Name))
+                            else Type_Item.Discriminant_Name)))
                       & " is"
                       & ASCII.LF);
                declare
@@ -10754,7 +10805,7 @@ package body Safe_Frontend.Ada_Emit is
                                & ASCII.LF);
                         loop
                            Append_Field_Line
-                             (FT.To_String (Type_Item.Variant_Fields (Index).Name),
+                             (Ada_Safe_Name (FT.To_String (Type_Item.Variant_Fields (Index).Name)),
                               Render_Type_Name_From_Text
                                 (FT.To_String (Type_Item.Variant_Fields (Index).Type_Name)),
                               2);
@@ -10779,6 +10830,7 @@ package body Safe_Frontend.Ada_Emit is
                          & "null;"
                          & ASCII.LF);
                end if;
+               Append_Missing_Enum_Null_Branches;
                Result :=
                  Result
                  & SU.To_Unbounded_String
@@ -11558,7 +11610,7 @@ package body Safe_Frontend.Ada_Emit is
                      Result :=
                        Result
                        & SU.To_Unbounded_String
-                           (FT.To_String (Field.Field_Name)
+                           (Ada_Safe_Name (FT.To_String (Field.Field_Name))
                             & " => "
                             & (if Has_Text (Field_Target.Name)
                                then Render_Expr_For_Target_Type
@@ -14590,7 +14642,7 @@ package body Safe_Frontend.Ada_Emit is
                   Result :=
                     Result
                     & SU.To_Unbounded_String
-                        (FT.To_String (Field.Field_Name)
+                        (Ada_Safe_Name (FT.To_String (Field.Field_Name))
                          & " => "
                          & Render_Expr_With_Target_Substitution
                              (Unit,

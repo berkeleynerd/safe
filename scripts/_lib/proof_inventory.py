@@ -287,6 +287,12 @@ PR11_12_CHECKPOINT_FIXTURES = (
 )
 
 
+PR11_13A_CHECKPOINT_FIXTURES = [
+    "tests/positive/pr1113a_sum_construction.safe",
+    "tests/build/pr1113a_sum_build.safe",
+]
+
+
 PR11_8I1_CHECKPOINT_FIXTURES = [
     "tests/positive/pr115_case_terminator.safe",
     "tests/positive/pr115_var_basic.safe",
@@ -364,6 +370,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_12D_CHECKPOINT_FIXTURES
     + PR11_12E_CHECKPOINT_FIXTURES
     + PR11_12F_CHECKPOINT_FIXTURES
+    + PR11_13A_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 

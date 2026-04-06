@@ -52,6 +52,7 @@ ABSTRACT_TARGETS = {
         "ConstrainedArrayDefinition",
         "GrowableArrayDefinition",
         "InterfaceTypeDefinition",
+        "SumTypeDefinition",
         "RecordTypeDefinition",
         "DerivedTypeDefinition",
     },
