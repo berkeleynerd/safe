@@ -1,0 +1,7 @@
+with provider_channel;
+
+package client_imported_channel_elab_receive
+
+   item : provider_channel.message = 0;
+
+   receive provider_channel.data_ch, item

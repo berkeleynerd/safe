@@ -169,6 +169,11 @@ try_receive_statement ::=
 26. Channel operations may appear in subprogram bodies, task bodies, unit-scope
 statement suites, and other statement contexts.
 
+26a. In the current admitted cross-package subset, a unit-scope statement suite
+shall not perform `send`, `receive`, or `try_receive` on an imported channel. A
+conforming implementation shall reject such operations and require them to be
+moved out of unit-scope elaboration.
+
 ### Dynamic Semantics
 
 27. **Legacy blocking send.** The two-argument form `send Ch, Value;` is not part of admitted Safe source. A conforming implementation shall reject it and direct the programmer to `send Ch, Value, Success;`.

@@ -1862,6 +1862,9 @@ analysis to later work.
 - Blocking `receive ch, target` stays. A task waiting for data cannot
   deadlock by itself.
 - `try_receive ch, target, success` stays unchanged.
+- Unit-scope elaboration operations on imported public channels remain
+  rejected until the cross-package elaboration path can be proved by
+  construction.
 - `select` arms stay receive-only (already the case).
 - The standard library (PR11.10) is designed within this constraint from
   day one — no library pattern depends on blocking send.

@@ -281,6 +281,24 @@ INTERFACE_CASES = [
 
 INTERFACE_REJECT_CASES = [
     (
+        "imported-channel-elab-send",
+        REPO_ROOT / "tests" / "interfaces" / "provider_channel.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_imported_channel_elab_send.safe",
+        "unit-scope elaboration must not perform imported channel operations",
+    ),
+    (
+        "imported-channel-elab-receive",
+        REPO_ROOT / "tests" / "interfaces" / "provider_channel.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_imported_channel_elab_receive.safe",
+        "unit-scope elaboration must not perform imported channel operations",
+    ),
+    (
+        "imported-channel-elab-try-receive",
+        REPO_ROOT / "tests" / "interfaces" / "provider_channel.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_imported_channel_elab_try_receive.safe",
+        "unit-scope elaboration must not perform imported channel operations",
+    ),
+    (
         "select-public-channel",
         REPO_ROOT / "tests" / "interfaces" / "provider_select_channel.safe",
         REPO_ROOT / "tests" / "interfaces" / "client_select_channel.safe",

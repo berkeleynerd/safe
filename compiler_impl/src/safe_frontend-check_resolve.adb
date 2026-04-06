@@ -205,6 +205,7 @@ package body Safe_Frontend.Check_Resolve is
    Current_Imported_Shared_Object_Types : Type_Maps.Map;
    Current_Imported_Synthetic_Types : Type_Maps.Map;
    Current_Select_In_Subprogram_Body : Boolean := False;
+   Current_In_Task_Body : Boolean := False;
    Synthetic_Helper_Types : Type_Maps.Map;
    Synthetic_Helper_Order : String_Vectors.Vector;
    Synthetic_Optional_Types : Type_Maps.Map;
@@ -266,6 +267,12 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
       return False;
    end Contains_Public_Local_Channel;
+
+   function In_Unit_Statement_Context return Boolean is
+   begin
+      return not Current_Select_In_Subprogram_Body
+        and then not Current_In_Task_Body;
+   end In_Unit_Statement_Context;
 
    procedure Append_Unique_String
      (Items : in out String_Vectors.Vector;
@@ -2964,6 +2971,14 @@ package body Safe_Frontend.Check_Resolve is
       end loop;
       return False;
    end Contains_Dot;
+
+   function Is_Imported_Channel_Reference
+     (Channel_Expr : CM.Expr_Access) return Boolean
+   is
+      Name : constant String := CM.Flatten_Name (Channel_Expr);
+   begin
+      return Contains_Dot (Name);
+   end Is_Imported_Channel_Reference;
 
    function Is_Builtin_Name (Name : String) return Boolean is
    begin
@@ -10959,6 +10974,22 @@ package body Safe_Frontend.Check_Resolve is
               Has_Enclosing_Return,
               Enclosing_Return_Type);
       end Normalize_Preludes;
+
+      procedure Reject_Imported_Channel_Elaboration
+        (Channel_Expr    : CM.Expr_Access;
+         Diagnostic_Span : FT.Source_Span) is
+      begin
+         if In_Unit_Statement_Context
+           and then Is_Imported_Channel_Reference (Channel_Expr)
+         then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => Diagnostic_Span,
+                  Message =>
+                    "unit-scope elaboration must not perform imported channel operations; move this operation into a task body or another non-elaboration call path"));
+         end if;
+      end Reject_Imported_Channel_Elaboration;
    begin
       case Stmt.Kind is
          when CM.Stmt_Object_Decl =>
@@ -13207,6 +13238,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Channel_Name :=
               Normalize_Expr_Checked
                 (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            Reject_Imported_Channel_Elaboration (Result.Channel_Name, Stmt.Span);
             declare
                Desugared : constant Desugared_Expr_Result :=
                  Desugar_Executable_Expr
@@ -13278,6 +13310,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Channel_Name :=
               Normalize_Expr_Checked
                 (Stmt.Channel_Name, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
+            Reject_Imported_Channel_Elaboration (Result.Channel_Name, Stmt.Span);
             Result.Target :=
               Normalize_Expr_Checked
                 (Stmt.Target, Var_Types, Functions, Type_Env, Local_Static_Constants, Path);
@@ -15864,6 +15897,7 @@ package body Safe_Frontend.Check_Resolve is
       Current_Imported_Shared_Object_Types.Clear;
       Current_Imported_Synthetic_Types.Clear;
       Current_Select_In_Subprogram_Body := False;
+      Current_In_Task_Body := False;
       Current_Interface_Templates.Clear;
       Current_Pending_Interface_Specializations.Clear;
       Current_Interface_Specialization_Order.Clear;
@@ -16630,18 +16664,28 @@ package body Safe_Frontend.Check_Resolve is
                   end loop;
                end loop;
 
-               Task_Item.Statements :=
-                 Normalize_Statement_List
-                   (Item.Task_Data.Statements,
-                    Visible,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
-                    Visible_Constants,
-                    Visible_Static_Constants,
-                    Exact_Length_Maps.Empty_Map,
-                    UString_Value (Unit.Path));
+               declare
+                  Previous_Task_Context : constant Boolean := Current_In_Task_Body;
+               begin
+                  Current_In_Task_Body := True;
+                  Task_Item.Statements :=
+                    Normalize_Statement_List
+                      (Item.Task_Data.Statements,
+                       Visible,
+                       Functions,
+                       Type_Env,
+                       Channel_Env,
+                       Imported_Objects,
+                       Visible_Constants,
+                       Visible_Static_Constants,
+                       Exact_Length_Maps.Empty_Map,
+                       UString_Value (Unit.Path));
+                  Current_In_Task_Body := Previous_Task_Context;
+               exception
+                  when others =>
+                     Current_In_Task_Body := Previous_Task_Context;
+                     raise;
+               end;
 
                if Natural (Task_Item.Statements.Length) /= 1
                  or else Task_Item.Statements (Task_Item.Statements.First_Index).Kind /= CM.Stmt_Loop
