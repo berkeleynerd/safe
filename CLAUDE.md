@@ -29,6 +29,9 @@ python3 scripts/run_proofs.py
 
 # Check samples
 python3 scripts/run_samples.py
+
+# Check emitted Ada stability for refactoring work
+python3 scripts/snapshot_emitted_ada.py --check
 ```
 
 ## Platform Policy
@@ -46,3 +49,7 @@ python3 scripts/run_samples.py
   tooling and should continue to work.
 - The current proof boundary is documented in
   `docs/emitted_output_verification_matrix.md`.
+- For refactoring PRs that should preserve emitted Ada shape, run
+  `python3 scripts/snapshot_emitted_ada.py --check`. If emitted Ada changes
+  intentionally, regenerate `tests/emitted_ada_snapshot.json` with
+  `python3 scripts/snapshot_emitted_ada.py`.
