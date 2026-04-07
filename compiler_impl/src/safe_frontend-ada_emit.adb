@@ -543,6 +543,38 @@ package body Safe_Frontend.Ada_Emit is
       Document  : GM.Mir_Document;
       Type_Item : GM.Type_Descriptor;
       State     : in out Emit_State) return String;
+   function Render_Integer_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
+   function Render_Enum_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
+   function Render_Binary_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
+   function Render_Subtype_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor) return String;
+   function Render_Array_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String;
+   function Render_Tuple_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String;
+   function Render_Result_Type_Decl
+     (Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String;
+   function Render_Record_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String;
+   function Render_Access_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
+   function Render_Float_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
    procedure Render_Growable_Array_Helper_Body
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;
@@ -610,6 +642,51 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Expr     : CM.Expr_Access;
       State    : in out Emit_State) return String;
+   function Render_Select_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Resolved_Index_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Conversion_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Call_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Aggregate_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Tuple_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Annotated_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Unary_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
+   function Render_Binary_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String;
    function Render_Print_Argument
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -658,6 +735,25 @@ package body Safe_Frontend.Ada_Emit is
       Depth      : Natural;
       Return_Type : String := "";
       In_Loop    : Boolean := False);
+   function Tail_Statements
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      First      : Positive) return CM.Statement_Access_Vectors.Vector;
+   procedure Emit_Nonblocking_Send_Statement
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Item     : CM.Statement;
+      Index    : Positive;
+      State    : in out Emit_State;
+      Depth    : Natural);
+   procedure Emit_Call_Statement
+     (Buffer          : in out SU.Unbounded_String;
+      Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Call_Expr       : CM.Expr_Access;
+      Statement_Index : Positive;
+      State           : in out Emit_State;
+      Depth           : Natural);
    procedure Render_Required_Statement_Suite
      (Buffer     : in out SU.Unbounded_String;
       Unit       : CM.Resolved_Unit;
@@ -918,6 +1014,12 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Channel  : CM.Resolved_Channel_Decl;
       State    : in out Emit_State);
+   procedure Render_Channel_Generated_Value_Helpers
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl;
+      State    : in out Emit_State);
    procedure Render_Free_Declarations
      (Buffer       : in out SU.Unbounded_String;
       Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
@@ -926,6 +1028,20 @@ package body Safe_Frontend.Ada_Emit is
      (Buffer       : in out SU.Unbounded_String;
       Declarations : CM.Object_Decl_Vectors.Vector;
       Depth        : Natural);
+   function Effective_Subprogram_Outer_Declarations
+     (Subprogram              : CM.Resolved_Subprogram;
+      Raw_Outer_Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
+      return CM.Resolved_Object_Decl_Vectors.Vector;
+   function Apply_Name_Replacements
+     (Text       : String;
+      From_Names : FT.UString_Vectors.Vector;
+      To_Names   : FT.UString_Vectors.Vector) return String;
+   function Render_Structural_Traversal_Subprogram_Body
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Subprogram : CM.Resolved_Subprogram;
+      State      : in out Emit_State) return Boolean;
    procedure Render_Subprogram_Body
      (Buffer     : in out SU.Unbounded_String;
       Unit       : CM.Resolved_Unit;
@@ -11061,564 +11177,651 @@ package body Safe_Frontend.Ada_Emit is
       end if;
    end Append_Bounded_String_Uses;
 
-   function Render_Type_Decl
+   function Render_Integer_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+   begin
+      return
+        "type "
+        & Name
+        & " is range "
+        & Trim_Image (Type_Item.Low)
+        & " .. "
+        & Trim_Image (Type_Item.High)
+        & ";";
+   end Render_Integer_Type_Decl;
+
+   function Render_Enum_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Result : SU.Unbounded_String :=
+        SU.To_Unbounded_String ("type " & Ada_Safe_Name (FT.To_String (Type_Item.Name)) & " is (");
+   begin
+      for Index in Type_Item.Enum_Literals.First_Index .. Type_Item.Enum_Literals.Last_Index loop
+         if Index /= Type_Item.Enum_Literals.First_Index then
+            Result := Result & SU.To_Unbounded_String (", ");
+         end if;
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (Ada_Safe_Name (FT.To_String (Type_Item.Enum_Literals (Index))));
+      end loop;
+      Result := Result & SU.To_Unbounded_String (");");
+      return SU.To_String (Result);
+   end Render_Enum_Type_Decl;
+
+   function Render_Binary_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+   begin
+      return
+        "type "
+        & Name
+        & " is mod 2 ** "
+        & Ada.Strings.Fixed.Trim (Positive'Image (Type_Item.Bit_Width), Ada.Strings.Both)
+        & ";";
+   end Render_Binary_Type_Decl;
+
+   function Render_Subtype_Type_Decl
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
-      Type_Item : GM.Type_Descriptor;
-      State     : in out Emit_State) return String is
-      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
-      Kind : constant String := FT.To_String (Type_Item.Kind);
+      Type_Item : GM.Type_Descriptor) return String
+   is
+      pragma Unreferenced (Unit, Document);
+      Name   : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
       Result : SU.Unbounded_String;
-
-      function Render_Type_Name_From_Text (Name_Text : String) return String is
-         Info  : GM.Type_Descriptor := (others => <>);
-         Found : Boolean := False;
-      begin
-         if FT.Lowercase (Name_Text) = "string" then
-            State.Needs_Safe_String_RT := True;
-            return "Safe_String_RT.Safe_String";
-         end if;
-         Info := Synthetic_Bounded_String_Type (Name_Text, Found);
-         if Found then
-            Register_Bounded_String_Type (State, Info);
-            return Bounded_String_Type_Name (Info);
-         end if;
-         return Ada_Safe_Name (Name_Text);
-      end Render_Type_Name_From_Text;
    begin
-      if Kind = "incomplete" then
-         return "type " & Name & ";";
-      elsif Kind = "integer" then
+      if not Type_Item.Discriminant_Constraints.Is_Empty then
+         Result :=
+           SU.To_Unbounded_String
+             ("subtype "
+              & Name
+              & " is "
+              & Ada_Safe_Name (FT.To_String (Type_Item.Base))
+              & " (");
+         for Index in Type_Item.Discriminant_Constraints.First_Index .. Type_Item.Discriminant_Constraints.Last_Index loop
+            declare
+               Constraint : constant GM.Discriminant_Constraint :=
+                 Type_Item.Discriminant_Constraints (Index);
+            begin
+               if Index /= Type_Item.Discriminant_Constraints.First_Index then
+                  Result := Result & SU.To_Unbounded_String (", ");
+               end if;
+               if Constraint.Is_Named then
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        (FT.To_String (Constraint.Name) & " => ");
+               end if;
+               Result :=
+                 Result & SU.To_Unbounded_String (Render_Scalar_Value (Constraint.Value));
+            end;
+         end loop;
+         Result := Result & SU.To_Unbounded_String (");");
+         return SU.To_String (Result);
+      elsif Type_Item.Has_Low and then Type_Item.Has_High then
          return
-           "type "
+           "subtype "
            & Name
-           & " is range "
+           & " is "
+           & Ada_Safe_Name (FT.To_String (Type_Item.Base))
+           & " range "
            & Trim_Image (Type_Item.Low)
            & " .. "
            & Trim_Image (Type_Item.High)
            & ";";
-      elsif Kind = "enum" then
-         Result := SU.To_Unbounded_String ("type " & Name & " is (");
-         for Index in Type_Item.Enum_Literals.First_Index .. Type_Item.Enum_Literals.Last_Index loop
-            if Index /= Type_Item.Enum_Literals.First_Index then
-               Result := Result & SU.To_Unbounded_String (", ");
-            end if;
-            Result :=
-              Result
-              & SU.To_Unbounded_String
-                  (Ada_Safe_Name (FT.To_String (Type_Item.Enum_Literals (Index))));
-         end loop;
-         Result := Result & SU.To_Unbounded_String (");");
-         return SU.To_String (Result);
-      elsif Kind = "binary" then
-         return
-           "type "
-           & Name
-           & " is mod 2 ** "
-           & Ada.Strings.Fixed.Trim (Positive'Image (Type_Item.Bit_Width), Ada.Strings.Both)
-           & ";";
-      elsif Kind = "subtype" then
-         if not Type_Item.Discriminant_Constraints.Is_Empty then
-            Result :=
-              SU.To_Unbounded_String
-                ("subtype "
-                 & Ada_Safe_Name (Name)
-                 & " is "
-                 & Ada_Safe_Name (FT.To_String (Type_Item.Base))
-                 & " (");
-            for Index in Type_Item.Discriminant_Constraints.First_Index .. Type_Item.Discriminant_Constraints.Last_Index loop
-               declare
-                  Constraint : constant GM.Discriminant_Constraint :=
-                    Type_Item.Discriminant_Constraints (Index);
-               begin
-                  if Index /= Type_Item.Discriminant_Constraints.First_Index then
-                     Result := Result & SU.To_Unbounded_String (", ");
-                  end if;
-                  if Constraint.Is_Named then
-                     Result :=
-                       Result
-                       & SU.To_Unbounded_String
-                           (FT.To_String (Constraint.Name) & " => ");
-                  end if;
-                  Result :=
-                    Result & SU.To_Unbounded_String (Render_Scalar_Value (Constraint.Value));
-               end;
-            end loop;
-            Result := Result & SU.To_Unbounded_String (");");
-            return SU.To_String (Result);
-         elsif Type_Item.Has_Low and then Type_Item.Has_High then
-            return
-              "subtype "
-              & Ada_Safe_Name (Name)
-              & " is "
-              & Ada_Safe_Name (FT.To_String (Type_Item.Base))
-              & " range "
-              & Trim_Image (Type_Item.Low)
-              & " .. "
-              & Trim_Image (Type_Item.High)
-              & ";";
-         elsif Is_Builtin_Integer_Name (FT.To_String (Type_Item.Base))
-           or else Is_Builtin_Float_Name (FT.To_String (Type_Item.Base))
-         then
-            return
-              "subtype " & Ada_Safe_Name (Name) & " is " & Ada_Safe_Name (FT.To_String (Type_Item.Base)) & ";";
-         else
-            return
-              "subtype " & Ada_Safe_Name (Name) & " is " & Ada_Safe_Name (FT.To_String (Type_Item.Base)) & ";";
-         end if;
-      elsif Kind = "array" then
-         if Type_Item.Growable or else Type_Item.Index_Types.Is_Empty then
-            declare
-               Identity_Runtime : constant Boolean :=
-                 Uses_Identity_Array_Runtime (Unit, Document, Type_Item);
-               Runtime_Generic_Name : constant String :=
-                 Array_Runtime_Generic_Name (Unit, Document, Type_Item);
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name
-                   (Unit,
-                    Document,
-                    FT.To_String (Type_Item.Component_Type));
-               Element_Type_Name : constant String :=
-                 Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type));
-               Default_Image : constant String :=
-                 Default_Value_Expr (Unit, Document, Component_Info);
-               Clone_Post : constant String :=
-                 (if Identity_Runtime
-                  then
-                    ASCII.LF
-                    & Indentation (3)
-                    & "Post => "
-                    & Array_Runtime_Clone_Element_Name (Type_Item)
-                    & "'Result = Source;"
-                  else
-                    ";");
-            begin
-               if Runtime_Generic_Name = "Safe_Array_RT" then
-                  State.Needs_Safe_Array_RT := True;
-               end if;
-               return
-                 "function "
-                 & Array_Runtime_Default_Element_Name (Type_Item)
-                 & " return "
-                 & Element_Type_Name
-                 & (if Identity_Runtime then " is (" & Default_Image & ")" else "")
-                 & ASCII.LF
-                 & Indentation (2)
-                 & "with Global => null;"
-                 & ASCII.LF
-                 & Indentation (1)
-                 & "function "
-                 & Array_Runtime_Clone_Element_Name (Type_Item)
-                 & " (Source : "
-                 & Element_Type_Name
-                 & ") return "
-                 & Element_Type_Name
-                 & (if Identity_Runtime then " is (Source)" else "")
-                 & ASCII.LF
-                 & Indentation (2)
-                 & "with Global => null"
-                 & (if Identity_Runtime then "," & Clone_Post else ";")
-                 & ASCII.LF
-                 & Indentation (1)
-                 & "procedure "
-                 & Array_Runtime_Free_Element_Name (Type_Item)
-                 & " (Value : in out "
-                 & Element_Type_Name
-                 & ")"
-                 & (if Identity_Runtime
-                    then
-                      " is null;"
-                    else
-                      ASCII.LF
-                      & Indentation (2)
-                      & "with Global => null,"
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Always_Terminates;")
-                 & ASCII.LF
-                 & (if Identity_Runtime
-                    then
-                      Indentation (1)
-                      & "package "
-                      & Array_Runtime_Identity_Ops_Name (Type_Item)
-                      & " is new Safe_Array_Identity_Ops"
-                      & ASCII.LF
-                      & Indentation (2)
-                      & "(Element_Type => "
-                      & Element_Type_Name
-                      & ","
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Default_Element => "
-                      & Array_Runtime_Default_Element_Name (Type_Item)
-                      & ","
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Clone_Element => "
-                      & Array_Runtime_Clone_Element_Name (Type_Item)
-                      & ","
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Free_Element => "
-                      & Array_Runtime_Free_Element_Name (Type_Item)
-                      & ");"
-                      & ASCII.LF
-                    else
-                      "")
-                 & Indentation (1)
-                 & "package "
-                 & Array_Runtime_Instance_Name (Type_Item)
-                 & " is new "
-                 & Runtime_Generic_Name
-                 & ASCII.LF
-                 & Indentation (2)
-                 & (if Identity_Runtime
-                    then
-                      "(Element_Ops => "
-                      & Array_Runtime_Identity_Ops_Name (Type_Item)
-                      & ");"
-                    else
-                      "(Element_Type => "
-                      & Element_Type_Name
-                      & ","
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Default_Element => "
-                      & Array_Runtime_Default_Element_Name (Type_Item)
-                      & ","
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Clone_Element => "
-                      & Array_Runtime_Clone_Element_Name (Type_Item)
-                      & ","
-                      & ASCII.LF
-                      & Indentation (3)
-                      & "Free_Element => "
-                      & Array_Runtime_Free_Element_Name (Type_Item)
-                      & ");")
-                 & ASCII.LF
-                 & Indentation (1)
-                 & "subtype "
-                 & Ada_Safe_Name (Name)
-                 & " is "
-                 & Array_Runtime_Instance_Name (Type_Item)
-                 & ".Safe_Array;";
-            end;
-         end if;
-         return
-           "type "
-           & Ada_Safe_Name (Name)
-           & " is array ("
-           & Join_Names (Type_Item.Index_Types)
-           & ") of "
-           & Render_Type_Name_From_Text (FT.To_String (Type_Item.Component_Type))
-           & ";";
-      elsif Kind = "tuple" then
-         Result := SU.To_Unbounded_String ("type " & Ada_Safe_Name (Name));
-         Result := Result & SU.To_Unbounded_String (" is record" & ASCII.LF);
-         for Index in Type_Item.Tuple_Element_Types.First_Index .. Type_Item.Tuple_Element_Types.Last_Index loop
-            Result :=
-              Result
-              & SU.To_Unbounded_String
-                  (Indentation (1)
-                   & Tuple_Field_Name (Positive (Index))
-                   & " : "
-                   & Render_Type_Name_From_Text (FT.To_String (Type_Item.Tuple_Element_Types (Index)))
-                   & ";"
-                   & ASCII.LF);
-         end loop;
-         Result := Result & SU.To_Unbounded_String ("end record;");
-         return SU.To_String (Result);
-      elsif Is_Result_Builtin (Type_Item) then
-         State.Needs_Ada_Strings_Unbounded := True;
-         return
-           "type "
-           & Ada_Safe_Name (Name)
-           & " is record"
-           & ASCII.LF
-           & Indentation (1)
-           & "Ok : Boolean := True;"
-           & ASCII.LF
-           & Indentation (1)
-           & "Message : Ada.Strings.Unbounded.Unbounded_String := Ada.Strings.Unbounded.Null_Unbounded_String;"
-           & ASCII.LF
-           & Indentation (1)
-           & "end record;";
-      elsif Kind = "record" then
+      end if;
+
+      return
+        "subtype "
+        & Name
+        & " is "
+        & Ada_Safe_Name (FT.To_String (Type_Item.Base))
+        & ";";
+   end Render_Subtype_Type_Decl;
+
+   function Render_Array_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+   begin
+      if Type_Item.Growable or else Type_Item.Index_Types.Is_Empty then
          declare
-            function Is_Variant_Field_Name (Field_Name : String) return Boolean is
-            begin
-               for Field of Type_Item.Variant_Fields loop
-                  if FT.To_String (Field.Name) = Field_Name then
-                     return True;
-                  end if;
-               end loop;
-               return False;
-            end Is_Variant_Field_Name;
-
-            function Same_Choice
-              (Left, Right : GM.Variant_Field) return Boolean is
-            begin
-               return Left.Is_Others = Right.Is_Others
-                 and then
-                   (if Left.Is_Others
-                    then True
-                    else Left.Choice.Kind = Right.Choice.Kind
-                      and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
-            end Same_Choice;
-
-            function Has_Others_Choice return Boolean is
-            begin
-               for Field of Type_Item.Variant_Fields loop
-                  if Field.Is_Others then
-                     return True;
-                  end if;
-               end loop;
-               return False;
-            end Has_Others_Choice;
-
-            function Needs_Null_Others_Branch return Boolean is
-               Disc_Type : constant String :=
-                 FT.Lowercase (FT.To_String (Type_Item.Discriminant_Type));
-               Has_True  : Boolean := False;
-               Has_False : Boolean := False;
-            begin
-               if Has_Others_Choice or else Disc_Type /= "boolean" then
-                  return False;
-               end if;
-
-               for Field of Type_Item.Variant_Fields loop
-                  if Field.Choice.Kind = GM.Scalar_Value_Boolean then
-                     if Field.Choice.Bool_Value then
-                        Has_True := True;
-                     else
-                        Has_False := True;
-                     end if;
-                  end if;
-               end loop;
-               return not (Has_True and Has_False);
-            end Needs_Null_Others_Branch;
-
-            procedure Append_Missing_Enum_Null_Branches is
-               Disc_Type_Info : GM.Type_Descriptor := (others => <>);
-               Has_Disc_Type  : constant Boolean :=
-                 Has_Text (Type_Item.Discriminant_Type)
-                 and then Has_Type (Unit, Document, FT.To_String (Type_Item.Discriminant_Type));
-
-               function Has_Explicit_Choice (Choice_Name : String) return Boolean is
-               begin
-                  for Field of Type_Item.Variant_Fields loop
-                     if not Field.Is_Others
-                       and then Render_Scalar_Value (Field.Choice) = Choice_Name
-                     then
-                        return True;
-                     end if;
-                  end loop;
-                  return False;
-               end Has_Explicit_Choice;
-            begin
-               if Has_Others_Choice or else not Has_Disc_Type then
-                  return;
-               end if;
-
-               Disc_Type_Info :=
-                 Lookup_Type (Unit, Document, FT.To_String (Type_Item.Discriminant_Type));
-               if FT.To_String (Disc_Type_Info.Kind) /= "enum" then
-                  return;
-               end if;
-
-               for Literal of Disc_Type_Info.Enum_Literals loop
-                  declare
-                     Choice_Name : constant String :=
-                       Ada_Safe_Name (FT.To_String (Literal));
-                  begin
-                     if not Has_Explicit_Choice (Choice_Name) then
-                        Result :=
-                          Result
-                          & SU.To_Unbounded_String
-                              (Indentation (1)
-                               & "when "
-                               & Choice_Name
-                               & " =>"
-                               & ASCII.LF
-                               & Indentation (2)
-                               & "null;"
-                               & ASCII.LF);
-                     end if;
-                  end;
-               end loop;
-            end Append_Missing_Enum_Null_Branches;
-
-            procedure Append_Field_Line
-              (Field_Name : String;
-               Field_Type : String;
-               Depth      : Natural) is
-            begin
-               Result :=
-                 Result
-                 & SU.To_Unbounded_String
-                     (Indentation (Depth)
-                      & Field_Name
-                      & " : "
-                      & Field_Type
-                      & ";"
-                      & ASCII.LF);
-            end Append_Field_Line;
+            Identity_Runtime : constant Boolean :=
+              Uses_Identity_Array_Runtime (Unit, Document, Type_Item);
+            Runtime_Generic_Name : constant String :=
+              Array_Runtime_Generic_Name (Unit, Document, Type_Item);
+            Component_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name
+                (Unit,
+                 Document,
+                 FT.To_String (Type_Item.Component_Type));
+            Element_Type_Name : constant String :=
+              Render_Type_Name_From_Text
+                (Unit,
+                 Document,
+                 FT.To_String (Type_Item.Component_Type),
+                 State);
+            Default_Image : constant String :=
+              Default_Value_Expr (Unit, Document, Component_Info);
+            Clone_Post : constant String :=
+              (if Identity_Runtime
+               then
+                 ASCII.LF
+                 & Indentation (3)
+                 & "Post => "
+                 & Array_Runtime_Clone_Element_Name (Type_Item)
+                 & "'Result = Source;"
+               else
+                 ";");
          begin
-            Result := SU.To_Unbounded_String ("type " & Name);
-            if not Type_Item.Discriminants.Is_Empty then
-               Result :=
-                 Result
-                 & SU.To_Unbounded_String
-                     (" (");
-               for Index in Type_Item.Discriminants.First_Index .. Type_Item.Discriminants.Last_Index loop
-                  declare
-                     Disc : constant GM.Discriminant_Descriptor :=
-                       Type_Item.Discriminants (Index);
-                  begin
-                     if Index /= Type_Item.Discriminants.First_Index then
-                        Result := Result & SU.To_Unbounded_String ("; ");
-                     end if;
-                     Result :=
-                       Result
-                       & SU.To_Unbounded_String
-                           (Ada_Safe_Name (FT.To_String (Disc.Name))
-                            & " : "
-                            & Ada_Safe_Name (FT.To_String (Disc.Type_Name))
-                            & (if Disc.Has_Default
-                               then " := " & Render_Scalar_Value (Disc.Default_Value)
-                               else ""));
-                  end;
-               end loop;
-               Result := Result & SU.To_Unbounded_String (")");
-            elsif Type_Item.Has_Discriminant then
-               Result :=
-                 Result
-                 & SU.To_Unbounded_String
-                     (" ("
-                      & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Name))
-                      & " : "
-                      & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Type))
-                      & (if Type_Item.Has_Discriminant_Default
-                         then " := " & (if Type_Item.Discriminant_Default_Bool then "true" else "false")
-                         else "")
-                      & ")");
+            if Runtime_Generic_Name = "Safe_Array_RT" then
+               State.Needs_Safe_Array_RT := True;
             end if;
-            Result := Result & SU.To_Unbounded_String (" is record" & ASCII.LF);
-            for Field of Type_Item.Fields loop
-               if not Is_Variant_Field_Name (FT.To_String (Field.Name)) then
-                  Append_Field_Line
-                    (Ada_Safe_Name (FT.To_String (Field.Name)),
-                     Render_Type_Name_From_Text (FT.To_String (Field.Type_Name)),
-                     1);
+            return
+              "function "
+              & Array_Runtime_Default_Element_Name (Type_Item)
+              & " return "
+              & Element_Type_Name
+              & (if Identity_Runtime then " is (" & Default_Image & ")" else "")
+              & ASCII.LF
+              & Indentation (2)
+              & "with Global => null;"
+              & ASCII.LF
+              & Indentation (1)
+              & "function "
+              & Array_Runtime_Clone_Element_Name (Type_Item)
+              & " (Source : "
+              & Element_Type_Name
+              & ") return "
+              & Element_Type_Name
+              & (if Identity_Runtime then " is (Source)" else "")
+              & ASCII.LF
+              & Indentation (2)
+              & "with Global => null"
+              & (if Identity_Runtime then "," & Clone_Post else ";")
+              & ASCII.LF
+              & Indentation (1)
+              & "procedure "
+              & Array_Runtime_Free_Element_Name (Type_Item)
+              & " (Value : in out "
+              & Element_Type_Name
+              & ")"
+              & (if Identity_Runtime
+                 then
+                   " is null;"
+                 else
+                   ASCII.LF
+                   & Indentation (2)
+                   & "with Global => null,"
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Always_Terminates;")
+              & ASCII.LF
+              & (if Identity_Runtime
+                 then
+                   Indentation (1)
+                   & "package "
+                   & Array_Runtime_Identity_Ops_Name (Type_Item)
+                   & " is new Safe_Array_Identity_Ops"
+                   & ASCII.LF
+                   & Indentation (2)
+                   & "(Element_Type => "
+                   & Element_Type_Name
+                   & ","
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Default_Element => "
+                   & Array_Runtime_Default_Element_Name (Type_Item)
+                   & ","
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Clone_Element => "
+                   & Array_Runtime_Clone_Element_Name (Type_Item)
+                   & ","
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Free_Element => "
+                   & Array_Runtime_Free_Element_Name (Type_Item)
+                   & ");"
+                   & ASCII.LF
+                 else
+                   "")
+              & Indentation (1)
+              & "package "
+              & Array_Runtime_Instance_Name (Type_Item)
+              & " is new "
+              & Runtime_Generic_Name
+              & ASCII.LF
+              & Indentation (2)
+              & (if Identity_Runtime
+                 then
+                   "(Element_Ops => "
+                   & Array_Runtime_Identity_Ops_Name (Type_Item)
+                   & ");"
+                 else
+                   "(Element_Type => "
+                   & Element_Type_Name
+                   & ","
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Default_Element => "
+                   & Array_Runtime_Default_Element_Name (Type_Item)
+                   & ","
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Clone_Element => "
+                   & Array_Runtime_Clone_Element_Name (Type_Item)
+                   & ","
+                   & ASCII.LF
+                   & Indentation (3)
+                   & "Free_Element => "
+                   & Array_Runtime_Free_Element_Name (Type_Item)
+                   & ");")
+              & ASCII.LF
+              & Indentation (1)
+              & "subtype "
+              & Name
+              & " is "
+              & Array_Runtime_Instance_Name (Type_Item)
+              & ".Safe_Array;";
+         end;
+      end if;
+
+      return
+        "type "
+        & Name
+        & " is array ("
+        & Join_Names (Type_Item.Index_Types)
+        & ") of "
+        & Render_Type_Name_From_Text
+            (Unit,
+             Document,
+             FT.To_String (Type_Item.Component_Type),
+             State)
+        & ";";
+   end Render_Array_Type_Decl;
+
+   function Render_Tuple_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String
+   is
+      Result : SU.Unbounded_String :=
+        SU.To_Unbounded_String ("type " & Ada_Safe_Name (FT.To_String (Type_Item.Name)));
+   begin
+      Result := Result & SU.To_Unbounded_String (" is record" & ASCII.LF);
+      for Index in Type_Item.Tuple_Element_Types.First_Index .. Type_Item.Tuple_Element_Types.Last_Index loop
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (Indentation (1)
+                & Tuple_Field_Name (Positive (Index))
+                & " : "
+                & Render_Type_Name_From_Text
+                    (Unit,
+                     Document,
+                     FT.To_String (Type_Item.Tuple_Element_Types (Index)),
+                     State)
+                & ";"
+                & ASCII.LF);
+      end loop;
+      Result := Result & SU.To_Unbounded_String ("end record;");
+      return SU.To_String (Result);
+   end Render_Tuple_Type_Decl;
+
+   function Render_Result_Type_Decl
+     (Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String
+   is
+   begin
+      State.Needs_Ada_Strings_Unbounded := True;
+      return
+        "type "
+        & Ada_Safe_Name (FT.To_String (Type_Item.Name))
+        & " is record"
+        & ASCII.LF
+        & Indentation (1)
+        & "Ok : Boolean := True;"
+        & ASCII.LF
+        & Indentation (1)
+        & "Message : Ada.Strings.Unbounded.Unbounded_String := Ada.Strings.Unbounded.Null_Unbounded_String;"
+        & ASCII.LF
+        & Indentation (1)
+        & "end record;";
+   end Render_Result_Type_Decl;
+
+   function Render_Record_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String
+   is
+      Name   : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+      Result : SU.Unbounded_String;
+
+      function Is_Variant_Field_Name (Field_Name : String) return Boolean is
+      begin
+         for Field of Type_Item.Variant_Fields loop
+            if FT.To_String (Field.Name) = Field_Name then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Is_Variant_Field_Name;
+
+      function Same_Choice
+        (Left, Right : GM.Variant_Field) return Boolean is
+      begin
+         return Left.Is_Others = Right.Is_Others
+           and then
+             (if Left.Is_Others
+              then True
+              else Left.Choice.Kind = Right.Choice.Kind
+                and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
+      end Same_Choice;
+
+      function Has_Others_Choice return Boolean is
+      begin
+         for Field of Type_Item.Variant_Fields loop
+            if Field.Is_Others then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Has_Others_Choice;
+
+      function Needs_Null_Others_Branch return Boolean is
+         Disc_Type : constant String :=
+           FT.Lowercase (FT.To_String (Type_Item.Discriminant_Type));
+         Has_True  : Boolean := False;
+         Has_False : Boolean := False;
+      begin
+         if Has_Others_Choice or else Disc_Type /= "boolean" then
+            return False;
+         end if;
+
+         for Field of Type_Item.Variant_Fields loop
+            if Field.Choice.Kind = GM.Scalar_Value_Boolean then
+               if Field.Choice.Bool_Value then
+                  Has_True := True;
+               else
+                  Has_False := True;
+               end if;
+            end if;
+         end loop;
+         return not (Has_True and Has_False);
+      end Needs_Null_Others_Branch;
+
+      procedure Append_Missing_Enum_Null_Branches is
+         Disc_Type_Info : GM.Type_Descriptor := (others => <>);
+         Has_Disc_Type  : constant Boolean :=
+           Has_Text (Type_Item.Discriminant_Type)
+           and then Has_Type (Unit, Document, FT.To_String (Type_Item.Discriminant_Type));
+
+         function Has_Explicit_Choice (Choice_Name : String) return Boolean is
+         begin
+            for Field of Type_Item.Variant_Fields loop
+               if not Field.Is_Others
+                 and then Render_Scalar_Value (Field.Choice) = Choice_Name
+               then
+                  return True;
                end if;
             end loop;
-            if not Type_Item.Variant_Fields.Is_Empty then
-               Result :=
-                 Result
-                 & SU.To_Unbounded_String
-                     (Indentation (1)
-                      & "case "
-                      & Ada_Safe_Name
-                          (FT.To_String
-                          ((if Has_Text (Type_Item.Variant_Discriminant_Name)
-                            then Type_Item.Variant_Discriminant_Name
-                            else Type_Item.Discriminant_Name)))
-                      & " is"
-                      & ASCII.LF);
-               declare
-                  Index : Positive := Type_Item.Variant_Fields.First_Index;
-               begin
-                  while Index <= Type_Item.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Type_Item.Variant_Fields (Index);
-                     begin
-                        Result :=
-                          Result
-                          & SU.To_Unbounded_String
-                              (Indentation (1)
-                               & "when "
-                               & (if First_Field.Is_Others
-                                  then "others"
-                                  else Render_Scalar_Value (First_Field.Choice))
-                               & " =>"
-                               & ASCII.LF);
-                        loop
-                           Append_Field_Line
-                             (Ada_Safe_Name (FT.To_String (Type_Item.Variant_Fields (Index).Name)),
-                              Render_Type_Name_From_Text
-                                (FT.To_String (Type_Item.Variant_Fields (Index).Type_Name)),
-                              2);
-                           exit when Index = Type_Item.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Type_Item.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-               end;
-               if Needs_Null_Others_Branch then
+            return False;
+         end Has_Explicit_Choice;
+      begin
+         if Has_Others_Choice or else not Has_Disc_Type then
+            return;
+         end if;
+
+         Disc_Type_Info :=
+           Lookup_Type (Unit, Document, FT.To_String (Type_Item.Discriminant_Type));
+         if FT.To_String (Disc_Type_Info.Kind) /= "enum" then
+            return;
+         end if;
+
+         for Literal of Disc_Type_Info.Enum_Literals loop
+            declare
+               Choice_Name : constant String :=
+                 Ada_Safe_Name (FT.To_String (Literal));
+            begin
+               if not Has_Explicit_Choice (Choice_Name) then
                   Result :=
                     Result
                     & SU.To_Unbounded_String
                         (Indentation (1)
-                         & "when others =>"
+                         & "when "
+                         & Choice_Name
+                         & " =>"
                          & ASCII.LF
                          & Indentation (2)
                          & "null;"
                          & ASCII.LF);
                end if;
-               Append_Missing_Enum_Null_Branches;
+            end;
+         end loop;
+      end Append_Missing_Enum_Null_Branches;
+
+      procedure Append_Field_Line
+        (Field_Name : String;
+         Field_Type : String;
+         Depth      : Natural) is
+      begin
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (Indentation (Depth)
+                & Field_Name
+                & " : "
+                & Field_Type
+                & ";"
+                & ASCII.LF);
+      end Append_Field_Line;
+   begin
+      Result := SU.To_Unbounded_String ("type " & Name);
+      if not Type_Item.Discriminants.Is_Empty then
+         Result := Result & SU.To_Unbounded_String (" (");
+         for Index in Type_Item.Discriminants.First_Index .. Type_Item.Discriminants.Last_Index loop
+            declare
+               Disc : constant GM.Discriminant_Descriptor :=
+                 Type_Item.Discriminants (Index);
+            begin
+               if Index /= Type_Item.Discriminants.First_Index then
+                  Result := Result & SU.To_Unbounded_String ("; ");
+               end if;
                Result :=
                  Result
                  & SU.To_Unbounded_String
-                     (Indentation (1) & "end case;" & ASCII.LF);
-            end if;
-            Result :=
-              Result & SU.To_Unbounded_String ("end record;");
-            return SU.To_String (Result);
-         end;
-      elsif Kind = "access" then
-         declare
-            Target_Name : constant String := FT.To_String (Type_Item.Target);
-            Target_Decl : constant String :=
-              (if Target_Name'Length > 0
-                  and then Starts_With (Target_Name, "safe_ref_target_")
-               then "type " & Target_Name & ";" & ASCII.LF
-               else "");
-         begin
-            return
-              Target_Decl
-              & "type "
-              & Name
-              & " is "
-              & (if Type_Item.Not_Null then "not null " else "")
-              & "access "
-              & (if Type_Item.Is_Constant then "constant " else "")
-              & Target_Name
-              & ";";
-         end;
-      elsif Kind = "float" then
-         if Type_Item.Has_Digits_Text then
-            return
-              "type "
-              & Name
-              & " is digits "
-              & FT.To_String (Type_Item.Digits_Text)
-              & (if Type_Item.Has_Float_Low_Text and then Type_Item.Has_Float_High_Text
-                  then
-                    " range "
-                    & FT.To_String (Type_Item.Float_Low_Text)
-                    & " .. "
-                    & FT.To_String (Type_Item.Float_High_Text)
-                  else
-                    "")
-              & ";";
+                     (Ada_Safe_Name (FT.To_String (Disc.Name))
+                      & " : "
+                      & Ada_Safe_Name (FT.To_String (Disc.Type_Name))
+                      & (if Disc.Has_Default
+                         then " := " & Render_Scalar_Value (Disc.Default_Value)
+                         else ""));
+            end;
+         end loop;
+         Result := Result & SU.To_Unbounded_String (")");
+      elsif Type_Item.Has_Discriminant then
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (" ("
+                & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Name))
+                & " : "
+                & Ada_Safe_Name (FT.To_String (Type_Item.Discriminant_Type))
+                & (if Type_Item.Has_Discriminant_Default
+                   then " := " & (if Type_Item.Discriminant_Default_Bool then "true" else "false")
+                   else "")
+                & ")");
+      end if;
+      Result := Result & SU.To_Unbounded_String (" is record" & ASCII.LF);
+      for Field of Type_Item.Fields loop
+         if not Is_Variant_Field_Name (FT.To_String (Field.Name)) then
+            Append_Field_Line
+              (Ada_Safe_Name (FT.To_String (Field.Name)),
+               Render_Type_Name_From_Text
+                 (Unit,
+                  Document,
+                  FT.To_String (Field.Type_Name),
+                  State),
+               1);
          end if;
-         return "type " & Name & " is digits 6;";
+      end loop;
+      if not Type_Item.Variant_Fields.Is_Empty then
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (Indentation (1)
+                & "case "
+                & Ada_Safe_Name
+                    (FT.To_String
+                       ((if Has_Text (Type_Item.Variant_Discriminant_Name)
+                         then Type_Item.Variant_Discriminant_Name
+                         else Type_Item.Discriminant_Name)))
+                & " is"
+                & ASCII.LF);
+         declare
+            Index : Positive := Type_Item.Variant_Fields.First_Index;
+         begin
+            while Index <= Type_Item.Variant_Fields.Last_Index loop
+               declare
+                  First_Field : constant GM.Variant_Field :=
+                    Type_Item.Variant_Fields (Index);
+               begin
+                  Result :=
+                    Result
+                    & SU.To_Unbounded_String
+                        (Indentation (1)
+                         & "when "
+                         & (if First_Field.Is_Others
+                            then "others"
+                            else Render_Scalar_Value (First_Field.Choice))
+                         & " =>"
+                         & ASCII.LF);
+                  loop
+                     Append_Field_Line
+                       (Ada_Safe_Name (FT.To_String (Type_Item.Variant_Fields (Index).Name)),
+                        Render_Type_Name_From_Text
+                          (Unit,
+                           Document,
+                           FT.To_String (Type_Item.Variant_Fields (Index).Type_Name),
+                           State),
+                        2);
+                     exit when Index = Type_Item.Variant_Fields.Last_Index;
+                     exit when not Same_Choice
+                       (First_Field,
+                        Type_Item.Variant_Fields (Index + 1));
+                     Index := Index + 1;
+                  end loop;
+                  Index := Index + 1;
+               end;
+            end loop;
+         end;
+         if Needs_Null_Others_Branch then
+            Result :=
+              Result
+              & SU.To_Unbounded_String
+                  (Indentation (1)
+                   & "when others =>"
+                   & ASCII.LF
+                   & Indentation (2)
+                   & "null;"
+                   & ASCII.LF);
+         end if;
+         Append_Missing_Enum_Null_Branches;
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (Indentation (1) & "end case;" & ASCII.LF);
+      end if;
+      Result := Result & SU.To_Unbounded_String ("end record;");
+      return SU.To_String (Result);
+   end Render_Record_Type_Decl;
+
+   function Render_Access_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+      Target_Name : constant String := FT.To_String (Type_Item.Target);
+      Target_Decl : constant String :=
+        (if Target_Name'Length > 0
+            and then Starts_With (Target_Name, "safe_ref_target_")
+         then "type " & Target_Name & ";" & ASCII.LF
+         else "");
+   begin
+      return
+        Target_Decl
+        & "type "
+        & Name
+        & " is "
+        & (if Type_Item.Not_Null then "not null " else "")
+        & "access "
+        & (if Type_Item.Is_Constant then "constant " else "")
+        & Target_Name
+        & ";";
+   end Render_Access_Type_Decl;
+
+   function Render_Float_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+   begin
+      if Type_Item.Has_Digits_Text then
+         return
+           "type "
+           & Name
+           & " is digits "
+           & FT.To_String (Type_Item.Digits_Text)
+           & (if Type_Item.Has_Float_Low_Text and then Type_Item.Has_Float_High_Text
+               then
+                 " range "
+                 & FT.To_String (Type_Item.Float_Low_Text)
+                 & " .. "
+                 & FT.To_String (Type_Item.Float_High_Text)
+               else
+                 "")
+           & ";";
+      end if;
+      return "type " & Name & " is digits 6;";
+   end Render_Float_Type_Decl;
+
+   function Render_Type_Decl
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Type_Item : GM.Type_Descriptor;
+      State     : in out Emit_State) return String
+   is
+      Kind : constant String := FT.To_String (Type_Item.Kind);
+   begin
+      if Kind = "incomplete" then
+         return "type " & Ada_Safe_Name (FT.To_String (Type_Item.Name)) & ";";
+      elsif Kind = "integer" then
+         return Render_Integer_Type_Decl (Type_Item);
+      elsif Kind = "enum" then
+         return Render_Enum_Type_Decl (Type_Item);
+      elsif Kind = "binary" then
+         return Render_Binary_Type_Decl (Type_Item);
+      elsif Kind = "subtype" then
+         return Render_Subtype_Type_Decl (Unit, Document, Type_Item);
+      elsif Kind = "array" then
+         return Render_Array_Type_Decl (Unit, Document, Type_Item, State);
+      elsif Kind = "tuple" then
+         return Render_Tuple_Type_Decl (Unit, Document, Type_Item, State);
+      elsif Is_Result_Builtin (Type_Item) then
+         return Render_Result_Type_Decl (Type_Item, State);
+      elsif Kind = "record" then
+         return Render_Record_Type_Decl (Unit, Document, Type_Item, State);
+      elsif Kind = "access" then
+         return Render_Access_Type_Decl (Type_Item);
+      elsif Kind = "float" then
+         return Render_Float_Type_Decl (Type_Item);
       end if;
 
       Raise_Unsupported
@@ -11834,6 +12037,686 @@ package body Safe_Frontend.Ada_Emit is
         & "))";
    end Render_Binary_Operation_Image;
 
+   function Render_Select_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Prefix_Image    : constant String := Render_Expr (Unit, Document, Expr.Prefix, State);
+      Selected_Prefix : constant String :=
+        (if Needs_Implicit_Dereference (Unit, Document, Expr.Prefix)
+         then Prefix_Image & ".all"
+         else Prefix_Image);
+      Selector_Name   : constant String := FT.To_String (Expr.Selector);
+   begin
+      if Selector_Name = "length"
+        and then Expr.Prefix /= null
+        and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
+      then
+         declare
+            Prefix_Type : constant GM.Type_Descriptor :=
+              Base_Type (Unit, Document, Expr_Type_Info (Unit, Document, Expr.Prefix));
+            Static_Length : Natural;
+         begin
+            if Expr.Prefix.Kind = CM.Expr_Ident
+              and then Try_Static_Length
+                (State,
+                 FT.To_String (Expr.Prefix.Name),
+                 Static_Length)
+            then
+               return "Long_Long_Integer (" & Trim_Wide_Image (CM.Wide_Integer (Static_Length)) & ")";
+            end if;
+
+            if Is_Bounded_String_Type (Prefix_Type) then
+               Register_Bounded_String_Type (State, Prefix_Type);
+               return
+                 "Long_Long_Integer ("
+                 & Bounded_String_Instance_Name (Prefix_Type)
+                 & ".Length ("
+                 & Prefix_Image
+                 & "))";
+            elsif FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "string" then
+               return Render_String_Length_Expr (Unit, Document, Expr.Prefix, State);
+            elsif FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "array" then
+               if Is_Growable_Array_Type (Unit, Document, Prefix_Type) then
+                  State.Needs_Safe_Array_RT := True;
+                  return
+                    "Long_Long_Integer ("
+                    & Array_Runtime_Instance_Name (Prefix_Type)
+                    & ".Length ("
+                    & Prefix_Image
+                    & "))";
+               end if;
+               return "Long_Long_Integer (" & Prefix_Image & "'Length)";
+            end if;
+         end;
+      elsif Selector_Name = "access"
+        and then Expr.Prefix /= null
+        and then Has_Text (Expr.Prefix.Type_Name)
+        and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
+        and then Is_Access_Type (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
+      then
+         return Prefix_Image;
+      elsif Is_Attribute_Selector (Selector_Name)
+        and then not
+          (Expr.Prefix /= null
+           and then Expr.Prefix.Kind = CM.Expr_Select
+           and then FT.To_String (Expr.Prefix.Selector) = "all")
+        and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
+      then
+         return Prefix_Image & "'" & Selector_Name;
+      elsif Selector_Name'Length > 0
+        and then Selector_Name (Selector_Name'First) in '0' .. '9'
+      then
+         return
+           Prefix_Image
+           & "."
+           & Tuple_Field_Name (Positive (Natural'Value (Selector_Name)));
+      elsif Expr.Prefix /= null
+        and then FT.Lowercase (Selector_Name) = "message"
+        and then Has_Text (Expr.Prefix.Type_Name)
+        and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
+        and then Is_Result_Builtin
+          (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
+      then
+         State.Needs_Ada_Strings_Unbounded := True;
+         return "Ada.Strings.Unbounded.To_String (" & Prefix_Image & ".Message)";
+      end if;
+
+      return Selected_Prefix & "." & Ada_Safe_Name (Selector_Name);
+   end Render_Select_Expr;
+
+   function Render_Resolved_Index_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Result : SU.Unbounded_String;
+   begin
+      if Expr.Prefix /= null and then Has_Text (Expr.Prefix.Type_Name) then
+         declare
+            Prefix_Type : GM.Type_Descriptor := (others => <>);
+            Has_Prefix_Type : Boolean := False;
+         begin
+            if Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)) then
+               Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name));
+               Has_Prefix_Type := True;
+            else
+               Prefix_Type :=
+                 Synthetic_Bounded_String_Type
+                   (FT.To_String (Expr.Prefix.Type_Name), Has_Prefix_Type);
+            end if;
+
+            if Has_Prefix_Type
+              and then FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "string"
+            then
+               return Render_String_Expr (Unit, Document, Expr, State);
+            elsif Has_Prefix_Type
+              and then Is_Growable_Array_Type (Unit, Document, Prefix_Type)
+            then
+               return
+                 Render_Growable_Array_Expr
+                   (Unit, Document, Expr, Prefix_Type, State);
+            elsif Has_Prefix_Type
+              and then FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "array"
+              and then Natural (Expr.Args.Length) = 2
+              and then Natural (Prefix_Type.Index_Types.Length) = 1
+            then
+               return
+                 (if Needs_Implicit_Dereference (Unit, Document, Expr.Prefix)
+                  then Render_Expr (Unit, Document, Expr.Prefix, State) & ".all"
+                  else Render_Expr (Unit, Document, Expr.Prefix, State))
+                 & " ("
+                 & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index), State)
+                 & " .. "
+                 & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index + 1), State)
+                 & ")";
+            end if;
+         end;
+      end if;
+
+      Result :=
+        SU.To_Unbounded_String
+          ((if Needs_Implicit_Dereference (Unit, Document, Expr.Prefix)
+            then Render_Expr (Unit, Document, Expr.Prefix, State) & ".all"
+            else Render_Expr (Unit, Document, Expr.Prefix, State))
+           & " (");
+      for Index in Expr.Args.First_Index .. Expr.Args.Last_Index loop
+         if Index /= Expr.Args.First_Index then
+            Result := Result & SU.To_Unbounded_String (", ");
+         end if;
+         Result :=
+           Result
+           & SU.To_Unbounded_String
+               (Render_Expr (Unit, Document, Expr.Args (Index), State));
+      end loop;
+      Result := Result & SU.To_Unbounded_String (")");
+      return SU.To_String (Result);
+   end Render_Resolved_Index_Expr;
+
+   function Render_Conversion_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Target_Name_Text : constant String :=
+        (if Has_Text (Expr.Type_Name)
+         then FT.To_String (Expr.Type_Name)
+         elsif Expr.Target /= null and then Has_Text (Expr.Target.Type_Name)
+         then FT.To_String (Expr.Target.Type_Name)
+         else "");
+      Target_Image : constant String :=
+        (if Has_Text (Expr.Type_Name)
+         then Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name))
+         elsif Expr.Target /= null
+         then Render_Expr (Unit, Document, Expr.Target, State)
+         else "");
+      Inner_Image : constant String :=
+        Render_Expr (Unit, Document, Expr.Inner, State);
+   begin
+      if Target_Name_Text'Length > 0
+        and then Is_Binary_Type (Unit, Document, Target_Name_Text)
+      then
+         return Target_Image & "'Mod (" & Inner_Image & ")";
+      end if;
+      return Target_Image & " (" & Inner_Image & ")";
+   end Render_Conversion_Expr;
+
+   function Render_Call_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Result       : SU.Unbounded_String;
+      Callee_Flat  : constant String := CM.Flatten_Name (Expr.Callee);
+      Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
+      Static_Length : Natural;
+      Callee_Image : constant String :=
+        (if Expr.Callee /= null
+          and then Expr.Callee.Kind = CM.Expr_Select
+          and then FT.To_String (Expr.Callee.Selector) = "access"
+          and then Expr.Callee.Prefix /= null
+          and then Has_Text (Expr.Callee.Prefix.Type_Name)
+          and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
+          and then Is_Access_Type
+            (Lookup_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name)))
+         then
+           Render_Expr (Unit, Document, Expr.Callee.Prefix, State)
+         elsif Expr.Callee /= null
+          and then Expr.Callee.Kind = CM.Expr_Select
+          and then Is_Attribute_Selector (FT.To_String (Expr.Callee.Selector))
+          and then not
+            (Expr.Callee.Prefix /= null
+             and then Expr.Callee.Prefix.Kind = CM.Expr_Select
+             and then FT.To_String (Expr.Callee.Prefix.Selector) = "all")
+          and then not
+            Selector_Is_Record_Field
+              (Unit,
+               Document,
+               Expr.Callee.Prefix,
+               FT.To_String (Expr.Callee.Selector))
+         then
+           Render_Expr (Unit, Document, Expr.Callee.Prefix, State)
+           & "'"
+           & FT.To_String (Expr.Callee.Selector)
+         else Render_Expr (Unit, Document, Expr.Callee, State));
+   begin
+      if Natural (Expr.Args.Length) = 1
+        and then Lower_Callee'Length >= 7
+        and then Lower_Callee (Lower_Callee'Last - 6 .. Lower_Callee'Last) = ".length"
+        and then Expr.Args (Expr.Args.First_Index) /= null
+        and then Expr.Args (Expr.Args.First_Index).Kind = CM.Expr_Ident
+        and then Try_Static_Length
+          (State,
+           FT.To_String (Expr.Args (Expr.Args.First_Index).Name),
+           Static_Length)
+      then
+         return Trim_Wide_Image (CM.Wide_Integer (Static_Length));
+      elsif Lower_Callee = "ok" and then Expr.Args.Is_Empty then
+         State.Needs_Ada_Strings_Unbounded := True;
+         return Render_Result_Empty_Aggregate;
+      elsif Lower_Callee = "fail" and then Natural (Expr.Args.Length) = 1 then
+         State.Needs_Ada_Strings_Unbounded := True;
+         return
+           Render_Result_Fail_Aggregate
+             (Render_String_Expr
+                (Unit,
+                 Document,
+                 Expr.Args (Expr.Args.First_Index),
+                 State));
+      end if;
+
+      if Expr.Args.Is_Empty then
+         return Callee_Image;
+      end if;
+
+      Result := SU.To_Unbounded_String (Callee_Image & " (");
+      for Index in Expr.Args.First_Index .. Expr.Args.Last_Index loop
+         declare
+            Arg_Image  : SU.Unbounded_String;
+            Used_Formal : Boolean := False;
+         begin
+            if Index /= Expr.Args.First_Index then
+               Result := Result & SU.To_Unbounded_String (", ");
+            end if;
+
+            for Param of Unit.Subprograms loop
+               if FT.Lowercase (FT.To_String (Param.Name)) = Lower_Callee
+                 or else
+                   FT.Lowercase
+                     (FT.To_String (Unit.Package_Name) & "." & FT.To_String (Param.Name)) = Lower_Callee
+               then
+                  declare
+                     Position : Natural := 0;
+                  begin
+                     for Formal of Param.Params loop
+                        Position := Position + 1;
+                        exit when Position > Natural (Index);
+                        if Position = Natural (Index) then
+                           if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
+                              Arg_Image :=
+                                SU.To_Unbounded_String
+                                  (Render_Expr_For_Target_Type
+                                     (Unit,
+                                      Document,
+                                      Expr.Args (Index),
+                                      Formal.Type_Info,
+                                      State));
+                           else
+                              Arg_Image :=
+                                SU.To_Unbounded_String
+                                  (Render_Expr (Unit, Document, Expr.Args (Index), State));
+                           end if;
+                           Used_Formal := True;
+                           exit;
+                        end if;
+                     end loop;
+                  end;
+                  exit when Used_Formal;
+               end if;
+            end loop;
+
+            if not Used_Formal and then Expr.Callee /= null then
+               declare
+                  Shared_Formal_Found : Boolean := False;
+                  Shared_Formal_Type  : GM.Type_Descriptor :=
+                    Shared_Call_Formal_Type
+                      (Unit,
+                       Document,
+                       Expr,
+                       Positive (Index),
+                       Shared_Formal_Found);
+               begin
+                  if Shared_Formal_Found then
+                     Arg_Image :=
+                       SU.To_Unbounded_String
+                         (Render_Expr_For_Target_Type
+                            (Unit,
+                             Document,
+                             Expr.Args (Index),
+                             Shared_Formal_Type,
+                             State));
+                     Used_Formal := True;
+                  end if;
+               end;
+            end if;
+
+            if not Used_Formal then
+               declare
+                  Arg_Type : GM.Type_Descriptor := (others => <>);
+                  Maybe_Shared_Call : constant Boolean :=
+                    Ada.Strings.Fixed.Index (Lower_Callee, "safe_shared_") > 0
+                    or else Ada.Strings.Fixed.Index (Lower_Callee, "safe_public_shared_") > 0;
+               begin
+                  if Maybe_Shared_Call
+                    and then Expr.Args (Index) /= null
+                    and then Expr.Args (Index).Kind = CM.Expr_String
+                  then
+                    Arg_Type := Expr_Type_Info (Unit, Document, Expr.Args (Index));
+                  end if;
+
+                  if Has_Text (Arg_Type.Name)
+                    and then
+                      (Is_Plain_String_Type (Unit, Document, Arg_Type)
+                       or else Is_Bounded_String_Type (Arg_Type))
+                  then
+                     Arg_Image :=
+                       SU.To_Unbounded_String
+                         (Render_Expr_For_Target_Type
+                            (Unit,
+                             Document,
+                             Expr.Args (Index),
+                             Arg_Type,
+                             State));
+                  else
+                     Arg_Image :=
+                       SU.To_Unbounded_String
+                         (Render_Expr (Unit, Document, Expr.Args (Index), State));
+                  end if;
+               end;
+            end if;
+
+            Result := Result & Arg_Image;
+         end;
+      end loop;
+      Result := Result & SU.To_Unbounded_String (")");
+      return SU.To_String (Result);
+   end Render_Call_Expr;
+
+   function Render_Aggregate_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Result          : SU.Unbounded_String := SU.To_Unbounded_String ("(");
+      Target_Info     : GM.Type_Descriptor := (others => <>);
+      Has_Target_Info : constant Boolean :=
+        Has_Text (Expr.Type_Name)
+        and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+
+      function Aggregate_Field_Type (Field_Name : String) return GM.Type_Descriptor is
+      begin
+         if not Has_Target_Info then
+            return (others => <>);
+         end if;
+
+         for Disc of Target_Info.Discriminants loop
+            if FT.To_String (Disc.Name) = Field_Name then
+               return Resolve_Type_Name (Unit, Document, FT.To_String (Disc.Type_Name));
+            end if;
+         end loop;
+         if Target_Info.Has_Discriminant
+           and then FT.To_String (Target_Info.Discriminant_Name) = Field_Name
+         then
+            return Resolve_Type_Name (Unit, Document, FT.To_String (Target_Info.Discriminant_Type));
+         end if;
+         for Record_Field of Target_Info.Fields loop
+            if FT.To_String (Record_Field.Name) = Field_Name then
+               return Resolve_Type_Name (Unit, Document, FT.To_String (Record_Field.Type_Name));
+            end if;
+         end loop;
+         return (others => <>);
+      end Aggregate_Field_Type;
+   begin
+      if Has_Target_Info then
+         Target_Info := Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+      end if;
+      for Index in Expr.Fields.First_Index .. Expr.Fields.Last_Index loop
+         declare
+            Field        : constant CM.Aggregate_Field := Expr.Fields (Index);
+            Field_Target : constant GM.Type_Descriptor :=
+              Aggregate_Field_Type (FT.To_String (Field.Field_Name));
+         begin
+            if Index /= Expr.Fields.First_Index then
+               Result := Result & SU.To_Unbounded_String (", ");
+            end if;
+            Result :=
+              Result
+              & SU.To_Unbounded_String
+                  (Ada_Safe_Name (FT.To_String (Field.Field_Name))
+                   & " => "
+                   & (if Has_Text (Field_Target.Name)
+                      then Render_Expr_For_Target_Type
+                        (Unit, Document, Field.Expr, Field_Target, State)
+                      else Render_Expr (Unit, Document, Field.Expr, State)));
+         end;
+      end loop;
+      Result := Result & SU.To_Unbounded_String (")");
+      return SU.To_String (Result);
+   end Render_Aggregate_Expr;
+
+   function Render_Tuple_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Result : SU.Unbounded_String := SU.Null_Unbounded_String;
+      Is_Array_Target : constant Boolean :=
+        Has_Text (Expr.Type_Name)
+        and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+        and then Is_Array_Type
+          (Unit,
+           Document,
+           Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name)));
+      First_Association : Boolean := True;
+   begin
+      if Is_Array_Target then
+         return Render_Positional_Tuple_Aggregate (Unit, Document, Expr, State);
+      end if;
+
+      Result := SU.To_Unbounded_String ("(");
+      for Index in Expr.Elements.First_Index .. Expr.Elements.Last_Index loop
+         declare
+            Target_Info : GM.Type_Descriptor := (others => <>);
+            Has_Target  : Boolean := False;
+         begin
+            if Has_Text (Expr.Type_Name)
+              and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+            then
+               declare
+                  Tuple_Info : constant GM.Type_Descriptor :=
+                    Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+               begin
+                  if Is_Tuple_Type (Tuple_Info)
+                    and then Index <= Tuple_Info.Tuple_Element_Types.Last_Index
+                  then
+                     Target_Info :=
+                       Resolve_Type_Name
+                         (Unit,
+                          Document,
+                          FT.To_String (Tuple_Info.Tuple_Element_Types (Index)));
+                     Has_Target := True;
+                  end if;
+               end;
+            end if;
+
+            if not Has_Target
+              and then Expr.Elements (Index) /= null
+              and then Has_Text (Expr.Elements (Index).Type_Name)
+            then
+               Target_Info :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String (Expr.Elements (Index).Type_Name));
+               Has_Target := Has_Text (Target_Info.Name);
+            end if;
+
+            if not First_Association then
+               Result := Result & SU.To_Unbounded_String (", ");
+            end if;
+            Result :=
+              Result
+              & SU.To_Unbounded_String
+                  (Tuple_Field_Name (Positive (Index))
+                   & " => "
+                   & (if Has_Target
+                      then Render_Expr_For_Target_Type
+                        (Unit,
+                         Document,
+                         Expr.Elements (Index),
+                         Target_Info,
+                         State)
+                      else Render_Expr
+                        (Unit,
+                         Document,
+                         Expr.Elements (Index),
+                         State)));
+            First_Association := False;
+         end;
+      end loop;
+      Result := Result & SU.To_Unbounded_String (")");
+      return SU.To_String (Result);
+   end Render_Tuple_Expr;
+
+   function Render_Annotated_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Target_Name     : constant String := Root_Name (Expr.Target);
+      Is_Array_Target : constant Boolean :=
+        Target_Name'Length > 0
+        and then Has_Type (Unit, Document, Target_Name)
+        and then Is_Array_Type
+          (Unit,
+           Document,
+           Lookup_Type (Unit, Document, Target_Name));
+   begin
+      if Expr.Inner /= null
+        and then Expr.Inner.Kind = CM.Expr_Tuple
+        and then Is_Array_Target
+      then
+         return
+           Render_Expr (Unit, Document, Expr.Target, State)
+           & "'"
+           & Render_Positional_Tuple_Aggregate
+               (Unit, Document, Expr.Inner, State);
+      end if;
+
+      return
+        Render_Expr (Unit, Document, Expr.Target, State)
+        & "'"
+        & (if Expr.Inner /= null and then Expr.Inner.Kind = CM.Expr_Aggregate
+           then Render_Expr (Unit, Document, Expr.Inner, State)
+           else "(" & Render_Expr (Unit, Document, Expr.Inner, State) & ")");
+   end Render_Annotated_Expr;
+
+   function Render_Unary_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+   begin
+      if FT.To_String (Expr.Operator) = "not"
+        and then Has_Text (Expr.Type_Name)
+        and then Is_Binary_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+      then
+         return
+           Render_Binary_Unary_Image
+             (Unit,
+              Document,
+              Expr,
+              Render_Expr (Unit, Document, Expr.Inner, State));
+      end if;
+      return
+        "("
+        & Map_Operator (FT.To_String (Expr.Operator))
+        & (if FT.To_String (Expr.Operator) = "not" then " " else "")
+        & Render_Expr (Unit, Document, Expr.Inner, State)
+        & ")";
+   end Render_Unary_Expr;
+
+   function Render_Binary_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      State    : in out Emit_State) return String
+   is
+      Left_Type  : GM.Type_Descriptor := (others => <>);
+      Right_Type : GM.Type_Descriptor := (others => <>);
+
+      function Is_Stringish_Expr
+        (Item : CM.Expr_Access;
+         Info : out GM.Type_Descriptor) return Boolean
+      is
+      begin
+         Info := (others => <>);
+         if Item = null then
+            return False;
+         elsif Item.Kind = CM.Expr_String then
+            Info := BT.String_Type;
+            return True;
+         else
+            Info := Expr_Type_Info (Unit, Document, Item);
+            if Has_Text (Info.Kind) or else Has_Text (Info.Name) then
+               return True;
+            end if;
+            return Resolve_Print_Type (Unit, Document, Item, State, Info);
+         end if;
+      end Is_Stringish_Expr;
+
+      function Is_Stringish_Type (Info : GM.Type_Descriptor) return Boolean is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+         Name : constant String := FT.Lowercase (FT.To_String (Base.Name));
+      begin
+         return
+           Is_Plain_String_Type (Unit, Document, Info)
+           or else Is_Bounded_String_Type (Info)
+           or else Kind = "string"
+           or else Name = "string";
+      end Is_Stringish_Type;
+
+      Has_Left_Type  : constant Boolean := Is_Stringish_Expr (Expr.Left, Left_Type);
+      Has_Right_Type : constant Boolean := Is_Stringish_Expr (Expr.Right, Right_Type);
+   begin
+      if Has_Text (Expr.Type_Name)
+        and then Is_Float_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+      then
+         declare
+            Convex_Image : constant String :=
+              Render_Float_Convex_Combination (Unit, Document, Expr, State);
+         begin
+            if Convex_Image'Length > 0 then
+               return Convex_Image;
+            end if;
+         end;
+      end if;
+
+      if Expr.Left /= null
+        and then Expr.Right /= null
+        and then Has_Left_Type
+        and then Has_Right_Type
+        and then Is_Stringish_Type (Left_Type)
+        and then Is_Stringish_Type (Right_Type)
+      then
+         declare
+            Left_Image  : constant String := Render_String_Expr (Unit, Document, Expr.Left, State);
+            Right_Image : constant String := Render_String_Expr (Unit, Document, Expr.Right, State);
+            Operator    : constant String := FT.To_String (Expr.Operator);
+         begin
+            if Operator in "==" | "=" | "!=" | "/=" then
+               return "(" & Left_Image & " " & Map_Operator (Operator) & " " & Right_Image & ")";
+            elsif Operator in "<" | "<=" | ">" | ">=" then
+               return "(" & Left_Image & " " & Map_Operator (Operator) & " " & Right_Image & ")";
+            elsif Operator = "&" then
+               return "(" & Left_Image & " & " & Right_Image & ")";
+            end if;
+         end;
+      end if;
+
+      if Expr.Left /= null
+        and then Has_Text (Expr.Left.Type_Name)
+        and then Is_Binary_Type (Unit, Document, FT.To_String (Expr.Left.Type_Name))
+      then
+         return
+           Render_Binary_Operation_Image
+             (Unit,
+              Document,
+              Expr,
+              Render_Expr (Unit, Document, Expr.Left, State),
+              Render_Expr (Unit, Document, Expr.Right, State));
+      end if;
+
+      return
+        "("
+        & Render_Expr (Unit, Document, Expr.Left, State)
+        & " "
+        & Map_Operator (FT.To_String (Expr.Operator))
+        & " "
+        & Render_Expr (Unit, Document, Expr.Right, State)
+        & ")";
+   end Render_Binary_Expr;
+
    function Render_Expr
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -11954,652 +12837,25 @@ package body Safe_Frontend.Ada_Emit is
             end if;
             return Ada_Safe_Name (FT.To_String (Expr.Name));
          when CM.Expr_Select =>
-            declare
-               Prefix_Image  : constant String := Render_Expr (Unit, Document, Expr.Prefix, State);
-               Selected_Prefix : constant String :=
-                 (if Needs_Implicit_Dereference (Unit, Document, Expr.Prefix)
-                  then Prefix_Image & ".all"
-                  else Prefix_Image);
-               Selector_Name : constant String := FT.To_String (Expr.Selector);
-            begin
-               if Selector_Name = "length"
-                 and then Expr.Prefix /= null
-                 and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
-               then
-                  declare
-                     Prefix_Type : constant GM.Type_Descriptor :=
-                       Base_Type (Unit, Document, Expr_Type_Info (Unit, Document, Expr.Prefix));
-                     Static_Length : Natural;
-                  begin
-                     if Expr.Prefix.Kind = CM.Expr_Ident
-                       and then Try_Static_Length
-                         (State,
-                          FT.To_String (Expr.Prefix.Name),
-                          Static_Length)
-                     then
-                        return "Long_Long_Integer ("
-                          & Trim_Wide_Image (CM.Wide_Integer (Static_Length))
-                          & ")";
-                     end if;
-
-                     if Is_Bounded_String_Type (Prefix_Type) then
-                        Register_Bounded_String_Type (State, Prefix_Type);
-                        return
-                          "Long_Long_Integer ("
-                          & Bounded_String_Instance_Name (Prefix_Type)
-                          & ".Length ("
-                          & Prefix_Image
-                          & "))";
-                     elsif FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "string"
-                     then
-                        return Render_String_Length_Expr (Unit, Document, Expr.Prefix, State);
-                     elsif FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "array"
-                     then
-                        if Is_Growable_Array_Type (Unit, Document, Prefix_Type) then
-                           State.Needs_Safe_Array_RT := True;
-                           return
-                             "Long_Long_Integer ("
-                             & Array_Runtime_Instance_Name (Prefix_Type)
-                             & ".Length ("
-                             & Prefix_Image
-                             & "))";
-                        end if;
-                        return "Long_Long_Integer (" & Prefix_Image & "'Length)";
-                     end if;
-                  end;
-               elsif Selector_Name = "access"
-                 and then Expr.Prefix /= null
-                 and then Has_Text (Expr.Prefix.Type_Name)
-                 and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
-                 and then Is_Access_Type (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
-               then
-                  return Prefix_Image;
-               elsif Is_Attribute_Selector (Selector_Name)
-                 and then not
-                   (Expr.Prefix /= null
-                    and then Expr.Prefix.Kind = CM.Expr_Select
-                    and then FT.To_String (Expr.Prefix.Selector) = "all")
-                 and then not Selector_Is_Record_Field (Unit, Document, Expr.Prefix, Selector_Name)
-               then
-                  return Prefix_Image & "'" & Selector_Name;
-               elsif Selector_Name'Length > 0
-                 and then Selector_Name (Selector_Name'First) in '0' .. '9'
-               then
-                  return
-                    Prefix_Image
-                    & "."
-                    & Tuple_Field_Name (Positive (Natural'Value (Selector_Name)));
-               elsif Expr.Prefix /= null
-                 and then FT.Lowercase (Selector_Name) = "message"
-                 and then Has_Text (Expr.Prefix.Type_Name)
-                 and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
-                 and then Is_Result_Builtin
-                   (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
-               then
-                  State.Needs_Ada_Strings_Unbounded := True;
-                  return "Ada.Strings.Unbounded.To_String (" & Prefix_Image & ".Message)";
-               end if;
-               return Selected_Prefix & "." & Ada_Safe_Name (Selector_Name);
-            end;
+            return Render_Select_Expr (Unit, Document, Expr, State);
          when CM.Expr_Resolved_Index =>
-            if Expr.Prefix /= null
-              and then Has_Text (Expr.Prefix.Type_Name)
-            then
-               declare
-                  Prefix_Type : GM.Type_Descriptor := (others => <>);
-                  Has_Prefix_Type : Boolean := False;
-               begin
-                  if Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)) then
-                     Prefix_Type := Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name));
-                     Has_Prefix_Type := True;
-                  else
-                     Prefix_Type :=
-                       Synthetic_Bounded_String_Type
-                         (FT.To_String (Expr.Prefix.Type_Name), Has_Prefix_Type);
-                  end if;
-
-                  if Has_Prefix_Type
-                    and then FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "string"
-                  then
-                     return Render_String_Expr (Unit, Document, Expr, State);
-                  elsif Has_Prefix_Type
-                    and then Is_Growable_Array_Type (Unit, Document, Prefix_Type)
-                  then
-                     return
-                       Render_Growable_Array_Expr
-                         (Unit, Document, Expr, Prefix_Type, State);
-                  elsif Has_Prefix_Type
-                    and then FT.Lowercase (FT.To_String (Prefix_Type.Kind)) = "array"
-                    and then Natural (Expr.Args.Length) = 2
-                    and then Natural (Prefix_Type.Index_Types.Length) = 1
-                  then
-                     return
-                       (if Needs_Implicit_Dereference (Unit, Document, Expr.Prefix)
-                        then Render_Expr (Unit, Document, Expr.Prefix, State) & ".all"
-                        else Render_Expr (Unit, Document, Expr.Prefix, State))
-                       & " ("
-                       & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index), State)
-                       & " .. "
-                       & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index + 1), State)
-                       & ")";
-                  end if;
-               end;
-            end if;
-            Result :=
-              SU.To_Unbounded_String
-                ((if Needs_Implicit_Dereference (Unit, Document, Expr.Prefix)
-                  then Render_Expr (Unit, Document, Expr.Prefix, State) & ".all"
-                  else Render_Expr (Unit, Document, Expr.Prefix, State))
-                 & " (");
-            for Index in Expr.Args.First_Index .. Expr.Args.Last_Index loop
-               if Index /= Expr.Args.First_Index then
-                  Result := Result & SU.To_Unbounded_String (", ");
-               end if;
-               Result :=
-                 Result
-                 & SU.To_Unbounded_String
-                     (Render_Expr (Unit, Document, Expr.Args (Index), State));
-            end loop;
-            Result := Result & SU.To_Unbounded_String (")");
-            return SU.To_String (Result);
+            return Render_Resolved_Index_Expr (Unit, Document, Expr, State);
          when CM.Expr_Conversion =>
-            declare
-               Target_Name_Text : constant String :=
-                 (if Has_Text (Expr.Type_Name)
-                  then FT.To_String (Expr.Type_Name)
-                  elsif Expr.Target /= null and then Has_Text (Expr.Target.Type_Name)
-                  then FT.To_String (Expr.Target.Type_Name)
-                  else "");
-               Target_Image : constant String :=
-                 (if Has_Text (Expr.Type_Name)
-                     then Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name))
-                  elsif Expr.Target /= null
-                     then Render_Expr (Unit, Document, Expr.Target, State)
-                  else "");
-               Inner_Image : constant String :=
-                 Render_Expr (Unit, Document, Expr.Inner, State);
-            begin
-               if Target_Name_Text'Length > 0
-                 and then Is_Binary_Type (Unit, Document, Target_Name_Text)
-               then
-                  return Target_Image & "'Mod (" & Inner_Image & ")";
-               end if;
-               return Target_Image & " (" & Inner_Image & ")";
-            end;
+            return Render_Conversion_Expr (Unit, Document, Expr, State);
          when CM.Expr_Call =>
-            declare
-               Callee_Flat : constant String := CM.Flatten_Name (Expr.Callee);
-               Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
-               Static_Length : Natural;
-               Callee_Image : constant String :=
-                 (if Expr.Callee /= null
-                   and then Expr.Callee.Kind = CM.Expr_Select
-                   and then FT.To_String (Expr.Callee.Selector) = "access"
-                   and then Expr.Callee.Prefix /= null
-                   and then Has_Text (Expr.Callee.Prefix.Type_Name)
-                   and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
-                   and then Is_Access_Type
-                     (Lookup_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name)))
-                  then
-                    Render_Expr (Unit, Document, Expr.Callee.Prefix, State)
-                  elsif Expr.Callee /= null
-                   and then Expr.Callee.Kind = CM.Expr_Select
-                   and then Is_Attribute_Selector (FT.To_String (Expr.Callee.Selector))
-                   and then not
-                     (Expr.Callee.Prefix /= null
-                      and then Expr.Callee.Prefix.Kind = CM.Expr_Select
-                      and then FT.To_String (Expr.Callee.Prefix.Selector) = "all")
-                   and then not
-                     Selector_Is_Record_Field
-                       (Unit,
-                        Document,
-                        Expr.Callee.Prefix,
-                        FT.To_String (Expr.Callee.Selector))
-                  then
-                    Render_Expr (Unit, Document, Expr.Callee.Prefix, State)
-                    & "'"
-                    & FT.To_String (Expr.Callee.Selector)
-                  else Render_Expr (Unit, Document, Expr.Callee, State));
-            begin
-               if Natural (Expr.Args.Length) = 1
-                 and then Lower_Callee'Length >= 7
-                 and then Lower_Callee (Lower_Callee'Last - 6 .. Lower_Callee'Last) = ".length"
-                 and then Expr.Args (Expr.Args.First_Index) /= null
-                 and then Expr.Args (Expr.Args.First_Index).Kind = CM.Expr_Ident
-                 and then Try_Static_Length
-                   (State,
-                    FT.To_String (Expr.Args (Expr.Args.First_Index).Name),
-                    Static_Length)
-               then
-                  return Trim_Wide_Image (CM.Wide_Integer (Static_Length));
-               elsif Lower_Callee = "ok" and then Expr.Args.Is_Empty then
-                  State.Needs_Ada_Strings_Unbounded := True;
-                  return Render_Result_Empty_Aggregate;
-               elsif Lower_Callee = "fail" and then Natural (Expr.Args.Length) = 1 then
-                  State.Needs_Ada_Strings_Unbounded := True;
-                  return
-                    Render_Result_Fail_Aggregate
-                      (Render_String_Expr
-                         (Unit,
-                          Document,
-                          Expr.Args (Expr.Args.First_Index),
-                          State));
-               end if;
-               if Expr.Args.Is_Empty then
-                  return Callee_Image;
-               end if;
-               Result := SU.To_Unbounded_String (Callee_Image & " (");
-               for Index in Expr.Args.First_Index .. Expr.Args.Last_Index loop
-                  declare
-                     Arg_Image : SU.Unbounded_String;
-                     Used_Formal : Boolean := False;
-                  begin
-                     if Index /= Expr.Args.First_Index then
-                        Result := Result & SU.To_Unbounded_String (", ");
-                     end if;
-
-                     for Param of Unit.Subprograms loop
-                        if FT.Lowercase (FT.To_String (Param.Name)) = Lower_Callee
-                          or else
-                            FT.Lowercase
-                              (FT.To_String (Unit.Package_Name) & "." & FT.To_String (Param.Name)) = Lower_Callee
-                        then
-                           declare
-                              Position : Natural := 0;
-                           begin
-                              for Formal of Param.Params loop
-                                 Position := Position + 1;
-                                 exit when Position > Natural (Index);
-                                 if Position = Natural (Index) then
-                                    if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
-                                       Arg_Image :=
-                                         SU.To_Unbounded_String
-                                           (Render_Expr_For_Target_Type
-                                              (Unit,
-                                               Document,
-                                               Expr.Args (Index),
-                                               Formal.Type_Info,
-                                               State));
-                                    else
-                                       Arg_Image :=
-                                         SU.To_Unbounded_String
-                                           (Render_Expr (Unit, Document, Expr.Args (Index), State));
-                                    end if;
-                                    Used_Formal := True;
-                                    exit;
-                                 end if;
-                              end loop;
-                           end;
-                           exit when Used_Formal;
-                        end if;
-                     end loop;
-
-                     if not Used_Formal
-                       and then Expr.Callee /= null
-                     then
-                        declare
-                           Shared_Formal_Found : Boolean := False;
-                           Shared_Formal_Type  : GM.Type_Descriptor :=
-                             Shared_Call_Formal_Type
-                               (Unit,
-                                Document,
-                                Expr,
-                                Positive (Index),
-                                Shared_Formal_Found);
-                        begin
-                           if Shared_Formal_Found then
-                              Arg_Image :=
-                                SU.To_Unbounded_String
-                                  (Render_Expr_For_Target_Type
-                                     (Unit,
-                                      Document,
-                                      Expr.Args (Index),
-                                      Shared_Formal_Type,
-                                      State));
-                              Used_Formal := True;
-                           end if;
-                        end;
-                     end if;
-
-                     if not Used_Formal then
-                        declare
-                           Arg_Type : GM.Type_Descriptor := (others => <>);
-                           Maybe_Shared_Call : constant Boolean :=
-                             Ada.Strings.Fixed.Index (Lower_Callee, "safe_shared_") > 0
-                             or else Ada.Strings.Fixed.Index (Lower_Callee, "safe_public_shared_") > 0;
-                        begin
-                           if Maybe_Shared_Call
-                             and then Expr.Args (Index) /= null
-                             and then Expr.Args (Index).Kind = CM.Expr_String
-                           then
-                              Arg_Type := Expr_Type_Info (Unit, Document, Expr.Args (Index));
-                           end if;
-
-                           if Has_Text (Arg_Type.Name)
-                             and then
-                               (Is_Plain_String_Type (Unit, Document, Arg_Type)
-                                or else Is_Bounded_String_Type (Arg_Type))
-                           then
-                              Arg_Image :=
-                                SU.To_Unbounded_String
-                                  (Render_Expr_For_Target_Type
-                                     (Unit,
-                                      Document,
-                                      Expr.Args (Index),
-                                      Arg_Type,
-                                      State));
-                           else
-                              Arg_Image :=
-                                SU.To_Unbounded_String
-                                  (Render_Expr (Unit, Document, Expr.Args (Index), State));
-                           end if;
-                        end;
-                     end if;
-
-                     Result := Result & Arg_Image;
-                  end;
-               end loop;
-               Result := Result & SU.To_Unbounded_String (")");
-               return SU.To_String (Result);
-            end;
+            return Render_Call_Expr (Unit, Document, Expr, State);
          when CM.Expr_Allocator =>
             return "new " & Render_Expr (Unit, Document, Expr.Value, State);
          when CM.Expr_Aggregate =>
-            declare
-               Target_Info     : GM.Type_Descriptor := (others => <>);
-               Has_Target_Info : constant Boolean :=
-                 Has_Text (Expr.Type_Name)
-                 and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name));
-
-               function Aggregate_Field_Type (Field_Name : String) return GM.Type_Descriptor is
-               begin
-                  if not Has_Target_Info then
-                     return (others => <>);
-                  end if;
-
-                  for Disc of Target_Info.Discriminants loop
-                     if FT.To_String (Disc.Name) = Field_Name then
-                        return Resolve_Type_Name (Unit, Document, FT.To_String (Disc.Type_Name));
-                     end if;
-                  end loop;
-                  if Target_Info.Has_Discriminant
-                    and then FT.To_String (Target_Info.Discriminant_Name) = Field_Name
-                  then
-                     return Resolve_Type_Name (Unit, Document, FT.To_String (Target_Info.Discriminant_Type));
-                  end if;
-                  for Record_Field of Target_Info.Fields loop
-                     if FT.To_String (Record_Field.Name) = Field_Name then
-                        return Resolve_Type_Name (Unit, Document, FT.To_String (Record_Field.Type_Name));
-                     end if;
-                  end loop;
-                  return (others => <>);
-               end Aggregate_Field_Type;
-            begin
-               if Has_Target_Info then
-                  Target_Info := Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name));
-               end if;
-               Result := SU.To_Unbounded_String ("(");
-               for Index in Expr.Fields.First_Index .. Expr.Fields.Last_Index loop
-                  declare
-                     Field        : constant CM.Aggregate_Field := Expr.Fields (Index);
-                     Field_Target : constant GM.Type_Descriptor :=
-                       Aggregate_Field_Type (FT.To_String (Field.Field_Name));
-                  begin
-                     if Index /= Expr.Fields.First_Index then
-                        Result := Result & SU.To_Unbounded_String (", ");
-                     end if;
-                     Result :=
-                       Result
-                       & SU.To_Unbounded_String
-                           (Ada_Safe_Name (FT.To_String (Field.Field_Name))
-                            & " => "
-                            & (if Has_Text (Field_Target.Name)
-                               then Render_Expr_For_Target_Type
-                                 (Unit, Document, Field.Expr, Field_Target, State)
-                               else Render_Expr (Unit, Document, Field.Expr, State)));
-                  end;
-               end loop;
-               Result := Result & SU.To_Unbounded_String (")");
-               return SU.To_String (Result);
-            end;
+            return Render_Aggregate_Expr (Unit, Document, Expr, State);
          when CM.Expr_Tuple =>
-            declare
-               Is_Array_Target : constant Boolean :=
-                 Has_Text (Expr.Type_Name)
-                 and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name))
-                 and then Is_Array_Type
-                   (Unit,
-                    Document,
-                    Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name)));
-               First_Association : Boolean := True;
-            begin
-               if Is_Array_Target then
-                  return
-                    Render_Positional_Tuple_Aggregate
-                      (Unit, Document, Expr, State);
-               else
-                  Result := SU.To_Unbounded_String ("(");
-                  for Index in Expr.Elements.First_Index .. Expr.Elements.Last_Index loop
-                     declare
-                        Target_Info : GM.Type_Descriptor := (others => <>);
-                        Has_Target  : Boolean := False;
-                     begin
-                        if Has_Text (Expr.Type_Name)
-                          and then Has_Type (Unit, Document, FT.To_String (Expr.Type_Name))
-                        then
-                           declare
-                              Tuple_Info : constant GM.Type_Descriptor :=
-                                Lookup_Type (Unit, Document, FT.To_String (Expr.Type_Name));
-                           begin
-                              if Is_Tuple_Type (Tuple_Info)
-                                and then Index <= Tuple_Info.Tuple_Element_Types.Last_Index
-                              then
-                                 Target_Info :=
-                                   Resolve_Type_Name
-                                     (Unit,
-                                      Document,
-                                      FT.To_String (Tuple_Info.Tuple_Element_Types (Index)));
-                                 Has_Target := True;
-                              end if;
-                           end;
-                        end if;
-
-                        if not Has_Target
-                          and then Expr.Elements (Index) /= null
-                          and then Has_Text (Expr.Elements (Index).Type_Name)
-                        then
-                           Target_Info :=
-                             Resolve_Type_Name
-                               (Unit,
-                                Document,
-                                FT.To_String (Expr.Elements (Index).Type_Name));
-                           Has_Target := Has_Text (Target_Info.Name);
-                        end if;
-
-                        if not First_Association then
-                           Result := Result & SU.To_Unbounded_String (", ");
-                        end if;
-                        Result :=
-                          Result
-                          & SU.To_Unbounded_String
-                              (Tuple_Field_Name (Positive (Index))
-                               & " => "
-                               & (if Has_Target
-                                  then Render_Expr_For_Target_Type
-                                    (Unit,
-                                     Document,
-                                     Expr.Elements (Index),
-                                     Target_Info,
-                                     State)
-                                  else Render_Expr
-                                    (Unit,
-                                     Document,
-                                     Expr.Elements (Index),
-                                     State)));
-                        First_Association := False;
-                     end;
-                  end loop;
-               end if;
-            end;
-            Result := Result & SU.To_Unbounded_String (")");
-            return SU.To_String (Result);
+            return Render_Tuple_Expr (Unit, Document, Expr, State);
          when CM.Expr_Annotated =>
-            declare
-               Target_Name     : constant String := Root_Name (Expr.Target);
-               Is_Array_Target : constant Boolean :=
-                 Target_Name'Length > 0
-                 and then Has_Type (Unit, Document, Target_Name)
-                 and then Is_Array_Type
-                   (Unit,
-                    Document,
-                    Lookup_Type (Unit, Document, Target_Name));
-            begin
-               if Expr.Inner /= null
-                 and then Expr.Inner.Kind = CM.Expr_Tuple
-                 and then Is_Array_Target
-               then
-                  return
-                    Render_Expr (Unit, Document, Expr.Target, State)
-                    & "'"
-                    & Render_Positional_Tuple_Aggregate
-                        (Unit, Document, Expr.Inner, State);
-               end if;
-            end;
-            return
-              Render_Expr (Unit, Document, Expr.Target, State)
-              & "'"
-              & (if Expr.Inner /= null and then Expr.Inner.Kind = CM.Expr_Aggregate
-                 then Render_Expr (Unit, Document, Expr.Inner, State)
-                 else "(" & Render_Expr (Unit, Document, Expr.Inner, State) & ")");
+            return Render_Annotated_Expr (Unit, Document, Expr, State);
          when CM.Expr_Unary =>
-            if FT.To_String (Expr.Operator) = "not"
-              and then Has_Text (Expr.Type_Name)
-              and then Is_Binary_Type (Unit, Document, FT.To_String (Expr.Type_Name))
-            then
-               return
-                 Render_Binary_Unary_Image
-                   (Unit,
-                    Document,
-                    Expr,
-                    Render_Expr (Unit, Document, Expr.Inner, State));
-            end if;
-            return
-              "("
-              & Map_Operator (FT.To_String (Expr.Operator))
-              & (if FT.To_String (Expr.Operator) = "not" then " " else "")
-              & Render_Expr (Unit, Document, Expr.Inner, State)
-              & ")";
+            return Render_Unary_Expr (Unit, Document, Expr, State);
          when CM.Expr_Binary =>
-            if Has_Text (Expr.Type_Name)
-              and then Is_Float_Type (Unit, Document, FT.To_String (Expr.Type_Name))
-            then
-               declare
-                  Convex_Image : constant String :=
-                    Render_Float_Convex_Combination (Unit, Document, Expr, State);
-               begin
-                  if Convex_Image'Length > 0 then
-                     return Convex_Image;
-                  end if;
-               end;
-            end if;
-            declare
-               Left_Type  : GM.Type_Descriptor := (others => <>);
-               Right_Type : GM.Type_Descriptor := (others => <>);
-               function Is_Stringish_Expr
-                 (Item : CM.Expr_Access;
-                  Info : out GM.Type_Descriptor) return Boolean
-               is
-               begin
-                  Info := (others => <>);
-                  if Item = null then
-                     return False;
-                  elsif Item.Kind = CM.Expr_String then
-                     Info := BT.String_Type;
-                     return True;
-                  else
-                     Info := Expr_Type_Info (Unit, Document, Item);
-                     if Has_Text (Info.Kind) or else Has_Text (Info.Name) then
-                        return True;
-                     end if;
-                     return Resolve_Print_Type (Unit, Document, Item, State, Info);
-                  end if;
-               end Is_Stringish_Expr;
-
-               Has_Left_Type  : constant Boolean := Is_Stringish_Expr (Expr.Left, Left_Type);
-               Has_Right_Type : constant Boolean := Is_Stringish_Expr (Expr.Right, Right_Type);
-            begin
-               declare
-                  function Is_Stringish_Type (Info : GM.Type_Descriptor) return Boolean is
-                     Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-                     Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-                     Name : constant String := FT.Lowercase (FT.To_String (Base.Name));
-                  begin
-                     return
-                       Is_Plain_String_Type (Unit, Document, Info)
-                       or else Is_Bounded_String_Type (Info)
-                       or else Kind = "string"
-                       or else Name = "string";
-                  end Is_Stringish_Type;
-               begin
-                  if Expr.Left /= null
-                    and then Expr.Right /= null
-                    and then Has_Left_Type
-                    and then Has_Right_Type
-                    and then Is_Stringish_Type (Left_Type)
-                    and then Is_Stringish_Type (Right_Type)
-                  then
-                     declare
-                        Left_Image : constant String :=
-                          Render_String_Expr (Unit, Document, Expr.Left, State);
-                        Right_Image : constant String :=
-                          Render_String_Expr (Unit, Document, Expr.Right, State);
-                        Operator : constant String := FT.To_String (Expr.Operator);
-                     begin
-                        if Operator in "==" | "=" | "!=" | "/=" then
-                           return
-                             "("
-                             & Left_Image
-                             & " "
-                             & Map_Operator (Operator)
-                             & " "
-                             & Right_Image
-                             & ")";
-                        elsif Operator in "<" | "<=" | ">" | ">=" then
-                           return
-                             "("
-                             & Left_Image
-                             & " "
-                             & Map_Operator (Operator)
-                             & " "
-                             & Right_Image
-                             & ")";
-                        elsif Operator = "&" then
-                           return "(" & Left_Image & " & " & Right_Image & ")";
-                        end if;
-                     end;
-                  end if;
-               end;
-            end;
-            if Expr.Left /= null
-              and then Has_Text (Expr.Left.Type_Name)
-              and then Is_Binary_Type (Unit, Document, FT.To_String (Expr.Left.Type_Name))
-            then
-               return
-                 Render_Binary_Operation_Image
-                   (Unit,
-                    Document,
-                    Expr,
-                    Render_Expr (Unit, Document, Expr.Left, State),
-                    Render_Expr (Unit, Document, Expr.Right, State));
-            end if;
-            return
-              "("
-              & Render_Expr (Unit, Document, Expr.Left, State)
-              & " "
-              & Map_Operator (FT.To_String (Expr.Operator))
-              & " "
-              & Render_Expr (Unit, Document, Expr.Right, State)
-              & ")";
+            return Render_Binary_Expr (Unit, Document, Expr, State);
          when CM.Expr_Subtype_Indication =>
             if Has_Text (Expr.Type_Name) then
                return Render_Type_Name (Unit, Document, FT.To_String (Expr.Type_Name));
@@ -12609,12 +12865,12 @@ package body Safe_Frontend.Ada_Emit is
                Expr.Span,
                "subtype indication missing type name");
          when others =>
-               Raise_Unsupported
-                 (State,
-                  Expr.Span,
-                  "PR09 emitter does not yet support expression kind '"
-                  & Expr.Kind'Image
-                  & "'");
+            Raise_Unsupported
+              (State,
+               Expr.Span,
+               "PR09 emitter does not yet support expression kind '"
+               & Expr.Kind'Image
+               & "'");
       end case;
    end Render_Expr;
 
@@ -17565,30 +17821,30 @@ package body Safe_Frontend.Ada_Emit is
       end loop;
    end Render_Cleanup;
 
-   procedure Render_Statements
-     (Buffer     : in out SU.Unbounded_String;
-      Unit       : CM.Resolved_Unit;
-      Document   : GM.Mir_Document;
-      Statements : CM.Statement_Access_Vectors.Vector;
-      State      : in out Emit_State;
-      Depth      : Natural;
-      Return_Type : String := "";
-      In_Loop    : Boolean := False)
+   function Tail_Statements
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      First      : Positive) return CM.Statement_Access_Vectors.Vector
    is
-      function Tail_Statements
-        (First : Positive) return CM.Statement_Access_Vectors.Vector
-      is
-         Result : CM.Statement_Access_Vectors.Vector;
-      begin
-         if Statements.Is_Empty or else First > Statements.Last_Index then
-            return Result;
-         end if;
-         for Index in First .. Statements.Last_Index loop
-            Result.Append (Statements (Index));
-         end loop;
+      Result : CM.Statement_Access_Vectors.Vector;
+   begin
+      if Statements.Is_Empty or else First > Statements.Last_Index then
          return Result;
-      end Tail_Statements;
+      end if;
+      for Index in First .. Statements.Last_Index loop
+         Result.Append (Statements (Index));
+      end loop;
+      return Result;
+   end Tail_Statements;
 
+   procedure Emit_Nonblocking_Send_Statement
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Item     : CM.Statement;
+      Index    : Positive;
+      State    : in out Emit_State;
+      Depth    : Natural)
+   is
       function Channel_Item
         (Channel_Expr : CM.Expr_Access) return CM.Resolved_Channel_Decl is
       begin
@@ -17618,19 +17874,6 @@ package body Safe_Frontend.Ada_Emit is
            or else
            Is_Growable_Array_Type (Unit, Document, Channel_Item.Element_Type);
       end Channel_Has_Length_Model;
-
-      function Channel_Has_Scalar_Length_Model
-        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
-      begin
-         return Channel_Has_Length_Model (Channel_Item)
-           and then Channel_Item.Capacity = 1;
-      end Channel_Has_Scalar_Length_Model;
-
-      function Channel_Uses_Runtime_Length_Formals
-        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
-      begin
-         return Channel_Has_Length_Model (Channel_Item);
-      end Channel_Uses_Runtime_Length_Formals;
 
       function Render_Channel_Operation_Target
         (Channel_Expr   : CM.Expr_Access;
@@ -17664,25 +17907,6 @@ package body Safe_Frontend.Ada_Emit is
            & Value_Image
            & ")";
       end Channel_Length_Image;
-
-      procedure Append_Channel_Length_Assert
-        (Channel_Item : CM.Resolved_Channel_Decl;
-         Value_Image  : String;
-         Length_Name  : String;
-         Depth        : Natural)
-      is
-      begin
-         if Channel_Has_Length_Model (Channel_Item) then
-            Append_Line
-              (Buffer,
-               "pragma Assert ("
-               & Channel_Length_Image (Channel_Item, Value_Image)
-               & " = "
-               & Length_Name
-               & ");",
-               Depth);
-         end if;
-      end Append_Channel_Length_Assert;
 
       function Render_Heap_Channel_Copy_Expr
         (Channel_Item : CM.Resolved_Channel_Decl;
@@ -17767,137 +17991,141 @@ package body Safe_Frontend.Ada_Emit is
          end if;
       end Append_Heap_Channel_Free;
 
-      procedure Emit_Nonblocking_Send
-        (Item  : CM.Statement;
-         Index : Positive;
-         Depth : Natural)
-      is
-         Declared_Channel : constant CM.Resolved_Channel_Decl :=
-           Channel_Item (Item.Channel_Name);
-      begin
-         State.Needs_Gnat_Adc := True;
-         if Has_Text (Declared_Channel.Name)
-           and then Has_Heap_Value_Type
-             (Unit,
-              Document,
-              Declared_Channel.Element_Type)
-         then
-            declare
-               Staged_Name  : constant String :=
-                 "Safe_Channel_Staged_"
-                 & Ada.Strings.Fixed.Trim
-                     (Natural'Image (Natural (Index)),
-                      Ada.Strings.Both);
-               Length_Name  : constant String :=
-                 "Safe_Channel_Length_"
-                 & Ada.Strings.Fixed.Trim
-                     (Natural'Image (Natural (Index)),
-                      Ada.Strings.Both);
-               Element_Type : constant String :=
-                 Render_Type_Name (Declared_Channel.Element_Type);
-               Success_Image : constant String :=
-                 Render_Expr (Unit, Document, Item.Success_Var, State);
-            begin
-               Append_Line (Buffer, "declare", Depth);
-               Append_Initialization_Warning_Suppression
-                 (Buffer, Depth + 1);
+      Declared_Channel : constant CM.Resolved_Channel_Decl :=
+        Channel_Item (Item.Channel_Name);
+   begin
+      State.Needs_Gnat_Adc := True;
+      if Has_Text (Declared_Channel.Name)
+        and then Has_Heap_Value_Type
+          (Unit,
+           Document,
+           Declared_Channel.Element_Type)
+      then
+         declare
+            Staged_Name  : constant String :=
+              "Safe_Channel_Staged_"
+              & Ada.Strings.Fixed.Trim
+                  (Natural'Image (Natural (Index)),
+                   Ada.Strings.Both);
+            Length_Name  : constant String :=
+              "Safe_Channel_Length_"
+              & Ada.Strings.Fixed.Trim
+                  (Natural'Image (Natural (Index)),
+                   Ada.Strings.Both);
+            Element_Type : constant String :=
+              Render_Type_Name (Declared_Channel.Element_Type);
+            Success_Image : constant String :=
+              Render_Expr (Unit, Document, Item.Success_Var, State);
+         begin
+            Append_Line (Buffer, "declare", Depth);
+            Append_Initialization_Warning_Suppression
+              (Buffer, Depth + 1);
+            Append_Line
+              (Buffer,
+               Staged_Name
+               & " : "
+               & Element_Type
+               & " := "
+               & Default_Value_Expr
+                   (Unit,
+                    Document,
+                    Declared_Channel.Element_Type)
+               & ";",
+               Depth + 1);
+            if Channel_Has_Length_Model (Declared_Channel) then
                Append_Line
                  (Buffer,
-                  Staged_Name
-                  & " : "
-                  & Element_Type
+                  Length_Name & " : Natural := 0;",
+                  Depth + 1);
+            end if;
+            Append_Initialization_Warning_Restore
+              (Buffer, Depth + 1);
+            Append_Line (Buffer, "begin", Depth);
+            Append_Heap_Channel_Copy
+              (Declared_Channel,
+               Staged_Name,
+               Item.Value,
+               Depth + 1);
+            if Channel_Has_Length_Model (Declared_Channel) then
+               Append_Line
+                 (Buffer,
+                  Length_Name
                   & " := "
-                  & Default_Value_Expr
-                      (Unit,
-                       Document,
-                       Declared_Channel.Element_Type)
+                  & Channel_Length_Image
+                      (Declared_Channel,
+                       Staged_Name)
                   & ";",
                   Depth + 1);
-               if Channel_Has_Length_Model (Declared_Channel) then
-                  Append_Line
-                    (Buffer,
-                     Length_Name & " : Natural := 0;",
-                     Depth + 1);
-               end if;
-               Append_Initialization_Warning_Restore
-                 (Buffer, Depth + 1);
-               Append_Line (Buffer, "begin", Depth);
-               Append_Heap_Channel_Copy
-                 (Declared_Channel,
-                  Staged_Name,
-                  Item.Value,
-                  Depth + 1);
-               if Channel_Has_Length_Model (Declared_Channel) then
-                  Append_Line
-                    (Buffer,
-                     Length_Name
-                     & " := "
-                     & Channel_Length_Image
-                         (Declared_Channel,
-                          Staged_Name)
-                     & ";",
-                     Depth + 1);
-               end if;
-               Append_Channel_Staged_Call_Warning_Suppression
-                 (Buffer, Depth + 1);
-               Append_Line
-                 (Buffer,
-                  Render_Channel_Operation_Target
-                    (Item.Channel_Name, Declared_Channel, "Try_Send")
-                  & " ("
-                  & Staged_Name
-                  & (if Channel_Has_Length_Model (Declared_Channel)
-                     then ", " & Length_Name
-                     else "")
-                  & ", "
-                  & Success_Image
-                  & ");",
-                  Depth + 1);
-               Append_Channel_Staged_Call_Warning_Restore
-                 (Buffer, Depth + 1);
-               if State.Task_Body_Depth > 0 then
-                  Append_Task_If_Warning_Suppression (Buffer, Depth + 1);
-               end if;
-               Append_Local_Warning_Suppression (Buffer, Depth + 1);
-               Append_Line
-                 (Buffer,
-                  "if not " & Success_Image & " then",
-                  Depth + 1);
-               Append_Heap_Channel_Free
-                 (Declared_Channel,
-                  Staged_Name,
-                  Depth + 2);
-               Append_Line (Buffer, "end if;", Depth + 1);
-               Append_Local_Warning_Restore (Buffer, Depth + 1);
-               if State.Task_Body_Depth > 0 then
-                  Append_Task_If_Warning_Restore (Buffer, Depth + 1);
-               end if;
-               Append_Line (Buffer, "end;", Depth);
-            end;
-         else
+            end if;
+            Append_Channel_Staged_Call_Warning_Suppression
+              (Buffer, Depth + 1);
             Append_Line
               (Buffer,
                Render_Channel_Operation_Target
                  (Item.Channel_Name, Declared_Channel, "Try_Send")
                & " ("
-               & Render_Channel_Send_Value
-                   (Unit, Document, State, Item.Channel_Name, Item.Value)
+               & Staged_Name
+               & (if Channel_Has_Length_Model (Declared_Channel)
+                  then ", " & Length_Name
+                  else "")
                & ", "
-               & Render_Expr (Unit, Document, Item.Success_Var, State)
+               & Success_Image
                & ");",
-               Depth);
-         end if;
-      end Emit_Nonblocking_Send;
+               Depth + 1);
+            Append_Channel_Staged_Call_Warning_Restore
+              (Buffer, Depth + 1);
+            if State.Task_Body_Depth > 0 then
+               Append_Task_If_Warning_Suppression (Buffer, Depth + 1);
+            end if;
+            Append_Local_Warning_Suppression (Buffer, Depth + 1);
+            Append_Line
+              (Buffer,
+               "if not " & Success_Image & " then",
+               Depth + 1);
+            Append_Heap_Channel_Free
+              (Declared_Channel,
+               Staged_Name,
+               Depth + 2);
+            Append_Line (Buffer, "end if;", Depth + 1);
+            Append_Local_Warning_Restore (Buffer, Depth + 1);
+            if State.Task_Body_Depth > 0 then
+               Append_Task_If_Warning_Restore (Buffer, Depth + 1);
+            end if;
+            Append_Line (Buffer, "end;", Depth);
+         end;
+      else
+         Append_Line
+           (Buffer,
+            Render_Channel_Operation_Target
+              (Item.Channel_Name, Declared_Channel, "Try_Send")
+            & " ("
+            & Render_Channel_Send_Value
+                (Unit, Document, State, Item.Channel_Name, Item.Value)
+            & ", "
+            & Render_Expr (Unit, Document, Item.Success_Var, State)
+            & ");",
+            Depth);
+      end if;
+   end Emit_Nonblocking_Send_Statement;
 
+   procedure Emit_Call_Statement
+     (Buffer          : in out SU.Unbounded_String;
+      Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Call_Expr       : CM.Expr_Access;
+      Statement_Index : Positive;
+      State           : in out Emit_State;
+      Depth           : Natural)
+   is
       function Find_Called_Subprogram
         (Call_Expr   : CM.Expr_Access;
          Subprogram  : out CM.Resolved_Subprogram) return Boolean
       is
-         Callee_Flat  : constant String :=
+         Callee_Flat   : constant String :=
            (if Call_Expr = null or else Call_Expr.Callee = null
             then ""
             else CM.Flatten_Name (Call_Expr.Callee));
-         Lower_Callee : constant String := FT.Lowercase (Callee_Flat);
+         Lower_Callee  : constant String := FT.Lowercase (Callee_Flat);
          Selector_Name : constant String :=
            (if Call_Expr = null or else Call_Expr.Callee = null
             then ""
@@ -18037,129 +18265,33 @@ package body Safe_Frontend.Ada_Emit is
             Depth);
       end Append_Growable_Indexed_Writeback;
 
-      procedure Emit_Call_Statement
-        (Call_Expr        : CM.Expr_Access;
-         Statement_Index  : Positive;
-         Depth            : Natural)
-      is
-         Target_Subprogram : CM.Resolved_Subprogram;
-         Needs_Copy_Back   : Boolean := False;
-      begin
-         if not Find_Called_Subprogram (Call_Expr, Target_Subprogram)
-           or else Call_Expr = null
-           or else Call_Expr.Kind /= CM.Expr_Call
-           or else Call_Expr.Args.Is_Empty
+      Target_Subprogram : CM.Resolved_Subprogram;
+      Needs_Copy_Back   : Boolean := False;
+   begin
+      if not Find_Called_Subprogram (Call_Expr, Target_Subprogram)
+        or else Call_Expr = null
+        or else Call_Expr.Kind /= CM.Expr_Call
+        or else Call_Expr.Args.Is_Empty
+      then
+         Append_Line
+           (Buffer,
+            Render_Expr (Unit, Document, Call_Expr, State) & ";",
+            Depth);
+         return;
+      end if;
+
+      for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
+         exit when Formal_Index > Call_Expr.Args.Last_Index;
+         if Needs_Growable_Indexed_Copy_Back
+           (Target_Subprogram.Params (Formal_Index),
+            Call_Expr.Args (Formal_Index))
          then
-            Append_Line
-              (Buffer,
-               Render_Expr (Unit, Document, Call_Expr, State) & ";",
-               Depth);
-            return;
+            Needs_Copy_Back := True;
+            exit;
          end if;
+      end loop;
 
-         for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
-            exit when Formal_Index > Call_Expr.Args.Last_Index;
-            if Needs_Growable_Indexed_Copy_Back
-              (Target_Subprogram.Params (Formal_Index),
-               Call_Expr.Args (Formal_Index))
-            then
-               Needs_Copy_Back := True;
-               exit;
-            end if;
-         end loop;
-
-         if not Needs_Copy_Back then
-            declare
-               Call_Image : SU.Unbounded_String :=
-                 SU.To_Unbounded_String
-                   (Render_Expr (Unit, Document, Call_Expr.Callee, State) & " (");
-            begin
-               for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
-                  declare
-                     Arg_Image  : SU.Unbounded_String;
-                     Used_Formal : Boolean := False;
-                  begin
-                     if Arg_Index /= Call_Expr.Args.First_Index then
-                        Call_Image := Call_Image & SU.To_Unbounded_String (", ");
-                     end if;
-
-                     if Arg_Index <= Target_Subprogram.Params.Last_Index then
-                        declare
-                           Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
-                        begin
-                           if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
-                              Arg_Image :=
-                                SU.To_Unbounded_String
-                                  (Render_Expr_For_Target_Type
-                                     (Unit,
-                                      Document,
-                                      Call_Expr.Args (Arg_Index),
-                                      Formal.Type_Info,
-                                      State));
-                              Used_Formal := True;
-                           end if;
-                        end;
-                     end if;
-
-                     if not Used_Formal then
-                        Arg_Image :=
-                          SU.To_Unbounded_String
-                            (Render_Expr
-                               (Unit,
-                                Document,
-                                Call_Expr.Args (Arg_Index),
-                                State));
-                     end if;
-
-                     Call_Image := Call_Image & Arg_Image;
-                  end;
-               end loop;
-               Call_Image := Call_Image & SU.To_Unbounded_String (")");
-               Append_Line (Buffer, SU.To_String (Call_Image) & ";", Depth);
-            end;
-            return;
-         end if;
-
-         Append_Line (Buffer, "declare", Depth);
-         for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
-            exit when Formal_Index > Call_Expr.Args.Last_Index;
-            if Needs_Growable_Indexed_Copy_Back
-              (Target_Subprogram.Params (Formal_Index),
-               Call_Expr.Args (Formal_Index))
-            then
-               declare
-                  Formal    : constant CM.Symbol :=
-                    Target_Subprogram.Params (Formal_Index);
-                  Temp_Name : constant String :=
-                    Mutable_Actual_Temp_Name (Statement_Index, Formal_Index);
-                  Init_Image : constant String :=
-                    (if FT.To_String (Formal.Mode) = "out"
-                     then
-                       Default_Value_Expr
-                         (Unit,
-                          Document,
-                          Formal.Type_Info)
-                     else
-                       Render_Expr_For_Target_Type
-                         (Unit,
-                          Document,
-                          Call_Expr.Args (Formal_Index),
-                          Formal.Type_Info,
-                          State));
-               begin
-                  Append_Line
-                    (Buffer,
-                     Temp_Name
-                     & " : "
-                     & Render_Type_Name (Formal.Type_Info)
-                     & " := "
-                     & Init_Image
-                     & ";",
-                     Depth + 1);
-               end;
-            end if;
-         end loop;
-         Append_Line (Buffer, "begin", Depth);
+      if not Needs_Copy_Back then
          declare
             Call_Image : SU.Unbounded_String :=
               SU.To_Unbounded_String
@@ -18168,22 +18300,13 @@ package body Safe_Frontend.Ada_Emit is
             for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
                declare
                   Arg_Image   : SU.Unbounded_String;
-                  Used_Formal  : Boolean := False;
+                  Used_Formal : Boolean := False;
                begin
                   if Arg_Index /= Call_Expr.Args.First_Index then
                      Call_Image := Call_Image & SU.To_Unbounded_String (", ");
                   end if;
 
-                  if Arg_Index <= Target_Subprogram.Params.Last_Index
-                    and then Needs_Growable_Indexed_Copy_Back
-                      (Target_Subprogram.Params (Arg_Index),
-                       Call_Expr.Args (Arg_Index))
-                  then
-                     Arg_Image :=
-                       SU.To_Unbounded_String
-                         (Mutable_Actual_Temp_Name (Statement_Index, Arg_Index));
-                     Used_Formal := True;
-                  elsif Arg_Index <= Target_Subprogram.Params.Last_Index then
+                  if Arg_Index <= Target_Subprogram.Params.Last_Index then
                      declare
                         Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
                      begin
@@ -18215,23 +18338,257 @@ package body Safe_Frontend.Ada_Emit is
                end;
             end loop;
             Call_Image := Call_Image & SU.To_Unbounded_String (")");
-            Append_Line (Buffer, SU.To_String (Call_Image) & ";", Depth + 1);
+            Append_Line (Buffer, SU.To_String (Call_Image) & ";", Depth);
          end;
+         return;
+      end if;
 
-         for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
-            exit when Formal_Index > Call_Expr.Args.Last_Index;
-            if Needs_Growable_Indexed_Copy_Back
-              (Target_Subprogram.Params (Formal_Index),
-               Call_Expr.Args (Formal_Index))
-            then
-               Append_Growable_Indexed_Writeback
-                 (Call_Expr.Args (Formal_Index),
-                  Mutable_Actual_Temp_Name (Statement_Index, Formal_Index),
+      Append_Line (Buffer, "declare", Depth);
+      for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
+         exit when Formal_Index > Call_Expr.Args.Last_Index;
+         if Needs_Growable_Indexed_Copy_Back
+           (Target_Subprogram.Params (Formal_Index),
+            Call_Expr.Args (Formal_Index))
+         then
+            declare
+               Formal     : constant CM.Symbol :=
+                 Target_Subprogram.Params (Formal_Index);
+               Temp_Name  : constant String :=
+                 Mutable_Actual_Temp_Name (Statement_Index, Formal_Index);
+               Init_Image : constant String :=
+                 (if FT.To_String (Formal.Mode) = "out"
+                  then
+                    Default_Value_Expr
+                      (Unit,
+                       Document,
+                       Formal.Type_Info)
+                  else
+                    Render_Expr_For_Target_Type
+                      (Unit,
+                       Document,
+                       Call_Expr.Args (Formal_Index),
+                       Formal.Type_Info,
+                       State));
+            begin
+               Append_Line
+                 (Buffer,
+                  Temp_Name
+                  & " : "
+                  & Render_Type_Name (Formal.Type_Info)
+                  & " := "
+                  & Init_Image
+                  & ";",
                   Depth + 1);
-            end if;
+            end;
+         end if;
+      end loop;
+      Append_Line (Buffer, "begin", Depth);
+      declare
+         Call_Image : SU.Unbounded_String :=
+           SU.To_Unbounded_String
+             (Render_Expr (Unit, Document, Call_Expr.Callee, State) & " (");
+      begin
+         for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
+            declare
+               Arg_Image   : SU.Unbounded_String;
+               Used_Formal : Boolean := False;
+            begin
+               if Arg_Index /= Call_Expr.Args.First_Index then
+                  Call_Image := Call_Image & SU.To_Unbounded_String (", ");
+               end if;
+
+               if Arg_Index <= Target_Subprogram.Params.Last_Index
+                 and then Needs_Growable_Indexed_Copy_Back
+                   (Target_Subprogram.Params (Arg_Index),
+                    Call_Expr.Args (Arg_Index))
+               then
+                  Arg_Image :=
+                    SU.To_Unbounded_String
+                      (Mutable_Actual_Temp_Name (Statement_Index, Arg_Index));
+                  Used_Formal := True;
+               elsif Arg_Index <= Target_Subprogram.Params.Last_Index then
+                  declare
+                     Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
+                  begin
+                     if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
+                        Arg_Image :=
+                          SU.To_Unbounded_String
+                            (Render_Expr_For_Target_Type
+                               (Unit,
+                                Document,
+                                Call_Expr.Args (Arg_Index),
+                                Formal.Type_Info,
+                                State));
+                        Used_Formal := True;
+                     end if;
+                  end;
+               end if;
+
+               if not Used_Formal then
+                  Arg_Image :=
+                    SU.To_Unbounded_String
+                      (Render_Expr
+                         (Unit,
+                          Document,
+                          Call_Expr.Args (Arg_Index),
+                          State));
+               end if;
+
+               Call_Image := Call_Image & Arg_Image;
+            end;
          end loop;
-         Append_Line (Buffer, "end;", Depth);
-      end Emit_Call_Statement;
+         Call_Image := Call_Image & SU.To_Unbounded_String (")");
+         Append_Line (Buffer, SU.To_String (Call_Image) & ";", Depth + 1);
+      end;
+
+      for Formal_Index in Target_Subprogram.Params.First_Index .. Target_Subprogram.Params.Last_Index loop
+         exit when Formal_Index > Call_Expr.Args.Last_Index;
+         if Needs_Growable_Indexed_Copy_Back
+           (Target_Subprogram.Params (Formal_Index),
+            Call_Expr.Args (Formal_Index))
+         then
+            Append_Growable_Indexed_Writeback
+              (Call_Expr.Args (Formal_Index),
+               Mutable_Actual_Temp_Name (Statement_Index, Formal_Index),
+               Depth + 1);
+         end if;
+      end loop;
+      Append_Line (Buffer, "end;", Depth);
+   end Emit_Call_Statement;
+
+   procedure Render_Statements
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Statements : CM.Statement_Access_Vectors.Vector;
+      State      : in out Emit_State;
+      Depth      : Natural;
+      Return_Type : String := "";
+      In_Loop    : Boolean := False)
+   is
+      function Channel_Item
+        (Channel_Expr : CM.Expr_Access) return CM.Resolved_Channel_Decl is
+      begin
+         if Channel_Expr = null then
+            return (others => <>);
+         end if;
+         return Lookup_Channel (Unit, CM.Flatten_Name (Channel_Expr));
+      end Channel_Item;
+
+      function Channel_Copy_Helper_Name
+        (Channel_Item : CM.Resolved_Channel_Decl) return String is
+      begin
+         return FT.To_String (Channel_Item.Name) & "_Copy_Value";
+      end Channel_Copy_Helper_Name;
+
+      function Channel_Free_Helper_Name
+        (Channel_Item : CM.Resolved_Channel_Decl) return String is
+      begin
+         return FT.To_String (Channel_Item.Name) & "_Free_Value";
+      end Channel_Free_Helper_Name;
+
+      function Channel_Has_Length_Model
+        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+      begin
+         return
+           Is_Plain_String_Type (Unit, Document, Channel_Item.Element_Type)
+           or else
+           Is_Growable_Array_Type (Unit, Document, Channel_Item.Element_Type);
+      end Channel_Has_Length_Model;
+
+      function Channel_Has_Scalar_Length_Model
+        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+      begin
+         return Channel_Has_Length_Model (Channel_Item)
+           and then Channel_Item.Capacity = 1;
+      end Channel_Has_Scalar_Length_Model;
+
+      function Channel_Uses_Runtime_Length_Formals
+        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+      begin
+         return Channel_Has_Length_Model (Channel_Item);
+      end Channel_Uses_Runtime_Length_Formals;
+
+      function Render_Channel_Operation_Target
+        (Channel_Expr   : CM.Expr_Access;
+         Channel_Item   : CM.Resolved_Channel_Decl;
+         Operation_Name : String) return String is
+      begin
+         if Channel_Uses_Sequential_Scalar_Ghost_Model
+           (Unit, Document, Channel_Item)
+         then
+            return FT.To_String (Channel_Item.Name) & "_" & Operation_Name;
+         end if;
+
+         return Render_Expr (Unit, Document, Channel_Expr, State) & "." & Operation_Name;
+      end Render_Channel_Operation_Target;
+
+      function Channel_Length_Image
+        (Channel_Item : CM.Resolved_Channel_Decl;
+         Value_Image  : String) return String
+      is
+         Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
+      begin
+         if Is_Plain_String_Type (Unit, Document, Element_Info) then
+            State.Needs_Safe_String_RT := True;
+            return "Safe_String_RT.Length (" & Value_Image & ")";
+         end if;
+
+         State.Needs_Safe_Array_RT := True;
+         return
+           Array_Runtime_Instance_Name (Base_Type (Unit, Document, Element_Info))
+           & ".Length ("
+           & Value_Image
+           & ")";
+      end Channel_Length_Image;
+
+      procedure Append_Channel_Length_Assert
+        (Channel_Item : CM.Resolved_Channel_Decl;
+         Value_Image  : String;
+         Length_Name  : String;
+         Depth        : Natural)
+      is
+      begin
+         if Channel_Has_Length_Model (Channel_Item) then
+            Append_Line
+              (Buffer,
+               "pragma Assert ("
+               & Channel_Length_Image (Channel_Item, Value_Image)
+               & " = "
+               & Length_Name
+               & ");",
+               Depth);
+         end if;
+      end Append_Channel_Length_Assert;
+
+      procedure Append_Heap_Channel_Free
+        (Channel_Item : CM.Resolved_Channel_Decl;
+         Target_Image : String;
+         Depth        : Natural)
+      is
+         Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
+      begin
+         if Is_Plain_String_Type (Unit, Document, Element_Info) then
+            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Image & ");", Depth);
+         elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
+            Append_Line
+              (Buffer,
+               Array_Runtime_Instance_Name
+                 (Base_Type (Unit, Document, Element_Info))
+               & ".Free ("
+               & Target_Image
+               & ");",
+               Depth);
+         else
+            Append_Line
+              (Buffer,
+               Channel_Free_Helper_Name (Channel_Item)
+               & " ("
+               & Target_Image
+               & ");",
+               Depth);
+         end if;
+      end Append_Heap_Channel_Free;
    begin
       if Statements.Is_Empty then
          return;
@@ -18252,7 +18609,7 @@ package body Safe_Frontend.Ada_Emit is
             when CM.Stmt_Object_Decl =>
                declare
                   Tail                : constant CM.Statement_Access_Vectors.Vector :=
-                    Tail_Statements (Index + 1);
+                    Tail_Statements (Statements, Index + 1);
                   Previous_Wide_Count : constant Ada.Containers.Count_Type :=
                     State.Wide_Local_Names.Length;
                   Block_Declarations  : CM.Object_Decl_Vectors.Vector;
@@ -18309,7 +18666,7 @@ package body Safe_Frontend.Ada_Emit is
             when CM.Stmt_Destructure_Decl =>
                declare
                   Tail                : constant CM.Statement_Access_Vectors.Vector :=
-                    Tail_Statements (Index + 1);
+                    Tail_Statements (Statements, Index + 1);
                   Previous_Wide_Count : constant Ada.Containers.Count_Type :=
                     State.Wide_Local_Names.Length;
                   Empty_Declarations  : CM.Object_Decl_Vectors.Vector;
@@ -18324,7 +18681,7 @@ package body Safe_Frontend.Ada_Emit is
                      Document,
                      State,
                      Empty_Declarations,
-                     Tail_Statements (Index));
+                     Tail_Statements (Statements, Index));
                   Push_Type_Binding_Frame (State);
                   Push_Cleanup_Frame (State);
                   Append_Line (Buffer, "declare", Depth);
@@ -18416,7 +18773,8 @@ package body Safe_Frontend.Ada_Emit is
                      & ");",
                      Depth);
                else
-                  Emit_Call_Statement (Item.Call, Index, Depth);
+                  Emit_Call_Statement
+                    (Buffer, Unit, Document, Item.Call, Index, State, Depth);
                end if;
             when CM.Stmt_Return =>
                if Item.Value /= null and then Has_Active_Cleanup_Items (State) then
@@ -20118,7 +20476,8 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             when CM.Stmt_Send =>
                if Item.Success_Var /= null then
-                  Emit_Nonblocking_Send (Item.all, Index, Depth);
+                  Emit_Nonblocking_Send_Statement
+                    (Buffer, Unit, Document, Item.all, Index, State, Depth);
                else
                   Raise_Internal
                     ("resolved send reached Ada emission without a success variable");
@@ -20278,7 +20637,8 @@ package body Safe_Frontend.Ada_Emit is
                   end if;
                end;
             when CM.Stmt_Try_Send =>
-               Emit_Nonblocking_Send (Item.all, Index, Depth);
+               Emit_Nonblocking_Send_Statement
+                 (Buffer, Unit, Document, Item.all, Index, State, Depth);
             when CM.Stmt_Try_Receive =>
                declare
                   Declared_Channel : constant CM.Resolved_Channel_Decl :=
@@ -21305,7 +21665,7 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer);
    end Render_Channel_Spec;
 
-   procedure Render_Channel_Body
+   procedure Render_Channel_Generated_Value_Helpers
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -21314,34 +21674,8 @@ package body Safe_Frontend.Ada_Emit is
    is
       Name          : constant String := FT.To_String (Channel.Name);
       Element_Type  : constant String := Render_Type_Name (Channel.Element_Type);
-      Capacity      : constant String := Trim_Image (Channel.Capacity);
-      Type_Name     : constant String := Name & "_Channel";
-      Length_Helper : constant String := Name & "_Element_Length";
-      Index_Subtype : constant String := Name & "_Index";
-      Stored_Length : constant String := "Stored_Length";
-      Model_Has_Value : constant String := Channel_Model_Has_Value_Name (Channel);
-      Model_Length : constant String := Channel_Model_Length_Name (Channel);
       Heap_Value    : constant Boolean :=
         Has_Heap_Value_Type (Unit, Document, Channel.Element_Type);
-      Has_Length_Model : constant Boolean :=
-        Is_Plain_String_Type (Unit, Document, Channel.Element_Type)
-        or else Is_Growable_Array_Type (Unit, Document, Channel.Element_Type);
-      Single_Slot_Length_Model : constant Boolean :=
-        Has_Length_Model and then Channel.Capacity = 1;
-      Uses_Ghost_Scalar_Model : constant Boolean :=
-        Channel_Uses_Sequential_Scalar_Ghost_Model
-          (Unit, Document, Channel);
-      --  See the matching note in Render_Channel_Spec: the Ghost-model path
-      --  still carries Value_Length until the remaining receive-side bridge
-      --  can be removed without reopening the proof lane.
-      Uses_Length_Formals : constant Boolean := Has_Length_Model;
-      Uses_Runtime_Length_Buffer : constant Boolean :=
-        Has_Length_Model and then not Uses_Ghost_Scalar_Model;
-      Send_Mode     : constant String :=
-        (if Heap_Value then "in out " else "in ");
-      Receive_Mode  : constant String := "out ";
-      Buffer_Default : constant String :=
-        Default_Value_Expr (Unit, Document, Channel.Element_Type);
       Copy_Helper   : constant String := Name & "_Copy_Value";
       Free_Helper   : constant String := Name & "_Free_Value";
       Generated_Channel_Helpers : FT.UString_Vectors.Vector;
@@ -21489,9 +21823,9 @@ package body Safe_Frontend.Ada_Emit is
       procedure Render_Channel_Value_Helpers (Info : GM.Type_Descriptor);
 
       procedure Render_Channel_Value_Helpers (Info : GM.Type_Descriptor) is
-         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-         Kind     : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-         Type_Key : constant String := Channel_Helper_Key (Info);
+         Base      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind      : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+         Type_Key  : constant String := Channel_Helper_Key (Info);
          Type_Name : constant String := Render_Type_Name (Info);
 
          procedure Ensure_Helper (Name_Text : String) is
@@ -21860,24 +22194,24 @@ package body Safe_Frontend.Ada_Emit is
 
          Append_Line
            (Buffer,
-           "procedure "
-           & Copy_Helper
-           & " (Target : out "
-           & Element_Type
-           & "; Source : "
-           & Element_Type
-           & ");",
-           1);
+            "procedure "
+            & Copy_Helper
+            & " (Target : out "
+            & Element_Type
+            & "; Source : "
+            & Element_Type
+            & ");",
+            1);
          Append_Line
            (Buffer,
-           "procedure "
-           & Copy_Helper
-           & " (Target : out "
-           & Element_Type
-           & "; Source : "
-           & Element_Type
-           & ") is",
-           1);
+            "procedure "
+            & Copy_Helper
+            & " (Target : out "
+            & Element_Type
+            & "; Source : "
+            & Element_Type
+            & ") is",
+            1);
          Append_Line (Buffer, "begin", 1);
          Append_Line
            (Buffer,
@@ -21921,6 +22255,48 @@ package body Safe_Frontend.Ada_Emit is
          Append_Local_Warning_Restore (Buffer, 1);
          Append_Line (Buffer);
       end if;
+   end Render_Channel_Generated_Value_Helpers;
+
+   procedure Render_Channel_Body
+     (Buffer   : in out SU.Unbounded_String;
+      Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl;
+      State    : in out Emit_State)
+   is
+      Name          : constant String := FT.To_String (Channel.Name);
+      Element_Type  : constant String := Render_Type_Name (Channel.Element_Type);
+      Capacity      : constant String := Trim_Image (Channel.Capacity);
+      Type_Name     : constant String := Name & "_Channel";
+      Length_Helper : constant String := Name & "_Element_Length";
+      Index_Subtype : constant String := Name & "_Index";
+      Stored_Length : constant String := "Stored_Length";
+      Model_Has_Value : constant String := Channel_Model_Has_Value_Name (Channel);
+      Model_Length : constant String := Channel_Model_Length_Name (Channel);
+      Heap_Value    : constant Boolean :=
+        Has_Heap_Value_Type (Unit, Document, Channel.Element_Type);
+      Has_Length_Model : constant Boolean :=
+        Is_Plain_String_Type (Unit, Document, Channel.Element_Type)
+        or else Is_Growable_Array_Type (Unit, Document, Channel.Element_Type);
+      Single_Slot_Length_Model : constant Boolean :=
+        Has_Length_Model and then Channel.Capacity = 1;
+      Uses_Ghost_Scalar_Model : constant Boolean :=
+        Channel_Uses_Sequential_Scalar_Ghost_Model
+          (Unit, Document, Channel);
+      --  See the matching note in Render_Channel_Spec: the Ghost-model path
+      --  still carries Value_Length until the remaining receive-side bridge
+      --  can be removed without reopening the proof lane.
+      Uses_Length_Formals : constant Boolean := Has_Length_Model;
+      Uses_Runtime_Length_Buffer : constant Boolean :=
+        Has_Length_Model and then not Uses_Ghost_Scalar_Model;
+      Send_Mode     : constant String :=
+        (if Heap_Value then "in out " else "in ");
+      Receive_Mode  : constant String := "out ";
+      Buffer_Default : constant String :=
+        Default_Value_Expr (Unit, Document, Channel.Element_Type);
+   begin
+      Render_Channel_Generated_Value_Helpers
+        (Buffer, Unit, Document, Channel, State);
 
       if Has_Length_Model then
          Append_Line
@@ -22210,22 +22586,11 @@ package body Safe_Frontend.Ada_Emit is
       pragma Unreferenced (Buffer, Declarations, Depth);
    end Render_Free_Declarations;
 
-   procedure Render_Subprogram_Body
-     (Buffer     : in out SU.Unbounded_String;
-      Unit       : CM.Resolved_Unit;
-      Document   : GM.Mir_Document;
-      Subprogram : CM.Resolved_Subprogram;
-      State      : in out Emit_State)
+   function Effective_Subprogram_Outer_Declarations
+     (Subprogram              : CM.Resolved_Subprogram;
+      Raw_Outer_Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
+      return CM.Resolved_Object_Decl_Vectors.Vector
    is
-      Raw_Outer_Declarations : constant CM.Resolved_Object_Decl_Vectors.Vector :=
-        Non_Alias_Declarations (Subprogram.Declarations);
-      Inner_Alias_Declarations : constant CM.Resolved_Object_Decl_Vectors.Vector :=
-        Alias_Declarations (Subprogram.Declarations);
-      Structural_Traversal_Lowering : constant Boolean :=
-        Uses_Structural_Traversal_Lowering (Subprogram);
-      Previous_Wide_Count : constant Ada.Containers.Count_Type :=
-        State.Wide_Local_Names.Length;
-
       function Later_Outer_Declarations_Use_Name
         (Decl_Index : Positive;
          Name       : String) return Boolean is
@@ -22270,538 +22635,557 @@ package body Safe_Frontend.Ada_Emit is
            and then not Later_Outer_Declarations_Use_Name (Decl_Index, Decl_Name);
       end Should_Elide_Dead_Owner_Decl;
 
-      function Effective_Outer_Declarations
-        return CM.Resolved_Object_Decl_Vectors.Vector
+      Result : CM.Resolved_Object_Decl_Vectors.Vector;
+   begin
+      for Decl_Index in Raw_Outer_Declarations.First_Index .. Raw_Outer_Declarations.Last_Index loop
+         declare
+            Decl : constant CM.Resolved_Object_Decl :=
+              Raw_Outer_Declarations (Decl_Index);
+         begin
+            if not Should_Elide_Dead_Owner_Decl (Decl_Index, Decl) then
+               Result.Append (Decl);
+            end if;
+         end;
+      end loop;
+      return Result;
+   end Effective_Subprogram_Outer_Declarations;
+
+   function Apply_Name_Replacements
+     (Text       : String;
+      From_Names : FT.UString_Vectors.Vector;
+      To_Names   : FT.UString_Vectors.Vector) return String
+   is
+      Result : SU.Unbounded_String := SU.To_Unbounded_String (Text);
+   begin
+      if From_Names.Length /= To_Names.Length then
+         Raise_Internal
+           ("structural traversal replacement table length mismatch during Ada emission");
+      end if;
+
+      if From_Names.Is_Empty then
+         return Text;
+      end if;
+
+      for Index in From_Names.First_Index .. From_Names.Last_Index loop
+         Result :=
+           SU.To_Unbounded_String
+             (Replace_Identifier_Token
+                (SU.To_String (Result),
+                 FT.To_String (From_Names (Index)),
+                 FT.To_String (To_Names (Index))));
+      end loop;
+      return SU.To_String (Result);
+   end Apply_Name_Replacements;
+
+   function Render_Structural_Traversal_Subprogram_Body
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Subprogram : CM.Resolved_Subprogram;
+      State      : in out Emit_State) return Boolean
+   is
+      Subprogram_Name : constant String :=
+        FT.Lowercase (FT.To_String (Subprogram.Name));
+
+      function Is_Direct_Null_Check
+        (Expr : CM.Expr_Access;
+         Name : String) return Boolean;
+
+      function Single_Return_Expr
+        (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access;
+
+      function Recursive_Call_From_Return
+        (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access;
+
+      function Is_Direct_Null_Check
+        (Expr : CM.Expr_Access;
+         Name : String) return Boolean
       is
-         Result : CM.Resolved_Object_Decl_Vectors.Vector;
+         Operator : constant String :=
+           (if Expr = null then "" else Map_Operator (FT.To_String (Expr.Operator)));
       begin
-         for Decl_Index in Raw_Outer_Declarations.First_Index .. Raw_Outer_Declarations.Last_Index loop
+         return
+           Expr /= null
+           and then Expr.Kind = CM.Expr_Binary
+           and then Operator = "="
+           and then
+             ((Expr.Left /= null
+               and then Expr.Left.Kind = CM.Expr_Ident
+               and then FT.To_String (Expr.Left.Name) = Name
+               and then Expr.Right /= null
+               and then Expr.Right.Kind = CM.Expr_Null)
+              or else
+              (Expr.Right /= null
+               and then Expr.Right.Kind = CM.Expr_Ident
+               and then FT.To_String (Expr.Right.Name) = Name
+               and then Expr.Left /= null
+               and then Expr.Left.Kind = CM.Expr_Null));
+      end Is_Direct_Null_Check;
+
+      function Single_Return_Expr
+        (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access
+      is
+      begin
+         if Statements.Length /= 1
+           or else Statements (Statements.First_Index) = null
+           or else Statements (Statements.First_Index).Kind /= CM.Stmt_Return
+         then
+            return null;
+         end if;
+
+         return Statements (Statements.First_Index).Value;
+      end Single_Return_Expr;
+
+      function Recursive_Call_From_Return
+        (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access
+      is
+         Return_Expr : constant CM.Expr_Access := Single_Return_Expr (Statements);
+      begin
+         if Return_Expr /= null
+           and then Return_Expr.Kind = CM.Expr_Call
+           and then Return_Expr.Callee /= null
+           and then FT.Lowercase (CM.Flatten_Name (Return_Expr.Callee)) = Subprogram_Name
+         then
+            return Return_Expr;
+         end if;
+         return null;
+      end Recursive_Call_From_Return;
+
+      function Render_Structural_Observer return Boolean is
+         Param               : constant CM.Symbol :=
+           Subprogram.Params (Subprogram.Params.First_Index);
+         Param_Name          : constant String := FT.To_String (Param.Name);
+         Param_Image         : constant String := Ada_Safe_Name (Param_Name);
+         Cursor_Name         : constant String := "Cursor";
+         Cursor_Type_Image   : constant String :=
+           (if Has_Text (Param.Type_Info.Target)
+            then "access constant " & FT.To_String (Param.Type_Info.Target)
+            else "");
+         If_Stmt             : CM.Statement_Access := null;
+         Recursive_Call      : CM.Expr_Access := null;
+         Default_Return_Expr : CM.Expr_Access := null;
+         From_Names          : FT.UString_Vectors.Vector;
+         To_Names            : FT.UString_Vectors.Vector;
+      begin
+         if not Subprogram.Declarations.Is_Empty
+           or else Subprogram.Params.Length /= 1
+           or else Subprogram.Statements.Length /= 1
+           or else not Is_Owner_Access (Param.Type_Info)
+           or else Cursor_Type_Image'Length = 0
+         then
+            return False;
+         end if;
+
+         If_Stmt := Subprogram.Statements (Subprogram.Statements.First_Index);
+         if If_Stmt = null
+           or else If_Stmt.Kind /= CM.Stmt_If
+           or else not Is_Direct_Null_Check (If_Stmt.Condition, Param_Name)
+           or else not If_Stmt.Has_Else
+         then
+            return False;
+         end if;
+
+         Default_Return_Expr := Single_Return_Expr (If_Stmt.Then_Stmts);
+         Recursive_Call := Recursive_Call_From_Return (If_Stmt.Else_Stmts);
+         if Default_Return_Expr = null
+           or else Recursive_Call = null
+           or else Recursive_Call.Args.Length /= 1
+           or else Root_Name (Recursive_Call.Args (Recursive_Call.Args.First_Index)) /= Param_Name
+         then
+            return False;
+         end if;
+
+         for Part of If_Stmt.Elsifs loop
+            if Single_Return_Expr (Part.Statements) = null then
+               return False;
+            end if;
+         end loop;
+
+         From_Names.Append (FT.To_UString (Param_Image));
+         To_Names.Append (FT.To_UString (Cursor_Name));
+
+         Append_Line
+           (Buffer,
+            Cursor_Name & " : " & Cursor_Type_Image & " := " & Param_Image & ";",
+            2);
+         Append_Line (Buffer, "begin", 1);
+         Append_Line (Buffer, "while " & Cursor_Name & " /= null loop", 2);
+         Append_Line (Buffer, "pragma Loop_Variant (Structural => " & Cursor_Name & ");", 3);
+
+         for Part of If_Stmt.Elsifs loop
             declare
-               Decl : constant CM.Resolved_Object_Decl :=
-                 Raw_Outer_Declarations (Decl_Index);
+               Branch_Return : constant CM.Expr_Access := Single_Return_Expr (Part.Statements);
             begin
-               if not Should_Elide_Dead_Owner_Decl (Decl_Index, Decl) then
-                  Result.Append (Decl);
+               Append_Line
+                 (Buffer,
+                  "if "
+                  & Apply_Name_Replacements
+                      (Render_Expr (Unit, Document, Part.Condition, State),
+                       From_Names,
+                       To_Names)
+                  & " then",
+                  3);
+               Append_Line
+                 (Buffer,
+                  "return "
+                  & Apply_Name_Replacements
+                      (Render_Expr (Unit, Document, Branch_Return, State),
+                       From_Names,
+                       To_Names)
+                  & ";",
+                  4);
+               Append_Line (Buffer, "end if;", 3);
+            end;
+         end loop;
+
+         Append_Line
+           (Buffer,
+            Cursor_Name
+            & " := "
+            & Apply_Name_Replacements
+                (Render_Expr
+                   (Unit,
+                    Document,
+                    Recursive_Call.Args (Recursive_Call.Args.First_Index),
+                    State),
+                 From_Names,
+                 To_Names)
+            & ";",
+            3);
+         Append_Line (Buffer, "end loop;", 2);
+         Append_Line
+           (Buffer,
+            "return "
+            & Apply_Name_Replacements
+                (Render_Expr (Unit, Document, Default_Return_Expr, State),
+                 From_Names,
+                 To_Names)
+            & ";",
+            2);
+         return True;
+      end Render_Structural_Observer;
+
+      function Render_Structural_Accumulator return Boolean is
+         First_Param        : constant CM.Symbol :=
+           Subprogram.Params (Subprogram.Params.First_Index);
+         First_Param_Name   : constant String := FT.To_String (First_Param.Name);
+         First_Param_Image  : constant String := Ada_Safe_Name (First_Param_Name);
+         Cursor_Name        : constant String := "Cursor";
+         Cursor_Type_Image  : constant String :=
+           (if Has_Text (First_Param.Type_Info.Target)
+            then "access constant " & FT.To_String (First_Param.Type_Info.Target)
+            else "");
+         First_Stmt         : CM.Statement_Access := null;
+         Recursive_Assign   : CM.Statement_Access := null;
+         Final_Return       : CM.Statement_Access := null;
+         Recursive_Call     : CM.Expr_Access := null;
+         Entry_Exit_Image   : SU.Unbounded_String := SU.Null_Unbounded_String;
+         Final_Return_Image : SU.Unbounded_String := SU.Null_Unbounded_String;
+         Bound_Image        : SU.Unbounded_String := SU.Null_Unbounded_String;
+         From_Names         : FT.UString_Vectors.Vector;
+         To_Names           : FT.UString_Vectors.Vector;
+         State_Names        : FT.UString_Vectors.Vector;
+      begin
+         if Subprogram.Declarations.Is_Empty
+           or else Subprogram.Params.Length < 2
+           or else Subprogram.Statements.Length < 4
+           or else not Is_Owner_Access (First_Param.Type_Info)
+           or else Cursor_Type_Image'Length = 0
+         then
+            return False;
+         end if;
+
+         First_Stmt := Subprogram.Statements (Subprogram.Statements.First_Index);
+         Recursive_Assign := Subprogram.Statements (Subprogram.Statements.Last_Index - 1);
+         Final_Return := Subprogram.Statements (Subprogram.Statements.Last_Index);
+         if First_Stmt = null
+           or else First_Stmt.Kind /= CM.Stmt_If
+           or else Single_Return_Expr (First_Stmt.Then_Stmts) = null
+           or else First_Stmt.Has_Else
+           or else not First_Stmt.Elsifs.Is_Empty
+           or else Recursive_Assign = null
+           or else Recursive_Assign.Kind /= CM.Stmt_Assign
+           or else Recursive_Assign.Value = null
+           or else Recursive_Assign.Value.Kind /= CM.Expr_Call
+           or else Recursive_Assign.Value.Callee = null
+           or else FT.Lowercase (CM.Flatten_Name (Recursive_Assign.Value.Callee)) /= Subprogram_Name
+           or else Final_Return = null
+           or else Final_Return.Kind /= CM.Stmt_Return
+           or else Root_Name (Final_Return.Value) /= Root_Name (Recursive_Assign.Target)
+         then
+            return False;
+         end if;
+
+         Recursive_Call := Recursive_Assign.Value;
+         if Recursive_Call.Args.Length /= Subprogram.Params.Length
+           or else Root_Name (Recursive_Call.Args (Recursive_Call.Args.First_Index)) /= First_Param_Name
+         then
+            return False;
+         end if;
+
+         From_Names.Append (FT.To_UString (First_Param_Image));
+         To_Names.Append (FT.To_UString (Cursor_Name));
+
+         for Param_Index in Subprogram.Params.First_Index + 1 .. Subprogram.Params.Last_Index loop
+            declare
+               Param      : constant CM.Symbol := Subprogram.Params (Param_Index);
+               Param_Name : constant String := Ada_Safe_Name (FT.To_String (Param.Name));
+               State_Name : constant String := Param_Name & "_State";
+            begin
+               State_Names.Append (FT.To_UString (State_Name));
+               From_Names.Append (FT.To_UString (Param_Name));
+               To_Names.Append (FT.To_UString (State_Name));
+            end;
+         end loop;
+
+         for Arg_Index in Recursive_Call.Args.First_Index + 1 .. Recursive_Call.Args.Last_Index loop
+            declare
+               Root : constant String := Ada_Safe_Name (Root_Name (Recursive_Call.Args (Arg_Index)));
+            begin
+               if Root'Length > 0 then
+                  From_Names.Append (FT.To_UString (Root));
+                  To_Names.Append
+                    (State_Names
+                       (State_Names.First_Index
+                        + (Arg_Index - (Recursive_Call.Args.First_Index + 1))));
                end if;
             end;
          end loop;
-         return Result;
-      end Effective_Outer_Declarations;
 
+         declare
+            Leading_Condition : constant CM.Expr_Access := First_Stmt.Condition;
+            Operator          : constant String :=
+              (if Leading_Condition = null then "" else Map_Operator (FT.To_String (Leading_Condition.Operator)));
+            Leading_Return    : constant CM.Expr_Access :=
+              Single_Return_Expr (First_Stmt.Then_Stmts);
+         begin
+            if Is_Direct_Null_Check (Leading_Condition, First_Param_Name) then
+               null;
+            elsif Leading_Condition /= null
+              and then Leading_Condition.Kind = CM.Expr_Binary
+              and then Operator = "or else"
+            then
+               if Is_Direct_Null_Check (Leading_Condition.Left, First_Param_Name) then
+                  Entry_Exit_Image :=
+                    SU.To_Unbounded_String
+                      (Apply_Name_Replacements
+                         (Render_Expr (Unit, Document, Leading_Condition.Right, State),
+                          From_Names,
+                          To_Names));
+               elsif Is_Direct_Null_Check (Leading_Condition.Right, First_Param_Name) then
+                  Entry_Exit_Image :=
+                    SU.To_Unbounded_String
+                      (Apply_Name_Replacements
+                         (Render_Expr (Unit, Document, Leading_Condition.Left, State),
+                          From_Names,
+                          To_Names));
+               else
+                  return False;
+               end if;
+            else
+               return False;
+            end if;
+
+            Final_Return_Image :=
+              SU.To_Unbounded_String
+                (Apply_Name_Replacements
+                   (Render_Expr (Unit, Document, Leading_Return, State),
+                    From_Names,
+                    To_Names));
+         end;
+
+         Append_Line
+           (Buffer,
+            Cursor_Name & " : " & Cursor_Type_Image & " := " & First_Param_Image & ";",
+            2);
+         for Param_Index in Subprogram.Params.First_Index + 1 .. Subprogram.Params.Last_Index loop
+            declare
+               Param      : constant CM.Symbol := Subprogram.Params (Param_Index);
+               State_Name : constant String :=
+                 FT.To_String
+                   (State_Names
+                      (State_Names.First_Index
+                       + (Param_Index - (Subprogram.Params.First_Index + 1))));
+            begin
+               Append_Line
+                 (Buffer,
+                  State_Name
+                  & " : "
+                  & Render_Type_Name (Param.Type_Info)
+                  & " := "
+                  & Ada_Safe_Name (FT.To_String (Param.Name))
+                  & ";",
+                  2);
+            end;
+         end loop;
+
+         Append_Line (Buffer, "begin", 1);
+         Append_Line (Buffer, "while " & Cursor_Name & " /= null loop", 2);
+         Append_Line (Buffer, "pragma Loop_Variant (Structural => " & Cursor_Name & ");", 3);
+         for Param_Index in Subprogram.Params.First_Index + 1 .. Subprogram.Params.Last_Index loop
+            declare
+               Param      : constant CM.Symbol := Subprogram.Params (Param_Index);
+               State_Name : constant String :=
+                 FT.To_String
+                   (State_Names
+                      (State_Names.First_Index
+                       + (Param_Index - (Subprogram.Params.First_Index + 1))));
+            begin
+               if not Is_Access_Type (Param.Type_Info) then
+                  Append_Line
+                    (Buffer,
+                     "pragma Loop_Invariant ("
+                     & State_Name
+                     & " in "
+                     & Render_Type_Name (Param.Type_Info)
+                     & ");",
+                     3);
+               end if;
+            end;
+         end loop;
+         if State_Names.Length >= 2 then
+            Bound_Image :=
+              SU.To_Unbounded_String
+                (Structural_Accumulator_Count_Total_Bound
+                   (Unit,
+                    Document,
+                    Subprogram,
+                    FT.To_String (State_Names (State_Names.First_Index)),
+                    FT.To_String (State_Names (State_Names.First_Index + 1)),
+                    State));
+            if SU.Length (Bound_Image) > 0 then
+               Append_Line
+                 (Buffer,
+                  "pragma Loop_Invariant (" & SU.To_String (Bound_Image) & ");",
+                  3);
+            end if;
+         end if;
+
+         if SU.Length (Entry_Exit_Image) > 0 then
+            Append_Line (Buffer, "exit when " & SU.To_String (Entry_Exit_Image) & ";", 3);
+         end if;
+
+         for Statement_Index in Subprogram.Statements.First_Index + 1 .. Subprogram.Statements.Last_Index - 2 loop
+            declare
+               Item : constant CM.Statement_Access := Subprogram.Statements (Statement_Index);
+            begin
+               if Item = null then
+                  return False;
+               end if;
+
+               case Item.Kind is
+                  when CM.Stmt_Assign =>
+                     declare
+                        Target_Name : constant String :=
+                          Apply_Name_Replacements
+                            (Ada_Safe_Name (Root_Name (Item.Target)),
+                             From_Names,
+                             To_Names);
+                     begin
+                        if Target_Name'Length = 0 then
+                           return False;
+                        end if;
+
+                        Append_Line
+                          (Buffer,
+                           Target_Name
+                           & " := "
+                           & Apply_Name_Replacements
+                               (Render_Expr (Unit, Document, Item.Value, State),
+                                From_Names,
+                                To_Names)
+                           & ";",
+                           3);
+                     end;
+                  when CM.Stmt_If =>
+                     declare
+                        Branch_Return : constant CM.Expr_Access :=
+                          Single_Return_Expr (Item.Then_Stmts);
+                        Branch_Return_Image : constant String :=
+                          (if Branch_Return = null
+                           then ""
+                           else
+                             Apply_Name_Replacements
+                               (Render_Expr
+                                  (Unit,
+                                   Document,
+                                   Branch_Return,
+                                   State),
+                                From_Names,
+                                To_Names));
+                     begin
+                        if Branch_Return = null
+                          or else Item.Has_Else
+                          or else not Item.Elsifs.Is_Empty
+                          or else Branch_Return_Image /= SU.To_String (Final_Return_Image)
+                        then
+                           return False;
+                        end if;
+
+                        Append_Line
+                          (Buffer,
+                           "exit when "
+                           & Apply_Name_Replacements
+                               (Render_Expr (Unit, Document, Item.Condition, State),
+                                From_Names,
+                                To_Names)
+                           & ";",
+                           3);
+                     end;
+                  when others =>
+                     return False;
+               end case;
+            end;
+         end loop;
+
+         Append_Line
+           (Buffer,
+            Cursor_Name
+            & " := "
+            & Apply_Name_Replacements
+                (Render_Expr
+                   (Unit,
+                    Document,
+                    Recursive_Call.Args (Recursive_Call.Args.First_Index),
+                    State),
+                 From_Names,
+                 To_Names)
+            & ";",
+            3);
+         Append_Line (Buffer, "end loop;", 2);
+         Append_Line (Buffer, "return " & SU.To_String (Final_Return_Image) & ";", 2);
+         return True;
+      end Render_Structural_Accumulator;
+   begin
+      if Render_Structural_Observer then
+         return True;
+      end if;
+
+      return Render_Structural_Accumulator;
+   end Render_Structural_Traversal_Subprogram_Body;
+
+   procedure Render_Subprogram_Body
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Subprogram : CM.Resolved_Subprogram;
+      State      : in out Emit_State)
+   is
+      Raw_Outer_Declarations : constant CM.Resolved_Object_Decl_Vectors.Vector :=
+        Non_Alias_Declarations (Subprogram.Declarations);
+      Inner_Alias_Declarations : constant CM.Resolved_Object_Decl_Vectors.Vector :=
+        Alias_Declarations (Subprogram.Declarations);
+      Structural_Traversal_Lowering : constant Boolean :=
+        Uses_Structural_Traversal_Lowering (Subprogram);
+      Previous_Wide_Count : constant Ada.Containers.Count_Type :=
+        State.Wide_Local_Names.Length;
       Outer_Declarations : constant CM.Resolved_Object_Decl_Vectors.Vector :=
-        Effective_Outer_Declarations;
+        Effective_Subprogram_Outer_Declarations
+          (Subprogram, Raw_Outer_Declarations);
       Return_Type_Image : constant String :=
         (if Subprogram.Has_Return_Type then Render_Type_Name (Subprogram.Return_Type) else "");
       Suppress_Declaration_Warnings : constant Boolean :=
         not Structural_Traversal_Lowering and then not Outer_Declarations.Is_Empty;
-
-      function Apply_Replacements
-        (Text       : String;
-         From_Names : FT.UString_Vectors.Vector;
-         To_Names   : FT.UString_Vectors.Vector) return String
-      is
-         Result : SU.Unbounded_String := SU.To_Unbounded_String (Text);
-      begin
-         if From_Names.Length /= To_Names.Length then
-            Raise_Internal
-              ("structural traversal replacement table length mismatch during Ada emission");
-         end if;
-
-         if From_Names.Is_Empty then
-            return Text;
-         end if;
-
-         for Index in From_Names.First_Index .. From_Names.Last_Index loop
-            Result :=
-              SU.To_Unbounded_String
-                (Replace_Identifier_Token
-                   (SU.To_String (Result),
-                    FT.To_String (From_Names (Index)),
-                    FT.To_String (To_Names (Index))));
-         end loop;
-         return SU.To_String (Result);
-      end Apply_Replacements;
-
-      function Render_Structural_Traversal_Body return Boolean is
-         Subprogram_Name : constant String :=
-           FT.Lowercase (FT.To_String (Subprogram.Name));
-
-         function Is_Direct_Null_Check
-           (Expr : CM.Expr_Access;
-            Name : String) return Boolean;
-
-         function Single_Return_Expr
-           (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access;
-
-         function Recursive_Call_From_Return
-           (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access;
-
-         function Is_Direct_Null_Check
-           (Expr : CM.Expr_Access;
-            Name : String) return Boolean
-         is
-            Operator : constant String :=
-              (if Expr = null then "" else Map_Operator (FT.To_String (Expr.Operator)));
-         begin
-            return
-              Expr /= null
-              and then Expr.Kind = CM.Expr_Binary
-              and then Operator = "="
-              and then
-                ((Expr.Left /= null
-                  and then Expr.Left.Kind = CM.Expr_Ident
-                  and then FT.To_String (Expr.Left.Name) = Name
-                  and then Expr.Right /= null
-                  and then Expr.Right.Kind = CM.Expr_Null)
-                 or else
-                 (Expr.Right /= null
-                  and then Expr.Right.Kind = CM.Expr_Ident
-                  and then FT.To_String (Expr.Right.Name) = Name
-                  and then Expr.Left /= null
-                  and then Expr.Left.Kind = CM.Expr_Null));
-         end Is_Direct_Null_Check;
-
-         function Single_Return_Expr
-           (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access
-         is
-         begin
-            if Statements.Length /= 1
-              or else Statements (Statements.First_Index) = null
-              or else Statements (Statements.First_Index).Kind /= CM.Stmt_Return
-            then
-               return null;
-            end if;
-
-            return Statements (Statements.First_Index).Value;
-         end Single_Return_Expr;
-
-         function Recursive_Call_From_Return
-           (Statements : CM.Statement_Access_Vectors.Vector) return CM.Expr_Access
-         is
-            Return_Expr : constant CM.Expr_Access := Single_Return_Expr (Statements);
-         begin
-            if Return_Expr /= null
-              and then Return_Expr.Kind = CM.Expr_Call
-              and then Return_Expr.Callee /= null
-              and then FT.Lowercase (CM.Flatten_Name (Return_Expr.Callee)) = Subprogram_Name
-            then
-               return Return_Expr;
-            end if;
-            return null;
-         end Recursive_Call_From_Return;
-
-         function Render_Structural_Observer return Boolean is
-            Param              : constant CM.Symbol :=
-              Subprogram.Params (Subprogram.Params.First_Index);
-            Param_Name         : constant String := FT.To_String (Param.Name);
-            Param_Image        : constant String := Ada_Safe_Name (Param_Name);
-            Cursor_Name        : constant String := "Cursor";
-            Cursor_Type_Image  : constant String :=
-              (if Has_Text (Param.Type_Info.Target)
-               then "access constant " & FT.To_String (Param.Type_Info.Target)
-               else "");
-            If_Stmt            : CM.Statement_Access := null;
-            Recursive_Call     : CM.Expr_Access := null;
-            Default_Return_Expr : CM.Expr_Access := null;
-            From_Names         : FT.UString_Vectors.Vector;
-            To_Names           : FT.UString_Vectors.Vector;
-         begin
-            if not Subprogram.Declarations.Is_Empty
-              or else Subprogram.Params.Length /= 1
-              or else Subprogram.Statements.Length /= 1
-              or else not Is_Owner_Access (Param.Type_Info)
-              or else Cursor_Type_Image'Length = 0
-            then
-               return False;
-            end if;
-
-            If_Stmt := Subprogram.Statements (Subprogram.Statements.First_Index);
-            if If_Stmt = null
-              or else If_Stmt.Kind /= CM.Stmt_If
-              or else not Is_Direct_Null_Check (If_Stmt.Condition, Param_Name)
-              or else not If_Stmt.Has_Else
-            then
-               return False;
-            end if;
-
-            Default_Return_Expr := Single_Return_Expr (If_Stmt.Then_Stmts);
-            Recursive_Call := Recursive_Call_From_Return (If_Stmt.Else_Stmts);
-            if Default_Return_Expr = null
-              or else Recursive_Call = null
-              or else Recursive_Call.Args.Length /= 1
-              or else Root_Name (Recursive_Call.Args (Recursive_Call.Args.First_Index)) /= Param_Name
-            then
-               return False;
-            end if;
-
-            for Part of If_Stmt.Elsifs loop
-               if Single_Return_Expr (Part.Statements) = null then
-                  return False;
-               end if;
-            end loop;
-
-            From_Names.Append (FT.To_UString (Param_Image));
-            To_Names.Append (FT.To_UString (Cursor_Name));
-
-            Append_Line
-              (Buffer,
-               Cursor_Name & " : " & Cursor_Type_Image & " := " & Param_Image & ";",
-               2);
-            Append_Line (Buffer, "begin", 1);
-            Append_Line (Buffer, "while " & Cursor_Name & " /= null loop", 2);
-            Append_Line (Buffer, "pragma Loop_Variant (Structural => " & Cursor_Name & ");", 3);
-
-            for Part of If_Stmt.Elsifs loop
-               declare
-                  Branch_Return : constant CM.Expr_Access := Single_Return_Expr (Part.Statements);
-               begin
-                  Append_Line
-                    (Buffer,
-                     "if "
-                     & Apply_Replacements
-                         (Render_Expr (Unit, Document, Part.Condition, State),
-                          From_Names,
-                          To_Names)
-                     & " then",
-                     3);
-                  Append_Line
-                    (Buffer,
-                     "return "
-                     & Apply_Replacements
-                         (Render_Expr (Unit, Document, Branch_Return, State),
-                          From_Names,
-                          To_Names)
-                     & ";",
-                     4);
-                  Append_Line (Buffer, "end if;", 3);
-               end;
-            end loop;
-
-            Append_Line
-              (Buffer,
-               Cursor_Name
-               & " := "
-               & Apply_Replacements
-                   (Render_Expr
-                      (Unit,
-                       Document,
-                       Recursive_Call.Args (Recursive_Call.Args.First_Index),
-                       State),
-                    From_Names,
-                    To_Names)
-               & ";",
-               3);
-            Append_Line (Buffer, "end loop;", 2);
-            Append_Line
-              (Buffer,
-               "return "
-               & Apply_Replacements
-                   (Render_Expr (Unit, Document, Default_Return_Expr, State),
-                    From_Names,
-                    To_Names)
-               & ";",
-               2);
-            return True;
-         end Render_Structural_Observer;
-
-         function Render_Structural_Accumulator return Boolean is
-            First_Param       : constant CM.Symbol :=
-              Subprogram.Params (Subprogram.Params.First_Index);
-            First_Param_Name  : constant String := FT.To_String (First_Param.Name);
-            First_Param_Image : constant String := Ada_Safe_Name (First_Param_Name);
-            Cursor_Name       : constant String := "Cursor";
-            Cursor_Type_Image : constant String :=
-              (if Has_Text (First_Param.Type_Info.Target)
-               then "access constant " & FT.To_String (First_Param.Type_Info.Target)
-               else "");
-            First_Stmt        : CM.Statement_Access := null;
-            Recursive_Assign  : CM.Statement_Access := null;
-            Final_Return      : CM.Statement_Access := null;
-            Recursive_Call    : CM.Expr_Access := null;
-            Entry_Exit_Image  : SU.Unbounded_String := SU.Null_Unbounded_String;
-            Final_Return_Image : SU.Unbounded_String := SU.Null_Unbounded_String;
-            Bound_Image       : SU.Unbounded_String := SU.Null_Unbounded_String;
-            From_Names        : FT.UString_Vectors.Vector;
-            To_Names          : FT.UString_Vectors.Vector;
-            State_Names       : FT.UString_Vectors.Vector;
-         begin
-            if Subprogram.Declarations.Is_Empty
-              or else Subprogram.Params.Length < 2
-              or else Subprogram.Statements.Length < 4
-              or else not Is_Owner_Access (First_Param.Type_Info)
-              or else Cursor_Type_Image'Length = 0
-            then
-               return False;
-            end if;
-
-            First_Stmt := Subprogram.Statements (Subprogram.Statements.First_Index);
-            Recursive_Assign := Subprogram.Statements (Subprogram.Statements.Last_Index - 1);
-            Final_Return := Subprogram.Statements (Subprogram.Statements.Last_Index);
-            if First_Stmt = null
-              or else First_Stmt.Kind /= CM.Stmt_If
-              or else Single_Return_Expr (First_Stmt.Then_Stmts) = null
-              or else First_Stmt.Has_Else
-              or else not First_Stmt.Elsifs.Is_Empty
-              or else Recursive_Assign = null
-              or else Recursive_Assign.Kind /= CM.Stmt_Assign
-              or else Recursive_Assign.Value = null
-              or else Recursive_Assign.Value.Kind /= CM.Expr_Call
-              or else Recursive_Assign.Value.Callee = null
-              or else FT.Lowercase (CM.Flatten_Name (Recursive_Assign.Value.Callee)) /= Subprogram_Name
-              or else Final_Return = null
-              or else Final_Return.Kind /= CM.Stmt_Return
-              or else Root_Name (Final_Return.Value) /= Root_Name (Recursive_Assign.Target)
-            then
-               return False;
-            end if;
-
-            Recursive_Call := Recursive_Assign.Value;
-            if Recursive_Call.Args.Length /= Subprogram.Params.Length
-              or else Root_Name (Recursive_Call.Args (Recursive_Call.Args.First_Index)) /= First_Param_Name
-            then
-               return False;
-            end if;
-
-            From_Names.Append (FT.To_UString (First_Param_Image));
-            To_Names.Append (FT.To_UString (Cursor_Name));
-
-            for Param_Index in Subprogram.Params.First_Index + 1 .. Subprogram.Params.Last_Index loop
-               declare
-                  Param      : constant CM.Symbol := Subprogram.Params (Param_Index);
-                  Param_Name : constant String := Ada_Safe_Name (FT.To_String (Param.Name));
-                  State_Name : constant String := Param_Name & "_State";
-               begin
-                  State_Names.Append (FT.To_UString (State_Name));
-                  From_Names.Append (FT.To_UString (Param_Name));
-                  To_Names.Append (FT.To_UString (State_Name));
-               end;
-            end loop;
-
-            for Arg_Index in Recursive_Call.Args.First_Index + 1 .. Recursive_Call.Args.Last_Index loop
-               declare
-                  Root : constant String := Ada_Safe_Name (Root_Name (Recursive_Call.Args (Arg_Index)));
-               begin
-                  if Root'Length > 0 then
-                     From_Names.Append (FT.To_UString (Root));
-                     To_Names.Append
-                       (State_Names
-                          (State_Names.First_Index
-                           + (Arg_Index - (Recursive_Call.Args.First_Index + 1))));
-                  end if;
-               end;
-            end loop;
-
-            declare
-               Leading_Condition : constant CM.Expr_Access := First_Stmt.Condition;
-               Operator          : constant String :=
-                 (if Leading_Condition = null then "" else Map_Operator (FT.To_String (Leading_Condition.Operator)));
-               Leading_Return    : constant CM.Expr_Access :=
-                 Single_Return_Expr (First_Stmt.Then_Stmts);
-            begin
-               if Is_Direct_Null_Check (Leading_Condition, First_Param_Name) then
-                  null;
-               elsif Leading_Condition /= null
-                 and then Leading_Condition.Kind = CM.Expr_Binary
-                 and then Operator = "or else"
-               then
-                  if Is_Direct_Null_Check (Leading_Condition.Left, First_Param_Name) then
-                     Entry_Exit_Image :=
-                       SU.To_Unbounded_String
-                         (Apply_Replacements
-                            (Render_Expr (Unit, Document, Leading_Condition.Right, State),
-                             From_Names,
-                             To_Names));
-                  elsif Is_Direct_Null_Check (Leading_Condition.Right, First_Param_Name) then
-                     Entry_Exit_Image :=
-                       SU.To_Unbounded_String
-                         (Apply_Replacements
-                            (Render_Expr (Unit, Document, Leading_Condition.Left, State),
-                             From_Names,
-                             To_Names));
-                  else
-                     return False;
-                  end if;
-               else
-                  return False;
-               end if;
-
-               Final_Return_Image :=
-                 SU.To_Unbounded_String
-                   (Apply_Replacements
-                      (Render_Expr (Unit, Document, Leading_Return, State),
-                       From_Names,
-                       To_Names));
-            end;
-
-            Append_Line
-              (Buffer,
-               Cursor_Name & " : " & Cursor_Type_Image & " := " & First_Param_Image & ";",
-               2);
-            for Param_Index in Subprogram.Params.First_Index + 1 .. Subprogram.Params.Last_Index loop
-               declare
-                  Param      : constant CM.Symbol := Subprogram.Params (Param_Index);
-                  State_Name : constant String :=
-                    FT.To_String
-                      (State_Names
-                         (State_Names.First_Index
-                          + (Param_Index - (Subprogram.Params.First_Index + 1))));
-               begin
-                  Append_Line
-                    (Buffer,
-                     State_Name
-                     & " : "
-                     & Render_Type_Name (Param.Type_Info)
-                     & " := "
-                     & Ada_Safe_Name (FT.To_String (Param.Name))
-                     & ";",
-                     2);
-               end;
-            end loop;
-
-            Append_Line (Buffer, "begin", 1);
-            Append_Line (Buffer, "while " & Cursor_Name & " /= null loop", 2);
-            Append_Line (Buffer, "pragma Loop_Variant (Structural => " & Cursor_Name & ");", 3);
-            for Param_Index in Subprogram.Params.First_Index + 1 .. Subprogram.Params.Last_Index loop
-               declare
-                  Param      : constant CM.Symbol := Subprogram.Params (Param_Index);
-                  State_Name : constant String :=
-                    FT.To_String
-                      (State_Names
-                         (State_Names.First_Index
-                          + (Param_Index - (Subprogram.Params.First_Index + 1))));
-               begin
-                  if not Is_Access_Type (Param.Type_Info) then
-                     Append_Line
-                       (Buffer,
-                        "pragma Loop_Invariant ("
-                        & State_Name
-                        & " in "
-                        & Render_Type_Name (Param.Type_Info)
-                        & ");",
-                        3);
-                  end if;
-               end;
-            end loop;
-            if State_Names.Length >= 2 then
-               Bound_Image :=
-                 SU.To_Unbounded_String
-                   (Structural_Accumulator_Count_Total_Bound
-                      (Unit,
-                       Document,
-                       Subprogram,
-                       FT.To_String (State_Names (State_Names.First_Index)),
-                       FT.To_String (State_Names (State_Names.First_Index + 1)),
-                       State));
-               if SU.Length (Bound_Image) > 0 then
-                  Append_Line
-                    (Buffer,
-                     "pragma Loop_Invariant (" & SU.To_String (Bound_Image) & ");",
-                     3);
-               end if;
-            end if;
-
-            if SU.Length (Entry_Exit_Image) > 0 then
-               Append_Line (Buffer, "exit when " & SU.To_String (Entry_Exit_Image) & ";", 3);
-            end if;
-
-            for Statement_Index in Subprogram.Statements.First_Index + 1 .. Subprogram.Statements.Last_Index - 2 loop
-               declare
-                  Item : constant CM.Statement_Access := Subprogram.Statements (Statement_Index);
-               begin
-                  if Item = null then
-                     return False;
-                  end if;
-
-                  case Item.Kind is
-                     when CM.Stmt_Assign =>
-                        declare
-                           Target_Name : constant String :=
-                             Apply_Replacements
-                               (Ada_Safe_Name (Root_Name (Item.Target)),
-                                From_Names,
-                                To_Names);
-                        begin
-                           if Target_Name'Length = 0 then
-                              return False;
-                           end if;
-
-                           Append_Line
-                             (Buffer,
-                              Target_Name
-                              & " := "
-                              & Apply_Replacements
-                                  (Render_Expr (Unit, Document, Item.Value, State),
-                                   From_Names,
-                                   To_Names)
-                              & ";",
-                              3);
-                        end;
-                     when CM.Stmt_If =>
-                        declare
-                           Branch_Return : constant CM.Expr_Access :=
-                             Single_Return_Expr (Item.Then_Stmts);
-                           Branch_Return_Image : constant String :=
-                             (if Branch_Return = null
-                              then ""
-                              else
-                                Apply_Replacements
-                                  (Render_Expr
-                                     (Unit,
-                                      Document,
-                                      Branch_Return,
-                                      State),
-                                   From_Names,
-                                   To_Names));
-                        begin
-                           if Branch_Return = null
-                             or else Item.Has_Else
-                             or else not Item.Elsifs.Is_Empty
-                             or else Branch_Return_Image /= SU.To_String (Final_Return_Image)
-                           then
-                              return False;
-                           end if;
-
-                           Append_Line
-                             (Buffer,
-                              "exit when "
-                              & Apply_Replacements
-                                  (Render_Expr (Unit, Document, Item.Condition, State),
-                                   From_Names,
-                                   To_Names)
-                              & ";",
-                              3);
-                        end;
-                     when others =>
-                        return False;
-                  end case;
-               end;
-            end loop;
-
-            Append_Line
-              (Buffer,
-               Cursor_Name
-               & " := "
-               & Apply_Replacements
-                   (Render_Expr
-                      (Unit,
-                       Document,
-                       Recursive_Call.Args (Recursive_Call.Args.First_Index),
-                       State),
-                    From_Names,
-                    To_Names)
-               & ";",
-               3);
-            Append_Line (Buffer, "end loop;", 2);
-            Append_Line (Buffer, "return " & SU.To_String (Final_Return_Image) & ";", 2);
-            return True;
-         end Render_Structural_Accumulator;
-      begin
-         if Render_Structural_Observer then
-            return True;
-         end if;
-
-         return Render_Structural_Accumulator;
-      end Render_Structural_Traversal_Body;
    begin
       Collect_Wide_Locals
         (Unit, Document, State, Subprogram.Declarations, Subprogram.Statements);
@@ -22820,7 +23204,9 @@ package body Safe_Frontend.Ada_Emit is
          & " is",
          1);
       if Structural_Traversal_Lowering then
-         if not Render_Structural_Traversal_Body then
+         if not Render_Structural_Traversal_Subprogram_Body
+           (Buffer, Unit, Document, Subprogram, State)
+         then
             Raise_Internal
               ("structural traversal lowering matched a subprogram that could not be rendered");
          end if;

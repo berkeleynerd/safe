@@ -88,6 +88,7 @@ Dependency chain:
 - PR11.22d follows PR11.22c (emitter deduplication and vestigial code removal).
 - PR11.22e follows PR11.22d (emitter file split into domain-focused modules).
 - PR11.22f follows PR11.22e (resolver cleanup and builtin-resolution consolidation).
+- PR11.23 follows PR11.22h (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
 - PR11.15 follows PR11.22f (string interpolation — low risk, high usability).
 - PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
 - PR11.14 follows PR11.16 (closures — deferred past hygiene to reduce implementation risk).
@@ -3177,6 +3178,98 @@ This is the last PR11 milestone.
 
 ---
 
+## PR11.23: Proof Diagnostic Mapping
+
+Map GNATprove proof failures back to Safe source locations with
+classified fix guidance, so users and AI agents receive actionable
+Safe-native diagnostics instead of raw emitted-Ada error messages.
+
+### Why now
+
+With proof-on-build integrated, `safe build` rejects unproved code by
+default. Users will see proof failures for the first time as build
+errors. Without source mapping and fix guidance, those failures
+reference emitted `.adb` files and GNATprove internals that Safe
+programmers have no context for. This is the highest-friction point
+in the AI-first workflow: the agent gets an error it cannot act on.
+
+### Scope
+
+**Source location mapping:**
+
+- The emitter annotates emitted Ada with Safe source locations via
+  line-mapping comments (`-- safe:file:line`) or a sidecar JSON map.
+- The mapping must survive through GNATprove — the proof tool
+  preserves source locations from the Ada it analyzes, so the
+  annotations need only be present in the emitted `.adb`/`.ads`.
+- The mapping covers: statements, expressions, declarations,
+  subprogram boundaries, and loop headers — the sites where proof
+  failures originate.
+
+**Diagnostic classification catalog:**
+
+A finite catalog of known proof failure patterns, each with:
+- A GNATprove message pattern (regex or substring match)
+- A Safe-native diagnostic message template
+- A specific fix suggestion in Safe terms
+
+Initial catalog entries (expand as real failures surface):
+
+| GNATprove pattern | Safe diagnostic | Fix guidance |
+|---|---|---|
+| `range check might fail` | `value may exceed type range at conversion` | Use a wider type, add a guard (`if value >= lo and then value <= hi`), or use `for` instead of `while` |
+| `overflow check might fail` | `arithmetic may overflow` | Use a wider accumulator type or restructure to avoid bounded-type accumulation in loops |
+| `assertion might fail, cannot prove` | `generated proof assertion could not be verified` | Check that all variables used in the expression are initialized and in range at this point |
+| `loop should mention .* in a loop invariant` | `prover cannot establish loop body safety without additional facts` | Restructure the loop to use bounded iteration (`for item of`) or a wider accumulator type |
+| `call to a volatile function in interfering context` | `shared reads in compound conditions must be snapshot first` | Read the shared value into a local variable before using it in `and then` / `or else` |
+| `cannot write .* during elaboration` | `imported state cannot be modified at unit scope` | Move the operation into a task body or subprogram |
+| `uninitialized` | `variable may be uninitialized on this path` | Ensure the variable is assigned before use on all code paths |
+| `precondition might fail` | `precondition of called function may not hold` | Add a guard ensuring the precondition before the call |
+
+**Rewriting layer:**
+
+- A post-processor in the `safe build` proof path that intercepts
+  GNATprove output before display.
+- For each GNATprove diagnostic line:
+  1. Extract the emitted-Ada file path and line number.
+  2. Look up the Safe source location from the mapping.
+  3. Match the message against the classification catalog.
+  4. Emit the Safe-native diagnostic with source location and fix.
+  5. If no catalog match, emit a generic diagnostic with the mapped
+     source location and the original GNATprove message.
+- The raw GNATprove output remains available via `--verbose` for
+  debugging.
+
+**Structured output for AI agents:**
+
+- When `safe build` or `safe prove` fails, emit a JSON diagnostic
+  array to a sidecar file (`.safe-build/diagnostics.json`) with
+  fields: `file`, `line`, `column`, `severity`, `message`, `fix`,
+  `raw_gnatprove_message`.
+- AI agents can parse this file directly instead of scraping stderr.
+- The sidecar file is written on proof failure and removed on proof
+  success.
+
+### Out of scope
+
+- Expression-level source mapping (statement-level is sufficient for
+  the first slice).
+- Custom GNATprove prover strategies or lemma injection.
+- Gold-level functional correctness contracts or specifications.
+- Interactive proof integration (Coq/Lean export).
+
+### Proof impact
+
+Zero. This is a diagnostic/UX milestone. The proof surface is
+unchanged.
+
+### Dependency
+
+Follows PR11.22h. Deferred until after the hygiene series so the
+mapping lands on a cleaned emitter and stabilized proof/build surface.
+
+---
+
 # PR12: Tooling and Developer Ergonomics
 
 The PR11 series delivers a language that is safe by construction. The PR12
@@ -3190,7 +3283,7 @@ that gap before the claims-hardening work begins.
 
 ## Dependency Chain
 
-- PR12.1 follows PR11.22h (compiled native `safe` CLI binary).
+- PR12.1 follows PR11.23 (compiled native `safe` CLI binary).
 - PR12.2 follows PR12.1 (single-archive distribution).
 - PR12.3 follows PR12.2 (`safe fmt` — code formatter).
 - PR12.4 follows PR12.3 (full LSP server).
