@@ -153,6 +153,11 @@ package body Safe_Frontend.Ada_Emit is
    type Warning_Suppression_Array is array (Positive range <>) of Warning_Suppression;
    type Warning_Restore_Array is array (Positive range <>) of FT.UString;
 
+   type Heap_Helper_Family_Kind is
+     (Heap_Helper_Shared,
+      Heap_Helper_For_Of,
+      Heap_Helper_Channel);
+
    procedure Raise_Internal (Message : String);
    pragma No_Return (Raise_Internal);
    procedure Raise_Unsupported
@@ -636,6 +641,96 @@ package body Safe_Frontend.Ada_Emit is
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return String;
+   function Needs_Generated_Heap_Helper
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
+   function Heap_Helper_Base_Name
+     (Family    : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor) return String;
+   function Heap_Copy_Helper_Name
+     (Family    : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor) return String;
+   function Heap_Free_Helper_Name
+     (Family    : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor) return String;
+   function Same_Variant_Choice
+     (Left, Right : GM.Variant_Field) return Boolean;
+   procedure Mark_Heap_Runtime_Dependencies
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor;
+      State     : in out Emit_State;
+      Seen      : in out FT.UString_Vectors.Vector);
+   procedure Append_Heap_Copy_Value
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      State      : in out Emit_State;
+      Family     : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Target_Text : String;
+      Source_Text : String;
+      Info       : GM.Type_Descriptor;
+      Depth      : Natural);
+   procedure Append_Heap_Free_Value
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      State      : in out Emit_State;
+      Family     : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Target_Text : String;
+      Info       : GM.Type_Descriptor;
+      Depth      : Natural);
+   procedure Append_Record_Heap_Copy_Assignments
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Base        : GM.Type_Descriptor;
+      Target_Prefix : String;
+      Source_Prefix : String;
+      Depth       : Natural);
+   procedure Append_Record_Heap_Free_Statements
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Base        : GM.Type_Descriptor;
+      Value_Prefix : String;
+      Depth       : Natural);
+   procedure Append_Generated_Heap_Copy_Body
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Info        : GM.Type_Descriptor;
+      Depth       : Natural);
+   procedure Append_Generated_Heap_Free_Body
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Info        : GM.Type_Descriptor;
+      Depth       : Natural);
    procedure Render_For_Of_Helper_Bodies
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;
@@ -752,6 +847,93 @@ package body Safe_Frontend.Ada_Emit is
       State        : in out Emit_State;
       Channel_Expr : CM.Expr_Access;
       Value        : CM.Expr_Access) return String;
+   function Channel_Has_Length_Model
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl) return Boolean;
+   function Channel_Has_Scalar_Length_Model
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl) return Boolean;
+   function Channel_Uses_Runtime_Length_Formals
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl) return Boolean;
+   function Render_Channel_Operation_Target
+     (Unit           : CM.Resolved_Unit;
+      Document       : GM.Mir_Document;
+      State          : in out Emit_State;
+      Channel_Expr   : CM.Expr_Access;
+      Channel_Item   : CM.Resolved_Channel_Decl;
+      Operation_Name : String) return String;
+   function Channel_Length_Image
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Value_Image  : String) return String;
+   procedure Append_Heap_Channel_Free
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Target_Image : String;
+      Depth        : Natural);
+   procedure Append_Channel_Length_Assert
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Value_Image  : String;
+      Length_Name  : String;
+      Depth        : Natural);
+   function Channel_Staged_Value_Name
+     (Statement_Index : Positive) return String;
+   function Channel_Staged_Length_Name
+     (Statement_Index : Positive) return String;
+   procedure Append_Staged_Channel_Declarations
+     (Buffer                 : in out SU.Unbounded_String;
+      Unit                   : CM.Resolved_Unit;
+      Document               : GM.Mir_Document;
+      Channel_Item           : CM.Resolved_Channel_Decl;
+      Value_Name             : String;
+      Length_Name            : String;
+      Value_Type_Name        : String;
+      Success_Name           : String;
+      Depth                  : Natural;
+      Suppress_Init_Warnings : Boolean);
+   procedure Append_Staged_Channel_Call
+     (Buffer                  : in out SU.Unbounded_String;
+      Unit                    : CM.Resolved_Unit;
+      Document                : GM.Mir_Document;
+      Operation_Target        : String;
+      Channel_Item            : CM.Resolved_Channel_Decl;
+      Value_Name              : String;
+      Length_Name             : String;
+      Success_Image           : String;
+      Depth                   : Natural;
+      Force_Staged_Warnings   : Boolean;
+      Wrap_Task_Call_Warnings : Boolean);
+   procedure Append_Staged_Channel_Length_Reconcile
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Value_Name   : String;
+      Length_Name  : String;
+      Depth        : Natural);
+   procedure Append_Staged_Channel_Target_Adoption
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Target_Image : String;
+      Value_Name   : String;
+      Length_Name  : String;
+      Depth        : Natural);
    procedure Collect_Wide_Locals
      (Unit         : CM.Resolved_Unit;
       Document     : GM.Mir_Document;
@@ -2041,143 +2223,54 @@ package body Safe_Frontend.Ada_Emit is
          return Shared_Public_Helper_Name (Root_Name, Operation);
       end Public_Helper_Name;
 
-      function Shared_Helper_Key (Info : GM.Type_Descriptor) return String is
-      begin
-         return Render_Type_Name (Info);
-      end Shared_Helper_Key;
-
-      function Shared_Helper_Base_Name (Info : GM.Type_Descriptor) return String is
-      begin
-         return Wrapper_Name & "_" & Sanitized_Helper_Name (Shared_Helper_Key (Info));
-      end Shared_Helper_Base_Name;
-
       function Shared_Copy_Helper_Name (Info : GM.Type_Descriptor) return String is
       begin
-         return Shared_Helper_Base_Name (Info) & "_Copy";
+         return
+           Heap_Copy_Helper_Name
+             (Heap_Helper_Shared, Wrapper_Name, Unit, Document, Info);
       end Shared_Copy_Helper_Name;
 
       function Shared_Free_Helper_Name (Info : GM.Type_Descriptor) return String is
       begin
-         return Shared_Helper_Base_Name (Info) & "_Free";
+         return
+           Heap_Free_Helper_Name
+             (Heap_Helper_Shared, Wrapper_Name, Unit, Document, Info);
       end Shared_Free_Helper_Name;
-
-      function Needs_Generated_Shared_Helper
-        (Info : GM.Type_Descriptor) return Boolean
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-         Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-      begin
-         return Has_Heap_Value_Type (Unit, Document, Base)
-           and then not Is_Plain_String_Type (Unit, Document, Base)
-           and then not Is_Growable_Array_Type (Unit, Document, Base)
-           and then (Kind = "array" or else Kind = "record" or else Is_Tuple_Type (Base));
-      end Needs_Generated_Shared_Helper;
-
-      procedure Mark_Shared_Runtime_Dependencies (Info : GM.Type_Descriptor);
-
-      procedure Mark_Shared_Runtime_Dependencies (Info : GM.Type_Descriptor) is
-         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-         Type_Key : constant String := Shared_Helper_Key (Info);
-
-         procedure Add_From_Name (Name_Text : String) is
-         begin
-            if Name_Text'Length = 0 then
-               return;
-            end if;
-
-            Mark_Shared_Runtime_Dependencies
-              (Resolve_Type_Name (Unit, Document, Name_Text));
-         end Add_From_Name;
-      begin
-         if Contains_Name (Runtime_Dependency_Types, Type_Key) then
-            return;
-         end if;
-
-         Runtime_Dependency_Types.Append (FT.To_UString (Type_Key));
-
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            State.Needs_Safe_String_RT := True;
-            return;
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            State.Needs_Safe_Array_RT := True;
-            Add_From_Name (FT.To_String (Base.Component_Type));
-            return;
-         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "array"
-           and then Base.Has_Component_Type
-         then
-            Add_From_Name (FT.To_String (Base.Component_Type));
-         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "record" then
-            for Field of Base.Fields loop
-               Add_From_Name (FT.To_String (Field.Type_Name));
-            end loop;
-            for Field of Base.Variant_Fields loop
-               Add_From_Name (FT.To_String (Field.Type_Name));
-            end loop;
-         elsif Is_Tuple_Type (Base) then
-            for Item of Base.Tuple_Element_Types loop
-               Add_From_Name (FT.To_String (Item));
-            end loop;
-         end if;
-      end Mark_Shared_Runtime_Dependencies;
 
       procedure Append_Copy_Value
         (Target_Text : String;
          Source_Text : String;
          Info        : GM.Type_Descriptor;
-         Depth       : Natural)
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Depth       : Natural) is
       begin
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Target_Text & " := Safe_String_RT.Clone (" & Source_Text & ");",
-               Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Target_Text
-               & " := "
-               & Array_Runtime_Instance_Name (Base)
-               & ".Clone ("
-               & Source_Text
-               & ");",
-               Depth);
-         elsif Needs_Generated_Shared_Helper (Info) then
-            Append_Line
-              (Buffer,
-               Shared_Copy_Helper_Name (Info)
-               & " ("
-               & Target_Text
-               & ", "
-               & Source_Text
-               & ");",
-               Depth);
-         else
-            Append_Line (Buffer, Target_Text & " := " & Source_Text & ";", Depth);
-         end if;
+         Append_Heap_Copy_Value
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Shared,
+            Wrapper_Name,
+            Target_Text,
+            Source_Text,
+            Info,
+            Depth);
       end Append_Copy_Value;
 
       procedure Append_Free_Value
         (Target_Text : String;
          Info        : GM.Type_Descriptor;
-         Depth       : Natural)
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Depth       : Natural) is
       begin
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Text & ");", Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Array_Runtime_Instance_Name (Base) & ".Free (" & Target_Text & ");",
-               Depth);
-         elsif Needs_Generated_Shared_Helper (Info) then
-            Append_Line
-              (Buffer,
-               Shared_Free_Helper_Name (Info) & " (" & Target_Text & ");",
-               Depth);
-         end if;
+         Append_Heap_Free_Value
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Shared,
+            Wrapper_Name,
+            Target_Text,
+            Info,
+            Depth);
       end Append_Free_Value;
 
       procedure Render_Shared_Value_Helpers (Info : GM.Type_Descriptor);
@@ -2185,7 +2278,7 @@ package body Safe_Frontend.Ada_Emit is
       procedure Render_Shared_Value_Helpers (Info : GM.Type_Descriptor) is
          Base      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
          Kind      : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-         Type_Key  : constant String := Shared_Helper_Key (Info);
+         Type_Key  : constant String := Render_Type_Name (Info);
          Type_Name : constant String := Render_Type_Name (Info);
 
          procedure Ensure_Helper (Name_Text : String) is
@@ -2197,181 +2290,12 @@ package body Safe_Frontend.Ada_Emit is
             Render_Shared_Value_Helpers
               (Resolve_Type_Name (Unit, Document, Name_Text));
          end Ensure_Helper;
-
-         function Same_Choice
-           (Left, Right : GM.Variant_Field) return Boolean is
-         begin
-            return Left.Is_Others = Right.Is_Others
-              and then
-                (if Left.Is_Others
-                 then True
-                 else Left.Choice.Kind = Right.Choice.Kind
-                   and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
-         end Same_Choice;
-
-         procedure Append_Record_Copy_Assignments (Depth : Natural) is
-         begin
-            for Field of Base.Fields loop
-               declare
-                  Field_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                     Append_Copy_Value
-                       ("Target." & FT.To_String (Field.Name),
-                        "Source." & FT.To_String (Field.Name),
-                        Field_Info,
-                        Depth);
-                  end if;
-               end;
-            end loop;
-
-            if not Base.Variant_Fields.Is_Empty then
-               declare
-                  Disc_Name : constant String :=
-                    FT.To_String
-                      ((if Has_Text (Base.Variant_Discriminant_Name)
-                        then Base.Variant_Discriminant_Name
-                        else Base.Discriminant_Name));
-                  Index : Positive := Base.Variant_Fields.First_Index;
-               begin
-                  if Disc_Name'Length = 0 then
-                     return;
-                  end if;
-
-                  Append_Line (Buffer, "case Source." & Disc_Name & " is", Depth);
-                  while Index <= Base.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Base.Variant_Fields (Index);
-                        Emitted_Statements : Boolean := False;
-                     begin
-                        Append_Line
-                          (Buffer,
-                           "when "
-                           & (if First_Field.Is_Others
-                              then "others"
-                              else Render_Scalar_Value (First_Field.Choice))
-                           & " =>",
-                           Depth + 1);
-                        loop
-                           declare
-                              Variant_Field : constant GM.Variant_Field :=
-                                Base.Variant_Fields (Index);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name
-                                  (Unit,
-                                   Document,
-                                   FT.To_String (Variant_Field.Type_Name));
-                           begin
-                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                                 Append_Copy_Value
-                                   ("Target." & FT.To_String (Variant_Field.Name),
-                                    "Source." & FT.To_String (Variant_Field.Name),
-                                    Field_Info,
-                                    Depth + 2);
-                                 Emitted_Statements := True;
-                              end if;
-                           end;
-                           exit when Index = Base.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Base.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        if not Emitted_Statements then
-                           Append_Line (Buffer, "null;", Depth + 2);
-                        end if;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-                  Append_Line (Buffer, "end case;", Depth);
-               end;
-            end if;
-         end Append_Record_Copy_Assignments;
-
-         procedure Append_Record_Free_Statements (Depth : Natural) is
-         begin
-            for Field of Base.Fields loop
-               declare
-                  Field_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                     Append_Free_Value
-                       ("Value." & FT.To_String (Field.Name), Field_Info, Depth);
-                  end if;
-               end;
-            end loop;
-
-            if not Base.Variant_Fields.Is_Empty then
-               declare
-                  Disc_Name : constant String :=
-                    FT.To_String
-                      ((if Has_Text (Base.Variant_Discriminant_Name)
-                        then Base.Variant_Discriminant_Name
-                        else Base.Discriminant_Name));
-                  Index : Positive := Base.Variant_Fields.First_Index;
-               begin
-                  if Disc_Name'Length = 0 then
-                     return;
-                  end if;
-
-                  Append_Line (Buffer, "case Value." & Disc_Name & " is", Depth);
-                  while Index <= Base.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Base.Variant_Fields (Index);
-                        Emitted_Statements : Boolean := False;
-                     begin
-                        Append_Line
-                          (Buffer,
-                           "when "
-                           & (if First_Field.Is_Others
-                              then "others"
-                              else Render_Scalar_Value (First_Field.Choice))
-                           & " =>",
-                           Depth + 1);
-                        loop
-                           declare
-                              Variant_Field : constant GM.Variant_Field :=
-                                Base.Variant_Fields (Index);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name
-                                  (Unit,
-                                   Document,
-                                   FT.To_String (Variant_Field.Type_Name));
-                           begin
-                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                                 Append_Free_Value
-                                   ("Value." & FT.To_String (Variant_Field.Name),
-                                    Field_Info,
-                                    Depth + 2);
-                                 Emitted_Statements := True;
-                              end if;
-                           end;
-                           exit when Index = Base.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Base.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        if not Emitted_Statements then
-                           Append_Line (Buffer, "null;", Depth + 2);
-                        end if;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-                  Append_Line (Buffer, "end case;", Depth);
-               end;
-            end if;
-         end Append_Record_Free_Statements;
       begin
          if Contains_Name (Generated_Shared_Helpers, Type_Key) then
             return;
          end if;
 
-         if not Needs_Generated_Shared_Helper (Info) then
+         if not Needs_Generated_Heap_Helper (Unit, Document, Info) then
             if Is_Growable_Array_Type (Unit, Document, Base)
               and then Base.Has_Component_Type
             then
@@ -2418,7 +2342,17 @@ package body Safe_Frontend.Ada_Emit is
                Append_Line (Buffer, "begin", 1);
                Append_Line (Buffer, "Target := Source;", 2);
                Append_Line (Buffer, "if Source.present then", 2);
-               Append_Copy_Value ("Target.value", "Source.value", Payload_Info, 3);
+               Append_Heap_Copy_Value
+                 (Buffer,
+                  Unit,
+                  Document,
+                  State,
+                  Heap_Helper_Shared,
+                  Wrapper_Name,
+                  "Target.value",
+                  "Source.value",
+                  Payload_Info,
+                  3);
                Append_Line (Buffer, "end if;", 2);
                Append_Line (Buffer, "end " & Shared_Copy_Helper_Name (Info) & ";", 1);
                Append_Line (Buffer);
@@ -2442,7 +2376,16 @@ package body Safe_Frontend.Ada_Emit is
                Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
                Append_Line (Buffer, "begin", 1);
                Append_Line (Buffer, "if Value.present then", 2);
-               Append_Free_Value ("Value.value", Payload_Info, 3);
+               Append_Heap_Free_Value
+                 (Buffer,
+                  Unit,
+                  Document,
+                  State,
+                  Heap_Helper_Shared,
+                  Wrapper_Name,
+                  "Value.value",
+                  Payload_Info,
+                  3);
                Append_Line (Buffer, "end if;", 2);
                Append_Line
                  (Buffer,
@@ -2493,79 +2436,15 @@ package body Safe_Frontend.Ada_Emit is
             1);
          Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
          Append_Line (Buffer, "begin", 1);
-         if Kind = "array" and then Base.Has_Component_Type then
-            declare
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
-            begin
-               Append_Line (Buffer, "for Index in Source'Range loop", 2);
-               Append_Copy_Value
-                 ("Target (Index)",
-                  "Source (Index)",
-                  Component_Info,
-                  3);
-               Append_Line (Buffer, "end loop;", 2);
-            end;
-         elsif Kind = "record" then
-            if not Base.Variant_Fields.Is_Empty
-              or else Has_Text (Base.Discriminant_Name)
-              or else Has_Text (Base.Variant_Discriminant_Name)
-            then
-               Append_Line (Buffer, "Target := Source;", 2);
-               Append_Record_Copy_Assignments (2);
-            else
-               for Field of Base.Fields loop
-                  declare
-                     Field_Info : constant GM.Type_Descriptor :=
-                       Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-                  begin
-                     if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                        Append_Copy_Value
-                          ("Target." & FT.To_String (Field.Name),
-                           "Source." & FT.To_String (Field.Name),
-                           Field_Info,
-                           2);
-                     else
-                        Append_Line
-                          (Buffer,
-                           "Target."
-                           & FT.To_String (Field.Name)
-                           & " := Source."
-                           & FT.To_String (Field.Name)
-                           & ";",
-                           2);
-                     end if;
-                  end;
-               end loop;
-            end if;
-         elsif Is_Tuple_Type (Base) then
-            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
-               declare
-                  Item_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name
-                      (Unit,
-                       Document,
-                       FT.To_String (Base.Tuple_Element_Types (Index)));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
-                     Append_Copy_Value
-                       ("Target." & Tuple_Field_Name (Positive (Index)),
-                        "Source." & Tuple_Field_Name (Positive (Index)),
-                        Item_Info,
-                        2);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "Target."
-                        & Tuple_Field_Name (Positive (Index))
-                        & " := Source."
-                        & Tuple_Field_Name (Positive (Index))
-                        & ";",
-                        2);
-                  end if;
-               end;
-            end loop;
-         end if;
+         Append_Generated_Heap_Copy_Body
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Shared,
+            Wrapper_Name,
+            Info,
+            2);
          Append_Line (Buffer, "end " & Shared_Copy_Helper_Name (Info) & ";", 1);
          Append_Line (Buffer);
 
@@ -2587,37 +2466,15 @@ package body Safe_Frontend.Ada_Emit is
             1);
          Append_Line (Buffer, "pragma SPARK_Mode (Off);", 2);
          Append_Line (Buffer, "begin", 1);
-         if Kind = "array" and then Base.Has_Component_Type then
-            declare
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
-            begin
-               if Has_Heap_Value_Type (Unit, Document, Component_Info) then
-                  Append_Line (Buffer, "for Index in Value'Range loop", 2);
-                  Append_Free_Value ("Value (Index)", Component_Info, 3);
-                  Append_Line (Buffer, "end loop;", 2);
-               end if;
-            end;
-         elsif Kind = "record" then
-            Append_Record_Free_Statements (2);
-         elsif Is_Tuple_Type (Base) then
-            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
-               declare
-                  Item_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name
-                      (Unit,
-                       Document,
-                       FT.To_String (Base.Tuple_Element_Types (Index)));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
-                     Append_Free_Value
-                       ("Value." & Tuple_Field_Name (Positive (Index)),
-                        Item_Info,
-                        2);
-                  end if;
-               end;
-            end loop;
-         end if;
+         Append_Generated_Heap_Free_Body
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Shared,
+            Wrapper_Name,
+            Info,
+            2);
          Append_Line
            (Buffer,
             "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
@@ -3208,7 +3065,12 @@ package body Safe_Frontend.Ada_Emit is
 
       if Heap_Root then
          Append_Local_Warning_Suppression (Buffer, 1);
-         Mark_Shared_Runtime_Dependencies (Decl.Type_Info);
+         Mark_Heap_Runtime_Dependencies
+           (Unit,
+            Document,
+            Decl.Type_Info,
+            State,
+            Runtime_Dependency_Types);
          Render_Shared_Value_Helpers (Decl.Type_Info);
       end if;
 
@@ -3328,6 +3190,194 @@ package body Safe_Frontend.Ada_Emit is
 
                      return Left_Image & " = " & Right_Image;
                   end Key_Equality_Image;
+
+                  procedure Ignore_Map_Extra_Decls (Depth : Natural) is
+                     pragma Unreferenced (Depth);
+                  begin
+                     null;
+                  end Ignore_Map_Extra_Decls;
+
+                  generic
+                     with procedure Append_Extra_Decls (Depth : Natural);
+                     with procedure Append_On_Match (Depth : Natural);
+                  procedure Append_Map_Search_Loop;
+
+                  procedure Append_Map_Search_Loop is
+                  begin
+                     Append_Line (Buffer, "if Length_Value > 0 then", 3);
+                     Append_Line
+                       (Buffer,
+                        "for Index in Positive range 1 .. Positive (Length_Value) loop",
+                        4);
+                     Append_Line (Buffer, "declare", 5);
+                     Append_Line
+                       (Buffer,
+                        "Current_Entry : " & Entry_Type_Name & " := "
+                        & Runtime_Name & ".Element (State_Value, Index);",
+                        6);
+                     Append_Extra_Decls (6);
+                     Append_Line (Buffer, "begin", 5);
+                     Append_Line
+                       (Buffer,
+                        "if "
+                        & Key_Equality_Image
+                          ("Current_Entry." & Tuple_Field_Name (1),
+                           "Key")
+                        & " then",
+                        6);
+                     Append_On_Match (7);
+                     Append_Line (Buffer, "end if;", 6);
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (Current_Entry);",
+                        6);
+                     Append_Line (Buffer, "end;", 5);
+                     Append_Line (Buffer, "end loop;", 4);
+                     Append_Line (Buffer, "end if;", 3);
+                  end Append_Map_Search_Loop;
+
+                  procedure Append_Contains_Match (Depth : Natural) is
+                  begin
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (Current_Entry);",
+                        Depth);
+                     Append_Line (Buffer, "return True;", Depth);
+                  end Append_Contains_Match;
+
+                  procedure Append_Get_Match (Depth : Natural) is
+                  begin
+                     if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                        Append_Line (Buffer, "Result.present := True;", Depth);
+                        Append_Copy_Value
+                          ("Result.value",
+                           "Current_Entry." & Tuple_Field_Name (2),
+                           Value_Info,
+                           Depth);
+                     else
+                        Append_Line
+                          (Buffer,
+                           "Result := (present => True, value => Current_Entry." & Tuple_Field_Name (2) & ");",
+                           Depth);
+                     end if;
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (Current_Entry);",
+                        Depth);
+                     Append_Line (Buffer, "return Result;", Depth);
+                  end Append_Get_Match;
+
+                  procedure Append_Set_Extra_Decls (Depth : Natural) is
+                  begin
+                     Append_Line
+                       (Buffer,
+                        "New_Entry : " & Entry_Type_Name & " := (others => <>);",
+                        Depth);
+                  end Append_Set_Extra_Decls;
+
+                  procedure Append_Set_Match (Depth : Natural) is
+                  begin
+                     if Has_Heap_Value_Type (Unit, Document, Key_Info) then
+                        Append_Copy_Value
+                          ("New_Entry." & Tuple_Field_Name (1),
+                           "Key",
+                           Key_Info,
+                           Depth);
+                     else
+                        Append_Line
+                          (Buffer,
+                           "New_Entry." & Tuple_Field_Name (1) & " := Key;",
+                           Depth);
+                     end if;
+                     if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                        Append_Copy_Value
+                          ("New_Entry." & Tuple_Field_Name (2),
+                           "Value",
+                           Value_Info,
+                           Depth);
+                     else
+                        Append_Line
+                          (Buffer,
+                           "New_Entry." & Tuple_Field_Name (2) & " := Value;",
+                           Depth);
+                     end if;
+                     Append_Line
+                       (Buffer,
+                        Runtime_Name & ".Replace_Element (State_Value, Index, New_Entry);",
+                        Depth);
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (New_Entry);",
+                        Depth);
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (Current_Entry);",
+                        Depth);
+                     Append_Line (Buffer, "return;", Depth);
+                  end Append_Set_Match;
+
+                  procedure Append_Remove_Match (Depth : Natural) is
+                  begin
+                     if Has_Heap_Value_Type (Unit, Document, Value_Info) then
+                        Append_Line (Buffer, "Result.present := True;", Depth);
+                        Append_Copy_Value
+                          ("Result.value",
+                           "Current_Entry." & Tuple_Field_Name (2),
+                           Value_Info,
+                           Depth);
+                     else
+                        Append_Line
+                          (Buffer,
+                           "Result := (present => True, value => Current_Entry." & Tuple_Field_Name (2) & ");",
+                           Depth);
+                     end if;
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (Current_Entry);",
+                        Depth);
+                     Append_Line
+                       (Buffer,
+                        "if Index < Positive (Length_Value) then",
+                        Depth);
+                     Append_Line (Buffer, "declare", Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "Replacement_Entry : " & Entry_Type_Name & " := "
+                        & Runtime_Name & ".Element (State_Value, Positive (Length_Value));",
+                        Depth + 2);
+                     Append_Line (Buffer, "begin", Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        Runtime_Name & ".Replace_Element (State_Value, Index, Replacement_Entry);",
+                        Depth + 2);
+                     Append_Line
+                       (Buffer,
+                        Element_Free_Name & " (Replacement_Entry);",
+                        Depth + 2);
+                     Append_Line (Buffer, "end;", Depth + 1);
+                     Append_Line (Buffer, "end if;", Depth);
+                     Append_Line (Buffer, "declare", Depth);
+                     Append_Line
+                       (Buffer,
+                        "Updated : constant " & Root_Type & " := "
+                        & "(if Length_Value = 1 then " & Runtime_Name & ".Empty else "
+                        & Runtime_Name & ".Slice (State_Value, 1, Length_Value - 1));",
+                        Depth + 1);
+                     Append_Line (Buffer, "begin", Depth);
+                     Append_Free_Value ("State_Value", Decl.Type_Info, Depth + 1);
+                     Append_Line (Buffer, "State_Value := Updated;", Depth + 1);
+                     Append_Line (Buffer, "end;", Depth);
+                     Append_Line (Buffer, "return;", Depth);
+                  end Append_Remove_Match;
+
+                  procedure Append_Contains_Search_Loop is new Append_Map_Search_Loop
+                    (Ignore_Map_Extra_Decls, Append_Contains_Match);
+                  procedure Append_Get_Search_Loop is new Append_Map_Search_Loop
+                    (Ignore_Map_Extra_Decls, Append_Get_Match);
+                  procedure Append_Set_Search_Loop is new Append_Map_Search_Loop
+                    (Append_Set_Extra_Decls, Append_Set_Match);
+                  procedure Append_Remove_Search_Loop is new Append_Map_Search_Loop
+                    (Ignore_Map_Extra_Decls, Append_Remove_Match);
                begin
                   Append_Line
                     (Buffer,
@@ -3342,36 +3392,7 @@ package body Safe_Frontend.Ada_Emit is
                      "Length_Value : constant Natural := " & Runtime_Name & ".Length (State_Value);",
                      2);
                   Append_Line (Buffer, "begin", 2);
-                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
-                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
-                  Append_Line (Buffer, "declare", 5);
-                  Append_Line
-                    (Buffer,
-                     "Current_Entry : " & Entry_Type_Name & " := "
-                     & Runtime_Name & ".Element (State_Value, Index);",
-                     6);
-                  Append_Line (Buffer, "begin", 5);
-                  Append_Line
-                    (Buffer,
-                     "if "
-                     & Key_Equality_Image
-                       ("Current_Entry." & Tuple_Field_Name (1),
-                        "Key")
-                     & " then",
-                     6);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     7);
-                  Append_Line (Buffer, "return True;", 7);
-                  Append_Line (Buffer, "end if;", 6);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     6);
-                  Append_Line (Buffer, "end;", 5);
-                  Append_Line (Buffer, "end loop;", 4);
-                  Append_Line (Buffer, "end if;", 3);
+                  Append_Contains_Search_Loop;
                   Append_Line (Buffer, "return False;", 3);
                   Append_Line (Buffer, "end " & Shared_Contains_Name & ";", 2);
                   Append_Line (Buffer);
@@ -3394,49 +3415,7 @@ package body Safe_Frontend.Ada_Emit is
                      & Optional_Default_Expr (Value_Info) & ";",
                      2);
                   Append_Line (Buffer, "begin", 2);
-                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
-                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
-                  Append_Line (Buffer, "declare", 5);
-                  Append_Line
-                    (Buffer,
-                     "Current_Entry : " & Entry_Type_Name & " := "
-                     & Runtime_Name & ".Element (State_Value, Index);",
-                     6);
-                  Append_Line (Buffer, "begin", 5);
-                  Append_Line
-                    (Buffer,
-                     "if "
-                     & Key_Equality_Image
-                       ("Current_Entry." & Tuple_Field_Name (1),
-                        "Key")
-                     & " then",
-                     6);
-                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
-                     Append_Line (Buffer, "Result.present := True;", 7);
-                     Append_Copy_Value
-                       ("Result.value",
-                        "Current_Entry." & Tuple_Field_Name (2),
-                        Value_Info,
-                        7);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "Result := (present => True, value => Current_Entry." & Tuple_Field_Name (2) & ");",
-                        7);
-                  end if;
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     7);
-                  Append_Line (Buffer, "return Result;", 7);
-                  Append_Line (Buffer, "end if;", 6);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     6);
-                  Append_Line (Buffer, "end;", 5);
-                  Append_Line (Buffer, "end loop;", 4);
-                  Append_Line (Buffer, "end if;", 3);
+                  Append_Get_Search_Loop;
                   Append_Line (Buffer, "return Result;", 3);
                   Append_Line (Buffer, "end " & Shared_Get_Name & ";", 2);
                   Append_Line (Buffer);
@@ -3454,72 +3433,7 @@ package body Safe_Frontend.Ada_Emit is
                      "Length_Value : constant Natural := " & Runtime_Name & ".Length (State_Value);",
                      2);
                   Append_Line (Buffer, "begin", 2);
-                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
-                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
-                  Append_Line (Buffer, "declare", 5);
-                  Append_Line
-                    (Buffer,
-                     "Current_Entry : " & Entry_Type_Name & " := "
-                     & Runtime_Name & ".Element (State_Value, Index);",
-                     6);
-                  Append_Line
-                    (Buffer,
-                     "New_Entry : " & Entry_Type_Name & " := (others => <>);",
-                     6);
-                  Append_Line (Buffer, "begin", 5);
-                  Append_Line
-                    (Buffer,
-                     "if "
-                     & Key_Equality_Image
-                       ("Current_Entry." & Tuple_Field_Name (1),
-                        "Key")
-                     & " then",
-                     6);
-                  if Has_Heap_Value_Type (Unit, Document, Key_Info) then
-                     Append_Copy_Value
-                       ("New_Entry." & Tuple_Field_Name (1),
-                        "Key",
-                        Key_Info,
-                        7);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "New_Entry." & Tuple_Field_Name (1) & " := Key;",
-                        7);
-                  end if;
-                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
-                     Append_Copy_Value
-                       ("New_Entry." & Tuple_Field_Name (2),
-                        "Value",
-                        Value_Info,
-                        7);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "New_Entry." & Tuple_Field_Name (2) & " := Value;",
-                        7);
-                  end if;
-                  Append_Line
-                    (Buffer,
-                     Runtime_Name & ".Replace_Element (State_Value, Index, New_Entry);",
-                     7);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (New_Entry);",
-                     7);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     7);
-                  Append_Line (Buffer, "return;", 7);
-                  Append_Line (Buffer, "end if;", 6);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     6);
-                  Append_Line (Buffer, "end;", 5);
-                  Append_Line (Buffer, "end loop;", 4);
-                  Append_Line (Buffer, "end if;", 3);
+                  Append_Set_Search_Loop;
                   Append_Line (Buffer, "declare", 3);
                   Append_Line
                     (Buffer,
@@ -3592,81 +3506,7 @@ package body Safe_Frontend.Ada_Emit is
                     (Buffer,
                      "Result := " & Optional_Default_Expr (Value_Info) & ";",
                      3);
-                  Append_Line (Buffer, "if Length_Value > 0 then", 3);
-                  Append_Line (Buffer, "for Index in Positive range 1 .. Positive (Length_Value) loop", 4);
-                  Append_Line (Buffer, "declare", 5);
-                  Append_Line
-                    (Buffer,
-                     "Current_Entry : " & Entry_Type_Name & " := "
-                     & Runtime_Name & ".Element (State_Value, Index);",
-                     6);
-                  Append_Line (Buffer, "begin", 5);
-                  Append_Line
-                    (Buffer,
-                     "if "
-                     & Key_Equality_Image
-                       ("Current_Entry." & Tuple_Field_Name (1),
-                        "Key")
-                     & " then",
-                     6);
-                  if Has_Heap_Value_Type (Unit, Document, Value_Info) then
-                     Append_Line (Buffer, "Result.present := True;", 7);
-                     Append_Copy_Value
-                       ("Result.value",
-                        "Current_Entry." & Tuple_Field_Name (2),
-                        Value_Info,
-                        7);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "Result := (present => True, value => Current_Entry." & Tuple_Field_Name (2) & ");",
-                        7);
-                  end if;
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     7);
-                  Append_Line
-                    (Buffer,
-                     "if Index < Positive (Length_Value) then",
-                     7);
-                  Append_Line (Buffer, "declare", 8);
-                  Append_Line
-                    (Buffer,
-                     "Replacement_Entry : " & Entry_Type_Name & " := "
-                     & Runtime_Name & ".Element (State_Value, Positive (Length_Value));",
-                     9);
-                  Append_Line (Buffer, "begin", 8);
-                  Append_Line
-                    (Buffer,
-                     Runtime_Name & ".Replace_Element (State_Value, Index, Replacement_Entry);",
-                     9);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Replacement_Entry);",
-                     9);
-                  Append_Line (Buffer, "end;", 8);
-                  Append_Line (Buffer, "end if;", 7);
-                  Append_Line (Buffer, "declare", 7);
-                  Append_Line
-                    (Buffer,
-                     "Updated : constant " & Root_Type & " := "
-                     & "(if Length_Value = 1 then " & Runtime_Name & ".Empty else "
-                     & Runtime_Name & ".Slice (State_Value, 1, Length_Value - 1));",
-                     8);
-                  Append_Line (Buffer, "begin", 7);
-                  Append_Free_Value ("State_Value", Decl.Type_Info, 8);
-                  Append_Line (Buffer, "State_Value := Updated;", 8);
-                  Append_Line (Buffer, "end;", 7);
-                  Append_Line (Buffer, "return;", 7);
-                  Append_Line (Buffer, "end if;", 6);
-                  Append_Line
-                    (Buffer,
-                     Element_Free_Name & " (Current_Entry);",
-                     6);
-                  Append_Line (Buffer, "end;", 5);
-                  Append_Line (Buffer, "end loop;", 4);
-                  Append_Line (Buffer, "end if;", 3);
+                  Append_Remove_Search_Loop;
                   Append_Line (Buffer, "end " & Shared_Remove_Name & ";", 2);
                   Append_Line (Buffer);
                end;
@@ -6774,6 +6614,592 @@ package body Safe_Frontend.Ada_Emit is
       return For_Of_Helper_Base_Name (Unit, Document, Info) & "_Free";
    end For_Of_Free_Helper_Name;
 
+   function Needs_Generated_Heap_Helper
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+   begin
+      return Has_Heap_Value_Type (Unit, Document, Base)
+        and then not Is_Plain_String_Type (Unit, Document, Base)
+        and then not Is_Growable_Array_Type (Unit, Document, Base)
+        and then (Kind = "array" or else Kind = "record" or else Is_Tuple_Type (Base));
+   end Needs_Generated_Heap_Helper;
+
+   function Heap_Helper_Base_Name
+     (Family    : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor) return String
+   is
+      pragma Unreferenced (Document);
+   begin
+      case Family is
+         when Heap_Helper_Shared | Heap_Helper_Channel =>
+            return Scope_Name & "_" & Sanitized_Helper_Name (Render_Type_Name (Info));
+         when Heap_Helper_For_Of =>
+            return For_Of_Helper_Base_Name (Unit, Document, Info);
+      end case;
+   end Heap_Helper_Base_Name;
+
+   function Heap_Copy_Helper_Name
+     (Family    : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor) return String
+   is
+   begin
+      return Heap_Helper_Base_Name (Family, Scope_Name, Unit, Document, Info) & "_Copy";
+   end Heap_Copy_Helper_Name;
+
+   function Heap_Free_Helper_Name
+     (Family    : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor) return String
+   is
+   begin
+      return Heap_Helper_Base_Name (Family, Scope_Name, Unit, Document, Info) & "_Free";
+   end Heap_Free_Helper_Name;
+
+   function Same_Variant_Choice
+     (Left, Right : GM.Variant_Field) return Boolean is
+   begin
+      return Left.Is_Others = Right.Is_Others
+        and then
+          (if Left.Is_Others
+           then True
+           else Left.Choice.Kind = Right.Choice.Kind
+             and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
+   end Same_Variant_Choice;
+
+   procedure Mark_Heap_Runtime_Dependencies
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor;
+      State     : in out Emit_State;
+      Seen      : in out FT.UString_Vectors.Vector)
+   is
+      Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Type_Key : constant String := Render_Type_Name (Info);
+
+      procedure Add_From_Name (Name_Text : String) is
+      begin
+         if Name_Text'Length = 0 then
+            return;
+         end if;
+
+         Mark_Heap_Runtime_Dependencies
+           (Unit,
+            Document,
+            Resolve_Type_Name (Unit, Document, Name_Text),
+            State,
+            Seen);
+      end Add_From_Name;
+   begin
+      if Contains_Name (Seen, Type_Key) then
+         return;
+      end if;
+
+      Seen.Append (FT.To_UString (Type_Key));
+
+      if Is_Plain_String_Type (Unit, Document, Base) then
+         State.Needs_Safe_String_RT := True;
+         return;
+      elsif Is_Growable_Array_Type (Unit, Document, Base) then
+         State.Needs_Safe_Array_RT := True;
+         Add_From_Name (FT.To_String (Base.Component_Type));
+         return;
+      elsif FT.Lowercase (FT.To_String (Base.Kind)) = "array"
+        and then Base.Has_Component_Type
+      then
+         Add_From_Name (FT.To_String (Base.Component_Type));
+      elsif FT.Lowercase (FT.To_String (Base.Kind)) = "record" then
+         for Field of Base.Fields loop
+            Add_From_Name (FT.To_String (Field.Type_Name));
+         end loop;
+         for Field of Base.Variant_Fields loop
+            Add_From_Name (FT.To_String (Field.Type_Name));
+         end loop;
+      elsif Is_Tuple_Type (Base) then
+         for Item of Base.Tuple_Element_Types loop
+            Add_From_Name (FT.To_String (Item));
+         end loop;
+      end if;
+   end Mark_Heap_Runtime_Dependencies;
+
+   procedure Append_Heap_Copy_Value
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      State      : in out Emit_State;
+      Family     : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Target_Text : String;
+      Source_Text : String;
+      Info       : GM.Type_Descriptor;
+      Depth      : Natural)
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+   begin
+      if Is_Plain_String_Type (Unit, Document, Base) then
+         Append_Line
+           (Buffer,
+            Target_Text & " := Safe_String_RT.Clone (" & Source_Text & ");",
+            Depth);
+      elsif Is_Growable_Array_Type (Unit, Document, Base) then
+         Append_Line
+           (Buffer,
+            Target_Text
+            & " := "
+            & Array_Runtime_Instance_Name (Base)
+            & ".Clone ("
+            & Source_Text
+            & ");",
+            Depth);
+      elsif Needs_Generated_Heap_Helper (Unit, Document, Info) then
+         Append_Line
+           (Buffer,
+            Heap_Copy_Helper_Name (Family, Scope_Name, Unit, Document, Info)
+            & " ("
+            & Target_Text
+            & ", "
+            & Source_Text
+            & ");",
+            Depth);
+      else
+         Append_Line (Buffer, Target_Text & " := " & Source_Text & ";", Depth);
+      end if;
+   end Append_Heap_Copy_Value;
+
+   procedure Append_Heap_Free_Value
+     (Buffer     : in out SU.Unbounded_String;
+      Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      State      : in out Emit_State;
+      Family     : Heap_Helper_Family_Kind;
+      Scope_Name : String;
+      Target_Text : String;
+      Info       : GM.Type_Descriptor;
+      Depth      : Natural)
+   is
+      pragma Unreferenced (State);
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+   begin
+      if Is_Plain_String_Type (Unit, Document, Base) then
+         Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Text & ");", Depth);
+      elsif Is_Growable_Array_Type (Unit, Document, Base) then
+         Append_Line
+           (Buffer,
+            Array_Runtime_Instance_Name (Base) & ".Free (" & Target_Text & ");",
+            Depth);
+      elsif Needs_Generated_Heap_Helper (Unit, Document, Info) then
+         Append_Line
+           (Buffer,
+            Heap_Free_Helper_Name (Family, Scope_Name, Unit, Document, Info)
+            & " ("
+            & Target_Text
+            & ");",
+            Depth);
+      end if;
+   end Append_Heap_Free_Value;
+
+   procedure Append_Record_Heap_Copy_Assignments
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Base        : GM.Type_Descriptor;
+      Target_Prefix : String;
+      Source_Prefix : String;
+      Depth       : Natural)
+   is
+   begin
+      for Field of Base.Fields loop
+         declare
+            Field_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+         begin
+            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+               Append_Heap_Copy_Value
+                 (Buffer,
+                  Unit,
+                  Document,
+                  State,
+                  Family,
+                  Scope_Name,
+                  Target_Prefix & FT.To_String (Field.Name),
+                  Source_Prefix & FT.To_String (Field.Name),
+                  Field_Info,
+                  Depth);
+            end if;
+         end;
+      end loop;
+
+      if not Base.Variant_Fields.Is_Empty then
+         declare
+            Disc_Name : constant String :=
+              FT.To_String
+                ((if Has_Text (Base.Variant_Discriminant_Name)
+                  then Base.Variant_Discriminant_Name
+                  else Base.Discriminant_Name));
+            Index : Positive := Base.Variant_Fields.First_Index;
+         begin
+            if Disc_Name'Length = 0 then
+               return;
+            end if;
+
+            Append_Line (Buffer, "case " & Source_Prefix & Disc_Name & " is", Depth);
+            while Index <= Base.Variant_Fields.Last_Index loop
+               declare
+                  First_Field : constant GM.Variant_Field :=
+                    Base.Variant_Fields (Index);
+                  Emitted_Statements : Boolean := False;
+               begin
+                  Append_Line
+                    (Buffer,
+                     "when "
+                     & (if First_Field.Is_Others
+                        then "others"
+                        else Render_Scalar_Value (First_Field.Choice))
+                     & " =>",
+                     Depth + 1);
+                  loop
+                     declare
+                        Variant_Field : constant GM.Variant_Field :=
+                          Base.Variant_Fields (Index);
+                        Field_Info : constant GM.Type_Descriptor :=
+                          Resolve_Type_Name
+                            (Unit,
+                             Document,
+                             FT.To_String (Variant_Field.Type_Name));
+                     begin
+                        if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                           Append_Heap_Copy_Value
+                             (Buffer,
+                              Unit,
+                              Document,
+                              State,
+                              Family,
+                              Scope_Name,
+                              Target_Prefix & FT.To_String (Variant_Field.Name),
+                              Source_Prefix & FT.To_String (Variant_Field.Name),
+                              Field_Info,
+                              Depth + 2);
+                           Emitted_Statements := True;
+                        end if;
+                     end;
+                     exit when Index = Base.Variant_Fields.Last_Index;
+                     exit when not Same_Variant_Choice
+                       (First_Field,
+                        Base.Variant_Fields (Index + 1));
+                     Index := Index + 1;
+                  end loop;
+                  if not Emitted_Statements then
+                     Append_Line (Buffer, "null;", Depth + 2);
+                  end if;
+                  Index := Index + 1;
+               end;
+            end loop;
+            Append_Line (Buffer, "end case;", Depth);
+         end;
+      end if;
+   end Append_Record_Heap_Copy_Assignments;
+
+   procedure Append_Record_Heap_Free_Statements
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Base        : GM.Type_Descriptor;
+      Value_Prefix : String;
+      Depth       : Natural)
+   is
+   begin
+      for Field of Base.Fields loop
+         declare
+            Field_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+         begin
+            if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+               Append_Heap_Free_Value
+                 (Buffer,
+                  Unit,
+                  Document,
+                  State,
+                  Family,
+                  Scope_Name,
+                  Value_Prefix & FT.To_String (Field.Name),
+                  Field_Info,
+                  Depth);
+            end if;
+         end;
+      end loop;
+
+      if not Base.Variant_Fields.Is_Empty then
+         declare
+            Disc_Name : constant String :=
+              FT.To_String
+                ((if Has_Text (Base.Variant_Discriminant_Name)
+                  then Base.Variant_Discriminant_Name
+                  else Base.Discriminant_Name));
+            Index : Positive := Base.Variant_Fields.First_Index;
+         begin
+            if Disc_Name'Length = 0 then
+               return;
+            end if;
+
+            Append_Line (Buffer, "case " & Value_Prefix & Disc_Name & " is", Depth);
+            while Index <= Base.Variant_Fields.Last_Index loop
+               declare
+                  First_Field : constant GM.Variant_Field :=
+                    Base.Variant_Fields (Index);
+                  Emitted_Statements : Boolean := False;
+               begin
+                  Append_Line
+                    (Buffer,
+                     "when "
+                     & (if First_Field.Is_Others
+                        then "others"
+                        else Render_Scalar_Value (First_Field.Choice))
+                     & " =>",
+                     Depth + 1);
+                  loop
+                     declare
+                        Variant_Field : constant GM.Variant_Field :=
+                          Base.Variant_Fields (Index);
+                        Field_Info : constant GM.Type_Descriptor :=
+                          Resolve_Type_Name
+                            (Unit,
+                             Document,
+                             FT.To_String (Variant_Field.Type_Name));
+                     begin
+                        if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                           Append_Heap_Free_Value
+                             (Buffer,
+                              Unit,
+                              Document,
+                              State,
+                              Family,
+                              Scope_Name,
+                              Value_Prefix & FT.To_String (Variant_Field.Name),
+                              Field_Info,
+                              Depth + 2);
+                           Emitted_Statements := True;
+                        end if;
+                     end;
+                     exit when Index = Base.Variant_Fields.Last_Index;
+                     exit when not Same_Variant_Choice
+                       (First_Field,
+                        Base.Variant_Fields (Index + 1));
+                     Index := Index + 1;
+                  end loop;
+                  if not Emitted_Statements then
+                     Append_Line (Buffer, "null;", Depth + 2);
+                  end if;
+                  Index := Index + 1;
+               end;
+            end loop;
+            Append_Line (Buffer, "end case;", Depth);
+         end;
+      end if;
+   end Append_Record_Heap_Free_Statements;
+
+   procedure Append_Generated_Heap_Copy_Body
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Info        : GM.Type_Descriptor;
+      Depth       : Natural)
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+   begin
+      if Kind = "array" and then Base.Has_Component_Type then
+         declare
+            Component_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
+         begin
+            Append_Line (Buffer, "for Index in Source'Range loop", Depth);
+            Append_Heap_Copy_Value
+              (Buffer,
+               Unit,
+               Document,
+               State,
+               Family,
+               Scope_Name,
+               "Target (Index)",
+               "Source (Index)",
+               Component_Info,
+               Depth + 1);
+            Append_Line (Buffer, "end loop;", Depth);
+         end;
+      elsif Kind = "record" then
+         if not Base.Variant_Fields.Is_Empty
+           or else Has_Text (Base.Discriminant_Name)
+           or else Has_Text (Base.Variant_Discriminant_Name)
+         then
+            Append_Line (Buffer, "Target := Source;", Depth);
+            Append_Record_Heap_Copy_Assignments
+              (Buffer,
+               Unit,
+               Document,
+               State,
+               Family,
+               Scope_Name,
+               Base,
+               "Target.",
+               "Source.",
+               Depth);
+         else
+            for Field of Base.Fields loop
+               declare
+                  Field_Info : constant GM.Type_Descriptor :=
+                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
+               begin
+                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
+                     Append_Heap_Copy_Value
+                       (Buffer,
+                        Unit,
+                        Document,
+                        State,
+                        Family,
+                        Scope_Name,
+                        "Target." & FT.To_String (Field.Name),
+                        "Source." & FT.To_String (Field.Name),
+                        Field_Info,
+                        Depth);
+                  else
+                     Append_Line
+                       (Buffer,
+                        "Target."
+                        & FT.To_String (Field.Name)
+                        & " := Source."
+                        & FT.To_String (Field.Name)
+                        & ";",
+                        Depth);
+                  end if;
+               end;
+            end loop;
+         end if;
+      elsif Is_Tuple_Type (Base) then
+         for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
+            declare
+               Item_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String (Base.Tuple_Element_Types (Index)));
+            begin
+               if Has_Heap_Value_Type (Unit, Document, Item_Info) then
+                  Append_Heap_Copy_Value
+                    (Buffer,
+                     Unit,
+                     Document,
+                     State,
+                     Family,
+                     Scope_Name,
+                     "Target." & Tuple_Field_Name (Positive (Index)),
+                     "Source." & Tuple_Field_Name (Positive (Index)),
+                     Item_Info,
+                     Depth);
+               else
+                  Append_Line
+                    (Buffer,
+                     "Target."
+                     & Tuple_Field_Name (Positive (Index))
+                     & " := Source."
+                     & Tuple_Field_Name (Positive (Index))
+                     & ";",
+                     Depth);
+               end if;
+            end;
+         end loop;
+      end if;
+   end Append_Generated_Heap_Copy_Body;
+
+   procedure Append_Generated_Heap_Free_Body
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Info        : GM.Type_Descriptor;
+      Depth       : Natural)
+   is
+      Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+   begin
+      if Kind = "array" and then Base.Has_Component_Type then
+         declare
+            Component_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
+         begin
+            if Has_Heap_Value_Type (Unit, Document, Component_Info) then
+               Append_Line (Buffer, "for Index in Value'Range loop", Depth);
+               Append_Heap_Free_Value
+                 (Buffer,
+                  Unit,
+                  Document,
+                  State,
+                  Family,
+                  Scope_Name,
+                  "Value (Index)",
+                  Component_Info,
+                  Depth + 1);
+               Append_Line (Buffer, "end loop;", Depth);
+            end if;
+         end;
+      elsif Kind = "record" then
+         Append_Record_Heap_Free_Statements
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Family,
+            Scope_Name,
+            Base,
+            "Value.",
+            Depth);
+      elsif Is_Tuple_Type (Base) then
+         for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
+            declare
+               Item_Info : constant GM.Type_Descriptor :=
+                 Resolve_Type_Name
+                   (Unit,
+                    Document,
+                    FT.To_String (Base.Tuple_Element_Types (Index)));
+            begin
+               if Has_Heap_Value_Type (Unit, Document, Item_Info) then
+                  Append_Heap_Free_Value
+                    (Buffer,
+                     Unit,
+                     Document,
+                     State,
+                     Family,
+                     Scope_Name,
+                     "Value." & Tuple_Field_Name (Positive (Index)),
+                     Item_Info,
+                     Depth);
+               end if;
+            end;
+         end loop;
+      end if;
+   end Append_Generated_Heap_Free_Body;
+
    function Local_Allocate_Helper_Name (Info : GM.Type_Descriptor) return String is
    begin
       return "Allocate_" & Sanitized_Helper_Name (FT.To_String (Info.Name));
@@ -6788,6 +7214,333 @@ package body Safe_Frontend.Ada_Emit is
    begin
       return "Ownership_" & Sanitized_Helper_Name (FT.To_String (Info.Name));
    end Local_Ownership_Runtime_Name;
+
+   function Channel_Copy_Helper_Name
+     (Channel_Item : CM.Resolved_Channel_Decl) return String is
+   begin
+      return FT.To_String (Channel_Item.Name) & "_Copy_Value";
+   end Channel_Copy_Helper_Name;
+
+   function Channel_Free_Helper_Name
+     (Channel_Item : CM.Resolved_Channel_Decl) return String is
+   begin
+      return FT.To_String (Channel_Item.Name) & "_Free_Value";
+   end Channel_Free_Helper_Name;
+
+   function Channel_Has_Length_Model
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+   begin
+      return
+        Is_Plain_String_Type (Unit, Document, Channel_Item.Element_Type)
+        or else
+        Is_Growable_Array_Type (Unit, Document, Channel_Item.Element_Type);
+   end Channel_Has_Length_Model;
+
+   function Channel_Has_Scalar_Length_Model
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+   begin
+      return Channel_Has_Length_Model (Unit, Document, Channel_Item)
+        and then Channel_Item.Capacity = 1;
+   end Channel_Has_Scalar_Length_Model;
+
+   function Channel_Uses_Runtime_Length_Formals
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
+   begin
+      return Channel_Has_Length_Model (Unit, Document, Channel_Item);
+   end Channel_Uses_Runtime_Length_Formals;
+
+   function Render_Channel_Operation_Target
+     (Unit           : CM.Resolved_Unit;
+      Document       : GM.Mir_Document;
+      State          : in out Emit_State;
+      Channel_Expr   : CM.Expr_Access;
+      Channel_Item   : CM.Resolved_Channel_Decl;
+      Operation_Name : String) return String is
+   begin
+      if Channel_Uses_Sequential_Scalar_Ghost_Model
+        (Unit, Document, Channel_Item)
+      then
+         return FT.To_String (Channel_Item.Name) & "_" & Operation_Name;
+      end if;
+
+      return Render_Expr (Unit, Document, Channel_Expr, State) & "." & Operation_Name;
+   end Render_Channel_Operation_Target;
+
+   function Channel_Length_Image
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Value_Image  : String) return String
+   is
+      Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
+   begin
+      if Is_Plain_String_Type (Unit, Document, Element_Info) then
+         State.Needs_Safe_String_RT := True;
+         return "Safe_String_RT.Length (" & Value_Image & ")";
+      end if;
+
+      State.Needs_Safe_Array_RT := True;
+      return
+        Array_Runtime_Instance_Name (Base_Type (Unit, Document, Element_Info))
+        & ".Length ("
+        & Value_Image
+        & ")";
+   end Channel_Length_Image;
+
+   procedure Append_Heap_Channel_Free
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Target_Image : String;
+      Depth        : Natural)
+   is
+      Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
+   begin
+      if Is_Plain_String_Type (Unit, Document, Element_Info) then
+         Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Image & ");", Depth);
+      elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
+         Append_Line
+           (Buffer,
+            Array_Runtime_Instance_Name
+              (Base_Type (Unit, Document, Element_Info))
+            & ".Free ("
+            & Target_Image
+            & ");",
+            Depth);
+      else
+         Append_Line
+           (Buffer,
+            Channel_Free_Helper_Name (Channel_Item)
+            & " ("
+            & Target_Image
+            & ");",
+            Depth);
+      end if;
+   end Append_Heap_Channel_Free;
+
+   procedure Append_Channel_Length_Assert
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Value_Image  : String;
+      Length_Name  : String;
+      Depth        : Natural) is
+   begin
+      if Channel_Has_Length_Model (Unit, Document, Channel_Item) then
+         Append_Line
+           (Buffer,
+            "pragma Assert ("
+            & Channel_Length_Image
+                (Unit, Document, State, Channel_Item, Value_Image)
+            & " = "
+            & Length_Name
+            & ");",
+            Depth);
+      end if;
+   end Append_Channel_Length_Assert;
+
+   function Channel_Staged_Value_Name
+     (Statement_Index : Positive) return String is
+   begin
+      return
+        "Safe_Channel_Staged_"
+        & Ada.Strings.Fixed.Trim
+            (Natural'Image (Natural (Statement_Index)),
+             Ada.Strings.Both);
+   end Channel_Staged_Value_Name;
+
+   function Channel_Staged_Length_Name
+     (Statement_Index : Positive) return String is
+   begin
+      return
+        "Safe_Channel_Length_"
+        & Ada.Strings.Fixed.Trim
+            (Natural'Image (Natural (Statement_Index)),
+             Ada.Strings.Both);
+   end Channel_Staged_Length_Name;
+
+   procedure Append_Staged_Channel_Declarations
+     (Buffer                 : in out SU.Unbounded_String;
+      Unit                   : CM.Resolved_Unit;
+      Document               : GM.Mir_Document;
+      Channel_Item           : CM.Resolved_Channel_Decl;
+      Value_Name             : String;
+      Length_Name            : String;
+      Value_Type_Name        : String;
+      Success_Name           : String;
+      Depth                  : Natural;
+      Suppress_Init_Warnings : Boolean) is
+   begin
+      if Suppress_Init_Warnings then
+         Append_Initialization_Warning_Suppression (Buffer, Depth);
+      end if;
+      Append_Line
+        (Buffer,
+         Value_Name
+         & " : "
+         & Value_Type_Name
+         & " := "
+         & Default_Value_Expr
+             (Unit,
+              Document,
+              Channel_Item.Element_Type)
+         & ";",
+         Depth);
+      if Channel_Uses_Runtime_Length_Formals (Unit, Document, Channel_Item) then
+         Append_Line
+           (Buffer,
+            Length_Name & " : Natural := 0;",
+            Depth);
+      end if;
+      if Success_Name'Length > 0 then
+         Append_Line
+           (Buffer,
+            Success_Name & " : Boolean := False;",
+            Depth);
+      end if;
+      if Suppress_Init_Warnings then
+         Append_Initialization_Warning_Restore (Buffer, Depth);
+      end if;
+   end Append_Staged_Channel_Declarations;
+
+   procedure Append_Staged_Channel_Call
+     (Buffer                  : in out SU.Unbounded_String;
+      Unit                    : CM.Resolved_Unit;
+      Document                : GM.Mir_Document;
+      Operation_Target        : String;
+      Channel_Item            : CM.Resolved_Channel_Decl;
+      Value_Name              : String;
+      Length_Name             : String;
+      Success_Image           : String;
+      Depth                   : Natural;
+      Force_Staged_Warnings   : Boolean;
+      Wrap_Task_Call_Warnings : Boolean) is
+   begin
+      if Wrap_Task_Call_Warnings then
+         Append_Task_Channel_Call_Warning_Suppression (Buffer, Depth);
+      end if;
+      if Force_Staged_Warnings
+        or else Channel_Uses_Runtime_Length_Formals (Unit, Document, Channel_Item)
+      then
+         Append_Channel_Staged_Call_Warning_Suppression (Buffer, Depth);
+      end if;
+      Append_Line
+        (Buffer,
+         Operation_Target
+         & " ("
+         & Value_Name
+         & (if Channel_Uses_Runtime_Length_Formals (Unit, Document, Channel_Item)
+            then ", " & Length_Name
+            else "")
+         & (if Success_Image'Length > 0
+            then ", " & Success_Image
+            else "")
+         & ");",
+         Depth);
+      if Force_Staged_Warnings
+        or else Channel_Uses_Runtime_Length_Formals (Unit, Document, Channel_Item)
+      then
+         Append_Channel_Staged_Call_Warning_Restore (Buffer, Depth);
+      end if;
+      if Wrap_Task_Call_Warnings then
+         Append_Task_Channel_Call_Warning_Restore (Buffer, Depth);
+      end if;
+   end Append_Staged_Channel_Call;
+
+   procedure Append_Staged_Channel_Length_Reconcile
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Value_Name   : String;
+      Length_Name  : String;
+      Depth        : Natural) is
+   begin
+      if Channel_Uses_Runtime_Length_Formals (Unit, Document, Channel_Item) then
+         if Channel_Has_Scalar_Length_Model (Unit, Document, Channel_Item)
+           and then not Channel_Uses_Sequential_Scalar_Ghost_Model
+             (Unit, Document, Channel_Item)
+         then
+            Append_Line
+              (Buffer,
+               "pragma Assume ("
+               & Channel_Length_Image
+                   (Unit, Document, State, Channel_Item, Value_Name)
+               & " = "
+               & Length_Name
+               & ");",
+               Depth);
+         elsif not Channel_Uses_Sequential_Scalar_Ghost_Model
+           (Unit, Document, Channel_Item)
+         then
+            Append_Line
+              (Buffer,
+               Length_Name
+               & " := "
+               & Channel_Length_Image
+                   (Unit, Document, State, Channel_Item, Value_Name)
+               & ";",
+               Depth);
+         end if;
+         Append_Channel_Length_Assert
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Channel_Item,
+            Value_Name,
+            Length_Name,
+            Depth);
+      end if;
+   end Append_Staged_Channel_Length_Reconcile;
+
+   procedure Append_Staged_Channel_Target_Adoption
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Channel_Item : CM.Resolved_Channel_Decl;
+      Target_Image : String;
+      Value_Name   : String;
+      Length_Name  : String;
+      Depth        : Natural) is
+   begin
+      Append_Local_Warning_Suppression (Buffer, Depth);
+      Append_Heap_Channel_Free
+        (Buffer,
+         Unit,
+         Document,
+         Channel_Item,
+         Target_Image,
+         Depth);
+      Append_Local_Warning_Restore (Buffer, Depth);
+      Append_Line
+        (Buffer,
+         Target_Image & " := " & Value_Name & ";",
+         Depth);
+      if Channel_Uses_Runtime_Length_Formals (Unit, Document, Channel_Item) then
+         Append_Line
+           (Buffer,
+            "pragma Assert ("
+            & Channel_Length_Image
+                (Unit, Document, State, Channel_Item, Target_Image)
+            & " = "
+            & Length_Name
+            & ");",
+            Depth);
+      end if;
+   end Append_Staged_Channel_Target_Adoption;
 
    function Array_Runtime_Instance_Name (Info : GM.Type_Descriptor) return String is
    begin
@@ -10227,138 +10980,12 @@ package body Safe_Frontend.Ada_Emit is
    is
       Generated_Helpers      : FT.UString_Vectors.Vector;
       Runtime_Dependency_Types : FT.UString_Vectors.Vector;
-
-      function Helper_Key (Info : GM.Type_Descriptor) return String is
-      begin
-         return Render_Type_Name (Info);
-      end Helper_Key;
-
-      procedure Mark_Runtime_Dependencies (Info : GM.Type_Descriptor);
       procedure Render_Helper (Info : GM.Type_Descriptor);
-
-      procedure Mark_Runtime_Dependencies (Info : GM.Type_Descriptor) is
-         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-         Type_Key : constant String := Helper_Key (Info);
-
-         procedure Add_From_Name (Name_Text : String) is
-         begin
-            if Name_Text'Length = 0 then
-               return;
-            end if;
-
-            Mark_Runtime_Dependencies
-              (Resolve_Type_Name (Unit, Document, Name_Text));
-         end Add_From_Name;
-      begin
-         if Contains_Name (Runtime_Dependency_Types, Type_Key) then
-            return;
-         end if;
-
-         Runtime_Dependency_Types.Append (FT.To_UString (Type_Key));
-
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            State.Needs_Safe_String_RT := True;
-            return;
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            State.Needs_Safe_Array_RT := True;
-            Add_From_Name (FT.To_String (Base.Component_Type));
-            return;
-         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "array"
-           and then Base.Has_Component_Type
-         then
-            Add_From_Name (FT.To_String (Base.Component_Type));
-         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "record" then
-            for Field of Base.Fields loop
-               Add_From_Name (FT.To_String (Field.Type_Name));
-            end loop;
-            for Field of Base.Variant_Fields loop
-               Add_From_Name (FT.To_String (Field.Type_Name));
-            end loop;
-         elsif Is_Tuple_Type (Base) then
-            for Item of Base.Tuple_Element_Types loop
-               Add_From_Name (FT.To_String (Item));
-            end loop;
-         end if;
-      end Mark_Runtime_Dependencies;
-
-      procedure Append_Copy_Value
-        (Target_Text : String;
-         Source_Text : String;
-         Info        : GM.Type_Descriptor;
-         Depth       : Natural)
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      begin
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Target_Text & " := Safe_String_RT.Clone (" & Source_Text & ");",
-               Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Target_Text
-               & " := "
-               & Array_Runtime_Instance_Name (Base)
-               & ".Clone ("
-               & Source_Text
-               & ");",
-               Depth);
-         elsif Needs_Generated_For_Of_Helper (Unit, Document, Info) then
-            Append_Line
-              (Buffer,
-               For_Of_Copy_Helper_Name (Unit, Document, Info)
-               & " ("
-               & Target_Text
-               & ", "
-               & Source_Text
-               & ");",
-               Depth);
-         else
-            Append_Line (Buffer, Target_Text & " := " & Source_Text & ";", Depth);
-         end if;
-      end Append_Copy_Value;
-
-      procedure Append_Free_Value
-        (Target_Text : String;
-         Info        : GM.Type_Descriptor;
-         Depth       : Natural)
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      begin
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Text & ");", Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Array_Runtime_Instance_Name (Base) & ".Free (" & Target_Text & ");",
-               Depth);
-         elsif Needs_Generated_For_Of_Helper (Unit, Document, Info) then
-            Append_Line
-              (Buffer,
-               For_Of_Free_Helper_Name (Unit, Document, Info)
-               & " ("
-               & Target_Text
-               & ");",
-               Depth);
-         end if;
-      end Append_Free_Value;
-
-      function Same_Choice
-        (Left, Right : GM.Variant_Field) return Boolean is
-      begin
-         return Left.Is_Others = Right.Is_Others
-           and then
-             (if Left.Is_Others
-              then True
-              else Left.Choice.Kind = Right.Choice.Kind
-                and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
-      end Same_Choice;
 
       procedure Render_Helper (Info : GM.Type_Descriptor) is
          Base      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
          Kind      : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-         Type_Key  : constant String := Helper_Key (Info);
+         Type_Key  : constant String := Render_Type_Name (Info);
          Type_Name : constant String := Render_Type_Name (Info);
 
          procedure Ensure_Helper (Name_Text : String) is
@@ -10369,166 +10996,8 @@ package body Safe_Frontend.Ada_Emit is
 
             Render_Helper (Resolve_Type_Name (Unit, Document, Name_Text));
          end Ensure_Helper;
-
-         procedure Append_Record_Copy_Assignments (Depth : Natural) is
-         begin
-            for Field of Base.Fields loop
-               declare
-                  Field_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                     Append_Copy_Value
-                       ("Target." & FT.To_String (Field.Name),
-                        "Source." & FT.To_String (Field.Name),
-                        Field_Info,
-                        Depth);
-                  end if;
-               end;
-            end loop;
-
-            if not Base.Variant_Fields.Is_Empty then
-               declare
-                  Disc_Name : constant String :=
-                    FT.To_String
-                      ((if Has_Text (Base.Variant_Discriminant_Name)
-                        then Base.Variant_Discriminant_Name
-                        else Base.Discriminant_Name));
-                  Index : Positive := Base.Variant_Fields.First_Index;
-               begin
-                  if Disc_Name'Length = 0 then
-                     return;
-                  end if;
-
-                  Append_Line (Buffer, "case Source." & Disc_Name & " is", Depth);
-                  while Index <= Base.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Base.Variant_Fields (Index);
-                        Emitted_Statements : Boolean := False;
-                     begin
-                        Append_Line
-                          (Buffer,
-                           "when "
-                           & (if First_Field.Is_Others
-                              then "others"
-                              else Render_Scalar_Value (First_Field.Choice))
-                           & " =>",
-                           Depth + 1);
-                        loop
-                           declare
-                              Variant_Field : constant GM.Variant_Field :=
-                                Base.Variant_Fields (Index);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name
-                                  (Unit,
-                                   Document,
-                                   FT.To_String (Variant_Field.Type_Name));
-                           begin
-                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                                 Append_Copy_Value
-                                   ("Target." & FT.To_String (Variant_Field.Name),
-                                    "Source." & FT.To_String (Variant_Field.Name),
-                                    Field_Info,
-                                    Depth + 2);
-                                 Emitted_Statements := True;
-                              end if;
-                           end;
-                           exit when Index = Base.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Base.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        if not Emitted_Statements then
-                           Append_Line (Buffer, "null;", Depth + 2);
-                        end if;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-                  Append_Line (Buffer, "end case;", Depth);
-               end;
-            end if;
-         end Append_Record_Copy_Assignments;
-
-         procedure Append_Record_Free_Statements (Depth : Natural) is
-         begin
-            for Field of Base.Fields loop
-               declare
-                  Field_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                     Append_Free_Value
-                       ("Value." & FT.To_String (Field.Name), Field_Info, Depth);
-                  end if;
-               end;
-            end loop;
-
-            if not Base.Variant_Fields.Is_Empty then
-               declare
-                  Disc_Name : constant String :=
-                    FT.To_String
-                      ((if Has_Text (Base.Variant_Discriminant_Name)
-                        then Base.Variant_Discriminant_Name
-                        else Base.Discriminant_Name));
-                  Index : Positive := Base.Variant_Fields.First_Index;
-               begin
-                  if Disc_Name'Length = 0 then
-                     return;
-                  end if;
-
-                  Append_Line (Buffer, "case Value." & Disc_Name & " is", Depth);
-                  while Index <= Base.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Base.Variant_Fields (Index);
-                        Emitted_Statements : Boolean := False;
-                     begin
-                        Append_Line
-                          (Buffer,
-                           "when "
-                           & (if First_Field.Is_Others
-                              then "others"
-                              else Render_Scalar_Value (First_Field.Choice))
-                           & " =>",
-                           Depth + 1);
-                        loop
-                           declare
-                              Variant_Field : constant GM.Variant_Field :=
-                                Base.Variant_Fields (Index);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name
-                                  (Unit,
-                                   Document,
-                                   FT.To_String (Variant_Field.Type_Name));
-                           begin
-                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                                 Append_Free_Value
-                                   ("Value." & FT.To_String (Variant_Field.Name),
-                                    Field_Info,
-                                    Depth + 2);
-                                 Emitted_Statements := True;
-                              end if;
-                           end;
-                           exit when Index = Base.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Base.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        if not Emitted_Statements then
-                           Append_Line (Buffer, "null;", Depth + 2);
-                        end if;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-                  Append_Line (Buffer, "end case;", Depth);
-               end;
-            end if;
-         end Append_Record_Free_Statements;
       begin
-         if not Needs_Generated_For_Of_Helper (Unit, Document, Info)
+         if not Needs_Generated_Heap_Helper (Unit, Document, Info)
            or else Contains_Name (Generated_Helpers, Type_Key)
          then
             return;
@@ -10572,79 +11041,15 @@ package body Safe_Frontend.Ada_Emit is
             & ") is",
             1);
          Append_Line (Buffer, "begin", 1);
-         if Kind = "array" and then Base.Has_Component_Type then
-            declare
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
-            begin
-               Append_Line (Buffer, "for Index in Source'Range loop", 2);
-               Append_Copy_Value
-                 ("Target (Index)",
-                  "Source (Index)",
-                  Component_Info,
-                  3);
-               Append_Line (Buffer, "end loop;", 2);
-            end;
-         elsif Kind = "record" then
-            if not Base.Variant_Fields.Is_Empty
-              or else Has_Text (Base.Discriminant_Name)
-              or else Has_Text (Base.Variant_Discriminant_Name)
-            then
-               Append_Line (Buffer, "Target := Source;", 2);
-               Append_Record_Copy_Assignments (2);
-            else
-               for Field of Base.Fields loop
-                  declare
-                     Field_Info : constant GM.Type_Descriptor :=
-                       Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-                  begin
-                     if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                        Append_Copy_Value
-                          ("Target." & FT.To_String (Field.Name),
-                           "Source." & FT.To_String (Field.Name),
-                           Field_Info,
-                           2);
-                     else
-                        Append_Line
-                          (Buffer,
-                           "Target."
-                           & FT.To_String (Field.Name)
-                           & " := Source."
-                           & FT.To_String (Field.Name)
-                           & ";",
-                           2);
-                     end if;
-                  end;
-               end loop;
-            end if;
-         elsif Is_Tuple_Type (Base) then
-            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
-               declare
-                  Item_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name
-                      (Unit,
-                       Document,
-                       FT.To_String (Base.Tuple_Element_Types (Index)));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
-                     Append_Copy_Value
-                       ("Target." & Tuple_Field_Name (Positive (Index)),
-                        "Source." & Tuple_Field_Name (Positive (Index)),
-                        Item_Info,
-                        2);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "Target."
-                        & Tuple_Field_Name (Positive (Index))
-                        & " := Source."
-                        & Tuple_Field_Name (Positive (Index))
-                        & ";",
-                        2);
-                  end if;
-               end;
-            end loop;
-         end if;
+         Append_Generated_Heap_Copy_Body
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_For_Of,
+            "",
+            Info,
+            2);
          Append_Line (Buffer, "end " & For_Of_Copy_Helper_Name (Unit, Document, Info) & ";", 1);
          Append_Line (Buffer);
 
@@ -10705,37 +11110,15 @@ package body Safe_Frontend.Ada_Emit is
             & ") is",
             1);
          Append_Line (Buffer, "begin", 1);
-         if Kind = "array" and then Base.Has_Component_Type then
-            declare
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
-            begin
-               if Has_Heap_Value_Type (Unit, Document, Component_Info) then
-                  Append_Line (Buffer, "for Index in Value'Range loop", 2);
-                  Append_Free_Value ("Value (Index)", Component_Info, 3);
-                  Append_Line (Buffer, "end loop;", 2);
-               end if;
-            end;
-         elsif Kind = "record" then
-            Append_Record_Free_Statements (2);
-         elsif Is_Tuple_Type (Base) then
-            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
-               declare
-                  Item_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name
-                      (Unit,
-                       Document,
-                       FT.To_String (Base.Tuple_Element_Types (Index)));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
-                     Append_Free_Value
-                       ("Value." & Tuple_Field_Name (Positive (Index)),
-                        Item_Info,
-                        2);
-                  end if;
-               end;
-            end loop;
-         end if;
+         Append_Generated_Heap_Free_Body
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_For_Of,
+            "",
+            Info,
+            2);
          Append_Line
            (Buffer,
             "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
@@ -10746,7 +11129,12 @@ package body Safe_Frontend.Ada_Emit is
       end Render_Helper;
    begin
       for Type_Item of Types loop
-         Mark_Runtime_Dependencies (Type_Item);
+         Mark_Heap_Runtime_Dependencies
+           (Unit,
+            Document,
+            Type_Item,
+            State,
+            Runtime_Dependency_Types);
          Render_Helper (Type_Item);
       end loop;
    end Render_For_Of_Helper_Bodies;
@@ -17772,60 +18160,6 @@ package body Safe_Frontend.Ada_Emit is
          return Lookup_Channel (Unit, CM.Flatten_Name (Channel_Expr));
       end Channel_Item;
 
-      function Channel_Copy_Helper_Name
-        (Channel_Item : CM.Resolved_Channel_Decl) return String is
-      begin
-         return FT.To_String (Channel_Item.Name) & "_Copy_Value";
-      end Channel_Copy_Helper_Name;
-
-      function Channel_Free_Helper_Name
-        (Channel_Item : CM.Resolved_Channel_Decl) return String is
-      begin
-         return FT.To_String (Channel_Item.Name) & "_Free_Value";
-      end Channel_Free_Helper_Name;
-
-      function Channel_Has_Length_Model
-        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
-      begin
-         return
-           Is_Plain_String_Type (Unit, Document, Channel_Item.Element_Type)
-           or else
-           Is_Growable_Array_Type (Unit, Document, Channel_Item.Element_Type);
-      end Channel_Has_Length_Model;
-
-      function Render_Channel_Operation_Target
-        (Channel_Expr   : CM.Expr_Access;
-         Channel_Item   : CM.Resolved_Channel_Decl;
-         Operation_Name : String) return String is
-      begin
-         if Channel_Uses_Sequential_Scalar_Ghost_Model
-           (Unit, Document, Channel_Item)
-         then
-            return FT.To_String (Channel_Item.Name) & "_" & Operation_Name;
-         end if;
-
-         return Render_Expr (Unit, Document, Channel_Expr, State) & "." & Operation_Name;
-      end Render_Channel_Operation_Target;
-
-      function Channel_Length_Image
-        (Channel_Item : CM.Resolved_Channel_Decl;
-         Value_Image  : String) return String
-      is
-         Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
-      begin
-         if Is_Plain_String_Type (Unit, Document, Element_Info) then
-            State.Needs_Safe_String_RT := True;
-            return "Safe_String_RT.Length (" & Value_Image & ")";
-         end if;
-
-         State.Needs_Safe_Array_RT := True;
-         return
-           Array_Runtime_Instance_Name (Base_Type (Unit, Document, Element_Info))
-           & ".Length ("
-           & Value_Image
-           & ")";
-      end Channel_Length_Image;
-
       function Render_Heap_Channel_Copy_Expr
         (Channel_Item : CM.Resolved_Channel_Decl;
          Expr         : CM.Expr_Access) return String
@@ -17880,35 +18214,6 @@ package body Safe_Frontend.Ada_Emit is
          end if;
       end Append_Heap_Channel_Copy;
 
-      procedure Append_Heap_Channel_Free
-        (Channel_Item : CM.Resolved_Channel_Decl;
-         Target_Image : String;
-         Depth        : Natural)
-      is
-         Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
-      begin
-         if Is_Plain_String_Type (Unit, Document, Element_Info) then
-            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Image & ");", Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
-            Append_Line
-              (Buffer,
-               Array_Runtime_Instance_Name
-                 (Base_Type (Unit, Document, Element_Info))
-               & ".Free ("
-               & Target_Image
-               & ");",
-               Depth);
-         else
-            Append_Line
-              (Buffer,
-               Channel_Free_Helper_Name (Channel_Item)
-               & " ("
-               & Target_Image
-               & ");",
-               Depth);
-         end if;
-      end Append_Heap_Channel_Free;
-
       Declared_Channel : constant CM.Resolved_Channel_Decl :=
         Channel_Item (Item.Channel_Name);
    begin
@@ -17920,78 +18225,63 @@ package body Safe_Frontend.Ada_Emit is
            Declared_Channel.Element_Type)
       then
          declare
-            Staged_Name  : constant String :=
-              "Safe_Channel_Staged_"
-              & Ada.Strings.Fixed.Trim
-                  (Natural'Image (Natural (Index)),
-                   Ada.Strings.Both);
-            Length_Name  : constant String :=
-              "Safe_Channel_Length_"
-              & Ada.Strings.Fixed.Trim
-                  (Natural'Image (Natural (Index)),
-                   Ada.Strings.Both);
+            Staged_Name   : constant String := Channel_Staged_Value_Name (Index);
+            Length_Name   : constant String := Channel_Staged_Length_Name (Index);
             Element_Type : constant String :=
               Render_Type_Name (Declared_Channel.Element_Type);
             Success_Image : constant String :=
               Render_Expr (Unit, Document, Item.Success_Var, State);
          begin
             Append_Line (Buffer, "declare", Depth);
-            Append_Initialization_Warning_Suppression
-              (Buffer, Depth + 1);
-            Append_Line
+            Append_Staged_Channel_Declarations
               (Buffer,
-               Staged_Name
-               & " : "
-               & Element_Type
-               & " := "
-               & Default_Value_Expr
-                   (Unit,
-                    Document,
-                    Declared_Channel.Element_Type)
-               & ";",
-               Depth + 1);
-            if Channel_Has_Length_Model (Declared_Channel) then
-               Append_Line
-                 (Buffer,
-                  Length_Name & " : Natural := 0;",
-                  Depth + 1);
-            end if;
-            Append_Initialization_Warning_Restore
-              (Buffer, Depth + 1);
+               Unit,
+               Document,
+               Declared_Channel,
+               Staged_Name,
+               Length_Name,
+               Element_Type,
+               "",
+               Depth + 1,
+               Suppress_Init_Warnings => True);
             Append_Line (Buffer, "begin", Depth);
             Append_Heap_Channel_Copy
               (Declared_Channel,
                Staged_Name,
                Item.Value,
                Depth + 1);
-            if Channel_Has_Length_Model (Declared_Channel) then
+            if Channel_Has_Length_Model (Unit, Document, Declared_Channel) then
                Append_Line
                  (Buffer,
                   Length_Name
                   & " := "
                   & Channel_Length_Image
-                      (Declared_Channel,
+                      (Unit,
+                       Document,
+                       State,
+                       Declared_Channel,
                        Staged_Name)
                   & ";",
                   Depth + 1);
             end if;
-            Append_Channel_Staged_Call_Warning_Suppression
-              (Buffer, Depth + 1);
-            Append_Line
+            Append_Staged_Channel_Call
               (Buffer,
+               Unit,
+               Document,
                Render_Channel_Operation_Target
-                 (Item.Channel_Name, Declared_Channel, "Try_Send")
-               & " ("
-               & Staged_Name
-               & (if Channel_Has_Length_Model (Declared_Channel)
-                  then ", " & Length_Name
-                  else "")
-               & ", "
-               & Success_Image
-               & ");",
-               Depth + 1);
-            Append_Channel_Staged_Call_Warning_Restore
-              (Buffer, Depth + 1);
+                 (Unit,
+                  Document,
+                  State,
+                  Item.Channel_Name,
+                  Declared_Channel,
+                  "Try_Send"),
+               Declared_Channel,
+               Staged_Name,
+               Length_Name,
+               Success_Image,
+               Depth + 1,
+               Force_Staged_Warnings => True,
+               Wrap_Task_Call_Warnings => False);
             if State.Task_Body_Depth > 0 then
                Append_Task_If_Warning_Suppression (Buffer, Depth + 1);
             end if;
@@ -18001,7 +18291,10 @@ package body Safe_Frontend.Ada_Emit is
                "if not " & Success_Image & " then",
                Depth + 1);
             Append_Heap_Channel_Free
-              (Declared_Channel,
+              (Buffer,
+               Unit,
+               Document,
+               Declared_Channel,
                Staged_Name,
                Depth + 2);
             Append_Line (Buffer, "end if;", Depth + 1);
@@ -18014,8 +18307,13 @@ package body Safe_Frontend.Ada_Emit is
       else
          Append_Line
            (Buffer,
-            Render_Channel_Operation_Target
-              (Item.Channel_Name, Declared_Channel, "Try_Send")
+           Render_Channel_Operation_Target
+              (Unit,
+               Document,
+               State,
+               Item.Channel_Name,
+               Declared_Channel,
+               "Try_Send")
             & " ("
             & Render_Channel_Send_Value
                 (Unit, Document, State, Item.Channel_Name, Item.Value)
@@ -18392,121 +18690,6 @@ package body Safe_Frontend.Ada_Emit is
          end if;
          return Lookup_Channel (Unit, CM.Flatten_Name (Channel_Expr));
       end Channel_Item;
-
-      function Channel_Copy_Helper_Name
-        (Channel_Item : CM.Resolved_Channel_Decl) return String is
-      begin
-         return FT.To_String (Channel_Item.Name) & "_Copy_Value";
-      end Channel_Copy_Helper_Name;
-
-      function Channel_Free_Helper_Name
-        (Channel_Item : CM.Resolved_Channel_Decl) return String is
-      begin
-         return FT.To_String (Channel_Item.Name) & "_Free_Value";
-      end Channel_Free_Helper_Name;
-
-      function Channel_Has_Length_Model
-        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
-      begin
-         return
-           Is_Plain_String_Type (Unit, Document, Channel_Item.Element_Type)
-           or else
-           Is_Growable_Array_Type (Unit, Document, Channel_Item.Element_Type);
-      end Channel_Has_Length_Model;
-
-      function Channel_Has_Scalar_Length_Model
-        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
-      begin
-         return Channel_Has_Length_Model (Channel_Item)
-           and then Channel_Item.Capacity = 1;
-      end Channel_Has_Scalar_Length_Model;
-
-      function Channel_Uses_Runtime_Length_Formals
-        (Channel_Item : CM.Resolved_Channel_Decl) return Boolean is
-      begin
-         return Channel_Has_Length_Model (Channel_Item);
-      end Channel_Uses_Runtime_Length_Formals;
-
-      function Render_Channel_Operation_Target
-        (Channel_Expr   : CM.Expr_Access;
-         Channel_Item   : CM.Resolved_Channel_Decl;
-         Operation_Name : String) return String is
-      begin
-         if Channel_Uses_Sequential_Scalar_Ghost_Model
-           (Unit, Document, Channel_Item)
-         then
-            return FT.To_String (Channel_Item.Name) & "_" & Operation_Name;
-         end if;
-
-         return Render_Expr (Unit, Document, Channel_Expr, State) & "." & Operation_Name;
-      end Render_Channel_Operation_Target;
-
-      function Channel_Length_Image
-        (Channel_Item : CM.Resolved_Channel_Decl;
-         Value_Image  : String) return String
-      is
-         Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
-      begin
-         if Is_Plain_String_Type (Unit, Document, Element_Info) then
-            State.Needs_Safe_String_RT := True;
-            return "Safe_String_RT.Length (" & Value_Image & ")";
-         end if;
-
-         State.Needs_Safe_Array_RT := True;
-         return
-           Array_Runtime_Instance_Name (Base_Type (Unit, Document, Element_Info))
-           & ".Length ("
-           & Value_Image
-           & ")";
-      end Channel_Length_Image;
-
-      procedure Append_Channel_Length_Assert
-        (Channel_Item : CM.Resolved_Channel_Decl;
-         Value_Image  : String;
-         Length_Name  : String;
-         Depth        : Natural)
-      is
-      begin
-         if Channel_Has_Length_Model (Channel_Item) then
-            Append_Line
-              (Buffer,
-               "pragma Assert ("
-               & Channel_Length_Image (Channel_Item, Value_Image)
-               & " = "
-               & Length_Name
-               & ");",
-               Depth);
-         end if;
-      end Append_Channel_Length_Assert;
-
-      procedure Append_Heap_Channel_Free
-        (Channel_Item : CM.Resolved_Channel_Decl;
-         Target_Image : String;
-         Depth        : Natural)
-      is
-         Element_Info : constant GM.Type_Descriptor := Channel_Item.Element_Type;
-      begin
-         if Is_Plain_String_Type (Unit, Document, Element_Info) then
-            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Image & ");", Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
-            Append_Line
-              (Buffer,
-               Array_Runtime_Instance_Name
-                 (Base_Type (Unit, Document, Element_Info))
-               & ".Free ("
-               & Target_Image
-               & ");",
-               Depth);
-         else
-            Append_Line
-              (Buffer,
-               Channel_Free_Helper_Name (Channel_Item)
-               & " ("
-               & Target_Image
-               & ");",
-               Depth);
-         end if;
-      end Append_Heap_Channel_Free;
    begin
       if Statements.Is_Empty then
          return;
@@ -20413,127 +20596,64 @@ package body Safe_Frontend.Ada_Emit is
                   then
                      declare
                         Staged_Name  : constant String :=
-                          "Safe_Channel_Staged_"
-                          & Ada.Strings.Fixed.Trim
-                              (Natural'Image (Natural (Index)),
-                               Ada.Strings.Both);
+                          Channel_Staged_Value_Name (Index);
                         Length_Name  : constant String :=
-                          "Safe_Channel_Length_"
-                          & Ada.Strings.Fixed.Trim
-                              (Natural'Image (Natural (Index)),
-                               Ada.Strings.Both);
+                          Channel_Staged_Length_Name (Index);
                         Element_Type : constant String :=
                           Render_Type_Name (Declared_Channel.Element_Type);
                         Target_Image : constant String :=
                           Render_Expr (Unit, Document, Item.Target, State);
                      begin
                         Append_Line (Buffer, "declare", Depth);
-                        Append_Initialization_Warning_Suppression
-                          (Buffer, Depth + 1);
-                        Append_Line
+                        Append_Staged_Channel_Declarations
                           (Buffer,
-                           Staged_Name
-                           & " : "
-                           & Element_Type
-                           & " := "
-                                 & Default_Value_Expr
-                                     (Unit,
-                                      Document,
-                                      Declared_Channel.Element_Type)
-                                 & ";",
-                                 Depth + 1);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              Length_Name & " : Natural := 0;",
-                              Depth + 1);
-                        end if;
-                        Append_Initialization_Warning_Restore
-                          (Buffer, Depth + 1);
+                           Unit,
+                           Document,
+                           Declared_Channel,
+                           Staged_Name,
+                           Length_Name,
+                           Element_Type,
+                           "",
+                           Depth + 1,
+                           True);
                         Append_Line (Buffer, "begin", Depth);
-                        if State.Task_Body_Depth > 0 then
-                           Append_Task_Channel_Call_Warning_Suppression
-                             (Buffer, Depth + 1);
-                        end if;
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Channel_Staged_Call_Warning_Suppression
-                             (Buffer, Depth + 1);
-                        end if;
-                        Append_Line
+                        Append_Staged_Channel_Call
                           (Buffer,
+                           Unit,
+                           Document,
                            Render_Channel_Operation_Target
-                             (Item.Channel_Name, Declared_Channel, "Receive")
-                           & " ("
-                           & Staged_Name
-                           & (if Channel_Uses_Runtime_Length_Formals (Declared_Channel)
-                              then ", " & Length_Name
-                              else "")
-                           & ");",
-                           Depth + 1);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Channel_Staged_Call_Warning_Restore
-                             (Buffer, Depth + 1);
-                        end if;
-                        if State.Task_Body_Depth > 0 then
-                           Append_Task_Channel_Call_Warning_Restore
-                             (Buffer, Depth + 1);
-                        end if;
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           if Channel_Has_Scalar_Length_Model (Declared_Channel)
-                             and then not Channel_Uses_Sequential_Scalar_Ghost_Model
-                               (Unit, Document, Declared_Channel)
-                           then
-                              Append_Line
-                                (Buffer,
-                                 "pragma Assume ("
-                                 & Channel_Length_Image
-                                     (Declared_Channel,
-                                      Staged_Name)
-                                 & " = "
-                                 & Length_Name
-                                 & ");",
-                                 Depth + 1);
-                           elsif not Channel_Uses_Sequential_Scalar_Ghost_Model
-                             (Unit, Document, Declared_Channel)
-                           then
-                              Append_Line
-                                (Buffer,
-                                 Length_Name
-                                 & " := "
-                                 & Channel_Length_Image
-                                     (Declared_Channel,
-                                      Staged_Name)
-                                 & ";",
-                                 Depth + 1);
-                           end if;
-                           Append_Channel_Length_Assert
-                             (Declared_Channel,
-                              Staged_Name,
-                              Length_Name,
-                              Depth + 1);
-                        end if;
-                        Append_Local_Warning_Suppression (Buffer, Depth + 1);
-                        Append_Heap_Channel_Free
-                          (Declared_Channel,
-                          Target_Image,
-                           Depth + 1);
-                        Append_Local_Warning_Restore (Buffer, Depth + 1);
-                        Append_Line
+                             (Unit,
+                              Document,
+                              State,
+                              Item.Channel_Name,
+                              Declared_Channel,
+                              "Receive"),
+                           Declared_Channel,
+                           Staged_Name,
+                           Length_Name,
+                           "",
+                           Depth + 1,
+                           Force_Staged_Warnings => False,
+                           Wrap_Task_Call_Warnings => State.Task_Body_Depth > 0);
+                        Append_Staged_Channel_Length_Reconcile
                           (Buffer,
-                           Target_Image & " := " & Staged_Name & ";",
+                           Unit,
+                           Document,
+                           State,
+                           Declared_Channel,
+                           Staged_Name,
+                           Length_Name,
                            Depth + 1);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              "pragma Assert ("
-                              & Channel_Length_Image
-                                  (Declared_Channel,
-                                   Target_Image)
-                              & " = "
-                              & Length_Name
-                              & ");",
-                              Depth + 1);
-                        end if;
+                        Append_Staged_Channel_Target_Adoption
+                          (Buffer,
+                           Unit,
+                           Document,
+                           State,
+                           Declared_Channel,
+                           Target_Image,
+                           Staged_Name,
+                           Length_Name,
+                           Depth + 1);
                         Append_Line (Buffer, "end;", Depth);
                      end;
                   else
@@ -20543,7 +20663,12 @@ package body Safe_Frontend.Ada_Emit is
                      Append_Line
                        (Buffer,
                         Render_Channel_Operation_Target
-                          (Item.Channel_Name, Declared_Channel, "Receive")
+                          (Unit,
+                           Document,
+                           State,
+                           Item.Channel_Name,
+                           Declared_Channel,
+                           "Receive")
                         & " ("
                         & Render_Expr (Unit, Document, Item.Target, State)
                         & ");",
@@ -20569,15 +20694,9 @@ package body Safe_Frontend.Ada_Emit is
                   then
                      declare
                         Staged_Name  : constant String :=
-                          "Safe_Channel_Staged_"
-                          & Ada.Strings.Fixed.Trim
-                              (Natural'Image (Natural (Index)),
-                               Ada.Strings.Both);
+                          Channel_Staged_Value_Name (Index);
                         Length_Name  : constant String :=
-                          "Safe_Channel_Length_"
-                          & Ada.Strings.Fixed.Trim
-                              (Natural'Image (Natural (Index)),
-                               Ada.Strings.Both);
+                          Channel_Staged_Length_Name (Index);
                         Element_Type : constant String :=
                           Render_Type_Name (Declared_Channel.Element_Type);
                         Target_Image : constant String :=
@@ -20586,119 +20705,62 @@ package body Safe_Frontend.Ada_Emit is
                           Render_Expr (Unit, Document, Item.Success_Var, State);
                      begin
                         Append_Line (Buffer, "declare", Depth);
-                        Append_Initialization_Warning_Suppression
-                          (Buffer, Depth + 1);
-                        Append_Line
+                        Append_Staged_Channel_Declarations
                           (Buffer,
-                           Staged_Name
-                           & " : "
-                           & Element_Type
-                           & " := "
-                                 & Default_Value_Expr
-                                     (Unit,
-                                      Document,
-                                      Declared_Channel.Element_Type)
-                                 & ";",
-                                 Depth + 1);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              Length_Name & " : Natural := 0;",
-                              Depth + 1);
-                        end if;
-                        Append_Initialization_Warning_Restore
-                          (Buffer, Depth + 1);
+                           Unit,
+                           Document,
+                           Declared_Channel,
+                           Staged_Name,
+                           Length_Name,
+                           Element_Type,
+                           "",
+                           Depth + 1,
+                           True);
                         Append_Line (Buffer, "begin", Depth);
-                        if State.Task_Body_Depth > 0 then
-                           Append_Task_Channel_Call_Warning_Suppression
-                             (Buffer, Depth + 1);
-                        end if;
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Channel_Staged_Call_Warning_Suppression
-                             (Buffer, Depth + 1);
-                        end if;
-                        Append_Line
+                        Append_Staged_Channel_Call
                           (Buffer,
+                           Unit,
+                           Document,
                            Render_Channel_Operation_Target
-                             (Item.Channel_Name, Declared_Channel, "Try_Receive")
-                           & " ("
-                           & Staged_Name
-                           & (if Channel_Uses_Runtime_Length_Formals (Declared_Channel)
-                              then ", " & Length_Name
-                              else "")
-                           & ", "
-                           & Success_Image
-                           & ");",
-                           Depth + 1);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Channel_Staged_Call_Warning_Restore
-                             (Buffer, Depth + 1);
-                        end if;
+                             (Unit,
+                              Document,
+                              State,
+                              Item.Channel_Name,
+                              Declared_Channel,
+                              "Try_Receive"),
+                           Declared_Channel,
+                           Staged_Name,
+                           Length_Name,
+                           Success_Image,
+                           Depth + 1,
+                           Force_Staged_Warnings => False,
+                           Wrap_Task_Call_Warnings => State.Task_Body_Depth > 0);
                         if State.Task_Body_Depth > 0 then
-                           Append_Task_Channel_Call_Warning_Restore
-                             (Buffer, Depth + 1);
                            Append_Task_If_Warning_Suppression (Buffer, Depth + 1);
                         end if;
                         Append_Line
                           (Buffer,
                            "if " & Success_Image & " then",
                            Depth + 1);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           if Channel_Has_Scalar_Length_Model (Declared_Channel)
-                             and then not Channel_Uses_Sequential_Scalar_Ghost_Model
-                               (Unit, Document, Declared_Channel)
-                           then
-                              Append_Line
-                                (Buffer,
-                                 "pragma Assume ("
-                                 & Channel_Length_Image
-                                     (Declared_Channel,
-                                      Staged_Name)
-                                 & " = "
-                                 & Length_Name
-                                 & ");",
-                                 Depth + 2);
-                           elsif not Channel_Uses_Sequential_Scalar_Ghost_Model
-                             (Unit, Document, Declared_Channel)
-                           then
-                              Append_Line
-                                (Buffer,
-                                 Length_Name
-                                 & " := "
-                                 & Channel_Length_Image
-                                     (Declared_Channel,
-                                      Staged_Name)
-                                 & ";",
-                                 Depth + 2);
-                           end if;
-                           Append_Channel_Length_Assert
-                             (Declared_Channel,
-                              Staged_Name,
-                              Length_Name,
-                              Depth + 2);
-                        end if;
-                        Append_Local_Warning_Suppression (Buffer, Depth + 2);
-                        Append_Heap_Channel_Free
-                          (Declared_Channel,
-                          Target_Image,
-                           Depth + 2);
-                        Append_Local_Warning_Restore (Buffer, Depth + 2);
-                        Append_Line
+                        Append_Staged_Channel_Length_Reconcile
                           (Buffer,
-                           Target_Image & " := " & Staged_Name & ";",
+                           Unit,
+                           Document,
+                           State,
+                           Declared_Channel,
+                           Staged_Name,
+                           Length_Name,
                            Depth + 2);
-                        if Channel_Uses_Runtime_Length_Formals (Declared_Channel) then
-                           Append_Line
-                             (Buffer,
-                              "pragma Assert ("
-                              & Channel_Length_Image
-                                  (Declared_Channel,
-                                   Target_Image)
-                              & " = "
-                              & Length_Name
-                              & ");",
-                              Depth + 2);
-                        end if;
+                        Append_Staged_Channel_Target_Adoption
+                          (Buffer,
+                           Unit,
+                           Document,
+                           State,
+                           Declared_Channel,
+                           Target_Image,
+                           Staged_Name,
+                           Length_Name,
+                           Depth + 2);
                         Append_Line (Buffer, "end if;", Depth + 1);
                         if State.Task_Body_Depth > 0 then
                            Append_Task_If_Warning_Restore (Buffer, Depth + 1);
@@ -20712,7 +20774,12 @@ package body Safe_Frontend.Ada_Emit is
                      Append_Line
                        (Buffer,
                         Render_Channel_Operation_Target
-                          (Item.Channel_Name, Declared_Channel, "Try_Receive")
+                          (Unit,
+                           Document,
+                           State,
+                           Item.Channel_Name,
+                           Declared_Channel,
+                           "Try_Receive")
                         & " ("
                         & Render_Expr (Unit, Document, Item.Target, State)
                         & ", "
@@ -20813,53 +20880,32 @@ package body Safe_Frontend.Ada_Emit is
                      end if;
                      Append_Line (Buffer, "if not Select_Done then", Select_Depth);
                      Append_Line (Buffer, "declare", Select_Depth + 1);
-                     if State.Task_Body_Depth > 0 then
-                        Append_Initialization_Warning_Suppression
-                          (Buffer, Select_Depth + 2);
-                     end if;
-                     Append_Line
+                     Append_Staged_Channel_Declarations
                        (Buffer,
-                        Arm_Value_Name
-                        & " : "
-                        & Arm_Type_Name
-                        & " := "
-                        & Default_Value_Expr (Arm.Channel_Data.Type_Info)
-                        & ";",
-                        Select_Depth + 2);
-                     if Channel_Has_Length_Model (Declared_Channel) then
-                        Append_Line (Buffer, "Arm_Length : Natural := 0;", Select_Depth + 2);
-                     end if;
-                     Append_Line (Buffer, "Arm_Success : Boolean := False;", Select_Depth + 2);
-                     if State.Task_Body_Depth > 0 then
-                        Append_Initialization_Warning_Restore
-                          (Buffer, Select_Depth + 2);
-                     end if;
+                        Unit,
+                        Document,
+                        Declared_Channel,
+                        Arm_Value_Name,
+                        "Arm_Length",
+                        Arm_Type_Name,
+                        "Arm_Success",
+                        Select_Depth + 2,
+                        State.Task_Body_Depth > 0);
                      Append_Line (Buffer, "begin", Select_Depth + 1);
-                     if State.Task_Body_Depth > 0 then
-                        Append_Task_Channel_Call_Warning_Suppression
-                          (Buffer, Select_Depth + 2);
-                     end if;
-                     if Channel_Has_Length_Model (Declared_Channel) then
-                        Append_Channel_Staged_Call_Warning_Suppression
-                          (Buffer, Select_Depth + 2);
-                     end if;
-                     Append_Line
+                     Append_Staged_Channel_Call
                        (Buffer,
+                        Unit,
+                        Document,
                         Render_Expr (Unit, Document, Arm.Channel_Data.Channel_Name, State)
-                        & ".Try_Receive ("
-                        & Arm_Value_Name
-                        & (if Channel_Has_Length_Model (Declared_Channel)
-                           then ", Arm_Length"
-                           else "")
-                        & ", Arm_Success);",
-                        Select_Depth + 2);
-                     if Channel_Has_Length_Model (Declared_Channel) then
-                        Append_Channel_Staged_Call_Warning_Restore
-                          (Buffer, Select_Depth + 2);
-                     end if;
+                        & ".Try_Receive",
+                        Declared_Channel,
+                        Arm_Value_Name,
+                        "Arm_Length",
+                        "Arm_Success",
+                        Select_Depth + 2,
+                        Force_Staged_Warnings => False,
+                        Wrap_Task_Call_Warnings => State.Task_Body_Depth > 0);
                      if State.Task_Body_Depth > 0 then
-                        Append_Task_Channel_Call_Warning_Restore
-                          (Buffer, Select_Depth + 2);
                         Append_Task_If_Warning_Suppression (Buffer, Select_Depth + 2);
                      end if;
                      Append_Line (Buffer, "if Arm_Success then", Select_Depth + 2);
@@ -20890,27 +20936,12 @@ package body Safe_Frontend.Ada_Emit is
                            Dispatcher_Name & ".Reset;",
                            Select_Depth + 3);
                      end if;
-                     if Channel_Has_Scalar_Length_Model (Declared_Channel) then
-                        Append_Line
-                          (Buffer,
-                           "pragma Assume ("
-                           & Channel_Length_Image
-                               (Declared_Channel,
-                                Arm_Value_Name)
-                           & " = Arm_Length);",
-                           Select_Depth + 3);
-                     elsif Channel_Has_Length_Model (Declared_Channel) then
-                        Append_Line
-                          (Buffer,
-                           "Arm_Length := "
-                           & Channel_Length_Image
-                               (Declared_Channel,
-                                Arm_Value_Name)
-                           & ";",
-                           Select_Depth + 3);
-                     end if;
-                     Append_Channel_Length_Assert
-                       (Declared_Channel,
+                     Append_Staged_Channel_Length_Reconcile
+                       (Buffer,
+                        Unit,
+                        Document,
+                        State,
+                        Declared_Channel,
                         Arm_Value_Name,
                         "Arm_Length",
                         Select_Depth + 3);
@@ -21597,14 +21628,11 @@ package body Safe_Frontend.Ada_Emit is
       Generated_Channel_Helpers : FT.UString_Vectors.Vector;
       Runtime_Dependency_Types  : FT.UString_Vectors.Vector;
 
-      function Channel_Helper_Key (Info : GM.Type_Descriptor) return String is
-      begin
-         return Render_Type_Name (Info);
-      end Channel_Helper_Key;
-
       function Channel_Helper_Base_Name (Info : GM.Type_Descriptor) return String is
       begin
-         return Name & "_" & Sanitized_Helper_Name (Channel_Helper_Key (Info));
+         return
+           Heap_Helper_Base_Name
+             (Heap_Helper_Channel, Name, Unit, Document, Info);
       end Channel_Helper_Base_Name;
 
       function Channel_Copy_Helper_Name (Info : GM.Type_Descriptor) return String is
@@ -21617,131 +21645,12 @@ package body Safe_Frontend.Ada_Emit is
          return Channel_Helper_Base_Name (Info) & "_Free";
       end Channel_Free_Helper_Name;
 
-      function Needs_Generated_Channel_Helper
-        (Info : GM.Type_Descriptor) return Boolean
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-         Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-      begin
-         return Has_Heap_Value_Type (Unit, Document, Base)
-           and then not Is_Plain_String_Type (Unit, Document, Base)
-           and then not Is_Growable_Array_Type (Unit, Document, Base)
-           and then (Kind = "array" or else Kind = "record" or else Is_Tuple_Type (Base));
-      end Needs_Generated_Channel_Helper;
-
-      procedure Mark_Channel_Runtime_Dependencies (Info : GM.Type_Descriptor);
-
-      procedure Mark_Channel_Runtime_Dependencies (Info : GM.Type_Descriptor) is
-         Base     : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-         Type_Key : constant String := Channel_Helper_Key (Info);
-
-         procedure Add_From_Name (Name_Text : String) is
-         begin
-            if Name_Text'Length = 0 then
-               return;
-            end if;
-
-            Mark_Channel_Runtime_Dependencies
-              (Resolve_Type_Name (Unit, Document, Name_Text));
-         end Add_From_Name;
-      begin
-         if Contains_Name (Runtime_Dependency_Types, Type_Key) then
-            return;
-         end if;
-
-         Runtime_Dependency_Types.Append (FT.To_UString (Type_Key));
-
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            State.Needs_Safe_String_RT := True;
-            return;
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            State.Needs_Safe_Array_RT := True;
-            Add_From_Name (FT.To_String (Base.Component_Type));
-            return;
-         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "array"
-           and then Base.Has_Component_Type
-         then
-            Add_From_Name (FT.To_String (Base.Component_Type));
-         elsif FT.Lowercase (FT.To_String (Base.Kind)) = "record" then
-            for Field of Base.Fields loop
-               Add_From_Name (FT.To_String (Field.Type_Name));
-            end loop;
-            for Field of Base.Variant_Fields loop
-               Add_From_Name (FT.To_String (Field.Type_Name));
-            end loop;
-         elsif Is_Tuple_Type (Base) then
-            for Item of Base.Tuple_Element_Types loop
-               Add_From_Name (FT.To_String (Item));
-            end loop;
-         end if;
-      end Mark_Channel_Runtime_Dependencies;
-
-      procedure Append_Copy_Value
-        (Target_Text : String;
-         Source_Text : String;
-         Info        : GM.Type_Descriptor;
-         Depth       : Natural)
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      begin
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Target_Text & " := Safe_String_RT.Clone (" & Source_Text & ");",
-               Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Target_Text
-               & " := "
-               & Array_Runtime_Instance_Name (Base)
-               & ".Clone ("
-               & Source_Text
-               & ");",
-               Depth);
-         elsif Needs_Generated_Channel_Helper (Info) then
-            Append_Line
-              (Buffer,
-               Channel_Copy_Helper_Name (Info)
-               & " ("
-               & Target_Text
-               & ", "
-               & Source_Text
-               & ");",
-               Depth);
-         else
-            Append_Line (Buffer, Target_Text & " := " & Source_Text & ";", Depth);
-         end if;
-      end Append_Copy_Value;
-
-      procedure Append_Free_Value
-        (Target_Text : String;
-         Info        : GM.Type_Descriptor;
-         Depth       : Natural)
-      is
-         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
-      begin
-         if Is_Plain_String_Type (Unit, Document, Base) then
-            Append_Line (Buffer, "Safe_String_RT.Free (" & Target_Text & ");", Depth);
-         elsif Is_Growable_Array_Type (Unit, Document, Base) then
-            Append_Line
-              (Buffer,
-               Array_Runtime_Instance_Name (Base) & ".Free (" & Target_Text & ");",
-               Depth);
-         elsif Needs_Generated_Channel_Helper (Info) then
-            Append_Line
-              (Buffer,
-               Channel_Free_Helper_Name (Info) & " (" & Target_Text & ");",
-               Depth);
-         end if;
-      end Append_Free_Value;
-
       procedure Render_Channel_Value_Helpers (Info : GM.Type_Descriptor);
 
       procedure Render_Channel_Value_Helpers (Info : GM.Type_Descriptor) is
          Base      : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
          Kind      : constant String := FT.Lowercase (FT.To_String (Base.Kind));
-         Type_Key  : constant String := Channel_Helper_Key (Info);
+         Type_Key  : constant String := Render_Type_Name (Info);
          Type_Name : constant String := Render_Type_Name (Info);
 
          procedure Ensure_Helper (Name_Text : String) is
@@ -21753,177 +21662,8 @@ package body Safe_Frontend.Ada_Emit is
             Render_Channel_Value_Helpers
               (Resolve_Type_Name (Unit, Document, Name_Text));
          end Ensure_Helper;
-
-         function Same_Choice
-           (Left, Right : GM.Variant_Field) return Boolean is
-         begin
-            return Left.Is_Others = Right.Is_Others
-              and then
-                (if Left.Is_Others
-                 then True
-                 else Left.Choice.Kind = Right.Choice.Kind
-                   and then Render_Scalar_Value (Left.Choice) = Render_Scalar_Value (Right.Choice));
-         end Same_Choice;
-
-         procedure Append_Record_Copy_Assignments (Depth : Natural) is
-         begin
-            for Field of Base.Fields loop
-               declare
-                  Field_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                     Append_Copy_Value
-                       ("Target." & FT.To_String (Field.Name),
-                        "Source." & FT.To_String (Field.Name),
-                        Field_Info,
-                        Depth);
-                  end if;
-               end;
-            end loop;
-
-            if not Base.Variant_Fields.Is_Empty then
-               declare
-                  Disc_Name : constant String :=
-                    FT.To_String
-                      ((if Has_Text (Base.Variant_Discriminant_Name)
-                        then Base.Variant_Discriminant_Name
-                        else Base.Discriminant_Name));
-                  Index : Positive := Base.Variant_Fields.First_Index;
-               begin
-                  if Disc_Name'Length = 0 then
-                     return;
-                  end if;
-
-                  Append_Line (Buffer, "case Source." & Disc_Name & " is", Depth);
-                  while Index <= Base.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Base.Variant_Fields (Index);
-                        Emitted_Statements : Boolean := False;
-                     begin
-                        Append_Line
-                          (Buffer,
-                           "when "
-                           & (if First_Field.Is_Others
-                              then "others"
-                              else Render_Scalar_Value (First_Field.Choice))
-                           & " =>",
-                           Depth + 1);
-                        loop
-                           declare
-                              Variant_Field : constant GM.Variant_Field :=
-                                Base.Variant_Fields (Index);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name
-                                  (Unit,
-                                   Document,
-                                   FT.To_String (Variant_Field.Type_Name));
-                           begin
-                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                                 Append_Copy_Value
-                                   ("Target." & FT.To_String (Variant_Field.Name),
-                                    "Source." & FT.To_String (Variant_Field.Name),
-                                    Field_Info,
-                                    Depth + 2);
-                                 Emitted_Statements := True;
-                              end if;
-                           end;
-                           exit when Index = Base.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Base.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        if not Emitted_Statements then
-                           Append_Line (Buffer, "null;", Depth + 2);
-                        end if;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-                  Append_Line (Buffer, "end case;", Depth);
-               end;
-            end if;
-         end Append_Record_Copy_Assignments;
-
-         procedure Append_Record_Free_Statements (Depth : Natural) is
-         begin
-            for Field of Base.Fields loop
-               declare
-                  Field_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                     Append_Free_Value
-                       ("Value." & FT.To_String (Field.Name), Field_Info, Depth);
-                  end if;
-               end;
-            end loop;
-
-            if not Base.Variant_Fields.Is_Empty then
-               declare
-                  Disc_Name : constant String :=
-                    FT.To_String
-                      ((if Has_Text (Base.Variant_Discriminant_Name)
-                        then Base.Variant_Discriminant_Name
-                        else Base.Discriminant_Name));
-                  Index : Positive := Base.Variant_Fields.First_Index;
-               begin
-                  if Disc_Name'Length = 0 then
-                     return;
-                  end if;
-
-                  Append_Line (Buffer, "case Value." & Disc_Name & " is", Depth);
-                  while Index <= Base.Variant_Fields.Last_Index loop
-                     declare
-                        First_Field : constant GM.Variant_Field :=
-                          Base.Variant_Fields (Index);
-                        Emitted_Statements : Boolean := False;
-                     begin
-                        Append_Line
-                          (Buffer,
-                           "when "
-                           & (if First_Field.Is_Others
-                              then "others"
-                              else Render_Scalar_Value (First_Field.Choice))
-                           & " =>",
-                           Depth + 1);
-                        loop
-                           declare
-                              Variant_Field : constant GM.Variant_Field :=
-                                Base.Variant_Fields (Index);
-                              Field_Info : constant GM.Type_Descriptor :=
-                                Resolve_Type_Name
-                                  (Unit,
-                                   Document,
-                                   FT.To_String (Variant_Field.Type_Name));
-                           begin
-                              if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                                 Append_Free_Value
-                                   ("Value." & FT.To_String (Variant_Field.Name),
-                                    Field_Info,
-                                    Depth + 2);
-                                 Emitted_Statements := True;
-                              end if;
-                           end;
-                           exit when Index = Base.Variant_Fields.Last_Index;
-                           exit when not Same_Choice
-                             (First_Field,
-                              Base.Variant_Fields (Index + 1));
-                           Index := Index + 1;
-                        end loop;
-                        if not Emitted_Statements then
-                           Append_Line (Buffer, "null;", Depth + 2);
-                        end if;
-                        Index := Index + 1;
-                     end;
-                  end loop;
-                  Append_Line (Buffer, "end case;", Depth);
-               end;
-            end if;
-         end Append_Record_Free_Statements;
       begin
-         if not Needs_Generated_Channel_Helper (Info)
+         if not Needs_Generated_Heap_Helper (Unit, Document, Info)
            or else Contains_Name (Generated_Channel_Helpers, Type_Key)
          then
             return;
@@ -21967,79 +21707,15 @@ package body Safe_Frontend.Ada_Emit is
             & ") is",
             1);
          Append_Line (Buffer, "begin", 1);
-         if Kind = "array" and then Base.Has_Component_Type then
-            declare
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
-            begin
-               Append_Line (Buffer, "for Index in Source'Range loop", 2);
-               Append_Copy_Value
-                 ("Target (Index)",
-                  "Source (Index)",
-                  Component_Info,
-                  3);
-               Append_Line (Buffer, "end loop;", 2);
-            end;
-         elsif Kind = "record" then
-            if not Base.Variant_Fields.Is_Empty
-              or else Has_Text (Base.Discriminant_Name)
-              or else Has_Text (Base.Variant_Discriminant_Name)
-            then
-               Append_Line (Buffer, "Target := Source;", 2);
-               Append_Record_Copy_Assignments (2);
-            else
-               for Field of Base.Fields loop
-                  declare
-                     Field_Info : constant GM.Type_Descriptor :=
-                       Resolve_Type_Name (Unit, Document, FT.To_String (Field.Type_Name));
-                  begin
-                     if Has_Heap_Value_Type (Unit, Document, Field_Info) then
-                        Append_Copy_Value
-                          ("Target." & FT.To_String (Field.Name),
-                           "Source." & FT.To_String (Field.Name),
-                           Field_Info,
-                           2);
-                     else
-                        Append_Line
-                          (Buffer,
-                           "Target."
-                           & FT.To_String (Field.Name)
-                           & " := Source."
-                           & FT.To_String (Field.Name)
-                           & ";",
-                           2);
-                     end if;
-                  end;
-               end loop;
-            end if;
-         elsif Is_Tuple_Type (Base) then
-            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
-               declare
-                  Item_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name
-                      (Unit,
-                       Document,
-                       FT.To_String (Base.Tuple_Element_Types (Index)));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
-                     Append_Copy_Value
-                       ("Target." & Tuple_Field_Name (Positive (Index)),
-                        "Source." & Tuple_Field_Name (Positive (Index)),
-                        Item_Info,
-                        2);
-                  else
-                     Append_Line
-                       (Buffer,
-                        "Target."
-                        & Tuple_Field_Name (Positive (Index))
-                        & " := Source."
-                        & Tuple_Field_Name (Positive (Index))
-                        & ";",
-                        2);
-                  end if;
-               end;
-            end loop;
-         end if;
+         Append_Generated_Heap_Copy_Body
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Channel,
+            Name,
+            Info,
+            2);
          Append_Line (Buffer, "end " & Channel_Copy_Helper_Name (Info) & ";", 1);
          Append_Line (Buffer);
 
@@ -22061,37 +21737,15 @@ package body Safe_Frontend.Ada_Emit is
             & ") is",
             1);
          Append_Line (Buffer, "begin", 1);
-         if Kind = "array" and then Base.Has_Component_Type then
-            declare
-               Component_Info : constant GM.Type_Descriptor :=
-                 Resolve_Type_Name (Unit, Document, FT.To_String (Base.Component_Type));
-            begin
-               if Has_Heap_Value_Type (Unit, Document, Component_Info) then
-                  Append_Line (Buffer, "for Index in Value'Range loop", 2);
-                  Append_Free_Value ("Value (Index)", Component_Info, 3);
-                  Append_Line (Buffer, "end loop;", 2);
-               end if;
-            end;
-         elsif Kind = "record" then
-            Append_Record_Free_Statements (2);
-         elsif Is_Tuple_Type (Base) then
-            for Index in Base.Tuple_Element_Types.First_Index .. Base.Tuple_Element_Types.Last_Index loop
-               declare
-                  Item_Info : constant GM.Type_Descriptor :=
-                    Resolve_Type_Name
-                      (Unit,
-                       Document,
-                       FT.To_String (Base.Tuple_Element_Types (Index)));
-               begin
-                  if Has_Heap_Value_Type (Unit, Document, Item_Info) then
-                     Append_Free_Value
-                       ("Value." & Tuple_Field_Name (Positive (Index)),
-                        Item_Info,
-                        2);
-                  end if;
-               end;
-            end loop;
-         end if;
+         Append_Generated_Heap_Free_Body
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Channel,
+            Name,
+            Info,
+            2);
          Append_Line
            (Buffer,
             "Value := " & Default_Value_Expr (Unit, Document, Info) & ";",
@@ -22105,7 +21759,12 @@ package body Safe_Frontend.Ada_Emit is
         and then not Is_Plain_String_Type (Unit, Document, Channel.Element_Type)
         and then not Is_Growable_Array_Type (Unit, Document, Channel.Element_Type)
       then
-         Mark_Channel_Runtime_Dependencies (Channel.Element_Type);
+         Mark_Heap_Runtime_Dependencies
+           (Unit,
+            Document,
+            Channel.Element_Type,
+            State,
+            Runtime_Dependency_Types);
          Render_Channel_Value_Helpers (Channel.Element_Type);
 
          Append_Line
@@ -22155,18 +21814,16 @@ package body Safe_Frontend.Ada_Emit is
             & ") is",
             1);
          Append_Line (Buffer, "begin", 1);
-         if Is_Plain_String_Type (Unit, Document, Channel.Element_Type) then
-            Append_Line (Buffer, "Safe_String_RT.Free (Value);", 2);
-         elsif Is_Growable_Array_Type (Unit, Document, Channel.Element_Type) then
-            Append_Line
-              (Buffer,
-               Array_Runtime_Instance_Name
-                 (Base_Type (Unit, Document, Channel.Element_Type))
-               & ".Free (Value);",
-               2);
-         else
-            Append_Free_Value ("Value", Channel.Element_Type, 2);
-         end if;
+         Append_Heap_Free_Value
+           (Buffer,
+            Unit,
+            Document,
+            State,
+            Heap_Helper_Channel,
+            Name,
+            "Value",
+            Channel.Element_Type,
+            2);
          Append_Line (Buffer, "end " & Free_Helper & ";", 1);
          Append_Local_Warning_Restore (Buffer, 1);
          Append_Line (Buffer);
