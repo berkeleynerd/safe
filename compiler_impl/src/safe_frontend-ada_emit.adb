@@ -5090,6 +5090,10 @@ package body Safe_Frontend.Ada_Emit is
                      for Arm of Item.Case_Arms loop
                         Walk_From (Arm.Statements);
                      end loop;
+                  when CM.Stmt_Match =>
+                     for Arm of Item.Match_Arms loop
+                        Walk_From (Arm.Statements);
+                     end loop;
                   when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
                      Walk_From (Item.Body_Stmts);
                   when CM.Stmt_Select =>
