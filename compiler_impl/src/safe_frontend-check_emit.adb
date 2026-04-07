@@ -4,6 +4,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Json;
+with Safe_Frontend.Name_Utils;
 with Safe_Frontend.Source;
 with Safe_Frontend.Mir_Model;
 with Safe_Frontend.Types;
@@ -11,6 +12,7 @@ with Safe_Frontend.Types;
 package body Safe_Frontend.Check_Emit is
    package GM renames Safe_Frontend.Mir_Model;
    package FT renames Safe_Frontend.Types;
+   package FNU renames Safe_Frontend.Name_Utils;
    package JS renames Safe_Frontend.Json;
    package FS renames Safe_Frontend.Source;
    package US renames Ada.Strings.Unbounded;
@@ -2864,19 +2866,6 @@ package body Safe_Frontend.Check_Emit is
               or else Has_Prefix (Name_Text, "__sum_tag_"));
       end Is_Synthetic_Public_Type;
 
-      function Sanitize_Type_Name_Component (Name : String) return String is
-         Result : US.Unbounded_String := US.Null_Unbounded_String;
-      begin
-         for Ch of Name loop
-            if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
-               US.Append (Result, (1 => Ch));
-            else
-               US.Append (Result, "_");
-            end if;
-         end loop;
-         return US.To_String (Result);
-      end Sanitize_Type_Name_Component;
-
       function Synthetic_Optional_Type
         (Element_Info : GM.Type_Descriptor) return GM.Type_Descriptor
       is
@@ -2888,7 +2877,7 @@ package body Safe_Frontend.Check_Emit is
          Result.Name :=
            FT.To_UString
              ("__optional_"
-              & Sanitize_Type_Name_Component (FT.To_String (Element_Info.Name)));
+              & FNU.Sanitize_Type_Name_Component_Raw (FT.To_String (Element_Info.Name)));
          Result.Kind := FT.To_UString ("record");
          Result.Has_Discriminant := True;
          Result.Discriminant_Name := FT.To_UString ("present");

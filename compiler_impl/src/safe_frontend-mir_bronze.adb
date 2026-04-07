@@ -4,8 +4,10 @@ with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
+with Safe_Frontend.Name_Utils;
 
 package body Safe_Frontend.Mir_Bronze is
+   package FNU renames Safe_Frontend.Name_Utils;
    package String_Sets is new Ada.Containers.Indefinite_Hashed_Sets
      (Element_Type        => String,
       Hash                => Ada.Strings.Hash,
@@ -284,37 +286,8 @@ package body Safe_Frontend.Mir_Bronze is
       return Value (Dot + 1 .. Value'Last);
    end Tail_Name;
 
-   function Sanitize_Type_Name_Component (Value : String) return String is
-      Result : FT.UString := FT.To_UString ("");
-      Last_Was_Underscore : Boolean := False;
-   begin
-      for Ch of Value loop
-         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
-            Result := FT.US."&" (Result, FT.To_UString ((1 => Ch)));
-            Last_Was_Underscore := False;
-         elsif not Last_Was_Underscore then
-            Result := FT.US."&" (Result, FT.To_UString ("_"));
-            Last_Was_Underscore := True;
-         end if;
-      end loop;
-
-      declare
-         Text  : constant String := FT.To_String (Result);
-         First : Positive := Text'First;
-         Last  : Natural := Text'Last;
-      begin
-         while First <= Text'Last and then Text (First) = '_' loop
-            First := First + 1;
-         end loop;
-         while Last >= First and then Text (Last) = '_' loop
-            Last := Last - 1;
-         end loop;
-         if Last < First then
-            return "value";
-         end if;
-         return Text (First .. Last);
-      end;
-   end Sanitize_Type_Name_Component;
+   function Sanitize_Type_Name_Component (Value : String) return String
+     renames FNU.Sanitize_Type_Name_Component;
 
    function Shared_Wrapper_Object_Name (Root_Name : String) return String is
    begin

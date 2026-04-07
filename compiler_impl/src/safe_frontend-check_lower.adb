@@ -2,10 +2,12 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
 with Safe_Frontend.Builtin_Types;
+with Safe_Frontend.Name_Utils;
 with Safe_Frontend.Types;
 
 package body Safe_Frontend.Check_Lower is
    package BT renames Safe_Frontend.Builtin_Types;
+   package FNU renames Safe_Frontend.Name_Utils;
    package FT renames Safe_Frontend.Types;
 
    INT64_LOW  : constant Long_Long_Integer := -(2 ** 63);
@@ -203,18 +205,8 @@ package body Safe_Frontend.Check_Lower is
       return "Owner";
    end Type_Access_Role;
 
-   function Sanitize_Type_Name_Component (Value : String) return String is
-      Result : FT.UString := FT.To_UString ("");
-   begin
-      for Ch of Value loop
-         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
-            Result := Result & FT.To_UString ((1 => Ch));
-         else
-            Result := Result & FT.To_UString ("_");
-         end if;
-      end loop;
-      return UString_Value (Result);
-   end Sanitize_Type_Name_Component;
+   function Sanitize_Type_Name_Component (Value : String) return String
+     renames FNU.Sanitize_Type_Name_Component_Raw;
 
    function Make_Growable_Array_Type
      (Component_Type : GM.Type_Descriptor) return GM.Type_Descriptor

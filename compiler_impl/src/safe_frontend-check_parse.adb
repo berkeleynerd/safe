@@ -1,8 +1,10 @@
 with Ada.Directories;
+with Safe_Frontend.Name_Utils;
 with Safe_Frontend.Types;
 
 package body Safe_Frontend.Check_Parse is
    package FL renames Safe_Frontend.Lexer;
+   package FNU renames Safe_Frontend.Name_Utils;
    package FS renames Safe_Frontend.Source;
    package FT renames Safe_Frontend.Types;
 
@@ -717,34 +719,8 @@ package body Safe_Frontend.Check_Parse is
       return Result;
    end Parse_Map_Type_Spec;
 
-   function Sanitize_Type_Name_Component (Value : String) return String is
-      Result : FT.UString := FT.To_UString ("");
-   begin
-      for Ch of Value loop
-         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
-            Result := Result & FT.To_UString ((1 => Ch));
-         else
-            Result := Result & FT.To_UString ("_");
-         end if;
-      end loop;
-
-      declare
-         Text  : constant String := FT.To_String (Result);
-         First : Positive := Text'First;
-         Last  : Natural := Text'Last;
-      begin
-         while First <= Text'Last and then Text (First) = '_' loop
-            First := First + 1;
-         end loop;
-         while Last >= First and then Text (Last) = '_' loop
-            Last := Last - 1;
-         end loop;
-         if Last < First then
-            return "value";
-         end if;
-         return Text (First .. Last);
-      end;
-   end Sanitize_Type_Name_Component;
+   function Sanitize_Type_Name_Component (Value : String) return String
+     renames FNU.Sanitize_Type_Name_Component_Trimmed;
 
    function Type_Spec_Internal_Name (Spec : CM.Type_Spec) return FT.UString;
 

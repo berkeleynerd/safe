@@ -4,10 +4,12 @@ with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Builtin_Types;
+with Safe_Frontend.Name_Utils;
 
 package body Safe_Frontend.Ada_Emit is
    package SU renames Ada.Strings.Unbounded;
    package BT renames Safe_Frontend.Builtin_Types;
+   package FNU renames Safe_Frontend.Name_Utils;
 
    use type Ada.Containers.Count_Type;
    use type CM.Expr_Access;
@@ -142,6 +144,14 @@ package body Safe_Frontend.Ada_Emit is
       Needs_Spark_Off_Elaboration_Helper : Boolean := False;
       Omit_Initializes_Aspect : Boolean := False;
    end record;
+
+   type Warning_Suppression is record
+      Pattern : FT.UString := FT.To_UString ("");
+      Reason  : FT.UString := FT.To_UString ("");
+   end record;
+
+   type Warning_Suppression_Array is array (Positive range <>) of Warning_Suppression;
+   type Warning_Restore_Array is array (Positive range <>) of FT.UString;
 
    procedure Raise_Internal (Message : String);
    pragma No_Return (Raise_Internal);
@@ -873,6 +883,14 @@ package body Safe_Frontend.Ada_Emit is
      (Buffer  : in out SU.Unbounded_String;
       Pattern : String;
       Depth   : Natural);
+   procedure Append_Gnatprove_Warning_Suppressions
+     (Buffer   : in out SU.Unbounded_String;
+      Warnings : Warning_Suppression_Array;
+      Depth    : Natural);
+   procedure Append_Gnatprove_Warning_Restores
+     (Buffer   : in out SU.Unbounded_String;
+      Warnings : Warning_Restore_Array;
+      Depth    : Natural);
    procedure Append_Initialization_Warning_Suppression
      (Buffer : in out SU.Unbounded_String;
       Depth  : Natural);
@@ -1043,14 +1061,6 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Channel  : CM.Resolved_Channel_Decl;
       State    : in out Emit_State);
-   procedure Render_Free_Declarations
-     (Buffer       : in out SU.Unbounded_String;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
-      Depth        : Natural);
-   procedure Render_Free_Declarations
-     (Buffer       : in out SU.Unbounded_String;
-      Declarations : CM.Object_Decl_Vectors.Vector;
-      Depth        : Natural);
    function Effective_Subprogram_Outer_Declarations
      (Subprogram              : CM.Resolved_Subprogram;
       Raw_Outer_Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
@@ -1242,39 +1252,8 @@ package body Safe_Frontend.Ada_Emit is
       return FT.Lowercase (Value);
    end Canonical_Name;
 
-   function Sanitize_Type_Name_Component (Value : String) return String is
-      Result : FT.UString := FT.To_UString ("");
-      Last_Was_Underscore : Boolean := False;
-   begin
-      for Ch of Value loop
-         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
-            Result := Result & FT.To_UString ((1 => Ch));
-            Last_Was_Underscore := False;
-         else
-            if not Last_Was_Underscore then
-               Result := Result & FT.To_UString ("_");
-               Last_Was_Underscore := True;
-            end if;
-         end if;
-      end loop;
-
-      declare
-         Text : constant String := FT.To_String (Result);
-         First : Positive := Text'First;
-         Last  : Natural := Text'Last;
-      begin
-         while First <= Text'Last and then Text (First) = '_' loop
-            First := First + 1;
-         end loop;
-         while Last >= First and then Text (Last) = '_' loop
-            Last := Last - 1;
-         end loop;
-         if Last < First then
-            return "value";
-         end if;
-         return Text (First .. Last);
-      end;
-   end Sanitize_Type_Name_Component;
+   function Sanitize_Type_Name_Component (Value : String) return String
+     renames FNU.Sanitize_Type_Name_Component;
 
    function Shared_Wrapper_Object_Name (Root_Name : String) return String is
    begin
@@ -4869,7 +4848,7 @@ package body Safe_Frontend.Ada_Emit is
                   if Expr_Uses_Name (Item.Condition, Name) then
                      return True;
                   end if;
-               when CM.Stmt_Send | CM.Stmt_Receive | CM.Stmt_Try_Send | CM.Stmt_Try_Receive =>
+               when CM.Stmt_Send | CM.Stmt_Receive | CM.Stmt_Try_Receive =>
                   if Expr_Uses_Name (Item.Channel_Name, Name)
                     or else Expr_Uses_Name (Item.Value, Name)
                     or else Expr_Uses_Name (Item.Target, Name)
@@ -4877,6 +4856,8 @@ package body Safe_Frontend.Ada_Emit is
                   then
                      return True;
                   end if;
+               when CM.Stmt_Try_Send =>
+                  Raise_Internal ("unreachable: try_send rejected by resolver");
                when CM.Stmt_Select =>
                   for Arm of Item.Arms loop
                      case Arm.Kind is
@@ -14135,9 +14116,7 @@ package body Safe_Frontend.Ada_Emit is
                      Collect_Call_Names_From_Expr (Item.Channel_Name, Calls);
                      Collect_Call_Names_From_Expr (Item.Target, Calls);
                   when CM.Stmt_Try_Send =>
-                     Collect_Call_Names_From_Expr (Item.Channel_Name, Calls);
-                     Collect_Call_Names_From_Expr (Item.Value, Calls);
-                     Collect_Call_Names_From_Expr (Item.Success_Var, Calls);
+                     Raise_Internal ("unreachable: try_send rejected by resolver");
                   when CM.Stmt_Try_Receive =>
                      Collect_Call_Names_From_Expr (Item.Channel_Name, Calls);
                      Collect_Call_Names_From_Expr (Item.Target, Calls);
@@ -14548,9 +14527,7 @@ package body Safe_Frontend.Ada_Emit is
                      Collect_Shared_From_Expr (Item.Target, Reads, Writes);
                      Collect_Shared_From_Expr (Item.Success_Var, Reads, Writes);
                   when CM.Stmt_Try_Send =>
-                     Collect_Shared_From_Expr (Item.Channel_Name, Reads, Writes);
-                     Collect_Shared_From_Expr (Item.Value, Reads, Writes);
-                     Collect_Shared_From_Expr (Item.Success_Var, Reads, Writes);
+                     Raise_Internal ("unreachable: try_send rejected by resolver");
                   when CM.Stmt_Try_Receive =>
                      Collect_Shared_From_Expr (Item.Channel_Name, Reads, Writes);
                      Collect_Shared_From_Expr (Item.Target, Reads, Writes);
@@ -15308,11 +15285,13 @@ package body Safe_Frontend.Ada_Emit is
                      for Name of Item.Destructure.Names loop
                         Add_Bound_Name (FT.To_String (Name));
                      end loop;
-                  when CM.Stmt_Send | CM.Stmt_Receive | CM.Stmt_Try_Send | CM.Stmt_Try_Receive =>
+                  when CM.Stmt_Send | CM.Stmt_Receive | CM.Stmt_Try_Receive =>
                      Collect_Expr (Item.Channel_Name);
                      Collect_Expr (Item.Value);
                      Collect_Expr (Item.Target);
                      Collect_Expr (Item.Success_Var);
+                  when CM.Stmt_Try_Send =>
+                     Raise_Internal ("unreachable: try_send rejected by resolver");
                   when CM.Stmt_Select =>
                      for Arm of Item.Arms loop
                         case Arm.Kind is
@@ -16162,7 +16141,7 @@ package body Safe_Frontend.Ada_Emit is
                               return Value_Result;
                            end if;
                         end;
-                     when CM.Stmt_Receive | CM.Stmt_Try_Send | CM.Stmt_Try_Receive =>
+                     when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
                         declare
                            Value_Result : constant String := Variant_From_Expr (Item.Value);
                            Success_Result : constant String := Variant_From_Expr (Item.Success_Var);
@@ -16173,6 +16152,8 @@ package body Safe_Frontend.Ada_Emit is
                               return Success_Result;
                            end if;
                         end;
+                     when CM.Stmt_Try_Send =>
+                        Raise_Internal ("unreachable: try_send rejected by resolver");
                      when CM.Stmt_If =>
                         declare
                            Condition_Result : constant String :=
@@ -16809,36 +16790,110 @@ package body Safe_Frontend.Ada_Emit is
          Depth);
    end Append_Gnatprove_Warning_Restore;
 
+   Local_Warning_Suppressions : constant Warning_Suppression_Array :=
+     (1 =>
+        (Pattern => FT.To_UString ("is set by"),
+         Reason  => FT.To_UString ("generated local cleanup is intentional")),
+      2 =>
+        (Pattern => FT.To_UString ("unused initial value of"),
+         Reason  => FT.To_UString ("generated local cleanup is intentional")),
+      3 =>
+        (Pattern => FT.To_UString ("unused assignment"),
+         Reason  => FT.To_UString ("generated local cleanup is intentional")),
+      4 =>
+        (Pattern => FT.To_UString ("initialization of"),
+         Reason  => FT.To_UString ("generated local cleanup is intentional")),
+      5 =>
+        (Pattern => FT.To_UString ("statement has no effect"),
+         Reason  => FT.To_UString ("generated local cleanup is intentional")));
+
+   Local_Warning_Restores : constant Warning_Restore_Array :=
+     (1 => FT.To_UString ("statement has no effect"),
+      2 => FT.To_UString ("unused assignment"),
+      3 => FT.To_UString ("unused initial value of"),
+      4 => FT.To_UString ("initialization of"),
+      5 => FT.To_UString ("is set by"));
+
+   Initialization_Warning_Suppressions : constant Warning_Suppression_Array :=
+     (1 =>
+        (Pattern => FT.To_UString ("initialization of"),
+         Reason  => FT.To_UString ("generated local initialization is intentional")));
+
+   Initialization_Warning_Restores : constant Warning_Restore_Array :=
+     (1 => FT.To_UString ("initialization of"));
+
+   Channel_Staged_Call_Warning_Suppressions : constant Warning_Suppression_Array :=
+     (1 =>
+        (Pattern => FT.To_UString ("is set by"),
+         Reason  => FT.To_UString ("heap-backed channel staging is intentional")));
+
+   Channel_Staged_Call_Warning_Restores : constant Warning_Restore_Array :=
+     (1 => FT.To_UString ("is set by"));
+
+   Task_Assignment_Warning_Suppressions : constant Warning_Suppression_Array :=
+     (1 =>
+        (Pattern => FT.To_UString ("statement has no effect"),
+         Reason  => FT.To_UString ("task-local state updates are intentionally isolated")),
+      2 =>
+        (Pattern => FT.To_UString ("unused assignment"),
+         Reason  => FT.To_UString ("task-local state updates are intentionally isolated")));
+
+   Task_Assignment_Warning_Restores : constant Warning_Restore_Array :=
+     (1 => FT.To_UString ("unused assignment"),
+      2 => FT.To_UString ("statement has no effect"));
+
+   Task_If_Warning_Suppressions : constant Warning_Suppression_Array :=
+     (1 =>
+        (Pattern => FT.To_UString ("statement has no effect"),
+         Reason  => FT.To_UString ("task-local branching is intentionally isolated")));
+
+   Task_If_Warning_Restores : constant Warning_Restore_Array :=
+     (1 => FT.To_UString ("statement has no effect"));
+
+   Task_Channel_Call_Warning_Suppressions : constant Warning_Suppression_Array :=
+     (1 =>
+        (Pattern => FT.To_UString ("is set by"),
+         Reason  => FT.To_UString ("channel results are consumed on the success path only")));
+
+   Task_Channel_Call_Warning_Restores : constant Warning_Restore_Array :=
+     (1 => FT.To_UString ("is set by"));
+
+   procedure Append_Gnatprove_Warning_Suppressions
+     (Buffer   : in out SU.Unbounded_String;
+      Warnings : Warning_Suppression_Array;
+      Depth    : Natural)
+   is
+   begin
+      for Warning of Warnings loop
+         Append_Gnatprove_Warning_Suppression
+           (Buffer,
+            FT.To_String (Warning.Pattern),
+            FT.To_String (Warning.Reason),
+            Depth);
+      end loop;
+   end Append_Gnatprove_Warning_Suppressions;
+
+   procedure Append_Gnatprove_Warning_Restores
+     (Buffer   : in out SU.Unbounded_String;
+      Warnings : Warning_Restore_Array;
+      Depth    : Natural)
+   is
+   begin
+      for Warning of Warnings loop
+         Append_Gnatprove_Warning_Restore
+           (Buffer,
+            FT.To_String (Warning),
+            Depth);
+      end loop;
+   end Append_Gnatprove_Warning_Restores;
+
    procedure Append_Local_Warning_Suppression
      (Buffer : in out SU.Unbounded_String;
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "is set by",
-         "generated local cleanup is intentional",
-         Depth);
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "unused initial value of",
-         "generated local cleanup is intentional",
-         Depth);
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "unused assignment",
-         "generated local cleanup is intentional",
-         Depth);
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "initialization of",
-         "generated local cleanup is intentional",
-         Depth);
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "statement has no effect",
-         "generated local cleanup is intentional",
-         Depth);
+      Append_Gnatprove_Warning_Suppressions
+        (Buffer, Local_Warning_Suppressions, Depth);
    end Append_Local_Warning_Suppression;
 
    procedure Append_Local_Warning_Restore
@@ -16846,26 +16901,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Restore
-        (Buffer,
-         "statement has no effect",
-         Depth);
-      Append_Gnatprove_Warning_Restore
-        (Buffer,
-         "unused assignment",
-         Depth);
-      Append_Gnatprove_Warning_Restore
-        (Buffer,
-         "unused initial value of",
-         Depth);
-      Append_Gnatprove_Warning_Restore
-        (Buffer,
-         "initialization of",
-         Depth);
-      Append_Gnatprove_Warning_Restore
-        (Buffer,
-         "is set by",
-         Depth);
+      Append_Gnatprove_Warning_Restores
+        (Buffer, Local_Warning_Restores, Depth);
    end Append_Local_Warning_Restore;
 
    procedure Append_Initialization_Warning_Suppression
@@ -16873,11 +16910,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "initialization of",
-         "generated local initialization is intentional",
-         Depth);
+      Append_Gnatprove_Warning_Suppressions
+        (Buffer, Initialization_Warning_Suppressions, Depth);
    end Append_Initialization_Warning_Suppression;
 
    procedure Append_Initialization_Warning_Restore
@@ -16885,10 +16919,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Restore
-        (Buffer,
-         "initialization of",
-         Depth);
+      Append_Gnatprove_Warning_Restores
+        (Buffer, Initialization_Warning_Restores, Depth);
    end Append_Initialization_Warning_Restore;
 
    procedure Append_Channel_Staged_Call_Warning_Suppression
@@ -16896,11 +16928,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "is set by",
-         "heap-backed channel staging is intentional",
-         Depth);
+      Append_Gnatprove_Warning_Suppressions
+        (Buffer, Channel_Staged_Call_Warning_Suppressions, Depth);
    end Append_Channel_Staged_Call_Warning_Suppression;
 
    procedure Append_Channel_Staged_Call_Warning_Restore
@@ -16908,7 +16937,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Restore (Buffer, "is set by", Depth);
+      Append_Gnatprove_Warning_Restores
+        (Buffer, Channel_Staged_Call_Warning_Restores, Depth);
    end Append_Channel_Staged_Call_Warning_Restore;
 
    procedure Append_Task_Assignment_Warning_Suppression
@@ -16916,16 +16946,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "statement has no effect",
-         "task-local state updates are intentionally isolated",
-         Depth);
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "unused assignment",
-         "task-local state updates are intentionally isolated",
-         Depth);
+      Append_Gnatprove_Warning_Suppressions
+        (Buffer, Task_Assignment_Warning_Suppressions, Depth);
    end Append_Task_Assignment_Warning_Suppression;
 
    procedure Append_Task_Assignment_Warning_Restore
@@ -16933,8 +16955,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Restore (Buffer, "unused assignment", Depth);
-      Append_Gnatprove_Warning_Restore (Buffer, "statement has no effect", Depth);
+      Append_Gnatprove_Warning_Restores
+        (Buffer, Task_Assignment_Warning_Restores, Depth);
    end Append_Task_Assignment_Warning_Restore;
 
    procedure Append_Task_If_Warning_Suppression
@@ -16942,11 +16964,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "statement has no effect",
-         "task-local branching is intentionally isolated",
-         Depth);
+      Append_Gnatprove_Warning_Suppressions
+        (Buffer, Task_If_Warning_Suppressions, Depth);
    end Append_Task_If_Warning_Suppression;
 
    procedure Append_Task_If_Warning_Restore
@@ -16954,7 +16973,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Restore (Buffer, "statement has no effect", Depth);
+      Append_Gnatprove_Warning_Restores
+        (Buffer, Task_If_Warning_Restores, Depth);
    end Append_Task_If_Warning_Restore;
 
    procedure Append_Task_Channel_Call_Warning_Suppression
@@ -16962,11 +16982,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Suppression
-        (Buffer,
-         "is set by",
-         "channel results are consumed on the success path only",
-         Depth);
+      Append_Gnatprove_Warning_Suppressions
+        (Buffer, Task_Channel_Call_Warning_Suppressions, Depth);
    end Append_Task_Channel_Call_Warning_Suppression;
 
    procedure Append_Task_Channel_Call_Warning_Restore
@@ -16974,7 +16991,8 @@ package body Safe_Frontend.Ada_Emit is
       Depth  : Natural)
    is
    begin
-      Append_Gnatprove_Warning_Restore (Buffer, "is set by", Depth);
+      Append_Gnatprove_Warning_Restores
+        (Buffer, Task_Channel_Call_Warning_Restores, Depth);
    end Append_Task_Channel_Call_Warning_Restore;
 
    function Structural_Accumulator_Count_Total_Bound
@@ -18713,7 +18731,6 @@ package body Safe_Frontend.Ada_Emit is
                      Append_Initialization_Warning_Restore
                        (Buffer, Depth + 1);
                   end if;
-                  Render_Free_Declarations (Buffer, Block_Declarations, Depth + 1);
                   Append_Line (Buffer, "begin", Depth);
                   Render_Required_Statement_Suite
                     (Buffer,
@@ -20707,8 +20724,7 @@ package body Safe_Frontend.Ada_Emit is
                   end if;
                end;
             when CM.Stmt_Try_Send =>
-               Emit_Nonblocking_Send_Statement
-                 (Buffer, Unit, Document, Item.all, Index, State, Depth);
+               Raise_Internal ("unreachable: try_send rejected by resolver");
             when CM.Stmt_Try_Receive =>
                declare
                   Declared_Channel : constant CM.Resolved_Channel_Decl :=
@@ -22637,25 +22653,6 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Buffer, "end " & Type_Name & ";", 1);
       Append_Line (Buffer);
    end Render_Channel_Body;
-
-   procedure Render_Free_Declarations
-     (Buffer       : in out SU.Unbounded_String;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
-     Depth        : Natural)
-   is
-   begin
-      pragma Unreferenced (Buffer, Declarations, Depth);
-   end Render_Free_Declarations;
-
-   procedure Render_Free_Declarations
-     (Buffer       : in out SU.Unbounded_String;
-      Declarations : CM.Object_Decl_Vectors.Vector;
-      Depth        : Natural)
-   is
-   begin
-      pragma Unreferenced (Buffer, Declarations, Depth);
-   end Render_Free_Declarations;
-
    function Effective_Subprogram_Outer_Declarations
      (Subprogram              : CM.Resolved_Subprogram;
       Raw_Outer_Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
@@ -23297,7 +23294,6 @@ package body Safe_Frontend.Ada_Emit is
               (Unit, Document, State, Decl, Local_Context => True),
             2);
       end loop;
-      Render_Free_Declarations (Buffer, Outer_Declarations, 2);
       if Suppress_Declaration_Warnings then
          Append_Initialization_Warning_Restore (Buffer, 2);
       end if;
@@ -23370,7 +23366,6 @@ package body Safe_Frontend.Ada_Emit is
             Render_Object_Decl_Text (Unit, Document, State, Decl, Local_Context => True),
             2);
       end loop;
-      Render_Free_Declarations (Buffer, Task_Item.Declarations, 2);
       if not Task_Item.Declarations.Is_Empty then
          Append_Initialization_Warning_Restore (Buffer, 2);
       end if;

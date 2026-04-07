@@ -10,6 +10,7 @@ with Safe_Frontend.Diagnostics;
 with Safe_Frontend.Interfaces;
 with Safe_Frontend.Lexer;
 with Safe_Frontend.Mir_Model;
+with Safe_Frontend.Name_Utils;
 with Safe_Frontend.Source;
 package body Safe_Frontend.Check_Resolve is
    package BT renames Safe_Frontend.Builtin_Types;
@@ -17,6 +18,7 @@ package body Safe_Frontend.Check_Resolve is
    package FD renames Safe_Frontend.Diagnostics;
    package FL renames Safe_Frontend.Lexer;
    package GM renames Safe_Frontend.Mir_Model;
+   package FNU renames Safe_Frontend.Name_Utils;
    package SI renames Safe_Frontend.Interfaces;
 
    use type CM.Expr_Access;
@@ -4164,38 +4166,8 @@ package body Safe_Frontend.Check_Resolve is
       return 0;
    end Literal_Value;
 
-   function Sanitize_Type_Name_Component (Value : String) return String is
-      Result : FT.UString := FT.To_UString ("");
-      Last_Was_Underscore : Boolean := False;
-   begin
-      for Ch of Value loop
-         if Ch in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' then
-            Result := Result & FT.To_UString ((1 => Ch));
-            Last_Was_Underscore := False;
-         else
-            if not Last_Was_Underscore then
-               Result := Result & FT.To_UString ("_");
-               Last_Was_Underscore := True;
-            end if;
-         end if;
-      end loop;
-      declare
-         Text : constant String := UString_Value (Result);
-         First : Positive := Text'First;
-         Last  : Natural := Text'Last;
-      begin
-         while First <= Text'Last and then Text (First) = '_' loop
-            First := First + 1;
-         end loop;
-         while Last >= First and then Text (Last) = '_' loop
-            Last := Last - 1;
-         end loop;
-         if Last < First then
-            return "value";
-         end if;
-         return Text (First .. Last);
-      end;
-   end Sanitize_Type_Name_Component;
+   function Sanitize_Type_Name_Component (Value : String) return String
+     renames FNU.Sanitize_Type_Name_Component;
 
    function Sum_Tag_Type_Name (Sum_Name : String) return String is
    begin
