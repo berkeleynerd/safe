@@ -529,6 +529,18 @@ def ensure_safe_prove_root(source: Path, *, target_bits: int = 64) -> dict[str, 
     return paths
 
 
+def reset_cached_source_proof(
+    paths: dict[str, Path],
+    state: dict,
+    source: Path,
+    *,
+    target_bits: int = 64,
+) -> None:
+    state["proofs"].pop(source_key(source), None)
+    shutil.rmtree(safe_prove_paths(source, target_bits=target_bits)["root"], ignore_errors=True)
+    save_project_state(paths, state)
+
+
 def reset_root_workdirs(source: Path) -> None:
     shutil.rmtree(source.parent / "obj" / source.stem, ignore_errors=True)
 
