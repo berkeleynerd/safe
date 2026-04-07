@@ -175,22 +175,23 @@ experience end to end:
 
 ```
 safe check <file.safe>       diagnostics only
-safe build <file.safe>       check, emit, compile to executable
+safe build <file.safe>       check, emit, compile, and prove by default
 safe emit  <file.safe>       emit Ada/SPARK output for inspection or interop
-safe prove [file.safe]       emitted GNATprove audit
-safe run   <file.safe>       build and execute
+safe prove [file.safe]       emitted GNATprove audit (level 2 default)
+safe run   <file.safe>       build, prove, and execute
 safe fmt   <file.safe>       format (post-v1.0)
 safe test  <file.safe>       test runner (post-v1.0)
 ```
 
 Internally, `safe build` incrementally emits the selected root and its local
 sibling dependency closure into `PROJECT/.safe-build/`, then runs `gprbuild`
-from a root-specific workdir under `obj/<stem>`. `safe run` reuses that same
-root-file build flow, then launches the produced binary. `safe prove` reuses
-the shared emit cache and skips unchanged reproves for the same root. This is
-still not workspace mode: the prototype operates on `safe build <root.safe>`
-rather than scanning an entire project automatically. `safe deploy` remains
-narrower and still rejects imported roots.
+from a root-specific workdir under `obj/<stem>`. In the current repo-local
+wrapper flow, `safe build` and `safe run` then reuse the cached root proof step
+by default unless `--no-prove` is requested, while `safe prove` reuses the same
+cache with level 2 as the default audit depth. This is still not workspace
+mode: the prototype operates on `safe build <root.safe>` rather than scanning
+an entire project automatically. `safe deploy` remains narrower and still
+rejects imported roots.
 
 ### What ships, what does not
 

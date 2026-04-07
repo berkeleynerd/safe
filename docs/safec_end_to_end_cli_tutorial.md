@@ -28,16 +28,21 @@ The same wrapper now also has a proof-audit path:
 python3 scripts/safe_cli.py prove samples/rosetta/text/hello_print.safe
 ```
 
-`safe prove` runs `safec check`, `safec emit`, compiles the emitted Ada, then
-runs GNATprove `flow` and `prove` with the repo's current emitted-proof policy.
-All three commands also accept `--target-bits 32|64` and partition their
-shared `.safe-build/` cache by target width.
+`safe build` and `safe run` now use the same cached root-proof path by default
+for the current repo-local wrapper flow. `safe prove` remains the explicit
+proof-audit command and keeps the fuller default proof depth.
+All three commands accept `--target-bits 32|64` and partition their shared
+`.safe-build/` cache by target width.
+`safe build` and `safe run` also accept `--no-prove`; `safe build` adds
+`--clean-proofs`; and both `safe build` / `safe run` plus `safe prove` accept
+`--level 1|2` (`safe build` and `safe run` default to level 1; `safe prove`
+defaults to level 2).
 `safe build`, `safe run`, and `safe prove` now all accept local imported roots
 with leading `with` clauses when the sibling dependency sources are present.
 They share a per-directory `.safe-build/` cache, but the model is still
 `safe <command> <root.safe>`, not workspace-mode discovery. The emitted
-machine-interface contract is now frozen at `typed-v4`, `mir-v4`, and
-`safei-v3`; see [artifact_contract.md](./artifact_contract.md).
+machine-interface contract is now frozen at `typed-v6`, `mir-v4`, and
+`safei-v5`; see [artifact_contract.md](./artifact_contract.md).
 
 This tutorial still uses the raw `safec emit` path and a handwritten Ada driver
 because it is focused on emitted artifacts and on a tasking example that needs
@@ -277,8 +282,9 @@ end to end on this host:
 - For a checked-in binary-surface example, see
   `samples/rosetta/text/opcode_dispatch.safe`.
 - `safe build` and `safe run` now support local imported roots and reuse the
-  same per-directory `.safe-build/` cache as `safe prove`, but they are still
-  root-file commands rather than workspace mode.
+  same per-directory `.safe-build/` cache as `safe prove`. They also run the
+  cached root proof step by default in the current repo-local wrapper flow, but
+  they are still root-file commands rather than workspace mode.
 - `safe prove` is intentionally narrower than the full assurance story. It is
   the emitted-Ada GNATprove audit command only; it does not run the separate
   embedded/Jorvik evidence lane used for admitted concurrency runtime claims.

@@ -1,5 +1,10 @@
 # PR11.8g.2 Proof Journal
 
+Historical working journal retained for reference only.
+Current admitted proof coverage and exclusions live in
+`docs/emitted_output_verification_matrix.md`,
+`scripts/_lib/proof_inventory.py`, and `docs/roadmap.md`.
+
 ## 2026-03-30
 
 ### Current branch state
