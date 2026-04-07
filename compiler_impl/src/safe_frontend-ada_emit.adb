@@ -120,6 +120,29 @@ package body Safe_Frontend.Ada_Emit is
       Task_Body_Depth    : Natural := 0;
    end record;
 
+   type Emit_Context is record
+      State      : Emit_State;
+      Spec_Inner : SU.Unbounded_String;
+      Body_Inner : SU.Unbounded_String;
+      Spec_Text  : SU.Unbounded_String;
+      Body_Text  : SU.Unbounded_String;
+      Body_Withs : FT.UString_Vectors.Vector;
+      Imported_Enum_Use_Types : FT.UString_Vectors.Vector;
+      Synthetic_Types : GM.Type_Descriptor_Vectors.Vector;
+      Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
+      For_Of_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
+      Deferred_User_Types : GM.Type_Descriptor_Vectors.Vector;
+      Deferred_Package_Init_Names : FT.UString_Vectors.Vector;
+      Emit_Result_Builtin_First : Boolean := False;
+      Emitted_Synthetic_Names : FT.UString_Vectors.Vector;
+      Package_Dispatcher_Names : FT.UString_Vectors.Vector;
+      Package_Dispatcher_Timer_Names : FT.UString_Vectors.Vector;
+      Package_Select_Rotation_Names : FT.UString_Vectors.Vector;
+      Package_Select_Rotation_Counts : FT.UString_Vectors.Vector;
+      Needs_Spark_Off_Elaboration_Helper : Boolean := False;
+      Omit_Initializes_Aspect : Boolean := False;
+   end record;
+
    procedure Raise_Internal (Message : String);
    pragma No_Return (Raise_Internal);
    procedure Raise_Unsupported
@@ -1054,6 +1077,53 @@ package body Safe_Frontend.Ada_Emit is
       Document : GM.Mir_Document;
       Task_Item : CM.Resolved_Task;
       State    : in out Emit_State);
+   function Decl_Uses_Deferred_Package_Init_Name
+     (Decl  : CM.Resolved_Object_Decl;
+      Names : FT.UString_Vectors.Vector) return Boolean;
+   function Decl_Uses_Package_Subprogram_Name
+     (Unit : CM.Resolved_Unit;
+      Decl : CM.Resolved_Object_Decl) return Boolean;
+   function Should_Defer_Package_Object_Initializer
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Resolved_Object_Decl;
+      Names    : FT.UString_Vectors.Vector) return Boolean;
+   procedure Register_Deferred_Package_Init_Names
+     (Decl  : CM.Resolved_Object_Decl;
+      Names : in out FT.UString_Vectors.Vector);
+   procedure Add_Body_With
+     (Context : in out Emit_Context;
+      Name    : String);
+   procedure Add_Imported_Enum_Use_Type
+     (Context : in out Emit_Context;
+      Name    : String);
+   function Package_Select_Refined_State
+     (Context : Emit_Context) return String;
+   function Expr_Uses_Public_Shared_Helper
+     (Expr : CM.Expr_Access) return Boolean;
+   function Statements_Use_Public_Shared_Helper
+     (Statements : CM.Statement_Access_Vectors.Vector) return Boolean;
+   procedure Prepare_Emit_Context
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Context  : in out Emit_Context);
+   procedure Emit_Package_Spec
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Bronze   : MB.Bronze_Result;
+      Context  : in out Emit_Context);
+   procedure Emit_Package_Body
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Bronze   : MB.Bronze_Result;
+      Context  : in out Emit_Context);
+   procedure Finalize_Body_Text
+     (Context : in out Emit_Context);
+   procedure Finalize_Spec_Text
+     (Context : in out Emit_Context);
+   function Build_Emit_Result
+     (Unit    : CM.Resolved_Unit;
+      Context : Emit_Context) return Artifact_Result;
 
    function Gnat_Adc_Text return String is
      (Gnat_Adc_Contents);
@@ -23332,58 +23402,45 @@ package body Safe_Frontend.Ada_Emit is
       return Result;
    end Unit_File_Stem;
 
-   function Emit
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Bronze   : MB.Bronze_Result) return Artifact_Result
+   function Decl_Uses_Deferred_Package_Init_Name
+     (Decl  : CM.Resolved_Object_Decl;
+      Names : FT.UString_Vectors.Vector) return Boolean
    is
-      State      : Emit_State;
-      Spec_Inner : SU.Unbounded_String;
-      Body_Inner : SU.Unbounded_String;
-      Spec_Text  : SU.Unbounded_String;
-      Body_Text  : SU.Unbounded_String;
-      Body_Withs : FT.UString_Vectors.Vector;
-      Imported_Enum_Use_Types : FT.UString_Vectors.Vector;
-      Synthetic_Types : GM.Type_Descriptor_Vectors.Vector;
-      Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
-      For_Of_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
-      Deferred_User_Types : GM.Type_Descriptor_Vectors.Vector;
-      Deferred_Package_Init_Names : FT.UString_Vectors.Vector;
-      Emit_Result_Builtin_First : Boolean := False;
-      Emitted_Synthetic_Names : FT.UString_Vectors.Vector;
+   begin
+      if Decl.Initializer = null or else Names.Is_Empty then
+         return False;
+      end if;
 
-      procedure Add_Body_With (Name : String) is
-      begin
-         for Item of Body_Withs loop
-            if FT.To_String (Item) = Name then
-               return;
+      for Name of Names loop
+         declare
+            Name_Text : constant String := FT.To_String (Name);
+         begin
+            if Name_Text'Length > 0
+              and then Expr_Uses_Name (Decl.Initializer, Name_Text)
+            then
+               return True;
             end if;
-         end loop;
-         Body_Withs.Append (FT.To_UString (Name));
-      end Add_Body_With;
+         end;
+      end loop;
 
-      procedure Add_Imported_Enum_Use_Type (Name : String) is
-      begin
-         for Item of Imported_Enum_Use_Types loop
-            if FT.To_String (Item) = Name then
-               return;
-            end if;
-         end loop;
-         Imported_Enum_Use_Types.Append (FT.To_UString (Name));
-      end Add_Imported_Enum_Use_Type;
+      return False;
+   end Decl_Uses_Deferred_Package_Init_Name;
 
-      function Decl_Uses_Deferred_Package_Init_Name
-        (Decl  : CM.Resolved_Object_Decl;
-         Names : FT.UString_Vectors.Vector) return Boolean
-      is
-      begin
-         if Decl.Initializer = null or else Names.Is_Empty then
-            return False;
-         end if;
+   function Decl_Uses_Package_Subprogram_Name
+     (Unit : CM.Resolved_Unit;
+      Decl : CM.Resolved_Object_Decl) return Boolean
+   is
+   begin
+      if Decl.Initializer = null or else Unit.Subprograms.Is_Empty then
+         return False;
+      end if;
 
-         for Name of Names loop
+      for Subprogram of Unit.Subprograms loop
+         if not Subprogram.Is_Interface_Template
+           and then not Subprogram.Is_Generic_Template
+         then
             declare
-               Name_Text : constant String := FT.To_String (Name);
+               Name_Text : constant String := FT.To_String (Subprogram.Name);
             begin
                if Name_Text'Length > 0
                  and then Expr_Uses_Name (Decl.Initializer, Name_Text)
@@ -23391,38 +23448,238 @@ package body Safe_Frontend.Ada_Emit is
                   return True;
                end if;
             end;
-         end loop;
-
-         return False;
-      end Decl_Uses_Deferred_Package_Init_Name;
-
-      function Decl_Uses_Package_Subprogram_Name
-        (Decl : CM.Resolved_Object_Decl) return Boolean
-      is
-      begin
-         if Decl.Initializer = null or else Unit.Subprograms.Is_Empty then
-            return False;
          end if;
+      end loop;
 
-         for Subprogram of Unit.Subprograms loop
-            if not Subprogram.Is_Interface_Template
-              and then not Subprogram.Is_Generic_Template
-            then
-               declare
-                  Name_Text : constant String := FT.To_String (Subprogram.Name);
-               begin
-                  if Name_Text'Length > 0
-                    and then Expr_Uses_Name (Decl.Initializer, Name_Text)
+      return False;
+   end Decl_Uses_Package_Subprogram_Name;
+
+   function Should_Defer_Package_Object_Initializer
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Resolved_Object_Decl;
+      Names    : FT.UString_Vectors.Vector) return Boolean
+   is
+   begin
+      return
+        not Decl.Is_Constant
+        and then Decl.Has_Initializer
+        and then
+          (Has_Heap_Value_Type (Unit, Document, Decl.Type_Info)
+           or else Is_Owner_Access (Decl.Type_Info)
+           or else Decl_Uses_Deferred_Package_Init_Name (Decl, Names)
+           or else Decl_Uses_Package_Subprogram_Name (Unit, Decl));
+   end Should_Defer_Package_Object_Initializer;
+
+   procedure Register_Deferred_Package_Init_Names
+     (Decl  : CM.Resolved_Object_Decl;
+      Names : in out FT.UString_Vectors.Vector)
+   is
+   begin
+      for Name of Decl.Names loop
+         declare
+            Name_Text : constant String := FT.To_String (Name);
+         begin
+            if Name_Text'Length > 0 and then not Contains_Name (Names, Name_Text) then
+               Names.Append (Name);
+            end if;
+         end;
+      end loop;
+   end Register_Deferred_Package_Init_Names;
+
+   procedure Add_Body_With
+     (Context : in out Emit_Context;
+      Name    : String)
+   is
+   begin
+      for Item of Context.Body_Withs loop
+         if FT.To_String (Item) = Name then
+            return;
+         end if;
+      end loop;
+      Context.Body_Withs.Append (FT.To_UString (Name));
+   end Add_Body_With;
+
+   procedure Add_Imported_Enum_Use_Type
+     (Context : in out Emit_Context;
+      Name    : String)
+   is
+   begin
+      for Item of Context.Imported_Enum_Use_Types loop
+         if FT.To_String (Item) = Name then
+            return;
+         end if;
+      end loop;
+      Context.Imported_Enum_Use_Types.Append (FT.To_UString (Name));
+   end Add_Imported_Enum_Use_Type;
+
+   function Package_Select_Refined_State
+     (Context : Emit_Context) return String
+   is
+      Constituents : FT.UString_Vectors.Vector;
+   begin
+      for Name of Context.Package_Dispatcher_Names loop
+         Constituents.Append (Name);
+      end loop;
+      for Name of Context.Package_Dispatcher_Timer_Names loop
+         Constituents.Append (Name);
+      end loop;
+      for Name of Context.Package_Select_Rotation_Names loop
+         Constituents.Append (Name);
+      end loop;
+      return Join_Names (Constituents);
+   end Package_Select_Refined_State;
+
+   function Expr_Uses_Public_Shared_Helper
+     (Expr : CM.Expr_Access) return Boolean
+   is
+      function Call_Name_Uses_Public_Shared_Helper return Boolean is
+         Flat_Name : constant String :=
+           (if Expr = null or else Expr.Callee = null
+            then ""
+            else FT.Lowercase (CM.Flatten_Name (Expr.Callee)));
+      begin
+         return
+           Flat_Name'Length > 0
+           and then Ada.Strings.Fixed.Index (Flat_Name, "safe_public_shared_") > 0;
+      end Call_Name_Uses_Public_Shared_Helper;
+   begin
+      if Expr = null then
+         return False;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Call =>
+            if Call_Name_Uses_Public_Shared_Helper then
+               return True;
+            end if;
+            if Expr_Uses_Public_Shared_Helper (Expr.Callee) then
+               return True;
+            end if;
+            for Arg of Expr.Args loop
+               if Expr_Uses_Public_Shared_Helper (Arg) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Select =>
+            return Expr_Uses_Public_Shared_Helper (Expr.Prefix);
+         when CM.Expr_Resolved_Index =>
+            if Expr_Uses_Public_Shared_Helper (Expr.Prefix) then
+               return True;
+            end if;
+            for Arg of Expr.Args loop
+               if Expr_Uses_Public_Shared_Helper (Arg) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Conversion =>
+            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+         when CM.Expr_Binary =>
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Left)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Right);
+         when CM.Expr_Unary =>
+            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+         when CM.Expr_Aggregate =>
+            for Field of Expr.Fields loop
+               if Expr_Uses_Public_Shared_Helper (Field.Expr) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               if Expr_Uses_Public_Shared_Helper (Item) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when others =>
+            return False;
+      end case;
+   end Expr_Uses_Public_Shared_Helper;
+
+   function Statements_Use_Public_Shared_Helper
+     (Statements : CM.Statement_Access_Vectors.Vector) return Boolean
+   is
+   begin
+      for Item of Statements loop
+         if Item = null then
+            null;
+         else
+            case Item.Kind is
+               when CM.Stmt_Object_Decl =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Decl.Initializer) then
+                     return True;
+                  end if;
+               when CM.Stmt_Assign =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Target)
+                    or else Expr_Uses_Public_Shared_Helper (Item.Value)
                   then
                      return True;
                   end if;
-               end;
-            end if;
-         end loop;
+               when CM.Stmt_Call =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Call) then
+                     return True;
+                  end if;
+               when CM.Stmt_Return =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Value) then
+                     return True;
+                  end if;
+               when CM.Stmt_If =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Condition)
+                    or else Statements_Use_Public_Shared_Helper (Item.Then_Stmts)
+                  then
+                     return True;
+                  end if;
+                  for Part of Item.Elsifs loop
+                     if Expr_Uses_Public_Shared_Helper (Part.Condition)
+                       or else Statements_Use_Public_Shared_Helper (Part.Statements)
+                     then
+                        return True;
+                     end if;
+                  end loop;
+                  if Item.Has_Else
+                    and then Statements_Use_Public_Shared_Helper (Item.Else_Stmts)
+                  then
+                     return True;
+                  end if;
+               when CM.Stmt_Case =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Case_Expr) then
+                     return True;
+                  end if;
+                  for Arm of Item.Case_Arms loop
+                     if Statements_Use_Public_Shared_Helper (Arm.Statements) then
+                        return True;
+                     end if;
+                  end loop;
+               when CM.Stmt_While =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Condition)
+                    or else Statements_Use_Public_Shared_Helper (Item.Body_Stmts)
+                  then
+                     return True;
+                  end if;
+               when CM.Stmt_For =>
+                  if Expr_Uses_Public_Shared_Helper (Item.Loop_Iterable)
+                    or else Statements_Use_Public_Shared_Helper (Item.Body_Stmts)
+                  then
+                     return True;
+                  end if;
+               when others =>
+                  null;
+            end case;
+         end if;
+      end loop;
+      return False;
+   end Statements_Use_Public_Shared_Helper;
 
-         return False;
-      end Decl_Uses_Package_Subprogram_Name;
-
+   procedure Prepare_Emit_Context
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Context  : in out Emit_Context)
+   is
       function Unit_Defines_Result_Type return Boolean is
       begin
          for Type_Item of Unit.Types loop
@@ -23434,13 +23691,85 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
          return False;
       end Unit_Defines_Result_Type;
+   begin
+      if not Unit.Channels.Is_Empty
+        or else not Unit.Tasks.Is_Empty
+        or else (for some Decl of Unit.Objects => Decl.Is_Shared)
+      then
+         Context.State.Needs_Gnat_Adc := True;
+      end if;
+      Collect_Bounded_String_Types (Unit, Document, Context.State);
+      Collect_Wide_Locals (Unit, Document, Context.State, Unit.Objects, Unit.Statements);
+      Collect_Select_Dispatcher_Names
+        (Unit.Statements,
+         Context.Package_Dispatcher_Names);
+      Collect_Select_Delay_Timer_Names
+        (Unit.Statements,
+         Context.Package_Dispatcher_Timer_Names);
+      Collect_Select_Rotation_State
+        (Unit.Statements,
+         Context.Package_Select_Rotation_Names,
+         Context.Package_Select_Rotation_Counts);
+      for Task_Item of Unit.Tasks loop
+         Collect_Select_Dispatcher_Names
+           (Task_Item.Statements,
+            Context.Package_Dispatcher_Names);
+         Collect_Select_Delay_Timer_Names
+           (Task_Item.Statements,
+            Context.Package_Dispatcher_Timer_Names);
+         Collect_Select_Rotation_State
+           (Task_Item.Statements,
+            Context.Package_Select_Rotation_Names,
+            Context.Package_Select_Rotation_Counts);
+      end loop;
+
+      for Item of Unit.Imported_Types loop
+         if FT.Lowercase (FT.To_String (Item.Kind)) = "enum" then
+            Add_Imported_Enum_Use_Type
+              (Context,
+               Ada_Qualified_Name (FT.To_String (Item.Name)));
+         end if;
+      end loop;
+
+      Collect_Synthetic_Types (Unit, Document, Context.Synthetic_Types);
+      Collect_Owner_Access_Helper_Types
+        (Unit, Document, Context.Owner_Access_Helper_Types);
+      Collect_For_Of_Helper_Types
+        (Unit, Document, Context.For_Of_Helper_Types);
+
+      Context.Emit_Result_Builtin_First :=
+        not Unit_Defines_Result_Type
+        and then
+          (for some Type_Item of Context.Synthetic_Types =>
+             Is_Result_Builtin (Type_Item));
+
+      Context.Needs_Spark_Off_Elaboration_Helper :=
+        (for some Decl of Unit.Objects =>
+            Decl.Is_Shared
+            and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
+        or else Statements_Use_Public_Shared_Helper (Unit.Statements);
+      Context.Omit_Initializes_Aspect :=
+        not Unit.Statements.Is_Empty
+        or else
+        (for some Decl of Unit.Objects => Decl.Is_Shared and then Decl.Is_Public)
+        or else Statements_Use_Public_Shared_Helper (Unit.Statements);
+   end Prepare_Emit_Context;
+
+   procedure Emit_Package_Spec
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Bronze   : MB.Bronze_Result;
+      Context  : in out Emit_Context)
+   is
+      Package_Select_Abstract_State_Name : constant String :=
+        "Safe_Select_Internal_State";
 
       function Find_Synthetic_Type
         (Name_Text : String;
          Found     : out Boolean) return GM.Type_Descriptor
       is
       begin
-         for Type_Item of Synthetic_Types loop
+         for Type_Item of Context.Synthetic_Types loop
             if FT.To_String (Type_Item.Name) = Name_Text then
                Found := True;
                return Type_Item;
@@ -23471,8 +23800,9 @@ package body Safe_Frontend.Ada_Emit is
          Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
       begin
          if Name_Text'Length = 0
-           or else Contains_Name (Emitted_Synthetic_Names, Name_Text)
-           or else (Emit_Result_Builtin_First and then Is_Result_Builtin (Type_Item))
+           or else Contains_Name (Context.Emitted_Synthetic_Names, Name_Text)
+           or else
+             (Context.Emit_Result_Builtin_First and then Is_Result_Builtin (Type_Item))
            or else
              (Ada.Strings.Fixed.Index (Name_Text, ".") > 0
               and then Tail_Name'Length > 2
@@ -23482,9 +23812,12 @@ package body Safe_Frontend.Ada_Emit is
          end if;
 
          Emit_Synthetic_Dependencies (Type_Item);
-         Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
-         Append_Line (Spec_Inner);
-         Emitted_Synthetic_Names.Append (Type_Item.Name);
+         Append_Line
+           (Context.Spec_Inner,
+            Render_Type_Decl (Unit, Document, Type_Item, Context.State),
+            1);
+         Append_Line (Context.Spec_Inner);
+         Context.Emitted_Synthetic_Names.Append (Type_Item.Name);
       end Emit_Synthetic_Type_Decl;
 
       procedure Emit_Synthetic_Dependencies_For_Name (Name_Text : String) is
@@ -23511,13 +23844,15 @@ package body Safe_Frontend.Ada_Emit is
                  and then
                    (Starts_With (Resolved_Name, "__optional_")
                     or else (Resolved_Kind = "array" and then Resolved_Info.Growable)
-                    or else (Resolved_Kind = "subtype"
-                             and then not Resolved_Info.Discriminant_Constraints.Is_Empty)
-                    or else (Resolved_Kind = "subtype"
-                             and then Starts_With (Resolved_Name, "__constraint")
-                             and then Resolved_Info.Has_Base
-                             and then Resolved_Info.Has_Low
-                             and then Resolved_Info.Has_High)
+                    or else
+                      (Resolved_Kind = "subtype"
+                       and then not Resolved_Info.Discriminant_Constraints.Is_Empty)
+                    or else
+                      (Resolved_Kind = "subtype"
+                       and then Starts_With (Resolved_Name, "__constraint")
+                       and then Resolved_Info.Has_Base
+                       and then Resolved_Info.Has_Low
+                       and then Resolved_Info.Has_High)
                     or else Is_Tuple_Type (Resolved_Info)
                     or else Is_Result_Builtin (Resolved_Info))
                then
@@ -23541,7 +23876,8 @@ package body Safe_Frontend.Ada_Emit is
             Emit_Synthetic_Dependencies_For_Name (FT.To_String (Info.Base));
          end if;
          if Base_Info.Has_Component_Type then
-            Emit_Synthetic_Dependencies_For_Name (FT.To_String (Base_Info.Component_Type));
+            Emit_Synthetic_Dependencies_For_Name
+              (FT.To_String (Base_Info.Component_Type));
          end if;
          if Base_Info.Has_Target then
             Emit_Synthetic_Dependencies_For_Name (FT.To_String (Base_Info.Target));
@@ -23601,7 +23937,9 @@ package body Safe_Frontend.Ada_Emit is
             if FT.To_String (Base_Info.Kind) = "array"
               and then Base_Info.Growable
               and then Base_Name_Text /= Root_Name
-              and then not Contains_Name (Emitted_Synthetic_Names, Base_Name_Text)
+              and then
+                not Contains_Name
+                  (Context.Emitted_Synthetic_Names, Base_Name_Text)
             then
                return True;
             end if;
@@ -23633,12 +23971,16 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             end loop;
             for Field of Base_Info.Fields loop
-               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name), Seen) then
+               if Name_Has_Unemitted_Growable_Dependency
+                 (FT.To_String (Field.Type_Name), Seen)
+               then
                   return True;
                end if;
             end loop;
             for Field of Base_Info.Variant_Fields loop
-               if Name_Has_Unemitted_Growable_Dependency (FT.To_String (Field.Type_Name), Seen) then
+               if Name_Has_Unemitted_Growable_Dependency
+                 (FT.To_String (Field.Type_Name), Seen)
+               then
                   return True;
                end if;
             end loop;
@@ -23658,71 +24000,374 @@ package body Safe_Frontend.Ada_Emit is
          end;
 
          declare
-            Probe_State : Emit_State := State;
+            Probe_State : Emit_State := Context.State;
             Decl_Image  : constant String :=
               Render_Type_Decl (Unit, Document, Info, Probe_State);
          begin
             return
               not Starts_With (FT.To_String (Info.Name), "__growable_array_")
               and then Ada.Strings.Fixed.Index (Decl_Image, "Safe_growable_array_") > 0
-              and then (for some Type_Item of Synthetic_Types =>
-                          FT.To_String (Type_Item.Kind) = "array"
-                          and then Type_Item.Growable
-                          and then not Contains_Name
-                            (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name)));
+              and then
+                (for some Type_Item of Context.Synthetic_Types =>
+                   FT.To_String (Type_Item.Kind) = "array"
+                   and then Type_Item.Growable
+                   and then not Contains_Name
+                     (Context.Emitted_Synthetic_Names,
+                      FT.To_String (Type_Item.Name)));
          end;
       end Has_Unemitted_Growable_Dependency;
+   begin
+      Append_Line (Context.Spec_Inner, "pragma SPARK_Mode (On);");
+      Append_Line (Context.Spec_Inner);
+      Append_Line
+        (Context.Spec_Inner,
+         "package "
+         & FT.To_String (Unit.Package_Name)
+         & ASCII.LF
+         & Indentation (1)
+         & "with SPARK_Mode => On"
+         & (if not Context.Package_Dispatcher_Names.Is_Empty
+               or else not Context.Package_Dispatcher_Timer_Names.Is_Empty
+               or else not Context.Package_Select_Rotation_Names.Is_Empty
+               or else not Context.Omit_Initializes_Aspect
+            then
+               ","
+            else
+               "")
+         & ASCII.LF
+         & (if not Context.Package_Dispatcher_Names.Is_Empty
+               or else not Context.Package_Dispatcher_Timer_Names.Is_Empty
+               or else not Context.Package_Select_Rotation_Names.Is_Empty
+            then
+               Indentation (1)
+               & "     Abstract_State => ("
+               & Package_Select_Abstract_State_Name
+               & " with External)"
+               & (if Context.Omit_Initializes_Aspect
+                  then
+                     ""
+                  else
+                     ",")
+               & ASCII.LF
+            else
+               "")
+         & (if Context.Omit_Initializes_Aspect
+            then
+               ""
+            else
+               Indentation (1)
+               & "     Initializes => "
+               & Render_Initializes_Aspect (Unit, Document, Bronze)
+               & ASCII.LF)
+         & "is");
+      Append_Line (Context.Spec_Inner, "pragma Elaborate_Body;", 1);
+      Append_Line (Context.Spec_Inner);
+      Append_Bounded_String_Instantiations (Context.Spec_Inner, Context.State);
 
-      function Should_Defer_Package_Object_Initializer
-        (Decl  : CM.Resolved_Object_Decl;
-         Names : FT.UString_Vectors.Vector) return Boolean
-      is
-      begin
-         return
-           not Decl.Is_Constant
-           and then Decl.Has_Initializer
-           and then
-             (Has_Heap_Value_Type (Unit, Document, Decl.Type_Info)
-              or else Is_Owner_Access (Decl.Type_Info)
-              or else Decl_Uses_Deferred_Package_Init_Name (Decl, Names)
-              or else Decl_Uses_Package_Subprogram_Name (Decl));
-      end Should_Defer_Package_Object_Initializer;
+      if Context.Emit_Result_Builtin_First then
+         Append_Line
+           (Context.Spec_Inner,
+            Render_Type_Decl (Unit, Document, BT.Result_Type, Context.State),
+            1);
+         Append_Line (Context.Spec_Inner);
+         Context.Emitted_Synthetic_Names.Append (BT.Result_Type.Name);
+      end if;
 
-      procedure Register_Deferred_Package_Init_Names
-        (Decl  : CM.Resolved_Object_Decl;
-         Names : in out FT.UString_Vectors.Vector)
-      is
-      begin
-         for Name of Decl.Names loop
-            declare
-               Name_Text : constant String := FT.To_String (Name);
-            begin
-               if Name_Text'Length > 0 and then not Contains_Name (Names, Name_Text) then
-                  Names.Append (Name);
+      for Type_Item of Unit.Types loop
+         declare
+            Name_Text : constant String := FT.To_String (Type_Item.Name);
+            Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
+            Skip_Imported_Synthetic : constant Boolean :=
+              Ada.Strings.Fixed.Index (Name_Text, ".") > 0
+              and then Tail_Name'Length > 2
+              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__";
+         begin
+            if Type_Item.Generic_Formals.Is_Empty
+              and then FT.To_String (Type_Item.Kind) /= "interface"
+              and then not Skip_Imported_Synthetic
+              and then
+                not Contains_Name
+                  (Context.Emitted_Synthetic_Names,
+                   FT.To_String (Type_Item.Name))
+            then
+               if Has_Unemitted_Growable_Dependency (Type_Item) then
+                  Context.Deferred_User_Types.Append (Type_Item);
+               else
+                  Emit_Synthetic_Dependencies (Type_Item);
+                  Append_Line
+                    (Context.Spec_Inner,
+                     Render_Type_Decl (Unit, Document, Type_Item, Context.State),
+                     1);
+                  if FT.To_String (Type_Item.Kind) = "record" then
+                     Append_Line (Context.Spec_Inner);
+                  end if;
+                  if Has_Text (Type_Item.Name) then
+                     Context.Emitted_Synthetic_Names.Append (Type_Item.Name);
+                  end if;
                end if;
-            end;
+            end if;
+         end;
+      end loop;
+
+      for Type_Item of Context.Synthetic_Types loop
+         Emit_Synthetic_Type_Decl (Type_Item);
+      end loop;
+
+      for Type_Item of Context.Deferred_User_Types loop
+         declare
+            Name_Text : constant String := FT.To_String (Type_Item.Name);
+            Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
+            Skip_Imported_Synthetic : constant Boolean :=
+              Ada.Strings.Fixed.Index (Name_Text, ".") > 0
+              and then Tail_Name'Length > 2
+              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__";
+         begin
+            if not Skip_Imported_Synthetic
+              and then
+                not Contains_Name
+                  (Context.Emitted_Synthetic_Names,
+                   FT.To_String (Type_Item.Name))
+            then
+               Emit_Synthetic_Dependencies (Type_Item);
+               Append_Line
+                 (Context.Spec_Inner,
+                  Render_Type_Decl (Unit, Document, Type_Item, Context.State),
+                  1);
+               if FT.To_String (Type_Item.Kind) = "record" then
+                  Append_Line (Context.Spec_Inner);
+               end if;
+               if Has_Text (Type_Item.Name) then
+                  Context.Emitted_Synthetic_Names.Append (Type_Item.Name);
+               end if;
+            end if;
+         end;
+      end loop;
+
+      for Type_Item of Context.Owner_Access_Helper_Types loop
+         Render_Owner_Access_Helper_Spec
+           (Context.Spec_Inner, Unit, Document, Type_Item);
+      end loop;
+
+      if not Unit.Objects.Is_Empty then
+         for Decl of Unit.Objects loop
+            if not Decl.Is_Shared then
+               declare
+                  Decl_Name : constant String :=
+                    (if Decl.Names.Is_Empty
+                     then ""
+                     else FT.To_String (Decl.Names (Decl.Names.First_Index)));
+                  Defer_Package_Initializer : constant Boolean :=
+                    Should_Defer_Package_Object_Initializer
+                      (Unit, Document, Decl, Context.Deferred_Package_Init_Names);
+                  Needs_Decl_Warning_Fence : constant Boolean :=
+                    not Decl.Is_Constant
+                    and then
+                      ((not Decl.Has_Initializer
+                        and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
+                       or else
+                         Defer_Package_Initializer
+                       or else
+                         (Decl.Has_Initializer
+                          and then Decl.Names.Length = 1
+                          and then
+                            (FT.Lowercase
+                               (FT.To_String
+                                  (Base_Type (Unit, Document, Decl.Type_Info).Kind))
+                             = "boolean"
+                             or else
+                               FT.Lowercase
+                                 (FT.To_String
+                                    (Base_Type (Unit, Document, Decl.Type_Info).Name))
+                               = "boolean")
+                          and then
+                            Statements_Use_Name (Unit.Statements, Decl_Name))
+                       or else
+                         (Decl.Has_Initializer
+                          and then Decl.Names.Length = 1
+                          and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
+                          and then
+                            Statements_Use_Name (Unit.Statements, Decl_Name)));
+               begin
+                  if Needs_Decl_Warning_Fence then
+                     Append_Local_Warning_Suppression (Context.Spec_Inner, 1);
+                  end if;
+                  Append_Line
+                    (Context.Spec_Inner,
+                     Render_Object_Decl_Text
+                       (Unit,
+                        Document,
+                        Context.State,
+                        Decl,
+                        Defer_Initializer => Defer_Package_Initializer),
+                     1);
+                  if Needs_Decl_Warning_Fence then
+                     Append_Local_Warning_Restore (Context.Spec_Inner, 1);
+                  end if;
+                  if Defer_Package_Initializer then
+                     Register_Deferred_Package_Init_Names
+                       (Decl, Context.Deferred_Package_Init_Names);
+                  end if;
+               end;
+            end if;
          end loop;
-      end Register_Deferred_Package_Init_Names;
-
-      function Render_Object_String_View
-        (Name : String;
-         Info : GM.Type_Descriptor) return String
-      is
-      begin
-         if Is_Plain_String_Type (Unit, Document, Info) then
-            State.Needs_Safe_String_RT := True;
-            return "Safe_String_RT.To_String (" & Ada_Safe_Name (Name) & ")";
-         elsif Is_Bounded_String_Type (Info) then
-            Register_Bounded_String_Type (State, Info);
-            return
-              Bounded_String_Instance_Name (Info)
-              & ".To_String ("
-              & Ada_Safe_Name (Name)
-              & ")";
+         if (for some Decl of Unit.Objects => not Decl.Is_Shared) then
+            Append_Line (Context.Spec_Inner);
          end if;
+      end if;
 
-         return Ada_Safe_Name (Name);
-      end Render_Object_String_View;
+      if (for some Decl of Unit.Objects => Decl.Is_Shared) then
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared then
+               Render_Shared_Object_Spec
+                 (Context.Spec_Inner, Unit, Document, Decl, Bronze, Context.State);
+            end if;
+         end loop;
+      end if;
+
+      if not Unit.Channels.Is_Empty then
+         for Channel of Unit.Channels loop
+            Render_Channel_Spec (Context.Spec_Inner, Unit, Document, Channel, Bronze);
+         end loop;
+      end if;
+
+      if not Unit.Subprograms.Is_Empty then
+         for Subprogram of Unit.Subprograms loop
+            if not Subprogram.Is_Interface_Template
+              and then not Subprogram.Is_Generic_Template
+            then
+               declare
+                  Expression_Image : constant String :=
+                    (if Subprogram.Force_Body_Emission
+                     then ""
+                     else
+                       Render_Expression_Function_Image
+                         (Unit, Document, Subprogram, Context.State));
+               begin
+                  if Expression_Image'Length = 0 then
+                     Append_Line
+                       (Context.Spec_Inner,
+                        Render_Ada_Subprogram_Keyword (Subprogram)
+                        & " "
+                        & FT.To_String (Subprogram.Name)
+                        & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
+                        & Render_Subprogram_Return (Unit, Document, Subprogram)
+                        & Render_Subprogram_Aspects
+                            (Unit, Document, Subprogram, Bronze, Context.State)
+                        & ";",
+                        1);
+                  end if;
+               end;
+            end if;
+         end loop;
+
+         for Subprogram of Unit.Subprograms loop
+            if not Subprogram.Is_Interface_Template
+              and then not Subprogram.Is_Generic_Template
+            then
+               declare
+                  Expression_Image : constant String :=
+                    (if Subprogram.Force_Body_Emission
+                     then ""
+                     else
+                       Render_Expression_Function_Image
+                         (Unit, Document, Subprogram, Context.State));
+               begin
+                  if Expression_Image'Length > 0 then
+                     Append_Line
+                       (Context.Spec_Inner,
+                        Render_Ada_Subprogram_Keyword (Subprogram)
+                        & " "
+                        & FT.To_String (Subprogram.Name)
+                        & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
+                        & Render_Subprogram_Return (Unit, Document, Subprogram)
+                        & " is (" & Expression_Image & ")"
+                        & Render_Subprogram_Aspects
+                            (Unit, Document, Subprogram, Bronze, Context.State)
+                        & ";",
+                        1);
+                  end if;
+               end;
+            end if;
+         end loop;
+         Append_Line (Context.Spec_Inner);
+      end if;
+
+      if not Unit.Tasks.Is_Empty then
+         for Task_Item of Unit.Tasks loop
+            Append_Line
+              (Context.Spec_Inner,
+               "task "
+               & FT.To_String (Task_Item.Name)
+               & (if Task_Item.Has_Explicit_Priority
+                  then " with Priority => " & Trim_Image (Task_Item.Priority)
+                  else "")
+               & ";",
+               1);
+         end loop;
+         Append_Line (Context.Spec_Inner);
+      end if;
+
+      if not Context.Package_Dispatcher_Names.Is_Empty
+        or else not Context.Package_Dispatcher_Timer_Names.Is_Empty
+        or else not Context.Package_Select_Rotation_Names.Is_Empty
+      then
+         Append_Line (Context.Spec_Inner, "private", 1);
+         for Name of Context.Package_Dispatcher_Names loop
+            Render_Select_Dispatcher_Spec
+              (Context.Spec_Inner,
+               FT.To_String (Name));
+            Render_Select_Dispatcher_Object_Decl
+              (Context.Spec_Inner,
+               FT.To_String (Name));
+         end loop;
+         for Name of Context.Package_Dispatcher_Timer_Names loop
+            Append_Line
+              (Context.Spec_Inner,
+               FT.To_String (Name)
+               & " : Ada.Real_Time.Timing_Events.Timing_Event"
+               & ASCII.LF
+               & Indentation (1)
+               & "  with Part_Of => Safe_Select_Internal_State;",
+               1);
+         end loop;
+         if not Context.Package_Select_Rotation_Names.Is_Empty then
+            for Index in Context.Package_Select_Rotation_Names.First_Index
+              .. Context.Package_Select_Rotation_Names.Last_Index
+            loop
+               Append_Line
+                 (Context.Spec_Inner,
+                  FT.To_String (Context.Package_Select_Rotation_Names (Index))
+                  & " : Positive range 1 .. "
+                  & FT.To_String (Context.Package_Select_Rotation_Counts (Index))
+                  & " := 1"
+                  & ASCII.LF
+                  & Indentation (1)
+                  & "  with Part_Of => Safe_Select_Internal_State;",
+                  1);
+            end loop;
+         end if;
+         Append_Line (Context.Spec_Inner);
+      end if;
+
+      Append_Line
+        (Context.Spec_Inner,
+         "end " & FT.To_String (Unit.Package_Name) & ";");
+   end Emit_Package_Spec;
+
+   procedure Emit_Package_Body
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Bronze   : MB.Bronze_Result;
+      Context  : in out Emit_Context)
+   is
+      Package_Select_Abstract_State_Name : constant String :=
+        "Safe_Select_Internal_State";
+      Generated_Elaborate_Name : constant String :=
+        "Safe_Generated_Elaborate_" & FT.To_String (Unit.Package_Name);
+      Package_Body_Spark_Mode : constant String :=
+        (if (for some Decl of Unit.Objects => Decl.Is_Shared and then Decl.Is_Public)
+         then "Off"
+         else "On");
 
       function Render_Object_String_Length_View
         (Name : String;
@@ -23730,10 +24375,10 @@ package body Safe_Frontend.Ada_Emit is
       is
       begin
          if Is_Plain_String_Type (Unit, Document, Info) then
-            State.Needs_Safe_String_RT := True;
+            Context.State.Needs_Safe_String_RT := True;
             return "Safe_String_RT.Length (" & Ada_Safe_Name (Name) & ")";
          elsif Is_Bounded_String_Type (Info) then
-            Register_Bounded_String_Type (State, Info);
+            Register_Bounded_String_Type (Context.State, Info);
             return
               Bounded_String_Instance_Name (Info)
               & ".Length ("
@@ -23792,7 +24437,6 @@ package body Safe_Frontend.Ada_Emit is
          Base_Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
          Static_Image : SU.Unbounded_String := SU.Null_Unbounded_String;
          Static_Length : Natural := 0;
-         pragma Unreferenced (Static_Image);
       begin
          if not Decl.Has_Initializer or else Decl.Initializer = null or else Name'Length = 0 then
             return "";
@@ -23812,7 +24456,7 @@ package body Safe_Frontend.Ada_Emit is
                    Document,
                    Decl.Initializer,
                    Decl.Type_Info,
-                   State);
+                   Context.State);
          elsif (Is_Plain_String_Type (Unit, Document, Decl.Type_Info)
                   or else Is_Bounded_String_Type (Decl.Type_Info))
            and then Try_Static_String_Literal
@@ -23850,7 +24494,9 @@ package body Safe_Frontend.Ada_Emit is
             Deferred_Names : FT.UString_Vectors.Vector;
          begin
             for Decl of Unit.Objects loop
-               if Should_Defer_Package_Object_Initializer (Decl, Deferred_Names) then
+               if Should_Defer_Package_Object_Initializer
+                 (Unit, Document, Decl, Deferred_Names)
+               then
                   Register_Deferred_Package_Init_Names (Decl, Deferred_Names);
                else
                   for Name of Decl.Names loop
@@ -23932,625 +24578,76 @@ package body Safe_Frontend.Ada_Emit is
             end loop;
          end loop;
       end Seed_Package_Static_Bindings;
-
-      Package_Dispatcher_Names : FT.UString_Vectors.Vector;
-      Package_Dispatcher_Timer_Names : FT.UString_Vectors.Vector;
-      Package_Select_Rotation_Names : FT.UString_Vectors.Vector;
-      Package_Select_Rotation_Counts : FT.UString_Vectors.Vector;
-      Package_Select_Abstract_State_Name : constant String :=
-        "Safe_Select_Internal_State";
-      Generated_Elaborate_Name : constant String :=
-        "Safe_Generated_Elaborate_" & FT.To_String (Unit.Package_Name);
-      Package_Body_Spark_Mode : constant String :=
-        (if (for some Decl of Unit.Objects => Decl.Is_Shared and then Decl.Is_Public)
-         then "Off"
-         else "On");
-      function Expr_Uses_Public_Shared_Helper
-        (Expr : CM.Expr_Access) return Boolean;
-      function Statements_Use_Public_Shared_Helper
-        (Statements : CM.Statement_Access_Vectors.Vector) return Boolean;
-
-      function Expr_Uses_Public_Shared_Helper
-        (Expr : CM.Expr_Access) return Boolean
-      is
-         function Call_Name_Uses_Public_Shared_Helper return Boolean is
-            Flat_Name : constant String :=
-              (if Expr = null or else Expr.Callee = null
-               then ""
-               else FT.Lowercase (CM.Flatten_Name (Expr.Callee)));
-         begin
-            return
-              Flat_Name'Length > 0
-              and then Ada.Strings.Fixed.Index (Flat_Name, "safe_public_shared_") > 0;
-         end Call_Name_Uses_Public_Shared_Helper;
-      begin
-         if Expr = null then
-            return False;
-         end if;
-
-         case Expr.Kind is
-            when CM.Expr_Call =>
-               if Call_Name_Uses_Public_Shared_Helper then
-                  return True;
-               end if;
-               if Expr_Uses_Public_Shared_Helper (Expr.Callee) then
-                  return True;
-               end if;
-               for Arg of Expr.Args loop
-                  if Expr_Uses_Public_Shared_Helper (Arg) then
-                     return True;
-                  end if;
-               end loop;
-               return False;
-            when CM.Expr_Select =>
-               return Expr_Uses_Public_Shared_Helper (Expr.Prefix);
-            when CM.Expr_Resolved_Index =>
-               if Expr_Uses_Public_Shared_Helper (Expr.Prefix) then
-                  return True;
-               end if;
-               for Arg of Expr.Args loop
-                  if Expr_Uses_Public_Shared_Helper (Arg) then
-                     return True;
-                  end if;
-               end loop;
-               return False;
-            when CM.Expr_Conversion =>
-               return Expr_Uses_Public_Shared_Helper (Expr.Inner);
-            when CM.Expr_Binary =>
-               return
-                 Expr_Uses_Public_Shared_Helper (Expr.Left)
-                 or else Expr_Uses_Public_Shared_Helper (Expr.Right);
-            when CM.Expr_Unary =>
-               return Expr_Uses_Public_Shared_Helper (Expr.Inner);
-            when CM.Expr_Aggregate =>
-               for Field of Expr.Fields loop
-                  if Expr_Uses_Public_Shared_Helper (Field.Expr) then
-                     return True;
-                  end if;
-               end loop;
-               return False;
-            when CM.Expr_Tuple =>
-               for Item of Expr.Elements loop
-                  if Expr_Uses_Public_Shared_Helper (Item) then
-                     return True;
-                  end if;
-               end loop;
-               return False;
-            when others =>
-               return False;
-         end case;
-      end Expr_Uses_Public_Shared_Helper;
-
-      function Statements_Use_Public_Shared_Helper
-        (Statements : CM.Statement_Access_Vectors.Vector) return Boolean
-      is
-      begin
-         for Item of Statements loop
-            if Item = null then
-               null;
-            else
-               case Item.Kind is
-                  when CM.Stmt_Object_Decl =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Decl.Initializer) then
-                        return True;
-                     end if;
-                  when CM.Stmt_Assign =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Target)
-                       or else Expr_Uses_Public_Shared_Helper (Item.Value)
-                     then
-                        return True;
-                     end if;
-                  when CM.Stmt_Call =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Call) then
-                        return True;
-                     end if;
-                  when CM.Stmt_Return =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Value) then
-                        return True;
-                     end if;
-                  when CM.Stmt_If =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Condition)
-                       or else Statements_Use_Public_Shared_Helper (Item.Then_Stmts)
-                     then
-                        return True;
-                     end if;
-                     for Part of Item.Elsifs loop
-                        if Expr_Uses_Public_Shared_Helper (Part.Condition)
-                          or else Statements_Use_Public_Shared_Helper (Part.Statements)
-                        then
-                           return True;
-                        end if;
-                     end loop;
-                     if Item.Has_Else
-                       and then Statements_Use_Public_Shared_Helper (Item.Else_Stmts)
-                     then
-                        return True;
-                     end if;
-                  when CM.Stmt_Case =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Case_Expr) then
-                        return True;
-                     end if;
-                     for Arm of Item.Case_Arms loop
-                        if Statements_Use_Public_Shared_Helper (Arm.Statements) then
-                           return True;
-                        end if;
-                     end loop;
-                  when CM.Stmt_While =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Condition)
-                       or else Statements_Use_Public_Shared_Helper (Item.Body_Stmts)
-                     then
-                        return True;
-                     end if;
-                  when CM.Stmt_For =>
-                     if Expr_Uses_Public_Shared_Helper (Item.Loop_Iterable)
-                       or else Statements_Use_Public_Shared_Helper (Item.Body_Stmts)
-                     then
-                        return True;
-                     end if;
-                  when others =>
-                     null;
-               end case;
-            end if;
-         end loop;
-         return False;
-      end Statements_Use_Public_Shared_Helper;
-
-      Needs_Spark_Off_Elaboration_Helper : constant Boolean :=
-        (for some Decl of Unit.Objects =>
-            Decl.Is_Shared
-            and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
-        or else Statements_Use_Public_Shared_Helper (Unit.Statements);
-      Omit_Initializes_Aspect : constant Boolean :=
-        not Unit.Statements.Is_Empty
-        or else
-        (for some Decl of Unit.Objects => Decl.Is_Shared and then Decl.Is_Public)
-        or else Statements_Use_Public_Shared_Helper (Unit.Statements);
-
-      function Package_Select_Refined_State return String is
-         Constituents : FT.UString_Vectors.Vector;
-      begin
-         for Name of Package_Dispatcher_Names loop
-            Constituents.Append (Name);
-         end loop;
-         for Name of Package_Dispatcher_Timer_Names loop
-            Constituents.Append (Name);
-         end loop;
-         for Name of Package_Select_Rotation_Names loop
-            Constituents.Append (Name);
-         end loop;
-         return Join_Names (Constituents);
-      end Package_Select_Refined_State;
    begin
-      if not Unit.Channels.Is_Empty
-        or else not Unit.Tasks.Is_Empty
-        or else (for some Decl of Unit.Objects => Decl.Is_Shared)
-      then
-         State.Needs_Gnat_Adc := True;
-      end if;
-      Collect_Bounded_String_Types (Unit, Document, State);
-      Collect_Wide_Locals (Unit, Document, State, Unit.Objects, Unit.Statements);
-      Collect_Select_Dispatcher_Names
-        (Unit.Statements,
-         Package_Dispatcher_Names);
-      Collect_Select_Delay_Timer_Names
-        (Unit.Statements,
-         Package_Dispatcher_Timer_Names);
-      Collect_Select_Rotation_State
-        (Unit.Statements,
-         Package_Select_Rotation_Names,
-         Package_Select_Rotation_Counts);
-      for Task_Item of Unit.Tasks loop
-         Collect_Select_Dispatcher_Names
-           (Task_Item.Statements,
-            Package_Dispatcher_Names);
-         Collect_Select_Delay_Timer_Names
-           (Task_Item.Statements,
-            Package_Dispatcher_Timer_Names);
-         Collect_Select_Rotation_State
-           (Task_Item.Statements,
-            Package_Select_Rotation_Names,
-            Package_Select_Rotation_Counts);
-      end loop;
-
-      Append_Line (Spec_Inner, "pragma SPARK_Mode (On);");
-      Append_Line (Spec_Inner);
       Append_Line
-        (Spec_Inner,
-         "package "
-         & FT.To_String (Unit.Package_Name)
-         & ASCII.LF
-         & Indentation (1)
-         & "with SPARK_Mode => On"
-         & (if not Package_Dispatcher_Names.Is_Empty
-               or else not Package_Dispatcher_Timer_Names.Is_Empty
-               or else not Package_Select_Rotation_Names.Is_Empty
-               or else not Omit_Initializes_Aspect
-            then
-               ","
-            else
-               "")
-         & ASCII.LF
-         & (if not Package_Dispatcher_Names.Is_Empty
-               or else not Package_Dispatcher_Timer_Names.Is_Empty
-               or else not Package_Select_Rotation_Names.Is_Empty
-            then
-               Indentation (1)
-               & "     Abstract_State => ("
-               & Package_Select_Abstract_State_Name
-               & " with External)"
-               & (if Omit_Initializes_Aspect
-                  then
-                     ""
-                  else
-                     ",")
-               & ASCII.LF
-            else
-               "")
-         & (if Omit_Initializes_Aspect
-            then
-               ""
-            else
-               Indentation (1)
-               & "     Initializes => "
-               & Render_Initializes_Aspect (Unit, Document, Bronze)
-               & ASCII.LF)
-         & "is");
-      Append_Line (Spec_Inner, "pragma Elaborate_Body;", 1);
-      Append_Line (Spec_Inner);
-      Append_Bounded_String_Instantiations (Spec_Inner, State);
-      for Item of Unit.Imported_Types loop
-         if FT.Lowercase (FT.To_String (Item.Kind)) = "enum" then
-            Add_Imported_Enum_Use_Type
-              (Ada_Qualified_Name (FT.To_String (Item.Name)));
-         end if;
-      end loop;
-      Collect_Synthetic_Types (Unit, Document, Synthetic_Types);
-      Collect_Owner_Access_Helper_Types (Unit, Document, Owner_Access_Helper_Types);
-      Collect_For_Of_Helper_Types (Unit, Document, For_Of_Helper_Types);
-
-      Emit_Result_Builtin_First :=
-        not Unit_Defines_Result_Type
-        and then (for some Type_Item of Synthetic_Types => Is_Result_Builtin (Type_Item));
-
-      if Emit_Result_Builtin_First then
-         Append_Line
-           (Spec_Inner,
-            Render_Type_Decl (Unit, Document, BT.Result_Type, State),
-            1);
-         Append_Line (Spec_Inner);
-         Emitted_Synthetic_Names.Append (BT.Result_Type.Name);
-      end if;
-
-      for Type_Item of Unit.Types loop
-         declare
-            Name_Text : constant String := FT.To_String (Type_Item.Name);
-            Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
-            Skip_Imported_Synthetic : constant Boolean :=
-              Ada.Strings.Fixed.Index (Name_Text, ".") > 0
-              and then Tail_Name'Length > 2
-              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__";
-         begin
-         if Type_Item.Generic_Formals.Is_Empty
-           and then FT.To_String (Type_Item.Kind) /= "interface"
-           and then not Skip_Imported_Synthetic
-           and then not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name))
-         then
-            if Has_Unemitted_Growable_Dependency (Type_Item) then
-               Deferred_User_Types.Append (Type_Item);
-            else
-               Emit_Synthetic_Dependencies (Type_Item);
-               Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
-               if FT.To_String (Type_Item.Kind) = "record" then
-                  Append_Line (Spec_Inner);
-               end if;
-               if Has_Text (Type_Item.Name) then
-                  Emitted_Synthetic_Names.Append (Type_Item.Name);
-               end if;
-            end if;
-         end if;
-         end;
-      end loop;
-
-      for Type_Item of Synthetic_Types loop
-         Emit_Synthetic_Type_Decl (Type_Item);
-      end loop;
-
-      for Type_Item of Deferred_User_Types loop
-         declare
-            Name_Text : constant String := FT.To_String (Type_Item.Name);
-            Tail_Name : constant String := Synthetic_Type_Tail_Name (Name_Text);
-            Skip_Imported_Synthetic : constant Boolean :=
-              Ada.Strings.Fixed.Index (Name_Text, ".") > 0
-              and then Tail_Name'Length > 2
-              and then Tail_Name (Tail_Name'First .. Tail_Name'First + 1) = "__";
-         begin
-         if not Skip_Imported_Synthetic
-           and then not Contains_Name (Emitted_Synthetic_Names, FT.To_String (Type_Item.Name))
-         then
-            Emit_Synthetic_Dependencies (Type_Item);
-            Append_Line (Spec_Inner, Render_Type_Decl (Unit, Document, Type_Item, State), 1);
-            if FT.To_String (Type_Item.Kind) = "record" then
-               Append_Line (Spec_Inner);
-            end if;
-            if Has_Text (Type_Item.Name) then
-               Emitted_Synthetic_Names.Append (Type_Item.Name);
-            end if;
-         end if;
-         end;
-      end loop;
-
-      for Type_Item of Owner_Access_Helper_Types loop
-         Render_Owner_Access_Helper_Spec (Spec_Inner, Unit, Document, Type_Item);
-      end loop;
-
-      if not Unit.Objects.Is_Empty then
-         for Decl of Unit.Objects loop
-            if not Decl.Is_Shared then
-               declare
-                  Decl_Name : constant String :=
-                    (if Decl.Names.Is_Empty
-                     then ""
-                     else FT.To_String (Decl.Names (Decl.Names.First_Index)));
-                  Defer_Package_Initializer : constant Boolean :=
-                    Should_Defer_Package_Object_Initializer
-                      (Decl, Deferred_Package_Init_Names);
-                  Needs_Decl_Warning_Fence : constant Boolean :=
-                    not Decl.Is_Constant
-                    and then
-                       ((not Decl.Has_Initializer
-                         and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
-                       or else
-                         Defer_Package_Initializer
-                       or else
-                         (Decl.Has_Initializer
-                          and then Decl.Names.Length = 1
-                          and then
-                            (FT.Lowercase
-                               (FT.To_String
-                                  (Base_Type (Unit, Document, Decl.Type_Info).Kind))
-                             = "boolean"
-                             or else
-                               FT.Lowercase
-                                 (FT.To_String
-                                    (Base_Type (Unit, Document, Decl.Type_Info).Name))
-                               = "boolean")
-                          and then
-                            Statements_Use_Name (Unit.Statements, Decl_Name))
-                       or else
-                         (Decl.Has_Initializer
-                          and then Decl.Names.Length = 1
-                          and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
-                          and then
-                            Statements_Use_Name (Unit.Statements, Decl_Name)));
-               begin
-                  if Needs_Decl_Warning_Fence then
-                     Append_Local_Warning_Suppression (Spec_Inner, 1);
-                  end if;
-                  Append_Line
-                    (Spec_Inner,
-                     Render_Object_Decl_Text
-                       (Unit,
-                        Document,
-                        State,
-                        Decl,
-                        Defer_Initializer => Defer_Package_Initializer),
-                     1);
-                  if Needs_Decl_Warning_Fence then
-                     Append_Local_Warning_Restore (Spec_Inner, 1);
-                  end if;
-                  if Defer_Package_Initializer then
-                     Register_Deferred_Package_Init_Names
-                       (Decl, Deferred_Package_Init_Names);
-                  end if;
-               end;
-            end if;
-         end loop;
-         if (for some Decl of Unit.Objects => not Decl.Is_Shared) then
-            Append_Line (Spec_Inner);
-         end if;
-      end if;
-
-      if (for some Decl of Unit.Objects => Decl.Is_Shared) then
-         for Decl of Unit.Objects loop
-            if Decl.Is_Shared then
-               Render_Shared_Object_Spec (Spec_Inner, Unit, Document, Decl, Bronze, State);
-            end if;
-         end loop;
-      end if;
-
-      if not Unit.Channels.Is_Empty then
-         for Channel of Unit.Channels loop
-            Render_Channel_Spec (Spec_Inner, Unit, Document, Channel, Bronze);
-         end loop;
-      end if;
-
-      if not Unit.Subprograms.Is_Empty then
-         for Subprogram of Unit.Subprograms loop
-            if not Subprogram.Is_Interface_Template
-              and then not Subprogram.Is_Generic_Template
-            then
-               declare
-                  Expression_Image : constant String :=
-                    (if Subprogram.Force_Body_Emission
-                     then ""
-                     else
-                       Render_Expression_Function_Image
-                         (Unit, Document, Subprogram, State));
-               begin
-                  if Expression_Image'Length = 0 then
-                     Append_Line
-                       (Spec_Inner,
-                        Render_Ada_Subprogram_Keyword (Subprogram)
-                        & " "
-                        & FT.To_String (Subprogram.Name)
-                        & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
-                        & Render_Subprogram_Return (Unit, Document, Subprogram)
-                        & Render_Subprogram_Aspects (Unit, Document, Subprogram, Bronze, State)
-                        & ";",
-                        1);
-                  end if;
-               end;
-            end if;
-         end loop;
-
-         for Subprogram of Unit.Subprograms loop
-            if not Subprogram.Is_Interface_Template
-              and then not Subprogram.Is_Generic_Template
-            then
-               declare
-                  Expression_Image : constant String :=
-                    (if Subprogram.Force_Body_Emission
-                     then ""
-                     else
-                       Render_Expression_Function_Image
-                         (Unit, Document, Subprogram, State));
-               begin
-                  if Expression_Image'Length > 0 then
-                     Append_Line
-                       (Spec_Inner,
-                        Render_Ada_Subprogram_Keyword (Subprogram)
-                        & " "
-                        & FT.To_String (Subprogram.Name)
-                        & Render_Subprogram_Params (Unit, Document, Subprogram.Params)
-                        & Render_Subprogram_Return (Unit, Document, Subprogram)
-                        & " is (" & Expression_Image & ")"
-                        & Render_Subprogram_Aspects (Unit, Document, Subprogram, Bronze, State)
-                        & ";",
-                        1);
-                  end if;
-               end;
-            end if;
-         end loop;
-         Append_Line (Spec_Inner);
-      end if;
-
-      if not Unit.Tasks.Is_Empty then
-         for Task_Item of Unit.Tasks loop
-            Append_Line
-              (Spec_Inner,
-               "task "
-               & FT.To_String (Task_Item.Name)
-               & (if Task_Item.Has_Explicit_Priority
-                  then " with Priority => " & Trim_Image (Task_Item.Priority)
-                  else "")
-               & ";",
-               1);
-         end loop;
-         Append_Line (Spec_Inner);
-      end if;
-
-      if not Package_Dispatcher_Names.Is_Empty
-        or else not Package_Dispatcher_Timer_Names.Is_Empty
-        or else not Package_Select_Rotation_Names.Is_Empty
-      then
-         Append_Line (Spec_Inner, "private", 1);
-         for Name of Package_Dispatcher_Names loop
-            Render_Select_Dispatcher_Spec
-              (Spec_Inner,
-               FT.To_String (Name));
-            Render_Select_Dispatcher_Object_Decl
-              (Spec_Inner,
-               FT.To_String (Name));
-         end loop;
-         for Name of Package_Dispatcher_Timer_Names loop
-            Append_Line
-              (Spec_Inner,
-               FT.To_String (Name)
-               & " : Ada.Real_Time.Timing_Events.Timing_Event"
-               & ASCII.LF
-               & Indentation (1)
-               & "  with Part_Of => Safe_Select_Internal_State;",
-               1);
-         end loop;
-         if not Package_Select_Rotation_Names.Is_Empty then
-            for Index in Package_Select_Rotation_Names.First_Index
-              .. Package_Select_Rotation_Names.Last_Index
-            loop
-               Append_Line
-                 (Spec_Inner,
-                  FT.To_String (Package_Select_Rotation_Names (Index))
-                  & " : Positive range 1 .. "
-                  & FT.To_String (Package_Select_Rotation_Counts (Index))
-                  & " := 1"
-                  & ASCII.LF
-                  & Indentation (1)
-                  & "  with Part_Of => Safe_Select_Internal_State;",
-                  1);
-            end loop;
-         end if;
-         Append_Line (Spec_Inner);
-      end if;
-
-      Append_Line (Spec_Inner, "end " & FT.To_String (Unit.Package_Name) & ";");
-
-      Append_Line
-        (Body_Inner,
+        (Context.Body_Inner,
          "package body "
          & FT.To_String (Unit.Package_Name)
          & " with SPARK_Mode => " & Package_Body_Spark_Mode
-         & (if not Package_Dispatcher_Names.Is_Empty
-               or else not Package_Dispatcher_Timer_Names.Is_Empty
-               or else not Package_Select_Rotation_Names.Is_Empty
+         & (if not Context.Package_Dispatcher_Names.Is_Empty
+               or else not Context.Package_Dispatcher_Timer_Names.Is_Empty
+               or else not Context.Package_Select_Rotation_Names.Is_Empty
             then
                "," & ASCII.LF
                & Indentation (1)
                & "     Refined_State => ("
                & Package_Select_Abstract_State_Name
                & " => ("
-               & Package_Select_Refined_State
+               & Package_Select_Refined_State (Context)
                & "))"
             else
                "")
          & " is");
-      Append_Bounded_String_Uses (Body_Inner, State, 1);
-      Append_Line (Body_Inner);
+      Append_Bounded_String_Uses (Context.Body_Inner, Context.State, 1);
+      Append_Line (Context.Body_Inner);
 
       for Type_Item of Unit.Types loop
          if Type_Item.Generic_Formals.Is_Empty
            and then FT.To_String (Type_Item.Kind) /= "interface"
          then
             Render_Growable_Array_Helper_Body
-              (Body_Inner, Unit, Document, Type_Item, State);
+              (Context.Body_Inner, Unit, Document, Type_Item, Context.State);
          end if;
       end loop;
 
-      for Type_Item of Synthetic_Types loop
+      for Type_Item of Context.Synthetic_Types loop
          Render_Growable_Array_Helper_Body
-           (Body_Inner, Unit, Document, Type_Item, State);
+           (Context.Body_Inner, Unit, Document, Type_Item, Context.State);
       end loop;
 
-      for Type_Item of Owner_Access_Helper_Types loop
+      for Type_Item of Context.Owner_Access_Helper_Types loop
          Render_Owner_Access_Helper_Body
-           (Body_Inner, Unit, Document, Type_Item, State);
+           (Context.Body_Inner, Unit, Document, Type_Item, Context.State);
       end loop;
       Render_For_Of_Helper_Bodies
-        (Body_Inner,
+        (Context.Body_Inner,
          Unit,
          Document,
-         For_Of_Helper_Types,
-         State);
+         Context.For_Of_Helper_Types,
+         Context.State);
 
-      for Name of Package_Dispatcher_Names loop
+      for Name of Context.Package_Dispatcher_Names loop
          Render_Select_Dispatcher_Body
-           (Body_Inner,
+           (Context.Body_Inner,
             FT.To_String (Name));
       end loop;
-      if not Package_Dispatcher_Names.Is_Empty then
-         Append_Line (Body_Inner);
+      if not Context.Package_Dispatcher_Names.Is_Empty then
+         Append_Line (Context.Body_Inner);
       end if;
       for Decl of Unit.Objects loop
          if Decl.Is_Shared then
-            Render_Shared_Object_Body (Body_Inner, Unit, Document, Decl, Bronze, State);
+            Render_Shared_Object_Body
+              (Context.Body_Inner, Unit, Document, Decl, Bronze, Context.State);
          end if;
       end loop;
-      for Name of Package_Dispatcher_Timer_Names loop
+      for Name of Context.Package_Dispatcher_Timer_Names loop
          declare
             Timer_Text : constant String := FT.To_String (Name);
             Dispatcher_Text : constant String :=
               Timer_Text (Timer_Text'First .. Timer_Text'Last - 6);
          begin
             Render_Select_Dispatcher_Delay_Helpers
-              (Body_Inner,
+              (Context.Body_Inner,
                Dispatcher => Dispatcher_Text,
                Timer_Name => Timer_Text,
                Init_Helper => Dispatcher_Text & "_Initialize_Timer",
@@ -24559,12 +24656,12 @@ package body Safe_Frontend.Ada_Emit is
                Cancel_Helper => Dispatcher_Text & "_Cancel_Deadline");
          end;
       end loop;
-      if not Package_Dispatcher_Timer_Names.Is_Empty then
-         Append_Line (Body_Inner);
+      if not Context.Package_Dispatcher_Timer_Names.Is_Empty then
+         Append_Line (Context.Body_Inner);
       end if;
 
       for Channel of Unit.Channels loop
-         Render_Channel_Body (Body_Inner, Unit, Document, Channel, State);
+         Render_Channel_Body (Context.Body_Inner, Unit, Document, Channel, Context.State);
       end loop;
 
       for Subprogram of Unit.Subprograms loop
@@ -24572,72 +24669,84 @@ package body Safe_Frontend.Ada_Emit is
            and then not Subprogram.Is_Generic_Template
            and then
              (Subprogram.Force_Body_Emission
-              or else Render_Expression_Function_Image (Unit, Document, Subprogram, State)'Length = 0)
+              or else
+                Render_Expression_Function_Image
+                  (Unit, Document, Subprogram, Context.State)'Length = 0)
          then
-            Render_Subprogram_Body (Body_Inner, Unit, Document, Subprogram, State);
+            Render_Subprogram_Body
+              (Context.Body_Inner, Unit, Document, Subprogram, Context.State);
          end if;
       end loop;
 
       for Task_Item of Unit.Tasks loop
-         Render_Task_Body (Body_Inner, Unit, Document, Task_Item, State);
+         Render_Task_Body (Context.Body_Inner, Unit, Document, Task_Item, Context.State);
       end loop;
 
       if not Unit.Statements.Is_Empty
-        or else not Deferred_Package_Init_Names.Is_Empty
-        or else not Package_Dispatcher_Timer_Names.Is_Empty
+        or else not Context.Deferred_Package_Init_Names.Is_Empty
+        or else not Context.Package_Dispatcher_Timer_Names.Is_Empty
         or else
           (for some Decl of Unit.Objects =>
              Decl.Is_Shared and then Decl.Has_Initializer and then Decl.Initializer /= null)
       then
          Append_Gnatprove_Warning_Suppression
-           (Body_Inner,
+           (Context.Body_Inner,
             "has no effect",
             "generated package elaboration helper is intentional",
             1);
          declare
             Elaborate_Precondition : constant String := Package_Elaborate_Precondition;
          begin
-            if Needs_Spark_Off_Elaboration_Helper then
+            if Context.Needs_Spark_Off_Elaboration_Helper then
                if Elaborate_Precondition'Length > 0 then
-                  Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
                   Append_Line
-                    (Body_Inner,
+                    (Context.Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
+                  Append_Line
+                    (Context.Body_Inner,
                      "  with Pre => " & Elaborate_Precondition & ",",
                      1);
                   Append_Line
-                    (Body_Inner,
+                    (Context.Body_Inner,
                      "       Always_Terminates;",
                      1);
                else
-                  Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
-                  Append_Line (Body_Inner, "  with Always_Terminates;", 1);
+                  Append_Line
+                    (Context.Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
+                  Append_Line (Context.Body_Inner, "  with Always_Terminates;", 1);
                end if;
-               Append_Line (Body_Inner);
-               Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name & " is", 1);
-               Append_Line (Body_Inner, "pragma SPARK_Mode (Off);", 2);
-            elsif Elaborate_Precondition'Length > 0 then
-               Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
+               Append_Line (Context.Body_Inner);
                Append_Line
-                 (Body_Inner,
+                 (Context.Body_Inner,
+                  "procedure " & Generated_Elaborate_Name & " is",
+                  1);
+               Append_Line (Context.Body_Inner, "pragma SPARK_Mode (Off);", 2);
+            elsif Elaborate_Precondition'Length > 0 then
+               Append_Line
+                 (Context.Body_Inner, "procedure " & Generated_Elaborate_Name, 1);
+               Append_Line
+                 (Context.Body_Inner,
                   "  with Pre => " & Elaborate_Precondition,
                   1);
-               Append_Line (Body_Inner, "is", 1);
+               Append_Line (Context.Body_Inner, "is", 1);
             else
-               Append_Line (Body_Inner, "procedure " & Generated_Elaborate_Name & " is", 1);
+               Append_Line
+                 (Context.Body_Inner,
+                  "procedure " & Generated_Elaborate_Name & " is",
+                  1);
             end if;
          end;
-         Append_Line (Body_Inner, "begin", 1);
+         Append_Line (Context.Body_Inner, "begin", 1);
          declare
             Deferred_Names : FT.UString_Vectors.Vector;
          begin
-            for Name of Package_Dispatcher_Timer_Names loop
+            for Name of Context.Package_Dispatcher_Timer_Names loop
                declare
                   Timer_Text : constant String := FT.To_String (Name);
                   Dispatcher_Text : constant String :=
                     Timer_Text (Timer_Text'First .. Timer_Text'Last - 6);
                begin
                   Append_Line
-                    (Body_Inner,
+                    (Context.Body_Inner,
                      Dispatcher_Text & "_Initialize_Timer;",
                      2);
                end;
@@ -24648,7 +24757,7 @@ package body Safe_Frontend.Ada_Emit is
                  and then Decl.Initializer /= null
                then
                   Append_Line
-                    (Body_Inner,
+                    (Context.Body_Inner,
                      Shared_Wrapper_Object_Name
                        (FT.To_String (Decl.Names (Decl.Names.First_Index)))
                      & ".Initialize ("
@@ -24657,23 +24766,24 @@ package body Safe_Frontend.Ada_Emit is
                           Document,
                           Decl.Initializer,
                           Decl.Type_Info,
-                          State)
+                          Context.State)
                      & ");",
                      2);
                end if;
             end loop;
             for Decl of Unit.Objects loop
                if not Decl.Is_Shared
-                 and then Should_Defer_Package_Object_Initializer (Decl, Deferred_Names)
+                 and then Should_Defer_Package_Object_Initializer
+                   (Unit, Document, Decl, Deferred_Names)
                then
                   for Name of Decl.Names loop
                      Append_Gnatprove_Warning_Suppression
-                       (Body_Inner,
+                       (Context.Body_Inner,
                         "unused assignment",
                         "deferred heap-backed package initialization is intentional",
                         2);
                      Append_Line
-                       (Body_Inner,
+                       (Context.Body_Inner,
                         FT.To_String (Name)
                         & " := "
                         & Render_Expr_For_Target_Type
@@ -24681,7 +24791,7 @@ package body Safe_Frontend.Ada_Emit is
                              Document,
                              Decl.Initializer,
                              Decl.Type_Info,
-                             State)
+                             Context.State)
                         & ";",
                         2);
                      declare
@@ -24693,7 +24803,7 @@ package body Safe_Frontend.Ada_Emit is
                              Document,
                              Expr_Type_Info (Unit, Document, Decl.Initializer));
                         Source_Image : constant String :=
-                          Render_Expr (Unit, Document, Decl.Initializer, State);
+                          Render_Expr (Unit, Document, Decl.Initializer, Context.State);
                         Cardinality : Natural := 0;
                      begin
                         if Is_Growable_Array_Type (Unit, Document, Target_Info)
@@ -24713,7 +24823,9 @@ package body Safe_Frontend.Ada_Emit is
                                 Resolve_Type_Name
                                   (Unit,
                                    Document,
-                                   FT.To_String (Base_Source.Index_Types (Base_Source.Index_Types.First_Index)));
+                                   FT.To_String
+                                     (Base_Source.Index_Types
+                                        (Base_Source.Index_Types.First_Index)));
                               Source_Low : Long_Long_Integer := 0;
                            begin
                               if not Index_Info.Has_Low or else not Index_Info.Has_High then
@@ -24722,7 +24834,7 @@ package body Safe_Frontend.Ada_Emit is
                               if Index_Info.Has_Low and then Index_Info.Has_High then
                                  Source_Low := Index_Info.Low;
                                  Append_Line
-                                   (Body_Inner,
+                                   (Context.Body_Inner,
                                     "pragma Assert ("
                                     & Array_Runtime_Instance_Name (Target_Info)
                                     & ".Length ("
@@ -24737,7 +24849,7 @@ package body Safe_Frontend.Ada_Emit is
                                          Source_Low + Long_Long_Integer (Offset);
                                     begin
                                        Append_Line
-                                         (Body_Inner,
+                                         (Context.Body_Inner,
                                           "pragma Assert ("
                                           & Array_Runtime_Instance_Name (Target_Info)
                                           & ".Element ("
@@ -24757,7 +24869,7 @@ package body Safe_Frontend.Ada_Emit is
                         end if;
                      end;
                      Append_Gnatprove_Warning_Restore
-                       (Body_Inner,
+                       (Context.Body_Inner,
                         "unused assignment",
                         2);
                   end loop;
@@ -24765,194 +24877,228 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             end loop;
          end;
-         Seed_Package_Static_Bindings (State);
+         Seed_Package_Static_Bindings (Context.State);
          Render_Required_Statement_Suite
-           (Body_Inner, Unit, Document, Unit.Statements, State, 2, "");
-         Append_Line (Body_Inner, "end " & Generated_Elaborate_Name & ";", 1);
+           (Context.Body_Inner, Unit, Document, Unit.Statements, Context.State, 2, "");
+         Append_Line
+           (Context.Body_Inner,
+            "end " & Generated_Elaborate_Name & ";",
+            1);
          Append_Gnatprove_Warning_Restore
-           (Body_Inner,
+           (Context.Body_Inner,
             "has no effect",
             1);
-         Append_Line (Body_Inner);
-         Append_Line (Body_Inner, "begin");
-         Append_Line (Body_Inner, Generated_Elaborate_Name & ";", 1);
+         Append_Line (Context.Body_Inner);
+         Append_Line (Context.Body_Inner, "begin");
+         Append_Line (Context.Body_Inner, Generated_Elaborate_Name & ";", 1);
       end if;
 
-      Append_Line (Body_Inner, "end " & FT.To_String (Unit.Package_Name) & ";");
+      Append_Line
+        (Context.Body_Inner,
+         "end " & FT.To_String (Unit.Package_Name) & ";");
+   end Emit_Package_Body;
 
-      if State.Needs_Ada_Strings_Unbounded then
-         Add_Body_With ("Ada.Strings.Unbounded");
+   procedure Finalize_Body_Text
+     (Context : in out Emit_Context)
+   is
+   begin
+      if Context.State.Needs_Ada_Strings_Unbounded then
+         Add_Body_With (Context, "Ada.Strings.Unbounded");
       end if;
-      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Strings.Fixed.") > 0 then
-         Add_Body_With ("Ada.Strings");
-         Add_Body_With ("Ada.Strings.Fixed");
+      if Ada.Strings.Fixed.Index (SU.To_String (Context.Body_Inner), "Ada.Strings.Fixed.") > 0 then
+         Add_Body_With (Context, "Ada.Strings");
+         Add_Body_With (Context, "Ada.Strings.Fixed");
       end if;
-      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Characters.Handling.") > 0 then
-         Add_Body_With ("Ada.Characters");
-         Add_Body_With ("Ada.Characters.Handling");
+      if Ada.Strings.Fixed.Index (SU.To_String (Context.Body_Inner), "Ada.Characters.Handling.") > 0 then
+         Add_Body_With (Context, "Ada.Characters");
+         Add_Body_With (Context, "Ada.Characters.Handling");
       end if;
-      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Interfaces.") > 0 then
-         Add_Body_With ("Interfaces");
+      if Ada.Strings.Fixed.Index (SU.To_String (Context.Body_Inner), "Interfaces.") > 0 then
+         Add_Body_With (Context, "Interfaces");
       end if;
-      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "System.") > 0 then
-         Add_Body_With ("System");
+      if Ada.Strings.Fixed.Index (SU.To_String (Context.Body_Inner), "System.") > 0 then
+         Add_Body_With (Context, "System");
       end if;
-      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Ada.Real_Time.Timing_Events.") > 0 then
-         Add_Body_With ("Ada.Real_Time");
-         Add_Body_With ("Ada.Real_Time.Timing_Events");
+      if Ada.Strings.Fixed.Index (SU.To_String (Context.Body_Inner), "Ada.Real_Time.Timing_Events.") > 0 then
+         Add_Body_With (Context, "Ada.Real_Time");
+         Add_Body_With (Context, "Ada.Real_Time.Timing_Events");
       end if;
-      if State.Needs_Safe_IO then
-         Add_Body_With ("IO");
+      if Context.State.Needs_Safe_IO then
+         Add_Body_With (Context, "IO");
       end if;
-      if State.Needs_Ada_Real_Time then
-         Add_Body_With ("Ada.Real_Time");
+      if Context.State.Needs_Ada_Real_Time then
+         Add_Body_With (Context, "Ada.Real_Time");
       end if;
-      if State.Needs_Safe_Runtime then
-         Add_Body_With ("Safe_Runtime");
+      if Context.State.Needs_Safe_Runtime then
+         Add_Body_With (Context, "Safe_Runtime");
       end if;
-      if State.Needs_Safe_String_RT then
-         Add_Body_With ("Safe_String_RT");
+      if Context.State.Needs_Safe_String_RT then
+         Add_Body_With (Context, "Safe_String_RT");
       end if;
-      if State.Needs_Safe_Array_RT then
-         Add_Body_With ("Safe_Array_RT");
+      if Context.State.Needs_Safe_Array_RT then
+         Add_Body_With (Context, "Safe_Array_RT");
       end if;
-      if not Owner_Access_Helper_Types.Is_Empty then
-         Add_Body_With ("Safe_Ownership_RT");
+      if not Context.Owner_Access_Helper_Types.Is_Empty then
+         Add_Body_With (Context, "Safe_Ownership_RT");
       end if;
 
-      for Item of Body_Withs loop
-         Append_Line (Body_Text, "with " & FT.To_String (Item) & ";");
+      for Item of Context.Body_Withs loop
+         Append_Line (Context.Body_Text, "with " & FT.To_String (Item) & ";");
       end loop;
-      if State.Needs_Safe_Runtime then
-         Append_Line (Body_Text, "use type Safe_Runtime.Wide_Integer;");
+      if Context.State.Needs_Safe_Runtime then
+         Append_Line (Context.Body_Text, "use type Safe_Runtime.Wide_Integer;");
       end if;
-      if State.Needs_Ada_Real_Time then
-         Append_Line (Body_Text, "use type Ada.Real_Time.Time;");
+      if Context.State.Needs_Ada_Real_Time then
+         Append_Line (Context.Body_Text, "use type Ada.Real_Time.Time;");
       end if;
-      if State.Needs_Safe_String_RT then
-         Append_Line (Body_Text, "use type Safe_String_RT.Safe_String;");
+      if Context.State.Needs_Safe_String_RT then
+         Append_Line (Context.Body_Text, "use type Safe_String_RT.Safe_String;");
       end if;
-      if Ada.Strings.Fixed.Index (SU.To_String (Body_Inner), "Interfaces.") > 0 then
-         Append_Line (Body_Text, "use type Interfaces.Unsigned_8;");
-         Append_Line (Body_Text, "use type Interfaces.Unsigned_16;");
-         Append_Line (Body_Text, "use type Interfaces.Unsigned_32;");
-         Append_Line (Body_Text, "use type Interfaces.Unsigned_64;");
+      if Ada.Strings.Fixed.Index (SU.To_String (Context.Body_Inner), "Interfaces.") > 0 then
+         Append_Line (Context.Body_Text, "use type Interfaces.Unsigned_8;");
+         Append_Line (Context.Body_Text, "use type Interfaces.Unsigned_16;");
+         Append_Line (Context.Body_Text, "use type Interfaces.Unsigned_32;");
+         Append_Line (Context.Body_Text, "use type Interfaces.Unsigned_64;");
       end if;
-      for Item of Imported_Enum_Use_Types loop
-         Append_Line (Body_Text, "use type " & FT.To_String (Item) & ";");
+      for Item of Context.Imported_Enum_Use_Types loop
+         Append_Line (Context.Body_Text, "use type " & FT.To_String (Item) & ";");
       end loop;
-      if not Body_Withs.Is_Empty then
-         Append_Line (Body_Text);
+      if not Context.Body_Withs.Is_Empty then
+         Append_Line (Context.Body_Text);
       end if;
-      Body_Text := Body_Text & Body_Inner;
-      declare
-         Original_Spec : constant String := SU.To_String (Spec_Inner);
-         Pragma_Block  : constant String :=
-           "pragma SPARK_Mode (On);" & ASCII.LF & ASCII.LF;
-         Spec_Needs_Safe_Runtime : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Safe_Runtime.") > 0;
-         Spec_Needs_Safe_String_RT : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Safe_String_RT.") > 0;
-         Spec_Needs_Safe_Array_RT : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_RT") > 0;
-         Spec_Needs_Safe_Array_Identity_Ops : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_Identity_Ops") > 0;
-         Spec_Needs_Safe_Array_Identity_RT : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_Identity_RT") > 0;
-         Spec_Needs_Safe_Bounded_Strings : constant Boolean :=
-           State.Needs_Safe_Bounded_Strings;
-         Spec_Needs_Ada_Strings_Unbounded : constant Boolean :=
-           State.Needs_Ada_Strings_Unbounded;
-         Spec_Needs_Ada_Real_Time_Timing_Events : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Ada.Real_Time.Timing_Events.") > 0;
-         Spec_Needs_Interfaces : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "Interfaces.") > 0;
-         Spec_Needs_System : constant Boolean :=
-           Ada.Strings.Fixed.Index (Original_Spec, "System.") > 0;
-         Spec_Needs_Safe_Ownership_RT : constant Boolean :=
-           not Owner_Access_Helper_Types.Is_Empty;
-      begin
-         if (Spec_Needs_Safe_Runtime
-             or else Spec_Needs_Safe_String_RT
-             or else Spec_Needs_Safe_Array_RT
-             or else Spec_Needs_Safe_Array_Identity_Ops
-             or else Spec_Needs_Safe_Array_Identity_RT
-             or else Spec_Needs_Safe_Bounded_Strings
-             or else Spec_Needs_Ada_Strings_Unbounded
-             or else Spec_Needs_Ada_Real_Time_Timing_Events
-             or else Spec_Needs_Interfaces
-             or else Spec_Needs_System
-             or else Spec_Needs_Safe_Ownership_RT
-             or else State.Needs_Unevaluated_Use_Of_Old)
-           and then Original_Spec'Length >= Pragma_Block'Length
-           and then
-             Original_Spec
-               (Original_Spec'First .. Original_Spec'First + Pragma_Block'Length - 1) =
-               Pragma_Block
-         then
-            Append_Line (Spec_Text, "pragma SPARK_Mode (On);");
-            if State.Needs_Unevaluated_Use_Of_Old then
-               Append_Line (Spec_Text, "pragma Unevaluated_Use_Of_Old (Allow);");
-            end if;
-            if Spec_Needs_Ada_Strings_Unbounded then
-               Append_Line (Spec_Text, "with Ada.Strings.Unbounded;");
-            end if;
-            if Spec_Needs_Ada_Real_Time_Timing_Events then
-               Append_Line (Spec_Text, "with Ada.Real_Time;");
-               Append_Line (Spec_Text, "with Ada.Real_Time.Timing_Events;");
-            end if;
-            if Spec_Needs_Safe_String_RT then
-               Append_Line (Spec_Text, "with Safe_String_RT;");
-            end if;
-            if Spec_Needs_Safe_Array_RT then
-               Append_Line (Spec_Text, "with Safe_Array_RT;");
-            end if;
-            if Spec_Needs_Safe_Array_Identity_Ops then
-               Append_Line (Spec_Text, "with Safe_Array_Identity_Ops;");
-            end if;
-            if Spec_Needs_Safe_Array_Identity_RT then
-               Append_Line (Spec_Text, "with Safe_Array_Identity_RT;");
-            end if;
-            if Spec_Needs_Safe_Bounded_Strings then
-               Append_Line (Spec_Text, "with Safe_Bounded_Strings;");
-            end if;
-            if Spec_Needs_Interfaces then
-               Append_Line (Spec_Text, "with Interfaces;");
-               Append_Line (Spec_Text, "use type Interfaces.Unsigned_8;");
-               Append_Line (Spec_Text, "use type Interfaces.Unsigned_16;");
-               Append_Line (Spec_Text, "use type Interfaces.Unsigned_32;");
-               Append_Line (Spec_Text, "use type Interfaces.Unsigned_64;");
-            end if;
-            if Spec_Needs_System then
-               Append_Line (Spec_Text, "with System;");
-            end if;
-            if Spec_Needs_Safe_Runtime then
-               Append_Line (Spec_Text, "with Safe_Runtime;");
-               Append_Line (Spec_Text, "use type Safe_Runtime.Wide_Integer;");
-            end if;
-            for Item of Imported_Enum_Use_Types loop
-               Append_Line (Spec_Text, "use type " & FT.To_String (Item) & ";");
-            end loop;
-            if Spec_Needs_Safe_Ownership_RT then
-               Append_Line (Spec_Text, "with Safe_Ownership_RT;");
-            end if;
-            Append_Line (Spec_Text);
-            Spec_Text :=
-              Spec_Text
-              & SU.To_Unbounded_String
-                  (Original_Spec
-                     (Original_Spec'First + Pragma_Block'Length .. Original_Spec'Last));
-         else
-            Spec_Text := Spec_Text & Spec_Inner;
+      Context.Body_Text := Context.Body_Text & Context.Body_Inner;
+   end Finalize_Body_Text;
+
+   procedure Finalize_Spec_Text
+     (Context : in out Emit_Context)
+   is
+      Original_Spec : constant String := SU.To_String (Context.Spec_Inner);
+      Pragma_Block  : constant String :=
+        "pragma SPARK_Mode (On);" & ASCII.LF & ASCII.LF;
+      Spec_Needs_Safe_Runtime : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Safe_Runtime.") > 0;
+      Spec_Needs_Safe_String_RT : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Safe_String_RT.") > 0;
+      Spec_Needs_Safe_Array_RT : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_RT") > 0;
+      Spec_Needs_Safe_Array_Identity_Ops : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_Identity_Ops") > 0;
+      Spec_Needs_Safe_Array_Identity_RT : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Safe_Array_Identity_RT") > 0;
+      Spec_Needs_Safe_Bounded_Strings : constant Boolean :=
+        Context.State.Needs_Safe_Bounded_Strings;
+      Spec_Needs_Ada_Strings_Unbounded : constant Boolean :=
+        Context.State.Needs_Ada_Strings_Unbounded;
+      Spec_Needs_Ada_Real_Time_Timing_Events : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Ada.Real_Time.Timing_Events.") > 0;
+      Spec_Needs_Interfaces : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "Interfaces.") > 0;
+      Spec_Needs_System : constant Boolean :=
+        Ada.Strings.Fixed.Index (Original_Spec, "System.") > 0;
+      Spec_Needs_Safe_Ownership_RT : constant Boolean :=
+        not Context.Owner_Access_Helper_Types.Is_Empty;
+   begin
+      if (Spec_Needs_Safe_Runtime
+          or else Spec_Needs_Safe_String_RT
+          or else Spec_Needs_Safe_Array_RT
+          or else Spec_Needs_Safe_Array_Identity_Ops
+          or else Spec_Needs_Safe_Array_Identity_RT
+          or else Spec_Needs_Safe_Bounded_Strings
+          or else Spec_Needs_Ada_Strings_Unbounded
+          or else Spec_Needs_Ada_Real_Time_Timing_Events
+          or else Spec_Needs_Interfaces
+          or else Spec_Needs_System
+          or else Spec_Needs_Safe_Ownership_RT
+          or else Context.State.Needs_Unevaluated_Use_Of_Old)
+        and then Original_Spec'Length >= Pragma_Block'Length
+        and then
+          Original_Spec
+            (Original_Spec'First .. Original_Spec'First + Pragma_Block'Length - 1) =
+            Pragma_Block
+      then
+         Append_Line (Context.Spec_Text, "pragma SPARK_Mode (On);");
+         if Context.State.Needs_Unevaluated_Use_Of_Old then
+            Append_Line (Context.Spec_Text, "pragma Unevaluated_Use_Of_Old (Allow);");
          end if;
-      end;
+         if Spec_Needs_Ada_Strings_Unbounded then
+            Append_Line (Context.Spec_Text, "with Ada.Strings.Unbounded;");
+         end if;
+         if Spec_Needs_Ada_Real_Time_Timing_Events then
+            Append_Line (Context.Spec_Text, "with Ada.Real_Time;");
+            Append_Line (Context.Spec_Text, "with Ada.Real_Time.Timing_Events;");
+         end if;
+         if Spec_Needs_Safe_String_RT then
+            Append_Line (Context.Spec_Text, "with Safe_String_RT;");
+         end if;
+         if Spec_Needs_Safe_Array_RT then
+            Append_Line (Context.Spec_Text, "with Safe_Array_RT;");
+         end if;
+         if Spec_Needs_Safe_Array_Identity_Ops then
+            Append_Line (Context.Spec_Text, "with Safe_Array_Identity_Ops;");
+         end if;
+         if Spec_Needs_Safe_Array_Identity_RT then
+            Append_Line (Context.Spec_Text, "with Safe_Array_Identity_RT;");
+         end if;
+         if Spec_Needs_Safe_Bounded_Strings then
+            Append_Line (Context.Spec_Text, "with Safe_Bounded_Strings;");
+         end if;
+         if Spec_Needs_Interfaces then
+            Append_Line (Context.Spec_Text, "with Interfaces;");
+            Append_Line (Context.Spec_Text, "use type Interfaces.Unsigned_8;");
+            Append_Line (Context.Spec_Text, "use type Interfaces.Unsigned_16;");
+            Append_Line (Context.Spec_Text, "use type Interfaces.Unsigned_32;");
+            Append_Line (Context.Spec_Text, "use type Interfaces.Unsigned_64;");
+         end if;
+         if Spec_Needs_System then
+            Append_Line (Context.Spec_Text, "with System;");
+         end if;
+         if Spec_Needs_Safe_Runtime then
+            Append_Line (Context.Spec_Text, "with Safe_Runtime;");
+            Append_Line (Context.Spec_Text, "use type Safe_Runtime.Wide_Integer;");
+         end if;
+         for Item of Context.Imported_Enum_Use_Types loop
+            Append_Line (Context.Spec_Text, "use type " & FT.To_String (Item) & ";");
+         end loop;
+         if Spec_Needs_Safe_Ownership_RT then
+            Append_Line (Context.Spec_Text, "with Safe_Ownership_RT;");
+         end if;
+         Append_Line (Context.Spec_Text);
+         Context.Spec_Text :=
+           Context.Spec_Text
+           & SU.To_Unbounded_String
+               (Original_Spec
+                  (Original_Spec'First + Pragma_Block'Length .. Original_Spec'Last));
+      else
+         Context.Spec_Text := Context.Spec_Text & Context.Spec_Inner;
+      end if;
+   end Finalize_Spec_Text;
 
+   function Build_Emit_Result
+     (Unit    : CM.Resolved_Unit;
+      Context : Emit_Context) return Artifact_Result
+   is
+   begin
       return
         (Success            => True,
          Unit_Name          => Unit.Package_Name,
-         Spec_Text          => FT.To_UString (SU.To_String (Spec_Text)),
-         Body_Text          => FT.To_UString (SU.To_String (Body_Text)),
-         Needs_Gnat_Adc     => State.Needs_Gnat_Adc);
+         Spec_Text          => FT.To_UString (SU.To_String (Context.Spec_Text)),
+         Body_Text          => FT.To_UString (SU.To_String (Context.Body_Text)),
+         Needs_Gnat_Adc     => Context.State.Needs_Gnat_Adc);
+   end Build_Emit_Result;
+
+   function Emit
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Bronze   : MB.Bronze_Result) return Artifact_Result
+   is
+      Context : Emit_Context;
+   begin
+      Prepare_Emit_Context (Unit, Document, Context);
+      Emit_Package_Spec (Unit, Document, Bronze, Context);
+      Emit_Package_Body (Unit, Document, Bronze, Context);
+      Finalize_Body_Text (Context);
+      Finalize_Spec_Text (Context);
+      return Build_Emit_Result (Unit, Context);
    exception
       when Emitter_Unsupported =>
          return
@@ -24960,7 +25106,7 @@ package body Safe_Frontend.Ada_Emit is
             Diagnostic =>
               CM.Unsupported_Source_Construct
                 (Path    => FT.To_String (Unit.Path),
-                 Span    => State.Unsupported_Span,
-                 Message => FT.To_String (State.Unsupported_Message)));
+                 Span    => Context.State.Unsupported_Span,
+                 Message => FT.To_String (Context.State.Unsupported_Message)));
    end Emit;
 end Safe_Frontend.Ada_Emit;
