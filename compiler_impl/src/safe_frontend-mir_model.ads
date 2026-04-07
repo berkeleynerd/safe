@@ -169,6 +169,26 @@ package Safe_Frontend.Mir_Model is
      (Index_Type   => Positive,
       Element_Type => Variant_Field);
 
+   type Sum_Variant_Field_Descriptor is record
+      Source_Name   : FT.UString := FT.To_UString ("");
+      Internal_Name : FT.UString := FT.To_UString ("");
+      Type_Name     : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Sum_Variant_Field_Descriptor_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Sum_Variant_Field_Descriptor);
+
+   type Sum_Variant_Descriptor is record
+      Name             : FT.UString := FT.To_UString ("");
+      Tag_Literal_Name : FT.UString := FT.To_UString ("");
+      Fields           : Sum_Variant_Field_Descriptor_Vectors.Vector;
+   end record;
+
+   package Sum_Variant_Descriptor_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Sum_Variant_Descriptor);
+
    type Type_Descriptor is record
       Name               : FT.UString := FT.To_UString ("");
       Kind               : FT.UString := FT.To_UString ("");
@@ -211,6 +231,7 @@ package Safe_Frontend.Mir_Model is
       Discriminant_Constraints : Discriminant_Constraint_Vectors.Vector;
       Variant_Discriminant_Name : FT.UString := FT.To_UString ("");
       Variant_Fields     : Variant_Field_Vectors.Vector;
+      Sum_Variants       : Sum_Variant_Descriptor_Vectors.Vector;
       Tuple_Element_Types : FT.UString_Vectors.Vector;
       Not_Null           : Boolean := False;
       Anonymous          : Boolean := False;

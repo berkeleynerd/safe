@@ -467,6 +467,56 @@ package body Safe_Frontend.Mir_Json is
          end loop;
       end;
       declare
+         Sum_Variants : constant JSON_Array := Json_Array_Or_Empty (Value, "sum_variants");
+      begin
+         for Index in 1 .. Length (Sum_Variants) loop
+            declare
+               Item    : constant JSON_Value := Get (Sum_Variants, Index);
+               Variant : GM.Sum_Variant_Descriptor;
+               Fields  : constant JSON_Array := Json_Array_Or_Empty (Item, "fields");
+            begin
+               if Item.Kind = JSON_Object_Type then
+                  if Has_Field (Item, "name")
+                    and then Get (Item, "name").Kind = JSON_String_Type
+                  then
+                     Variant.Name := FT.To_UString (Get (Item, "name"));
+                  end if;
+                  if Has_Field (Item, "tag_literal_name")
+                    and then Get (Item, "tag_literal_name").Kind = JSON_String_Type
+                  then
+                     Variant.Tag_Literal_Name := FT.To_UString (Get (Item, "tag_literal_name"));
+                  end if;
+                  for Field_Index in 1 .. Length (Fields) loop
+                     declare
+                        Field_Item : constant JSON_Value := Get (Fields, Field_Index);
+                        Field      : GM.Sum_Variant_Field_Descriptor;
+                     begin
+                        if Field_Item.Kind = JSON_Object_Type then
+                           if Has_Field (Field_Item, "source_name")
+                             and then Get (Field_Item, "source_name").Kind = JSON_String_Type
+                           then
+                              Field.Source_Name := FT.To_UString (Get (Field_Item, "source_name"));
+                           end if;
+                           if Has_Field (Field_Item, "internal_name")
+                             and then Get (Field_Item, "internal_name").Kind = JSON_String_Type
+                           then
+                              Field.Internal_Name := FT.To_UString (Get (Field_Item, "internal_name"));
+                           end if;
+                           if Has_Field (Field_Item, "type_name")
+                             and then Get (Field_Item, "type_name").Kind = JSON_String_Type
+                           then
+                              Field.Type_Name := FT.To_UString (Get (Field_Item, "type_name"));
+                           end if;
+                           Variant.Fields.Append (Field);
+                        end if;
+                     end;
+                  end loop;
+                  Result.Sum_Variants.Append (Variant);
+               end if;
+            end;
+         end loop;
+      end;
+      declare
          Tuple_Elements : constant JSON_Array := Json_Array_Or_Empty (Value, "tuple_element_types");
       begin
          for Index in 1 .. Length (Tuple_Elements) loop

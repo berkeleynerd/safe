@@ -1729,6 +1729,10 @@ package body Safe_Frontend.Mir_Analyze is
          when GM.Expr_Ident =>
             if Var_Types.Contains (UString_Value (Expr.Name)) then
                return Var_Types.Element (UString_Value (Expr.Name));
+            elsif Has_Text (Expr.Type_Name)
+              and then Type_Env.Contains (UString_Value (Expr.Type_Name))
+            then
+               return Resolve_Type (UString_Value (Expr.Type_Name), Var_Types, Type_Env);
             elsif Type_Env.Contains (UString_Value (Expr.Name)) then
                return Type_Env.Element (UString_Value (Expr.Name));
             end if;
@@ -1944,6 +1948,7 @@ package body Safe_Frontend.Mir_Analyze is
       Functions : Function_Maps.Map)
    is
       Prefix_Type : GM.Type_Descriptor;
+      Variant_Info : GM.Type_Descriptor;
       Base_Name_Text : constant String := Root_Name (Expr.Prefix);
       Found       : Boolean := False;
       Fact        : Discriminant_Fact;
@@ -1958,16 +1963,25 @@ package body Safe_Frontend.Mir_Analyze is
       if Lower (UString_Value (Prefix_Type.Kind)) = "access" then
          Prefix_Type := Access_Target_Type (Prefix_Type, Type_Env);
       end if;
-      Disc_Name_Text := FT.To_UString (Variant_Discriminant_Name (Prefix_Type));
-      if not Has_Text (Disc_Name_Text) or else Prefix_Type.Variant_Fields.Is_Empty then
+      Variant_Info := Prefix_Type;
+      if Lower (UString_Value (Variant_Info.Kind)) = "subtype"
+        and then Variant_Info.Has_Base
+      then
+         Variant_Info := Resolve_Type (UString_Value (Variant_Info.Base), Type_Env);
+      end if;
+      if Lower (UString_Value (Variant_Info.Kind)) = "access" then
+         Variant_Info := Access_Target_Type (Variant_Info, Type_Env);
+      end if;
+      Disc_Name_Text := FT.To_UString (Variant_Discriminant_Name (Variant_Info));
+      if not Has_Text (Disc_Name_Text) or else Variant_Info.Variant_Fields.Is_Empty then
          return;
       end if;
-      for Field of Prefix_Type.Variant_Fields loop
+      for Field of Variant_Info.Variant_Fields loop
          if UString_Value (Field.Name) = UString_Value (Expr.Selector) then
             Found := True;
             if Constrained_Discriminant_Value (Prefix_Type, Constraint_Value)
               and then Variant_Field_Allows
-                (Field, Constraint_Value, Prefix_Type.Variant_Fields)
+                (Field, Constraint_Value, Variant_Info.Variant_Fields)
             then
                return;
             end if;
@@ -1975,7 +1989,7 @@ package body Safe_Frontend.Mir_Analyze is
                Fact := Current.Discriminants.Element (Base_Name_Text);
             end if;
             if Fact.Known
-              and then Variant_Field_Allows (Field, Fact.Value, Prefix_Type.Variant_Fields)
+              and then Variant_Field_Allows (Field, Fact.Value, Variant_Info.Variant_Fields)
             then
                return;
             end if;

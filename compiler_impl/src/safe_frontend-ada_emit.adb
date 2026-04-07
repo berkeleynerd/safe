@@ -22957,6 +22957,7 @@ package body Safe_Frontend.Ada_Emit is
       Spec_Text  : SU.Unbounded_String;
       Body_Text  : SU.Unbounded_String;
       Body_Withs : FT.UString_Vectors.Vector;
+      Imported_Enum_Use_Types : FT.UString_Vectors.Vector;
       Synthetic_Types : GM.Type_Descriptor_Vectors.Vector;
       Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
       For_Of_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
@@ -22974,6 +22975,16 @@ package body Safe_Frontend.Ada_Emit is
          end loop;
          Body_Withs.Append (FT.To_UString (Name));
       end Add_Body_With;
+
+      procedure Add_Imported_Enum_Use_Type (Name : String) is
+      begin
+         for Item of Imported_Enum_Use_Types loop
+            if FT.To_String (Item) = Name then
+               return;
+            end if;
+         end loop;
+         Imported_Enum_Use_Types.Append (FT.To_UString (Name));
+      end Add_Imported_Enum_Use_Type;
 
       function Decl_Uses_Deferred_Package_Init_Name
         (Decl  : CM.Resolved_Object_Decl;
@@ -23801,6 +23812,12 @@ package body Safe_Frontend.Ada_Emit is
       Append_Line (Spec_Inner, "pragma Elaborate_Body;", 1);
       Append_Line (Spec_Inner);
       Append_Bounded_String_Instantiations (Spec_Inner, State);
+      for Item of Unit.Imported_Types loop
+         if FT.Lowercase (FT.To_String (Item.Kind)) = "enum" then
+            Add_Imported_Enum_Use_Type
+              (Ada_Qualified_Name (FT.To_String (Item.Name)));
+         end if;
+      end loop;
       Collect_Synthetic_Types (Unit, Document, Synthetic_Types);
       Collect_Owner_Access_Helper_Types (Unit, Document, Owner_Access_Helper_Types);
       Collect_For_Of_Helper_Types (Unit, Document, For_Of_Helper_Types);
@@ -24435,6 +24452,9 @@ package body Safe_Frontend.Ada_Emit is
          Append_Line (Body_Text, "use type Interfaces.Unsigned_32;");
          Append_Line (Body_Text, "use type Interfaces.Unsigned_64;");
       end if;
+      for Item of Imported_Enum_Use_Types loop
+         Append_Line (Body_Text, "use type " & FT.To_String (Item) & ";");
+      end loop;
       if not Body_Withs.Is_Empty then
          Append_Line (Body_Text);
       end if;
@@ -24524,6 +24544,9 @@ package body Safe_Frontend.Ada_Emit is
                Append_Line (Spec_Text, "with Safe_Runtime;");
                Append_Line (Spec_Text, "use type Safe_Runtime.Wide_Integer;");
             end if;
+            for Item of Imported_Enum_Use_Types loop
+               Append_Line (Spec_Text, "use type " & FT.To_String (Item) & ";");
+            end loop;
             if Spec_Needs_Safe_Ownership_RT then
                Append_Line (Spec_Text, "with Safe_Ownership_RT;");
             end if;

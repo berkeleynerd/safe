@@ -1,0 +1,15 @@
+with pr1113c_provider_message;
+
+package pr1113c_imported_string_sum_build
+
+   value : pr1113c_provider_message.message = pr1113c_provider_message.text ("Ada");
+
+   function render (item : pr1113c_provider_message.message) returns string
+
+      match item
+         when text (content)
+            return content
+         when idle
+            return "idle"
+
+   print (render (value));

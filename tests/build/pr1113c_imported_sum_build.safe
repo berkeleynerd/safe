@@ -1,0 +1,27 @@
+with pr1113c_provider_shape;
+
+package pr1113c_imported_sum_build
+
+   value : pr1113c_provider_shape.shape = pr1113c_provider_shape.circle (5);
+
+   function score (item : pr1113c_provider_shape.shape) returns integer
+
+      match item
+         when circle (radius)
+            return radius
+         when idle
+            return 0
+
+   function idle_score (item : pr1113c_provider_shape.shape) returns integer
+
+      match item
+         when circle (radius)
+            return radius
+         when idle
+            return 1
+
+   print (score (value));
+
+   value = pr1113c_provider_shape.idle;
+
+   print (idle_score (value));

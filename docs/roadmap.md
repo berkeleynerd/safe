@@ -2911,6 +2911,11 @@ and a proof checkpoint.
   cross-package export.
 - Export sum-type metadata (variant names, payload fields, internal
   discriminant identity) through safei contracts.
+- Imported constructor expressions are package-qualified, such as
+  `shapes.circle (5)` and `shapes.idle`.
+- Imported sum `match` keeps bare `when variant` arms resolved by the
+  scrutinee type, so imported sums do not inject bare constructor
+  names into client scope.
 - Imported sum types support the full construction + match surface
   in client units.
 - Add PR11.13c checkpoint fixtures covering:

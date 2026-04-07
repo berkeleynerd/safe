@@ -106,7 +106,30 @@ subset remain outside the current surface; see
 | Fixed-width binary emitted surface | `tests/positive/pr118c_binary_boolean_logic.safe`, `tests/positive/pr118c_binary_conversion_wrap.safe`, `tests/positive/pr118c_binary_inline_object.safe`, `tests/positive/pr118c_binary_named_type.safe`, `tests/positive/pr118c_binary_param_return.safe`, `tests/positive/pr118c_binary_shift.safe` | PR11.8i.1 completes the second emitted-proof expansion pass by absorbing the remaining fixed-width binary fixtures into the blocking proof manifest alongside the earlier case-dispatch representative. The emitted numeric surface is now explicit and fully covered rather than tracked as post-PR11.8g.1 cleanup debt. | yes | yes | yes | yes | yes | none | no |
 | Built-in container checkpoint surface | `tests/positive/pr1110a_optional_guarded.safe`, `tests/positive/pr1110b_list_basics.safe`, `tests/positive/pr1110c_map_basics.safe`, plus the build-backed `pr1110a*`, `pr1110b*`, and `pr1110c*` fixtures in `scripts/_lib/proof_inventory.py` | PR11.10a/PR11.10b/PR11.10c close the shipped optional/list/map surface under blocking emitted proof manifests, and PR11.10d ratifies that union as the parent container checkpoint. The only retained gap is the named runtime-only witness `tests/build/pr1110b_list_empty_build.safe`, which remains an explicit proof exclusion rather than an unnamed coverage hole. | yes | yes | yes | yes | yes | named documented exclusion for the empty-list `pop_last` witness only | no |
 | Shared-wrapper checkpoint surface | `tests/positive/pr1112a_shared_field_access.safe`, `tests/positive/pr1112b_shared_snapshot.safe`, plus the build-backed `pr1112c*`, `pr1112d*`, `pr1112e*`, and `pr1112f*` fixtures in `scripts/_lib/proof_inventory.py` and `tests/interfaces/provider_shared_ceiling.safe` | PR11.12a through PR11.12f close the shipped shared-wrapper surface under blocking emitted proof manifests, and PR11.12g ratifies that union as the parent shared checkpoint. The current shared family carries no named proof exclusions, so the parent checkpoint closes with zero unnamed coverage holes and zero shared-specific exclusion debt. | yes | yes | yes | yes | yes | none | no |
+| Sum-type checkpoint surface | `tests/positive/pr1113a_sum_construction.safe`, `tests/positive/pr1113b_sum_match.safe`, plus the build-backed `pr1113c*` fixtures in `scripts/_lib/proof_inventory.py` | PR11.13a, PR11.13b, and PR11.13c close the shipped sum-type surface under blocking emitted proof manifests. The parent `PR11.13 checkpoint` ratifies same-unit and imported constructor/match behavior, including heap-backed imported payloads and overlapping imported variant names resolved by scrutinee type. | yes | yes | yes | yes | yes | none | no |
 | Shared `IO` seam representative | `tests/positive/pr118c1_print.safe` | `print` now lowers through the shared standard-library `IO` package instead of per-unit generated wrappers. PR11.8g.2 includes that seam in the blocking emitted-proof lane, so emitted packages no longer rely on excluded `_safe_io` helper bodies. | yes | yes | yes | yes | yes | none | no |
+
+## PR11.13 Sum-Type Checkpoint Corpus
+
+PR11.13 closes the shipped sum-type family as one emitted-proof checkpoint.
+`scripts/run_proofs.py` reports the child slices individually and then the
+parent `PR11.13 checkpoint`.
+
+The child manifests are:
+
+- `PR11.13a`
+  - `tests/positive/pr1113a_sum_construction.safe`
+  - `tests/build/pr1113a_sum_build.safe`
+- `PR11.13b`
+  - `tests/positive/pr1113b_sum_match.safe`
+  - `tests/build/pr1113b_sum_match_build.safe`
+- `PR11.13c`
+  - `tests/build/pr1113c_provider_shape.safe`
+  - `tests/build/pr1113c_imported_sum_build.safe`
+  - `tests/build/pr1113c_imported_string_sum_build.safe`
+  - `tests/build/pr1113c_imported_overlap_build.safe`
+
+The sum-type family currently has no named proof exclusions.
 
 ## PR10.2 Rule 5 Boundary Closure
 

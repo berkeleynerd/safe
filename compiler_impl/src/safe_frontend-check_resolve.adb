@@ -89,6 +89,7 @@ package body Safe_Frontend.Check_Resolve is
       Equivalent_Keys => "=");
 
    type Sum_Constructor_Field_Info is record
+      Source_Name : FT.UString := FT.To_UString ("");
       Name      : FT.UString := FT.To_UString ("");
       Type_Name : FT.UString := FT.To_UString ("");
    end record;
@@ -1080,6 +1081,18 @@ package body Safe_Frontend.Check_Resolve is
      (Sum_Name     : String;
       Variant_Name : String) return String;
 
+   function Qualify_Sum_Tag_Literal_Name
+     (Package_Name : String;
+      Name         : String) return String;
+
+   function Qualify_Static_Value
+     (Value        : CM.Static_Value;
+      Package_Name : String) return CM.Static_Value;
+
+   function Qualify_Scalar_Value
+     (Value        : GM.Scalar_Value;
+      Package_Name : String) return GM.Scalar_Value;
+
    function Has_Sum_Constructor (Name : String) return Boolean;
 
    function Get_Sum_Constructor (Name : String) return Sum_Constructor_Info;
@@ -1444,7 +1457,8 @@ package body Safe_Frontend.Check_Resolve is
    is
       Base : constant GM.Type_Descriptor := Base_Type (Info, Type_Env);
    begin
-      return Current_Sum_Type_Tag_Names.Contains (Canonical_Name (UString_Value (Base.Name)));
+      return not Base.Sum_Variants.Is_Empty
+        or else Current_Sum_Type_Tag_Names.Contains (Canonical_Name (UString_Value (Base.Name)));
    end Is_Sum_Type;
 
    function Is_Plain_Record_Type
@@ -3085,6 +3099,33 @@ package body Safe_Frontend.Check_Resolve is
              (Qualify_Type_Name_Unless_Formal
                 (UString_Value (Result.Discriminant_Type)));
       end if;
+      if not Result.Discriminants.Is_Empty then
+         for Index in Result.Discriminants.First_Index .. Result.Discriminants.Last_Index loop
+            declare
+               Item : GM.Discriminant_Descriptor := Result.Discriminants (Index);
+            begin
+               Item.Type_Name :=
+                 FT.To_UString
+                   (Qualify_Type_Name_Unless_Formal
+                      (UString_Value (Item.Type_Name)));
+               if Item.Has_Default then
+                  Item.Default_Value :=
+                    Qualify_Scalar_Value (Item.Default_Value, Package_Name);
+               end if;
+               Result.Discriminants.Replace_Element (Index, Item);
+            end;
+         end loop;
+      end if;
+      if not Result.Discriminant_Constraints.Is_Empty then
+         for Index in Result.Discriminant_Constraints.First_Index .. Result.Discriminant_Constraints.Last_Index loop
+            declare
+               Item : GM.Discriminant_Constraint := Result.Discriminant_Constraints (Index);
+            begin
+               Item.Value := Qualify_Scalar_Value (Item.Value, Package_Name);
+               Result.Discriminant_Constraints.Replace_Element (Index, Item);
+            end;
+         end loop;
+      end if;
       if not Result.Index_Types.Is_Empty then
          for Index in Result.Index_Types.First_Index .. Result.Index_Types.Last_Index loop
             Result.Index_Types.Replace_Element
@@ -3116,7 +3157,37 @@ package body Safe_Frontend.Check_Resolve is
                  FT.To_UString
                    (Qualify_Type_Name_Unless_Formal
                       (UString_Value (Item.Type_Name)));
+               if not Item.Is_Others then
+                  Item.Choice := Qualify_Scalar_Value (Item.Choice, Package_Name);
+               end if;
                Result.Variant_Fields.Replace_Element (Index, Item);
+            end;
+         end loop;
+      end if;
+      if not Result.Sum_Variants.Is_Empty then
+         for Variant_Index in Result.Sum_Variants.First_Index .. Result.Sum_Variants.Last_Index loop
+            declare
+               Variant : GM.Sum_Variant_Descriptor := Result.Sum_Variants (Variant_Index);
+            begin
+               Variant.Tag_Literal_Name :=
+                 FT.To_UString
+                   (Qualify_Sum_Tag_Literal_Name
+                      (Package_Name,
+                       UString_Value (Variant.Tag_Literal_Name)));
+               if not Variant.Fields.Is_Empty then
+                  for Field_Index in Variant.Fields.First_Index .. Variant.Fields.Last_Index loop
+                     declare
+                        Field : GM.Sum_Variant_Field_Descriptor := Variant.Fields (Field_Index);
+                     begin
+                        Field.Type_Name :=
+                          FT.To_UString
+                            (Qualify_Type_Name_Unless_Formal
+                               (UString_Value (Field.Type_Name)));
+                        Variant.Fields.Replace_Element (Field_Index, Field);
+                     end;
+                  end loop;
+               end if;
+               Result.Sum_Variants.Replace_Element (Variant_Index, Variant);
             end;
          end loop;
       end if;
@@ -3175,14 +3246,54 @@ package body Safe_Frontend.Check_Resolve is
       Package_Name : String) return CM.Static_Value
    is
       Result : CM.Static_Value := Value;
+      Enum_Type_Name : constant String := UString_Value (Result.Type_Name);
+      Literal_Name   : constant String := UString_Value (Result.Text);
    begin
       if Result.Kind = CM.Static_Value_Enum then
          Result.Type_Name :=
            FT.To_UString
-             (Qualify_Name (Package_Name, UString_Value (Result.Type_Name)));
+             ((if Enum_Type_Name = ""
+                  or else Is_Builtin_Name (Enum_Type_Name)
+                  or else Contains_Dot (Enum_Type_Name)
+                then Enum_Type_Name
+                else Package_Name & "." & Enum_Type_Name));
+         Result.Text :=
+           FT.To_UString
+             ((if Literal_Name'Length >= 14
+                   and then Literal_Name
+                     (Literal_Name'First .. Literal_Name'First + 13) = "__sum_variant_"
+                then Qualify_Sum_Tag_Literal_Name (Package_Name, Literal_Name)
+                else Literal_Name));
       end if;
       return Result;
    end Qualify_Static_Value;
+
+   function Qualify_Scalar_Value
+     (Value        : GM.Scalar_Value;
+      Package_Name : String) return GM.Scalar_Value
+   is
+      Result : GM.Scalar_Value := Value;
+      Enum_Type_Name : constant String := UString_Value (Result.Type_Name);
+      Literal_Name   : constant String := UString_Value (Result.Text);
+   begin
+      if Result.Kind = GM.Scalar_Value_Enum then
+         Result.Type_Name :=
+           FT.To_UString
+             ((if Enum_Type_Name = ""
+                  or else Is_Builtin_Name (Enum_Type_Name)
+                  or else Contains_Dot (Enum_Type_Name)
+                then Enum_Type_Name
+                else Package_Name & "." & Enum_Type_Name));
+         Result.Text :=
+           FT.To_UString
+             ((if Literal_Name'Length >= 14
+                   and then Literal_Name
+                     (Literal_Name'First .. Literal_Name'First + 13) = "__sum_variant_"
+                then Qualify_Sum_Tag_Literal_Name (Package_Name, Literal_Name)
+                else Literal_Name));
+      end if;
+      return Result;
+   end Qualify_Scalar_Value;
 
    function Generic_Formal_Type
      (Formal : CM.Generic_Formal) return GM.Type_Descriptor
@@ -3426,6 +3537,26 @@ package body Safe_Frontend.Check_Resolve is
             begin
                Field.Type_Name := Replace_Name (Field.Type_Name);
                Result.Variant_Fields.Replace_Element (Index, Field);
+            end;
+         end loop;
+      end if;
+
+      if not Result.Sum_Variants.Is_Empty then
+         for Variant_Index in Result.Sum_Variants.First_Index .. Result.Sum_Variants.Last_Index loop
+            declare
+               Variant : GM.Sum_Variant_Descriptor := Result.Sum_Variants (Variant_Index);
+            begin
+               if not Variant.Fields.Is_Empty then
+                  for Field_Index in Variant.Fields.First_Index .. Variant.Fields.Last_Index loop
+                     declare
+                        Field : GM.Sum_Variant_Field_Descriptor := Variant.Fields (Field_Index);
+                     begin
+                        Field.Type_Name := Replace_Name (Field.Type_Name);
+                        Variant.Fields.Replace_Element (Field_Index, Field);
+                     end;
+                  end loop;
+               end if;
+               Result.Sum_Variants.Replace_Element (Variant_Index, Variant);
             end;
          end loop;
       end if;
@@ -4110,6 +4241,95 @@ package body Safe_Frontend.Check_Resolve is
         & "_"
         & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
    end Sum_Variant_Field_Name;
+
+   function Qualify_Sum_Tag_Literal_Name
+     (Package_Name : String;
+      Name         : String) return String
+   is
+   begin
+      if Name = "" or else Contains_Dot (Name) then
+         return Name;
+      end if;
+      return Package_Name & "." & Name;
+   end Qualify_Sum_Tag_Literal_Name;
+
+   function Is_Lowered_Sum_Record (Info : GM.Type_Descriptor) return Boolean is
+      Disc_Name : constant String := UString_Value (Info.Discriminant_Name);
+      Disc_Type : constant String := UString_Value (Info.Discriminant_Type);
+      Variant_Disc : constant String := UString_Value (Info.Variant_Discriminant_Name);
+      Dot : Natural := 0;
+   begin
+      if FT.Lowercase (UString_Value (Info.Kind)) /= "record"
+        or else not Info.Has_Discriminant
+        or else Variant_Disc /= "__sum_tag"
+        or else Disc_Name /= "__sum_tag"
+      then
+         return False;
+      end if;
+
+      for Index in reverse Disc_Type'Range loop
+         if Disc_Type (Index) = '.' then
+            Dot := Index;
+            exit;
+         end if;
+      end loop;
+      declare
+         Tail : constant String :=
+           (if Dot /= 0 and then Dot < Disc_Type'Last
+            then Disc_Type (Dot + 1 .. Disc_Type'Last)
+            else Disc_Type);
+      begin
+         return Tail'Length >= 10
+           and then Tail (Tail'First .. Tail'First + 9) = "__sum_tag_";
+      end;
+   end Is_Lowered_Sum_Record;
+
+   function Is_Sum_Metadata_Type (Info : GM.Type_Descriptor) return Boolean is
+   begin
+      return not Info.Sum_Variants.Is_Empty or else Is_Lowered_Sum_Record (Info);
+   end Is_Sum_Metadata_Type;
+
+   function Constructor_From_Sum_Variant
+     (Sum_Type : GM.Type_Descriptor;
+      Variant  : GM.Sum_Variant_Descriptor) return Sum_Constructor_Info
+   is
+      Constructor : Sum_Constructor_Info;
+   begin
+      Constructor.Name := Variant.Name;
+      Constructor.Sum_Type_Name := Sum_Type.Name;
+      Constructor.Tag_Type_Name := Sum_Type.Discriminant_Type;
+      Constructor.Tag_Literal_Name := Variant.Tag_Literal_Name;
+      if not Variant.Fields.Is_Empty then
+         for Field of Variant.Fields loop
+            Constructor.Fields.Append
+              ((Source_Name => Field.Source_Name,
+                Name       => Field.Internal_Name,
+                Type_Name  => Field.Type_Name));
+         end loop;
+      end if;
+      return Constructor;
+   end Constructor_From_Sum_Variant;
+
+   function Try_Find_Sum_Variant_Constructor
+     (Sum_Type     : GM.Type_Descriptor;
+      Variant_Name : String;
+      Constructor  : out Sum_Constructor_Info) return Boolean
+   is
+      Key  : constant String := Canonical_Name (Variant_Name);
+   begin
+      Constructor := (others => <>);
+      if Sum_Type.Sum_Variants.Is_Empty then
+         return False;
+      end if;
+
+      for Variant of Sum_Type.Sum_Variants loop
+         if Canonical_Name (UString_Value (Variant.Name)) = Key then
+            Constructor := Constructor_From_Sum_Variant (Sum_Type, Variant);
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Try_Find_Sum_Variant_Constructor;
 
    function Tuple_Type_Name
      (Element_Types : FT.UString_Vectors.Vector) return FT.UString
@@ -4825,7 +5045,14 @@ package body Safe_Frontend.Check_Resolve is
                return Resolve_Type (UString_Value (Expr.Type_Name), Type_Env, "", FT.Null_Span);
             end if;
             Name := FT.To_UString (Flatten_Name (Expr));
-            if Has_Type (Var_Types, UString_Value (Name)) then
+            if Has_Sum_Constructor (UString_Value (Name)) then
+               return
+                 Resolve_Type
+                   (UString_Value (Get_Sum_Constructor (UString_Value (Name)).Sum_Type_Name),
+                    Type_Env,
+                    "",
+                    FT.Null_Span);
+            elsif Has_Type (Var_Types, UString_Value (Name)) then
                return Get_Type (Var_Types, UString_Value (Name));
             elsif Has_Type (Type_Env, UString_Value (Name)) then
                return Get_Type (Type_Env, UString_Value (Name));
@@ -6800,8 +7027,36 @@ package body Safe_Frontend.Check_Resolve is
                Shared_Field_Type : GM.Type_Descriptor;
                Call_Result : CM.Expr_Access;
                Shared_Root_Type : GM.Type_Descriptor;
+               Constructor_Name : constant String := Flatten_Name (Expr);
             begin
-               if Try_Shared_Root_Expr (Expr, Shared) then
+               if Has_Sum_Constructor (Constructor_Name) then
+                  declare
+                     Constructor : constant Sum_Constructor_Info :=
+                       Get_Sum_Constructor (Constructor_Name);
+                     Empty_Args  : CM.Expr_Access_Vectors.Vector;
+                  begin
+                     if not Constructor.Fields.Is_Empty then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Expr.Span,
+                              Message =>
+                                "sum variant constructor `"
+                                & Constructor_Name
+                                & "` requires "
+                                & Ada.Strings.Fixed.Trim
+                                    (Natural'Image (Natural (Constructor.Fields.Length)),
+                                     Ada.Strings.Both)
+                                & " argument"
+                                & (if Natural (Constructor.Fields.Length) = 1 then "" else "s")));
+                     end if;
+                     Result :=
+                       Build_Sum_Constructor_Expr
+                         (Constructor,
+                          Empty_Args,
+                          Expr.Span);
+                  end;
+               elsif Try_Shared_Root_Expr (Expr, Shared) then
                   Result := Shared_Snapshot_Expr (Shared, Expr.Span);
                elsif UString_Value (Expr.Selector) = "length"
                then
@@ -13735,7 +13990,9 @@ package body Safe_Frontend.Check_Resolve is
                      function Normalize_Sum_Arm_Statements
                        (Arm         : CM.Match_Arm;
                         Constructor : Sum_Constructor_Info;
-                        Payload_Prefix : CM.Expr_Access := Match_Value)
+                        Payload_Prefix : CM.Expr_Access := Match_Value;
+                        Payload_Name   : String := "";
+                        Payload_Type   : GM.Type_Descriptor := (others => <>))
                         return CM.Statement_Access_Vectors.Vector
                      is
                         Arm_Vars      : Type_Maps.Map := Var_Types;
@@ -13743,6 +14000,14 @@ package body Safe_Frontend.Check_Resolve is
                         Arm_Static    : Static_Value_Maps.Map := Local_Static_Constants;
                         Statements    : CM.Statement_Access_Vectors.Vector;
                      begin
+                        if Payload_Name /= ""
+                          and then UString_Value (Payload_Type.Name)'Length > 0
+                        then
+                           Put_Type (Arm_Vars, Payload_Name, Payload_Type);
+                           Put_Type (Arm_Constants, Payload_Name, Payload_Type);
+                           Remove_Static_Value (Arm_Static, Payload_Name);
+                        end if;
+
                         if not Constructor.Fields.Is_Empty then
                            for Index in Constructor.Fields.First_Index .. Constructor.Fields.Last_Index loop
                               declare
@@ -13824,6 +14089,36 @@ package body Safe_Frontend.Check_Resolve is
                         Result_Type.Discriminant_Constraints.Append (Constraint);
                         return Result_Type;
                      end Sum_Arm_Subtype;
+
+                     function Build_Sum_Arm_Statements
+                       (Arm         : CM.Match_Arm;
+                        Constructor : Sum_Constructor_Info;
+                        Prefix_Name : String)
+                        return CM.Statement_Access_Vectors.Vector
+                     is
+                        Constrained_Type : constant GM.Type_Descriptor :=
+                          Sum_Arm_Subtype (Constructor);
+                        Payload_Prefix : constant CM.Expr_Access :=
+                          Ident_Expr
+                            (Prefix_Name,
+                             Arm.Span,
+                             UString_Value (Constrained_Type.Name));
+                        Statements : CM.Statement_Access_Vectors.Vector :=
+                          Normalize_Sum_Arm_Statements
+                            (Arm,
+                             Constructor,
+                             Payload_Prefix => Payload_Prefix,
+                             Payload_Name   => Prefix_Name,
+                             Payload_Type   => Constrained_Type);
+                     begin
+                        Statements.Prepend
+                          (Synthetic_Object_Decl_Stmt
+                             (Prefix_Name,
+                              Constrained_Type,
+                              Match_Value,
+                              Arm.Span));
+                        return Statements;
+                     end Build_Sum_Arm_Statements;
                   begin
                      if Total_Arms = 0 then
                         Raise_Diag
@@ -13847,10 +14142,16 @@ package body Safe_Frontend.Check_Resolve is
                            Variant_Key : constant String :=
                              Canonical_Name (UString_Value (Arm.Variant_Name));
                            Constructor : Sum_Constructor_Info;
+                           Sum_Metadata : constant GM.Type_Descriptor :=
+                             Base_Type (Sum_Type, Type_Env);
                            Binder_Seen : String_Index_Maps.Map;
                            Branch_Statements : CM.Statement_Access_Vectors.Vector;
                         begin
-                           if not Current_Sum_Constructors.Contains (Variant_Key) then
+                           if not Try_Find_Sum_Variant_Constructor
+                             (Sum_Metadata,
+                              UString_Value (Arm.Variant_Name),
+                              Constructor)
+                           then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
                                    (Path    => Path,
@@ -13860,8 +14161,6 @@ package body Safe_Frontend.Check_Resolve is
                                       & UString_Value (Arm.Variant_Name)
                                       & "` in match arm"));
                            end if;
-
-                           Constructor := Current_Sum_Constructors.Element (Variant_Key);
                            if Canonical_Name (UString_Value (Constructor.Sum_Type_Name)) /=
                              Canonical_Name (UString_Value (Sum_Type.Name))
                            then
@@ -13944,69 +14243,44 @@ package body Safe_Frontend.Check_Resolve is
                               if Constructor.Fields.Is_Empty then
                                  Result.Then_Stmts := Branch_Statements;
                               else
-                                 declare
-                                    Constrained_Name : constant String :=
+                                 Result.Then_Stmts :=
+                                   Build_Sum_Arm_Statements
+                                     (Arm,
+                                      Constructor,
                                       "Safe_Match_Only_" &
                                       Ada.Strings.Fixed.Trim
                                         (Natural'Image (Arm_Index),
-                                         Ada.Strings.Both);
-                                    Constrained_Type : constant GM.Type_Descriptor :=
-                                      Sum_Arm_Subtype (Constructor);
-                                    Payload_Prefix : constant CM.Expr_Access :=
-                                      Ident_Expr
-                                        (Constrained_Name,
-                                         Arm.Span,
-                                         UString_Value (Constrained_Type.Name));
-                                 begin
-                                    Result.Then_Stmts :=
-                                      Normalize_Sum_Arm_Statements
-                                        (Arm,
-                                         Constructor,
-                                         Payload_Prefix => Payload_Prefix);
-                                    Result.Then_Stmts.Prepend
-                                      (Synthetic_Object_Decl_Stmt
-                                         (Constrained_Name,
-                                          Constrained_Type,
-                                          Match_Value,
-                                          Arm.Span));
-                                 end;
+                                         Ada.Strings.Both));
                               end if;
                            elsif Arm_Index = 1 then
                               Result.Kind := CM.Stmt_If;
                               Result.Condition := Build_Sum_Arm_Condition (Constructor, Arm.Span);
-                              Result.Then_Stmts := Branch_Statements;
+                              if Constructor.Fields.Is_Empty then
+                                 Result.Then_Stmts := Branch_Statements;
+                              else
+                                 Result.Then_Stmts :=
+                                   Build_Sum_Arm_Statements
+                                     (Arm,
+                                      Constructor,
+                                      "Safe_Match_Then_" &
+                                      Ada.Strings.Fixed.Trim
+                                        (Natural'Image (Arm_Index),
+                                         Ada.Strings.Both));
+                              end if;
                            elsif Arm_Index = Total_Arms then
                               if Constructor.Fields.Is_Empty then
                                  Result.Has_Else := True;
                                  Result.Else_Stmts := Branch_Statements;
                               else
-                                 declare
-                                    Constrained_Name : constant String :=
+                                 Result.Has_Else := True;
+                                 Result.Else_Stmts :=
+                                   Build_Sum_Arm_Statements
+                                     (Arm,
+                                      Constructor,
                                       "Safe_Match_Final_" &
                                       Ada.Strings.Fixed.Trim
                                         (Natural'Image (Arm_Index),
-                                         Ada.Strings.Both);
-                                    Constrained_Type : constant GM.Type_Descriptor :=
-                                      Sum_Arm_Subtype (Constructor);
-                                    Payload_Prefix : constant CM.Expr_Access :=
-                                      Ident_Expr
-                                        (Constrained_Name,
-                                         Arm.Span,
-                                         UString_Value (Constrained_Type.Name));
-                                 begin
-                                    Result.Has_Else := True;
-                                    Result.Else_Stmts :=
-                                      Normalize_Sum_Arm_Statements
-                                        (Arm,
-                                         Constructor,
-                                         Payload_Prefix => Payload_Prefix);
-                                    Result.Else_Stmts.Prepend
-                                      (Synthetic_Object_Decl_Stmt
-                                         (Constrained_Name,
-                                          Constrained_Type,
-                                          Match_Value,
-                                          Arm.Span));
-                                 end;
+                                         Ada.Strings.Both));
                               end if;
                            else
                               declare
@@ -14014,7 +14288,18 @@ package body Safe_Frontend.Check_Resolve is
                               begin
                                  Elsif_Part.Condition :=
                                    Build_Sum_Arm_Condition (Constructor, Arm.Span);
-                                 Elsif_Part.Statements := Branch_Statements;
+                                 if Constructor.Fields.Is_Empty then
+                                    Elsif_Part.Statements := Branch_Statements;
+                                 else
+                                    Elsif_Part.Statements :=
+                                      Build_Sum_Arm_Statements
+                                        (Arm,
+                                         Constructor,
+                                         "Safe_Match_Elsif_" &
+                                         Ada.Strings.Fixed.Trim
+                                           (Natural'Image (Arm_Index),
+                                            Ada.Strings.Both));
+                                 end if;
                                  Elsif_Part.Span := Arm.Span;
                                  Result.Elsifs.Append (Elsif_Part);
                               end;
@@ -14022,15 +14307,12 @@ package body Safe_Frontend.Check_Resolve is
                         end;
                      end loop;
 
-                     for Cursor in Current_Sum_Constructors.Iterate loop
+                     for Variant of Base_Type (Sum_Type, Type_Env).Sum_Variants loop
                         declare
-                           Variant_Key : constant String := Sum_Constructor_Maps.Key (Cursor);
-                           Constructor : constant Sum_Constructor_Info :=
-                             Sum_Constructor_Maps.Element (Cursor);
+                           Variant_Key : constant String :=
+                             Canonical_Name (UString_Value (Variant.Name));
                         begin
-                           if Canonical_Name (UString_Value (Constructor.Sum_Type_Name)) =
-                             Canonical_Name (UString_Value (Sum_Type.Name))
-                             and then not Seen_Variants.Contains (Variant_Key)
+                           if not Seen_Variants.Contains (Variant_Key)
                            then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -14040,7 +14322,7 @@ package body Safe_Frontend.Check_Resolve is
                                       "match on `"
                                       & UString_Value (Sum_Type.Name)
                                       & "` is missing variant `"
-                                      & UString_Value (Constructor.Name)
+                                      & UString_Value (Variant.Name)
                                       & "`"));
                            end if;
                         end;
@@ -14502,14 +14784,7 @@ package body Safe_Frontend.Check_Resolve is
                Variant_Field : GM.Variant_Field;
                Variant_Ordinal : Long_Long_Integer := 0;
             begin
-               if Decl.Is_Public then
-                  Raise_Diag
-                    (CM.Unsupported_Source_Construct
-                       (Path    => Path,
-                        Span    => Decl.Span,
-                        Message =>
-                          "public sum type declarations are deferred to PR11.13c"));
-               elsif Decl.Sum_Variants.Is_Empty then
+               if Decl.Sum_Variants.Is_Empty then
                   Raise_Diag
                     (CM.Source_Frontend_Error
                        (Path    => Path,
@@ -14548,6 +14823,7 @@ package body Safe_Frontend.Check_Resolve is
                         Text      => FT.To_UString (Tag_Literal),
                         Type_Name => Tag_Info.Name);
                      Constructor     : Sum_Constructor_Info;
+                     Sum_Variant     : GM.Sum_Variant_Descriptor;
                      Field_Seen      : String_Index_Maps.Map;
                   begin
                      if Seen.Contains (Variant_Key) then
@@ -14569,6 +14845,8 @@ package body Safe_Frontend.Check_Resolve is
                      Constructor.Tag_Type_Name := Tag_Info.Name;
                      Constructor.Tag_Literal_Name := FT.To_UString (Tag_Literal);
                      Constructor.Span := Variant.Span;
+                     Sum_Variant.Name := Variant.Name;
+                     Sum_Variant.Tag_Literal_Name := FT.To_UString (Tag_Literal);
 
                      for Field_Decl of Variant.Components loop
                         declare
@@ -14635,12 +14913,18 @@ package body Safe_Frontend.Check_Resolve is
                            Variant_Field.Choice := Choice;
                            Record_Result.Variant_Fields.Append (Variant_Field);
 
+                           Field_Info.Source_Name := FT.To_UString (Source_Field_Name);
                            Field_Info.Name := Internal_Field_Name;
                            Field_Info.Type_Name := Field_Type.Name;
                            Constructor.Fields.Append (Field_Info);
+                           Sum_Variant.Fields.Append
+                             ((Source_Name   => FT.To_UString (Source_Field_Name),
+                               Internal_Name => Internal_Field_Name,
+                               Type_Name     => Field_Type.Name));
                         end;
                      end loop;
 
+                     Record_Result.Sum_Variants.Append (Sum_Variant);
                      if not Current_Sum_Constructors.Contains (Variant_Key) then
                         Current_Sum_Constructors.Include (Variant_Key, Constructor);
                      end if;
@@ -16060,6 +16344,44 @@ package body Safe_Frontend.Check_Resolve is
 
       procedure Add_Imported_Interface (Item : SI.Loaded_Interface) is
          Package_Name : constant String := UString_Value (Item.Package_Name);
+
+         procedure Validate_Imported_Sum_Metadata (Info : GM.Type_Descriptor) is
+         begin
+            if Is_Lowered_Sum_Record (Info) and then Info.Sum_Variants.Is_Empty then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => UString_Value (Unit.Path),
+                     Span    => Imported_Interface_Span (Package_Name),
+                     Message =>
+                       "imported sum type `"
+                       & UString_Value (Info.Name)
+                       & "` is missing sum_variants metadata in safei-v5"));
+            end if;
+         end Validate_Imported_Sum_Metadata;
+
+         procedure Register_Imported_Sum_Constructors (Info : GM.Type_Descriptor) is
+         begin
+            if Info.Sum_Variants.Is_Empty then
+               return;
+            end if;
+
+            for Variant of Info.Sum_Variants loop
+               declare
+                  Qualified_Name : constant String :=
+                    Qualify_Name (Package_Name, UString_Value (Variant.Name));
+                  Constructor : Sum_Constructor_Info :=
+                    Constructor_From_Sum_Variant (Info, Variant);
+               begin
+                  Constructor.Name := FT.To_UString (Qualified_Name);
+                  Constructor.Span := Imported_Interface_Span (Package_Name);
+                  if not Current_Sum_Constructors.Contains (Canonical_Name (Qualified_Name)) then
+                     Current_Sum_Constructors.Include
+                       (Canonical_Name (Qualified_Name),
+                        Constructor);
+                  end if;
+               end;
+            end loop;
+         end Register_Imported_Sum_Constructors;
       begin
          if Item.Target_Bits /= Normalized_Target_Bits then
             Raise_Diag
@@ -16096,6 +16418,7 @@ package body Safe_Frontend.Check_Resolve is
                     (Canonical_Name (UString_Value (Info.Name)),
                      Info);
                end if;
+               Validate_Imported_Sum_Metadata (Info);
                Result.Imported_Types.Append (Info);
             end;
          end loop;
@@ -16122,8 +16445,19 @@ package body Safe_Frontend.Check_Resolve is
                     (Canonical_Name (UString_Value (Info.Name)),
                      Info);
                end if;
+               Validate_Imported_Sum_Metadata (Info);
                Result.Imported_Types.Append (Info);
             end;
+         end loop;
+
+         for Type_Item of Item.Types loop
+            Register_Imported_Sum_Constructors
+              (Qualify_Type_Info (Type_Item, Package_Name));
+         end loop;
+
+         for Type_Item of Item.Subtypes loop
+            Register_Imported_Sum_Constructors
+              (Qualify_Type_Info (Type_Item, Package_Name));
          end loop;
 
          for Channel_Item of Item.Channels loop

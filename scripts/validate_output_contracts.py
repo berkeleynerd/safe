@@ -123,6 +123,33 @@ def validate_type_descriptor(value: Any, path: str) -> dict[str, Any]:
         require_string(descriptor.get("generic_origin"), f"{path}.generic_origin")
     if "generic_actual_types" in descriptor:
         validate_string_list(descriptor.get("generic_actual_types"), f"{path}.generic_actual_types")
+    if "sum_variants" in descriptor:
+        variants = require_list(descriptor.get("sum_variants"), f"{path}.sum_variants")
+        for index, item in enumerate(variants):
+            variant = require_mapping(item, f"{path}.sum_variants[{index}]")
+            require_string(variant.get("name"), f"{path}.sum_variants[{index}].name")
+            require_string(
+                variant.get("tag_literal_name"),
+                f"{path}.sum_variants[{index}].tag_literal_name",
+            )
+            fields = require_list(variant.get("fields"), f"{path}.sum_variants[{index}].fields")
+            for field_index, field_item in enumerate(fields):
+                field = require_mapping(
+                    field_item,
+                    f"{path}.sum_variants[{index}].fields[{field_index}]",
+                )
+                require_string(
+                    field.get("source_name"),
+                    f"{path}.sum_variants[{index}].fields[{field_index}].source_name",
+                )
+                require_string(
+                    field.get("internal_name"),
+                    f"{path}.sum_variants[{index}].fields[{field_index}].internal_name",
+                )
+                require_string(
+                    field.get("type_name"),
+                    f"{path}.sum_variants[{index}].fields[{field_index}].type_name",
+                )
     return descriptor
 
 

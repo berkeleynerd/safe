@@ -1,0 +1,52 @@
+{
+  "format": "safei-v5",
+  "unit_kind": "package",
+  "target_bits": 64,
+  "package_name": "provider_bad_zero_sum",
+  "dependencies": [],
+  "executables": [],
+  "public_declarations": [
+    {
+      "name": "state",
+      "kind": "TypeDeclaration",
+      "signature": "type state",
+      "span": {"start_line": 1, "start_col": 1, "end_line": 1, "end_col": 10}
+    }
+  ],
+  "types": [
+    {
+      "name": "__sum_tag_state",
+      "kind": "enum",
+      "enum_literals": ["__sum_variant_state_idle", "__sum_variant_state_busy"],
+      "low": 0,
+      "high": 1
+    },
+    {
+      "name": "state",
+      "kind": "record",
+      "fields": {},
+      "discriminant_name": "__sum_tag",
+      "discriminant_type": "__sum_tag_state",
+      "discriminants": [
+        {
+          "name": "__sum_tag",
+          "type_name": "__sum_tag_state",
+          "has_default": true,
+          "default_value": {
+            "kind": "enum",
+            "type_name": "__sum_tag_state",
+            "value": "__sum_variant_state_idle"
+          }
+        }
+      ],
+      "variant_discriminant_name": "__sum_tag",
+      "variant_fields": []
+    }
+  ],
+  "subtypes": [],
+  "channels": [],
+  "objects": [],
+  "subprograms": [],
+  "effect_summaries": [],
+  "channel_access_summaries": []
+}

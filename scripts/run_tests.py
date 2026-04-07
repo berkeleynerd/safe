@@ -277,6 +277,12 @@ INTERFACE_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_shared_mut_reject.safe",
         1,
     ),
+    (
+        "sum-shape",
+        REPO_ROOT / "tests" / "interfaces" / "provider_sum_shape.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_sum_shape.safe",
+        0,
+    ),
 ]
 
 INTERFACE_REJECT_CASES = [
@@ -322,6 +328,12 @@ INTERFACE_REJECT_CASES = [
         REPO_ROOT / "tests" / "interfaces" / "client_generic_missing_args.safe",
         "requires explicit type arguments in PR11.11c",
     ),
+    (
+        "sum-bare-imported-constructor",
+        REPO_ROOT / "tests" / "interfaces" / "provider_sum_shape.safe",
+        REPO_ROOT / "tests" / "interfaces" / "client_sum_shape_bare_constructor.safe",
+        "object initializer type does not match declared type",
+    ),
 ]
 
 CHECK_SUCCESS_CASES = [
@@ -354,6 +366,18 @@ STATIC_INTERFACE_CASES = [
         "missing-unit-kind",
         REPO_ROOT / "tests" / "interfaces" / "provider_missing_unit_kind.safei.json",
         REPO_ROOT / "tests" / "interfaces" / "client_missing_unit_kind.safe",
+        1,
+    ),
+    (
+        "bad-sum-metadata",
+        REPO_ROOT / "tests" / "interfaces" / "provider_bad_sum.safei.json",
+        REPO_ROOT / "tests" / "interfaces" / "client_bad_sum.safe",
+        1,
+    ),
+    (
+        "bad-zero-payload-sum-metadata",
+        REPO_ROOT / "tests" / "interfaces" / "provider_bad_zero_sum.safei.json",
+        REPO_ROOT / "tests" / "interfaces" / "client_bad_zero_sum.safe",
         1,
     ),
 ]
@@ -937,6 +961,26 @@ RUN_SUCCESS_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr1113b_sum_match_build.safe",
         "1\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1113c_provider_shape.safe",
+        "3\n0\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1113c_imported_sum_build.safe",
+        "3\n0\n5\n1\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1113c_imported_string_sum_build.safe",
+        "Ada\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1113c_imported_overlap_build.safe",
+        "2\n7\n",
         False,
     ),
 ]

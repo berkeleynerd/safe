@@ -2860,7 +2860,8 @@ package body Safe_Frontend.Check_Emit is
              (Has_Prefix (Name_Text, "__growable_array_")
               or else Has_Prefix (Name_Text, "__tuple")
               or else Has_Prefix (Name_Text, "__optional_")
-              or else Has_Prefix (Name_Text, "__bounded_string_"));
+              or else Has_Prefix (Name_Text, "__bounded_string_")
+              or else Has_Prefix (Name_Text, "__sum_tag_"));
       end Is_Synthetic_Public_Type;
 
       function Sanitize_Type_Name_Component (Name : String) return String is
@@ -2916,12 +2917,11 @@ package body Safe_Frontend.Check_Emit is
          return Result;
       end Synthetic_Optional_Type;
 
+      procedure Append_Public_Type_Dependencies (Info : GM.Type_Descriptor);
       procedure Append_Public_Type (Info : GM.Type_Descriptor);
       procedure Append_Public_Shared_Helper_Types (Info : GM.Type_Descriptor);
 
-      procedure Append_Public_Type (Info : GM.Type_Descriptor) is
-         Name_Text : constant String := FT.To_String (Info.Name);
-
+      procedure Append_Public_Type_Dependencies (Info : GM.Type_Descriptor) is
          procedure Append_From_Name (Name : String) is
             Lookup_Info : GM.Type_Descriptor := (others => <>);
          begin
@@ -2932,16 +2932,11 @@ package body Safe_Frontend.Check_Emit is
             end if;
          end Append_From_Name;
       begin
-         if Name_Text'Length = 0
-           or else Contains_Seen (Name_Text)
-         then
-            return;
-         end if;
-
-         Seen_Names.Append (Name_Text);
-
          if Info.Has_Base then
             Append_From_Name (FT.To_String (Info.Base));
+         end if;
+         if Info.Has_Discriminant then
+            Append_From_Name (FT.To_String (Info.Discriminant_Type));
          end if;
          if Info.Has_Component_Type then
             Append_From_Name (FT.To_String (Info.Component_Type));
@@ -2955,6 +2950,20 @@ package body Safe_Frontend.Check_Emit is
          for Field of Info.Variant_Fields loop
             Append_From_Name (FT.To_String (Field.Type_Name));
          end loop;
+      end Append_Public_Type_Dependencies;
+
+      procedure Append_Public_Type (Info : GM.Type_Descriptor) is
+         Name_Text : constant String := FT.To_String (Info.Name);
+      begin
+         if Name_Text'Length = 0
+           or else Contains_Seen (Name_Text)
+         then
+            return;
+         end if;
+
+         Seen_Names.Append (Name_Text);
+
+         Append_Public_Type_Dependencies (Info);
 
          if Is_Synthetic_Public_Type (Info) then
             Items.Append (Type_Json (Info));
@@ -2993,9 +3002,30 @@ package body Safe_Frontend.Check_Emit is
               and then Type_Index in Resolved.Types.First_Index .. Resolved.Types.Last_Index
             then
                if Item.Kind = CM.Item_Type_Decl then
-                  if not Subtype_Only and then Item.Type_Data.Is_Public then
+                  if Item.Type_Data.Kind = CM.Type_Decl_Sum then
+                     declare
+                        Tag_Index  : constant Positive := Type_Index;
+                        Sum_Index  : constant Positive := Type_Index + 1;
+                     begin
+                        if not Subtype_Only
+                          and then Item.Type_Data.Is_Public
+                          and then Tag_Index in Resolved.Types.First_Index .. Resolved.Types.Last_Index
+                          and then Sum_Index in Resolved.Types.First_Index .. Resolved.Types.Last_Index
+                        then
+                           Seen_Names.Append (FT.To_String (Resolved.Types (Tag_Index).Name));
+                           Items.Append (Type_Json (Resolved.Types (Tag_Index)));
+                           Seen_Names.Append (FT.To_String (Resolved.Types (Sum_Index).Name));
+                           Items.Append (Type_Json (Resolved.Types (Sum_Index)));
+                           Append_Public_Type_Dependencies (Resolved.Types (Sum_Index));
+                        end if;
+                        if Sum_Index in Resolved.Types.First_Index .. Resolved.Types.Last_Index then
+                           Type_Index := Sum_Index;
+                        end if;
+                     end;
+                  elsif not Subtype_Only and then Item.Type_Data.Is_Public then
                      Seen_Names.Append (FT.To_String (Resolved.Types (Type_Index).Name));
                      Items.Append (Type_Json (Resolved.Types (Type_Index)));
+                     Append_Public_Type_Dependencies (Resolved.Types (Type_Index));
                   elsif Subtype_Only
                     and then Item.Type_Data.Is_Public
                     and then Resolved.Types (Type_Index).Has_Target
@@ -3693,6 +3723,39 @@ package body Safe_Frontend.Check_Emit is
                      & "}");
                end loop;
                Items.Append ("""variant_fields"":" & Json_List (Variants));
+            end;
+         end if;
+         if not Info.Sum_Variants.Is_Empty then
+            declare
+               Variants : String_Vectors.Vector;
+            begin
+               for Variant of Info.Sum_Variants loop
+                  declare
+                     Variant_Fields : String_Vectors.Vector;
+                  begin
+                     if not Variant.Fields.Is_Empty then
+                        for Field of Variant.Fields loop
+                           Variant_Fields.Append
+                             ("{""source_name"":"
+                              & JS.Quote (Field.Source_Name)
+                              & ",""internal_name"":"
+                              & JS.Quote (Field.Internal_Name)
+                              & ",""type_name"":"
+                              & JS.Quote (Field.Type_Name)
+                              & "}");
+                        end loop;
+                     end if;
+                     Variants.Append
+                       ("{""name"":"
+                        & JS.Quote (Variant.Name)
+                        & ",""tag_literal_name"":"
+                        & JS.Quote (Variant.Tag_Literal_Name)
+                        & ",""fields"":"
+                        & Json_List (Variant_Fields)
+                        & "}");
+                  end;
+               end loop;
+               Items.Append ("""sum_variants"":" & Json_List (Variants));
             end;
          end if;
          if not Info.Tuple_Element_Types.Is_Empty then

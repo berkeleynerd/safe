@@ -258,6 +258,39 @@ package body Safe_Frontend.Mir_Write is
             Items.Append ("""variant_fields"":" & Json_List (Variants));
          end;
       end if;
+      if not Info.Sum_Variants.Is_Empty then
+         declare
+            Variants : String_Vectors.Vector;
+         begin
+            for Variant of Info.Sum_Variants loop
+               declare
+                  Fields : String_Vectors.Vector;
+               begin
+                  if not Variant.Fields.Is_Empty then
+                     for Field of Variant.Fields loop
+                        Fields.Append
+                          ("{""source_name"":"
+                           & JS.Quote (Field.Source_Name)
+                           & ",""internal_name"":"
+                           & JS.Quote (Field.Internal_Name)
+                           & ",""type_name"":"
+                           & JS.Quote (Field.Type_Name)
+                           & "}");
+                     end loop;
+                  end if;
+                  Variants.Append
+                    ("{""name"":"
+                     & JS.Quote (Variant.Name)
+                     & ",""tag_literal_name"":"
+                     & JS.Quote (Variant.Tag_Literal_Name)
+                     & ",""fields"":"
+                     & Json_List (Fields)
+                     & "}");
+               end;
+            end loop;
+            Items.Append ("""sum_variants"":" & Json_List (Variants));
+         end;
+      end if;
       if not Info.Tuple_Element_Types.Is_Empty then
          declare
             Values : String_Vectors.Vector;

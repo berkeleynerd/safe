@@ -291,6 +291,61 @@ package body Safe_Frontend.Interfaces is
          end if;
          Result.Fields.Append (Field_Entry);
       end Append_Field;
+
+      function Parse_Sum_Variant_Field
+        (Item : JSON_Value) return GM.Sum_Variant_Field_Descriptor
+      is
+         Field : GM.Sum_Variant_Field_Descriptor;
+      begin
+         if Item.Kind /= JSON_Object_Type then
+            return Field;
+         end if;
+
+         if Has_Field (Item, "source_name")
+           and then Get (Item, "source_name").Kind = JSON_String_Type
+         then
+            Field.Source_Name := FT.To_UString (Get (Item, "source_name"));
+         end if;
+         if Has_Field (Item, "internal_name")
+           and then Get (Item, "internal_name").Kind = JSON_String_Type
+         then
+            Field.Internal_Name := FT.To_UString (Get (Item, "internal_name"));
+         end if;
+         if Has_Field (Item, "type_name")
+           and then Get (Item, "type_name").Kind = JSON_String_Type
+         then
+            Field.Type_Name := FT.To_UString (Get (Item, "type_name"));
+         end if;
+         return Field;
+      end Parse_Sum_Variant_Field;
+
+      function Parse_Sum_Variant
+        (Item : JSON_Value) return GM.Sum_Variant_Descriptor
+      is
+         Variant : GM.Sum_Variant_Descriptor;
+         Fields  : constant JSON_Array := Json_Array_Or_Empty (Item, "fields");
+      begin
+         if Item.Kind /= JSON_Object_Type then
+            return Variant;
+         end if;
+
+         if Has_Field (Item, "name")
+           and then Get (Item, "name").Kind = JSON_String_Type
+         then
+            Variant.Name := FT.To_UString (Get (Item, "name"));
+         end if;
+         if Has_Field (Item, "tag_literal_name")
+           and then Get (Item, "tag_literal_name").Kind = JSON_String_Type
+         then
+            Variant.Tag_Literal_Name := FT.To_UString (Get (Item, "tag_literal_name"));
+         end if;
+
+         for Index in 1 .. Length (Fields) loop
+            Variant.Fields.Append (Parse_Sum_Variant_Field (Get (Fields, Index)));
+         end loop;
+
+         return Variant;
+      end Parse_Sum_Variant;
    begin
       if Value.Kind /= JSON_Object_Type then
          return Result;
@@ -681,6 +736,14 @@ package body Safe_Frontend.Interfaces is
          end loop;
       end;
 
+      declare
+         Sum_Variants : constant JSON_Array := Json_Array_Or_Empty (Value, "sum_variants");
+      begin
+         for Index in 1 .. Length (Sum_Variants) loop
+            Result.Sum_Variants.Append (Parse_Sum_Variant (Get (Sum_Variants, Index)));
+         end loop;
+      end;
+
       return Result;
    end Parse_Type;
 
@@ -699,6 +762,49 @@ package body Safe_Frontend.Interfaces is
       if FT.To_String (Result.Name) = "" or else FT.To_String (Result.Kind) = "" then
          raise Constraint_Error with
            File_Path & ": " & Context & " must include non-empty type name and kind";
+      end if;
+
+      if not Result.Sum_Variants.Is_Empty then
+         for Index in Result.Sum_Variants.First_Index .. Result.Sum_Variants.Last_Index loop
+            declare
+               Variant : constant GM.Sum_Variant_Descriptor := Result.Sum_Variants (Index);
+            begin
+               if FT.To_String (Variant.Name) = "" then
+                  raise Constraint_Error with
+                    File_Path & ": " & Context & ".sum_variants[" & Natural'Image (Index - Result.Sum_Variants.First_Index)
+                    & "].name must be a non-empty string";
+               elsif FT.To_String (Variant.Tag_Literal_Name) = "" then
+                  raise Constraint_Error with
+                    File_Path & ": " & Context & ".sum_variants[" & Natural'Image (Index - Result.Sum_Variants.First_Index)
+                    & "].tag_literal_name must be a non-empty string";
+               end if;
+
+               if not Variant.Fields.Is_Empty then
+                  for Field_Index in Variant.Fields.First_Index .. Variant.Fields.Last_Index loop
+                     declare
+                        Field : constant GM.Sum_Variant_Field_Descriptor := Variant.Fields (Field_Index);
+                     begin
+                        if FT.To_String (Field.Source_Name) = "" then
+                           raise Constraint_Error with
+                             File_Path & ": " & Context & ".sum_variants[" & Natural'Image (Index - Result.Sum_Variants.First_Index)
+                             & "].fields[" & Natural'Image (Field_Index - Variant.Fields.First_Index)
+                             & "].source_name must be a non-empty string";
+                        elsif FT.To_String (Field.Internal_Name) = "" then
+                           raise Constraint_Error with
+                             File_Path & ": " & Context & ".sum_variants[" & Natural'Image (Index - Result.Sum_Variants.First_Index)
+                             & "].fields[" & Natural'Image (Field_Index - Variant.Fields.First_Index)
+                             & "].internal_name must be a non-empty string";
+                        elsif FT.To_String (Field.Type_Name) = "" then
+                           raise Constraint_Error with
+                             File_Path & ": " & Context & ".sum_variants[" & Natural'Image (Index - Result.Sum_Variants.First_Index)
+                             & "].fields[" & Natural'Image (Field_Index - Variant.Fields.First_Index)
+                             & "].type_name must be a non-empty string";
+                        end if;
+                     end;
+                  end loop;
+               end if;
+            end;
+         end loop;
       end if;
 
       if FT.Lowercase (FT.To_String (Result.Kind)) = "binary" then

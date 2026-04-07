@@ -298,6 +298,22 @@ PR11_13B_CHECKPOINT_FIXTURES = [
     "tests/build/pr1113b_sum_match_build.safe",
 ]
 
+PR11_13C_CHECKPOINT_FIXTURES = [
+    "tests/build/pr1113c_provider_shape.safe",
+    "tests/build/pr1113c_provider_message.safe",
+    "tests/build/pr1113c_provider_device.safe",
+    "tests/build/pr1113c_provider_job.safe",
+    "tests/build/pr1113c_imported_sum_build.safe",
+    "tests/build/pr1113c_imported_string_sum_build.safe",
+    "tests/build/pr1113c_imported_overlap_build.safe",
+]
+
+PR11_13_CHECKPOINT_FIXTURES = (
+    PR11_13A_CHECKPOINT_FIXTURES
+    + PR11_13B_CHECKPOINT_FIXTURES
+    + PR11_13C_CHECKPOINT_FIXTURES
+)
+
 
 PR11_8I1_CHECKPOINT_FIXTURES = [
     "tests/positive/pr115_case_terminator.safe",
@@ -379,6 +395,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_12F_CHECKPOINT_FIXTURES
     + PR11_13A_CHECKPOINT_FIXTURES
     + PR11_13B_CHECKPOINT_FIXTURES
+    + PR11_13C_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 

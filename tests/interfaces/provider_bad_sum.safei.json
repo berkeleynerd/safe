@@ -1,0 +1,63 @@
+{
+  "format": "safei-v5",
+  "unit_kind": "package",
+  "target_bits": 64,
+  "package_name": "provider_bad_sum",
+  "dependencies": [],
+  "executables": [],
+  "public_declarations": [
+    {
+      "name": "shape",
+      "kind": "TypeDeclaration",
+      "signature": "type shape",
+      "span": {"start_line": 1, "start_col": 1, "end_line": 1, "end_col": 10}
+    }
+  ],
+  "types": [
+    {
+      "name": "__sum_tag_shape",
+      "kind": "enum",
+      "enum_literals": ["__sum_variant_shape_circle", "__sum_variant_shape_idle"],
+      "low": 0,
+      "high": 1
+    },
+    {
+      "name": "shape",
+      "kind": "record",
+      "fields": {"__sum_field_circle_radius": "integer"},
+      "discriminant_name": "__sum_tag",
+      "discriminant_type": "__sum_tag_shape",
+      "discriminants": [
+        {
+          "name": "__sum_tag",
+          "type_name": "__sum_tag_shape",
+          "has_default": true,
+          "default_value": {
+            "kind": "enum",
+            "type_name": "__sum_tag_shape",
+            "value": "__sum_variant_shape_circle"
+          }
+        }
+      ],
+      "variant_discriminant_name": "__sum_tag",
+      "variant_fields": [
+        {
+          "name": "__sum_field_circle_radius",
+          "type": "integer",
+          "is_others": false,
+          "choice": {
+            "kind": "enum",
+            "type_name": "__sum_tag_shape",
+            "value": "__sum_variant_shape_circle"
+          }
+        }
+      ]
+    }
+  ],
+  "subtypes": [],
+  "channels": [],
+  "objects": [],
+  "subprograms": [],
+  "effect_summaries": [],
+  "channel_access_summaries": []
+}

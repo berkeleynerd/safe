@@ -1,0 +1,26 @@
+with pr1113c_provider_device;
+with pr1113c_provider_job;
+
+package pr1113c_imported_overlap_build
+
+   device_state : pr1113c_provider_device.state = pr1113c_provider_device.samples ([1, 2]);
+   job_state : pr1113c_provider_job.status = pr1113c_provider_job.idle;
+
+   function device_score (value : pr1113c_provider_device.state) returns integer
+
+      match value
+         when idle
+            return 0
+         when samples (values)
+            return values.length
+
+   function job_score (value : pr1113c_provider_job.status) returns integer
+
+      match value
+         when idle
+            return 7
+         when done (code)
+            return code
+
+   print (device_score (device_state));
+   print (job_score (job_state));

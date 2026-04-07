@@ -1,0 +1,3 @@
+package pr1113c_provider_job
+
+   public type status is idle or done (code : integer);

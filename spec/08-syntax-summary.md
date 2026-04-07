@@ -36,12 +36,14 @@ For the post-PR11.10a surface, built-in optional values are admitted through
 limited to the admitted value-type subset; inferred reference families,
 channels, and tasks are outside this wedge.
 
-For the post-PR11.13b surface, same-unit sum type declarations, variant
-construction, and statement-only exhaustive `match` over sum values are
-admitted through `type name is variant or variant ...`, bare zero-payload
-variant constructors, positional payload-bearing variant constructors, and
-`match value / when variant (...)`. Public/imported sum types and direct
-payload inspection outside `match` remain deferred to later slices.
+For the post-PR11.13c surface, sum type declarations, variant construction,
+and statement-only exhaustive `match` over sum values are admitted through
+`type name is variant or variant ...`, bare zero-payload variant constructors,
+positional payload-bearing variant constructors, and `match value / when
+variant (...)`. Public sum types are admitted, imported constructor
+expressions are package-qualified, imported `match` arms stay bare and resolve
+by scrutinee type, and direct payload inspection outside `match` remains
+rejected.
 
 For the post-PR11.8c.2 surface, a compilation unit may be either an explicit
 package unit or a packageless entry unit. Executable statements are admitted at
