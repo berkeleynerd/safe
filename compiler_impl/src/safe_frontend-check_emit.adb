@@ -25,6 +25,7 @@ package body Safe_Frontend.Check_Emit is
    use type CM.Discrete_Range_Kind;
    use type CM.Statement_Access;
    use type CM.Statement_Kind;
+   use type CM.Match_Arm_Kind;
    use type CM.Package_Item_Kind;
    use type CM.Type_Decl_Kind;
    use type CM.Type_Spec_Kind;
@@ -2125,45 +2126,83 @@ package body Safe_Frontend.Check_Emit is
               & "}";
          when CM.Stmt_Match =>
             declare
-               Ok_Arm : CM.Match_Arm := (others => <>);
-               Fail_Arm : CM.Match_Arm := (others => <>);
-            begin
-               for Arm of Parsed.Match_Arms loop
+               Arms : String_Vectors.Vector;
+
+               function Resolved_Match_Statements
+                 (Arm      : CM.Match_Arm;
+                  Position : Positive) return CM.Statement_Access_Vectors.Vector
+               is
+               begin
+                  if Resolved_Expr = null or else Resolved_Expr.Kind /= CM.Stmt_If then
+                     return Arm.Statements;
+                  end if;
+
                   case Arm.Kind is
                      when CM.Match_Arm_Ok =>
-                        Ok_Arm := Arm;
+                        return Resolved_Expr.Then_Stmts;
                      when CM.Match_Arm_Fail =>
-                        Fail_Arm := Arm;
+                        if Resolved_Expr.Has_Else then
+                           return Resolved_Expr.Else_Stmts;
+                        end if;
+                     when CM.Match_Arm_Variant =>
+                        if Position = 1 then
+                           return Resolved_Expr.Then_Stmts;
+                        elsif Position <= 1 + Natural (Resolved_Expr.Elsifs.Length) then
+                           return
+                             Resolved_Expr.Elsifs
+                               (Positive (Position - 1)).Statements;
+                        elsif Resolved_Expr.Has_Else
+                          and then Position = Natural (Parsed.Match_Arms.Length)
+                        then
+                           return Resolved_Expr.Else_Stmts;
+                        end if;
                      when others =>
                         null;
                   end case;
-               end loop;
+
+                  return Arm.Statements;
+               end Resolved_Match_Statements;
+            begin
+               if not Parsed.Match_Arms.Is_Empty then
+                  for Index in Parsed.Match_Arms.First_Index .. Parsed.Match_Arms.Last_Index loop
+                     declare
+                        Arm : constant CM.Match_Arm := Parsed.Match_Arms (Index);
+                        Position : constant Positive :=
+                          Positive
+                            (Natural (Index) - Natural (Parsed.Match_Arms.First_Index) + 1);
+                        Kind_Text : constant String :=
+                          (case Arm.Kind is
+                              when CM.Match_Arm_Ok => "ok",
+                              when CM.Match_Arm_Fail => "fail",
+                              when CM.Match_Arm_Variant => "variant",
+                              when others => "unknown");
+                     begin
+                        Arms.Append
+                          ("{""node_type"":""MatchArm"",""kind"":"""
+                           & Kind_Text
+                           & """,""variant_name"":"
+                           & (if Arm.Kind = CM.Match_Arm_Variant
+                              then JS.Quote (Arm.Variant_Name)
+                              else "null")
+                           & ",""binders"":"
+                           & Quoted_Names (Arm.Binders)
+                           & ",""statements"":"
+                           & Sequence_Node
+                               (Arm.Statements,
+                                Resolved_Match_Statements (Arm, Position),
+                                Arm.Span)
+                           & ",""span"":"
+                           & JS.Span_Object (Arm.Span)
+                           & "}");
+                     end;
+                  end loop;
+               end if;
                return
                  "{""node_type"":""MatchStatement"",""expression"":"
                  & Expression_Node (Parsed.Match_Expr)
-                 & ",""ok_arm"":{""node_type"":""MatchArm"",""kind"":""ok"",""binder"":"
-                 & JS.Quote (Ok_Arm.Binder)
-                 & ",""statements"":"
-                 & Sequence_Node
-                     (Ok_Arm.Statements,
-                      (if Resolved_Expr /= null and then Resolved_Expr.Kind = CM.Stmt_If
-                       then Resolved_Expr.Then_Stmts
-                       else Ok_Arm.Statements),
-                      Ok_Arm.Span)
+                 & ",""arms"":"
+                 & Json_List (Arms)
                  & ",""span"":"
-                 & JS.Span_Object (Ok_Arm.Span)
-                 & "},""fail_arm"":{""node_type"":""MatchArm"",""kind"":""fail"",""binder"":"
-                 & JS.Quote (Fail_Arm.Binder)
-                 & ",""statements"":"
-                 & Sequence_Node
-                     (Fail_Arm.Statements,
-                      (if Resolved_Expr /= null and then Resolved_Expr.Kind = CM.Stmt_If and then Resolved_Expr.Has_Else
-                       then Resolved_Expr.Else_Stmts
-                       else Fail_Arm.Statements),
-                      Fail_Arm.Span)
-                 & ",""span"":"
-                 & JS.Span_Object (Fail_Arm.Span)
-                 & "},""span"":"
                  & JS.Span_Object (Parsed.Span)
                  & "}";
             end;

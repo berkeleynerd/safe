@@ -1144,8 +1144,7 @@
       "source_section": "8.7",
       "fields": [
         { "name": "expression", "type": "NodeRef<Expression>", "optional": false },
-        { "name": "ok_arm", "type": "NodeRef<MatchArm>", "optional": false },
-        { "name": "fail_arm", "type": "NodeRef<MatchArm>", "optional": false },
+        { "name": "arms", "type": "NonEmptyList<MatchArm>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
     },
@@ -1155,7 +1154,8 @@
       "source_section": "8.7",
       "fields": [
         { "name": "kind", "type": "MatchArmKind", "optional": false },
-        { "name": "binder", "type": "Identifier", "optional": false },
+        { "name": "variant_name", "type": "Option<Identifier>", "optional": true },
+        { "name": "binders", "type": "List<Identifier>", "optional": false },
         { "name": "statements", "type": "NodeRef<SequenceOfStatements>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]
@@ -1675,7 +1675,7 @@
     },
     {
       "name": "MatchArmKind",
-      "values": ["ok", "fail"]
+      "values": ["ok", "fail", "variant"]
     },
     {
       "name": "SelectedComponentKind",

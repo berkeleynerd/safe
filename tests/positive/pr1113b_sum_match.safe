@@ -1,0 +1,42 @@
+package pr1113b_sum_match
+
+   type shape is circle (radius : integer) or rectangle (width : integer; height : integer) or label (text : string) or idle;
+
+   function describe (value : shape) returns integer
+
+      match value
+         when idle
+            return 0
+         when circle (radius)
+            return radius
+         when rectangle (width, height)
+            if width == height
+               return width
+            return height
+         when label (text)
+            if text == "safe"
+               return 4
+            return 5
+
+   function make returns shape
+      return label ("safe")
+
+   function direct returns integer
+
+      match make ()
+         when circle (radius)
+            return radius
+         when rectangle (width, height)
+            if width == height
+               return width
+            return height
+         when label (text)
+            if text == "safe"
+               return 6
+            return 7
+         when idle
+            return 0
+
+   current : shape = rectangle (2, 3);
+   score : integer = describe (current);
+   other : integer = direct ();

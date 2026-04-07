@@ -1,0 +1,14 @@
+package neg_pr1113b_match_mixed_sum_result
+
+   type shape is circle (radius : integer) or idle;
+
+   function value returns integer
+
+      current : shape = idle;
+      match current
+         when ok (value)
+            return value
+         when circle (radius)
+            return radius
+         when idle
+            return 0

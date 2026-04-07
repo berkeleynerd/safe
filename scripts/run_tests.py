@@ -353,6 +353,7 @@ AST_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "positive" / "pr1112a_shared_field_access.safe",
     REPO_ROOT / "tests" / "positive" / "pr1112b_shared_snapshot.safe",
     REPO_ROOT / "tests" / "positive" / "pr1113a_sum_construction.safe",
+    REPO_ROOT / "tests" / "positive" / "pr1113b_sum_match.safe",
 ]
 
 DIAGNOSTIC_GOLDEN_CASES = [
@@ -912,6 +913,11 @@ RUN_SUCCESS_CASES = [
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr1113a_sum_build.safe",
+        "1\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1113b_sum_match_build.safe",
         "1\n",
         False,
     ),

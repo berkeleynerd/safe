@@ -22,6 +22,7 @@ package body Safe_Frontend.Check_Resolve is
    use type CM.Expr_Access;
    use type CM.Expr_Kind;
    use type CM.Statement_Access;
+   use type CM.Match_Arm_Kind;
    use type CM.Discrete_Range_Kind;
    use type CM.Package_Item_Kind;
    use type CM.Select_Arm_Kind;
@@ -9118,6 +9119,7 @@ package body Safe_Frontend.Check_Resolve is
    is
       Kind   : constant String := FT.Lowercase (UString_Value (Info.Kind));
       Name   : constant String := FT.Lowercase (UString_Value (Info.Name));
+      Quote  : constant Character := Character'Val (34);
       Result : CM.Expr_Access;
       Field  : CM.Aggregate_Field;
    begin
@@ -9146,7 +9148,7 @@ package body Safe_Frontend.Check_Resolve is
              (Kind      => CM.Expr_String,
               Span      => Span,
               Type_Name => FT.To_UString ("string"),
-              Text      => FT.To_UString (""),
+              Text      => FT.To_UString (String'(1 => Quote, 2 => Quote)),
               others    => <>);
       elsif Info.Is_Result_Builtin then
          Result := new CM.Expr_Node;
@@ -13478,50 +13480,27 @@ package body Safe_Frontend.Check_Resolve is
                     Enclosing_Return_Type,
                     Path);
                Carrier_Type : GM.Type_Descriptor;
-               Match_Value   : CM.Expr_Access;
-               Match_Name    : FT.UString := FT.To_UString ("");
-               Result_Cond   : CM.Expr_Access;
-               Ok_Arm        : CM.Match_Arm := (others => <>);
-               Fail_Arm      : CM.Match_Arm := (others => <>);
-               Have_Ok       : Boolean := False;
-               Have_Fail     : Boolean := False;
-               Arm_Vars      : Type_Maps.Map;
-               Arm_Constants : Type_Maps.Map;
+               Match_Value  : CM.Expr_Access;
+               Match_Name   : FT.UString := FT.To_UString ("");
                Arm_Static_Constants : Static_Value_Maps.Map;
-               Binder_Stmt   : CM.Statement_Access;
+
+               function Enum_Literal_Expr
+                 (Name      : FT.UString;
+                  Type_Name : FT.UString;
+                  Span      : FT.Source_Span) return CM.Expr_Access
+               is
+               begin
+                  return
+                    new CM.Expr_Node'
+                      (Kind      => CM.Expr_Enum_Literal,
+                       Span      => Span,
+                       Type_Name => Type_Name,
+                       Name      => Name,
+                       others    => <>);
+               end Enum_Literal_Expr;
             begin
                Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Carrier_Type := Expr_Type (Desugared.Expr, Var_Types, Functions, Type_Env);
-               if not Try_Result_Carrier_Success_Type
-                 (Carrier_Type, Type_Env, Success_Type)
-               then
-                  Raise_Diag
-                    (CM.Source_Frontend_Error
-                       (Path    => Path,
-                        Span    => Stmt.Match_Expr.Span,
-                        Message => "match requires a `(result, T)` expression"));
-               end if;
-
-               for Arm of Stmt.Match_Arms loop
-                  case Arm.Kind is
-                     when CM.Match_Arm_Ok =>
-                        Ok_Arm := Arm;
-                        Have_Ok := True;
-                     when CM.Match_Arm_Fail =>
-                        Fail_Arm := Arm;
-                        Have_Fail := True;
-                     when others =>
-                        null;
-                  end case;
-               end loop;
-
-               if not Have_Ok or else not Have_Fail then
-                  Raise_Diag
-                    (CM.Source_Frontend_Error
-                       (Path    => Path,
-                        Span    => Stmt.Span,
-                        Message => "match statements require exactly one `when ok (...)` arm and one `when fail (...)` arm"));
-               end if;
 
                if Is_Name_Expr (Desugared.Expr) then
                   Match_Value := Desugared.Expr;
@@ -13540,84 +13519,502 @@ package body Safe_Frontend.Check_Resolve is
                        UString_Value (Carrier_Type.Name));
                end if;
 
-               Result_Cond :=
-                 Selector_Expr
-                   (Selector_Expr
-                      (Match_Value,
-                       "1",
-                       Stmt.Match_Expr.Span,
-                       UString_Value (BT.Result_Type.Name)),
-                    "ok",
-                    Stmt.Match_Expr.Span,
-                    "boolean");
+               if Try_Result_Carrier_Success_Type
+                 (Carrier_Type, Type_Env, Success_Type)
+               then
+                  declare
+                     Result_Cond   : CM.Expr_Access;
+                     Ok_Arm        : CM.Match_Arm := (others => <>);
+                     Fail_Arm      : CM.Match_Arm := (others => <>);
+                     Ok_Count      : Natural := 0;
+                     Fail_Count    : Natural := 0;
+                     Arm_Vars      : Type_Maps.Map;
+                     Arm_Constants : Type_Maps.Map;
+                     Binder_Stmt   : CM.Statement_Access;
+                  begin
+                     for Arm of Stmt.Match_Arms loop
+                        case Arm.Kind is
+                           when CM.Match_Arm_Ok =>
+                              Ok_Arm := Arm;
+                              Ok_Count := Ok_Count + 1;
+                           when CM.Match_Arm_Fail =>
+                              Fail_Arm := Arm;
+                              Fail_Count := Fail_Count + 1;
+                           when others =>
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Arm.Span,
+                                    Message => "result matches admit only `when ok (...)` and `when fail (...)` arms"));
+                        end case;
+                     end loop;
 
-               Arm_Vars := Var_Types;
-               Arm_Constants := Local_Constants;
-               Arm_Static_Constants := Local_Static_Constants;
-               Put_Type (Arm_Vars, UString_Value (Ok_Arm.Binder), Success_Type);
-               Put_Type (Arm_Constants, UString_Value (Ok_Arm.Binder), Success_Type);
-               Remove_Static_Value (Arm_Static_Constants, UString_Value (Ok_Arm.Binder));
-               Result.Then_Stmts :=
-                 Normalize_Statement_List
-                   (Ok_Arm.Statements,
-                    Arm_Vars,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
-                    Arm_Constants,
-                    Arm_Static_Constants,
-                    Exact_Length_Facts,
-                    Path,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type);
-               Binder_Stmt :=
-                 Synthetic_Object_Decl_Stmt
-                   (UString_Value (Ok_Arm.Binder),
-                    Success_Type,
-                    Selector_Expr
-                      (Match_Value,
-                       "2",
-                       Ok_Arm.Span,
-                       UString_Value (Success_Type.Name)),
-                    Ok_Arm.Span);
-               Result.Then_Stmts.Prepend (Binder_Stmt);
+                     if Ok_Count /= 1 or else Fail_Count /= 1 then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Stmt.Span,
+                              Message => "match statements require exactly one `when ok (...)` arm and one `when fail (...)` arm"));
+                     elsif Natural (Ok_Arm.Binders.Length) /= 1 then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Ok_Arm.Span,
+                              Message => "`when ok` match arms require exactly one binder"));
+                     elsif Natural (Fail_Arm.Binders.Length) /= 1 then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Fail_Arm.Span,
+                              Message => "`when fail` match arms require exactly one binder"));
+                     end if;
 
-               Arm_Vars := Var_Types;
-               Arm_Constants := Local_Constants;
-               Arm_Static_Constants := Local_Static_Constants;
-               Put_Type (Arm_Vars, UString_Value (Fail_Arm.Binder), BT.Result_Type);
-               Put_Type (Arm_Constants, UString_Value (Fail_Arm.Binder), BT.Result_Type);
-               Remove_Static_Value (Arm_Static_Constants, UString_Value (Fail_Arm.Binder));
-               Result.Else_Stmts :=
-                 Normalize_Statement_List
-                   (Fail_Arm.Statements,
-                    Arm_Vars,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
-                    Arm_Constants,
-                    Arm_Static_Constants,
-                    Exact_Length_Facts,
-                    Path,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type);
-               Binder_Stmt :=
-                 Synthetic_Object_Decl_Stmt
-                   (UString_Value (Fail_Arm.Binder),
-                    BT.Result_Type,
-                    Selector_Expr
-                      (Match_Value,
-                       "1",
-                       Fail_Arm.Span,
-                       UString_Value (BT.Result_Type.Name)),
-                    Fail_Arm.Span);
-               Result.Else_Stmts.Prepend (Binder_Stmt);
+                     Result_Cond :=
+                       Selector_Expr
+                         (Selector_Expr
+                            (Match_Value,
+                             "1",
+                             Stmt.Match_Expr.Span,
+                             UString_Value (BT.Result_Type.Name)),
+                          "ok",
+                          Stmt.Match_Expr.Span,
+                          "boolean");
 
-               Result.Kind := CM.Stmt_If;
-               Result.Condition := Result_Cond;
-               Result.Has_Else := True;
+                     Arm_Vars := Var_Types;
+                     Arm_Constants := Local_Constants;
+                     Arm_Static_Constants := Local_Static_Constants;
+                     Put_Type
+                       (Arm_Vars,
+                        UString_Value (Ok_Arm.Binders (Ok_Arm.Binders.First_Index)),
+                        Success_Type);
+                     Put_Type
+                       (Arm_Constants,
+                        UString_Value (Ok_Arm.Binders (Ok_Arm.Binders.First_Index)),
+                        Success_Type);
+                     Remove_Static_Value
+                       (Arm_Static_Constants,
+                        UString_Value (Ok_Arm.Binders (Ok_Arm.Binders.First_Index)));
+                     Result.Then_Stmts :=
+                       Normalize_Statement_List
+                         (Ok_Arm.Statements,
+                          Arm_Vars,
+                          Functions,
+                          Type_Env,
+                          Channel_Env,
+                          Imported_Objects,
+                          Arm_Constants,
+                          Arm_Static_Constants,
+                          Exact_Length_Facts,
+                          Path,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type);
+                     Binder_Stmt :=
+                       Synthetic_Object_Decl_Stmt
+                         (UString_Value (Ok_Arm.Binders (Ok_Arm.Binders.First_Index)),
+                          Success_Type,
+                          Selector_Expr
+                            (Match_Value,
+                             "2",
+                             Ok_Arm.Span,
+                             UString_Value (Success_Type.Name)),
+                          Ok_Arm.Span);
+                     Result.Then_Stmts.Prepend (Binder_Stmt);
+
+                     Arm_Vars := Var_Types;
+                     Arm_Constants := Local_Constants;
+                     Arm_Static_Constants := Local_Static_Constants;
+                     Put_Type
+                       (Arm_Vars,
+                        UString_Value (Fail_Arm.Binders (Fail_Arm.Binders.First_Index)),
+                        BT.Result_Type);
+                     Put_Type
+                       (Arm_Constants,
+                        UString_Value (Fail_Arm.Binders (Fail_Arm.Binders.First_Index)),
+                        BT.Result_Type);
+                     Remove_Static_Value
+                       (Arm_Static_Constants,
+                        UString_Value (Fail_Arm.Binders (Fail_Arm.Binders.First_Index)));
+                     Result.Else_Stmts :=
+                       Normalize_Statement_List
+                         (Fail_Arm.Statements,
+                          Arm_Vars,
+                          Functions,
+                          Type_Env,
+                          Channel_Env,
+                          Imported_Objects,
+                          Arm_Constants,
+                          Arm_Static_Constants,
+                          Exact_Length_Facts,
+                          Path,
+                          Has_Enclosing_Return,
+                          Enclosing_Return_Type);
+                     Binder_Stmt :=
+                       Synthetic_Object_Decl_Stmt
+                         (UString_Value (Fail_Arm.Binders (Fail_Arm.Binders.First_Index)),
+                          BT.Result_Type,
+                          Selector_Expr
+                            (Match_Value,
+                             "1",
+                             Fail_Arm.Span,
+                             UString_Value (BT.Result_Type.Name)),
+                          Fail_Arm.Span);
+                     Result.Else_Stmts.Prepend (Binder_Stmt);
+
+                     Result.Kind := CM.Stmt_If;
+                     Result.Condition := Result_Cond;
+                     Result.Has_Else := True;
+                  end;
+               elsif Is_Sum_Type (Carrier_Type, Type_Env) then
+                  declare
+                     Sum_Type      : constant GM.Type_Descriptor := Base_Type (Carrier_Type, Type_Env);
+                     Tag_Type_Name : constant FT.UString := Sum_Type.Discriminant_Type;
+                     Disc_Name     : constant String := UString_Value (Sum_Type.Discriminant_Name);
+                     Total_Arms    : constant Natural := Natural (Stmt.Match_Arms.Length);
+                     Seen_Variants : String_Index_Maps.Map;
+                     Arm_Index     : Natural := 0;
+
+                     function Build_Sum_Arm_Condition
+                       (Constructor : Sum_Constructor_Info;
+                        Span        : FT.Source_Span) return CM.Expr_Access
+                     is
+                     begin
+                        return
+                          Binary_Expr
+                            (Selector_Expr
+                               (Match_Value,
+                                Disc_Name,
+                                Span,
+                                UString_Value (Tag_Type_Name)),
+                             "==",
+                             Enum_Literal_Expr
+                               (Constructor.Tag_Literal_Name,
+                                Tag_Type_Name,
+                                Span),
+                             Span,
+                             "boolean");
+                     end Build_Sum_Arm_Condition;
+
+                     function Normalize_Sum_Arm_Statements
+                       (Arm         : CM.Match_Arm;
+                        Constructor : Sum_Constructor_Info;
+                        Payload_Prefix : CM.Expr_Access := Match_Value)
+                        return CM.Statement_Access_Vectors.Vector
+                     is
+                        Arm_Vars      : Type_Maps.Map := Var_Types;
+                        Arm_Constants : Type_Maps.Map := Local_Constants;
+                        Arm_Static    : Static_Value_Maps.Map := Local_Static_Constants;
+                        Statements    : CM.Statement_Access_Vectors.Vector;
+                     begin
+                        if not Constructor.Fields.Is_Empty then
+                           for Index in Constructor.Fields.First_Index .. Constructor.Fields.Last_Index loop
+                              declare
+                                 Binder_Name : constant String :=
+                                   UString_Value (Arm.Binders (Index));
+                                 Binder_Type : constant GM.Type_Descriptor :=
+                                   Resolve_Type
+                                     (UString_Value (Constructor.Fields (Index).Type_Name),
+                                      Type_Env,
+                                      Path,
+                                      Arm.Span);
+                              begin
+                                 Put_Type (Arm_Vars, Binder_Name, Binder_Type);
+                                 Put_Type (Arm_Constants, Binder_Name, Binder_Type);
+                                 Remove_Static_Value (Arm_Static, Binder_Name);
+                              end;
+                           end loop;
+                        end if;
+
+                        if not Constructor.Fields.Is_Empty then
+                           for Index in Constructor.Fields.First_Index .. Constructor.Fields.Last_Index loop
+                              declare
+                                 Binder_Name : constant String :=
+                                   UString_Value (Arm.Binders (Index));
+                                 Binder_Type : constant GM.Type_Descriptor :=
+                                   Resolve_Type
+                                     (UString_Value (Constructor.Fields (Index).Type_Name),
+                                      Type_Env,
+                                      Path,
+                                      Arm.Span);
+                              begin
+                                 Statements.Append
+                                   (Synthetic_Object_Decl_Stmt
+                                      (Binder_Name,
+                                       Binder_Type,
+                                       Selector_Expr
+                                         (Payload_Prefix,
+                                          UString_Value (Constructor.Fields (Index).Name),
+                                          Arm.Span,
+                                          UString_Value (Binder_Type.Name)),
+                                       Arm.Span));
+                              end;
+                           end loop;
+                        end if;
+
+                        Append_Statements
+                          (Statements,
+                           Normalize_Statement_List
+                             (Arm.Statements,
+                              Arm_Vars,
+                              Functions,
+                              Type_Env,
+                              Channel_Env,
+                              Imported_Objects,
+                              Arm_Constants,
+                              Arm_Static,
+                              Exact_Length_Facts,
+                              Path,
+                              Has_Enclosing_Return,
+                              Enclosing_Return_Type));
+                        return Statements;
+                     end Normalize_Sum_Arm_Statements;
+
+                     function Sum_Arm_Subtype
+                       (Constructor : Sum_Constructor_Info) return GM.Type_Descriptor
+                     is
+                        Result_Type : GM.Type_Descriptor := Sum_Type;
+                        Constraint  : GM.Discriminant_Constraint;
+                     begin
+                        Result_Type.Kind := FT.To_UString ("subtype");
+                        Result_Type.Has_Base := True;
+                        Result_Type.Base := Sum_Type.Name;
+                        Result_Type.Discriminant_Constraints.Clear;
+                        Constraint.Is_Named := True;
+                        Constraint.Name := Sum_Type.Discriminant_Name;
+                        Constraint.Value.Kind := GM.Scalar_Value_Enum;
+                        Constraint.Value.Type_Name := Tag_Type_Name;
+                        Constraint.Value.Text := Constructor.Tag_Literal_Name;
+                        Result_Type.Discriminant_Constraints.Append (Constraint);
+                        return Result_Type;
+                     end Sum_Arm_Subtype;
+                  begin
+                     if Total_Arms = 0 then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Stmt.Span,
+                              Message => "match statements require at least one arm"));
+                     end if;
+
+                     for Arm of Stmt.Match_Arms loop
+                        Arm_Index := Arm_Index + 1;
+                        if Arm.Kind /= CM.Match_Arm_Variant then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path,
+                                 Span    => Arm.Span,
+                                 Message => "sum matches admit only `when variant` arms in PR11.13b"));
+                        end if;
+
+                        declare
+                           Variant_Key : constant String :=
+                             Canonical_Name (UString_Value (Arm.Variant_Name));
+                           Constructor : Sum_Constructor_Info;
+                           Binder_Seen : String_Index_Maps.Map;
+                           Branch_Statements : CM.Statement_Access_Vectors.Vector;
+                        begin
+                           if not Current_Sum_Constructors.Contains (Variant_Key) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Arm.Span,
+                                    Message =>
+                                      "unknown sum variant `"
+                                      & UString_Value (Arm.Variant_Name)
+                                      & "` in match arm"));
+                           end if;
+
+                           Constructor := Current_Sum_Constructors.Element (Variant_Key);
+                           if Canonical_Name (UString_Value (Constructor.Sum_Type_Name)) /=
+                             Canonical_Name (UString_Value (Sum_Type.Name))
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Arm.Span,
+                                    Message =>
+                                      "sum variant `"
+                                      & UString_Value (Arm.Variant_Name)
+                                      & "` does not belong to `"
+                                      & UString_Value (Sum_Type.Name)
+                                      & "`"));
+                           elsif Seen_Variants.Contains (Variant_Key) then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Arm.Span,
+                                    Message =>
+                                      "duplicate sum match arm `"
+                                      & UString_Value (Arm.Variant_Name)
+                                      & "`"));
+                           end if;
+                           Seen_Variants.Include (Variant_Key, Arm_Index);
+
+                           if Natural (Arm.Binders.Length) /=
+                             Natural (Constructor.Fields.Length)
+                           then
+                              if Constructor.Fields.Is_Empty then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Arm.Span,
+                                       Message =>
+                                         "zero-payload sum variant `"
+                                         & UString_Value (Arm.Variant_Name)
+                                         & "` uses bare `when "
+                                         & UString_Value (Arm.Variant_Name)
+                                         & "` in PR11.13b"));
+                              else
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Arm.Span,
+                                       Message =>
+                                         "sum match arm `"
+                                         & UString_Value (Arm.Variant_Name)
+                                         & "` must bind exactly "
+                                         & Natural'Image (Natural (Constructor.Fields.Length))
+                                         & " payload value(s)"));
+                              end if;
+                           end if;
+
+                           if not Arm.Binders.Is_Empty then
+                              for Binder of Arm.Binders loop
+                                 declare
+                                    Binder_Key : constant String :=
+                                      Canonical_Name (UString_Value (Binder));
+                                 begin
+                                    if Binder_Seen.Contains (Binder_Key) then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => Arm.Span,
+                                             Message =>
+                                               "duplicate binder `"
+                                               & UString_Value (Binder)
+                                               & "` in match arm"));
+                                    end if;
+                                    Binder_Seen.Include (Binder_Key, 1);
+                                 end;
+                              end loop;
+                           end if;
+
+                           Branch_Statements := Normalize_Sum_Arm_Statements (Arm, Constructor);
+
+                           if Total_Arms = 1 then
+                              Result.Kind := CM.Stmt_If;
+                              Result.Condition := Bool_Expr (True, Arm.Span);
+                              if Constructor.Fields.Is_Empty then
+                                 Result.Then_Stmts := Branch_Statements;
+                              else
+                                 declare
+                                    Constrained_Name : constant String :=
+                                      "Safe_Match_Only_" &
+                                      Ada.Strings.Fixed.Trim
+                                        (Natural'Image (Arm_Index),
+                                         Ada.Strings.Both);
+                                    Constrained_Type : constant GM.Type_Descriptor :=
+                                      Sum_Arm_Subtype (Constructor);
+                                    Payload_Prefix : constant CM.Expr_Access :=
+                                      Ident_Expr
+                                        (Constrained_Name,
+                                         Arm.Span,
+                                         UString_Value (Constrained_Type.Name));
+                                 begin
+                                    Result.Then_Stmts :=
+                                      Normalize_Sum_Arm_Statements
+                                        (Arm,
+                                         Constructor,
+                                         Payload_Prefix => Payload_Prefix);
+                                    Result.Then_Stmts.Prepend
+                                      (Synthetic_Object_Decl_Stmt
+                                         (Constrained_Name,
+                                          Constrained_Type,
+                                          Match_Value,
+                                          Arm.Span));
+                                 end;
+                              end if;
+                           elsif Arm_Index = 1 then
+                              Result.Kind := CM.Stmt_If;
+                              Result.Condition := Build_Sum_Arm_Condition (Constructor, Arm.Span);
+                              Result.Then_Stmts := Branch_Statements;
+                           elsif Arm_Index = Total_Arms then
+                              if Constructor.Fields.Is_Empty then
+                                 Result.Has_Else := True;
+                                 Result.Else_Stmts := Branch_Statements;
+                              else
+                                 declare
+                                    Constrained_Name : constant String :=
+                                      "Safe_Match_Final_" &
+                                      Ada.Strings.Fixed.Trim
+                                        (Natural'Image (Arm_Index),
+                                         Ada.Strings.Both);
+                                    Constrained_Type : constant GM.Type_Descriptor :=
+                                      Sum_Arm_Subtype (Constructor);
+                                    Payload_Prefix : constant CM.Expr_Access :=
+                                      Ident_Expr
+                                        (Constrained_Name,
+                                         Arm.Span,
+                                         UString_Value (Constrained_Type.Name));
+                                 begin
+                                    Result.Has_Else := True;
+                                    Result.Else_Stmts :=
+                                      Normalize_Sum_Arm_Statements
+                                        (Arm,
+                                         Constructor,
+                                         Payload_Prefix => Payload_Prefix);
+                                    Result.Else_Stmts.Prepend
+                                      (Synthetic_Object_Decl_Stmt
+                                         (Constrained_Name,
+                                          Constrained_Type,
+                                          Match_Value,
+                                          Arm.Span));
+                                 end;
+                              end if;
+                           else
+                              declare
+                                 Elsif_Part : CM.Elsif_Part;
+                              begin
+                                 Elsif_Part.Condition :=
+                                   Build_Sum_Arm_Condition (Constructor, Arm.Span);
+                                 Elsif_Part.Statements := Branch_Statements;
+                                 Elsif_Part.Span := Arm.Span;
+                                 Result.Elsifs.Append (Elsif_Part);
+                              end;
+                           end if;
+                        end;
+                     end loop;
+
+                     for Cursor in Current_Sum_Constructors.Iterate loop
+                        declare
+                           Variant_Key : constant String := Sum_Constructor_Maps.Key (Cursor);
+                           Constructor : constant Sum_Constructor_Info :=
+                             Sum_Constructor_Maps.Element (Cursor);
+                        begin
+                           if Canonical_Name (UString_Value (Constructor.Sum_Type_Name)) =
+                             Canonical_Name (UString_Value (Sum_Type.Name))
+                             and then not Seen_Variants.Contains (Variant_Key)
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => Stmt.Span,
+                                    Message =>
+                                      "match on `"
+                                      & UString_Value (Sum_Type.Name)
+                                      & "` is missing variant `"
+                                      & UString_Value (Constructor.Name)
+                                      & "`"));
+                           end if;
+                        end;
+                     end loop;
+                  end;
+               else
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Stmt.Match_Expr.Span,
+                        Message => "match requires a `(result, T)` or sum expression"));
+               end if;
             end;
 
          when CM.Stmt_Select =>

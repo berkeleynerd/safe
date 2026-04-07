@@ -2456,13 +2456,13 @@ package body Safe_Frontend.Check_Parse is
    function Parse_Match_Statement
      (State : in out Parser_State) return CM.Statement_Access
    is
-      Start    : constant FL.Token := Expect (State, "match");
-      Result   : constant CM.Statement_Access := new CM.Statement;
-      Arm      : CM.Match_Arm;
-      Arm_Start : FL.Token;
-      Binder   : FL.Token;
-      Saw_Ok   : Boolean := False;
-      Saw_Fail : Boolean := False;
+      Start      : constant FL.Token := Expect (State, "match");
+      Result     : constant CM.Statement_Access := new CM.Statement;
+      Arm        : CM.Match_Arm;
+      Arm_Start  : FL.Token;
+      Arm_Name   : FL.Token;
+      Binder     : FL.Token;
+      Pattern_End : FT.Source_Span;
    begin
       Result.Kind := CM.Stmt_Match;
       Result.Match_Expr := Parse_Expression (State);
@@ -2472,68 +2472,64 @@ package body Safe_Frontend.Check_Parse is
          exit when Current (State).Kind in FL.Dedent | FL.End_Of_File;
          Arm := (others => <>);
          Arm_Start := Expect (State, "when");
+         Arm_Name := Expect_Identifier (State);
+         Pattern_End := Arm_Name.Span;
 
-         if Current_Lower (State) = "ok" then
-            if Saw_Ok then
+         if Match (State, "(") then
+            if FT.To_String (Current (State).Lexeme) = ")" then
                Raise_Diag
-                 (CM.Source_Frontend_Error
+                 (CM.Unsupported_Source_Construct
                     (Path    => Path_String (State),
                      Span    => Current (State).Span,
-                     Message => "match statements require exactly one `when ok (...)` arm"));
+                     Message =>
+                       "zero-payload sum match arms use the bare variant name in PR11.13b"));
             end if;
-            Saw_Ok := True;
-            Arm.Kind := CM.Match_Arm_Ok;
-            Advance (State);
-         elsif Current_Lower (State) = "fail" then
-            if Saw_Fail then
-               Raise_Diag
-                 (CM.Source_Frontend_Error
-                    (Path    => Path_String (State),
-                     Span    => Current (State).Span,
-                     Message => "match statements require exactly one `when fail (...)` arm"));
-            end if;
-            Saw_Fail := True;
-            Arm.Kind := CM.Match_Arm_Fail;
-            Advance (State);
-         else
-            Raise_Diag
-              (CM.Source_Frontend_Error
-                 (Path    => Path_String (State),
-                  Span    => Current (State).Span,
-                  Message => "expected `ok` or `fail` in match arm"));
+
+            loop
+               Binder := Expect_Identifier (State);
+               Arm.Binders.Append (Binder.Lexeme);
+               Pattern_End := Binder.Span;
+               exit when not Match (State, ",");
+            end loop;
+
+            Pattern_End := Expect (State, ")").Span;
          end if;
 
-         Require (State, "(");
-         Binder := Expect_Identifier (State);
-         Arm.Binder := Binder.Lexeme;
-         Require (State, ")");
+         if FT.Lowercase (FT.To_String (Arm_Name.Lexeme)) = "ok"
+           and then Natural (Arm.Binders.Length) = 1
+         then
+            Arm.Kind := CM.Match_Arm_Ok;
+         elsif FT.Lowercase (FT.To_String (Arm_Name.Lexeme)) = "fail"
+           and then Natural (Arm.Binders.Length) = 1
+         then
+            Arm.Kind := CM.Match_Arm_Fail;
+         else
+            Arm.Kind := CM.Match_Arm_Variant;
+            Arm.Variant_Name := Arm_Name.Lexeme;
+         end if;
+
          Arm.Statements :=
            Parse_Indented_Statement_Sequence
              (State,
               "match arms require an indented body",
-              Binder.Span);
-         Arm.Span := CM.Join (Arm_Start.Span, Suite_End_Span (Arm.Statements, Binder.Span));
+              Pattern_End);
+         Arm.Span := CM.Join (Arm_Start.Span, Suite_End_Span (Arm.Statements, Pattern_End));
          Result.Match_Arms.Append (Arm);
       end loop;
 
-      if Natural (Result.Match_Arms.Length) /= 2
-        or else not Saw_Ok
-        or else not Saw_Fail
-      then
+      if Result.Match_Arms.Is_Empty then
          Raise_Diag
            (CM.Source_Frontend_Error
               (Path    => Path_String (State),
-               Span    => Current (State).Span,
-               Message => "match statements require exactly one `when ok (...)` arm and one `when fail (...)` arm"));
+               Span    => Result.Match_Expr.Span,
+               Message => "match statements require at least one arm"));
       end if;
 
       Require_Dedent (State, "match arms must align under `match`");
       Result.Span :=
         CM.Join
           (Start.Span,
-           (if Result.Match_Arms.Is_Empty
-            then Result.Match_Expr.Span
-            else Result.Match_Arms (Result.Match_Arms.Last_Index).Span));
+           Result.Match_Arms (Result.Match_Arms.Last_Index).Span);
       return Result;
    end Parse_Match_Statement;
 

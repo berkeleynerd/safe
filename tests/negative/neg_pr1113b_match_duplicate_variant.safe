@@ -1,0 +1,14 @@
+package neg_pr1113b_match_duplicate_variant
+
+   type shape is circle (radius : integer) or idle;
+
+   function value returns integer
+
+      current : shape = idle;
+      match current
+         when idle
+            return 0
+         when idle
+            return 1
+         when circle (radius)
+            return radius

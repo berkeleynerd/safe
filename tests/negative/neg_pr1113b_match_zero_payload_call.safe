@@ -1,0 +1,12 @@
+package neg_pr1113b_match_zero_payload_call
+
+   type shape is circle (radius : integer) or idle;
+
+   function value returns integer
+
+      current : shape = idle;
+      match current
+         when circle (radius)
+            return radius
+         when idle ()
+            return 0
