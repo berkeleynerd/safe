@@ -3109,6 +3109,43 @@ close the generic actual type gap.
 - Audit builtin recognition for `append`, `pop_last`, `contains`, `get`,
   `set`, `remove`, `some`, `none` — verify no duplicated lookup patterns
   and consistent precedence (user names win over builtins)
+- Consolidate the resolver's dominant duplication patterns identified
+  by mechanical clone analysis:
+  - R-A: Extract a local `Desugar_Checked` helper to replace the
+    repeated 12-argument Desugar+Normalize call sequences (~2,000
+    lines recoverable)
+  - R-B: Extract `Build_Shared_Setter_Call` for the duplicated
+    shared-field write validation chain (~500 lines)
+  - R-C: Consider bundling the resolver environment into a record to
+    reduce the `Normalize_Statement_List` parameter signature
+    (~200 lines; medium risk because it changes internal API)
+  - R-D: Extract `Register_One_Imported_Type` for duplicated import
+    registration (~150 lines)
+  - R-E: Consolidate the repeated method/interface satisfaction checks
+    where the same compatibility pattern is repeated over different
+    target types (~150 lines; lower priority than R-A through R-D)
+  - R-F: Finish the remaining sum-match arm constrained-name and
+    payload-prefix dedup now that imported sum metadata is settled
+    (~200 lines; smaller follow-on cleanup)
+  - R-G: Extract `Validate_And_Contextualize_Value` for duplicated
+    value validation chains (~200 lines)
+- Consolidate `mir_bronze.adb` parameter-forwarding duplication:
+  - B-A+B-B: Bundle the walk state into a record and thread it through
+    `Walk_Expr` / `Walk_Statements` recursion (~1,200 lines recoverable;
+    highest-duplication-ratio file at 56%)
+  - B-C: Fold the remaining `Sanitize_Type_Name_Component` call-site
+    cleanup onto `Safe_Frontend.Name_Utils` after the shared utility
+    lands in PR11.22d
+- Consolidate `check_lower.adb` assignment-construction duplication:
+  - L-A: Extract `Build_Assignment_Op` for repeated assignment
+    operation construction (~150 lines)
+  - L-B: Reduce default-initializer boilerplate (~100 lines)
+- Consolidate `check_emit.adb` public-subprogram iteration:
+  - E-A: Extract `For_Each_Public_Subprogram` callback pattern
+    (~80 lines)
+- Unify the remaining `Sanitize_Type_Name_Component` copies that were
+  migrated to `Safe_Frontend.Name_Utils` in PR11.22d but may still
+  have call-site cleanup needed
 - Remove dead `Stmt_Try_Send` normalization/lowering paths if any exist
   beyond the intentional rejection diagnostic
 - Identify functions >200 lines and split by kind where beneficial
