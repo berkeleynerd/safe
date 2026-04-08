@@ -6,6 +6,7 @@ private package Safe_Frontend.Ada_Emit.Internal is
    package SU renames Ada.Strings.Unbounded;
 
    Emitter_Internal : exception;
+   Emitter_Unsupported : exception;
 
    type Cleanup_Action is (Cleanup_Deallocate, Cleanup_Reset_Null);
 
