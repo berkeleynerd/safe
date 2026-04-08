@@ -28,13 +28,22 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+          show_full_output: true
           prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
             Review this pull request. Focus on:
             - Correctness: logic errors, off-by-one, missing cases
             - Ada/SPARK issues: visibility violations, missing pragma, incorrect renames signatures
             - Dead code or duplicated code introduced by the change
             - Any change that could alter emitted Ada output (refactoring PRs must be output-preserving)
+            Use `gh pr comment` for top-level feedback.
+            Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`) for line-specific issues.
+            Only post GitHub comments - don't submit review text as messages.
             Keep feedback concise and actionable. Do not comment on style unless it affects correctness.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
 
   interactive:
     if: >
