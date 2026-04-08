@@ -112,6 +112,9 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       Subprogram : CM.Resolved_Subprogram;
       Depth      : Natural)
    is
+      --  Intentionally left as a no-op. The pre-split emitter also called
+      --  this stub without emitting stabilizers; keep that behavior until
+      --  stabilizer generation is explicitly scoped.
       pragma Unreferenced (Buffer, Subprogram, Depth);
    begin
       null;
@@ -133,8 +136,6 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       Subprogram : CM.Resolved_Subprogram;
       Name       : String) return Boolean
    is
-      Visited_Calls : FT.UString_Vectors.Vector;
-
       procedure Collect_Call_Names_From_Expr
         (Expr  : CM.Expr_Access;
          Calls : in out FT.UString_Vectors.Vector);
@@ -143,8 +144,13 @@ package body Safe_Frontend.Ada_Emit.Proofs is
         (Statements : CM.Statement_Access_Vectors.Vector;
          Calls      : in out FT.UString_Vectors.Vector);
 
+      function Subprogram_Mentions_Name
+        (Item_Subprogram : CM.Resolved_Subprogram;
+         Visited_Calls   : in out FT.UString_Vectors.Vector) return Boolean;
+
       function Called_Subprograms_Mention_Name
-        (Item_Subprogram : CM.Resolved_Subprogram) return Boolean;
+        (Item_Subprogram : CM.Resolved_Subprogram;
+         Visited_Calls   : in out FT.UString_Vectors.Vector) return Boolean;
 
       procedure Add_Call_Name
         (Calls : in out FT.UString_Vectors.Vector;
@@ -266,7 +272,8 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       end Collect_Call_Names_From_Statements;
 
       function Called_Subprograms_Mention_Name
-        (Item_Subprogram : CM.Resolved_Subprogram) return Boolean
+        (Item_Subprogram : CM.Resolved_Subprogram;
+         Visited_Calls   : in out FT.UString_Vectors.Vector) return Boolean
       is
          Calls : FT.UString_Vectors.Vector;
       begin
@@ -293,7 +300,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                         then
                            if not Contains_Name (Visited_Calls, Candidate_Name) then
                               Visited_Calls.Append (FT.To_UString (Candidate_Name));
-                              if Subprogram_Uses_Global_Name (Unit, Candidate, Name) then
+                              if Subprogram_Mentions_Name (Candidate, Visited_Calls) then
                                  return True;
                               end if;
                            end if;
@@ -307,20 +314,35 @@ package body Safe_Frontend.Ada_Emit.Proofs is
 
          return False;
       end Called_Subprograms_Mention_Name;
-   begin
-      if Name'Length = 0 then
-         return False;
-      end if;
-
-      for Decl of Subprogram.Declarations loop
-         if Expr_Uses_Name (Decl.Initializer, Name) then
-            return True;
+      function Subprogram_Mentions_Name
+        (Item_Subprogram : CM.Resolved_Subprogram;
+         Visited_Calls   : in out FT.UString_Vectors.Vector) return Boolean
+      is
+      begin
+         if Name'Length = 0 then
+            return False;
          end if;
-      end loop;
 
-      return
-        Statements_Use_Name (Subprogram.Statements, Name)
-        or else Called_Subprograms_Mention_Name (Subprogram);
+         for Decl of Item_Subprogram.Declarations loop
+            if Expr_Uses_Name (Decl.Initializer, Name) then
+               return True;
+            end if;
+         end loop;
+
+         return
+           Statements_Use_Name (Item_Subprogram.Statements, Name)
+           or else Called_Subprograms_Mention_Name (Item_Subprogram, Visited_Calls);
+      end Subprogram_Mentions_Name;
+   begin
+      declare
+         Visited_Calls : FT.UString_Vectors.Vector;
+         Subprogram_Name : constant String := FT.Lowercase (FT.To_String (Subprogram.Name));
+      begin
+         if Subprogram_Name'Length > 0 then
+            Visited_Calls.Append (FT.To_UString (Subprogram_Name));
+         end if;
+         return Subprogram_Mentions_Name (Subprogram, Visited_Calls);
+      end;
    end Subprogram_Uses_Global_Name;
    function Render_Initializes_Aspect
      (Unit     : CM.Resolved_Unit;
