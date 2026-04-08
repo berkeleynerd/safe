@@ -71,6 +71,14 @@ package body Safe_Frontend.Mir_Bronze is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
 
+   type Walk_State is record
+      Locals                : Local_Maps.Map;
+      Callable_Names        : String_Sets.Set;
+      Signatures            : Signature_Maps.Map;
+      Shared_Wrappers       : Name_Maps.Map;
+      Shared_Helper_Prefixes : Name_Maps.Map;
+   end record;
+
    type Direct_Summary is record
       Name           : FT.UString := FT.To_UString ("");
       Kind           : FT.UString := FT.To_UString ("");
@@ -220,11 +228,7 @@ package body Safe_Frontend.Mir_Bronze is
       Binding : in out Marker_Binding);
    procedure Walk_Expr
      (Expr        : GM.Expr_Access;
-      Locals      : Local_Maps.Map;
-      Callable_Names : String_Sets.Set;
-      Signatures  : Signature_Maps.Map;
-      Shared_Wrappers : Name_Maps.Map;
-      Shared_Helper_Prefixes : Name_Maps.Map;
+      State       : Walk_State;
       Reads       : in out String_Sets.Set;
       Shared_Reads : in out String_Sets.Set;
       Shared_Writes : in out String_Sets.Set;
@@ -849,11 +853,7 @@ package body Safe_Frontend.Mir_Bronze is
 
    procedure Walk_Expr
      (Expr        : GM.Expr_Access;
-      Locals      : Local_Maps.Map;
-      Callable_Names : String_Sets.Set;
-      Signatures  : Signature_Maps.Map;
-      Shared_Wrappers : Name_Maps.Map;
-      Shared_Helper_Prefixes : Name_Maps.Map;
+      State       : Walk_State;
       Reads       : in out String_Sets.Set;
       Shared_Reads : in out String_Sets.Set;
       Shared_Writes : in out String_Sets.Set;
@@ -869,6 +869,40 @@ package body Safe_Frontend.Mir_Bronze is
       Full        : FT.UString := FT.To_UString ("");
       Shared_Root : FT.UString := FT.To_UString ("");
       Shared_Op   : FT.UString := FT.To_UString ("");
+
+      procedure Walk_Subexpr (Subexpr : GM.Expr_Access) is
+      begin
+         Walk_Expr
+           (Subexpr,
+            State,
+            Reads,
+            Shared_Reads,
+            Shared_Writes,
+            Calls,
+            Inputs,
+            Outputs,
+            Use_Spans,
+            Call_Sites,
+            Binding);
+      end Walk_Subexpr;
+
+      procedure Walk_Subexpr
+        (Subexpr     : GM.Expr_Access;
+         Sub_Binding : access Marker_Binding) is
+      begin
+         Walk_Expr
+           (Subexpr,
+            State,
+            Reads,
+            Shared_Reads,
+            Shared_Writes,
+            Calls,
+            Inputs,
+            Outputs,
+            Use_Spans,
+            Call_Sites,
+            Sub_Binding);
+      end Walk_Subexpr;
    begin
       if Expr = null then
          return;
@@ -878,7 +912,7 @@ package body Safe_Frontend.Mir_Bronze is
          when GM.Expr_Ident =>
             Note_Read
               (UString_Value (Expr.Name),
-               Locals,
+               State.Locals,
                Reads,
                Inputs,
                Use_Spans,
@@ -888,10 +922,10 @@ package body Safe_Frontend.Mir_Bronze is
             if UString_Value (Expr.Selector) = "access" then
                Root := FT.To_UString (Root_Name (Expr.Prefix));
                Full := FT.To_UString (Flatten_Name (Expr.Prefix));
-               if UString_Value (Root) /= "" and then Locals.Contains (UString_Value (Root)) then
+               if UString_Value (Root) /= "" and then State.Locals.Contains (UString_Value (Root)) then
                   Note_Read
                     (UString_Value (Root),
-                     Locals,
+                     State.Locals,
                      Reads,
                      Inputs,
                      Use_Spans,
@@ -900,7 +934,7 @@ package body Safe_Frontend.Mir_Bronze is
                else
                   Note_Read
                     (UString_Value (Full),
-                     Locals,
+                     State.Locals,
                      Reads,
                      Inputs,
                      Use_Spans,
@@ -908,157 +942,37 @@ package body Safe_Frontend.Mir_Bronze is
                      Binding);
                end if;
             elsif Ada.Strings.Fixed.Index (Flatten_Name (Expr), ".") > 0
-              and then not Locals.Contains (Root_Name (Expr))
+              and then not State.Locals.Contains (Root_Name (Expr))
             then
                Note_Read
                  (Flatten_Name (Expr),
-                  Locals,
+                  State.Locals,
                   Reads,
                   Inputs,
                   Use_Spans,
                   Expr.Span,
                   Binding);
             else
-               Walk_Expr
-                 (Expr.Prefix,
-                  Locals,
-                  Callable_Names,
-                  Signatures,
-                  Shared_Wrappers,
-                  Shared_Helper_Prefixes,
-                  Reads,
-                  Shared_Reads,
-                  Shared_Writes,
-                  Calls,
-                  Inputs,
-                  Outputs,
-                  Use_Spans,
-                  Call_Sites,
-                  Binding);
+               Walk_Subexpr (Expr.Prefix);
             end if;
          when GM.Expr_Resolved_Index =>
-            Walk_Expr
-              (Expr.Prefix,
-               Locals,
-               Callable_Names,
-               Signatures,
-               Shared_Wrappers,
-               Shared_Helper_Prefixes,
-               Reads,
-               Shared_Reads,
-               Shared_Writes,
-               Calls,
-               Inputs,
-               Outputs,
-               Use_Spans,
-               Call_Sites,
-               Binding);
+            Walk_Subexpr (Expr.Prefix);
             if not Expr.Args.Is_Empty then
                for Arg of Expr.Args loop
-                  Walk_Expr
-                    (Arg,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Reads,
-                     Shared_Reads,
-                     Shared_Writes,
-                     Calls,
-                     Inputs,
-                     Outputs,
-                     Use_Spans,
-                     Call_Sites,
-                     Binding);
+                  Walk_Subexpr (Arg);
                end loop;
             end if;
          when GM.Expr_Conversion | GM.Expr_Unary | GM.Expr_Annotated =>
-            Walk_Expr
-              (Expr.Inner,
-               Locals,
-               Callable_Names,
-               Signatures,
-               Shared_Wrappers,
-               Shared_Helper_Prefixes,
-               Reads,
-               Shared_Reads,
-               Shared_Writes,
-               Calls,
-               Inputs,
-               Outputs,
-               Use_Spans,
-               Call_Sites,
-               Binding);
+            Walk_Subexpr (Expr.Inner);
          when GM.Expr_Binary =>
-            Walk_Expr
-              (Expr.Left,
-               Locals,
-               Callable_Names,
-               Signatures,
-               Shared_Wrappers,
-               Shared_Helper_Prefixes,
-               Reads,
-               Shared_Reads,
-               Shared_Writes,
-               Calls,
-               Inputs,
-               Outputs,
-               Use_Spans,
-               Call_Sites,
-               Binding);
-            Walk_Expr
-              (Expr.Right,
-               Locals,
-               Callable_Names,
-               Signatures,
-               Shared_Wrappers,
-               Shared_Helper_Prefixes,
-               Reads,
-               Shared_Reads,
-               Shared_Writes,
-               Calls,
-               Inputs,
-               Outputs,
-               Use_Spans,
-               Call_Sites,
-               Binding);
+            Walk_Subexpr (Expr.Left);
+            Walk_Subexpr (Expr.Right);
          when GM.Expr_Allocator =>
-            Walk_Expr
-              (Expr.Value,
-               Locals,
-               Callable_Names,
-               Signatures,
-               Shared_Wrappers,
-               Shared_Helper_Prefixes,
-               Reads,
-               Shared_Reads,
-               Shared_Writes,
-               Calls,
-               Inputs,
-               Outputs,
-               Use_Spans,
-               Call_Sites,
-               Binding);
+            Walk_Subexpr (Expr.Value);
          when GM.Expr_Aggregate =>
             if not Expr.Fields.Is_Empty then
                for Field of Expr.Fields loop
-                  Walk_Expr
-                    (Field.Expr,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Reads,
-                     Shared_Reads,
-                     Shared_Writes,
-                     Calls,
-                     Inputs,
-                     Outputs,
-                     Use_Spans,
-                     Call_Sites,
-                     Binding);
+                  Walk_Subexpr (Field.Expr);
                end loop;
             end if;
          when GM.Expr_Call =>
@@ -1066,8 +980,8 @@ package body Safe_Frontend.Mir_Bronze is
             if UString_Value (Callee) /= ""
               and then Try_Shared_Call
                 (UString_Value (Callee),
-                 Shared_Wrappers,
-                 Shared_Helper_Prefixes,
+                 State.Shared_Wrappers,
+                 State.Shared_Helper_Prefixes,
                  Root_Name  => Shared_Root,
                  Operation  => Shared_Op)
             then
@@ -1082,36 +996,24 @@ package body Safe_Frontend.Mir_Bronze is
                   Span          => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span));
                if not Expr.Args.Is_Empty then
                   for Arg of Expr.Args loop
-                     Walk_Expr
-                       (Arg,
-                        Locals,
-                        Callable_Names,
-                        Signatures,
-                        Shared_Wrappers,
-                        Shared_Helper_Prefixes,
-                        Reads,
-                        Shared_Reads,
-                        Shared_Writes,
-                        Calls,
-                        Inputs,
-                        Outputs,
-                        Use_Spans,
-                        Call_Sites,
-                        Binding);
+                     Walk_Subexpr (Arg);
                   end loop;
                end if;
-            elsif UString_Value (Callee) /= "" and then Callable_Names.Contains (UString_Value (Callee)) then
+            elsif UString_Value (Callee) /= ""
+              and then State.Callable_Names.Contains (UString_Value (Callee))
+            then
                Calls.Include (UString_Value (Callee));
                Note_Use_Span
                  (UString_Value (Callee),
                   (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
                   Use_Spans);
-               if not Signatures.Contains (UString_Value (Callee)) then
+               if not State.Signatures.Contains (UString_Value (Callee)) then
                   Raise_Internal ("missing callable signature for `" & UString_Value (Callee) & "`");
                end if;
 
                declare
-                  Signature : constant Callable_Signature := Signatures.Element (UString_Value (Callee));
+                  Signature : constant Callable_Signature :=
+                    State.Signatures.Element (UString_Value (Callee));
                   Call      : Call_Site;
                begin
                   if Expr.Args.Length /= Signature.Param_Names.Length then
@@ -1129,28 +1031,13 @@ package body Safe_Frontend.Mir_Bronze is
                            Actual_Output : Marker_Binding;
                         begin
                            if Mode /= "out" then
-                              Walk_Expr
-                                (Expr.Args (Index),
-                                 Locals,
-                                 Callable_Names,
-                                 Signatures,
-                                 Shared_Wrappers,
-                                 Shared_Helper_Prefixes,
-                                 Reads,
-                                 Shared_Reads,
-                                 Shared_Writes,
-                                 Calls,
-                                 Inputs,
-                                 Outputs,
-                                 Use_Spans,
-                                 Call_Sites,
-                                 Actual_Input'Access);
+                              Walk_Subexpr (Expr.Args (Index), Actual_Input'Access);
                            end if;
 
                            if Mode in "mut" | "out" | "in out" then
                               Collect_Output_Binding
                                 (Expr.Args (Index),
-                                 Locals,
+                                 State.Locals,
                                  Actual_Output);
                            end if;
 
@@ -1163,22 +1050,7 @@ package body Safe_Frontend.Mir_Bronze is
                end;
             elsif not Expr.Args.Is_Empty then
                for Arg of Expr.Args loop
-                  Walk_Expr
-                    (Arg,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Reads,
-                     Shared_Reads,
-                     Shared_Writes,
-                     Calls,
-                     Inputs,
-                     Outputs,
-                     Use_Spans,
-                     Call_Sites,
-                     Binding);
+                  Walk_Subexpr (Arg);
                end loop;
             end if;
          when others =>
@@ -1440,7 +1312,28 @@ package body Safe_Frontend.Mir_Bronze is
    is
       Result : Direct_Summary;
       Locals : constant Local_Maps.Map := Local_Metadata (Graph);
+      State  : constant Walk_State :=
+        (Locals                 => Locals,
+         Callable_Names         => Callable_Names,
+         Signatures             => Signatures,
+         Shared_Wrappers        => Shared_Wrappers,
+         Shared_Helper_Prefixes => Shared_Helper_Prefixes);
       Root   : FT.UString := FT.To_UString ("");
+
+      procedure Walk (Expr : GM.Expr_Access) is
+      begin
+         Walk_Expr
+           (Expr,
+            State,
+            Result.Direct_Reads,
+            Result.Direct_Shared_Reads,
+            Result.Direct_Shared_Writes,
+            Result.Direct_Calls,
+            Result.Direct_Inputs,
+            Result.Direct_Outputs,
+            Result.Use_Spans,
+            Result.Call_Sites);
+      end Walk;
    begin
       Result.Name := Graph.Name;
       Result.Kind := Graph.Kind;
@@ -1462,21 +1355,7 @@ package body Safe_Frontend.Mir_Bronze is
          for Op of Block.Ops loop
             case Op.Kind is
                when GM.Op_Assign =>
-                  Walk_Expr
-                    (Op.Value,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Result.Direct_Reads,
-                     Result.Direct_Shared_Reads,
-                     Result.Direct_Shared_Writes,
-                     Result.Direct_Calls,
-                     Result.Direct_Inputs,
-                     Result.Direct_Outputs,
-                     Result.Use_Spans,
-                     Result.Call_Sites);
+                  Walk (Op.Value);
                   Root := FT.To_UString (Root_Name (Op.Target));
                   if UString_Value (Root) /= ""
                     and then Locals.Contains (UString_Value (Root))
@@ -1491,40 +1370,12 @@ package body Safe_Frontend.Mir_Bronze is
                         Result.Direct_Writes,
                         Result.Direct_Outputs,
                         Result.Use_Spans,
-                        Op.Span);
+                       Op.Span);
                   end if;
                when GM.Op_Call =>
-                  Walk_Expr
-                    (Op.Value,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Result.Direct_Reads,
-                     Result.Direct_Shared_Reads,
-                     Result.Direct_Shared_Writes,
-                     Result.Direct_Calls,
-                     Result.Direct_Inputs,
-                     Result.Direct_Outputs,
-                     Result.Use_Spans,
-                     Result.Call_Sites);
+                  Walk (Op.Value);
                when GM.Op_Channel_Send =>
-                  Walk_Expr
-                    (Op.Value,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Result.Direct_Reads,
-                     Result.Direct_Shared_Reads,
-                     Result.Direct_Shared_Writes,
-                     Result.Direct_Calls,
-                     Result.Direct_Inputs,
-                     Result.Direct_Outputs,
-                     Result.Use_Spans,
-                     Result.Call_Sites);
+                  Walk (Op.Value);
                   Root := FT.To_UString (Flatten_Name (Op.Channel));
                   if UString_Value (Root) /= "" then
                      Result.Direct_Channels.Include (UString_Value (Root));
@@ -1544,23 +1395,9 @@ package body Safe_Frontend.Mir_Bronze is
                      Result.Direct_Writes,
                      Result.Direct_Outputs,
                      Result.Use_Spans,
-                     Op.Span);
+                       Op.Span);
                when GM.Op_Channel_Try_Send =>
-                  Walk_Expr
-                    (Op.Value,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Result.Direct_Reads,
-                     Result.Direct_Shared_Reads,
-                     Result.Direct_Shared_Writes,
-                     Result.Direct_Calls,
-                     Result.Direct_Inputs,
-                     Result.Direct_Outputs,
-                     Result.Use_Spans,
-                     Result.Call_Sites);
+                  Walk (Op.Value);
                   Root := FT.To_UString (Flatten_Name (Op.Channel));
                   if UString_Value (Root) /= "" then
                      Result.Direct_Channels.Include (UString_Value (Root));
@@ -1594,23 +1431,9 @@ package body Safe_Frontend.Mir_Bronze is
                      Result.Direct_Writes,
                      Result.Direct_Outputs,
                      Result.Use_Spans,
-                     Op.Span);
+                       Op.Span);
                when GM.Op_Delay =>
-                  Walk_Expr
-                    (Op.Value,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Result.Direct_Reads,
-                     Result.Direct_Shared_Reads,
-                     Result.Direct_Shared_Writes,
-                     Result.Direct_Calls,
-                     Result.Direct_Inputs,
-                     Result.Direct_Outputs,
-                     Result.Use_Spans,
-                     Result.Call_Sites);
+                  Walk (Op.Value);
                when others =>
                   null;
             end case;
@@ -1618,38 +1441,10 @@ package body Safe_Frontend.Mir_Bronze is
 
          case Block.Terminator.Kind is
             when GM.Terminator_Branch =>
-               Walk_Expr
-                 (Block.Terminator.Condition,
-                  Locals,
-                  Callable_Names,
-                  Signatures,
-                  Shared_Wrappers,
-                  Shared_Helper_Prefixes,
-                  Result.Direct_Reads,
-                  Result.Direct_Shared_Reads,
-                  Result.Direct_Shared_Writes,
-                  Result.Direct_Calls,
-                  Result.Direct_Inputs,
-                  Result.Direct_Outputs,
-                  Result.Use_Spans,
-                  Result.Call_Sites);
+               Walk (Block.Terminator.Condition);
             when GM.Terminator_Return =>
                if Block.Terminator.Has_Value then
-                  Walk_Expr
-                    (Block.Terminator.Value,
-                     Locals,
-                     Callable_Names,
-                     Signatures,
-                     Shared_Wrappers,
-                     Shared_Helper_Prefixes,
-                     Result.Direct_Reads,
-                     Result.Direct_Shared_Reads,
-                     Result.Direct_Shared_Writes,
-                     Result.Direct_Calls,
-                     Result.Direct_Inputs,
-                     Result.Direct_Outputs,
-                     Result.Use_Spans,
-                     Result.Call_Sites);
+                  Walk (Block.Terminator.Value);
                   Result.Direct_Outputs.Include ("return");
                end if;
             when GM.Terminator_Select =>
@@ -1665,21 +1460,7 @@ package body Safe_Frontend.Mir_Bronze is
                            Arm.Channel_Data.Span,
                            Result.Use_Spans);
                      elsif Arm.Kind = GM.Select_Arm_Delay then
-                        Walk_Expr
-                          (Arm.Delay_Data.Duration_Expr,
-                           Locals,
-                           Callable_Names,
-                           Signatures,
-                           Shared_Wrappers,
-                           Shared_Helper_Prefixes,
-                           Result.Direct_Reads,
-                           Result.Direct_Shared_Reads,
-                           Result.Direct_Shared_Writes,
-                           Result.Direct_Calls,
-                           Result.Direct_Inputs,
-                           Result.Direct_Outputs,
-                           Result.Use_Spans,
-                           Result.Call_Sites);
+                        Walk (Arm.Delay_Data.Duration_Expr);
                      end if;
                   end loop;
                end if;
