@@ -1813,7 +1813,7 @@ package body Safe_Frontend.Check_Lower is
                    (Temp_Target,
                     Stmt.Case_Expr,
                     Case_Types,
-                    Case_Types,
+                    Visible_Types,
                     Type_Env,
                     Stmt.Case_Expr.Span,
                     Declaration_Init => True);
@@ -2077,7 +2077,7 @@ package body Safe_Frontend.Check_Lower is
                          (Snapshot_Expr,
                           Stmt.Loop_Iterable,
                           Loop_Types,
-                          Loop_Types,
+                          Visible_Types,
                           Type_Env,
                           Stmt.Span,
                           Declaration_Init => True);
