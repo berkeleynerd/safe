@@ -5,6 +5,8 @@ with Ada.Strings.Unbounded;
 private package Safe_Frontend.Ada_Emit.Internal is
    package SU renames Ada.Strings.Unbounded;
 
+   Emitter_Internal : exception;
+
    type Cleanup_Action is (Cleanup_Deallocate, Cleanup_Reset_Null);
 
    type Cleanup_Item is record

@@ -23,7 +23,6 @@ package body Safe_Frontend.Ada_Emit is
    use type GM.Scalar_Value_Kind;
 
    Emitter_Unsupported : exception;
-   Emitter_Internal    : exception;
 
    Gnat_Adc_Contents : constant String :=
      "pragma Partition_Elaboration_Policy(Sequential);" & ASCII.LF
@@ -3600,7 +3599,7 @@ package body Safe_Frontend.Ada_Emit is
 
    procedure Raise_Internal (Message : String) is
    begin
-      raise Emitter_Internal with Message;
+      raise AI.Emitter_Internal with Message;
    end Raise_Internal;
 
    procedure Raise_Unsupported

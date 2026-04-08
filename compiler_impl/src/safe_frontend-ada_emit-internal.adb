@@ -9,7 +9,7 @@ package body Safe_Frontend.Ada_Emit.Internal is
 
    procedure Raise_Internal (Message : String) is
    begin
-      raise Program_Error with Message;
+      raise Emitter_Internal with Message;
    end Raise_Internal;
 
    function Has_Text (Item : FT.UString) return Boolean is
