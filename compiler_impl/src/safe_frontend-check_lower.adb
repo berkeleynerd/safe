@@ -31,6 +31,7 @@ package body Safe_Frontend.Check_Lower is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=",
       "="             => GM."=");
+   use type Type_Maps.Map;
 
    package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -1415,6 +1416,9 @@ package body Safe_Frontend.Check_Lower is
       if Has_Text (Type_Name) then
          Result.Type_Name := Type_Name;
       else
+         --  Omitting Type_Name means the caller intends the target-side type
+         --  lookup. Today that path is only used when both maps are the same.
+         pragma Assert (Target_Types = Value_Types);
          Result.Type_Name := Expr_Type (Target, Target_Types, Type_Env).Name;
       end if;
       Result.Ownership_Effect := Ownership_Effect;

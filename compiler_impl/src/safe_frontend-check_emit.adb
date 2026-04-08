@@ -3205,8 +3205,18 @@ package body Safe_Frontend.Check_Emit is
      (Parsed   : CM.Parsed_Unit;
       Resolved : CM.Resolved_Unit)
    is
+      Parsed_Subprogram_Count : Natural := 0;
       Subprogram_Index : Natural := 0;
    begin
+      for Item of Parsed.Items loop
+         if Item.Kind = CM.Item_Subprogram then
+            Parsed_Subprogram_Count := Parsed_Subprogram_Count + 1;
+         end if;
+      end loop;
+
+      pragma Assert
+        (Natural (Resolved.Subprograms.Length) = Parsed_Subprogram_Count);
+
       for Item of Parsed.Items loop
          if Item.Kind = CM.Item_Subprogram then
             --  Resolved.Subprograms is a Positive-indexed vector today, and the

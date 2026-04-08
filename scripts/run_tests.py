@@ -2903,6 +2903,73 @@ def run_tuple_destructure_mir_type_case(safec: Path, *, temp_root: Path) -> tupl
     return True, ""
 
 
+def run_multi_decl_object_target_type_case(safec: Path, *, temp_root: Path) -> tuple[bool, str]:
+    source = REPO_ROOT / "tests" / "positive" / "pr1122f1_multi_decl_object.safe"
+
+    case_root = temp_root / "pr1122f1-multi-decl-object-mir-type"
+    out_dir = case_root / "out"
+    iface_dir = case_root / "iface"
+    ada_dir = case_root / "ada"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    iface_dir.mkdir(parents=True, exist_ok=True)
+    ada_dir.mkdir(parents=True, exist_ok=True)
+
+    emit = run_command(
+        [
+            str(safec),
+            "emit",
+            repo_rel(source),
+            "--out-dir",
+            str(out_dir),
+            "--interface-dir",
+            str(iface_dir),
+            "--ada-out-dir",
+            str(ada_dir),
+        ],
+        cwd=REPO_ROOT,
+    )
+    if emit.returncode != 0:
+        return False, f"emit failed: {first_message(emit)}"
+
+    stem = source.stem.lower()
+    mir_payload = json.loads((out_dir / f"{stem}.mir.json").read_text(encoding="utf-8"))
+    sum_pair = next(
+        (graph for graph in mir_payload.get("graphs", []) if graph.get("name") == "sum_pair"),
+        None,
+    )
+    if sum_pair is None:
+        return False, "missing sum_pair graph in multi-name object declaration MIR"
+
+    expected_types = {
+        "left": "counter",
+        "right": "counter",
+    }
+    found_types: dict[str, tuple[str | None, str | None]] = {}
+
+    for block in sum_pair.get("blocks", []):
+        for op in block.get("ops", []):
+            if op.get("kind") != "assign":
+                continue
+            target = op.get("target", {})
+            if target.get("tag") != "ident":
+                continue
+            name = target.get("name")
+            if name in expected_types and op.get("declaration_init") is True:
+                found_types[name] = (op.get("type"), target.get("type"))
+
+    for name, expected in expected_types.items():
+        actual = found_types.get(name)
+        if actual is None:
+            return False, f"missing declaration-init assign for {name!r} in multi-name object declaration MIR"
+        op_type, target_type = actual
+        if op_type != expected:
+            return False, f"multi-name object decl MIR op type for {name!r} was {op_type!r}, expected {expected!r}"
+        if target_type != expected:
+            return False, f"multi-name object decl MIR target type for {name!r} was {target_type!r}, expected {expected!r}"
+
+    return True, ""
+
+
 def emit_case_ada_text(
     safec: Path,
     *,
@@ -3438,6 +3505,12 @@ def main() -> int:
             passed += 1
         else:
             failures.append(("mir-shape:tuple-destructure-type-names", detail))
+
+        ok, detail = run_multi_decl_object_target_type_case(safec, temp_root=temp_root)
+        if ok:
+            passed += 1
+        else:
+            failures.append(("mir-shape:multi-decl-object-target-types", detail))
 
         for label, source, forbidden_snippets in EMITTED_SHAPE_CASES:
             ok, detail = run_emitted_shape_case(
