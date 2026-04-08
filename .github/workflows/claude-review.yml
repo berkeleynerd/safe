@@ -13,21 +13,41 @@ permissions:
   issues: write
 
 jobs:
-  review:
-    # Auto-review same-repo PRs, or allow manual @claude runs on PR threads.
+  auto-review:
     if: >
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.head.repo.full_name == github.repository) ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request &&
-       contains(github.event.comment.body, '@claude') &&
-       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          ref: refs/pull/${{ github.event.pull_request.number || github.event.issue.number }}/merge
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+
+      - uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Review this pull request. Focus on:
+            - Correctness: logic errors, off-by-one, missing cases
+            - Ada/SPARK issues: visibility violations, missing pragma, incorrect renames signatures
+            - Dead code or duplicated code introduced by the change
+            - Any change that could alter emitted Ada output (refactoring PRs must be output-preserving)
+            Keep feedback concise and actionable. Do not comment on style unless it affects correctness.
+
+  interactive:
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@claude') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: refs/pull/${{ github.event.issue.number }}/merge
 
       - uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de # v1
         with:
