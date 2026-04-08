@@ -1440,6 +1440,14 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "protected type data_ch_Channel with Priority => 18 is",
         ],
     ),
+    (
+        "mutual-global-aspect-recursion",
+        REPO_ROOT / "tests" / "interfaces" / "pr1122e3_mutual_global_aspect.safe",
+        [
+            "function first(remaining : in Long_Long_Integer) return Long_Long_Integer with Global => (Input => counter);",
+            "function second(remaining : in Long_Long_Integer) return Long_Long_Integer with Global => (Input => counter);",
+        ],
+    ),
 ]
 
 SAFEI_REQUIRED_SHAPE_CASES = [
