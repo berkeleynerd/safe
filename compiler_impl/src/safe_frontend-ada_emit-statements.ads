@@ -8,13 +8,38 @@ private package Safe_Frontend.Ada_Emit.Statements is
    subtype Emit_State is AI.Emit_State;
    subtype Heap_Helper_Family_Kind is AI.Heap_Helper_Family_Kind;
 
-   function Root_Name (Expr : CM.Expr_Access) return String;
    function Expr_Uses_Name
      (Expr : CM.Expr_Access;
       Name : String) return Boolean;
    function Statements_Use_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean;
+   procedure Collect_Wide_Locals
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
+      Statements   : CM.Statement_Access_Vectors.Vector);
+   procedure Collect_Wide_Locals
+     (Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      State        : in out Emit_State;
+      Declarations : CM.Object_Decl_Vectors.Vector;
+      Statements   : CM.Statement_Access_Vectors.Vector);
+   function Try_Object_Static_String_Initializer
+     (Unit   : CM.Resolved_Unit;
+      Name   : String;
+      Image  : out SU.Unbounded_String;
+      Length : out Natural) return Boolean;
+   function Try_Object_Static_Integer_Initializer
+     (Unit  : CM.Resolved_Unit;
+      Name  : String;
+      Value : out Long_Long_Integer) return Boolean;
+   function Try_Static_Array_Length_From_Expr
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access;
+      Length   : out Natural) return Boolean;
    procedure Collect_Bounded_String_Types
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -31,9 +56,13 @@ private package Safe_Frontend.Ada_Emit.Statements is
       Initializer    : CM.Expr_Access;
       Local_Context  : Boolean := False;
       Defer_Initializer : Boolean := False) return String;
-   function Lookup_Channel
-     (Unit : CM.Resolved_Unit;
-      Name : String) return CM.Resolved_Channel_Decl;
+   procedure Render_Block_Declarations
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
+      State        : in out Emit_State;
+      Depth        : Natural);
    procedure Collect_For_Of_Helper_Types
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -216,6 +245,8 @@ private package Safe_Frontend.Ada_Emit.Statements is
      (Statements   : CM.Statement_Access_Vectors.Vector;
       Channel_Name : String;
       Names        : in out FT.UString_Vectors.Vector);
+   function Statements_Have_Select
+     (Statements : CM.Statement_Access_Vectors.Vector) return Boolean;
    function Loop_Variant_Image
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;

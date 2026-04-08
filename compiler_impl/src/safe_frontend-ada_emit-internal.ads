@@ -136,6 +136,14 @@ private package Safe_Frontend.Ada_Emit.Internal is
       Heap_Helper_For_Of,
       Heap_Helper_Channel);
 
+   procedure Raise_Internal (Message : String);
+   pragma No_Return (Raise_Internal);
+   procedure Raise_Unsupported
+     (State   : in out Emit_State;
+      Span    : FT.Source_Span;
+      Message : String);
+   pragma No_Return (Raise_Unsupported);
+
    function Has_Text (Item : FT.UString) return Boolean;
    function Trim_Image (Value : Long_Long_Integer) return String;
    function Trim_Wide_Image (Value : CM.Wide_Integer) return String;
@@ -151,6 +159,37 @@ private package Safe_Frontend.Ada_Emit.Internal is
    function Contains_Name
      (Items : FT.UString_Vectors.Vector;
       Name  : String) return Boolean;
+   function Starts_With
+     (Text   : String;
+      Prefix : String) return Boolean;
+   function Root_Name (Expr : CM.Expr_Access) return String;
+   function Lookup_Channel
+     (Unit : CM.Resolved_Unit;
+      Name : String) return CM.Resolved_Channel_Decl;
+   function Shared_Wrapper_Object_Name
+     (Root_Name : String) return String;
+   function Shared_Wrapper_Type_Name
+     (Root_Name : String) return String;
+   function Shared_Public_Helper_Base_Name
+     (Root_Name : String) return String;
+   function Shared_Public_Helper_Name
+     (Root_Name : String;
+      Operation : String) return String;
+   function Shared_Get_All_Name return String;
+   function Shared_Set_All_Name return String;
+   function Shared_Get_Length_Name return String;
+   function Shared_Append_Name return String;
+   function Shared_Pop_Last_Name return String;
+   function Shared_Contains_Name return String;
+   function Shared_Get_Name return String;
+   function Shared_Set_Name return String;
+   function Shared_Remove_Name return String;
+   function Shared_Field_Getter_Name
+     (Field_Name : String) return String;
+   function Shared_Field_Setter_Name
+     (Field_Name : String) return String;
+   function Shared_Nested_Field_Setter_Name
+     (Path_Names : FT.UString_Vectors.Vector) return String;
    procedure Add_Wide_Name
      (State : in out Emit_State;
       Name  : String);

@@ -1,17 +1,11 @@
-with Ada.Characters.Handling;
 with Ada.Containers;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Ada_Emit.Internal;
-with Safe_Frontend.Builtin_Types;
-with Safe_Frontend.Name_Utils;
 with Safe_Frontend.Ada_Emit.Types;
 with Safe_Frontend.Ada_Emit.Expressions;
 
 package body Safe_Frontend.Ada_Emit.Statements is
-   package BT renames Safe_Frontend.Builtin_Types;
-   package FNU renames Safe_Frontend.Name_Utils;
-
    use AI;
 
    use type Ada.Containers.Count_Type;
@@ -29,13 +23,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
    subtype Warning_Suppression_Array is AI.Warning_Suppression_Array;
    subtype Warning_Restore_Array is AI.Warning_Restore_Array;
 
-   procedure Raise_Internal (Message : String);
-   pragma No_Return (Raise_Internal);
+   procedure Raise_Internal (Message : String) renames AI.Raise_Internal;
    procedure Raise_Unsupported
      (State   : in out Emit_State;
       Span    : FT.Source_Span;
-      Message : String);
-   pragma No_Return (Raise_Unsupported);
+      Message : String) renames AI.Raise_Unsupported;
 
    function Has_Text (Item : FT.UString) return Boolean renames AI.Has_Text;
    function Trim_Image (Value : Long_Long_Integer) return String renames AI.Trim_Image;
@@ -172,35 +164,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Buffer : in out SU.Unbounded_String;
       Depth  : Natural) renames AI.Append_Task_Channel_Call_Warning_Restore;
 
-   procedure Raise_Internal (Message : String) is
-   begin
-      raise AI.Emitter_Internal with Message;
-   end Raise_Internal;
-
-   procedure Raise_Unsupported
-     (State   : in out Emit_State;
-      Span    : FT.Source_Span;
-      Message : String)
-   is
-   begin
-      State.Unsupported_Span := Span;
-      State.Unsupported_Message := FT.To_UString (Message);
-      raise AI.Emitter_Unsupported;
-   end Raise_Unsupported;
-
    package AET renames Safe_Frontend.Ada_Emit.Types;
    package AEX renames Safe_Frontend.Ada_Emit.Expressions;
    use AET;
    use AEX;
 
-   function Starts_With (Text : String; Prefix : String) return Boolean;
-   function Is_Print_Call (Expr : CM.Expr_Access) return Boolean;
-   function Shared_Pop_Last_Name return String;
-   function Shared_Remove_Name return String;
-   function Channel_Uses_Sequential_Scalar_Ghost_Model
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Channel  : CM.Resolved_Channel_Decl) return Boolean;
    function Unit_Runtime_Assigns_Name
      (Unit : CM.Resolved_Unit;
       Name : String) return Boolean;
@@ -211,15 +179,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Channel_Item : CM.Resolved_Channel_Decl) return String;
    function Channel_Free_Helper_Name
      (Channel_Item : CM.Resolved_Channel_Decl) return String;
-   function Try_Object_Static_String_Initializer
-     (Unit   : CM.Resolved_Unit;
-      Name   : String;
-      Image  : out SU.Unbounded_String;
-      Length : out Natural) return Boolean;
-   function Try_Object_Static_Integer_Initializer
-     (Unit  : CM.Resolved_Unit;
-      Name  : String;
-      Value : out Long_Long_Integer) return Boolean;
+   function Channel_Uses_Sequential_Scalar_Ghost_Model
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Channel  : CM.Resolved_Channel_Decl) return Boolean;
+   function Is_Print_Call (Expr : CM.Expr_Access) return Boolean;
    function Render_Discrete_Range
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -263,22 +227,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Value       : CM.Expr_Access;
       Return_Type : String;
       Depth       : Natural);
-   procedure Collect_Wide_Locals
-     (Unit         : CM.Resolved_Unit;
-      Document     : GM.Mir_Document;
-      State        : in out Emit_State;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
-      Statements   : CM.Statement_Access_Vectors.Vector);
-   procedure Collect_Wide_Locals
-     (Unit         : CM.Resolved_Unit;
-      Document     : GM.Mir_Document;
-      State        : in out Emit_State;
-      Declarations : CM.Object_Decl_Vectors.Vector;
-      Statements   : CM.Statement_Access_Vectors.Vector);
-
-   function Statements_Have_Select
-     (Statements : CM.Statement_Access_Vectors.Vector) return Boolean
-   ;
    function Statements_Assign_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean
@@ -286,12 +234,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
    function Statements_Immediately_Overwrite_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean
-   ;
-   function Try_Static_Array_Length_From_Expr
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Expr     : CM.Expr_Access;
-      Length   : out Natural) return Boolean
    ;
    function Is_Explicit_Float_Narrowing
      (Unit        : CM.Resolved_Unit;
@@ -312,12 +254,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
       State     : in out Emit_State;
-      Decl      : CM.Resolved_Object_Decl) ;
+      Decl      : CM.Resolved_Object_Decl);
    procedure Mark_Wide_Declaration
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
       State     : in out Emit_State;
-      Decl      : CM.Object_Decl) ;
+      Decl      : CM.Object_Decl);
    procedure Collect_Wide_Locals_From_Statements
      (Unit        : CM.Resolved_Unit;
       Document    : GM.Mir_Document;
@@ -365,22 +307,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Value      : CM.Expr_Access;
       Depth      : Natural)
    ;
-
-   function Root_Name (Expr : CM.Expr_Access) return String is
-   begin
-      if Expr = null then
-         return "";
-      end if;
-
-      case Expr.Kind is
-         when CM.Expr_Ident =>
-            return FT.To_String (Expr.Name);
-         when CM.Expr_Select | CM.Expr_Resolved_Index =>
-            return Root_Name (Expr.Prefix);
-         when others =>
-            return "";
-      end case;
-   end Root_Name;
+   function Root_Name (Expr : CM.Expr_Access) return String renames AI.Root_Name;
+   function Lookup_Channel
+     (Unit : CM.Resolved_Unit;
+      Name : String) return CM.Resolved_Channel_Decl renames AI.Lookup_Channel;
 
    function Expr_Uses_Name
      (Expr : CM.Expr_Access;
@@ -1119,24 +1049,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
       end if;
    end Append_Staged_Channel_Target_Adoption;
 
-   function Lookup_Channel
-     (Unit : CM.Resolved_Unit;
-      Name : String) return CM.Resolved_Channel_Decl
-   is
-   begin
-      for Item of Unit.Channels loop
-         if FT.To_String (Item.Name) = Name then
-            return Item;
-         end if;
-      end loop;
-      for Item of Unit.Imported_Channels loop
-         if FT.To_String (Item.Name) = Name then
-            return Item;
-         end if;
-      end loop;
-      return (others => <>);
-   end Lookup_Channel;
-
    procedure Collect_Bounded_String_Types
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -1343,7 +1255,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       procedure Add_From_Info (Info : GM.Type_Descriptor) is
          Name_Text : constant String := FT.To_String (Info.Name);
       begin
-         if not AET.Is_Owner_Access (Info) or else Name_Text'Length = 0 then
+         if not AI.Is_Owner_Access (Info) or else Name_Text'Length = 0 then
             null;
          elsif Contains_Name (Seen, Name_Text) then
             return;
@@ -1430,26 +1342,26 @@ package body Safe_Frontend.Ada_Emit.Statements is
    is
       Result : SU.Unbounded_String;
       Constant_Qualifier : constant String :=
-        (if Is_Constant and then not AET.Is_Owner_Access (Type_Info) then "constant " else "");
+        (if Is_Constant and then not AI.Is_Owner_Access (Type_Info) then "constant " else "");
       Type_Name : constant String :=
         (if Is_Integer_Type (Unit, Document, Type_Info)
            and then Names_Use_Wide_Storage (State, Names)
          then "safe_runtime.wide_integer"
          elsif Local_Context
-           and then AET.Is_Access_Type (Type_Info)
-           and then not AET.Is_Owner_Access (Type_Info)
+           and then AI.Is_Access_Type (Type_Info)
+           and then not AI.Is_Owner_Access (Type_Info)
            and then Has_Text (Type_Info.Target)
          then
            (if Type_Info.Not_Null then "not null " else "")
            & "access "
            & (if Type_Info.Is_Constant then "constant " else "")
            & FT.To_String (Type_Info.Target)
-         elsif AET.Is_Owner_Access (Type_Info)
+         elsif AI.Is_Owner_Access (Type_Info)
          then Render_Type_Name (Type_Info)
          else Render_Subtype_Indication (Unit, Document, Type_Info));
       function Render_Initializer return String is
       begin
-         if Initializer /= null and then AET.Is_Owner_Access (Type_Info) then
+         if Initializer /= null and then AI.Is_Owner_Access (Type_Info) then
             return
               Render_Expr_For_Target_Type
                 (Unit, Document, Initializer, Type_Info, State);
@@ -1496,7 +1408,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Implicit_Heap_Default_Init : constant Boolean :=
         Initializer = null
         and then not Is_Constant
-        and then not AET.Is_Owner_Access (Type_Info)
+        and then not AI.Is_Owner_Access (Type_Info)
         and then Has_Heap_Value_Type (Unit, Document, Type_Info);
       Needs_Explicit_Default_Init : constant Boolean :=
         Has_Implicit_Default_Init
@@ -1506,7 +1418,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
         Initializer /= null
         and then Initializer.Kind = CM.Expr_Null
         and then not Is_Constant
-        and then AET.Is_Owner_Access (Type_Info);
+        and then AI.Is_Owner_Access (Type_Info);
       Emit_Initializer : constant Boolean :=
         (Has_Initializer and then not Suppress_Explicit_Null_Init)
         or else Needs_Explicit_Default_Init
@@ -3325,164 +3237,164 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                     Push_Cleanup_Frame (State);
                                     if Is_Plain_String_Type (Unit, Document, Element_Info) then
                                        Add_Cleanup_Item
-                                      (State,
-                                       FT.To_String (Item.Loop_Var),
-                                       Element_Type_Image,
-                                       "Safe_String_RT.Free",
-                                       Is_Constant => True,
-                                       Always_Terminates_Suppression_OK =>
-                                         Constant_Cleanup_Uses_Shared_Runtime_Free
-                                           (Unit,
-                                            Document,
-                                            Element_Info,
-                                            "Safe_String_RT.Free"));
-                                 elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
-                                    Add_Cleanup_Item
-                                      (State,
-                                       FT.To_String (Item.Loop_Var),
-                                       Element_Type_Image,
-                                       Array_Runtime_Instance_Name (Element_Info) & ".Free",
-                                       Is_Constant => True,
-                                       Always_Terminates_Suppression_OK =>
-                                         Constant_Cleanup_Uses_Shared_Runtime_Free
-                                           (Unit,
-                                            Document,
-                                            Element_Info,
-                                            Array_Runtime_Instance_Name (Element_Info) & ".Free"));
-                                 elsif Needs_Composite_Heap_Helper then
-                                    Add_Cleanup_Item
-                                      (State,
-                                       FT.To_String (Item.Loop_Var),
-                                       Element_Type_Image,
-                                       For_Of_Free_Helper_Name
-                                         (Unit,
-                                          Document,
-                                          Element_Info));
-                                 end if;
-
-                                 Append_Line (Buffer, "declare", Depth + 1);
-                                 Append_Line
-                                   (Buffer,
-                                    FT.To_String (Item.Loop_Var)
-                                    & " : "
-                                    & (if Is_Plain_String_Type (Unit, Document, Element_Info)
-                                       or else Is_Growable_Array_Type (Unit, Document, Element_Info)
-                                       then "constant "
-                                       else "")
-                                    & Element_Type_Image
-                                    & " := "
-                                    & Loop_Item_Init
-                                    & ";",
-                                    Depth + 2);
-                                 Append_Line (Buffer, "begin", Depth + 1);
-                                 declare
-                                    Previous_Static_Length_Count : constant Ada.Containers.Count_Type :=
-                                      State.Static_Length_Bindings.Length;
-                                    Element_Length : Natural := 0;
-                                 begin
-                                    if Is_Growable_Array_Type (Unit, Document, Element_Info)
-                                      and then Static_Growable_Length (Element, Element_Length)
-                                    then
-                                       Bind_Static_Length
                                          (State,
                                           FT.To_String (Item.Loop_Var),
-                                          Element_Length);
-                                       Append_Line
-                                         (Buffer,
-                                          "pragma Assert ("
-                                          & Array_Runtime_Instance_Name (Element_Info)
-                                          & ".Length ("
-                                          & FT.To_String (Item.Loop_Var)
-                                          & ") = "
-                                          & Trim_Wide_Image (CM.Wide_Integer (Element_Length))
-                                          & ");",
-                                          Depth + 2);
+                                          Element_Type_Image,
+                                          "Safe_String_RT.Free",
+                                          Is_Constant => True,
+                                          Always_Terminates_Suppression_OK =>
+                                            Constant_Cleanup_Uses_Shared_Runtime_Free
+                                              (Unit,
+                                               Document,
+                                               Element_Info,
+                                               "Safe_String_RT.Free"));
+                                    elsif Is_Growable_Array_Type (Unit, Document, Element_Info) then
+                                       Add_Cleanup_Item
+                                         (State,
+                                          FT.To_String (Item.Loop_Var),
+                                          Element_Type_Image,
+                                          Array_Runtime_Instance_Name (Element_Info) & ".Free",
+                                          Is_Constant => True,
+                                          Always_Terminates_Suppression_OK =>
+                                            Constant_Cleanup_Uses_Shared_Runtime_Free
+                                              (Unit,
+                                               Document,
+                                               Element_Info,
+                                               Array_Runtime_Instance_Name (Element_Info) & ".Free"));
+                                    elsif Needs_Composite_Heap_Helper then
+                                       Add_Cleanup_Item
+                                         (State,
+                                          FT.To_String (Item.Loop_Var),
+                                          Element_Type_Image,
+                                          For_Of_Free_Helper_Name
+                                            (Unit,
+                                             Document,
+                                             Element_Info));
                                     end if;
-                                    if Element_Index /= Static_Growable_Literal.Elements.Last_Index then
-                                       Append_Gnatprove_Warning_Suppression
-                                         (Buffer,
-                                          "unused assignment",
-                                          "static for-of unrolling preserves intermediate source assignments",
-                                          Depth + 2);
-                                    end if;
-                                    Render_Required_Statement_Suite
+
+                                    Append_Line (Buffer, "declare", Depth + 1);
+                                    Append_Line
                                       (Buffer,
-                                       Unit,
-                                       Document,
-                                       Item.Body_Stmts,
-                                       State,
-                                       Depth + 2,
-                                       Return_Type,
-                                       True);
-                                    if Element_Index /= Static_Growable_Literal.Elements.Last_Index then
-                                       Append_Gnatprove_Warning_Restore
+                                       FT.To_String (Item.Loop_Var)
+                                       & " : "
+                                       & (if Is_Plain_String_Type (Unit, Document, Element_Info)
+                                          or else Is_Growable_Array_Type (Unit, Document, Element_Info)
+                                          then "constant "
+                                          else "")
+                                       & Element_Type_Image
+                                       & " := "
+                                       & Loop_Item_Init
+                                       & ";",
+                                       Depth + 2);
+                                    Append_Line (Buffer, "begin", Depth + 1);
+                                    declare
+                                       Previous_Static_Length_Count : constant Ada.Containers.Count_Type :=
+                                         State.Static_Length_Bindings.Length;
+                                       Element_Length : Natural := 0;
+                                    begin
+                                       if Is_Growable_Array_Type (Unit, Document, Element_Info)
+                                         and then Static_Growable_Length (Element, Element_Length)
+                                       then
+                                          Bind_Static_Length
+                                            (State,
+                                             FT.To_String (Item.Loop_Var),
+                                             Element_Length);
+                                          Append_Line
+                                            (Buffer,
+                                             "pragma Assert ("
+                                             & Array_Runtime_Instance_Name (Element_Info)
+                                             & ".Length ("
+                                             & FT.To_String (Item.Loop_Var)
+                                             & ") = "
+                                             & Trim_Wide_Image (CM.Wide_Integer (Element_Length))
+                                             & ");",
+                                             Depth + 2);
+                                       end if;
+                                       if Element_Index /= Static_Growable_Literal.Elements.Last_Index then
+                                          Append_Gnatprove_Warning_Suppression
+                                            (Buffer,
+                                             "unused assignment",
+                                             "static for-of unrolling preserves intermediate source assignments",
+                                             Depth + 2);
+                                       end if;
+                                       Render_Required_Statement_Suite
                                          (Buffer,
-                                          "unused assignment",
-                                          Depth + 2);
-                                    end if;
-                                    if Natural (Item.Body_Stmts.Length) = 1
-                                      and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Kind = CM.Stmt_Assign
-                                      and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target /= null
-                                      and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Kind = CM.Expr_Ident
-                                    then
-                                       declare
-                                          Target_Name : constant String :=
-                                            FT.To_String (Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Name);
-                                          Static_Value : Long_Long_Integer := 0;
-                                       begin
-                                          if Has_Static_Integer_Tracking (State, Target_Name) then
-                                             if Try_Tracked_Static_Integer_Value
-                                               (State,
-                                                Item.Body_Stmts (Item.Body_Stmts.First_Index).Value,
-                                                Static_Value)
-                                             then
-                                                Bind_Static_Integer (State, Target_Name, Static_Value);
-                                             else
-                                                Invalidate_Static_Integer (State, Target_Name);
+                                          Unit,
+                                          Document,
+                                          Item.Body_Stmts,
+                                          State,
+                                          Depth + 2,
+                                          Return_Type,
+                                          True);
+                                       if Element_Index /= Static_Growable_Literal.Elements.Last_Index then
+                                          Append_Gnatprove_Warning_Restore
+                                            (Buffer,
+                                             "unused assignment",
+                                             Depth + 2);
+                                       end if;
+                                       if Natural (Item.Body_Stmts.Length) = 1
+                                         and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Kind = CM.Stmt_Assign
+                                         and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target /= null
+                                         and then Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Kind = CM.Expr_Ident
+                                       then
+                                          declare
+                                             Target_Name : constant String :=
+                                               FT.To_String (Item.Body_Stmts (Item.Body_Stmts.First_Index).Target.Name);
+                                             Static_Value : Long_Long_Integer := 0;
+                                          begin
+                                             if Has_Static_Integer_Tracking (State, Target_Name) then
+                                                if Try_Tracked_Static_Integer_Value
+                                                  (State,
+                                                   Item.Body_Stmts (Item.Body_Stmts.First_Index).Value,
+                                                   Static_Value)
+                                                then
+                                                   Bind_Static_Integer (State, Target_Name, Static_Value);
+                                                else
+                                                   Invalidate_Static_Integer (State, Target_Name);
+                                                end if;
                                              end if;
-                                          end if;
-                                       end;
+                                          end;
+                                       end if;
+                                       Restore_Static_Length_Bindings
+                                         (State, Previous_Static_Length_Count);
+                                    end;
+                                    if Statements_Fall_Through (Item.Body_Stmts) then
+                                       if Is_Plain_String_Type (Unit, Document, Element_Info)
+                                         or else Is_Growable_Array_Type (Unit, Document, Element_Info)
+                                         or else Needs_Composite_Heap_Helper
+                                       then
+                                          Append_Gnatprove_Warning_Suppression
+                                            (Buffer,
+                                             "is set by",
+                                             "for-of loop item cleanup is intentional",
+                                             Depth + 2);
+                                          Append_Gnatprove_Warning_Suppression
+                                            (Buffer,
+                                             "statement has no effect",
+                                             "for-of loop item cleanup is intentional",
+                                             Depth + 2);
+                                       end if;
+                                       Render_Current_Cleanup_Frame (Buffer, State, Depth + 2);
+                                       if Is_Plain_String_Type (Unit, Document, Element_Info)
+                                         or else Is_Growable_Array_Type (Unit, Document, Element_Info)
+                                         or else Needs_Composite_Heap_Helper
+                                       then
+                                          Append_Gnatprove_Warning_Restore
+                                            (Buffer,
+                                             "is set by",
+                                             Depth + 2);
+                                          Append_Gnatprove_Warning_Restore
+                                            (Buffer,
+                                             "statement has no effect",
+                                             Depth + 2);
+                                       end if;
                                     end if;
-                                    Restore_Static_Length_Bindings
-                                      (State, Previous_Static_Length_Count);
+                                    Append_Line (Buffer, "end;", Depth + 1);
+                                    Pop_Cleanup_Frame (State);
                                  end;
-                                 if Statements_Fall_Through (Item.Body_Stmts) then
-                                    if Is_Plain_String_Type (Unit, Document, Element_Info)
-                                      or else Is_Growable_Array_Type (Unit, Document, Element_Info)
-                                      or else Needs_Composite_Heap_Helper
-                                    then
-                                       Append_Gnatprove_Warning_Suppression
-                                         (Buffer,
-                                          "is set by",
-                                          "for-of loop item cleanup is intentional",
-                                          Depth + 2);
-                                       Append_Gnatprove_Warning_Suppression
-                                         (Buffer,
-                                          "statement has no effect",
-                                          "for-of loop item cleanup is intentional",
-                                          Depth + 2);
-                                    end if;
-                                    Render_Current_Cleanup_Frame (Buffer, State, Depth + 2);
-                                    if Is_Plain_String_Type (Unit, Document, Element_Info)
-                                      or else Is_Growable_Array_Type (Unit, Document, Element_Info)
-                                      or else Needs_Composite_Heap_Helper
-                                    then
-                                       Append_Gnatprove_Warning_Restore
-                                         (Buffer,
-                                          "is set by",
-                                          Depth + 2);
-                                       Append_Gnatprove_Warning_Restore
-                                         (Buffer,
-                                          "statement has no effect",
-                                          Depth + 2);
-                                    end if;
-                                 end if;
-                                 Append_Line (Buffer, "end;", Depth + 1);
-                                 Pop_Cleanup_Frame (State);
-                              end;
-                           end loop;
-                           Restore_Static_Integer_Bindings
-                             (State, Previous_Static_Integer_Count);
+                              end loop;
+                              Restore_Static_Integer_Bindings
+                                (State, Previous_Static_Integer_Count);
                            end;
                         elsif Can_Unroll_Static_String then
                            declare
@@ -4794,31 +4706,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Render_Statements (Buffer, Unit, Document, Statements, State, Depth, Return_Type, In_Loop);
    end Render_Required_Statement_Suite;
 
-
-   function Starts_With (Text : String; Prefix : String) return Boolean is
-   begin
-      return Text'Length >= Prefix'Length
-        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
-
-   function Is_Print_Call (Expr : CM.Expr_Access) return Boolean is
-   begin
-      return
-        Expr /= null
-        and then Expr.Kind = CM.Expr_Call
-        and then FT.Lowercase (CM.Flatten_Name (Expr.Callee)) = "print";
-   end Is_Print_Call;
-
-   function Shared_Pop_Last_Name return String is
-   begin
-      return "Pop_Last";
-   end Shared_Pop_Last_Name;
-
-   function Shared_Remove_Name return String is
-   begin
-      return "Remove";
-   end Shared_Remove_Name;
-
    function Channel_Uses_Sequential_Scalar_Ghost_Model
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -4833,6 +4720,14 @@ package body Safe_Frontend.Ada_Emit.Statements is
         and then Unit.Subprograms.Is_Empty
         and then not Statements_Have_Select (Unit.Statements);
    end Channel_Uses_Sequential_Scalar_Ghost_Model;
+
+   function Is_Print_Call (Expr : CM.Expr_Access) return Boolean is
+   begin
+      return
+        Expr /= null
+        and then Expr.Kind = CM.Expr_Call
+        and then FT.Lowercase (CM.Flatten_Name (Expr.Callee)) = "print";
+   end Is_Print_Call;
 
    function Unit_Runtime_Assigns_Name
      (Unit : CM.Resolved_Unit;
@@ -5269,7 +5164,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
          end;
       end if;
 
-      if AET.Is_Owner_Access (Target_Info)
+      if AI.Is_Owner_Access (Target_Info)
         and then not
           (Stmt.Target /= null
            and then Stmt.Target.Kind = CM.Expr_Ident
@@ -5480,7 +5375,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
            (Buffer,
            "return "
            & (if Return_Type'Length > 0
-               and then AET.Is_Owner_Access (Return_Info)
+               and then AI.Is_Owner_Access (Return_Info)
               then
                 Render_Expr_For_Target_Type
                   (Unit, Document, Value, Return_Info, State)
@@ -5530,7 +5425,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
          else (others => <>));
       Needs_Move_Null : constant Boolean :=
         Value_Type'Length > 0
-        and then AET.Is_Owner_Access (Value_Info)
+        and then AI.Is_Owner_Access (Value_Info)
         and then Value.Kind in CM.Expr_Ident | CM.Expr_Select | CM.Expr_Resolved_Index;
       Returned_Name : constant String := Root_Name (Value);
       Can_Skip_Cleanup : constant Boolean :=
@@ -5618,6 +5513,23 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Append_Line (Buffer, "end;", Depth);
    end Append_Return_With_Cleanup;
 
+   procedure Render_Block_Declarations
+     (Buffer       : in out SU.Unbounded_String;
+      Unit         : CM.Resolved_Unit;
+      Document     : GM.Mir_Document;
+      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
+      State        : in out Emit_State;
+      Depth        : Natural)
+   is
+   begin
+      for Decl of Declarations loop
+         Append_Line
+           (Buffer,
+            Render_Object_Decl_Text (Unit, Document, State, Decl, Local_Context => True),
+            Depth);
+      end loop;
+   end Render_Block_Declarations;
+
    procedure Collect_Wide_Locals
      (Unit         : CM.Resolved_Unit;
       Document     : GM.Mir_Document;
@@ -5645,7 +5557,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Collect_Wide_Locals_From_Statements
         (Unit, Document, State, Statements);
    end Collect_Wide_Locals;
-
 
    function Statements_Have_Select
      (Statements : CM.Statement_Access_Vectors.Vector) return Boolean
@@ -6300,7 +6211,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Info      : constant GM.Type_Descriptor := Lookup_Type (Unit, Document, Type_Name);
    begin
       if Has_Type (Unit, Document, Type_Name)
-        and then AET.Is_Owner_Access (Info)
+        and then AI.Is_Owner_Access (Info)
         and then Value.Kind in CM.Expr_Ident | CM.Expr_Select | CM.Expr_Resolved_Index
       then
          Append_Line

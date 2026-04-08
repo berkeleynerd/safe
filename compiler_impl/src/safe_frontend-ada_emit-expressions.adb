@@ -4,12 +4,10 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Ada_Emit.Internal;
 with Safe_Frontend.Builtin_Types;
-with Safe_Frontend.Name_Utils;
 with Safe_Frontend.Ada_Emit.Types;
 
 package body Safe_Frontend.Ada_Emit.Expressions is
    package BT renames Safe_Frontend.Builtin_Types;
-   package FNU renames Safe_Frontend.Name_Utils;
 
    use AI;
 
@@ -28,13 +26,11 @@ package body Safe_Frontend.Ada_Emit.Expressions is
    subtype Warning_Suppression_Array is AI.Warning_Suppression_Array;
    subtype Warning_Restore_Array is AI.Warning_Restore_Array;
 
-   procedure Raise_Internal (Message : String);
-   pragma No_Return (Raise_Internal);
+   procedure Raise_Internal (Message : String) renames AI.Raise_Internal;
    procedure Raise_Unsupported
      (State   : in out Emit_State;
       Span    : FT.Source_Span;
-      Message : String);
-   pragma No_Return (Raise_Unsupported);
+      Message : String) renames AI.Raise_Unsupported;
 
    function Has_Text (Item : FT.UString) return Boolean renames AI.Has_Text;
    function Trim_Image (Value : Long_Long_Integer) return String renames AI.Trim_Image;
@@ -171,30 +167,13 @@ package body Safe_Frontend.Ada_Emit.Expressions is
      (Buffer : in out SU.Unbounded_String;
       Depth  : Natural) renames AI.Append_Task_Channel_Call_Warning_Restore;
 
-   procedure Raise_Internal (Message : String) is
-   begin
-      raise AI.Emitter_Internal with Message;
-   end Raise_Internal;
-
-   procedure Raise_Unsupported
-     (State   : in out Emit_State;
-      Span    : FT.Source_Span;
-      Message : String)
-   is
-   begin
-      State.Unsupported_Span := Span;
-      State.Unsupported_Message := FT.To_UString (Message);
-      raise AI.Emitter_Unsupported;
-   end Raise_Unsupported;
-
    package AET renames Safe_Frontend.Ada_Emit.Types;
    use AET;
 
-   function Root_Name (Expr : CM.Expr_Access) return String;
-   function Canonical_Name (Value : String) return String;
+   function Root_Name (Expr : CM.Expr_Access) return String renames AI.Root_Name;
    function Lookup_Channel
      (Unit : CM.Resolved_Unit;
-      Name : String) return CM.Resolved_Channel_Decl;
+      Name : String) return CM.Resolved_Channel_Decl renames AI.Lookup_Channel;
    function Render_Binary_Unary_Image
      (Unit       : CM.Resolved_Unit;
       Document   : GM.Mir_Document;
@@ -207,117 +186,33 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       Left_Image  : String;
       Right_Image : String) return String;
 
-   function Starts_With (Text : String; Prefix : String) return Boolean ;
-   function Shared_Wrapper_Object_Name (Root_Name : String) return String ;
-   function Shared_Public_Helper_Base_Name (Root_Name : String) return String ;
-   function Shared_Append_Name return String ;
-   function Shared_Pop_Last_Name return String ;
-   function Shared_Contains_Name return String ;
-   function Shared_Get_Name return String ;
-   function Shared_Set_Name return String ;
-   function Shared_Remove_Name return String ;
-   function Shared_Field_Setter_Name (Field_Name : String) return String ;
+   function Starts_With (Text : String; Prefix : String) return Boolean renames AI.Starts_With;
+   function Shared_Wrapper_Object_Name (Root_Name : String) return String renames AI.Shared_Wrapper_Object_Name;
+   function Shared_Public_Helper_Base_Name (Root_Name : String) return String renames AI.Shared_Public_Helper_Base_Name;
+   function Shared_Append_Name return String renames AI.Shared_Append_Name;
+   function Shared_Pop_Last_Name return String renames AI.Shared_Pop_Last_Name;
+   function Shared_Contains_Name return String renames AI.Shared_Contains_Name;
+   function Shared_Get_Name return String renames AI.Shared_Get_Name;
+   function Shared_Set_Name return String renames AI.Shared_Set_Name;
+   function Shared_Remove_Name return String renames AI.Shared_Remove_Name;
+   function Shared_Field_Setter_Name (Field_Name : String) return String renames AI.Shared_Field_Setter_Name;
    function Shared_Nested_Field_Setter_Name
-     (Path_Names : FT.UString_Vectors.Vector) return String
-   ;
+     (Path_Names : FT.UString_Vectors.Vector) return String renames AI.Shared_Nested_Field_Setter_Name;
    function Is_Plain_Shared_Nested_Record
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
-      Info     : GM.Type_Descriptor) return Boolean
-   ;
+      Info     : GM.Type_Descriptor) return Boolean;
    function Binary_Result_Type_Name
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
-      Expr     : CM.Expr_Access) return String ;
+      Expr     : CM.Expr_Access) return String;
    function Binary_Base_Type_Name
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
-      Expr     : CM.Expr_Access) return String ;
+      Expr     : CM.Expr_Access) return String;
 
-   function Is_Attribute_Selector (Name : String) return Boolean is
-   begin
-      return
-        Name = "access"
-        or else Name = "address"
-        or else Name = "adjacent"
-        or else Name = "aft"
-        or else Name = "alignment"
-        or else Name = "base"
-        or else Name = "bit_order"
-        or else Name = "ceiling"
-        or else Name = "component_size"
-        or else Name = "compose"
-        or else Name = "constrained"
-        or else Name = "copy_sign"
-        or else Name = "definite"
-        or else Name = "delta"
-        or else Name = "denorm"
-        or else Name = "digits"
-        or else Name = "enum_rep"
-        or else Name = "enum_val"
-        or else Name = "exponent"
-        or else Name = "first"
-        or else Name = "first_valid"
-        or else Name = "floor"
-        or else Name = "fore"
-        or else Name = "fraction"
-        or else Name = "image"
-        or else Name = "last"
-        or else Name = "last_valid"
-        or else Name = "leading_part"
-        or else Name = "length"
-        or else Name = "machine"
-        or else Name = "machine_emax"
-        or else Name = "machine_emin"
-        or else Name = "machine_mantissa"
-        or else Name = "machine_overflows"
-        or else Name = "machine_radix"
-        or else Name = "machine_rounds"
-        or else Name = "max"
-        or else Name = "max_alignment_for_allocation"
-        or else Name = "max_size_in_storage_elements"
-        or else Name = "min"
-        or else Name = "mod"
-        or else Name = "model"
-        or else Name = "model_emin"
-        or else Name = "model_epsilon"
-        or else Name = "model_mantissa"
-        or else Name = "model_small"
-        or else Name = "modulus"
-        or else Name = "object_size"
-        or else Name = "overlaps_storage"
-        or else Name = "pos"
-        or else Name = "pred"
-        or else Name = "range"
-        or else Name = "remainder"
-        or else Name = "round"
-        or else Name = "rounding"
-        or else Name = "safe_first"
-        or else Name = "safe_last"
-        or else Name = "scale"
-        or else Name = "scaling"
-        or else Name = "size"
-        or else Name = "small"
-        or else Name = "storage_size"
-        or else Name = "succ"
-        or else Name = "truncation"
-        or else Name = "unbiased_rounding"
-        or else Name = "val"
-        or else Name = "valid"
-        or else Name = "value"
-        or else Name = "wide_image"
-        or else Name = "wide_value"
-        or else Name = "wide_wide_image"
-        or else Name = "wide_wide_value"
-        or else Name = "wide_wide_width"
-        or else Name = "wide_width"
-        or else Name = "width";
-   end Is_Attribute_Selector;
-
-   function Tuple_Field_Name (Index : Positive) return String is
-   begin
-      return "F" & Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Both);
-   end Tuple_Field_Name;
+   function Is_Attribute_Selector (Name : String) return Boolean renames AET.Is_Attribute_Selector;
+   function Tuple_Field_Name (Index : Positive) return String renames AET.Tuple_Field_Name;
 
    function Expr_Type_Info
      (Unit     : CM.Resolved_Unit;
@@ -1213,24 +1108,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       return SU.To_String (Result);
    end Render_Positional_Tuple_Aggregate;
 
-   function Render_Scalar_Value (Value : GM.Scalar_Value) return String is
-   begin
-      case Value.Kind is
-         when GM.Scalar_Value_Integer =>
-            return Trim_Image (Value.Int_Value);
-         when GM.Scalar_Value_Boolean =>
-            return (if Value.Bool_Value then "true" else "false");
-         when GM.Scalar_Value_Character =>
-            return FT.To_String (Value.Text);
-         when GM.Scalar_Value_Enum =>
-            return
-              Render_Enum_Literal_Name
-                (FT.To_String (Value.Text), FT.To_String (Value.Type_Name));
-         when others =>
-            return "";
-      end case;
-   end Render_Scalar_Value;
-
    function Render_Record_Aggregate_For_Type
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
@@ -1568,7 +1445,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
            & ".To_Bounded ("
            & Render_String_Expr (Unit, Document, Expr, State)
            & ")";
-      elsif AET.Is_Owner_Access (Target_Info)
+      elsif AI.Is_Owner_Access (Target_Info)
         and then Target_Info.Has_Target
         and then Expr.Kind in CM.Expr_Aggregate | CM.Expr_Tuple
       then
@@ -1685,7 +1562,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
         and then Expr.Prefix /= null
         and then Has_Text (Expr.Prefix.Type_Name)
         and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
-        and then AET.Is_Access_Type (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
+        and then AI.Is_Access_Type (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
       then
          return Prefix_Image;
       elsif Is_Attribute_Selector (Selector_Name)
@@ -1832,7 +1709,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
           and then Expr.Callee.Prefix /= null
           and then Has_Text (Expr.Callee.Prefix.Type_Name)
           and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
-          and then AET.Is_Access_Type
+          and then AI.Is_Access_Type
             (Lookup_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name)))
          then
            Render_Expr (Unit, Document, Expr.Callee.Prefix, State)
@@ -1966,9 +1843,8 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                     and then Expr.Args (Index) /= null
                     and then Expr.Args (Index).Kind = CM.Expr_String
                   then
-                    Arg_Type := Expr_Type_Info (Unit, Document, Expr.Args (Index));
+                     Arg_Type := Expr_Type_Info (Unit, Document, Expr.Args (Index));
                   end if;
-
                   if Has_Text (Arg_Type.Name)
                     and then
                       (Is_Plain_String_Type (Unit, Document, Arg_Type)
@@ -3056,7 +2932,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                  and then Expr.Prefix /= null
                  and then Has_Text (Expr.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name))
-                 and then AET.Is_Access_Type
+                 and then AI.Is_Access_Type
                    (Lookup_Type (Unit, Document, FT.To_String (Expr.Prefix.Type_Name)))
                then
                   return Prefix_Image;
@@ -3145,7 +3021,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                  and then Expr.Callee.Prefix /= null
                  and then Has_Text (Expr.Callee.Prefix.Type_Name)
                  and then Has_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name))
-                 and then AET.Is_Access_Type
+                 and then AI.Is_Access_Type
                    (Lookup_Type (Unit, Document, FT.To_String (Expr.Callee.Prefix.Type_Name)))
                then
                   Callee_Image :=
@@ -3447,29 +3323,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       end loop;
       return SU.To_String (Result);
    end Apply_Name_Replacements;
-
-
-   function Root_Name (Expr : CM.Expr_Access) return String is
-   begin
-      if Expr = null then
-         return "";
-      end if;
-
-      case Expr.Kind is
-         when CM.Expr_Ident =>
-            return FT.To_String (Expr.Name);
-         when CM.Expr_Select | CM.Expr_Resolved_Index =>
-            return Root_Name (Expr.Prefix);
-         when others =>
-            return "";
-      end case;
-   end Root_Name;
-
-   function Canonical_Name (Value : String) return String is
-   begin
-      return FT.Lowercase (Value);
-   end Canonical_Name;
-
    function Shared_Call_Formal_Type
      (Unit          : CM.Resolved_Unit;
       Document      : GM.Mir_Document;
@@ -4140,24 +3993,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       return False;
    end Static_Growable_Length;
 
-   function Lookup_Channel
-     (Unit : CM.Resolved_Unit;
-      Name : String) return CM.Resolved_Channel_Decl
-   is
-   begin
-      for Item of Unit.Channels loop
-         if FT.To_String (Item.Name) = Name then
-            return Item;
-         end if;
-      end loop;
-      for Item of Unit.Imported_Channels loop
-         if FT.To_String (Item.Name) = Name then
-            return Item;
-         end if;
-      end loop;
-      return (others => <>);
-   end Lookup_Channel;
-
    function Map_Operator (Operator : String) return String is
    begin
       if Operator = "!=" then
@@ -4236,79 +4071,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
         & Right_Image
         & "))";
    end Render_Binary_Operation_Image;
-
-
-   function Starts_With (Text : String; Prefix : String) return Boolean is
-   begin
-      return Text'Length >= Prefix'Length
-        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
-
-   function Shared_Wrapper_Object_Name (Root_Name : String) return String is
-   begin
-      return
-        "Safe_Shared_"
-        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
-   end Shared_Wrapper_Object_Name;
-
-   function Shared_Public_Helper_Base_Name (Root_Name : String) return String is
-   begin
-      return
-        "Safe_Public_Shared_"
-        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
-   end Shared_Public_Helper_Base_Name;
-
-   function Shared_Append_Name return String is
-   begin
-      return "Append";
-   end Shared_Append_Name;
-
-   function Shared_Pop_Last_Name return String is
-   begin
-      return "Pop_Last";
-   end Shared_Pop_Last_Name;
-
-   function Shared_Contains_Name return String is
-   begin
-      return "Contains";
-   end Shared_Contains_Name;
-
-   function Shared_Get_Name return String is
-   begin
-      return "Get";
-   end Shared_Get_Name;
-
-   function Shared_Set_Name return String is
-   begin
-      return "Set";
-   end Shared_Set_Name;
-
-   function Shared_Remove_Name return String is
-   begin
-      return "Remove";
-   end Shared_Remove_Name;
-
-   function Shared_Field_Setter_Name (Field_Name : String) return String is
-   begin
-      return
-        "Set_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
-   end Shared_Field_Setter_Name;
-
-   function Shared_Nested_Field_Setter_Name
-     (Path_Names : FT.UString_Vectors.Vector) return String
-   is
-      Result : FT.UString := FT.To_UString ("Set_Path");
-   begin
-      for Name of Path_Names loop
-         Result :=
-           FT.To_UString
-             (FT.To_String (Result)
-              & "_"
-              & Sanitize_Type_Name_Component (Canonical_Name (FT.To_String (Name))));
-      end loop;
-      return FT.To_String (Result);
-   end Shared_Nested_Field_Setter_Name;
-
    function Is_Plain_Shared_Nested_Record
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;

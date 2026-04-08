@@ -1,4 +1,3 @@
-with Ada.Characters.Handling;
 with Ada.Containers;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -27,13 +26,11 @@ package body Safe_Frontend.Ada_Emit.Types is
    subtype Warning_Suppression_Array is AI.Warning_Suppression_Array;
    subtype Warning_Restore_Array is AI.Warning_Restore_Array;
 
-   procedure Raise_Internal (Message : String);
-   pragma No_Return (Raise_Internal);
+   procedure Raise_Internal (Message : String) renames AI.Raise_Internal;
    procedure Raise_Unsupported
      (State   : in out Emit_State;
       Span    : FT.Source_Span;
-      Message : String);
-   pragma No_Return (Raise_Unsupported);
+      Message : String) renames AI.Raise_Unsupported;
 
    function Has_Text (Item : FT.UString) return Boolean renames AI.Has_Text;
    function Trim_Image (Value : Long_Long_Integer) return String renames AI.Trim_Image;
@@ -170,32 +167,10 @@ package body Safe_Frontend.Ada_Emit.Types is
      (Buffer : in out SU.Unbounded_String;
       Depth  : Natural) renames AI.Append_Task_Channel_Call_Warning_Restore;
 
-   procedure Raise_Internal (Message : String) is
-   begin
-      raise AI.Emitter_Internal with Message;
-   end Raise_Internal;
-
-   procedure Raise_Unsupported
-     (State   : in out Emit_State;
-      Span    : FT.Source_Span;
-      Message : String)
-   is
-   begin
-      State.Unsupported_Span := Span;
-      State.Unsupported_Message := FT.To_UString (Message);
-      raise AI.Emitter_Unsupported;
-   end Raise_Unsupported;
-
-   function Starts_With (Text : String; Prefix : String) return Boolean;
-   function Ada_Qualified_Name (Name : String) return String;
+   function Starts_With (Text : String; Prefix : String) return Boolean renames AI.Starts_With;
    function Sanitized_Helper_Name (Name : String) return String;
-   function Array_Runtime_Free_Element_Name (Info : GM.Type_Descriptor) return String;
-   function Normalize_Aspect_Name
-     (Subprogram_Name : String;
-      Raw_Name        : String) return String;
 
    function Binary_Width_From_Name (Name : String) return Natural;
-   function Is_Attribute_Selector (Name : String) return Boolean;
    function Is_Builtin_Binary_Name (Name : String) return Boolean;
    function Type_Info_From_Name_Or_Synthetic
      (Unit      : CM.Resolved_Unit;
@@ -207,40 +182,10 @@ package body Safe_Frontend.Ada_Emit.Types is
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return String;
-   procedure Mark_Heap_Runtime_Dependencies
-     (Unit      : CM.Resolved_Unit;
-      Document  : GM.Mir_Document;
-      Info      : GM.Type_Descriptor;
-      State     : in out Emit_State;
-      Seen      : in out FT.UString_Vectors.Vector);
-   procedure Append_Generated_Heap_Copy_Body
-     (Buffer      : in out SU.Unbounded_String;
-      Unit        : CM.Resolved_Unit;
-      Document    : GM.Mir_Document;
-      State       : in out Emit_State;
-      Family      : Heap_Helper_Family_Kind;
-      Scope_Name  : String;
-      Info        : GM.Type_Descriptor;
-      Depth       : Natural);
-   procedure Append_Generated_Heap_Free_Body
-     (Buffer      : in out SU.Unbounded_String;
-      Unit        : CM.Resolved_Unit;
-      Document    : GM.Mir_Document;
-      State       : in out Emit_State;
-      Family      : Heap_Helper_Family_Kind;
-      Scope_Name  : String;
-      Info        : GM.Type_Descriptor;
-      Depth       : Natural);
    function Local_Dispose_Helper_Name (Info : GM.Type_Descriptor) return String;
    function Local_Ownership_Runtime_Name (Info : GM.Type_Descriptor) return String;
    function Array_Runtime_Default_Element_Name (Info : GM.Type_Descriptor) return String;
    function Array_Runtime_Clone_Element_Name (Info : GM.Type_Descriptor) return String;
-   function Uses_Identity_Array_Runtime
-     (Unit     : CM.Resolved_Unit;
-      Document : GM.Mir_Document;
-      Info     : GM.Type_Descriptor) return Boolean;
-   function Tuple_Field_Name (Index : Positive) return String;
-   function Render_Scalar_Value (Value : GM.Scalar_Value) return String;
    function Render_Integer_Type_Decl
      (Type_Item : GM.Type_Descriptor) return String;
    function Render_Enum_Type_Decl
@@ -274,7 +219,6 @@ package body Safe_Frontend.Ada_Emit.Types is
    function Render_Float_Type_Decl
      (Type_Item : GM.Type_Descriptor) return String;
 
-   function Synthetic_Type_Tail_Name (Name : String) return String ;
    procedure Append_Record_Heap_Copy_Assignments
      (Buffer      : in out SU.Unbounded_String;
       Unit        : CM.Resolved_Unit;
@@ -304,16 +248,10 @@ package body Safe_Frontend.Ada_Emit.Types is
       Info     : GM.Type_Descriptor) return String
    ;
    function Array_Runtime_Identity_Ops_Name
-     (Info : GM.Type_Descriptor) return String ;
+     (Info : GM.Type_Descriptor) return String;
 
    function Same_Variant_Choice
-     (Left, Right : GM.Variant_Field) return Boolean ;
-
-   function Starts_With (Text : String; Prefix : String) return Boolean is
-   begin
-      return Text'Length >= Prefix'Length
-        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
+     (Left, Right : GM.Variant_Field) return Boolean;
 
    function Binary_Ada_Name (Bit_Width : Positive) return String is
    begin
@@ -3362,7 +3300,6 @@ package body Safe_Frontend.Ada_Emit.Types is
    function Sanitize_Type_Name_Component
      (Value : String) return String renames FNU.Sanitize_Type_Name_Component;
 
-
    function Binary_Width_From_Name (Name : String) return Natural is
    begin
       if Name = "__binary_8" then
@@ -4471,7 +4408,6 @@ package body Safe_Frontend.Ada_Emit.Types is
       return "type " & Name & " is digits 6;";
    end Render_Float_Type_Decl;
 
-
    function Synthetic_Type_Tail_Name (Name : String) return String is
       Dot_Index : Natural := 0;
    begin
@@ -4709,7 +4645,6 @@ package body Safe_Frontend.Ada_Emit.Types is
    begin
       return Array_Runtime_Instance_Name (Info) & "_Element_Ops";
    end Array_Runtime_Identity_Ops_Name;
-
 
    function Same_Variant_Choice
      (Left, Right : GM.Variant_Field) return Boolean is

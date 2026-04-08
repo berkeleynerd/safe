@@ -8,7 +8,6 @@ private package Safe_Frontend.Ada_Emit.Expressions is
    subtype Emit_State is AI.Emit_State;
    subtype Heap_Helper_Family_Kind is AI.Heap_Helper_Family_Kind;
 
-   function Is_Attribute_Selector (Name : String) return Boolean;
    function Expr_Type_Info
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
@@ -75,13 +74,11 @@ private package Safe_Frontend.Ada_Emit.Expressions is
       Expr        : CM.Expr_Access;
       Target_Info : GM.Type_Descriptor;
       State       : in out Emit_State) return String;
-   function Tuple_Field_Name (Index : Positive) return String;
    function Render_Positional_Tuple_Aggregate
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Expr     : CM.Expr_Access;
       State    : in out Emit_State) return String;
-   function Render_Scalar_Value (Value : GM.Scalar_Value) return String;
    function Render_Record_Aggregate_For_Type
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;

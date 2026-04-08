@@ -127,8 +127,6 @@ private package Safe_Frontend.Ada_Emit.Types is
    function Is_Result_Builtin (Info : GM.Type_Descriptor) return Boolean;
    function Render_Result_Empty_Aggregate return String;
    function Render_Result_Fail_Aggregate (Message_Image : String) return String;
-   function Is_Access_Type (Info : GM.Type_Descriptor) return Boolean;
-   function Is_Owner_Access (Info : GM.Type_Descriptor) return Boolean;
    function Is_Alias_Access (Info : GM.Type_Descriptor) return Boolean;
    function Owner_Allocate_Post_Field_Is_Trackable
      (Unit      : CM.Resolved_Unit;
@@ -177,15 +175,28 @@ private package Safe_Frontend.Ada_Emit.Types is
       Info     : GM.Type_Descriptor) return Boolean;
    function Binary_Ada_Name (Bit_Width : Positive) return String;
    function Ada_Safe_Name (Name : String) return String;
+   function Ada_Qualified_Name (Name : String) return String;
+   function Normalize_Aspect_Name
+     (Subprogram_Name : String;
+      Raw_Name        : String) return String;
+   function Is_Attribute_Selector (Name : String) return Boolean;
+   function Tuple_Field_Name (Index : Positive) return String;
+   function Render_Scalar_Value (Value : GM.Scalar_Value) return String;
    function Render_Enum_Literal_Name
      (Literal_Name   : String;
       Enum_Type_Name : String) return String;
+   function Synthetic_Type_Tail_Name (Name : String) return String;
    function Preferred_Imported_Synthetic_Type
      (Unit : CM.Resolved_Unit;
       Info : GM.Type_Descriptor) return GM.Type_Descriptor;
    function Is_Builtin_Integer_Name (Name : String) return Boolean;
    function Is_Builtin_Float_Name (Name : String) return Boolean;
    function Array_Runtime_Instance_Name (Info : GM.Type_Descriptor) return String;
+   function Array_Runtime_Free_Element_Name (Info : GM.Type_Descriptor) return String;
+   function Uses_Identity_Array_Runtime
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
    function Local_Allocate_Helper_Name (Info : GM.Type_Descriptor) return String;
    function Render_Type_Name (Info : GM.Type_Descriptor) return String;
    function Render_Type_Name_From_Text
@@ -271,6 +282,30 @@ private package Safe_Frontend.Ada_Emit.Types is
       Target_Text : String;
       Info       : GM.Type_Descriptor;
       Depth      : Natural);
+   procedure Mark_Heap_Runtime_Dependencies
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Info      : GM.Type_Descriptor;
+      State     : in out Emit_State;
+      Seen      : in out FT.UString_Vectors.Vector);
+   procedure Append_Generated_Heap_Copy_Body
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Info        : GM.Type_Descriptor;
+      Depth       : Natural);
+   procedure Append_Generated_Heap_Free_Body
+     (Buffer      : in out SU.Unbounded_String;
+      Unit        : CM.Resolved_Unit;
+      Document    : GM.Mir_Document;
+      State       : in out Emit_State;
+      Family      : Heap_Helper_Family_Kind;
+      Scope_Name  : String;
+      Info        : GM.Type_Descriptor;
+      Depth       : Natural);
    procedure Render_For_Of_Helper_Bodies
      (Buffer   : in out SU.Unbounded_String;
       Unit     : CM.Resolved_Unit;

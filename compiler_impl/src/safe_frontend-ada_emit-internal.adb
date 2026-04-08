@@ -1,16 +1,31 @@
+with Safe_Frontend.Name_Utils;
+
 package body Safe_Frontend.Ada_Emit.Internal is
+   package FNU renames Safe_Frontend.Name_Utils;
+
    use SU;
    use type Ada.Containers.Count_Type;
+   use type CM.Expr_Access;
+   use type CM.Expr_Kind;
    use type CM.Statement_Access;
 
    Indent_Width : constant Positive := 3;
-
-   procedure Raise_Internal (Message : String);
 
    procedure Raise_Internal (Message : String) is
    begin
       raise Emitter_Internal with Message;
    end Raise_Internal;
+
+   procedure Raise_Unsupported
+     (State   : in out Emit_State;
+      Span    : FT.Source_Span;
+      Message : String)
+   is
+   begin
+      State.Unsupported_Span := Span;
+      State.Unsupported_Message := FT.To_UString (Message);
+      raise Emitter_Unsupported;
+   end Raise_Unsupported;
 
    function Has_Text (Item : FT.UString) return Boolean is
    begin
@@ -103,6 +118,166 @@ package body Safe_Frontend.Ada_Emit.Internal is
       end loop;
       return False;
    end Contains_Name;
+
+   function Starts_With
+     (Text   : String;
+      Prefix : String) return Boolean is
+   begin
+      return Text'Length >= Prefix'Length
+        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
+   end Starts_With;
+
+   function Root_Name (Expr : CM.Expr_Access) return String is
+   begin
+      if Expr = null then
+         return "";
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Ident =>
+            return FT.To_String (Expr.Name);
+         when CM.Expr_Select | CM.Expr_Resolved_Index =>
+            return Root_Name (Expr.Prefix);
+         when others =>
+            return "";
+      end case;
+   end Root_Name;
+
+   function Lookup_Channel
+     (Unit : CM.Resolved_Unit;
+      Name : String) return CM.Resolved_Channel_Decl
+   is
+   begin
+      for Item of Unit.Channels loop
+         if FT.To_String (Item.Name) = Name then
+            return Item;
+         end if;
+      end loop;
+      for Item of Unit.Imported_Channels loop
+         if FT.To_String (Item.Name) = Name then
+            return Item;
+         end if;
+      end loop;
+      return (others => <>);
+   end Lookup_Channel;
+
+   function Canonical_Name (Value : String) return String is
+   begin
+      return FT.Lowercase (Value);
+   end Canonical_Name;
+
+   function Sanitize_Type_Name_Component (Value : String) return String
+     renames FNU.Sanitize_Type_Name_Component;
+
+   function Shared_Wrapper_Object_Name
+     (Root_Name : String) return String
+   is
+   begin
+      return
+        "Safe_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
+   end Shared_Wrapper_Object_Name;
+
+   function Shared_Wrapper_Type_Name
+     (Root_Name : String) return String
+   is
+   begin
+      return Shared_Wrapper_Object_Name (Root_Name) & "_Wrapper";
+   end Shared_Wrapper_Type_Name;
+
+   function Shared_Public_Helper_Base_Name
+     (Root_Name : String) return String
+   is
+   begin
+      return
+        "Safe_Public_Shared_"
+        & Sanitize_Type_Name_Component (Canonical_Name (Root_Name));
+   end Shared_Public_Helper_Base_Name;
+
+   function Shared_Public_Helper_Name
+     (Root_Name : String;
+      Operation : String) return String
+   is
+   begin
+      return Shared_Public_Helper_Base_Name (Root_Name) & "_" & Operation;
+   end Shared_Public_Helper_Name;
+
+   function Shared_Get_All_Name return String is
+   begin
+      return "Get_All";
+   end Shared_Get_All_Name;
+
+   function Shared_Set_All_Name return String is
+   begin
+      return "Set_All";
+   end Shared_Set_All_Name;
+
+   function Shared_Get_Length_Name return String is
+   begin
+      return "Get_Length";
+   end Shared_Get_Length_Name;
+
+   function Shared_Append_Name return String is
+   begin
+      return "Append";
+   end Shared_Append_Name;
+
+   function Shared_Pop_Last_Name return String is
+   begin
+      return "Pop_Last";
+   end Shared_Pop_Last_Name;
+
+   function Shared_Contains_Name return String is
+   begin
+      return "Contains";
+   end Shared_Contains_Name;
+
+   function Shared_Get_Name return String is
+   begin
+      return "Get";
+   end Shared_Get_Name;
+
+   function Shared_Set_Name return String is
+   begin
+      return "Set";
+   end Shared_Set_Name;
+
+   function Shared_Remove_Name return String is
+   begin
+      return "Remove";
+   end Shared_Remove_Name;
+
+   function Shared_Field_Getter_Name
+     (Field_Name : String) return String
+   is
+   begin
+      return
+        "Get_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
+   end Shared_Field_Getter_Name;
+
+   function Shared_Field_Setter_Name
+     (Field_Name : String) return String
+   is
+   begin
+      return
+        "Set_" & Sanitize_Type_Name_Component (Canonical_Name (Field_Name));
+   end Shared_Field_Setter_Name;
+
+   function Shared_Nested_Field_Setter_Name
+     (Path_Names : FT.UString_Vectors.Vector) return String
+   is
+      Result : FT.UString := FT.To_UString ("Set_Path");
+   begin
+      for Name of Path_Names loop
+         Result :=
+           FT.To_UString
+             (FT.To_String (Result)
+              & "_"
+              & Sanitize_Type_Name_Component
+                  (Canonical_Name (FT.To_String (Name))));
+      end loop;
+      return FT.To_String (Result);
+   end Shared_Nested_Field_Setter_Name;
 
    procedure Add_Wide_Name
      (State : in out Emit_State;
