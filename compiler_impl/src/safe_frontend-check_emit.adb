@@ -2097,6 +2097,17 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
+         when CM.Stmt_Try_Send =>
+            return
+              "{""node_type"":""TrySendStatement"",""channel_name"":"
+              & Name_Node (Resolved_Expr.Channel_Name)
+              & ",""expression"":"
+              & Expression_Node (Resolved_Expr.Value)
+              & ",""success_var"":"
+              & Name_Node (Resolved_Expr.Success_Var)
+              & ",""span"":"
+              & JS.Span_Object (Parsed.Span)
+              & "}";
          when CM.Stmt_Try_Receive =>
             return
               "{""node_type"":""TryReceiveStatement"",""channel_name"":"

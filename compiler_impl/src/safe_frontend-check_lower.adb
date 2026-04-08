@@ -1431,50 +1431,59 @@ package body Safe_Frontend.Check_Lower is
    begin
       case Stmt.Kind is
          when CM.Stmt_Object_Decl =>
-            if Stmt.Decl.Has_Initializer
+            if (Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null)
               or else Stmt.Decl.Has_Implicit_Default_Init
               or else
                 (FT.Lowercase (UString_Value (Stmt.Decl.Type_Info.Kind)) = "access"
                  and then not Stmt.Decl.Type_Info.Not_Null)
             then
-               for Name of Stmt.Decl.Names loop
-                  declare
-                     Target_Expr : constant CM.Expr_Access :=
-                       Ident_Expr
-                         (UString_Value (Name),
-                          Stmt.Decl.Span,
-                          UString_Value (Stmt.Decl.Type_Info.Name));
-                     Init_Expr : constant CM.Expr_Access :=
-                       (if Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null
-                        then Stmt.Decl.Initializer
-                        elsif Stmt.Decl.Has_Implicit_Default_Init
-                        then Default_Initializer_Expr (Stmt.Decl.Type_Info, Type_Env, Stmt.Decl.Span)
-                        else
-                          Null_Expr
-                            (Stmt.Decl.Span,
-                             UString_Value (Stmt.Decl.Type_Info.Name)));
-                     Ownership_Effect : constant GM.Ownership_Effect_Kind :=
-                       (if Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null
-                        then
-                          Ownership_Assignment_Effect
+               declare
+                  Decl_Visible : Type_Maps.Map := Visible_Types;
+               begin
+                  for Name of Stmt.Decl.Names loop
+                     Decl_Visible.Include
+                       (UString_Value (Name),
+                        Stmt.Decl.Type_Info);
+                  end loop;
+                  for Name of Stmt.Decl.Names loop
+                     declare
+                        Target_Expr : constant CM.Expr_Access :=
+                          Ident_Expr
+                            (UString_Value (Name),
+                             Stmt.Decl.Span,
+                             UString_Value (Stmt.Decl.Type_Info.Name));
+                        Init_Expr : constant CM.Expr_Access :=
+                          (if Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null
+                           then Stmt.Decl.Initializer
+                           elsif Stmt.Decl.Has_Implicit_Default_Init
+                           then Default_Initializer_Expr (Stmt.Decl.Type_Info, Type_Env, Stmt.Decl.Span)
+                           else
+                             Null_Expr
+                               (Stmt.Decl.Span,
+                                UString_Value (Stmt.Decl.Type_Info.Name)));
+                        Ownership_Effect : constant GM.Ownership_Effect_Kind :=
+                          (if Stmt.Decl.Has_Initializer and then Stmt.Decl.Initializer /= null
+                           then
+                             Ownership_Assignment_Effect
+                               (Target_Expr,
+                                Stmt.Decl.Initializer,
+                                Decl_Visible,
+                                Type_Env)
+                           else GM.Ownership_None);
+                     begin
+                        Assign_Op :=
+                          Build_Assignment_Op
                             (Target_Expr,
-                             Stmt.Decl.Initializer,
-                             Visible_Types,
-                             Type_Env)
-                        else GM.Ownership_None);
-                  begin
-                     Assign_Op :=
-                       Build_Assignment_Op
-                         (Target_Expr,
-                          Init_Expr,
-                          Visible_Types,
-                          Type_Env,
-                          Stmt.Decl.Span,
-                          Ownership_Effect,
-                          Declaration_Init => True);
-                     Add_Op (Work, UString_Value (Current_Id), Assign_Op);
-                  end;
-               end loop;
+                             Init_Expr,
+                             Decl_Visible,
+                             Type_Env,
+                             Stmt.Decl.Span,
+                             Ownership_Effect,
+                             Declaration_Init => True);
+                        Add_Op (Work, UString_Value (Current_Id), Assign_Op);
+                     end;
+                  end loop;
+               end;
             end if;
             return Current_Id;
 
@@ -2313,6 +2322,18 @@ package body Safe_Frontend.Check_Lower is
             Assign_Op.Type_Name := Expr_Type (Stmt.Target, Visible_Types, Type_Env).Name;
             Assign_Op.Ownership_Effect := GM.Ownership_None;
             Add_Op (Work, UString_Value (Current_Id), Assign_Op);
+            return Current_Id;
+
+         when CM.Stmt_Try_Send =>
+            Call_Op := (others => <>);
+            Call_Op.Kind := GM.Op_Channel_Try_Send;
+            Call_Op.Span := Stmt.Span;
+            Call_Op.Channel := Lower_Expr (Stmt.Channel_Name, Visible_Types, Type_Env);
+            Call_Op.Value := Lower_Expr (Stmt.Value, Visible_Types, Type_Env);
+            Call_Op.Success_Target := Lower_Target (Stmt.Success_Var, Visible_Types, Type_Env);
+            Call_Op.Type_Name := Expr_Type (Stmt.Value, Visible_Types, Type_Env).Name;
+            Call_Op.Ownership_Effect := GM.Ownership_None;
+            Add_Op (Work, UString_Value (Current_Id), Call_Op);
             return Current_Id;
 
          when CM.Stmt_Try_Receive =>
