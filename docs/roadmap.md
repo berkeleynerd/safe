@@ -88,7 +88,10 @@ Dependency chain:
 - PR11.22d follows PR11.22c (emitter deduplication and vestigial code removal).
 - PR11.22e follows PR11.22d (emitter file split into domain-focused modules).
 - PR11.22f follows PR11.22e (resolver cleanup and builtin-resolution consolidation).
-- PR11.23 follows PR11.22h (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
+- PR11.22i follows PR11.22h (emitter boundary audit and support-surface inventory).
+- PR11.22j follows PR11.22i (emitter interface narrowing and boilerplate reduction).
+- PR11.22k follows PR11.22j (focused emitter domain validation lanes).
+- PR11.23 follows PR11.22k (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
 - PR11.15 follows PR11.22f (string interpolation — low risk, high usability).
 - PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
 - PR11.14 follows PR11.16 (closures — deferred past hygiene to reduce implementation risk).
@@ -3211,7 +3214,100 @@ stdlib packages.
 ### Dependency
 
 Follows PR11.22g. Safety-critical audit — medium effort, high value.
-This is the last PR11 milestone.
+
+---
+
+## PR11.22i: Emitter Boundary Audit and Support-Surface Inventory
+
+Investigate the remaining architectural tax after the emitter split and
+separate unavoidable Ada child-package ceremony from removable design
+debt.
+
+### Scope
+
+- Audit the actual `with` dependencies between `Internal`, `Types`,
+  `Expressions`, `Statements`, `Channels`, and `Proofs`:
+  - remove any accidental maximal-envelope dependencies
+  - document the intended acyclic graph in the child specs with short
+    ownership/dependency headers
+- Inventory `safe_frontend-ada_emit-internal.ads` exports and the child
+  package entrypoints by consumer set:
+  - parent-only
+  - single-child
+  - multi-child
+- Identify helpers that can move down out of `Internal` into a narrower
+  domain package without recreating dependency cycles
+- Measure the remaining boilerplate introduced by the child-package
+  split:
+  - repeated `AI.*` rename slabs
+  - repeated `with` clauses
+  - child-spec exports that exist only to support the split
+- Produce a concrete keep/trim inventory for `PR11.22j` rather than
+  doing ad hoc cleanup
+
+### Dependency
+
+Follows PR11.22h. Investigation and boundary classification only — low
+risk, no behavioral change.
+
+---
+
+## PR11.22j: Emitter Interface Narrowing and Boilerplate Reduction
+
+Use the `PR11.22i` inventory to remove avoidable ceremony from the split
+emitter without undoing the architectural gains.
+
+### Scope
+
+- Narrow `safe_frontend-ada_emit-internal.ads` to helpers that are truly
+  shared across multiple emitter domains
+- Move domain-local helpers down into `Types`, `Expressions`,
+  `Statements`, `Channels`, or `Proofs` where the dependency graph
+  allows it
+- Remove child-package exports that are only consumed inside one domain
+  and can become body-local again
+- Reduce duplicated `AI.*` rename slabs and `with` lists in child
+  bodies where the split introduced avoidable boilerplate
+- Keep the package graph acyclic and preserve emitted Ada byte-for-byte
+  across the snapshot corpus
+- Explicitly accept the Ada child-package boilerplate that is
+  structural, and remove only the ceremony that the audit shows is
+  optional
+
+### Dependency
+
+Follows PR11.22i. Structural cleanup only — medium effort, medium risk.
+
+---
+
+## PR11.22k: Focused Emitter Domain Validation Lanes
+
+Add fast, domain-focused validation helpers so emitter maintenance does
+not always require paying for the full end-to-end suite during local
+iteration.
+
+### Scope
+
+- Add focused emitter-domain validation helpers for:
+  - `Types`
+  - `Expressions`
+  - `Statements`
+  - `Channels`
+  - `Proofs`
+- Keep `python3 scripts/run_tests.py`, `python3 scripts/run_proofs.py`,
+  and `python3 scripts/snapshot_emitted_ada.py` as the authoritative
+  gates; the new helpers are confidence lanes, not replacements
+- Define a minimal per-domain fixture map so contributors and AI agents
+  know which lane to run first for a given change
+- Ensure each validation lane reports the owned domain clearly and
+  stays aligned with the child-package ownership introduced in
+  `PR11.22e`
+- Prefer simple wrappers over a new heavyweight test framework; the goal
+  is iteration speed and orientation, not another generalized harness
+
+### Dependency
+
+Follows PR11.22j. Medium effort, low risk.
 
 ---
 
@@ -3302,7 +3398,7 @@ unchanged.
 
 ### Dependency
 
-Follows PR11.22h. Deferred until after the hygiene series so the
+Follows PR11.22k. Deferred until after the extended hygiene series so the
 mapping lands on a cleaned emitter and stabilized proof/build surface.
 
 ---
