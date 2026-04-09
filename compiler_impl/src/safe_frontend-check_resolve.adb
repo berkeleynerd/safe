@@ -1060,6 +1060,9 @@ package body Safe_Frontend.Check_Resolve is
       Builtin_Remove,
       Builtin_Set);
 
+   function Builtin_Method_Kind_For_Canonical_Name
+     (Name : String) return Builtin_Method_Kind;
+
    function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind;
 
    function Builtin_Method_Name (Kind : Builtin_Method_Kind) return String;
@@ -5569,26 +5572,34 @@ package body Safe_Frontend.Check_Resolve is
       return Name (Last_Dot + 1 .. Name'Last);
    end Method_Target_Tail_Name;
 
-   function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind is
-      --  This classifier accepts any case and lowercases internally. Callers
-      --  that need exact-case builtin matching must enforce that separately.
-      Lower_Name : constant String := FT.Lowercase (Name);
+   function Builtin_Method_Kind_For_Canonical_Name
+     (Name : String) return Builtin_Method_Kind
+   is
    begin
-      if Lower_Name = "append" then
+      pragma Assert (Name = Canonical_Name (Name));
+
+      if Name = "append" then
          return Builtin_Append;
-      elsif Lower_Name = "pop_last" then
+      elsif Name = "pop_last" then
          return Builtin_Pop_Last;
-      elsif Lower_Name = "contains" then
+      elsif Name = "contains" then
          return Builtin_Contains;
-      elsif Lower_Name = "get" then
+      elsif Name = "get" then
          return Builtin_Get;
-      elsif Lower_Name = "remove" then
+      elsif Name = "remove" then
          return Builtin_Remove;
-      elsif Lower_Name = "set" then
+      elsif Name = "set" then
          return Builtin_Set;
       else
          return Builtin_None;
       end if;
+   end Builtin_Method_Kind_For_Canonical_Name;
+
+   function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind is
+      --  This classifier accepts any case and lowercases internally. Callers
+      --  that need exact-case builtin matching must enforce that separately.
+   begin
+      return Builtin_Method_Kind_For_Canonical_Name (Canonical_Name (Name));
    end Builtin_Method_Kind_For_Name;
 
    function Builtin_Method_Name (Kind : Builtin_Method_Kind) return String is
@@ -5748,7 +5759,7 @@ package body Safe_Frontend.Check_Resolve is
 
       declare
          Builtin_Kind : constant Builtin_Method_Kind :=
-           Builtin_Method_Kind_For_Name (Name);
+           Builtin_Method_Kind_For_Canonical_Name (Name);
       begin
          case Builtin_Kind is
             when Builtin_None =>
@@ -5965,7 +5976,7 @@ package body Safe_Frontend.Check_Resolve is
    function Is_Method_Builtin_Name (Name : String) return Boolean is
    begin
       return Name = FT.Lowercase (Name)
-        and then Builtin_Method_Kind_For_Name (Name) /= Builtin_None;
+        and then Builtin_Method_Kind_For_Canonical_Name (Name) /= Builtin_None;
    end Is_Method_Builtin_Name;
 
    function Function_Method_Call_Compatible
@@ -7422,6 +7433,14 @@ package body Safe_Frontend.Check_Resolve is
            Type_Env,
            Path);
    begin
+      if Result = null then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => (if Value = null then FT.Null_Span else Value.Span),
+               Message => Mismatch_Message));
+      end if;
+
       if Stamp_String_Literal then
          Stamp_Contextual_String_Literal (Result, Target_Type, Type_Env);
       end if;
@@ -7474,7 +7493,7 @@ package body Safe_Frontend.Check_Resolve is
          return Builtin_None;
       end if;
 
-      return Builtin_Method_Kind_For_Name (Lower_Name);
+      return Builtin_Method_Kind_For_Canonical_Name (Lower_Name);
    end Builtin_Method_Kind_For_Call;
 
    function Is_Unshadowed_Builtin_Call
@@ -7489,7 +7508,8 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       declare
-         Kind : constant Builtin_Method_Kind := Builtin_Method_Kind_For_Name (Name);
+         Kind : constant Builtin_Method_Kind :=
+           Builtin_Method_Kind_For_Canonical_Name (Name);
       begin
          return
            Kind /= Builtin_None  --  Guard unknown-name callers: otherwise both
