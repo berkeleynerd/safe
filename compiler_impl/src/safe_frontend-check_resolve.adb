@@ -5825,8 +5825,8 @@ package body Safe_Frontend.Check_Resolve is
                       (Resolve_Type
                          (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
                           Type_Env,
-                         "",
-                         FT.Null_Span),
+                          "",
+                          FT.Null_Span),
                        Value_Type,
                        Type_Env);
                when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
@@ -7402,6 +7402,12 @@ package body Safe_Frontend.Check_Resolve is
          Stamp_Contextual_String_Literal (Result, Target_Type, Type_Env);
       end if;
       Reject_Uncontextualized_None (Result, Path);
+      --  Setter paths may still stamp Result.Type_Name after this helper
+      --  returns. That deferred stamp is emission-only: compatibility here
+      --  relies on Expr_Type (Result, ...) as it stands now, and the
+      --  relevant shared-setter literal cases are typed structurally (for
+      --  example, string literals read as string types before any later
+      --  bounded-string name is attached for emission).
       if not Compatible_Source_Expr_To_Target_Type
         (Result,
          Expr_Type (Result, Var_Types, Functions, Type_Env),
@@ -7461,7 +7467,9 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       return
-        Kind /= Builtin_None  --  Avoid the old Builtin_None = Builtin_None false positive.
+        Kind /= Builtin_None  --  Guard unknown-name callers: otherwise both
+                              --  classifiers could return Builtin_None and
+                              --  this check would incorrectly succeed.
         and then Builtin_Method_Kind_For_Call (Expr, Var_Types, Functions, Type_Env) = Kind;
    end Is_Unshadowed_Builtin_Call;
 
