@@ -438,6 +438,13 @@ package body Safe_Frontend.Check_Resolve is
       return Map.Contains (Canonical_Name (Name));
    end Has_Type;
 
+   function Has_Type_Canonical
+     (Map  : Type_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      return Map.Contains (Name);
+   end Has_Type_Canonical;
+
    function Get_Type
      (Map  : Type_Maps.Map;
       Name : String) return GM.Type_Descriptor is
@@ -460,6 +467,14 @@ package body Safe_Frontend.Check_Resolve is
       return Map.Contains (Canonical_Name (Name))
         or else Current_Synthetic_Functions.Contains (Canonical_Name (Name));
    end Has_Function;
+
+   function Has_Function_Canonical
+     (Map  : Function_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      return Map.Contains (Name)
+        or else Current_Synthetic_Functions.Contains (Name);
+   end Has_Function_Canonical;
 
    function Get_Function
      (Map  : Function_Maps.Map;
@@ -7443,9 +7458,9 @@ package body Safe_Frontend.Check_Resolve is
       Lower_Name : constant String := Canonical_Name (Name);
    begin
       if Name'Length = 0
-        or else Has_Function (Functions, Lower_Name)
-        or else Has_Type (Var_Types, Lower_Name)
-        or else Has_Type (Type_Env, Lower_Name)
+        or else Has_Function_Canonical (Functions, Lower_Name)
+        or else Has_Type_Canonical (Var_Types, Lower_Name)
+        or else Has_Type_Canonical (Type_Env, Lower_Name)
       then
          return Builtin_None;
       end if;
@@ -7458,19 +7473,21 @@ package body Safe_Frontend.Check_Resolve is
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
-      Name      : String) return Boolean
-   is
-      Kind : constant Builtin_Method_Kind := Builtin_Method_Kind_For_Name (Name);
+      Name      : String) return Boolean is
    begin
       if Name /= FT.Lowercase (Name) then
          return False;
       end if;
 
-      return
-        Kind /= Builtin_None  --  Guard unknown-name callers: otherwise both
-                              --  classifiers could return Builtin_None and
-                              --  this check would incorrectly succeed.
-        and then Builtin_Method_Kind_For_Call (Expr, Var_Types, Functions, Type_Env) = Kind;
+      declare
+         Kind : constant Builtin_Method_Kind := Builtin_Method_Kind_For_Name (Name);
+      begin
+         return
+           Kind /= Builtin_None  --  Guard unknown-name callers: otherwise both
+                                 --  classifiers could return Builtin_None and
+                                 --  this check would incorrectly succeed.
+           and then Builtin_Method_Kind_For_Call (Expr, Var_Types, Functions, Type_Env) = Kind;
+      end;
    end Is_Unshadowed_Builtin_Call;
 
    function Is_Append_Builtin_Call
