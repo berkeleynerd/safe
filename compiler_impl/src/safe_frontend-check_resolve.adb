@@ -5549,18 +5549,19 @@ package body Safe_Frontend.Check_Resolve is
    end Method_Target_Tail_Name;
 
    function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind is
+      Lower_Name : constant String := FT.Lowercase (Name);
    begin
-      if FT.Lowercase (Name) = "append" then
+      if Lower_Name = "append" then
          return Builtin_Append;
-      elsif FT.Lowercase (Name) = "pop_last" then
+      elsif Lower_Name = "pop_last" then
          return Builtin_Pop_Last;
-      elsif FT.Lowercase (Name) = "contains" then
+      elsif Lower_Name = "contains" then
          return Builtin_Contains;
-      elsif FT.Lowercase (Name) = "get" then
+      elsif Lower_Name = "get" then
          return Builtin_Get;
-      elsif FT.Lowercase (Name) = "remove" then
+      elsif Lower_Name = "remove" then
          return Builtin_Remove;
-      elsif FT.Lowercase (Name) = "set" then
+      elsif Lower_Name = "set" then
          return Builtin_Set;
       else
          return Builtin_None;
@@ -6556,7 +6557,6 @@ package body Safe_Frontend.Check_Resolve is
       begin
          if Builtin_Kind not in
            Builtin_Pop_Last | Builtin_Contains | Builtin_Get | Builtin_Remove
-           or else Builtin_Name = ""
            or else Call_Expr = null
            or else Natural (Call_Expr.Args.Length) = 0
            or else not Try_Shared_Root_Expr
@@ -7393,21 +7393,6 @@ package body Safe_Frontend.Check_Resolve is
            Type_Env,
            Path);
    begin
-      if Result /= null then
-         if UString_Value (Result.Type_Name)'Length = 0
-           and then UString_Value (Target_Type.Name)'Length > 0
-           and then Result.Kind in CM.Expr_Aggregate | CM.Expr_Array_Literal | CM.Expr_Tuple
-         then
-            Result.Type_Name := Target_Type.Name;
-         elsif Result.Kind = CM.Expr_String
-           and then UString_Value (Target_Type.Name)'Length > 0
-           and then
-             (Is_Bounded_String_Type (Target_Type, Type_Env)
-              or else Is_String_Type (Target_Type, Type_Env))
-         then
-            Result.Type_Name := Target_Type.Name;
-         end if;
-      end if;
       if Stamp_String_Literal then
          Stamp_Contextual_String_Literal (Result, Target_Type, Type_Env);
       end if;
@@ -7466,7 +7451,8 @@ package body Safe_Frontend.Check_Resolve is
    begin
       return
         Builtin_Method_Kind_For_Call (Expr, Var_Types, Functions, Type_Env) =
-          Builtin_Method_Kind_For_Name (Name);
+          Builtin_Method_Kind_For_Name (Name)
+          and then Builtin_Method_Kind_For_Name (Name) /= Builtin_None;
    end Is_Unshadowed_Builtin_Call;
 
    function Is_Append_Builtin_Call
@@ -11608,7 +11594,8 @@ package body Safe_Frontend.Check_Resolve is
                         Local_Static_Constants,
                         Exact_Length_Facts,
                         Path,
-                        "assignment value type does not match target type"));
+                        "assignment value type does not match target type",
+                        Stamp_String_Literal => False));
                   if not Result.Call.Args.Is_Empty
                     and then Result.Call.Args (Result.Call.Args.First_Index) /= null
                   then
@@ -11676,7 +11663,8 @@ package body Safe_Frontend.Check_Resolve is
                         Local_Static_Constants,
                         Exact_Length_Facts,
                         Path,
-                        "assignment value type does not match target type"));
+                        "assignment value type does not match target type",
+                        Stamp_String_Literal => False));
                   if not Result.Call.Args.Is_Empty
                     and then Result.Call.Args (Result.Call.Args.First_Index) /= null
                   then
