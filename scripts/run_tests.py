@@ -704,6 +704,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr1122f2_shared_optional_string_none_build.safe",
+        "cleared\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr1112d_shared_list_root_build.safe",
         "4\n4\n3\n9\n",
         False,

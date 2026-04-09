@@ -5736,8 +5736,6 @@ package body Safe_Frontend.Check_Resolve is
       Functions     : Function_Maps.Map;
       Type_Env      : Type_Maps.Map) return Boolean
    is
-      Builtin_Kind : constant Builtin_Method_Kind :=
-        Builtin_Method_Kind_For_Name (Name);
       Element_Type : GM.Type_Descriptor;
       Key_Type     : GM.Type_Descriptor;
       Value_Type   : GM.Type_Descriptor;
@@ -5748,116 +5746,121 @@ package body Safe_Frontend.Check_Resolve is
          return False;
       end if;
 
-      case Builtin_Kind is
-         when Builtin_None =>
-            return False;
-         when Builtin_Append =>
-            if Natural (Member.Params.Length) /= 2
-              or else Member.Has_Return_Type
-              or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
-              or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
-            then
+      declare
+         Builtin_Kind : constant Builtin_Method_Kind :=
+           Builtin_Method_Kind_For_Name (Name);
+      begin
+         case Builtin_Kind is
+            when Builtin_None =>
                return False;
-            end if;
-            Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
-            return Method_Source_To_Target_Compatible
-              (Resolve_Type
-                 (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                  Type_Env,
-                  "",
-                  FT.Null_Span),
-               Element_Type,
-               Type_Env);
-         when Builtin_Pop_Last =>
-            if Natural (Member.Params.Length) /= 1
-              or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
-              or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
-              or else not Member.Has_Return_Type
-            then
-               return False;
-            end if;
-            Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
-            return Method_Source_To_Target_Compatible
-              (Make_Optional_Type (Element_Type, Type_Env),
-               Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-               Type_Env);
-         when Builtin_Contains | Builtin_Get | Builtin_Remove | Builtin_Set =>
-            if not Try_Map_Key_Value_Types (Concrete_Type, Type_Env, Key_Type, Value_Type) then
-               return False;
-            end if;
-            case Builtin_Kind is
-               when Builtin_Contains =>
-                  return Natural (Member.Params.Length) = 2
-                    and then Member.Has_Return_Type
-                    and then Method_Source_To_Target_Compatible
-                      (Resolve_Type
-                         (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                          Type_Env,
-                          "",
-                          FT.Null_Span),
-                       Key_Type,
-                       Type_Env)
-                    and then Method_Source_To_Target_Compatible
-                      (BT.Boolean_Type,
-                       Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-                       Type_Env);
-               when Builtin_Get =>
-                  return Natural (Member.Params.Length) = 2
-                    and then Member.Has_Return_Type
-                    and then Method_Source_To_Target_Compatible
-                      (Resolve_Type
-                         (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                          Type_Env,
-                          "",
-                          FT.Null_Span),
-                       Key_Type,
-                       Type_Env)
-                    and then Method_Source_To_Target_Compatible
-                      (Make_Optional_Type (Value_Type, Type_Env),
-                       Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-                       Type_Env);
-               when Builtin_Remove =>
-                  return Natural (Member.Params.Length) = 2
-                    and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
-                    and then Member.Has_Return_Type
-                    and then Method_Source_To_Target_Compatible
-                      (Resolve_Type
-                         (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                          Type_Env,
-                          "",
-                          FT.Null_Span),
-                       Key_Type,
-                       Type_Env)
-                    and then Method_Source_To_Target_Compatible
-                      (Make_Optional_Type (Value_Type, Type_Env),
-                       Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-                       Type_Env);
-               when Builtin_Set =>
-                  return Natural (Member.Params.Length) = 3
-                    and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
-                    and then not Member.Has_Return_Type
-                    and then Method_Source_To_Target_Compatible
-                      (Resolve_Type
-                         (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                          Type_Env,
-                          "",
-                          FT.Null_Span),
-                       Key_Type,
-                       Type_Env)
-                    and then Method_Source_To_Target_Compatible
-                      (Resolve_Type
-                         (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
-                          Type_Env,
-                          "",
-                          FT.Null_Span),
-                       Value_Type,
-                       Type_Env);
-               when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
-                  --  Unreachable here: the enclosing arm already narrowed
-                  --  Builtin_Kind to the map-operation builtin set.
+            when Builtin_Append =>
+               if Natural (Member.Params.Length) /= 2
+                 or else Member.Has_Return_Type
+                 or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
+                 or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
+               then
                   return False;
-            end case;
-      end case;
+               end if;
+               Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
+               return Method_Source_To_Target_Compatible
+                 (Resolve_Type
+                    (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                     Type_Env,
+                     "",
+                     FT.Null_Span),
+                  Element_Type,
+                  Type_Env);
+            when Builtin_Pop_Last =>
+               if Natural (Member.Params.Length) /= 1
+                 or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
+                 or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
+                 or else not Member.Has_Return_Type
+               then
+                  return False;
+               end if;
+               Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
+               return Method_Source_To_Target_Compatible
+                 (Make_Optional_Type (Element_Type, Type_Env),
+                  Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                  Type_Env);
+            when Builtin_Contains | Builtin_Get | Builtin_Remove | Builtin_Set =>
+               if not Try_Map_Key_Value_Types (Concrete_Type, Type_Env, Key_Type, Value_Type) then
+                  return False;
+               end if;
+               case Builtin_Kind is
+                  when Builtin_Contains =>
+                     return Natural (Member.Params.Length) = 2
+                       and then Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (BT.Boolean_Type,
+                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                          Type_Env);
+                  when Builtin_Get =>
+                     return Natural (Member.Params.Length) = 2
+                       and then Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (Make_Optional_Type (Value_Type, Type_Env),
+                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                          Type_Env);
+                  when Builtin_Remove =>
+                     return Natural (Member.Params.Length) = 2
+                       and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
+                       and then Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (Make_Optional_Type (Value_Type, Type_Env),
+                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                          Type_Env);
+                  when Builtin_Set =>
+                     return Natural (Member.Params.Length) = 3
+                       and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
+                       and then not Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Value_Type,
+                          Type_Env);
+                  when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
+                     --  Unreachable here: the enclosing arm already narrowed
+                     --  Builtin_Kind to the map-operation builtin set.
+                     return False;
+               end case;
+         end case;
+      end;
    end Builtin_Method_Satisfies_Interface_Member;
 
    function Type_Satisfies_Interface
