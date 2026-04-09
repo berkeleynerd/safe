@@ -5564,6 +5564,8 @@ package body Safe_Frontend.Check_Resolve is
    end Method_Target_Tail_Name;
 
    function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind is
+      --  This classifier accepts any case and lowercases internally. Callers
+      --  that need exact-case builtin matching must enforce that separately.
       Lower_Name : constant String := FT.Lowercase (Name);
    begin
       if Lower_Name = "append" then
@@ -5847,7 +5849,7 @@ package body Safe_Frontend.Check_Resolve is
                when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
                   --  Unreachable here: the enclosing arm already narrowed
                   --  Builtin_Kind to the map-operation builtin set.
-                  null;
+                  return False;
             end case;
       end case;
 
