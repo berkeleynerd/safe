@@ -1,0 +1,12 @@
+-- Test: pr1122f1_multi_decl_object
+-- Description: Multi-name local object declarations keep their declared target types in MIR.
+-- Expected: ACCEPT
+
+package pr1122f1_multi_decl_object
+
+   subtype counter is integer (0 to 10);
+
+   function sum_pair returns integer
+
+      var left, right : counter = 3;
+      return left + right;

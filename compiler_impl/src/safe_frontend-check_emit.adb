@@ -3193,12 +3193,57 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Param_Json;
 
+   generic
+      with procedure Handle_Public_Subprogram
+        (Parsed_Subprogram   : CM.Subprogram_Body;
+         Resolved_Subprogram : CM.Resolved_Subprogram);
+   procedure For_Each_Public_Subprogram
+     (Parsed   : CM.Parsed_Unit;
+      Resolved : CM.Resolved_Unit);
+
+   procedure For_Each_Public_Subprogram
+     (Parsed   : CM.Parsed_Unit;
+      Resolved : CM.Resolved_Unit)
+   is
+      Parsed_Subprogram_Count : Natural := 0;
+      Subprogram_Index : Natural := 0;
+   begin
+      for Item of Parsed.Items loop
+         if Item.Kind = CM.Item_Subprogram then
+            Parsed_Subprogram_Count := Parsed_Subprogram_Count + 1;
+         end if;
+      end loop;
+
+      --  Validation builds should fail loudly if parsed and resolved
+      --  subprogram order ever drifts.
+      pragma Assert
+        (Natural (Resolved.Subprograms.Length) = Parsed_Subprogram_Count);
+
+      for Item of Parsed.Items loop
+         if Item.Kind = CM.Item_Subprogram then
+            --  Resolved.Subprograms is a Positive-indexed vector today, and the
+            --  parsed item order is matched by incrementing before lookup.
+            --  Keep the release-build guards even though the assertion above
+            --  proves them in assertion-enabled runs; the pre-helper code
+            --  silently skipped inconsistent state here.
+            Subprogram_Index := Subprogram_Index + 1;
+            if Item.Subp_Data.Is_Public
+              and then not Resolved.Subprograms.Is_Empty
+              and then Subprogram_Index in Resolved.Subprograms.First_Index .. Resolved.Subprograms.Last_Index
+            then
+               Handle_Public_Subprogram
+                 (Item.Subp_Data,
+                  Resolved.Subprograms (Subprogram_Index));
+            end if;
+         end if;
+      end loop;
+   end For_Each_Public_Subprogram;
+
    function Public_Subprograms_Json
      (Parsed   : CM.Parsed_Unit;
       Resolved : CM.Resolved_Unit) return String
    is
       Items            : String_Vectors.Vector;
-      Subprogram_Index : Natural := 0;
       Params           : String_Vectors.Vector;
       Source_Path      : constant String := FT.To_String (Parsed.Path);
       Source_Content   : constant String :=
@@ -3219,54 +3264,54 @@ package body Safe_Frontend.Check_Emit is
               else "null")
            & "}";
       end Generic_Formal_Json;
-   begin
-      for Item of Parsed.Items loop
-         if Item.Kind = CM.Item_Subprogram then
-            Subprogram_Index := Subprogram_Index + 1;
-            if Item.Subp_Data.Is_Public
-              and then not Resolved.Subprograms.Is_Empty
-              and then Subprogram_Index in Resolved.Subprograms.First_Index .. Resolved.Subprograms.Last_Index
-            then
+      procedure Append_Public_Subprogram
+        (Parsed_Subprogram   : CM.Subprogram_Body;
+         Resolved_Subprogram : CM.Resolved_Subprogram) is
+      begin
+         Params.Clear;
+         for Param of Resolved_Subprogram.Params loop
+            Params.Append (Param_Json (Param));
+         end loop;
+         declare
+            Fields : String_Vectors.Vector;
+         begin
+            Fields.Append ("""name"":" & JS.Quote (Resolved_Subprogram.Name));
+            Fields.Append ("""kind"":" & JS.Quote (Resolved_Subprogram.Kind));
+            Fields.Append
+              ("""signature"":" & JS.Quote (Signature_For (Resolved_Subprogram)));
+            Fields.Append ("""params"":" & Json_List (Params));
+            Fields.Append
+              ("""has_return_type"":"
+               & JS.Bool_Literal (Resolved_Subprogram.Has_Return_Type));
+            Fields.Append
+              ("""return_type"":"
+               & (if Resolved_Subprogram.Has_Return_Type
+                  then Type_Json (Resolved_Subprogram.Return_Type)
+                  else "null"));
+            if Resolved_Subprogram.Is_Generic_Template then
                declare
-                  Subp : constant CM.Resolved_Subprogram := Resolved.Subprograms (Subprogram_Index);
+                  Formals : String_Vectors.Vector;
+                  Source  : constant String :=
+                    Source_Slice (Source_Content, Parsed_Subprogram.Span);
                begin
-                  Params.Clear;
-                  for Param of Subp.Params loop
-                     Params.Append (Param_Json (Param));
-                  end loop;
-                  declare
-                     Fields : String_Vectors.Vector;
-                  begin
-                     Fields.Append ("""name"":" & JS.Quote (Subp.Name));
-                     Fields.Append ("""kind"":" & JS.Quote (Subp.Kind));
-                     Fields.Append ("""signature"":" & JS.Quote (Signature_For (Subp)));
-                     Fields.Append ("""params"":" & Json_List (Params));
-                     Fields.Append ("""has_return_type"":" & JS.Bool_Literal (Subp.Has_Return_Type));
-                     Fields.Append
-                       ("""return_type"":"
-                        & (if Subp.Has_Return_Type then Type_Json (Subp.Return_Type) else "null"));
-                     if Subp.Is_Generic_Template then
-                        declare
-                           Formals : String_Vectors.Vector;
-                           Source  : constant String :=
-                             Source_Slice (Source_Content, Item.Subp_Data.Span);
-                        begin
-                           if not Item.Subp_Data.Spec.Generic_Formals.Is_Empty then
-                              for Formal of Item.Subp_Data.Spec.Generic_Formals loop
-                                 Formals.Append (Generic_Formal_Json (Formal));
-                              end loop;
-                           end if;
-                           Fields.Append ("""generic_formals"":" & Json_List (Formals));
-                           Fields.Append ("""template_source"":" & JS.Quote (Source));
-                        end;
-                     end if;
-                     Fields.Append ("""span"":" & JS.Span_Object (Subp.Span));
-                     Items.Append ("{" & Join_Object_Fields (Fields) & "}");
-                  end;
+                  if not Parsed_Subprogram.Spec.Generic_Formals.Is_Empty then
+                     for Formal of Parsed_Subprogram.Spec.Generic_Formals loop
+                        Formals.Append (Generic_Formal_Json (Formal));
+                     end loop;
+                  end if;
+                  Fields.Append ("""generic_formals"":" & Json_List (Formals));
+                  Fields.Append ("""template_source"":" & JS.Quote (Source));
                end;
             end if;
-         end if;
-      end loop;
+            Fields.Append
+              ("""span"":" & JS.Span_Object (Resolved_Subprogram.Span));
+            Items.Append ("{" & Join_Object_Fields (Fields) & "}");
+         end;
+      end Append_Public_Subprogram;
+      procedure Append_All_Public_Subprograms is new For_Each_Public_Subprogram
+        (Handle_Public_Subprogram => Append_Public_Subprogram);
+   begin
+      Append_All_Public_Subprograms (Parsed, Resolved);
       return Json_List (Items);
    end Public_Subprograms_Json;
 
@@ -3317,7 +3362,6 @@ package body Safe_Frontend.Check_Emit is
       Writes           : String_Vectors.Vector;
       Inputs           : String_Vectors.Vector;
       Outputs          : String_Vectors.Vector;
-      Subprogram_Index : Natural := 0;
       function Contains
         (Items : String_Vectors.Vector;
          Name  : String) return Boolean is
@@ -3341,67 +3385,63 @@ package body Safe_Frontend.Check_Emit is
          end if;
          return FT.To_String (Resolved.Package_Name) & "." & Name;
       end Qualified_Shared_Effect_Name;
+      procedure Append_Effect_Summary
+        (Parsed_Subprogram   : CM.Subprogram_Body;
+         Resolved_Subprogram : CM.Resolved_Subprogram) is
+         pragma Unreferenced (Parsed_Subprogram);
+         Summary : constant MB.Graph_Summary :=
+           Graph_Summary_For (Bronze, Resolved_Subprogram.Name);
+      begin
+         Reads.Clear;
+         Writes.Clear;
+         Inputs.Clear;
+         Outputs.Clear;
+         for Name of Summary.Reads loop
+            Reads.Append (JS.Quote (Name));
+         end loop;
+         for Name of Summary.Writes loop
+            Writes.Append (JS.Quote (Name));
+         end loop;
+         for Name of Summary.Shareds loop
+            declare
+               Shared_Name : constant String :=
+                 Qualified_Shared_Effect_Name (FT.To_String (Name));
+            begin
+               if not Contains (Reads, Shared_Name) then
+                  Reads.Append (JS.Quote (Shared_Name));
+               end if;
+               if not Contains (Writes, Shared_Name) then
+                  Writes.Append (JS.Quote (Shared_Name));
+               end if;
+            end;
+         end loop;
+         for Name of Summary.Inputs loop
+            Inputs.Append (JS.Quote (Name));
+         end loop;
+         for Name of Summary.Outputs loop
+            Outputs.Append (JS.Quote (Name));
+         end loop;
+         Items.Append
+           ("{""name"":"
+            & JS.Quote (Resolved_Subprogram.Name)
+            & ",""signature"":"
+            & JS.Quote (Signature_For (Resolved_Subprogram))
+            & ",""reads"":"
+            & Json_List (Reads)
+            & ",""writes"":"
+            & Json_List (Writes)
+            & ",""inputs"":"
+            & Json_List (Inputs)
+            & ",""outputs"":"
+            & Json_List (Outputs)
+            & ",""depends"":"
+            & Depends_Json (Summary.Depends)
+            & "}");
+      end Append_Effect_Summary;
+      procedure Append_All_Effect_Summaries is new For_Each_Public_Subprogram
+        (Handle_Public_Subprogram => Append_Effect_Summary);
    begin
-      for Item of Parsed.Items loop
-         if Item.Kind = CM.Item_Subprogram then
-            Subprogram_Index := Subprogram_Index + 1;
-            if Item.Subp_Data.Is_Public
-              and then not Resolved.Subprograms.Is_Empty
-              and then Subprogram_Index in Resolved.Subprograms.First_Index .. Resolved.Subprograms.Last_Index
-            then
-               declare
-                  Subp    : constant CM.Resolved_Subprogram := Resolved.Subprograms (Subprogram_Index);
-                  Summary : constant MB.Graph_Summary := Graph_Summary_For (Bronze, Subp.Name);
-               begin
-                  Reads.Clear;
-                  Writes.Clear;
-                  Inputs.Clear;
-                  Outputs.Clear;
-                  for Name of Summary.Reads loop
-                     Reads.Append (JS.Quote (Name));
-                  end loop;
-                  for Name of Summary.Writes loop
-                     Writes.Append (JS.Quote (Name));
-                  end loop;
-                  for Name of Summary.Shareds loop
-                     declare
-                        Shared_Name : constant String :=
-                          Qualified_Shared_Effect_Name (FT.To_String (Name));
-                     begin
-                        if not Contains (Reads, Shared_Name) then
-                           Reads.Append (JS.Quote (Shared_Name));
-                        end if;
-                        if not Contains (Writes, Shared_Name) then
-                           Writes.Append (JS.Quote (Shared_Name));
-                        end if;
-                     end;
-                  end loop;
-                  for Name of Summary.Inputs loop
-                     Inputs.Append (JS.Quote (Name));
-                  end loop;
-                  for Name of Summary.Outputs loop
-                     Outputs.Append (JS.Quote (Name));
-                  end loop;
-                  Items.Append
-                    ("{""name"":"
-                     & JS.Quote (Subp.Name)
-                     & ",""signature"":"
-                     & JS.Quote (Signature_For (Subp))
-                     & ",""reads"":"
-                     & Json_List (Reads)
-                     & ",""writes"":"
-                     & Json_List (Writes)
-                     & ",""inputs"":"
-                     & Json_List (Inputs)
-                     & ",""outputs"":"
-                     & Json_List (Outputs)
-                     & ",""depends"":"
-                     & Depends_Json (Summary.Depends)
-                     & "}");
-               end;
-            end if;
-         end if;
-      end loop;
+      Append_All_Effect_Summaries (Parsed, Resolved);
       return Json_List (Items);
    end Effect_Summaries_Json;
 
@@ -3414,47 +3454,42 @@ package body Safe_Frontend.Check_Emit is
       Channels         : String_Vectors.Vector;
       Sends            : String_Vectors.Vector;
       Receives         : String_Vectors.Vector;
-      Subprogram_Index : Natural := 0;
+      procedure Append_Channel_Access_Summary
+        (Parsed_Subprogram   : CM.Subprogram_Body;
+         Resolved_Subprogram : CM.Resolved_Subprogram) is
+         pragma Unreferenced (Parsed_Subprogram);
+         Summary : constant MB.Graph_Summary :=
+           Graph_Summary_For (Bronze, Resolved_Subprogram.Name);
+      begin
+         Channels.Clear;
+         Sends.Clear;
+         Receives.Clear;
+         for Name of Summary.Channels loop
+            Channels.Append (JS.Quote (Name));
+         end loop;
+         for Name of Summary.Sends loop
+            Sends.Append (JS.Quote (Name));
+         end loop;
+         for Name of Summary.Receives loop
+            Receives.Append (JS.Quote (Name));
+         end loop;
+         Items.Append
+           ("{""name"":"
+            & JS.Quote (Resolved_Subprogram.Name)
+            & ",""signature"":"
+            & JS.Quote (Signature_For (Resolved_Subprogram))
+            & ",""channels"":"
+            & Json_List (Channels)
+            & ",""sends"":"
+            & Json_List (Sends)
+            & ",""receives"":"
+            & Json_List (Receives)
+            & "}");
+      end Append_Channel_Access_Summary;
+      procedure Append_All_Channel_Access_Summaries is new For_Each_Public_Subprogram
+        (Handle_Public_Subprogram => Append_Channel_Access_Summary);
    begin
-      for Item of Parsed.Items loop
-         if Item.Kind = CM.Item_Subprogram then
-            Subprogram_Index := Subprogram_Index + 1;
-            if Item.Subp_Data.Is_Public
-              and then not Resolved.Subprograms.Is_Empty
-              and then Subprogram_Index in Resolved.Subprograms.First_Index .. Resolved.Subprograms.Last_Index
-            then
-               declare
-                  Subp    : constant CM.Resolved_Subprogram := Resolved.Subprograms (Subprogram_Index);
-                  Summary : constant MB.Graph_Summary := Graph_Summary_For (Bronze, Subp.Name);
-               begin
-                  Channels.Clear;
-                  Sends.Clear;
-                  Receives.Clear;
-                  for Name of Summary.Channels loop
-                     Channels.Append (JS.Quote (Name));
-                  end loop;
-                  for Name of Summary.Sends loop
-                     Sends.Append (JS.Quote (Name));
-                  end loop;
-                  for Name of Summary.Receives loop
-                     Receives.Append (JS.Quote (Name));
-                  end loop;
-                  Items.Append
-                    ("{""name"":"
-                     & JS.Quote (Subp.Name)
-                     & ",""signature"":"
-                     & JS.Quote (Signature_For (Subp))
-                     & ",""channels"":"
-                     & Json_List (Channels)
-                     & ",""sends"":"
-                     & Json_List (Sends)
-                     & ",""receives"":"
-                     & Json_List (Receives)
-                     & "}");
-               end;
-            end if;
-         end if;
-      end loop;
+      Append_All_Channel_Access_Summaries (Parsed, Resolved);
       return Json_List (Items);
    end Channel_Access_Summaries_Json;
 
