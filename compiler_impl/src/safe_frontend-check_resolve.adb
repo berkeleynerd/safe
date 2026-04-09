@@ -5721,6 +5721,8 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Has_Function (Functions, Name) or else Has_Type (Type_Env, Name) then
          return False;
+      elsif Name /= FT.Lowercase (Name) then
+         return False;
       end if;
 
       case Builtin_Kind is
@@ -5827,7 +5829,7 @@ package body Safe_Frontend.Check_Resolve is
                           FT.Null_Span),
                        Value_Type,
                        Type_Env);
-               when others =>
+               when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
                   null;
             end case;
       end case;
@@ -5936,7 +5938,8 @@ package body Safe_Frontend.Check_Resolve is
 
    function Is_Method_Builtin_Name (Name : String) return Boolean is
    begin
-      return Builtin_Method_Kind_For_Name (Name) /= Builtin_None;
+      return Name = FT.Lowercase (Name)
+        and then Builtin_Method_Kind_For_Name (Name) /= Builtin_None;
    end Is_Method_Builtin_Name;
 
    function Function_Method_Call_Compatible
@@ -6859,49 +6862,49 @@ package body Safe_Frontend.Check_Resolve is
                              Builtin_Method_Name (Builtin_Kind);
                         begin
                            if Builtin_Kind = Builtin_Pop_Last then
-                           if Natural (Result.Args.Length) /= 1 then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
-                                    Message => "`pop_last(items)` expects exactly one argument"));
-                           elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Result.Args (Result.Args.First_Index).Span,
-                                    Message => "`pop_last` first argument must be a writable list name"));
-                           else
-                              declare
-                                 List_Type : constant GM.Type_Descriptor :=
-                                   Expr_Type
-                                     (Result.Args (Result.Args.First_Index),
-                                      Var_Types,
-                                      Functions,
-                                      Type_Env);
-                                 Element_Type : GM.Type_Descriptor;
-                              begin
-                                 if not Is_Growable_Array_Type (List_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Result.Args (Result.Args.First_Index).Span,
-                                          Message => "`pop_last` expects a `mut list of T` first argument"));
-                                 end if;
-                                 Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
-                                 if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Unsupported_Source_Construct
-                                         (Path    => Path,
-                                          Span    => Result.Args (Result.Args.First_Index).Span,
-                                          Message =>
-                                            "`list of T` is limited to the admitted value-type subset in PR11.10b"));
-                                 end if;
-                                 Result.Type_Name :=
-                                   Make_Optional_Type (Element_Type, Type_Env).Name;
-                              end;
-                           end if;
-                        elsif Builtin_Kind in Builtin_Contains | Builtin_Get | Builtin_Remove then
+                              if Natural (Result.Args.Length) /= 1 then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
+                                       Message => "`pop_last(items)` expects exactly one argument"));
+                              elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Result.Args (Result.Args.First_Index).Span,
+                                       Message => "`pop_last` first argument must be a writable list name"));
+                              else
+                                 declare
+                                    List_Type : constant GM.Type_Descriptor :=
+                                      Expr_Type
+                                        (Result.Args (Result.Args.First_Index),
+                                         Var_Types,
+                                         Functions,
+                                         Type_Env);
+                                    Element_Type : GM.Type_Descriptor;
+                                 begin
+                                    if not Is_Growable_Array_Type (List_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => Result.Args (Result.Args.First_Index).Span,
+                                             Message => "`pop_last` expects a `mut list of T` first argument"));
+                                    end if;
+                                    Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
+                                    if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Unsupported_Source_Construct
+                                            (Path    => Path,
+                                             Span    => Result.Args (Result.Args.First_Index).Span,
+                                             Message =>
+                                               "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                                    end if;
+                                    Result.Type_Name :=
+                                      Make_Optional_Type (Element_Type, Type_Env).Name;
+                                 end;
+                              end if;
+                           elsif Builtin_Kind in Builtin_Contains | Builtin_Get | Builtin_Remove then
                               if Natural (Result.Args.Length) /= 2 then
                                  Raise_Diag
                                    (CM.Source_Frontend_Error
@@ -7428,7 +7431,7 @@ package body Safe_Frontend.Check_Resolve is
               or else Expr.Callee = null
               or else Expr.Callee.Kind /= CM.Expr_Ident
          then ""
-         else FT.Lowercase (UString_Value (Expr.Callee.Name)));
+         else UString_Value (Expr.Callee.Name));
    begin
       if Name'Length = 0
         or else Has_Function (Functions, Name)
