@@ -7461,7 +7461,7 @@ package body Safe_Frontend.Check_Resolve is
       end if;
 
       return
-        Kind /= Builtin_None
+        Kind /= Builtin_None  --  Avoid the old Builtin_None = Builtin_None false positive.
         and then Builtin_Method_Kind_For_Call (Expr, Var_Types, Functions, Type_Env) = Kind;
    end Is_Unshadowed_Builtin_Call;
 
