@@ -11609,8 +11609,11 @@ package body Safe_Frontend.Check_Resolve is
                   --  Validation intentionally runs before the setter-side
                   --  Type_Name stamping below. Selector-path shared setters
                   --  keep the pre-refactor behavior: no contextual string
-                  --  stamping during compatibility checks, but emitted nodes
-                  --  still carry the field type name for downstream emission.
+                  --  stamping during compatibility checks. The later
+                  --  Type_Name update is emission-only; it does not affect
+                  --  Reject_Uncontextualized_None, which only walks nested
+                  --  `none` values. Emitted nodes still carry the field type
+                  --  name for downstream emission.
                   if not Result.Call.Args.Is_Empty
                     and then Result.Call.Args (Result.Call.Args.First_Index) /= null
                   then
@@ -11683,8 +11686,11 @@ package body Safe_Frontend.Check_Resolve is
                   --  Validation intentionally runs before the setter-side
                   --  Type_Name stamping below. Nested-path shared setters
                   --  keep the pre-refactor behavior: no contextual string
-                  --  stamping during compatibility checks, but emitted nodes
-                  --  still carry the field type name for downstream emission.
+                  --  stamping during compatibility checks. The later
+                  --  Type_Name update is emission-only; it does not affect
+                  --  Reject_Uncontextualized_None, which only walks nested
+                  --  `none` values. Emitted nodes still carry the field type
+                  --  name for downstream emission.
                   if not Result.Call.Args.Is_Empty
                     and then Result.Call.Args (Result.Call.Args.First_Index) /= null
                   then
@@ -12761,7 +12767,8 @@ package body Safe_Frontend.Check_Resolve is
                                 Local_Static_Constants,
                                 Exact_Length_Facts,
                                 Path,
-                                "`append` value type does not match the list element type");
+                                "`append` value type does not match the list element type",
+                                Stamp_String_Literal => False);
 
                            Result.Kind := CM.Stmt_Call;
                            Result.Target := null;
