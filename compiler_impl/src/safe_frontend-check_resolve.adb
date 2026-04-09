@@ -7434,16 +7434,17 @@ package body Safe_Frontend.Check_Resolve is
               or else Expr.Callee.Kind /= CM.Expr_Ident
          then ""
          else UString_Value (Expr.Callee.Name));
+      Lower_Name : constant String := Canonical_Name (Name);
    begin
       if Name'Length = 0
-        or else Has_Function (Functions, Name)
-        or else Has_Type (Var_Types, Name)
-        or else Has_Type (Type_Env, Name)
+        or else Has_Function (Functions, Lower_Name)
+        or else Has_Type (Var_Types, Lower_Name)
+        or else Has_Type (Type_Env, Lower_Name)
       then
          return Builtin_None;
       end if;
 
-      return Builtin_Method_Kind_For_Name (Name);
+      return Builtin_Method_Kind_For_Name (Lower_Name);
    end Builtin_Method_Kind_For_Call;
 
    function Is_Unshadowed_Builtin_Call
@@ -11679,6 +11680,11 @@ package body Safe_Frontend.Check_Resolve is
                         Path,
                         "assignment value type does not match target type",
                         Stamp_String_Literal => False));
+                  --  Validation intentionally runs before the setter-side
+                  --  Type_Name stamping below. Nested-path shared setters
+                  --  keep the pre-refactor behavior: no contextual string
+                  --  stamping during compatibility checks, but emitted nodes
+                  --  still carry the field type name for downstream emission.
                   if not Result.Call.Args.Is_Empty
                     and then Result.Call.Args (Result.Call.Args.First_Index) /= null
                   then
