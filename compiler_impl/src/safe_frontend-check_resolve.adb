@@ -442,6 +442,9 @@ package body Safe_Frontend.Check_Resolve is
      (Map  : Type_Maps.Map;
       Name : String) return Boolean is
    begin
+      pragma Assert
+        (Name = Canonical_Name (Name),
+         "Has_Type_Canonical requires a pre-canonicalized name");
       return Map.Contains (Name);
    end Has_Type_Canonical;
 
@@ -472,6 +475,9 @@ package body Safe_Frontend.Check_Resolve is
      (Map  : Function_Maps.Map;
       Name : String) return Boolean is
    begin
+      pragma Assert
+        (Name = Canonical_Name (Name),
+         "Has_Function_Canonical requires a pre-canonicalized name");
       return Map.Contains (Name)
         or else Current_Synthetic_Functions.Contains (Name);
    end Has_Function_Canonical;
@@ -5852,8 +5858,6 @@ package body Safe_Frontend.Check_Resolve is
                   return False;
             end case;
       end case;
-
-      return False;
    end Builtin_Method_Satisfies_Interface_Member;
 
    function Type_Satisfies_Interface
@@ -6666,13 +6670,13 @@ package body Safe_Frontend.Check_Resolve is
          Result_Expr :=
            Shared_Call_Expr
              (Shared,
-              (if Builtin_Name = "contains"
+              (if Builtin_Kind = Builtin_Contains
                then Shared_Contains_Name
-               elsif Builtin_Name = "get"
+               elsif Builtin_Kind = Builtin_Get
                then Shared_Get_Name
                else Shared_Remove_Name),
               Call_Expr.Span,
-              (if Builtin_Name = "contains"
+              (if Builtin_Kind = Builtin_Contains
                then UString_Value (BT.Boolean_Type.Name)
                else UString_Value (Make_Optional_Type (Value_Type, Type_Env).Name)));
          Result_Expr.Args.Append (Key_Expr);
@@ -6983,7 +6987,7 @@ package body Safe_Frontend.Check_Resolve is
                                          Path,
                                          "`" & Builtin_Name & "` key type does not match the map key type");
                                     Result.Args.Replace_Element (Result.Args.First_Index + 1, Key_Expr);
-                                    if Builtin_Name = "contains" then
+                                    if Builtin_Kind = Builtin_Contains then
                                        Result.Type_Name := FT.To_UString ("boolean");
                                     else
                                        Result.Type_Name := Make_Optional_Type (Value_Type, Type_Env).Name;
