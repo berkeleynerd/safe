@@ -11207,35 +11207,38 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    end Desugar_Executable_Expr;
 
+   type Resolver_Env is record
+      Functions             : not null access constant Function_Maps.Map;
+      Type_Env              : not null access constant Type_Maps.Map;
+      Channel_Env           : not null access constant Type_Maps.Map;
+      Imported_Objects      : not null access constant Type_Maps.Map;
+      Path                  : not null access constant String;
+      Has_Enclosing_Return  : Boolean := False;
+      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>);
+   end record;
+
    function Normalize_Statement
      (Stmt        : CM.Statement_Access;
+      Env         : Resolver_Env;
       Var_Types   : Type_Maps.Map;
-      Functions   : Function_Maps.Map;
-      Type_Env    : Type_Maps.Map;
-      Channel_Env : Type_Maps.Map;
-      Imported_Objects : Type_Maps.Map;
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
-      Exact_Length_Facts : Exact_Length_Maps.Map;
-      Path        : String;
-      Has_Enclosing_Return : Boolean := False;
-      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>)) return CM.Statement_Access_Vectors.Vector;
+      Exact_Length_Facts : Exact_Length_Maps.Map) return CM.Statement_Access_Vectors.Vector;
 
    function Normalize_Statement_List
      (Statements  : CM.Statement_Access_Vectors.Vector;
+      Env         : Resolver_Env;
       Var_Types   : Type_Maps.Map;
-      Functions   : Function_Maps.Map;
-      Type_Env    : Type_Maps.Map;
-      Channel_Env : Type_Maps.Map;
-      Imported_Objects : Type_Maps.Map;
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
-      Exact_Length_Facts : Exact_Length_Maps.Map;
-      Path        : String;
-      Has_Enclosing_Return : Boolean := False;
-      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>)) return CM.Statement_Access_Vectors.Vector
+      Exact_Length_Facts : Exact_Length_Maps.Map) return CM.Statement_Access_Vectors.Vector
    is
       Result      : CM.Statement_Access_Vectors.Vector;
+      Functions   : Function_Maps.Map renames Env.Functions.all;
+      Type_Env    : Type_Maps.Map renames Env.Type_Env.all;
+      --  This body only uses Functions/Type_Env directly for local type
+      --  tracking; the remaining stable fields stay bundled in Env and are
+      --  forwarded to Normalize_Statement unchanged.
       Local_Types : Type_Maps.Map := Var_Types;
       Current_Constants : Type_Maps.Map := Local_Constants;
       Current_Static_Constants : Static_Value_Maps.Map := Local_Static_Constants;
@@ -11246,17 +11249,11 @@ package body Safe_Frontend.Check_Resolve is
             Normalized_Items : constant CM.Statement_Access_Vectors.Vector :=
               Normalize_Statement
                 (Item,
+                 Env,
                  Local_Types,
-                 Functions,
-                 Type_Env,
-                 Channel_Env,
-                 Imported_Objects,
                  Current_Constants,
                  Current_Static_Constants,
-                 Current_Exact_Length_Facts,
-                 Path,
-                 Has_Enclosing_Return,
-                 Enclosing_Return_Type);
+                 Current_Exact_Length_Facts);
          begin
             for Normalized of Normalized_Items loop
                Result.Append (Normalized);
@@ -11332,20 +11329,21 @@ package body Safe_Frontend.Check_Resolve is
 
    function Normalize_Statement
      (Stmt        : CM.Statement_Access;
+      Env         : Resolver_Env;
       Var_Types   : Type_Maps.Map;
-      Functions   : Function_Maps.Map;
-      Type_Env    : Type_Maps.Map;
-      Channel_Env : Type_Maps.Map;
-      Imported_Objects : Type_Maps.Map;
       Local_Constants : Type_Maps.Map;
       Local_Static_Constants : Static_Value_Maps.Map;
-      Exact_Length_Facts : Exact_Length_Maps.Map;
-      Path        : String;
-      Has_Enclosing_Return : Boolean := False;
-      Enclosing_Return_Type : GM.Type_Descriptor := (others => <>)) return CM.Statement_Access_Vectors.Vector
+      Exact_Length_Facts : Exact_Length_Maps.Map) return CM.Statement_Access_Vectors.Vector
    is
       Expanded       : CM.Statement_Access_Vectors.Vector;
       Result         : constant CM.Statement_Access := new CM.Statement'(Stmt.all);
+      Functions      : Function_Maps.Map renames Env.Functions.all;
+      Type_Env       : Type_Maps.Map renames Env.Type_Env.all;
+      Channel_Env    : Type_Maps.Map renames Env.Channel_Env.all;
+      Imported_Objects : Type_Maps.Map renames Env.Imported_Objects.all;
+      Path           : String renames Env.Path.all;
+      Has_Enclosing_Return : Boolean renames Env.Has_Enclosing_Return;
+      Enclosing_Return_Type : GM.Type_Descriptor renames Env.Enclosing_Return_Type;
       Local_Types    : Type_Maps.Map := Var_Types;
       Current_Constants : Type_Maps.Map := Local_Constants;
       Current_Static_Constants : Static_Value_Maps.Map := Local_Static_Constants;
@@ -11365,17 +11363,11 @@ package body Safe_Frontend.Check_Resolve is
          return
            Normalize_Statement_List
              (Preludes,
+              Env,
               Var_Types,
-              Functions,
-              Type_Env,
-              Channel_Env,
-              Imported_Objects,
               Local_Constants,
               Local_Static_Constants,
-              Exact_Length_Facts,
-              Path,
-              Has_Enclosing_Return,
-              Enclosing_Return_Type);
+              Exact_Length_Facts);
       end Normalize_Preludes;
 
       function Desugar_Checked
@@ -11969,17 +11961,11 @@ package body Safe_Frontend.Check_Resolve is
                Result.Then_Stmts :=
                  Normalize_Statement_List
                    (Stmt.Then_Stmts,
+                    Env,
                     Var_Types,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
                     Local_Constants,
                     Local_Static_Constants,
-                    Then_Exact_Length_Facts,
-                    Path,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type);
+                    Then_Exact_Length_Facts);
             end;
             Result.Elsifs.Clear;
             for Part of Stmt.Elsifs loop
@@ -12009,17 +11995,11 @@ package body Safe_Frontend.Check_Resolve is
                   New_Part.Statements :=
                     Normalize_Statement_List
                       (Part.Statements,
+                       Env,
                        Var_Types,
-                       Functions,
-                       Type_Env,
-                       Channel_Env,
-                       Imported_Objects,
                        Local_Constants,
                        Local_Static_Constants,
-                       Elsif_Exact_Length_Facts,
-                       Path,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type);
+                       Elsif_Exact_Length_Facts);
                   Result.Elsifs.Append (New_Part);
                end;
             end loop;
@@ -12027,17 +12007,11 @@ package body Safe_Frontend.Check_Resolve is
                Result.Else_Stmts :=
                  Normalize_Statement_List
                    (Stmt.Else_Stmts,
+                    Env,
                     Var_Types,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
                     Local_Constants,
                     Local_Static_Constants,
-                    Exact_Length_Facts,
-                    Path,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type);
+                    Exact_Length_Facts);
             end if;
 
          when CM.Stmt_While =>
@@ -12064,17 +12038,11 @@ package body Safe_Frontend.Check_Resolve is
                Normalized_Body :=
                  Normalize_Statement_List
                    (Stmt.Body_Stmts,
+                    Env,
                     Var_Types,
-                    Functions,
-                    Type_Env,
-                    Channel_Env,
-                    Imported_Objects,
                     Local_Constants,
                     Local_Static_Constants,
-                    Body_Exact_Length_Facts,
-                    Path,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type);
+                    Body_Exact_Length_Facts);
                if Desugared.Preludes.Is_Empty then
                   Result.Condition := Desugared.Expr;
                   Result.Body_Stmts := Normalized_Body;
@@ -12097,17 +12065,11 @@ package body Safe_Frontend.Check_Resolve is
             Result.Body_Stmts :=
               Normalize_Statement_List
                 (Stmt.Body_Stmts,
+                 Env,
                  Var_Types,
-                 Functions,
-                 Type_Env,
-                 Channel_Env,
-                 Imported_Objects,
                  Local_Constants,
                  Local_Static_Constants,
-                 Exact_Length_Facts,
-                 Path,
-                 Has_Enclosing_Return,
-                 Enclosing_Return_Type);
+                 Exact_Length_Facts);
 
          when CM.Stmt_Exit =>
             if Stmt.Condition /= null then
@@ -12235,17 +12197,11 @@ package body Safe_Frontend.Check_Resolve is
             Result.Body_Stmts :=
               Normalize_Statement_List
                 (Stmt.Body_Stmts,
+                 Env,
                  Local_Types,
-                 Functions,
-                 Type_Env,
-                 Channel_Env,
-                 Imported_Objects,
                  Current_Constants,
                  Current_Static_Constants,
-                 Exact_Length_Facts,
-                 Path,
-                 Has_Enclosing_Return,
-                 Enclosing_Return_Type);
+                 Exact_Length_Facts);
 
          when CM.Stmt_Call =>
             declare
@@ -12617,17 +12573,11 @@ package body Safe_Frontend.Check_Resolve is
                         return
                           Normalize_Statement
                             (Rewritten,
+                             Env,
                              Var_Types,
-                             Functions,
-                             Type_Env,
-                             Channel_Env,
-                             Imported_Objects,
                              Local_Constants,
                              Local_Static_Constants,
-                             Exact_Length_Facts,
-                             Path,
-                             Has_Enclosing_Return,
-                            Enclosing_Return_Type);
+                             Exact_Length_Facts);
                      end;
                   end if;
                elsif Is_Set_Builtin_Call
@@ -13090,17 +13040,11 @@ package body Safe_Frontend.Check_Resolve is
                         return
                           Normalize_Statement_List
                             (Rewritten_Stmts,
+                             Env,
                              Var_Types,
-                             Functions,
-                             Type_Env,
-                             Channel_Env,
-                             Imported_Objects,
                              Local_Constants,
                              Local_Static_Constants,
-                             Exact_Length_Facts,
-                             Path,
-                             Has_Enclosing_Return,
-                             Enclosing_Return_Type);
+                             Exact_Length_Facts);
                      end;
                   end if;
                elsif Is_Pop_Last_Builtin_Call
@@ -13372,17 +13316,11 @@ package body Safe_Frontend.Check_Resolve is
                      New_Arm.Statements :=
                        Normalize_Statement_List
                          (Arm.Statements,
+                          Env,
                           Var_Types,
-                          Functions,
-                          Type_Env,
-                          Channel_Env,
-                          Imported_Objects,
                           Local_Constants,
                           Local_Static_Constants,
-                          Exact_Length_Facts,
-                          Path,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type);
+                          Exact_Length_Facts);
                      Result.Case_Arms.Append (New_Arm);
                   end;
                end loop;
@@ -13509,17 +13447,11 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Then_Stmts :=
                        Normalize_Statement_List
                          (Ok_Arm.Statements,
+                          Env,
                           Arm_Vars,
-                          Functions,
-                          Type_Env,
-                          Channel_Env,
-                          Imported_Objects,
                           Arm_Constants,
                           Arm_Static_Constants,
-                          Exact_Length_Facts,
-                          Path,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type);
+                          Exact_Length_Facts);
                      Binder_Stmt :=
                        Synthetic_Object_Decl_Stmt
                          (UString_Value (Ok_Arm.Binders (Ok_Arm.Binders.First_Index)),
@@ -13549,17 +13481,11 @@ package body Safe_Frontend.Check_Resolve is
                      Result.Else_Stmts :=
                        Normalize_Statement_List
                          (Fail_Arm.Statements,
+                          Env,
                           Arm_Vars,
-                          Functions,
-                          Type_Env,
-                          Channel_Env,
-                          Imported_Objects,
                           Arm_Constants,
                           Arm_Static_Constants,
-                          Exact_Length_Facts,
-                          Path,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type);
+                          Exact_Length_Facts);
                      Binder_Stmt :=
                        Synthetic_Object_Decl_Stmt
                          (UString_Value (Fail_Arm.Binders (Fail_Arm.Binders.First_Index)),
@@ -13676,17 +13602,11 @@ package body Safe_Frontend.Check_Resolve is
                           (Statements,
                            Normalize_Statement_List
                              (Arm.Statements,
+                              Env,
                               Arm_Vars,
-                              Functions,
-                              Type_Env,
-                              Channel_Env,
-                              Imported_Objects,
                               Arm_Constants,
                               Arm_Static,
-                              Exact_Length_Facts,
-                              Path,
-                              Has_Enclosing_Return,
-                              Enclosing_Return_Type));
+                              Exact_Length_Facts));
                         return Statements;
                      end Normalize_Sum_Arm_Statements;
 
@@ -14036,17 +13956,11 @@ package body Safe_Frontend.Check_Resolve is
                               New_Arm.Channel_Data.Statements :=
                                 Normalize_Statement_List
                                   (Arm.Channel_Data.Statements,
+                                   Env,
                                    Arm_Types,
-                                   Functions,
-                                   Type_Env,
-                                   Channel_Env,
-                                   Imported_Objects,
                                    Local_Constants,
                                    Arm_Static_Constants,
-                                   Exact_Length_Facts,
-                                   Path,
-                                   Has_Enclosing_Return,
-                                   Enclosing_Return_Type);
+                                   Exact_Length_Facts);
                            end;
                         when CM.Select_Arm_Delay =>
                            Delay_Arms := Delay_Arms + 1;
@@ -14075,17 +13989,11 @@ package body Safe_Frontend.Check_Resolve is
                            New_Arm.Delay_Data.Statements :=
                              Normalize_Statement_List
                                (Arm.Delay_Data.Statements,
+                                Env,
                                 Var_Types,
-                                Functions,
-                                Type_Env,
-                                Channel_Env,
-                                Imported_Objects,
                                 Local_Constants,
                                 Local_Static_Constants,
-                                Exact_Length_Facts,
-                                Path,
-                                Has_Enclosing_Return,
-                                Enclosing_Return_Type);
+                                Exact_Length_Facts);
                         when others =>
                            null;
                      end case;
@@ -15489,12 +15397,13 @@ package body Safe_Frontend.Check_Resolve is
       return CM.Resolve_Result
    is
       Normalized_Target_Bits : constant Positive := (if BT.Is_Valid_Target_Bits (Target_Bits) then Target_Bits else 64);
-      Type_Env         : Type_Maps.Map;
-      Functions        : Function_Maps.Map;
+      Type_Env         : aliased Type_Maps.Map;
+      Functions        : aliased Function_Maps.Map;
       Package_Vars     : Type_Maps.Map;
-      Channel_Env      : Type_Maps.Map;
+      Channel_Env      : aliased Type_Maps.Map;
       Const_Env        : Static_Value_Maps.Map;
-      Imported_Objects : Type_Maps.Map;
+      Imported_Objects : aliased Type_Maps.Map;
+      Unit_Path        : aliased constant String := UString_Value (Unit.Path);
       Task_Priorities  : Task_Priority_Vectors.Vector;
       Result           : CM.Resolved_Unit;
       Completed_Local_Type_Decls   : Type_Decl_Vectors.Vector;
@@ -16726,19 +16635,25 @@ package body Safe_Frontend.Check_Resolve is
             end if;
          end loop;
 
-         Synthetic_Name_Counter := 0;
-         Result.Statements :=
-           Normalize_Statement_List
-             (Unit.Statements,
-              Visible,
-              Functions,
-              Type_Env,
-              Channel_Env,
-              Imported_Objects,
-              Visible_Constants,
-              Visible_Static_Constants,
-              Exact_Length_Maps.Empty_Map,
-              UString_Value (Unit.Path));
+         declare
+            Env : constant Resolver_Env :=
+              (Functions        => Functions'Unchecked_Access,
+               Type_Env         => Type_Env'Unchecked_Access,
+               Channel_Env      => Channel_Env'Unchecked_Access,
+               Imported_Objects => Imported_Objects'Unchecked_Access,
+               Path             => Unit_Path'Unchecked_Access,
+               others           => <>);
+         begin
+            Synthetic_Name_Counter := 0;
+            Result.Statements :=
+              Normalize_Statement_List
+                (Unit.Statements,
+                 Env,
+                 Visible,
+                 Visible_Constants,
+                 Visible_Static_Constants,
+                 Exact_Length_Maps.Empty_Map);
+         end;
          Validate_Unit_Statements (Result.Statements, UString_Value (Unit.Path));
       end;
 
@@ -16860,6 +16775,14 @@ package body Safe_Frontend.Check_Resolve is
                end loop;
 
                declare
+                  Env : constant Resolver_Env :=
+                    (Functions             => Functions'Unchecked_Access,
+                     Type_Env              => Type_Env'Unchecked_Access,
+                     Channel_Env           => Channel_Env'Unchecked_Access,
+                     Imported_Objects      => Imported_Objects'Unchecked_Access,
+                     Path                  => Unit_Path'Unchecked_Access,
+                     Has_Enclosing_Return  => Info.Has_Return_Type,
+                     Enclosing_Return_Type => Info.Return_Type);
                   Previous_Select_Context : constant Boolean :=
                     Current_Select_In_Subprogram_Body;
                begin
@@ -16867,17 +16790,11 @@ package body Safe_Frontend.Check_Resolve is
                   Subprogram.Statements :=
                     Normalize_Statement_List
                       (Item.Subp_Data.Statements,
+                       Env,
                        Visible,
-                       Functions,
-                       Type_Env,
-                       Channel_Env,
-                       Imported_Objects,
                        Visible_Constants,
                        Visible_Static_Constants,
-                       Exact_Length_Maps.Empty_Map,
-                       UString_Value (Unit.Path),
-                       Has_Enclosing_Return => Info.Has_Return_Type,
-                       Enclosing_Return_Type => Info.Return_Type);
+                       Exact_Length_Maps.Empty_Map);
                   Current_Select_In_Subprogram_Body := Previous_Select_Context;
                exception
                   when others =>
@@ -16999,21 +16916,24 @@ package body Safe_Frontend.Check_Resolve is
                end loop;
 
                declare
+                  Env : constant Resolver_Env :=
+                    (Functions        => Functions'Unchecked_Access,
+                     Type_Env         => Type_Env'Unchecked_Access,
+                     Channel_Env      => Channel_Env'Unchecked_Access,
+                     Imported_Objects => Imported_Objects'Unchecked_Access,
+                     Path             => Unit_Path'Unchecked_Access,
+                     others           => <>);
                   Previous_Task_Context : constant Boolean := Current_In_Task_Body;
                begin
                   Current_In_Task_Body := True;
                   Task_Item.Statements :=
                     Normalize_Statement_List
                       (Item.Task_Data.Statements,
+                       Env,
                        Visible,
-                       Functions,
-                       Type_Env,
-                       Channel_Env,
-                       Imported_Objects,
                        Visible_Constants,
                        Visible_Static_Constants,
-                       Exact_Length_Maps.Empty_Map,
-                       UString_Value (Unit.Path));
+                       Exact_Length_Maps.Empty_Map);
                   Current_In_Task_Body := Previous_Task_Context;
                exception
                   when others =>
@@ -17140,6 +17060,14 @@ package body Safe_Frontend.Check_Resolve is
                      end loop;
 
                      declare
+                        Env : constant Resolver_Env :=
+                          (Functions             => Functions'Unchecked_Access,
+                           Type_Env              => Type_Env'Unchecked_Access,
+                           Channel_Env           => Channel_Env'Unchecked_Access,
+                           Imported_Objects      => Imported_Objects'Unchecked_Access,
+                           Path                  => Unit_Path'Unchecked_Access,
+                           Has_Enclosing_Return  => Info.Has_Return_Type,
+                           Enclosing_Return_Type => Info.Return_Type);
                         Previous_Select_Context : constant Boolean :=
                           Current_Select_In_Subprogram_Body;
                      begin
@@ -17147,17 +17075,11 @@ package body Safe_Frontend.Check_Resolve is
                         Subprogram.Statements :=
                           Normalize_Statement_List
                             (Template.Decl.Statements,
+                             Env,
                              Visible,
-                             Functions,
-                             Type_Env,
-                             Channel_Env,
-                             Imported_Objects,
                              Visible_Constants,
                              Visible_Static_Constants,
-                             Exact_Length_Maps.Empty_Map,
-                             UString_Value (Unit.Path),
-                             Has_Enclosing_Return => Info.Has_Return_Type,
-                             Enclosing_Return_Type => Info.Return_Type);
+                             Exact_Length_Maps.Empty_Map);
                         Current_Select_In_Subprogram_Body := Previous_Select_Context;
                      exception
                         when others =>
@@ -17191,11 +17113,11 @@ package body Safe_Frontend.Check_Resolve is
                   Info         : constant Function_Info := Template.Info;
                   Subprogram   : CM.Resolved_Subprogram;
                   Visible      : Type_Maps.Map := Package_Vars;
-                  Local_Functions : Function_Maps.Map := Functions;
+                  Local_Functions : aliased Function_Maps.Map := Functions;
                   Visible_Constants : Type_Maps.Map;
                   Visible_Static_Constants : Static_Value_Maps.Map := Const_Env;
-                  Local_Type_Env : Type_Maps.Map := Type_Env;
-                  Local_Imported_Objects : Type_Maps.Map := Imported_Objects;
+                  Local_Type_Env : aliased Type_Maps.Map := Type_Env;
+                  Local_Imported_Objects : aliased Type_Maps.Map := Imported_Objects;
                   Local_Decl   : CM.Resolved_Object_Decl;
                begin
                   if not Info.Generic_Formals.Is_Empty then
@@ -17299,6 +17221,14 @@ package body Safe_Frontend.Check_Resolve is
                   end loop;
 
                   declare
+                     Env : constant Resolver_Env :=
+                       (Functions             => Local_Functions'Unchecked_Access,
+                        Type_Env              => Local_Type_Env'Unchecked_Access,
+                        Channel_Env           => Channel_Env'Unchecked_Access,
+                        Imported_Objects      => Local_Imported_Objects'Unchecked_Access,
+                        Path                  => Unit_Path'Unchecked_Access,
+                        Has_Enclosing_Return  => Info.Has_Return_Type,
+                        Enclosing_Return_Type => Info.Return_Type);
                      Previous_Select_Context : constant Boolean :=
                        Current_Select_In_Subprogram_Body;
                   begin
@@ -17306,17 +17236,11 @@ package body Safe_Frontend.Check_Resolve is
                      Subprogram.Statements :=
                        Normalize_Statement_List
                          (Template.Decl.Statements,
+                          Env,
                           Visible,
-                          Local_Functions,
-                          Local_Type_Env,
-                          Channel_Env,
-                          Local_Imported_Objects,
                           Visible_Constants,
                           Visible_Static_Constants,
-                          Exact_Length_Maps.Empty_Map,
-                          UString_Value (Unit.Path),
-                          Has_Enclosing_Return => Info.Has_Return_Type,
-                          Enclosing_Return_Type => Info.Return_Type);
+                          Exact_Length_Maps.Empty_Map);
                      Current_Select_In_Subprogram_Body := Previous_Select_Context;
                   exception
                      when others =>
