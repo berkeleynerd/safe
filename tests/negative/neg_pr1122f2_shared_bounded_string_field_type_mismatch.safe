@@ -1,0 +1,14 @@
+-- Test: shared bounded-string field rejects mismatched assignment
+-- Description: assigning a non-string value through a shared bounded-string
+-- Description: selector setter should fail during resolver validation.
+-- Expected: REJECT assignment value type does not match target type
+
+package neg_pr1122f2_shared_bounded_string_field_type_mismatch
+
+   type settings is record
+      label : string (5);
+
+   shared cfg : settings = (label = "hello");
+
+   function update
+      cfg.label = 1;

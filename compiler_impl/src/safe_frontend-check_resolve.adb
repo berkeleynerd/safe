@@ -438,6 +438,16 @@ package body Safe_Frontend.Check_Resolve is
       return Map.Contains (Canonical_Name (Name));
    end Has_Type;
 
+   function Has_Type_Canonical
+     (Map  : Type_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      pragma Assert
+        (Name = Canonical_Name (Name),
+         "Has_Type_Canonical requires a pre-canonicalized name");
+      return Map.Contains (Name);
+   end Has_Type_Canonical;
+
    function Get_Type
      (Map  : Type_Maps.Map;
       Name : String) return GM.Type_Descriptor is
@@ -460,6 +470,17 @@ package body Safe_Frontend.Check_Resolve is
       return Map.Contains (Canonical_Name (Name))
         or else Current_Synthetic_Functions.Contains (Canonical_Name (Name));
    end Has_Function;
+
+   function Has_Function_Canonical
+     (Map  : Function_Maps.Map;
+      Name : String) return Boolean is
+   begin
+      pragma Assert
+        (Name = Canonical_Name (Name),
+         "Has_Function_Canonical requires a pre-canonicalized name");
+      return Map.Contains (Name)
+        or else Current_Synthetic_Functions.Contains (Name);
+   end Has_Function_Canonical;
 
    function Get_Function
      (Map  : Function_Maps.Map;
@@ -1029,6 +1050,40 @@ package body Safe_Frontend.Check_Resolve is
    procedure Reject_Uncontextualized_None
      (Expr  : CM.Expr_Access;
       Path  : String);
+
+   type Builtin_Method_Kind is
+     (Builtin_None,
+      Builtin_Append,
+      Builtin_Pop_Last,
+      Builtin_Contains,
+      Builtin_Get,
+      Builtin_Remove,
+      Builtin_Set);
+
+   function Builtin_Method_Kind_For_Canonical_Name
+     (Name : String) return Builtin_Method_Kind;
+
+   function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind;
+
+   function Builtin_Method_Name (Kind : Builtin_Method_Kind) return String;
+
+   function Builtin_Method_Kind_For_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Builtin_Method_Kind;
+
+   function Validate_And_Contextualize_Value
+     (Value                 : CM.Expr_Access;
+      Target_Type           : GM.Type_Descriptor;
+      Var_Types             : Type_Maps.Map;
+      Functions             : Function_Maps.Map;
+      Type_Env              : Type_Maps.Map;
+      Const_Env             : Static_Value_Maps.Map;
+      Exact_Length_Facts    : Exact_Length_Maps.Map;
+      Path                  : String;
+      Mismatch_Message      : String;
+      Stamp_String_Literal  : Boolean := True) return CM.Expr_Access;
 
    function Is_Unshadowed_Builtin_Call
      (Expr      : CM.Expr_Access;
@@ -5517,6 +5572,56 @@ package body Safe_Frontend.Check_Resolve is
       return Name (Last_Dot + 1 .. Name'Last);
    end Method_Target_Tail_Name;
 
+   function Builtin_Method_Kind_For_Canonical_Name
+     (Name : String) return Builtin_Method_Kind
+   is
+   begin
+      pragma Assert (Name = Canonical_Name (Name));
+
+      if Name = "append" then
+         return Builtin_Append;
+      elsif Name = "pop_last" then
+         return Builtin_Pop_Last;
+      elsif Name = "contains" then
+         return Builtin_Contains;
+      elsif Name = "get" then
+         return Builtin_Get;
+      elsif Name = "remove" then
+         return Builtin_Remove;
+      elsif Name = "set" then
+         return Builtin_Set;
+      else
+         return Builtin_None;
+      end if;
+   end Builtin_Method_Kind_For_Canonical_Name;
+
+   function Builtin_Method_Kind_For_Name (Name : String) return Builtin_Method_Kind is
+      --  This classifier accepts any case and lowercases internally. Callers
+      --  that need exact-case builtin matching must enforce that separately.
+   begin
+      return Builtin_Method_Kind_For_Canonical_Name (Canonical_Name (Name));
+   end Builtin_Method_Kind_For_Name;
+
+   function Builtin_Method_Name (Kind : Builtin_Method_Kind) return String is
+   begin
+      case Kind is
+         when Builtin_Append =>
+            return "append";
+         when Builtin_Pop_Last =>
+            return "pop_last";
+         when Builtin_Contains =>
+            return "contains";
+         when Builtin_Get =>
+            return "get";
+         when Builtin_Remove =>
+            return "remove";
+         when Builtin_Set =>
+            return "set";
+         when Builtin_None =>
+            return "";
+      end case;
+   end Builtin_Method_Name;
+
    function Has_Synthetic_Tail_Compatibility
      (Source   : GM.Type_Descriptor;
       Target   : GM.Type_Descriptor;
@@ -5648,113 +5753,125 @@ package body Safe_Frontend.Check_Resolve is
    begin
       if Has_Function (Functions, Name) or else Has_Type (Type_Env, Name) then
          return False;
+      elsif Name /= Canonical_Name (Name) then
+         return False;
       end if;
 
-      if Name = "append" then
-         if Natural (Member.Params.Length) /= 2
-           or else Member.Has_Return_Type
-           or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
-           or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
-         then
-            return False;
-         end if;
-         Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
-         return Method_Source_To_Target_Compatible
-           (Resolve_Type
-              (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-               Type_Env,
-               "",
-               FT.Null_Span),
-            Element_Type,
-            Type_Env);
-      elsif Name = "pop_last" then
-         if Natural (Member.Params.Length) /= 1
-           or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
-           or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
-           or else not Member.Has_Return_Type
-         then
-            return False;
-         end if;
-         Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
-         return Method_Source_To_Target_Compatible
-           (Make_Optional_Type (Element_Type, Type_Env),
-            Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-            Type_Env);
-      elsif Name in "contains" | "get" | "remove" | "set" then
-         if not Try_Map_Key_Value_Types (Concrete_Type, Type_Env, Key_Type, Value_Type) then
-            return False;
-         end if;
-      end if;
-
-      if Name = "contains" then
-         return Natural (Member.Params.Length) = 2
-           and then Member.Has_Return_Type
-           and then Method_Source_To_Target_Compatible
-             (Resolve_Type
-                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                 Type_Env,
-                 "",
-                 FT.Null_Span),
-              Key_Type,
-              Type_Env)
-           and then Method_Source_To_Target_Compatible
-             (BT.Boolean_Type,
-              Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-              Type_Env);
-      elsif Name = "get" then
-         return Natural (Member.Params.Length) = 2
-           and then Member.Has_Return_Type
-           and then Method_Source_To_Target_Compatible
-             (Resolve_Type
-                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                 Type_Env,
-                 "",
-                 FT.Null_Span),
-              Key_Type,
-              Type_Env)
-           and then Method_Source_To_Target_Compatible
-             (Make_Optional_Type (Value_Type, Type_Env),
-              Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-              Type_Env);
-      elsif Name = "remove" then
-         return Natural (Member.Params.Length) = 2
-           and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
-           and then Member.Has_Return_Type
-           and then Method_Source_To_Target_Compatible
-             (Resolve_Type
-                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                 Type_Env,
-                 "",
-                 FT.Null_Span),
-              Key_Type,
-              Type_Env)
-           and then Method_Source_To_Target_Compatible
-             (Make_Optional_Type (Value_Type, Type_Env),
-              Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
-              Type_Env);
-      elsif Name = "set" then
-         return Natural (Member.Params.Length) = 3
-           and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
-           and then not Member.Has_Return_Type
-           and then Method_Source_To_Target_Compatible
-             (Resolve_Type
-                (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                 Type_Env,
-                 "",
-                 FT.Null_Span),
-              Key_Type,
-              Type_Env)
-           and then Method_Source_To_Target_Compatible
-             (Resolve_Type
-                (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
-                 Type_Env,
-                 "",
-                 FT.Null_Span),
-              Value_Type,
-              Type_Env);
-      end if;
-
-      return False;
+      declare
+         Builtin_Kind : constant Builtin_Method_Kind :=
+           Builtin_Method_Kind_For_Canonical_Name (Name);
+      begin
+         case Builtin_Kind is
+            when Builtin_None =>
+               return False;
+            when Builtin_Append =>
+               if Natural (Member.Params.Length) /= 2
+                 or else Member.Has_Return_Type
+                 or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
+                 or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
+               then
+                  return False;
+               end if;
+               Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
+               return Method_Source_To_Target_Compatible
+                 (Resolve_Type
+                    (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                     Type_Env,
+                     "",
+                     FT.Null_Span),
+                  Element_Type,
+                  Type_Env);
+            when Builtin_Pop_Last =>
+               if Natural (Member.Params.Length) /= 1
+                 or else UString_Value (Member.Params (Member.Params.First_Index).Mode) /= "mut"
+                 or else not Is_Growable_Array_Type (Concrete_Type, Type_Env)
+                 or else not Member.Has_Return_Type
+               then
+                  return False;
+               end if;
+               Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
+               return Method_Source_To_Target_Compatible
+                 (Make_Optional_Type (Element_Type, Type_Env),
+                  Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                  Type_Env);
+            when Builtin_Contains | Builtin_Get | Builtin_Remove | Builtin_Set =>
+               if not Try_Map_Key_Value_Types (Concrete_Type, Type_Env, Key_Type, Value_Type) then
+                  return False;
+               end if;
+               case Builtin_Kind is
+                  when Builtin_Contains =>
+                     return Natural (Member.Params.Length) = 2
+                       and then Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (BT.Boolean_Type,
+                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                          Type_Env);
+                  when Builtin_Get =>
+                     return Natural (Member.Params.Length) = 2
+                       and then Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (Make_Optional_Type (Value_Type, Type_Env),
+                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                          Type_Env);
+                  when Builtin_Remove =>
+                     return Natural (Member.Params.Length) = 2
+                       and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
+                       and then Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (Make_Optional_Type (Value_Type, Type_Env),
+                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                          Type_Env);
+                  when Builtin_Set =>
+                     return Natural (Member.Params.Length) = 3
+                       and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
+                       and then not Member.Has_Return_Type
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Key_Type,
+                          Type_Env)
+                       and then Method_Source_To_Target_Compatible
+                         (Resolve_Type
+                            (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
+                             Type_Env,
+                             "",
+                             FT.Null_Span),
+                          Value_Type,
+                          Type_Env);
+                  when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
+                     raise Program_Error
+                       with "Builtin_Method_Satisfies_Interface_Member: "
+                            & "unreachable inner arm";
+               end case;
+         end case;
+      end;
    end Builtin_Method_Satisfies_Interface_Member;
 
    function Type_Satisfies_Interface
@@ -5858,7 +5975,11 @@ package body Safe_Frontend.Check_Resolve is
 
    function Is_Method_Builtin_Name (Name : String) return Boolean is
    begin
-      return Name in "append" | "pop_last" | "contains" | "get" | "set" | "remove";
+      --  Callers must pass a pre-canonicalized builtin name here; keep the
+      --  guard explicit so future call sites do not silently widen the helper
+      --  contract.
+      return Name = Canonical_Name (Name)
+        and then Builtin_Method_Kind_For_Canonical_Name (Name) /= Builtin_None;
    end Is_Method_Builtin_Name;
 
    function Function_Method_Call_Compatible
@@ -5978,131 +6099,134 @@ package body Safe_Frontend.Check_Resolve is
       Key_Type      : GM.Type_Descriptor;
       Value_Type    : GM.Type_Descriptor;
       Arg           : CM.Expr_Access;
+      Builtin_Kind  : constant Builtin_Method_Kind :=
+        Builtin_Method_Kind_For_Name (Name);
    begin
-      if Name = "append" then
-         if Natural (Extra_Args.Length) /= 1
-           or else
-             (not Is_Assignable_Target (Receiver_Arg)
-              and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
-           or else not Is_Growable_Array_Type (Receiver_Type, Type_Env)
-         then
+      case Builtin_Kind is
+         when Builtin_Append =>
+            if Natural (Extra_Args.Length) /= 1
+              or else
+                (not Is_Assignable_Target (Receiver_Arg)
+                 and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
+              or else not Is_Growable_Array_Type (Receiver_Type, Type_Env)
+            then
+               return False;
+            end if;
+            Element_Type := Growable_Array_Element_Type (Receiver_Type, Type_Env);
+            if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+               return False;
+            end if;
+            Arg :=
+              Contextualize_Expr_To_Target_Type
+                (Extra_Args (Extra_Args.First_Index),
+                 Element_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 "");
+            return
+              Compatible_Source_Expr_To_Target_Type
+                (Arg,
+                 Expr_Type (Arg, Var_Types, Functions, Type_Env),
+                 Element_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Const_Env,
+                 Exact_Length_Maps.Empty_Map);
+         when Builtin_Pop_Last =>
+            if Natural (Extra_Args.Length) /= 0
+              or else
+                (not Is_Assignable_Target (Receiver_Arg)
+                 and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
+              or else not Is_Growable_Array_Type (Receiver_Type, Type_Env)
+            then
+               return False;
+            end if;
+            Element_Type := Growable_Array_Element_Type (Receiver_Type, Type_Env);
+            return Is_Container_Element_Type_Allowed (Element_Type, Type_Env);
+         when Builtin_Contains | Builtin_Get | Builtin_Remove =>
+            if Natural (Extra_Args.Length) /= 1
+              or else not Try_Map_Key_Value_Types (Receiver_Type, Type_Env, Key_Type, Value_Type)
+              or else not Is_Map_Key_Type_Allowed (Key_Type, Type_Env)
+              or else not Is_Container_Element_Type_Allowed (Value_Type, Type_Env)
+              or else
+                (Builtin_Kind = Builtin_Remove
+                 and then not Is_Assignable_Target (Receiver_Arg)
+                 and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
+            then
+               return False;
+            end if;
+            Arg :=
+              Contextualize_Expr_To_Target_Type
+                (Extra_Args (Extra_Args.First_Index),
+                 Key_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 "");
+            return
+              Compatible_Source_Expr_To_Target_Type
+                (Arg,
+                 Expr_Type (Arg, Var_Types, Functions, Type_Env),
+                 Key_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Const_Env,
+                 Exact_Length_Maps.Empty_Map);
+         when Builtin_Set =>
+            if Natural (Extra_Args.Length) /= 2
+              or else
+                (not Is_Assignable_Target (Receiver_Arg)
+                 and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
+              or else not Try_Map_Key_Value_Types (Receiver_Type, Type_Env, Key_Type, Value_Type)
+              or else not Is_Map_Key_Type_Allowed (Key_Type, Type_Env)
+              or else not Is_Container_Element_Type_Allowed (Value_Type, Type_Env)
+            then
+               return False;
+            end if;
+            Arg :=
+              Contextualize_Expr_To_Target_Type
+                (Extra_Args (Extra_Args.First_Index),
+                 Key_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 "");
+            if not Compatible_Source_Expr_To_Target_Type
+              (Arg,
+               Expr_Type (Arg, Var_Types, Functions, Type_Env),
+               Key_Type,
+               Var_Types,
+               Functions,
+               Type_Env,
+               Const_Env,
+               Exact_Length_Maps.Empty_Map)
+            then
+               return False;
+            end if;
+            Arg :=
+              Contextualize_Expr_To_Target_Type
+                (Extra_Args (Extra_Args.First_Index + 1),
+                 Value_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 "");
+            return
+              Compatible_Source_Expr_To_Target_Type
+                (Arg,
+                 Expr_Type (Arg, Var_Types, Functions, Type_Env),
+                 Value_Type,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Const_Env,
+                 Exact_Length_Maps.Empty_Map);
+         when Builtin_None =>
             return False;
-         end if;
-         Element_Type := Growable_Array_Element_Type (Receiver_Type, Type_Env);
-         if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
-            return False;
-         end if;
-         Arg :=
-           Contextualize_Expr_To_Target_Type
-             (Extra_Args (Extra_Args.First_Index),
-              Element_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              "");
-         return
-           Compatible_Source_Expr_To_Target_Type
-             (Arg,
-              Expr_Type (Arg, Var_Types, Functions, Type_Env),
-              Element_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              Const_Env,
-              Exact_Length_Maps.Empty_Map);
-      elsif Name = "pop_last" then
-         if Natural (Extra_Args.Length) /= 0
-           or else
-             (not Is_Assignable_Target (Receiver_Arg)
-              and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
-           or else not Is_Growable_Array_Type (Receiver_Type, Type_Env)
-         then
-            return False;
-         end if;
-         Element_Type := Growable_Array_Element_Type (Receiver_Type, Type_Env);
-         return Is_Container_Element_Type_Allowed (Element_Type, Type_Env);
-      elsif Name in "contains" | "get" | "remove" then
-         if Natural (Extra_Args.Length) /= 1
-           or else not Try_Map_Key_Value_Types (Receiver_Type, Type_Env, Key_Type, Value_Type)
-           or else not Is_Map_Key_Type_Allowed (Key_Type, Type_Env)
-           or else not Is_Container_Element_Type_Allowed (Value_Type, Type_Env)
-           or else
-             (Name = "remove"
-              and then not Is_Assignable_Target (Receiver_Arg)
-              and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
-         then
-            return False;
-         end if;
-         Arg :=
-           Contextualize_Expr_To_Target_Type
-             (Extra_Args (Extra_Args.First_Index),
-              Key_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              "");
-         return
-           Compatible_Source_Expr_To_Target_Type
-             (Arg,
-              Expr_Type (Arg, Var_Types, Functions, Type_Env),
-              Key_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              Const_Env,
-              Exact_Length_Maps.Empty_Map);
-      elsif Name = "set" then
-         if Natural (Extra_Args.Length) /= 2
-           or else
-             (not Is_Assignable_Target (Receiver_Arg)
-              and then not Try_Shared_Root_Expr (Receiver_Arg, Shared_Receiver))
-           or else not Try_Map_Key_Value_Types (Receiver_Type, Type_Env, Key_Type, Value_Type)
-           or else not Is_Map_Key_Type_Allowed (Key_Type, Type_Env)
-           or else not Is_Container_Element_Type_Allowed (Value_Type, Type_Env)
-         then
-            return False;
-         end if;
-         Arg :=
-           Contextualize_Expr_To_Target_Type
-             (Extra_Args (Extra_Args.First_Index),
-              Key_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              "");
-         if not Compatible_Source_Expr_To_Target_Type
-           (Arg,
-            Expr_Type (Arg, Var_Types, Functions, Type_Env),
-            Key_Type,
-            Var_Types,
-            Functions,
-            Type_Env,
-            Const_Env,
-            Exact_Length_Maps.Empty_Map)
-         then
-            return False;
-         end if;
-         Arg :=
-           Contextualize_Expr_To_Target_Type
-             (Extra_Args (Extra_Args.First_Index + 1),
-              Value_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              "");
-         return
-           Compatible_Source_Expr_To_Target_Type
-             (Arg,
-              Expr_Type (Arg, Var_Types, Functions, Type_Env),
-              Value_Type,
-              Var_Types,
-              Functions,
-              Type_Env,
-              Const_Env,
-              Exact_Length_Maps.Empty_Map);
-      end if;
-
-      return False;
+      end case;
    end Builtin_Method_Call_Compatible;
 
    function Rewrite_Method_Apply
@@ -6468,18 +6592,12 @@ package body Safe_Frontend.Check_Resolve is
          Key_Type     : GM.Type_Descriptor;
          Value_Type   : GM.Type_Descriptor;
          Key_Expr     : CM.Expr_Access := null;
-         Builtin_Name : constant String :=
-           (if Is_Pop_Last_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
-            then "pop_last"
-            elsif Is_Contains_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
-            then "contains"
-            elsif Is_Get_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
-            then "get"
-            elsif Is_Remove_Builtin_Call (Call_Expr, Var_Types, Functions, Type_Env)
-            then "remove"
-            else "");
+         Builtin_Kind : constant Builtin_Method_Kind :=
+           Builtin_Method_Kind_For_Call (Call_Expr, Var_Types, Functions, Type_Env);
+         Builtin_Name : constant String := Builtin_Method_Name (Builtin_Kind);
       begin
-         if Builtin_Name = ""
+         if Builtin_Kind not in
+           Builtin_Pop_Last | Builtin_Contains | Builtin_Get | Builtin_Remove
            or else Call_Expr = null
            or else Natural (Call_Expr.Args.Length) = 0
            or else not Try_Shared_Root_Expr
@@ -6494,7 +6612,7 @@ package body Safe_Frontend.Check_Resolve is
             return null;
          end if;
 
-         if Builtin_Name = "pop_last" then
+         if Builtin_Kind = Builtin_Pop_Last then
             if Natural (Call_Expr.Args.Length) /= 1
               or else not Is_Growable_Array_Type (Root_Type, Type_Env)
               or else Try_Map_Key_Value_Types (Root_Type, Type_Env, Key_Type, Value_Type)
@@ -6553,42 +6671,27 @@ package body Safe_Frontend.Check_Resolve is
               Const_Env,
               Path);
          Key_Expr :=
-           Contextualize_Expr_To_Target_Type
+           Validate_And_Contextualize_Value
              (Key_Expr,
               Key_Type,
               Var_Types,
               Functions,
               Type_Env,
-              Path);
-         Stamp_Contextual_String_Literal (Key_Expr, Key_Type, Type_Env);
-         Reject_Uncontextualized_None (Key_Expr, Path);
-         if not Compatible_Source_Expr_To_Target_Type
-           (Key_Expr,
-            Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
-            Key_Type,
-            Var_Types,
-            Functions,
-            Type_Env,
-            Const_Env,
-            Exact_Length_Maps.Empty_Map)
-         then
-            Raise_Diag
-              (CM.Source_Frontend_Error
-                 (Path    => Path,
-                  Span    => Key_Expr.Span,
-                  Message => "`" & Builtin_Name & "` key type does not match the map key type"));
-         end if;
+              Const_Env,
+              Exact_Length_Maps.Empty_Map,
+              Path,
+              "`" & Builtin_Name & "` key type does not match the map key type");
 
          Result_Expr :=
            Shared_Call_Expr
              (Shared,
-              (if Builtin_Name = "contains"
+              (if Builtin_Kind = Builtin_Contains
                then Shared_Contains_Name
-               elsif Builtin_Name = "get"
+               elsif Builtin_Kind = Builtin_Get
                then Shared_Get_Name
                else Shared_Remove_Name),
               Call_Expr.Span,
-              (if Builtin_Name = "contains"
+              (if Builtin_Kind = Builtin_Contains
                then UString_Value (BT.Boolean_Type.Name)
                else UString_Value (Make_Optional_Type (Value_Type, Type_Env).Name)));
          Result_Expr.Args.Append (Key_Expr);
@@ -6786,61 +6889,60 @@ package body Safe_Frontend.Check_Resolve is
                            end if;
                         end;
                         Validate_Mut_Call_Arguments (Result, Functions, Path);
-                        if Is_Pop_Last_Builtin_Call (Result, Var_Types, Functions, Type_Env) then
-                           if Natural (Result.Args.Length) /= 1 then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
-                                    Message => "`pop_last(items)` expects exactly one argument"));
-                           elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Result.Args (Result.Args.First_Index).Span,
-                                    Message => "`pop_last` first argument must be a writable list name"));
-                           else
-                              declare
-                                 List_Type : constant GM.Type_Descriptor :=
-                                   Expr_Type
-                                     (Result.Args (Result.Args.First_Index),
-                                      Var_Types,
-                                      Functions,
-                                      Type_Env);
-                                 Element_Type : GM.Type_Descriptor;
-                              begin
-                                 if not Is_Growable_Array_Type (List_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Result.Args (Result.Args.First_Index).Span,
-                                          Message => "`pop_last` expects a `mut list of T` first argument"));
-                                 end if;
-                                 Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
-                                 if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Unsupported_Source_Construct
-                                         (Path    => Path,
-                                          Span    => Result.Args (Result.Args.First_Index).Span,
-                                          Message =>
-                                            "`list of T` is limited to the admitted value-type subset in PR11.10b"));
-                                 end if;
-                                 Result.Type_Name :=
-                                   Make_Optional_Type (Element_Type, Type_Env).Name;
-                              end;
-                           end if;
-                        elsif Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                          or else Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                          or else Is_Remove_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                        then
-                           declare
-                              Builtin_Name : constant String :=
-                                (if Is_Contains_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                                 then "contains"
-                                 elsif Is_Get_Builtin_Call (Result, Var_Types, Functions, Type_Env)
-                                 then "get"
-                                 else "remove");
-                           begin
+                        declare
+                           Builtin_Kind : constant Builtin_Method_Kind :=
+                             Builtin_Method_Kind_For_Call
+                               (Result,
+                                Var_Types,
+                                Functions,
+                                Type_Env);
+                           Builtin_Name : constant String :=
+                             Builtin_Method_Name (Builtin_Kind);
+                        begin
+                           if Builtin_Kind = Builtin_Pop_Last then
+                              if Natural (Result.Args.Length) /= 1 then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Result.Has_Call_Span then Result.Call_Span else Result.Span),
+                                       Message => "`pop_last(items)` expects exactly one argument"));
+                              elsif not Is_Assignable_Target (Result.Args (Result.Args.First_Index)) then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => Result.Args (Result.Args.First_Index).Span,
+                                       Message => "`pop_last` first argument must be a writable list name"));
+                              else
+                                 declare
+                                    List_Type : constant GM.Type_Descriptor :=
+                                      Expr_Type
+                                        (Result.Args (Result.Args.First_Index),
+                                         Var_Types,
+                                         Functions,
+                                         Type_Env);
+                                    Element_Type : GM.Type_Descriptor;
+                                 begin
+                                    if not Is_Growable_Array_Type (List_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => Result.Args (Result.Args.First_Index).Span,
+                                             Message => "`pop_last` expects a `mut list of T` first argument"));
+                                    end if;
+                                    Element_Type := Growable_Array_Element_Type (List_Type, Type_Env);
+                                    if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Unsupported_Source_Construct
+                                            (Path    => Path,
+                                             Span    => Result.Args (Result.Args.First_Index).Span,
+                                             Message =>
+                                               "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                                    end if;
+                                    Result.Type_Name :=
+                                      Make_Optional_Type (Element_Type, Type_Env).Name;
+                                 end;
+                              end if;
+                           elsif Builtin_Kind in Builtin_Contains | Builtin_Get | Builtin_Remove then
                               if Natural (Result.Args.Length) /= 2 then
                                  Raise_Diag
                                    (CM.Source_Frontend_Error
@@ -6889,40 +6991,27 @@ package body Safe_Frontend.Check_Resolve is
                                             "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
                                  else
                                     Key_Expr :=
-                                      Contextualize_Expr_To_Target_Type
+                                      Validate_And_Contextualize_Value
                                         (Key_Expr,
                                          Key_Type,
                                          Var_Types,
                                          Functions,
                                          Type_Env,
-                                         Path);
-                                    Reject_Uncontextualized_None (Key_Expr, Path);
-                                    if not Compatible_Source_Expr_To_Target_Type
-                                      (Key_Expr,
-                                       Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
-                                       Key_Type,
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env,
-                                       Const_Env,
-                                       Exact_Length_Maps.Empty_Map)
-                                    then
-                                       Raise_Diag
-                                         (CM.Source_Frontend_Error
-                                            (Path    => Path,
-                                             Span    => Key_Expr.Span,
-                                             Message => "`" & Builtin_Name & "` key type does not match the map key type"));
-                                    end if;
+                                         Const_Env,
+                                         Exact_Length_Maps.Empty_Map,
+                                         Path,
+                                         "`" & Builtin_Name & "` key type does not match the map key type",
+                                         Stamp_String_Literal => False);
                                     Result.Args.Replace_Element (Result.Args.First_Index + 1, Key_Expr);
-                                    if Builtin_Name = "contains" then
+                                    if Builtin_Kind = Builtin_Contains then
                                        Result.Type_Name := FT.To_UString ("boolean");
                                     else
                                        Result.Type_Name := Make_Optional_Type (Value_Type, Type_Env).Name;
                                     end if;
                                  end if;
                               end;
-                           end;
-                        end if;
+                           end if;
+                        end;
                         Result :=
                           Specialize_Generic_Call
                             (Result,
@@ -7325,23 +7414,108 @@ package body Safe_Frontend.Check_Resolve is
       end case;
    end Reject_Uncontextualized_None;
 
+   function Validate_And_Contextualize_Value
+     (Value                 : CM.Expr_Access;
+      Target_Type           : GM.Type_Descriptor;
+      Var_Types             : Type_Maps.Map;
+      Functions             : Function_Maps.Map;
+      Type_Env              : Type_Maps.Map;
+      Const_Env             : Static_Value_Maps.Map;
+      Exact_Length_Facts    : Exact_Length_Maps.Map;
+      Path                  : String;
+      Mismatch_Message      : String;
+      Stamp_String_Literal  : Boolean := True) return CM.Expr_Access
+   is
+      Result : constant CM.Expr_Access :=
+        Contextualize_Expr_To_Target_Type
+          (Value,
+           Target_Type,
+           Var_Types,
+           Functions,
+           Type_Env,
+           Path);
+   begin
+      if Result = null then
+         raise Program_Error
+           with "Validate_And_Contextualize_Value: null input";
+      end if;
+
+      if Stamp_String_Literal then
+         Stamp_Contextual_String_Literal (Result, Target_Type, Type_Env);
+      end if;
+      Reject_Uncontextualized_None (Result, Path);
+      --  Setter paths may still stamp Result.Type_Name after this helper
+      --  returns. That deferred stamp is emission-only: compatibility here
+      --  relies on Expr_Type (Result, ...) as it stands now, and the
+      --  relevant shared-setter literal cases are typed structurally (for
+      --  example, string literals read as string types before any later
+      --  bounded-string name is attached for emission).
+      if not Compatible_Source_Expr_To_Target_Type
+        (Result,
+         Expr_Type (Result, Var_Types, Functions, Type_Env),
+         Target_Type,
+         Var_Types,
+         Functions,
+         Type_Env,
+         Const_Env,
+         Exact_Length_Facts)
+      then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => Path,
+               Span    => Result.Span,
+               Message => Mismatch_Message));
+      end if;
+      return Result;
+   end Validate_And_Contextualize_Value;
+
+   function Builtin_Method_Kind_For_Call
+     (Expr      : CM.Expr_Access;
+      Var_Types : Type_Maps.Map;
+      Functions : Function_Maps.Map;
+      Type_Env  : Type_Maps.Map) return Builtin_Method_Kind
+   is
+      Name : constant String :=
+        (if Expr = null
+              or else Expr.Kind /= CM.Expr_Call
+              or else Expr.Callee = null
+              or else Expr.Callee.Kind /= CM.Expr_Ident
+         then ""
+         else UString_Value (Expr.Callee.Name));
+      Lower_Name : constant String := Canonical_Name (Name);
+   begin
+      if Name'Length = 0
+        or else Has_Function_Canonical (Functions, Lower_Name)
+        or else Has_Type_Canonical (Var_Types, Lower_Name)
+        or else Has_Type_Canonical (Type_Env, Lower_Name)
+      then
+         return Builtin_None;
+      end if;
+
+      return Builtin_Method_Kind_For_Canonical_Name (Lower_Name);
+   end Builtin_Method_Kind_For_Call;
+
    function Is_Unshadowed_Builtin_Call
      (Expr      : CM.Expr_Access;
       Var_Types : Type_Maps.Map;
       Functions : Function_Maps.Map;
       Type_Env  : Type_Maps.Map;
-      Name      : String) return Boolean
-   is
+      Name      : String) return Boolean is
    begin
-      return
-        Expr /= null
-        and then Expr.Kind = CM.Expr_Call
-        and then Expr.Callee /= null
-        and then Expr.Callee.Kind = CM.Expr_Ident
-        and then FT.Lowercase (UString_Value (Expr.Callee.Name)) = Name
-        and then not Has_Function (Functions, Name)
-        and then not Has_Type (Var_Types, Name)
-        and then not Has_Type (Type_Env, Name);
+      if Name /= Canonical_Name (Name) then
+         return False;
+      end if;
+
+      declare
+         Kind : constant Builtin_Method_Kind :=
+           Builtin_Method_Kind_For_Canonical_Name (Name);
+      begin
+         return
+           Kind /= Builtin_None  --  Guard unknown-name callers: otherwise both
+                                 --  classifiers could return Builtin_None and
+                                 --  this check would incorrectly succeed.
+           and then Builtin_Method_Kind_For_Call (Expr, Var_Types, Functions, Type_Env) = Kind;
+      end;
    end Is_Unshadowed_Builtin_Call;
 
    function Is_Append_Builtin_Call
@@ -11474,59 +11648,45 @@ package body Safe_Frontend.Check_Resolve is
                        Stmt.Target.Span);
                   Result.Call := Setter_Call;
                   Result.Call.Args.Append
-                    (Contextualize_Expr_To_Target_Type
+                    (Validate_And_Contextualize_Value
                        (Desugared.Expr,
                         Shared_Field_Type,
                         Var_Types,
                         Functions,
                         Type_Env,
-                        Path));
-                  if not Result.Call.Args.Is_Empty
-                    and then Result.Call.Args (Result.Call.Args.First_Index) /= null
+                        Local_Static_Constants,
+                        Exact_Length_Facts,
+                        Path,
+                        "assignment value type does not match target type",
+                        Stamp_String_Literal => False));
+                  --  Validation intentionally runs before the setter-side
+                  --  Type_Name stamping below. Selector-path shared setters
+                  --  keep the pre-refactor behavior: no contextual string
+                  --  stamping during compatibility checks. The later
+                  --  Type_Name update is emission-only; it does not affect
+                  --  Reject_Uncontextualized_None, which only walks nested
+                  --  `none` values. Emitted nodes still carry the field type
+                  --  name for downstream emission.
+                  if UString_Value
+                    (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
+                    and then UString_Value (Shared_Field_Type.Name)'Length > 0
                   then
-                     if UString_Value
-                       (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
-                       and then UString_Value (Shared_Field_Type.Name)'Length > 0
-                     then
-                        Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                          Shared_Field_Type.Name;
-                     elsif Result.Call.Args (Result.Call.Args.First_Index).Kind = CM.Expr_String
-                       and then
-                         (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
-                          or else Is_String_Type (Shared_Field_Type, Type_Env))
-                     then
-                        Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                          Shared_Field_Type.Name;
-                     end if;
+                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
+                       Shared_Field_Type.Name;
+                  elsif Result.Call.Args (Result.Call.Args.First_Index).Kind = CM.Expr_String
+                    and then
+                      (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
+                       or else Is_String_Type (Shared_Field_Type, Type_Env))
+                  then
+                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
+                       Shared_Field_Type.Name;
                   end if;
-                  Reject_Uncontextualized_None
-                    (Result.Call.Args (Result.Call.Args.First_Index), Path);
                   Reject_Static_Bounded_String_Overflow
                     (Result.Call.Args (Result.Call.Args.First_Index),
                      Shared_Field_Type,
                      Type_Env,
                      Path,
                      Result.Call.Args (Result.Call.Args.First_Index).Span);
-                  if not Compatible_Source_Expr_To_Target_Type
-                    (Result.Call.Args (Result.Call.Args.First_Index),
-                     Expr_Type
-                       (Result.Call.Args (Result.Call.Args.First_Index),
-                        Var_Types,
-                        Functions,
-                        Type_Env),
-                     Shared_Field_Type,
-                     Var_Types,
-                     Functions,
-                     Type_Env,
-                     Local_Static_Constants,
-                     Exact_Length_Facts)
-                  then
-                     Raise_Diag
-                       (CM.Source_Frontend_Error
-                          (Path    => Path,
-                           Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
-                           Message => "assignment value type does not match target type"));
-                  end if;
                elsif Try_Shared_Nested_Field_Access
                  (Stmt.Target,
                   Type_Env,
@@ -11561,59 +11721,45 @@ package body Safe_Frontend.Check_Resolve is
                        Stmt.Target.Span);
                   Result.Call := Setter_Call;
                   Result.Call.Args.Append
-                    (Contextualize_Expr_To_Target_Type
+                    (Validate_And_Contextualize_Value
                        (Desugared.Expr,
                         Shared_Field_Type,
                         Var_Types,
                         Functions,
                         Type_Env,
-                        Path));
-                  if not Result.Call.Args.Is_Empty
-                    and then Result.Call.Args (Result.Call.Args.First_Index) /= null
+                        Local_Static_Constants,
+                        Exact_Length_Facts,
+                        Path,
+                        "assignment value type does not match target type",
+                        Stamp_String_Literal => False));
+                  --  Validation intentionally runs before the setter-side
+                  --  Type_Name stamping below. Nested-path shared setters
+                  --  keep the pre-refactor behavior: no contextual string
+                  --  stamping during compatibility checks. The later
+                  --  Type_Name update is emission-only; it does not affect
+                  --  Reject_Uncontextualized_None, which only walks nested
+                  --  `none` values. Emitted nodes still carry the field type
+                  --  name for downstream emission.
+                  if UString_Value
+                    (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
+                    and then UString_Value (Shared_Field_Type.Name)'Length > 0
                   then
-                     if UString_Value
-                       (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
-                       and then UString_Value (Shared_Field_Type.Name)'Length > 0
-                     then
-                        Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                          Shared_Field_Type.Name;
-                     elsif Result.Call.Args (Result.Call.Args.First_Index).Kind = CM.Expr_String
-                       and then
-                         (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
-                          or else Is_String_Type (Shared_Field_Type, Type_Env))
-                     then
-                        Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                          Shared_Field_Type.Name;
-                     end if;
+                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
+                       Shared_Field_Type.Name;
+                  elsif Result.Call.Args (Result.Call.Args.First_Index).Kind = CM.Expr_String
+                    and then
+                      (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
+                       or else Is_String_Type (Shared_Field_Type, Type_Env))
+                  then
+                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
+                       Shared_Field_Type.Name;
                   end if;
-                  Reject_Uncontextualized_None
-                    (Result.Call.Args (Result.Call.Args.First_Index), Path);
                   Reject_Static_Bounded_String_Overflow
                     (Result.Call.Args (Result.Call.Args.First_Index),
                      Shared_Field_Type,
                      Type_Env,
                      Path,
                      Result.Call.Args (Result.Call.Args.First_Index).Span);
-                  if not Compatible_Source_Expr_To_Target_Type
-                    (Result.Call.Args (Result.Call.Args.First_Index),
-                     Expr_Type
-                       (Result.Call.Args (Result.Call.Args.First_Index),
-                        Var_Types,
-                        Functions,
-                        Type_Env),
-                     Shared_Field_Type,
-                     Var_Types,
-                     Functions,
-                     Type_Env,
-                     Local_Static_Constants,
-                     Exact_Length_Facts)
-                  then
-                     Raise_Diag
-                       (CM.Source_Frontend_Error
-                          (Path    => Path,
-                           Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
-                           Message => "assignment value type does not match target type"));
-                  end if;
                elsif Try_Shared_Target_Expr
                  (Stmt.Target,
                   Shared)
@@ -12359,9 +12505,16 @@ package body Safe_Frontend.Check_Resolve is
                      then
                         Shared_Type := Shared.Type_Info;
                         if Is_Shared_Container_Root_Type (Shared_Type, Type_Env) then
-                           if Is_Append_Builtin_Call
-                             (Resolved_Call, Var_Types, Functions, Type_Env)
-                           then
+                           declare
+                              Builtin_Kind : constant Builtin_Method_Kind :=
+                                Builtin_Method_Kind_For_Call
+                                  (Resolved_Call,
+                                   Var_Types,
+                                   Functions,
+                                   Type_Env);
+                           begin
+                              if Builtin_Kind = Builtin_Append
+                              then
                               declare
                                  Element_Type : GM.Type_Descriptor;
                                  Key_Type     : GM.Type_Descriptor;
@@ -12423,45 +12576,20 @@ package body Safe_Frontend.Check_Resolve is
                                       Shared_Append_Name,
                                       Stmt.Span);
                                  Result.Call.Args.Append
-                                   (Contextualize_Expr_To_Target_Type
+                                   (Validate_And_Contextualize_Value
                                       (Desugared.Expr,
                                        Element_Type,
                                        Var_Types,
                                        Functions,
                                        Type_Env,
-                                       Path));
-                                 Stamp_Contextual_String_Literal
-                                   (Result.Call.Args (Result.Call.Args.First_Index),
-                                    Element_Type,
-                                    Type_Env);
-                                 Reject_Uncontextualized_None
-                                   (Result.Call.Args (Result.Call.Args.First_Index),
-                                    Path);
-                                 if not Compatible_Source_Expr_To_Target_Type
-                                   (Result.Call.Args (Result.Call.Args.First_Index),
-                                    Expr_Type
-                                      (Result.Call.Args (Result.Call.Args.First_Index),
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env),
-                                    Element_Type,
-                                    Var_Types,
-                                    Functions,
-                                    Type_Env,
-                                    Local_Static_Constants,
-                                    Exact_Length_Facts)
-                                 then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
-                                          Message => "`append` value type does not match the list element type"));
-                                 end if;
+                                       Local_Static_Constants,
+                                       Exact_Length_Facts,
+                                       Path,
+                                       "`append` value type does not match the list element type"));
                                  Expanded.Append (Result);
                                  return Expanded;
                               end;
-                           elsif Is_Set_Builtin_Call
-                             (Resolved_Call, Var_Types, Functions, Type_Env)
+                           elsif Builtin_Kind = Builtin_Set
                            then
                               declare
                                  Key_Type       : GM.Type_Descriptor;
@@ -12543,79 +12671,31 @@ package body Safe_Frontend.Check_Resolve is
                                       Shared_Set_Name,
                                       Stmt.Span);
                                  Result.Call.Args.Append
-                                   (Contextualize_Expr_To_Target_Type
+                                   (Validate_And_Contextualize_Value
                                       (Key_Desugared.Expr,
                                        Key_Type,
                                        Var_Types,
                                        Functions,
                                        Type_Env,
-                                       Path));
-                                 Stamp_Contextual_String_Literal
-                                   (Result.Call.Args (Result.Call.Args.First_Index),
-                                    Key_Type,
-                                    Type_Env);
+                                       Local_Static_Constants,
+                                       Exact_Length_Facts,
+                                       Path,
+                                       "`set` key type does not match the map key type"));
                                  Result.Call.Args.Append
-                                   (Contextualize_Expr_To_Target_Type
+                                   (Validate_And_Contextualize_Value
                                       (Value_Desugared.Expr,
                                        Value_Type,
                                        Var_Types,
                                        Functions,
                                        Type_Env,
-                                       Path));
-                                 Stamp_Contextual_String_Literal
-                                   (Result.Call.Args (Result.Call.Args.First_Index + 1),
-                                    Value_Type,
-                                    Type_Env);
-                                 Reject_Uncontextualized_None
-                                   (Result.Call.Args (Result.Call.Args.First_Index),
-                                    Path);
-                                 Reject_Uncontextualized_None
-                                   (Result.Call.Args (Result.Call.Args.First_Index + 1),
-                                    Path);
-                                 if not Compatible_Source_Expr_To_Target_Type
-                                   (Result.Call.Args (Result.Call.Args.First_Index),
-                                    Expr_Type
-                                      (Result.Call.Args (Result.Call.Args.First_Index),
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env),
-                                    Key_Type,
-                                    Var_Types,
-                                    Functions,
-                                    Type_Env,
-                                    Local_Static_Constants,
-                                    Exact_Length_Facts)
-                                 then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Result.Call.Args (Result.Call.Args.First_Index).Span,
-                                          Message => "`set` key type does not match the map key type"));
-                                 elsif not Compatible_Source_Expr_To_Target_Type
-                                   (Result.Call.Args (Result.Call.Args.First_Index + 1),
-                                    Expr_Type
-                                      (Result.Call.Args (Result.Call.Args.First_Index + 1),
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env),
-                                    Value_Type,
-                                    Var_Types,
-                                    Functions,
-                                    Type_Env,
-                                    Local_Static_Constants,
-                                    Exact_Length_Facts)
-                                 then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Result.Call.Args (Result.Call.Args.First_Index + 1).Span,
-                                          Message => "`set` value type does not match the map value type"));
-                                 end if;
+                                       Local_Static_Constants,
+                                       Exact_Length_Facts,
+                                       Path,
+                                       "`set` value type does not match the map value type"));
                                  Expanded.Append (Result);
                                  return Expanded;
                               end;
-                           elsif Is_Pop_Last_Builtin_Call
-                             (Resolved_Call, Var_Types, Functions, Type_Env)
+                           elsif Builtin_Kind = Builtin_Pop_Last
                            then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -12624,8 +12704,7 @@ package body Safe_Frontend.Check_Resolve is
                                                 then Resolved_Call.Call_Span
                                                 else Resolved_Call.Span),
                                     Message => "`pop_last(items)` returns an `optional T` value and must be used in an expression"));
-                           elsif Is_Contains_Builtin_Call
-                             (Resolved_Call, Var_Types, Functions, Type_Env)
+                           elsif Builtin_Kind = Builtin_Contains
                            then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -12634,8 +12713,7 @@ package body Safe_Frontend.Check_Resolve is
                                                 then Resolved_Call.Call_Span
                                                 else Resolved_Call.Span),
                                     Message => "`contains(m, key)` returns a `boolean` value and must be used in an expression"));
-                           elsif Is_Get_Builtin_Call
-                             (Resolved_Call, Var_Types, Functions, Type_Env)
+                           elsif Builtin_Kind = Builtin_Get
                            then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -12644,8 +12722,7 @@ package body Safe_Frontend.Check_Resolve is
                                                 then Resolved_Call.Call_Span
                                                 else Resolved_Call.Span),
                                     Message => "`get(m, key)` returns an `optional V` value and must be used in an expression"));
-                           elsif Is_Remove_Builtin_Call
-                             (Resolved_Call, Var_Types, Functions, Type_Env)
+                           elsif Builtin_Kind = Builtin_Remove
                            then
                               Raise_Diag
                                 (CM.Source_Frontend_Error
@@ -12654,7 +12731,8 @@ package body Safe_Frontend.Check_Resolve is
                                                 then Resolved_Call.Call_Span
                                                 else Resolved_Call.Span),
                                     Message => "`remove(m, key)` mutates a map and returns an `optional V` value, so it must be used in an expression"));
-                           end if;
+                              end if;
+                           end;
                         end if;
                      end if;
                   end;
@@ -12725,31 +12803,16 @@ package body Safe_Frontend.Check_Resolve is
                            end if;
 
                            Appended_Value :=
-                             Contextualize_Expr_To_Target_Type
+                             Validate_And_Contextualize_Value
                                (Appended_Value,
                                 Element_Type,
                                 Var_Types,
                                 Functions,
                                 Type_Env,
-                                Path);
-                           Reject_Uncontextualized_None (Appended_Value, Path);
-                           if not Compatible_Source_Expr_To_Target_Type
-                             (Appended_Value,
-                              Expr_Type (Appended_Value, Var_Types, Functions, Type_Env),
-                              Element_Type,
-                              Var_Types,
-                              Functions,
-                              Type_Env,
-                              Local_Static_Constants,
-                              Exact_Length_Facts)
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Appended_Value.Span,
-                                    Message =>
-                                      "`append` value type does not match the list element type"));
-                           end if;
+                                Local_Static_Constants,
+                                Exact_Length_Facts,
+                                Path,
+                                "`append` value type does not match the list element type");
 
                            Result.Kind := CM.Stmt_Call;
                            Result.Target := null;
@@ -12793,34 +12856,16 @@ package body Safe_Frontend.Check_Resolve is
                            "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
 
                         Appended_Value :=
-                          Contextualize_Expr_To_Target_Type
+                          Validate_And_Contextualize_Value
                             (Appended_Value,
                              Element_Type,
                              Var_Types,
                              Functions,
                              Type_Env,
-                             Path);
-                        Stamp_Contextual_String_Literal
-                          (Appended_Value,
-                           Element_Type,
-                           Type_Env);
-                        Reject_Uncontextualized_None (Appended_Value, Path);
-                        if not Compatible_Source_Expr_To_Target_Type
-                          (Appended_Value,
-                           Expr_Type (Appended_Value, Var_Types, Functions, Type_Env),
-                           Element_Type,
-                           Var_Types,
-                           Functions,
-                           Type_Env,
-                           Local_Static_Constants,
-                           Exact_Length_Facts)
-                        then
-                           Raise_Diag
-                             (CM.Source_Frontend_Error
-                                (Path    => Path,
-                                 Span    => Appended_Value.Span,
-                                 Message => "`append` value type does not match the list element type"));
-                        end if;
+                             Local_Static_Constants,
+                             Exact_Length_Facts,
+                             Path,
+                             "`append` value type does not match the list element type");
 
                         Literal.Kind := CM.Expr_Array_Literal;
                         Literal.Span := Normalized_Call.Args (Normalized_Call.Args.First_Index + 1).Span;
@@ -12947,62 +12992,27 @@ package body Safe_Frontend.Check_Resolve is
                            end if;
 
                            Key_Expr :=
-                             Contextualize_Expr_To_Target_Type
+                             Validate_And_Contextualize_Value
                                (Key_Expr,
                                 Key_Type,
                                 Var_Types,
                                 Functions,
                                 Type_Env,
-                                Path);
-                           Stamp_Contextual_String_Literal
-                             (Key_Expr,
-                              Key_Type,
-                              Type_Env);
+                                Local_Static_Constants,
+                                Exact_Length_Facts,
+                                Path,
+                                "`set` key type does not match the map key type");
                            Value_Expr :=
-                             Contextualize_Expr_To_Target_Type
+                             Validate_And_Contextualize_Value
                                (Value_Expr,
                                 Value_Type,
                                 Var_Types,
                                 Functions,
                                 Type_Env,
-                                Path);
-                           Stamp_Contextual_String_Literal
-                             (Value_Expr,
-                              Value_Type,
-                              Type_Env);
-                           Reject_Uncontextualized_None (Key_Expr, Path);
-                           Reject_Uncontextualized_None (Value_Expr, Path);
-                           if not Compatible_Source_Expr_To_Target_Type
-                             (Key_Expr,
-                              Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
-                              Key_Type,
-                              Var_Types,
-                              Functions,
-                              Type_Env,
-                              Local_Static_Constants,
-                              Exact_Length_Facts)
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Key_Expr.Span,
-                                    Message => "`set` key type does not match the map key type"));
-                           elsif not Compatible_Source_Expr_To_Target_Type
-                             (Value_Expr,
-                              Expr_Type (Value_Expr, Var_Types, Functions, Type_Env),
-                              Value_Type,
-                              Var_Types,
-                              Functions,
-                              Type_Env,
-                              Local_Static_Constants,
-                              Exact_Length_Facts)
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => Value_Expr.Span,
-                                    Message => "`set` value type does not match the map value type"));
-                           end if;
+                                Local_Static_Constants,
+                                Exact_Length_Facts,
+                                Path,
+                                "`set` value type does not match the map value type");
 
                            Result.Kind := CM.Stmt_Call;
                            Result.Target := null;
@@ -13053,62 +13063,27 @@ package body Safe_Frontend.Check_Resolve is
                            "assignment to imported package-qualified objects is outside the current PR08.3 interface subset");
 
                         Key_Expr :=
-                          Contextualize_Expr_To_Target_Type
+                          Validate_And_Contextualize_Value
                             (Key_Expr,
                              Key_Type,
                              Var_Types,
                              Functions,
                              Type_Env,
-                             Path);
-                        Stamp_Contextual_String_Literal
-                          (Key_Expr,
-                           Key_Type,
-                           Type_Env);
+                             Local_Static_Constants,
+                             Exact_Length_Facts,
+                             Path,
+                             "`set` key type does not match the map key type");
                         Value_Expr :=
-                          Contextualize_Expr_To_Target_Type
+                          Validate_And_Contextualize_Value
                             (Value_Expr,
                              Value_Type,
                              Var_Types,
                              Functions,
                              Type_Env,
-                             Path);
-                        Stamp_Contextual_String_Literal
-                          (Value_Expr,
-                           Value_Type,
-                           Type_Env);
-                        Reject_Uncontextualized_None (Key_Expr, Path);
-                        Reject_Uncontextualized_None (Value_Expr, Path);
-                        if not Compatible_Source_Expr_To_Target_Type
-                          (Key_Expr,
-                           Expr_Type (Key_Expr, Var_Types, Functions, Type_Env),
-                           Key_Type,
-                           Var_Types,
-                           Functions,
-                           Type_Env,
-                           Local_Static_Constants,
-                           Exact_Length_Facts)
-                        then
-                           Raise_Diag
-                             (CM.Source_Frontend_Error
-                                (Path    => Path,
-                                 Span    => Key_Expr.Span,
-                                 Message => "`set` key type does not match the map key type"));
-                        elsif not Compatible_Source_Expr_To_Target_Type
-                          (Value_Expr,
-                           Expr_Type (Value_Expr, Var_Types, Functions, Type_Env),
-                           Value_Type,
-                           Var_Types,
-                           Functions,
-                           Type_Env,
-                           Local_Static_Constants,
-                           Exact_Length_Facts)
-                        then
-                           Raise_Diag
-                             (CM.Source_Frontend_Error
-                                (Path    => Path,
-                                 Span    => Value_Expr.Span,
-                                 Message => "`set` value type does not match the map value type"));
-                        end if;
+                             Local_Static_Constants,
+                             Exact_Length_Facts,
+                             Path,
+                             "`set` value type does not match the map value type");
 
                         declare
                            Snapshot_Name : constant FT.UString :=
@@ -16354,6 +16329,31 @@ package body Safe_Frontend.Check_Resolve is
                end;
             end loop;
          end Register_Imported_Sum_Constructors;
+
+         procedure Register_One_Imported_Type (Type_Item : GM.Type_Descriptor) is
+            Info : constant GM.Type_Descriptor :=
+              Qualify_Type_Info (Type_Item, Package_Name);
+            Tail : constant String := Synthetic_Type_Tail_Name (UString_Value (Info.Name));
+         begin
+            if Info.Generic_Formals.Is_Empty then
+               Put_Type (Type_Env, UString_Value (Info.Name), Info);
+            else
+               Current_Generic_Type_Templates.Include
+                 (Canonical_Name (UString_Value (Info.Name)),
+                  (Has_Decl => False,
+                   Decl     => (others => <>),
+                   Info     => Info));
+            end if;
+            if Tail'Length > 2
+              and then Tail (Tail'First .. Tail'First + 1) = "__"
+            then
+               Current_Imported_Synthetic_Types.Include
+                 (Canonical_Name (UString_Value (Info.Name)),
+                  Info);
+            end if;
+            Validate_Imported_Sum_Metadata (Info);
+            Result.Imported_Types.Append (Info);
+         end Register_One_Imported_Type;
       begin
          if Item.Target_Bits /= Normalized_Target_Bits then
             Raise_Diag
@@ -16369,57 +16369,11 @@ package body Safe_Frontend.Check_Resolve is
                     & Ada.Strings.Fixed.Trim (Positive'Image (Normalized_Target_Bits), Ada.Strings.Both)));
          end if;
          for Type_Item of Item.Types loop
-            declare
-               Info : constant GM.Type_Descriptor :=
-                 Qualify_Type_Info (Type_Item, Package_Name);
-               Tail : constant String := Synthetic_Type_Tail_Name (UString_Value (Info.Name));
-            begin
-               if Info.Generic_Formals.Is_Empty then
-                  Put_Type (Type_Env, UString_Value (Info.Name), Info);
-               else
-                  Current_Generic_Type_Templates.Include
-                    (Canonical_Name (UString_Value (Info.Name)),
-                     (Has_Decl => False,
-                     Decl     => (others => <>),
-                      Info     => Info));
-               end if;
-               if Tail'Length > 2
-                 and then Tail (Tail'First .. Tail'First + 1) = "__"
-               then
-                  Current_Imported_Synthetic_Types.Include
-                    (Canonical_Name (UString_Value (Info.Name)),
-                     Info);
-               end if;
-               Validate_Imported_Sum_Metadata (Info);
-               Result.Imported_Types.Append (Info);
-            end;
+            Register_One_Imported_Type (Type_Item);
          end loop;
 
          for Type_Item of Item.Subtypes loop
-            declare
-               Info : constant GM.Type_Descriptor :=
-                 Qualify_Type_Info (Type_Item, Package_Name);
-               Tail : constant String := Synthetic_Type_Tail_Name (UString_Value (Info.Name));
-            begin
-               if Info.Generic_Formals.Is_Empty then
-                  Put_Type (Type_Env, UString_Value (Info.Name), Info);
-               else
-                  Current_Generic_Type_Templates.Include
-                    (Canonical_Name (UString_Value (Info.Name)),
-                     (Has_Decl => False,
-                     Decl     => (others => <>),
-                      Info     => Info));
-               end if;
-               if Tail'Length > 2
-                 and then Tail (Tail'First .. Tail'First + 1) = "__"
-               then
-                  Current_Imported_Synthetic_Types.Include
-                    (Canonical_Name (UString_Value (Info.Name)),
-                     Info);
-               end if;
-               Validate_Imported_Sum_Metadata (Info);
-               Result.Imported_Types.Append (Info);
-            end;
+            Register_One_Imported_Type (Type_Item);
          end loop;
 
          for Type_Item of Item.Types loop
