@@ -5866,9 +5866,9 @@ package body Safe_Frontend.Check_Resolve is
                           Value_Type,
                           Type_Env);
                   when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
-                     --  Unreachable here: the enclosing arm already narrowed
-                     --  Builtin_Kind to the map-operation builtin set.
-                     return False;
+                     raise Program_Error
+                       with "Builtin_Method_Satisfies_Interface_Member: "
+                            & "unreachable inner arm";
                end case;
          end case;
       end;
@@ -12816,8 +12816,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Local_Static_Constants,
                                 Exact_Length_Facts,
                                 Path,
-                                "`append` value type does not match the list element type",
-                                Stamp_String_Literal => False);
+                                "`append` value type does not match the list element type");
 
                            Result.Kind := CM.Stmt_Call;
                            Result.Target := null;
