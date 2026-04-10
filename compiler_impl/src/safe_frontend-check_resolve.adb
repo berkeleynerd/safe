@@ -5652,6 +5652,28 @@ package body Safe_Frontend.Check_Resolve is
         or else Has_Synthetic_Tail_Compatibility (Source, Target, Type_Env);
    end Method_Source_To_Target_Compatible;
 
+   function Resolve_Interface_Param_Type
+     (Member   : GM.Interface_Member;
+      Offset   : Natural;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor;
+
+   function Interface_Param_Mode_And_Compatible
+     (Member_Param : GM.Signature_Param;
+      Source_Type  : GM.Type_Descriptor;
+      Target_Param : CM.Symbol;
+      Type_Env     : Type_Maps.Map) return Boolean;
+
+   function Interface_Param_Compatible
+     (Member      : GM.Interface_Member;
+      Offset      : Natural;
+      Target_Type : GM.Type_Descriptor;
+      Type_Env    : Type_Maps.Map) return Boolean;
+
+   function Interface_Return_Compatible
+     (Member       : GM.Interface_Member;
+      Source_Type  : GM.Type_Descriptor;
+      Type_Env     : Type_Maps.Map) return Boolean;
+
    function Interface_Member_Compatible_With_Function
      (Member         : GM.Interface_Member;
       Concrete_Type  : GM.Type_Descriptor;
@@ -5664,6 +5686,69 @@ package body Safe_Frontend.Check_Resolve is
       Member        : GM.Interface_Member;
       Functions     : Function_Maps.Map;
       Type_Env      : Type_Maps.Map) return Boolean;
+
+   function Interface_Member_Match_Count
+     (Member        : GM.Interface_Member;
+      Concrete_Type : GM.Type_Descriptor;
+      Functions     : Function_Maps.Map;
+      Type_Env      : Type_Maps.Map) return Natural;
+
+   function Resolve_Interface_Param_Type
+     (Member   : GM.Interface_Member;
+      Offset   : Natural;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor
+   is
+   begin
+      return Resolve_Type
+        (UString_Value (Member.Params (Member.Params.First_Index + Offset).Type_Name),
+         Type_Env,
+         "",
+         FT.Null_Span);
+   end Resolve_Interface_Param_Type;
+
+   function Interface_Param_Mode_And_Compatible
+     (Member_Param : GM.Signature_Param;
+      Source_Type  : GM.Type_Descriptor;
+      Target_Param : CM.Symbol;
+      Type_Env     : Type_Maps.Map) return Boolean
+   is
+   begin
+      return UString_Value (Member_Param.Mode) = UString_Value (Target_Param.Mode)
+        and then Method_Source_To_Target_Compatible
+          (Source_Type,
+           Target_Param.Type_Info,
+           Type_Env);
+   end Interface_Param_Mode_And_Compatible;
+
+   function Interface_Param_Compatible
+     (Member      : GM.Interface_Member;
+      Offset      : Natural;
+      Target_Type : GM.Type_Descriptor;
+      Type_Env    : Type_Maps.Map) return Boolean
+   is
+   begin
+      return Method_Source_To_Target_Compatible
+        (Resolve_Interface_Param_Type (Member, Offset, Type_Env),
+         Target_Type,
+         Type_Env);
+   end Interface_Param_Compatible;
+
+   function Interface_Return_Compatible
+     (Member       : GM.Interface_Member;
+      Source_Type  : GM.Type_Descriptor;
+      Type_Env     : Type_Maps.Map) return Boolean
+   is
+   begin
+      return Member.Has_Return_Type
+        and then Method_Source_To_Target_Compatible
+          (Source_Type,
+           Resolve_Type
+             (UString_Value (Member.Return_Type),
+              Type_Env,
+              "",
+              FT.Null_Span),
+           Type_Env);
+   end Interface_Return_Compatible;
 
    function Interface_Member_Compatible_With_Function
      (Member         : GM.Interface_Member;
@@ -5682,11 +5767,10 @@ package body Safe_Frontend.Check_Resolve is
          Receiver_Param : constant GM.Signature_Param := Member.Params (Member.Params.First_Index);
          Target_Param   : constant CM.Symbol := Info.Params (Info.Params.First_Index);
       begin
-         if UString_Value (Receiver_Param.Mode) /= UString_Value (Target_Param.Mode) then
-            return False;
-         elsif not Method_Source_To_Target_Compatible
-           (Concrete_Type,
-            Target_Param.Type_Info,
+         if not Interface_Param_Mode_And_Compatible
+           (Receiver_Param,
+            Concrete_Type,
+            Target_Param,
             Type_Env)
          then
             return False;
@@ -5701,17 +5785,13 @@ package body Safe_Frontend.Check_Resolve is
                Target_Param : constant CM.Symbol :=
                  Info.Params (Info.Params.First_Index + Offset);
                Member_Type  : constant GM.Type_Descriptor :=
-                 Resolve_Type
-                   (UString_Value (Member_Param.Type_Name),
-                    Type_Env,
-                    "",
-                    FT.Null_Span);
+                 Resolve_Interface_Param_Type (Member, Offset, Type_Env);
             begin
-               if UString_Value (Member_Param.Mode) /= UString_Value (Target_Param.Mode)
-                 or else not Method_Source_To_Target_Compatible
-                   (Member_Type,
-                    Target_Param.Type_Info,
-                    Type_Env)
+               if not Interface_Param_Mode_And_Compatible
+                 (Member_Param,
+                  Member_Type,
+                  Target_Param,
+                  Type_Env)
                then
                   return False;
                end if;
@@ -5722,19 +5802,7 @@ package body Safe_Frontend.Check_Resolve is
       if Member.Has_Return_Type /= Info.Has_Return_Type then
          return False;
       elsif Member.Has_Return_Type then
-         declare
-            Member_Return : constant GM.Type_Descriptor :=
-              Resolve_Type
-                (UString_Value (Member.Return_Type),
-                 Type_Env,
-                 "",
-                 FT.Null_Span);
-         begin
-            return Method_Source_To_Target_Compatible
-              (Info.Return_Type,
-               Member_Return,
-               Type_Env);
-         end;
+         return Interface_Return_Compatible (Member, Info.Return_Type, Type_Env);
       end if;
 
       return True;
@@ -5773,12 +5841,9 @@ package body Safe_Frontend.Check_Resolve is
                   return False;
                end if;
                Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
-               return Method_Source_To_Target_Compatible
-                 (Resolve_Type
-                    (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                     Type_Env,
-                     "",
-                     FT.Null_Span),
+               return Interface_Param_Compatible
+                 (Member,
+                  1,
                   Element_Type,
                   Type_Env);
             when Builtin_Pop_Last =>
@@ -5790,9 +5855,9 @@ package body Safe_Frontend.Check_Resolve is
                   return False;
                end if;
                Element_Type := Growable_Array_Element_Type (Concrete_Type, Type_Env);
-               return Method_Source_To_Target_Compatible
-                 (Make_Optional_Type (Element_Type, Type_Env),
-                  Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+               return Interface_Return_Compatible
+                 (Member,
+                  Make_Optional_Type (Element_Type, Type_Env),
                   Type_Env);
             when Builtin_Contains | Builtin_Get | Builtin_Remove | Builtin_Set =>
                if not Try_Map_Key_Value_Types (Concrete_Type, Type_Env, Key_Type, Value_Type) then
@@ -5801,68 +5866,50 @@ package body Safe_Frontend.Check_Resolve is
                case Builtin_Kind is
                   when Builtin_Contains =>
                      return Natural (Member.Params.Length) = 2
-                       and then Member.Has_Return_Type
-                       and then Method_Source_To_Target_Compatible
-                         (Resolve_Type
-                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                             Type_Env,
-                             "",
-                             FT.Null_Span),
+                       and then Interface_Param_Compatible
+                         (Member,
+                          1,
                           Key_Type,
                           Type_Env)
-                       and then Method_Source_To_Target_Compatible
-                         (BT.Boolean_Type,
-                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                       and then Interface_Return_Compatible
+                         (Member,
+                          BT.Boolean_Type,
                           Type_Env);
                   when Builtin_Get =>
                      return Natural (Member.Params.Length) = 2
-                       and then Member.Has_Return_Type
-                       and then Method_Source_To_Target_Compatible
-                         (Resolve_Type
-                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                             Type_Env,
-                             "",
-                             FT.Null_Span),
+                       and then Interface_Param_Compatible
+                         (Member,
+                          1,
                           Key_Type,
                           Type_Env)
-                       and then Method_Source_To_Target_Compatible
-                         (Make_Optional_Type (Value_Type, Type_Env),
-                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                       and then Interface_Return_Compatible
+                         (Member,
+                          Make_Optional_Type (Value_Type, Type_Env),
                           Type_Env);
                   when Builtin_Remove =>
                      return Natural (Member.Params.Length) = 2
                        and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
-                       and then Member.Has_Return_Type
-                       and then Method_Source_To_Target_Compatible
-                         (Resolve_Type
-                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                             Type_Env,
-                             "",
-                             FT.Null_Span),
+                       and then Interface_Param_Compatible
+                         (Member,
+                          1,
                           Key_Type,
                           Type_Env)
-                       and then Method_Source_To_Target_Compatible
-                         (Make_Optional_Type (Value_Type, Type_Env),
-                          Resolve_Type (UString_Value (Member.Return_Type), Type_Env, "", FT.Null_Span),
+                       and then Interface_Return_Compatible
+                         (Member,
+                          Make_Optional_Type (Value_Type, Type_Env),
                           Type_Env);
                   when Builtin_Set =>
                      return Natural (Member.Params.Length) = 3
                        and then UString_Value (Member.Params (Member.Params.First_Index).Mode) = "mut"
                        and then not Member.Has_Return_Type
-                       and then Method_Source_To_Target_Compatible
-                         (Resolve_Type
-                            (UString_Value (Member.Params (Member.Params.First_Index + 1).Type_Name),
-                             Type_Env,
-                             "",
-                             FT.Null_Span),
+                       and then Interface_Param_Compatible
+                         (Member,
+                          1,
                           Key_Type,
                           Type_Env)
-                       and then Method_Source_To_Target_Compatible
-                         (Resolve_Type
-                            (UString_Value (Member.Params (Member.Params.First_Index + 2).Type_Name),
-                             Type_Env,
-                             "",
-                             FT.Null_Span),
+                       and then Interface_Param_Compatible
+                         (Member,
+                          2,
                           Value_Type,
                           Type_Env);
                   when Builtin_None | Builtin_Append | Builtin_Pop_Last =>
@@ -5874,6 +5921,44 @@ package body Safe_Frontend.Check_Resolve is
       end;
    end Builtin_Method_Satisfies_Interface_Member;
 
+   function Interface_Member_Match_Count
+     (Member        : GM.Interface_Member;
+      Concrete_Type : GM.Type_Descriptor;
+      Functions     : Function_Maps.Map;
+      Type_Env      : Type_Maps.Map) return Natural
+   is
+      Match_Count : Natural := 0;
+   begin
+      for Cursor in Functions.Iterate loop
+         declare
+            Candidate_Name : constant String := Function_Maps.Key (Cursor);
+            Tail_Name      : constant String := Method_Target_Tail_Name (Candidate_Name);
+         begin
+            if Tail_Name = UString_Value (Member.Name)
+              and then Interface_Member_Compatible_With_Function
+                (Member,
+                 Concrete_Type,
+                 Function_Maps.Element (Cursor),
+                 Type_Env)
+            then
+               Match_Count := Match_Count + 1;
+            end if;
+         end;
+      end loop;
+
+      if Builtin_Method_Satisfies_Interface_Member
+        (UString_Value (Member.Name),
+         Concrete_Type,
+         Member,
+         Functions,
+         Type_Env)
+      then
+         Match_Count := Match_Count + 1;
+      end if;
+
+      return Match_Count;
+   end Interface_Member_Match_Count;
+
    function Type_Satisfies_Interface
      (Concrete_Type  : GM.Type_Descriptor;
       Interface_Type : GM.Type_Descriptor;
@@ -5881,42 +5966,18 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env       : Type_Maps.Map) return Boolean
    is
       Interface_Info : constant GM.Type_Descriptor := Base_Type (Interface_Type, Type_Env);
-      Match_Count    : Natural;
    begin
       if not Is_Interface_Type (Interface_Info, Type_Env) then
          return False;
       end if;
 
       for Member of Interface_Info.Interface_Members loop
-         Match_Count := 0;
-         for Cursor in Functions.Iterate loop
-            declare
-               Candidate_Name : constant String := Function_Maps.Key (Cursor);
-               Tail_Name      : constant String := Method_Target_Tail_Name (Candidate_Name);
-            begin
-               if Tail_Name = UString_Value (Member.Name)
-                 and then Interface_Member_Compatible_With_Function
-                   (Member,
-                    Concrete_Type,
-                    Function_Maps.Element (Cursor),
-                    Type_Env)
-               then
-                  Match_Count := Match_Count + 1;
-               end if;
-            end;
-         end loop;
-
-         if Builtin_Method_Satisfies_Interface_Member
-           (UString_Value (Member.Name),
+         if Interface_Member_Match_Count
+           (Member,
             Concrete_Type,
-            Member,
             Functions,
-            Type_Env)
+            Type_Env) /= 1
          then
-            Match_Count := Match_Count + 1;
-         end if;
-
-         if Match_Count /= 1 then
             return False;
          end if;
       end loop;
