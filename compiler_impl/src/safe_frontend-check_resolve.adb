@@ -7439,13 +7439,9 @@ package body Safe_Frontend.Check_Resolve is
          pragma Assert
            (Value = null,
             "non-null Value produced a null contextualization result");
-         Raise_Diag
-           (CM.Source_Frontend_Error
-              (Path    => Path,
-               Span    => (if Value = null then FT.Null_Span else Value.Span),
-               Message =>
-                 "internal null input/result in "
-                 & "Validate_And_Contextualize_Value"));
+         raise Program_Error
+           with "Validate_And_Contextualize_Value: null contextualization result"
+                & (if Value = null then " (null input)" else " (non-null input)");
       end if;
 
       if Stamp_String_Literal then
