@@ -11378,6 +11378,86 @@ package body Safe_Frontend.Check_Resolve is
               Enclosing_Return_Type);
       end Normalize_Preludes;
 
+      function Desugar_Checked
+        (Expr              : CM.Expr_Access;
+         Append_To_Expanded : Boolean := True) return Desugared_Expr_Result
+      is
+         Desugared : constant Desugared_Expr_Result :=
+           Desugar_Executable_Expr
+             (Normalize_Expr_Checked
+                (Expr,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Local_Static_Constants,
+                 Path,
+                 Allow_Try => True),
+              Var_Types,
+              Functions,
+              Type_Env,
+              Has_Enclosing_Return,
+              Enclosing_Return_Type,
+              Path);
+      begin
+         if Append_To_Expanded then
+            Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+         end if;
+         return Desugared;
+      end Desugar_Checked;
+
+      procedure Build_Shared_Setter_Call
+        (Shared          : Shared_Object_Ref;
+         Setter_Name     : String;
+         Shared_Field_Type : GM.Type_Descriptor;
+         Value_Expr      : CM.Expr_Access)
+      is
+         Setter_Arg : CM.Expr_Access;
+      begin
+         Result.Kind := CM.Stmt_Call;
+         Result.Target := null;
+         Result.Value := null;
+         Result.Call :=
+           Shared_Call_Expr
+             (Shared,
+              Setter_Name,
+              Stmt.Target.Span);
+         Result.Call.Args.Append
+           (Validate_And_Contextualize_Value
+              (Value_Expr,
+               Shared_Field_Type,
+               Var_Types,
+               Functions,
+               Type_Env,
+               Local_Static_Constants,
+               Exact_Length_Facts,
+               Path,
+               "assignment value type does not match target type",
+               Stamp_String_Literal => False));
+         Setter_Arg := Result.Call.Args (Result.Call.Args.First_Index);
+         --  Validation intentionally runs before the shared-setter-side
+         --  Type_Name stamping below. Shared field setters keep the
+         --  pre-refactor behavior: no contextual string stamping during
+         --  compatibility checks. The later Type_Name update is
+         --  emission-only; it does not affect Reject_Uncontextualized_None.
+         if UString_Value (Setter_Arg.Type_Name)'Length = 0
+           and then UString_Value (Shared_Field_Type.Name)'Length > 0
+         then
+            Setter_Arg.Type_Name := Shared_Field_Type.Name;
+         elsif Setter_Arg.Kind = CM.Expr_String
+           and then
+             (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
+              or else Is_String_Type (Shared_Field_Type, Type_Env))
+         then
+            Setter_Arg.Type_Name := Shared_Field_Type.Name;
+         end if;
+         Reject_Static_Bounded_String_Overflow
+           (Setter_Arg,
+            Shared_Field_Type,
+            Type_Env,
+            Path,
+            Setter_Arg.Span);
+      end Build_Shared_Setter_Call;
+
       procedure Reject_Imported_Channel_Elaboration
         (Channel_Expr    : CM.Expr_Access;
          Diagnostic_Span : FT.Source_Span) is
@@ -11405,23 +11485,8 @@ package body Safe_Frontend.Check_Resolve is
                declare
                   Temp_Decl : CM.Object_Decl := Stmt.Decl;
                   Desugared : constant Desugared_Expr_Result :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Decl.Initializer,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
+                    Desugar_Checked (Stmt.Decl.Initializer);
                begin
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                   Temp_Decl.Initializer := Desugared.Expr;
                   Result.Decl :=
                     Normalize_Object_Decl
@@ -11466,23 +11531,8 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             declare
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Destructure.Initializer,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Destructure.Initializer);
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Result.Destructure.Initializer :=
                  Contextualize_Expr_To_Target_Type
                    (Desugared.Expr,
@@ -11544,23 +11594,7 @@ package body Safe_Frontend.Check_Resolve is
                   Shared)
                then
                   Shared_Root_Type := Shared.Type_Info;
-                  Desugared :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Value,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+                  Desugared := Desugar_Checked (Stmt.Value);
                   Result.Kind := CM.Stmt_Call;
                   Result.Target := null;
                   Result.Value := null;
@@ -11621,72 +11655,12 @@ package body Safe_Frontend.Check_Resolve is
                   Shared,
                   Shared_Field_Type)
                then
-                  Desugared :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Value,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
-                  Result.Kind := CM.Stmt_Call;
-                  Result.Target := null;
-                  Result.Value := null;
-                  Setter_Call :=
-                    Shared_Call_Expr
-                      (Shared,
-                       Shared_Field_Setter_Name (UString_Value (Stmt.Target.Selector)),
-                       Stmt.Target.Span);
-                  Result.Call := Setter_Call;
-                  Result.Call.Args.Append
-                    (Validate_And_Contextualize_Value
-                       (Desugared.Expr,
-                        Shared_Field_Type,
-                        Var_Types,
-                        Functions,
-                        Type_Env,
-                        Local_Static_Constants,
-                        Exact_Length_Facts,
-                        Path,
-                        "assignment value type does not match target type",
-                        Stamp_String_Literal => False));
-                  --  Validation intentionally runs before the setter-side
-                  --  Type_Name stamping below. Selector-path shared setters
-                  --  keep the pre-refactor behavior: no contextual string
-                  --  stamping during compatibility checks. The later
-                  --  Type_Name update is emission-only; it does not affect
-                  --  Reject_Uncontextualized_None, which only walks nested
-                  --  `none` values. Emitted nodes still carry the field type
-                  --  name for downstream emission.
-                  if UString_Value
-                    (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
-                    and then UString_Value (Shared_Field_Type.Name)'Length > 0
-                  then
-                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                       Shared_Field_Type.Name;
-                  elsif Result.Call.Args (Result.Call.Args.First_Index).Kind = CM.Expr_String
-                    and then
-                      (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
-                       or else Is_String_Type (Shared_Field_Type, Type_Env))
-                  then
-                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                       Shared_Field_Type.Name;
-                  end if;
-                  Reject_Static_Bounded_String_Overflow
-                    (Result.Call.Args (Result.Call.Args.First_Index),
+                  Desugared := Desugar_Checked (Stmt.Value);
+                  Build_Shared_Setter_Call
+                    (Shared,
+                     Shared_Field_Setter_Name (UString_Value (Stmt.Target.Selector)),
                      Shared_Field_Type,
-                     Type_Env,
-                     Path,
-                     Result.Call.Args (Result.Call.Args.First_Index).Span);
+                     Desugared.Expr);
                elsif Try_Shared_Nested_Field_Access
                  (Stmt.Target,
                   Type_Env,
@@ -11694,72 +11668,12 @@ package body Safe_Frontend.Check_Resolve is
                   Shared_Path,
                   Shared_Field_Type)
                then
-                  Desugared :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Value,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
-                  Result.Kind := CM.Stmt_Call;
-                  Result.Target := null;
-                  Result.Value := null;
-                  Setter_Call :=
-                    Shared_Call_Expr
-                      (Shared,
-                       Shared_Nested_Field_Setter_Name (Shared_Path),
-                       Stmt.Target.Span);
-                  Result.Call := Setter_Call;
-                  Result.Call.Args.Append
-                    (Validate_And_Contextualize_Value
-                       (Desugared.Expr,
-                        Shared_Field_Type,
-                        Var_Types,
-                        Functions,
-                        Type_Env,
-                        Local_Static_Constants,
-                        Exact_Length_Facts,
-                        Path,
-                        "assignment value type does not match target type",
-                        Stamp_String_Literal => False));
-                  --  Validation intentionally runs before the setter-side
-                  --  Type_Name stamping below. Nested-path shared setters
-                  --  keep the pre-refactor behavior: no contextual string
-                  --  stamping during compatibility checks. The later
-                  --  Type_Name update is emission-only; it does not affect
-                  --  Reject_Uncontextualized_None, which only walks nested
-                  --  `none` values. Emitted nodes still carry the field type
-                  --  name for downstream emission.
-                  if UString_Value
-                    (Result.Call.Args (Result.Call.Args.First_Index).Type_Name)'Length = 0
-                    and then UString_Value (Shared_Field_Type.Name)'Length > 0
-                  then
-                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                       Shared_Field_Type.Name;
-                  elsif Result.Call.Args (Result.Call.Args.First_Index).Kind = CM.Expr_String
-                    and then
-                      (Is_Bounded_String_Type (Shared_Field_Type, Type_Env)
-                       or else Is_String_Type (Shared_Field_Type, Type_Env))
-                  then
-                     Result.Call.Args (Result.Call.Args.First_Index).Type_Name :=
-                       Shared_Field_Type.Name;
-                  end if;
-                  Reject_Static_Bounded_String_Overflow
-                    (Result.Call.Args (Result.Call.Args.First_Index),
+                  Desugared := Desugar_Checked (Stmt.Value);
+                  Build_Shared_Setter_Call
+                    (Shared,
+                     Shared_Nested_Field_Setter_Name (Shared_Path),
                      Shared_Field_Type,
-                     Type_Env,
-                     Path,
-                     Result.Call.Args (Result.Call.Args.First_Index).Span);
+                     Desugared.Expr);
                elsif Try_Shared_Target_Expr
                  (Stmt.Target,
                   Shared)
@@ -12018,23 +11932,8 @@ package body Safe_Frontend.Check_Resolve is
             if Stmt.Value /= null then
                declare
                   Desugared : constant Desugared_Expr_Result :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Value,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
+                    Desugar_Checked (Stmt.Value);
                begin
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                   Result.Value :=
                     Contextualize_Expr_To_Target_Type
                       (Desugared.Expr,
@@ -12050,26 +11949,11 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_If =>
             declare
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Condition,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Condition);
                Then_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
                Guard_Name : FT.UString := FT.To_UString ("");
                Guard_Length : Natural := 0;
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Result.Condition := Desugared.Expr;
                if Try_Direct_Growable_Length_Guard
                  (Result.Condition,
@@ -12107,23 +11991,8 @@ package body Safe_Frontend.Check_Resolve is
                begin
                   declare
                      Desugared : constant Desugared_Expr_Result :=
-                       Desugar_Executable_Expr
-                         (Normalize_Expr_Checked
-                            (Part.Condition,
-                             Var_Types,
-                             Functions,
-                             Type_Env,
-                             Local_Static_Constants,
-                             Path,
-                             Allow_Try => True),
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type,
-                          Path);
+                       Desugar_Checked (Part.Condition);
                   begin
-                     Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                      New_Part.Condition := Desugared.Expr;
                   end;
                   if Try_Direct_Growable_Length_Guard
@@ -12174,21 +12043,7 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_While =>
             declare
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Condition,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Condition, Append_To_Expanded => False);
                Body_Exact_Length_Facts : Exact_Length_Maps.Map := Exact_Length_Facts;
                Guard_Name : FT.UString := FT.To_UString ("");
                Guard_Length : Natural := 0;
@@ -12258,23 +12113,8 @@ package body Safe_Frontend.Check_Resolve is
             if Stmt.Condition /= null then
                declare
                   Desugared : constant Desugared_Expr_Result :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Condition,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
+                    Desugar_Checked (Stmt.Condition);
                begin
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                   Result.Condition := Desugared.Expr;
                end;
             end if;
@@ -12285,23 +12125,8 @@ package body Safe_Frontend.Check_Resolve is
                   Iterable_Type : GM.Type_Descriptor;
                   Base_Type_Info : GM.Type_Descriptor;
                   Desugared : constant Desugared_Expr_Result :=
-                    Desugar_Executable_Expr
-                      (Normalize_Expr_Checked
-                         (Stmt.Loop_Iterable,
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Local_Static_Constants,
-                          Path,
-                          Allow_Try => True),
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Has_Enclosing_Return,
-                       Enclosing_Return_Type,
-                       Path);
+                    Desugar_Checked (Stmt.Loop_Iterable);
                begin
-                  Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                   Result.Loop_Iterable := Desugared.Expr;
                   if not Is_Name_Expr (Result.Loop_Iterable) then
                      Raise_Diag
@@ -12384,40 +12209,10 @@ package body Safe_Frontend.Check_Resolve is
                if Stmt.Loop_Range.Kind = CM.Range_Explicit then
                   declare
                      Low_Desugared : constant Desugared_Expr_Result :=
-                       Desugar_Executable_Expr
-                         (Normalize_Expr_Checked
-                            (Stmt.Loop_Range.Low_Expr,
-                             Var_Types,
-                             Functions,
-                             Type_Env,
-                             Local_Static_Constants,
-                             Path,
-                             Allow_Try => True),
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type,
-                          Path);
+                       Desugar_Checked (Stmt.Loop_Range.Low_Expr);
                      High_Desugared : constant Desugared_Expr_Result :=
-                       Desugar_Executable_Expr
-                         (Normalize_Expr_Checked
-                            (Stmt.Loop_Range.High_Expr,
-                             Var_Types,
-                             Functions,
-                             Type_Env,
-                             Local_Static_Constants,
-                             Path,
-                             Allow_Try => True),
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type,
-                          Path);
+                       Desugar_Checked (Stmt.Loop_Range.High_Expr);
                   begin
-                     Append_Statements (Expanded, Normalize_Preludes (Low_Desugared.Preludes));
-                     Append_Statements (Expanded, Normalize_Preludes (High_Desugared.Preludes));
                      Result.Loop_Range.Low_Expr := Low_Desugared.Expr;
                      Result.Loop_Range.High_Expr := High_Desugared.Expr;
                   end;
@@ -12426,23 +12221,8 @@ package body Safe_Frontend.Check_Resolve is
                else
                   declare
                      Desugared : constant Desugared_Expr_Result :=
-                       Desugar_Executable_Expr
-                         (Normalize_Expr_Checked
-                            (Stmt.Loop_Range.Name_Expr,
-                             Var_Types,
-                             Functions,
-                             Type_Env,
-                             Local_Static_Constants,
-                             Path,
-                             Allow_Try => True),
-                          Var_Types,
-                          Functions,
-                          Type_Env,
-                          Has_Enclosing_Return,
-                          Enclosing_Return_Type,
-                          Path);
+                       Desugar_Checked (Stmt.Loop_Range.Name_Expr);
                   begin
-                     Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                      Result.Loop_Range.Name_Expr := Desugared.Expr;
                   end;
                   Loop_Type :=
@@ -12513,224 +12293,176 @@ package body Safe_Frontend.Check_Resolve is
                                    Functions,
                                    Type_Env);
                            begin
-                              if Builtin_Kind = Builtin_Append
-                              then
-                              declare
-                                 Element_Type : GM.Type_Descriptor;
-                                 Key_Type     : GM.Type_Descriptor;
-                                 Value_Type   : GM.Type_Descriptor;
-                                 Desugared    : Desugared_Expr_Result;
-                              begin
-                                 if Natural (Resolved_Call.Args.Length) /= 2 then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => (if Resolved_Call.Has_Call_Span
-                                                      then Resolved_Call.Call_Span
-                                                      else Resolved_Call.Span),
-                                          Message => "`append(items, value)` expects exactly two arguments"));
-                                 elsif not Is_Growable_Array_Type (Shared_Type, Type_Env)
-                                   or else Try_Map_Key_Value_Types (Shared_Type, Type_Env, Key_Type, Value_Type)
-                                 then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
-                                          Message => "`append` expects a shared `list of T` or growable `array of T` root"));
-                                 end if;
+                              if Builtin_Kind = Builtin_Append then
+                                 declare
+                                    Element_Type : GM.Type_Descriptor;
+                                    Key_Type     : GM.Type_Descriptor;
+                                    Value_Type   : GM.Type_Descriptor;
+                                    Desugared    : Desugared_Expr_Result;
+                                 begin
+                                    if Natural (Resolved_Call.Args.Length) /= 2 then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => (if Resolved_Call.Has_Call_Span
+                                                         then Resolved_Call.Call_Span
+                                                         else Resolved_Call.Span),
+                                             Message => "`append(items, value)` expects exactly two arguments"));
+                                    elsif not Is_Growable_Array_Type (Shared_Type, Type_Env)
+                                      or else Try_Map_Key_Value_Types (Shared_Type, Type_Env, Key_Type, Value_Type)
+                                    then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                             Message => "`append` expects a shared `list of T` or growable `array of T` root"));
+                                    end if;
 
-                                 Element_Type := Growable_Array_Element_Type (Shared_Type, Type_Env);
-                                 if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Unsupported_Source_Construct
-                                         (Path    => Path,
-                                          Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
-                                          Message =>
-                                            "`list of T` is limited to the admitted value-type subset in PR11.10b"));
-                                 end if;
+                                    Element_Type := Growable_Array_Element_Type (Shared_Type, Type_Env);
+                                    if not Is_Container_Element_Type_Allowed (Element_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Unsupported_Source_Construct
+                                            (Path    => Path,
+                                             Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                             Message =>
+                                               "`list of T` is limited to the admitted value-type subset in PR11.10b"));
+                                    end if;
 
-                                 Desugared :=
-                                   Desugar_Executable_Expr
-                                     (Normalize_Expr_Checked
-                                        (Resolved_Call.Args (Resolved_Call.Args.First_Index + 1),
-                                         Var_Types,
-                                         Functions,
-                                         Type_Env,
-                                         Local_Static_Constants,
-                                         Path,
-                                         Allow_Try => True),
-                                      Var_Types,
-                                      Functions,
-                                      Type_Env,
-                                      Has_Enclosing_Return,
-                                      Enclosing_Return_Type,
-                                      Path);
-                                 Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
+                                    Desugared :=
+                                      Desugar_Checked
+                                        (Resolved_Call.Args (Resolved_Call.Args.First_Index + 1));
 
-                                 Result.Kind := CM.Stmt_Call;
-                                 Result.Target := null;
-                                 Result.Value := null;
-                                 Result.Call :=
-                                   Shared_Call_Expr
-                                     (Shared,
-                                      Shared_Append_Name,
-                                      Stmt.Span);
-                                 Result.Call.Args.Append
-                                   (Validate_And_Contextualize_Value
-                                      (Desugared.Expr,
-                                       Element_Type,
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env,
-                                       Local_Static_Constants,
-                                       Exact_Length_Facts,
-                                       Path,
-                                       "`append` value type does not match the list element type"));
-                                 Expanded.Append (Result);
-                                 return Expanded;
-                              end;
-                           elsif Builtin_Kind = Builtin_Set
-                           then
-                              declare
-                                 Key_Type       : GM.Type_Descriptor;
-                                 Value_Type     : GM.Type_Descriptor;
-                                 Key_Desugared  : Desugared_Expr_Result;
-                                 Value_Desugared : Desugared_Expr_Result;
-                              begin
-                                 if Natural (Resolved_Call.Args.Length) /= 3 then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => (if Resolved_Call.Has_Call_Span
-                                                      then Resolved_Call.Call_Span
-                                                      else Resolved_Call.Span),
-                                          Message => "`set(m, key, value)` expects exactly three arguments"));
-                                 elsif not Try_Map_Key_Value_Types (Shared_Type, Type_Env, Key_Type, Value_Type) then
-                                    Raise_Diag
-                                      (CM.Source_Frontend_Error
-                                         (Path    => Path,
-                                          Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
-                                          Message => "`set` expects a shared `map of (K, V)` root"));
-                                 elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Unsupported_Source_Construct
-                                         (Path    => Path,
-                                          Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
-                                          Message =>
-                                            "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
-                                 elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
-                                    Raise_Diag
-                                      (CM.Unsupported_Source_Construct
-                                         (Path    => Path,
-                                          Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
-                                          Message =>
-                                            "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
-                                 end if;
+                                    Result.Kind := CM.Stmt_Call;
+                                    Result.Target := null;
+                                    Result.Value := null;
+                                    Result.Call :=
+                                      Shared_Call_Expr
+                                        (Shared,
+                                         Shared_Append_Name,
+                                         Stmt.Span);
+                                    Result.Call.Args.Append
+                                      (Validate_And_Contextualize_Value
+                                         (Desugared.Expr,
+                                          Element_Type,
+                                          Var_Types,
+                                          Functions,
+                                          Type_Env,
+                                          Local_Static_Constants,
+                                          Exact_Length_Facts,
+                                          Path,
+                                          "`append` value type does not match the list element type"));
+                                    Expanded.Append (Result);
+                                    return Expanded;
+                                 end;
+                              elsif Builtin_Kind = Builtin_Set then
+                                 declare
+                                    Key_Type        : GM.Type_Descriptor;
+                                    Value_Type      : GM.Type_Descriptor;
+                                    Key_Desugared   : Desugared_Expr_Result;
+                                    Value_Desugared : Desugared_Expr_Result;
+                                 begin
+                                    if Natural (Resolved_Call.Args.Length) /= 3 then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => (if Resolved_Call.Has_Call_Span
+                                                         then Resolved_Call.Call_Span
+                                                         else Resolved_Call.Span),
+                                             Message => "`set(m, key, value)` expects exactly three arguments"));
+                                    elsif not Try_Map_Key_Value_Types (Shared_Type, Type_Env, Key_Type, Value_Type) then
+                                       Raise_Diag
+                                         (CM.Source_Frontend_Error
+                                            (Path    => Path,
+                                             Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                             Message => "`set` expects a shared `map of (K, V)` root"));
+                                    elsif not Is_Map_Key_Type_Allowed (Key_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Unsupported_Source_Construct
+                                            (Path    => Path,
+                                             Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                             Message =>
+                                               "`map of (K, V)` keys are limited to the admitted discrete/string subset in PR11.10c"));
+                                    elsif not Is_Container_Element_Type_Allowed (Value_Type, Type_Env) then
+                                       Raise_Diag
+                                         (CM.Unsupported_Source_Construct
+                                            (Path    => Path,
+                                             Span    => Resolved_Call.Args (Resolved_Call.Args.First_Index).Span,
+                                             Message =>
+                                               "`map of (K, V)` values are limited to the admitted value-type subset in PR11.10c"));
+                                    end if;
 
-                                 Key_Desugared :=
-                                   Desugar_Executable_Expr
-                                     (Normalize_Expr_Checked
-                                        (Resolved_Call.Args (Resolved_Call.Args.First_Index + 1),
-                                         Var_Types,
-                                         Functions,
-                                         Type_Env,
-                                         Local_Static_Constants,
-                                         Path,
-                                         Allow_Try => True),
-                                      Var_Types,
-                                      Functions,
-                                      Type_Env,
-                                      Has_Enclosing_Return,
-                                      Enclosing_Return_Type,
-                                      Path);
-                                 Value_Desugared :=
-                                   Desugar_Executable_Expr
-                                     (Normalize_Expr_Checked
-                                        (Resolved_Call.Args (Resolved_Call.Args.First_Index + 2),
-                                         Var_Types,
-                                         Functions,
-                                         Type_Env,
-                                         Local_Static_Constants,
-                                         Path,
-                                         Allow_Try => True),
-                                      Var_Types,
-                                      Functions,
-                                      Type_Env,
-                                      Has_Enclosing_Return,
-                                      Enclosing_Return_Type,
-                                      Path);
-                                 Append_Statements (Expanded, Normalize_Preludes (Key_Desugared.Preludes));
-                                 Append_Statements (Expanded, Normalize_Preludes (Value_Desugared.Preludes));
+                                    Key_Desugared :=
+                                      Desugar_Checked
+                                        (Resolved_Call.Args (Resolved_Call.Args.First_Index + 1));
+                                    Value_Desugared :=
+                                      Desugar_Checked
+                                        (Resolved_Call.Args (Resolved_Call.Args.First_Index + 2));
 
-                                 Result.Kind := CM.Stmt_Call;
-                                 Result.Target := null;
-                                 Result.Value := null;
-                                 Result.Call :=
-                                   Shared_Call_Expr
-                                     (Shared,
-                                      Shared_Set_Name,
-                                      Stmt.Span);
-                                 Result.Call.Args.Append
-                                   (Validate_And_Contextualize_Value
-                                      (Key_Desugared.Expr,
-                                       Key_Type,
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env,
-                                       Local_Static_Constants,
-                                       Exact_Length_Facts,
-                                       Path,
-                                       "`set` key type does not match the map key type"));
-                                 Result.Call.Args.Append
-                                   (Validate_And_Contextualize_Value
-                                      (Value_Desugared.Expr,
-                                       Value_Type,
-                                       Var_Types,
-                                       Functions,
-                                       Type_Env,
-                                       Local_Static_Constants,
-                                       Exact_Length_Facts,
-                                       Path,
-                                       "`set` value type does not match the map value type"));
-                                 Expanded.Append (Result);
-                                 return Expanded;
-                              end;
-                           elsif Builtin_Kind = Builtin_Pop_Last
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => (if Resolved_Call.Has_Call_Span
-                                                then Resolved_Call.Call_Span
-                                                else Resolved_Call.Span),
-                                    Message => "`pop_last(items)` returns an `optional T` value and must be used in an expression"));
-                           elsif Builtin_Kind = Builtin_Contains
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => (if Resolved_Call.Has_Call_Span
-                                                then Resolved_Call.Call_Span
-                                                else Resolved_Call.Span),
-                                    Message => "`contains(m, key)` returns a `boolean` value and must be used in an expression"));
-                           elsif Builtin_Kind = Builtin_Get
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => (if Resolved_Call.Has_Call_Span
-                                                then Resolved_Call.Call_Span
-                                                else Resolved_Call.Span),
-                                    Message => "`get(m, key)` returns an `optional V` value and must be used in an expression"));
-                           elsif Builtin_Kind = Builtin_Remove
-                           then
-                              Raise_Diag
-                                (CM.Source_Frontend_Error
-                                   (Path    => Path,
-                                    Span    => (if Resolved_Call.Has_Call_Span
-                                                then Resolved_Call.Call_Span
-                                                else Resolved_Call.Span),
-                                    Message => "`remove(m, key)` mutates a map and returns an `optional V` value, so it must be used in an expression"));
+                                    Result.Kind := CM.Stmt_Call;
+                                    Result.Target := null;
+                                    Result.Value := null;
+                                    Result.Call :=
+                                      Shared_Call_Expr
+                                        (Shared,
+                                         Shared_Set_Name,
+                                         Stmt.Span);
+                                    Result.Call.Args.Append
+                                      (Validate_And_Contextualize_Value
+                                         (Key_Desugared.Expr,
+                                          Key_Type,
+                                          Var_Types,
+                                          Functions,
+                                          Type_Env,
+                                          Local_Static_Constants,
+                                          Exact_Length_Facts,
+                                          Path,
+                                          "`set` key type does not match the map key type"));
+                                    Result.Call.Args.Append
+                                      (Validate_And_Contextualize_Value
+                                         (Value_Desugared.Expr,
+                                          Value_Type,
+                                          Var_Types,
+                                          Functions,
+                                          Type_Env,
+                                          Local_Static_Constants,
+                                          Exact_Length_Facts,
+                                          Path,
+                                          "`set` value type does not match the map value type"));
+                                    Expanded.Append (Result);
+                                    return Expanded;
+                                 end;
+                              elsif Builtin_Kind = Builtin_Pop_Last then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Resolved_Call.Has_Call_Span
+                                                   then Resolved_Call.Call_Span
+                                                   else Resolved_Call.Span),
+                                       Message => "`pop_last(items)` returns an `optional T` value and must be used in an expression"));
+                              elsif Builtin_Kind = Builtin_Contains then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Resolved_Call.Has_Call_Span
+                                                   then Resolved_Call.Call_Span
+                                                   else Resolved_Call.Span),
+                                       Message => "`contains(m, key)` returns a `boolean` value and must be used in an expression"));
+                              elsif Builtin_Kind = Builtin_Get then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Resolved_Call.Has_Call_Span
+                                                   then Resolved_Call.Call_Span
+                                                   else Resolved_Call.Span),
+                                       Message => "`get(m, key)` returns an `optional V` value and must be used in an expression"));
+                              elsif Builtin_Kind = Builtin_Remove then
+                                 Raise_Diag
+                                   (CM.Source_Frontend_Error
+                                      (Path    => Path,
+                                       Span    => (if Resolved_Call.Has_Call_Span
+                                                   then Resolved_Call.Call_Span
+                                                   else Resolved_Call.Span),
+                                       Message => "`remove(m, key)` mutates a map and returns an `optional V` value, so it must be used in an expression"));
                               end if;
                            end;
                         end if;
@@ -13450,23 +13182,8 @@ package body Safe_Frontend.Check_Resolve is
             Reject_Imported_Channel_Elaboration (Result.Channel_Name, Stmt.Span);
             declare
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Value,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Value);
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Result.Value := Desugared.Expr;
             end;
             Channel_Type := Channel_Element_Type (Result.Channel_Name, Channel_Env, Path);
@@ -13577,23 +13294,8 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_Delay =>
             declare
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Value,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Value);
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Result.Value := Desugared.Expr;
             end;
             if not Is_Duration_Compatible
@@ -13610,23 +13312,8 @@ package body Safe_Frontend.Check_Resolve is
             declare
                Scrutinee_Type : GM.Type_Descriptor;
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Case_Expr,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Case_Expr);
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Result.Case_Expr := Desugared.Expr;
                Scrutinee_Type :=
                  Expr_Type (Result.Case_Expr, Var_Types, Functions, Type_Env);
@@ -13704,21 +13391,7 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Stmt_Match =>
             declare
                Desugared : constant Desugared_Expr_Result :=
-                 Desugar_Executable_Expr
-                   (Normalize_Expr_Checked
-                      (Stmt.Match_Expr,
-                       Var_Types,
-                       Functions,
-                       Type_Env,
-                       Local_Static_Constants,
-                       Path,
-                       Allow_Try => True),
-                    Var_Types,
-                    Functions,
-                    Type_Env,
-                    Has_Enclosing_Return,
-                    Enclosing_Return_Type,
-                    Path);
+                 Desugar_Checked (Stmt.Match_Expr);
                Carrier_Type : GM.Type_Descriptor;
                Match_Value  : CM.Expr_Access;
                Match_Name   : FT.UString := FT.To_UString ("");
@@ -13739,7 +13412,6 @@ package body Safe_Frontend.Check_Resolve is
                        others    => <>);
                end Enum_Literal_Expr;
             begin
-               Append_Statements (Expanded, Normalize_Preludes (Desugared.Preludes));
                Carrier_Type := Expr_Type (Desugared.Expr, Var_Types, Functions, Type_Env);
 
                if Is_Name_Expr (Desugared.Expr) then
