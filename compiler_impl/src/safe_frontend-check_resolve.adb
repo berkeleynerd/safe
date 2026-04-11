@@ -14404,6 +14404,8 @@ package body Safe_Frontend.Check_Resolve is
             declare
                Parent      : constant GM.Type_Descriptor :=
                  Resolve_Type_Spec (Decl.Parent_Type, Type_Env, Const_Env, Path);
+               --  This Base_Type follows all Has_Base links, including nominal
+               --  parents, so this fallback recovers root integer bounds.
                Parent_Base : constant GM.Type_Descriptor := Base_Type (Parent, Type_Env);
                Parent_Name : constant String := UString_Value (Parent.Name);
                Constraint_Prefix : constant String := "__constraint_";

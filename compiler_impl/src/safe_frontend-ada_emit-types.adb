@@ -490,36 +490,59 @@ package body Safe_Frontend.Ada_Emit.Types is
       return (others => <>);
    end Lookup_Type;
 
-   function Base_Type
+   function Walk_Base_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
-      Info     : GM.Type_Descriptor) return GM.Type_Descriptor
+      Info     : GM.Type_Descriptor;
+      Include_Nominal : Boolean) return GM.Type_Descriptor
    is
       Result : GM.Type_Descriptor := Preferred_Imported_Synthetic_Type (Unit, Info);
+
+      Seen : FT.UString_Vectors.Vector;
+
+      function Should_Walk return Boolean is
+         Kind : constant String := FT.To_String (Result.Kind);
+      begin
+         return Kind = "subtype"
+           or else (Include_Nominal and then Kind = "nominal");
+      end Should_Walk;
    begin
-      while FT.To_String (Result.Kind) = "subtype"
+      while Should_Walk
         and then Result.Has_Base
         and then Has_Type (Unit, Document, FT.To_String (Result.Base))
       loop
-         Result := Lookup_Type (Unit, Document, FT.To_String (Result.Base));
+         declare
+            Result_Name : constant String := FT.To_String (Result.Name);
+         begin
+            exit when Result_Name'Length = 0
+              or else Contains_Name (Seen, Result_Name);
+
+            Seen.Append (FT.To_UString (Result_Name));
+         end;
+
+         declare
+            Base_Name : constant String := FT.To_String (Result.Base);
+         begin
+            Result := Lookup_Type (Unit, Document, Base_Name);
+         end;
       end loop;
       return Result;
+   end Walk_Base_Type;
+
+   function Base_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return GM.Type_Descriptor is
+   begin
+      return Walk_Base_Type (Unit, Document, Info, Include_Nominal => False);
    end Base_Type;
 
    function Integer_Base_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
-      Info     : GM.Type_Descriptor) return GM.Type_Descriptor
-   is
-      Result : GM.Type_Descriptor := Preferred_Imported_Synthetic_Type (Unit, Info);
+      Info     : GM.Type_Descriptor) return GM.Type_Descriptor is
    begin
-      while FT.To_String (Result.Kind) in "subtype" | "nominal"
-        and then Result.Has_Base
-        and then Has_Type (Unit, Document, FT.To_String (Result.Base))
-      loop
-         Result := Lookup_Type (Unit, Document, FT.To_String (Result.Base));
-      end loop;
-      return Result;
+      return Walk_Base_Type (Unit, Document, Info, Include_Nominal => True);
    end Integer_Base_Type;
 
    function Has_Type
@@ -3922,6 +3945,8 @@ package body Safe_Frontend.Ada_Emit.Types is
      (Type_Item : GM.Type_Descriptor) return String
    is
       Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+      --  Nominal parents may be imported qualified types. Ada_Qualified_Name
+      --  still maps unqualified builtins through Ada_Safe_Name.
       Base : constant String := Ada_Qualified_Name (FT.To_String (Type_Item.Base));
    begin
       if Type_Item.Has_Low and then Type_Item.Has_High then
