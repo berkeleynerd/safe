@@ -1250,7 +1250,9 @@ package body Safe_Frontend.Check_Resolve is
             end if;
 
             if Seen.Contains (Current_Name) then
-               return "";
+               Raise_Internal
+                 ("cycle detected while walking nominal family base chain: "
+                  & Current_Name);
             end if;
 
             Seen.Include (Current_Name, 1);
@@ -14562,6 +14564,9 @@ package body Safe_Frontend.Check_Resolve is
                   Result.Has_High := True;
                   Result.High := Parent.High;
                elsif Parent_Base.Has_Low and then Parent_Base.Has_High then
+                  --  Handles aliases that omit local bounds but resolve to a
+                  --  bounded base, for example `subtype any_integer is integer`
+                  --  followed by `type id is new any_integer`.
                   Result.Has_Low := True;
                   Result.Low := Parent_Base.Low;
                   Result.Has_High := True;

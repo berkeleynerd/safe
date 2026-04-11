@@ -940,6 +940,42 @@ BUILD_REJECT_CASES = [
         REPO_ROOT / "tests" / "build" / "pr118c2_root_with_clause.safe",
         "local dependency source not found for package `missing_helper`",
     ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_arithmetic_typed_integer.safe",
+        "nominal arithmetic requires operands from the same nominal type family or in-range integer literals",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_cross_family.safe",
+        "object initializer type does not match declared type",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_cross_family_arith.safe",
+        "nominal arithmetic requires operands from the same nominal type family or in-range integer literals",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_derived_implicit.safe",
+        "object initializer type does not match declared type",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_implicit_integer.safe",
+        "object initializer type does not match declared type",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_literal_oob.safe",
+        "integer literal 11 is outside range of nominal-family type user_id (0 .. 10)",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_non_integer_parent.safe",
+        "nominal type aliases require an integer-family parent in PR11.16",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_to_integer.safe",
+        "object initializer type does not match declared type",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1116_nominal_typed_integer_comparison.safe",
+        "nominal comparisons require operands from the same nominal type family or integer literals within the nominal target's bounds",
+    ),
 ]
 
 RUN_SUCCESS_CASES = [
