@@ -1203,6 +1203,14 @@ package body Safe_Frontend.Check_Resolve is
       return FT.Lowercase (UString_Value (Info.Kind)) = "nominal";
    end Is_Nominal_Type;
 
+   function Is_Anonymous_Constraint_Name (Name : String) return Boolean is
+      Constraint_Prefix : constant String := "__constraint_";
+   begin
+      return Name'Length >= Constraint_Prefix'Length
+        and then Name (Name'First .. Name'First + Constraint_Prefix'Length - 1) =
+          Constraint_Prefix;
+   end Is_Anonymous_Constraint_Name;
+
    function Nominal_Family_Name
      (Info     : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return String
@@ -1277,6 +1285,29 @@ package body Safe_Frontend.Check_Resolve is
       return False;
    end Try_Integer_Literal_Context_Value;
 
+   function Wide_Integer_Image (Value : CM.Wide_Integer) return String is
+   begin
+      return
+        Ada.Strings.Fixed.Trim
+          (CM.Wide_Integer'Image (Value),
+           Ada.Strings.Both);
+   end Wide_Integer_Image;
+
+   function Nominal_Integer_Literal_Out_Of_Bounds
+     (Expr     : CM.Expr_Access;
+      Target   : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map;
+      Value    : out CM.Wide_Integer) return Boolean
+   is
+   begin
+      Value := 0;
+      return Has_Nominal_Family (Target, Type_Env)
+        and then Try_Integer_Literal_Context_Value (Expr, Value)
+        and then
+          ((Target.Has_Low and then Value < CM.Wide_Integer (Target.Low))
+           or else (Target.Has_High and then Value > CM.Wide_Integer (Target.High)));
+   end Nominal_Integer_Literal_Out_Of_Bounds;
+
    function Nominal_Integer_Literal_Compatible
      (Expr     : CM.Expr_Access;
       Target   : GM.Type_Descriptor;
@@ -1303,14 +1334,14 @@ package body Safe_Frontend.Check_Resolve is
       Left_Has_Family  : constant Boolean := Has_Nominal_Family (Left_Type, Type_Env);
       Right_Has_Family : constant Boolean := Has_Nominal_Family (Right_Type, Type_Env);
    begin
-      if not Left_Has_Family and then not Right_Has_Family then
-         return True;
-      elsif Left_Has_Family and then Right_Has_Family then
+      if Left_Has_Family and then Right_Has_Family then
          return Same_Nominal_Family (Left_Type, Right_Type, Type_Env);
       elsif Left_Has_Family then
          return Nominal_Integer_Literal_Compatible (Right_Expr, Left_Type, Type_Env);
-      else
+      elsif Right_Has_Family then
          return Nominal_Integer_Literal_Compatible (Left_Expr, Right_Type, Type_Env);
+      else
+         return False;
       end if;
    end Nominal_Operands_Compatible;
 
@@ -9336,11 +9367,48 @@ package body Safe_Frontend.Check_Resolve is
               Const_Env,
               Exact_Length_Facts)
          then
-            Raise_Diag
-              (CM.Source_Frontend_Error
-                 (Path    => Path,
-                  Span    => Result.Initializer.Span,
-                  Message => "object initializer type does not match declared type"));
+            declare
+               Literal_Value : CM.Wide_Integer := 0;
+            begin
+               if Nominal_Integer_Literal_Out_Of_Bounds
+                 (Result.Initializer,
+                  Result.Type_Info,
+                  Type_Env,
+                  Literal_Value)
+               then
+                  declare
+                     Range_Text : constant String :=
+                       (if Result.Type_Info.Has_Low and then Result.Type_Info.Has_High
+                        then
+                          " ("
+                          & Wide_Integer_Image
+                              (CM.Wide_Integer (Result.Type_Info.Low))
+                          & " .. "
+                          & Wide_Integer_Image
+                              (CM.Wide_Integer (Result.Type_Info.High))
+                          & ")"
+                        else "");
+                  begin
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Result.Initializer.Span,
+                           Message =>
+                             "integer literal "
+                             & Wide_Integer_Image (Literal_Value)
+                             & " is outside range of nominal type "
+                             & UString_Value (Result.Type_Info.Name)
+                             & Range_Text));
+                  end;
+               else
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Result.Initializer.Span,
+                        Message =>
+                          "object initializer type does not match declared type"));
+               end if;
+            end;
          end if;
       end if;
       return Result;
@@ -14408,15 +14476,10 @@ package body Safe_Frontend.Check_Resolve is
                --  parents, so this fallback recovers root integer bounds.
                Parent_Base : constant GM.Type_Descriptor := Base_Type (Parent, Type_Env);
                Parent_Name : constant String := UString_Value (Parent.Name);
-               Constraint_Prefix : constant String := "__constraint_";
                Parent_Is_Anonymous_Constraint : constant Boolean :=
                  FT.Lowercase (UString_Value (Parent.Kind)) = "subtype"
                  and then Parent.Has_Base
-                 and then Parent_Name'Length >= Constraint_Prefix'Length
-                 and then
-                   Parent_Name
-                     (Parent_Name'First .. Parent_Name'First + Constraint_Prefix'Length - 1) =
-                       Constraint_Prefix;
+                 and then Is_Anonymous_Constraint_Name (Parent_Name);
                Base_Name : constant String :=
                  (if Parent_Is_Anonymous_Constraint
                   then UString_Value (Parent.Base)
@@ -14431,6 +14494,16 @@ package body Safe_Frontend.Check_Resolve is
                         Span    => Decl.Parent_Type.Span,
                         Message =>
                           "nominal type aliases require an integer-family parent in PR11.16"));
+               end if;
+
+               if Is_Anonymous_Constraint_Name (Base_Name) then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Parent_Type.Span,
+                        Message =>
+                          "internal error: nominal type parent resolved to nested anonymous constraint "
+                          & Base_Name));
                end if;
 
                Result.Kind := FT.To_UString ("nominal");
