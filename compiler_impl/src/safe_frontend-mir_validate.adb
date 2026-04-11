@@ -171,6 +171,8 @@ package body Safe_Frontend.Mir_Validate is
       Require (Has_Text (Value.Kind), Where & ": missing type kind");
       if FT.To_String (Value.Kind) = "binary" then
          Require (Value.Has_Bit_Width, Where & ": binary type is missing bit_width");
+      elsif FT.To_String (Value.Kind) = "nominal" then
+         Require (Value.Has_Base, Where & ": nominal type is missing base");
       end if;
 
       if not Value.Index_Types.Is_Empty then

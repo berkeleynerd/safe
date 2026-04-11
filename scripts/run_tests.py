@@ -923,6 +923,16 @@ BUILD_SUCCESS_CASES = [
         "1\n",
         False,
     ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1116_nominal_integer_build.safe",
+        "43\n41\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr1116_imported_nominal_build.safe",
+        "41\n6\n",
+        False,
+    ),
 ]
 
 BUILD_REJECT_CASES = [

@@ -1,0 +1,8 @@
+package pr1116_provider_nominal
+
+   public type user_id is new integer (0 to 1000);
+   public subtype small_user_id is user_id (0 to 100);
+
+   public function next (value : small_user_id) returns user_id
+
+      return value + 1

@@ -179,7 +179,7 @@ package body Safe_Frontend.Check_Lower is
    is
       Current : GM.Type_Descriptor := Info;
    begin
-      while UString_Value (Current.Kind) = "subtype"
+      while UString_Value (Current.Kind) in "subtype" | "nominal"
         and then Current.Has_Base
         and then Type_Env.Contains (UString_Value (Current.Base))
       loop
@@ -776,7 +776,7 @@ package body Safe_Frontend.Check_Lower is
    function Is_Integerish (Info : GM.Type_Descriptor) return Boolean is
       Kind : constant String := FT.Lowercase (UString_Value (Info.Kind));
    begin
-      return Kind = "integer" or else Kind = "subtype";
+      return Kind in "integer" | "subtype" | "nominal";
    end Is_Integerish;
 
    function Static_Integer_Value

@@ -979,7 +979,8 @@ package body Safe_Frontend.Mir_Analyze is
       Binary_High : Wide_Integer;
    begin
       if (Lower (UString_Value (Info.Kind)) = "integer"
-          or else Lower (UString_Value (Info.Kind)) = "subtype")
+          or else Lower (UString_Value (Info.Kind)) = "subtype"
+          or else Lower (UString_Value (Info.Kind)) = "nominal")
         and then Info.Has_Low and then Info.Has_High
       then
          return
@@ -1041,7 +1042,7 @@ package body Safe_Frontend.Mir_Analyze is
      (Info : GM.Type_Descriptor) return Boolean is
       Kind : constant String := Lower (UString_Value (Info.Kind));
    begin
-      return Kind = "integer" or else Kind = "subtype";
+      return Kind = "integer" or else Kind = "subtype" or else Kind = "nominal";
    end Is_Integer_Type;
 
    function Is_Binary_Type

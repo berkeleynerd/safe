@@ -332,6 +332,8 @@ package body Safe_Frontend.Check_Resolve is
             return "record";
          when CM.Type_Decl_Interface =>
             return "interface";
+         when CM.Type_Decl_Nominal =>
+            return "nominal";
          when CM.Type_Decl_Growable_Array =>
             return "growable array";
          when CM.Type_Decl_Constrained_Array | CM.Type_Decl_Unconstrained_Array =>
@@ -1196,6 +1198,121 @@ package body Safe_Frontend.Check_Resolve is
       Path     : String;
       Span     : FT.Source_Span) return GM.Type_Descriptor;
 
+   function Is_Nominal_Type (Info : GM.Type_Descriptor) return Boolean is
+   begin
+      return FT.Lowercase (UString_Value (Info.Kind)) = "nominal";
+   end Is_Nominal_Type;
+
+   function Nominal_Family_Name
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return String
+   is
+      Current : GM.Type_Descriptor := Info;
+      Steps   : Natural := 0;
+   begin
+      loop
+         if Is_Nominal_Type (Current) then
+            return Canonical_Name (UString_Value (Current.Name));
+         end if;
+
+         exit when not Current.Has_Base
+           or else not Has_Type (Type_Env, UString_Value (Current.Base));
+
+         Current := Get_Type (Type_Env, UString_Value (Current.Base));
+         Steps := Steps + 1;
+         exit when Steps > 64;
+      end loop;
+
+      return "";
+   end Nominal_Family_Name;
+
+   function Has_Nominal_Family
+     (Info     : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean is
+   begin
+      return Nominal_Family_Name (Info, Type_Env)'Length > 0;
+   end Has_Nominal_Family;
+
+   function Same_Nominal_Family
+     (Left     : GM.Type_Descriptor;
+      Right    : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Left_Family  : constant String := Nominal_Family_Name (Left, Type_Env);
+      Right_Family : constant String := Nominal_Family_Name (Right, Type_Env);
+   begin
+      return Left_Family'Length > 0
+        and then Left_Family = Right_Family;
+   end Same_Nominal_Family;
+
+   function Try_Integer_Literal_Context_Value
+     (Expr   : CM.Expr_Access;
+      Result : out CM.Wide_Integer) return Boolean
+   is
+      Inner_Value : CM.Wide_Integer := 0;
+   begin
+      Result := 0;
+      if Expr = null then
+         return False;
+      elsif Expr.Kind = CM.Expr_Int then
+         Result := Expr.Int_Value;
+         return True;
+      elsif Expr.Kind = CM.Expr_Unary
+        and then UString_Value (Expr.Operator) = "-"
+        and then Try_Integer_Literal_Context_Value (Expr.Inner, Inner_Value)
+      then
+         Result := -Inner_Value;
+         return True;
+      end if;
+
+      return False;
+   end Try_Integer_Literal_Context_Value;
+
+   function Nominal_Integer_Literal_Compatible
+     (Expr     : CM.Expr_Access;
+      Target   : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return Boolean
+   is
+      Value : CM.Wide_Integer := 0;
+   begin
+      return Has_Nominal_Family (Target, Type_Env)
+        and then Try_Integer_Literal_Context_Value (Expr, Value)
+        and then (not Target.Has_Low or else Value >= CM.Wide_Integer (Target.Low))
+        and then (not Target.Has_High or else Value <= CM.Wide_Integer (Target.High));
+   end Nominal_Integer_Literal_Compatible;
+
+   function Nominal_Operands_Compatible
+     (Left_Expr  : CM.Expr_Access;
+      Left_Type  : GM.Type_Descriptor;
+      Right_Expr : CM.Expr_Access;
+      Right_Type : GM.Type_Descriptor;
+      Type_Env   : Type_Maps.Map) return Boolean
+   is
+      Left_Has_Family  : constant Boolean := Has_Nominal_Family (Left_Type, Type_Env);
+      Right_Has_Family : constant Boolean := Has_Nominal_Family (Right_Type, Type_Env);
+   begin
+      if not Left_Has_Family and then not Right_Has_Family then
+         return True;
+      elsif Left_Has_Family and then Right_Has_Family then
+         return Same_Nominal_Family (Left_Type, Right_Type, Type_Env);
+      elsif Left_Has_Family then
+         return Nominal_Integer_Literal_Compatible (Right_Expr, Left_Type, Type_Env);
+      else
+         return Nominal_Integer_Literal_Compatible (Left_Expr, Right_Type, Type_Env);
+      end if;
+   end Nominal_Operands_Compatible;
+
+   function Nominal_Result_Type
+     (Left     : GM.Type_Descriptor;
+      Right    : GM.Type_Descriptor;
+      Type_Env : Type_Maps.Map) return GM.Type_Descriptor is
+   begin
+      if Has_Nominal_Family (Left, Type_Env) then
+         return Left;
+      end if;
+      return Right;
+   end Nominal_Result_Type;
+
    function Equivalent_Type
      (Left     : GM.Type_Descriptor;
       Right    : GM.Type_Descriptor;
@@ -1206,6 +1323,12 @@ package body Safe_Frontend.Check_Resolve is
       Left_Tail  : constant String := Synthetic_Type_Tail_Name (UString_Value (Left_Base.Name));
       Right_Tail : constant String := Synthetic_Type_Tail_Name (UString_Value (Right_Base.Name));
    begin
+      if Has_Nominal_Family (Left, Type_Env)
+        or else Has_Nominal_Family (Right, Type_Env)
+      then
+         return Same_Nominal_Family (Left, Right, Type_Env);
+      end if;
+
       if FT.Lowercase (UString_Value (Left_Base.Kind)) = "tuple"
         or else FT.Lowercase (UString_Value (Right_Base.Kind)) = "tuple"
       then
@@ -1247,6 +1370,12 @@ package body Safe_Frontend.Check_Resolve is
       Left_Kind  : constant String := FT.Lowercase (UString_Value (Left_Base.Kind));
       Right_Kind : constant String := FT.Lowercase (UString_Value (Right_Base.Kind));
    begin
+      if Has_Nominal_Family (Left, Type_Env)
+        or else Has_Nominal_Family (Right, Type_Env)
+      then
+         return Same_Nominal_Family (Left, Right, Type_Env);
+      end if;
+
       return Equivalent_Type (Left, Right, Type_Env)
         or else (Left_Kind = "access" and then Right_Kind = "null")
         or else (Left_Kind = "null" and then Right_Kind = "access")
@@ -5367,6 +5496,19 @@ package body Safe_Frontend.Check_Resolve is
                then
                   return Left_Type;
                end if;
+               if UString_Value (Expr.Operator) in "+" | "-" | "*" | "/" | "mod" | "rem"
+                 and then
+                   (Has_Nominal_Family (Left_Type, Type_Env)
+                    or else Has_Nominal_Family (Right_Type, Type_Env))
+                 and then Nominal_Operands_Compatible
+                   (Expr.Left,
+                    Left_Type,
+                    Expr.Right,
+                    Right_Type,
+                    Type_Env)
+               then
+                  return Nominal_Result_Type (Left_Type, Right_Type, Type_Env);
+               end if;
                if UString_Value (Left_Type.Kind) = "float" or else UString_Value (Right_Type.Kind) = "float" then
                   if UString_Value (Left_Type.Kind) = "float" then
                      return Left_Type;
@@ -6490,7 +6632,15 @@ package body Safe_Frontend.Check_Resolve is
             elsif Has_Type (Var_Types, UString_Value (Callee_Name))
               and then UString_Value
                 (Get_Type (Var_Types, UString_Value (Callee_Name)).Kind)
-                  in "integer" | "subtype" | "record" | "float" | "binary"
+                  in "integer" | "subtype" | "record" | "float" | "binary" | "nominal"
+              and then Natural (Expr.Args.Length) = 1
+            then
+               Result.Kind := CM.Expr_Conversion;
+               Result.Target := Expr.Callee;
+               Result.Inner := Expr.Args (Expr.Args.First_Index);
+            elsif Has_Type (Type_Env, UString_Value (Callee_Name))
+              and then UString_Value
+                (Get_Type (Type_Env, UString_Value (Callee_Name)).Kind) = "nominal"
               and then Natural (Expr.Args.Length) = 1
             then
                Result.Kind := CM.Expr_Conversion;
@@ -6529,6 +6679,16 @@ package body Safe_Frontend.Check_Resolve is
                end if;
             end if;
             if Expr.Callee /= null
+              and then Expr.Callee.Kind = CM.Expr_Select
+              and then Has_Type (Type_Env, Flatten_Name (Expr.Callee))
+              and then UString_Value
+                (Get_Type (Type_Env, Flatten_Name (Expr.Callee)).Kind) = "nominal"
+              and then Natural (Expr.Args.Length) = 1
+            then
+               Result.Kind := CM.Expr_Conversion;
+               Result.Target := Expr.Callee;
+               Result.Inner := Expr.Args (Expr.Args.First_Index);
+            elsif Expr.Callee /= null
               and then Expr.Callee.Kind = CM.Expr_Select
               and then
                 ((not Expr.Callee.Generic_Args.Is_Empty
@@ -7826,6 +7986,22 @@ package body Safe_Frontend.Check_Resolve is
                               Message => "binary arithmetic requires same-width operands"));
                      end if;
                   end if;
+                  if (Has_Nominal_Family (Left_Type, Type_Env)
+                      or else Has_Nominal_Family (Right_Type, Type_Env))
+                    and then not Nominal_Operands_Compatible
+                      (Expr.Left,
+                       Left_Type,
+                       Expr.Right,
+                       Right_Type,
+                       Type_Env)
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message =>
+                             "nominal arithmetic requires operands from the same nominal type family or integer literals"));
+                  end if;
                elsif Op = "&" then
                   if Is_String_Type (Left_Type, Type_Env)
                     or else Is_String_Type (Right_Type, Type_Env)
@@ -7896,6 +8072,22 @@ package body Safe_Frontend.Check_Resolve is
                              Span    => Expr.Span,
                              Message => "string comparison requires string operands"));
                      end if;
+                  end if;
+                  if (Has_Nominal_Family (Left_Type, Type_Env)
+                      or else Has_Nominal_Family (Right_Type, Type_Env))
+                    and then not Nominal_Operands_Compatible
+                      (Expr.Left,
+                       Left_Type,
+                       Expr.Right,
+                       Right_Type,
+                       Type_Env)
+                  then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message =>
+                             "nominal comparisons require operands from the same nominal type family or integer literals"));
                   end if;
                end if;
             end;
@@ -8487,6 +8679,10 @@ package body Safe_Frontend.Check_Resolve is
          return True;
       end if;
 
+      if Nominal_Integer_Literal_Compatible (Source_Expr, Target, Type_Env) then
+         return True;
+      end if;
+
       if Compatible_Source_To_Target_Type (Source, Target, Type_Env) then
          return True;
       end if;
@@ -8546,6 +8742,19 @@ package body Safe_Frontend.Check_Resolve is
                    (Expr_Type (Expr.Inner, Var_Types, Functions, Type_Env), Type_Env)
                  and then Try_Static_Integerish_Value
                    (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env, Static_Int)
+               then
+                  Static_Value.Kind := CM.Static_Value_Integer;
+                  Static_Value.Int_Value := Static_Int;
+                  if not Scalar_Value_Compatible (Static_Value, Target_Type, Type_Env) then
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message => "explicit conversion is not provably within target range"));
+                  end if;
+               end if;
+               if Has_Nominal_Family (Target_Type, Type_Env)
+                 and then Try_Integer_Literal_Context_Value (Expr.Inner, Static_Int)
                then
                   Static_Value.Kind := CM.Static_Value_Integer;
                   Static_Value.Int_Value := Static_Int;
@@ -14180,6 +14389,53 @@ package body Safe_Frontend.Check_Resolve is
                   Result.Interface_Members.Append (Member_Info);
                end;
             end loop;
+         when CM.Type_Decl_Nominal =>
+            declare
+               Parent      : constant GM.Type_Descriptor :=
+                 Resolve_Type_Spec (Decl.Parent_Type, Type_Env, Const_Env, Path);
+               Parent_Base : constant GM.Type_Descriptor := Base_Type (Parent, Type_Env);
+               Parent_Name : constant String := UString_Value (Parent.Name);
+               Constraint_Prefix : constant String := "__constraint_";
+               Parent_Is_Anonymous_Constraint : constant Boolean :=
+                 FT.Lowercase (UString_Value (Parent.Kind)) = "subtype"
+                 and then Parent.Has_Base
+                 and then Parent_Name'Length >= Constraint_Prefix'Length
+                 and then
+                   Parent_Name
+                     (Parent_Name'First .. Parent_Name'First + Constraint_Prefix'Length - 1) =
+                       Constraint_Prefix;
+               Base_Name : constant String :=
+                 (if Parent_Is_Anonymous_Constraint
+                  then UString_Value (Parent.Base)
+                  else Parent_Name);
+            begin
+               if not Is_Integerish (Parent, Type_Env)
+                 or else Is_Boolean_Type (Parent, Type_Env)
+               then
+                  Raise_Diag
+                    (CM.Source_Frontend_Error
+                       (Path    => Path,
+                        Span    => Decl.Parent_Type.Span,
+                        Message =>
+                          "nominal type aliases require an integer-family parent in PR11.16"));
+               end if;
+
+               Result.Kind := FT.To_UString ("nominal");
+               Result.Has_Base := True;
+               Result.Base := FT.To_UString (Base_Name);
+
+               if Parent.Has_Low and then Parent.Has_High then
+                  Result.Has_Low := True;
+                  Result.Low := Parent.Low;
+                  Result.Has_High := True;
+                  Result.High := Parent.High;
+               elsif Parent_Base.Has_Low and then Parent_Base.Has_High then
+                  Result.Has_Low := True;
+                  Result.Low := Parent_Base.Low;
+                  Result.Has_High := True;
+                  Result.High := Parent_Base.High;
+               end if;
+            end;
          when CM.Type_Decl_Integer =>
             Result.Kind := FT.To_UString ("subtype");
             Result.Has_Base := True;
@@ -15778,6 +16034,8 @@ package body Safe_Frontend.Check_Resolve is
                        (Deps,
                         Flatten_Name (Decl.Access_Type.Target_Name));
                   end if;
+               when CM.Type_Decl_Nominal =>
+                  Collect_Type_Spec_Dependencies (Decl.Parent_Type, Deps);
                when others =>
                   null;
             end case;

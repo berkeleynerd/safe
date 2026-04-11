@@ -317,6 +317,14 @@ PR11_13_CHECKPOINT_FIXTURES = (
 )
 
 
+PR11_16_CHECKPOINT_FIXTURES = [
+    "tests/positive/pr1116_nominal_integer.safe",
+    "tests/build/pr1116_nominal_integer_build.safe",
+    "tests/build/pr1116_provider_nominal.safe",
+    "tests/build/pr1116_imported_nominal_build.safe",
+]
+
+
 PR11_8I1_CHECKPOINT_FIXTURES = [
     "tests/positive/pr115_case_terminator.safe",
     "tests/positive/pr115_var_basic.safe",
@@ -399,6 +407,7 @@ EMITTED_PROOF_FIXTURES = (
     + PR11_13A_CHECKPOINT_FIXTURES
     + PR11_13B_CHECKPOINT_FIXTURES
     + PR11_13C_CHECKPOINT_FIXTURES
+    + PR11_16_CHECKPOINT_FIXTURES
     + EMITTED_PROOF_REGRESSION_FIXTURES
 )
 

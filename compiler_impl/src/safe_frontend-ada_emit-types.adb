@@ -196,6 +196,8 @@ package body Safe_Frontend.Ada_Emit.Types is
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
       Type_Item : GM.Type_Descriptor) return String;
+   function Render_Nominal_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
    function Render_Array_Type_Decl
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
@@ -495,7 +497,7 @@ package body Safe_Frontend.Ada_Emit.Types is
    is
       Result : GM.Type_Descriptor := Preferred_Imported_Synthetic_Type (Unit, Info);
    begin
-      while FT.To_String (Result.Kind) = "subtype"
+      while FT.To_String (Result.Kind) in "subtype" | "nominal"
         and then Result.Has_Base
         and then Has_Type (Unit, Document, FT.To_String (Result.Base))
       loop
@@ -3175,6 +3177,8 @@ package body Safe_Frontend.Ada_Emit.Types is
          return Render_Binary_Type_Decl (Type_Item);
       elsif Kind = "subtype" then
          return Render_Subtype_Type_Decl (Unit, Document, Type_Item);
+      elsif Kind = "nominal" then
+         return Render_Nominal_Type_Decl (Type_Item);
       elsif Kind = "array" then
          return Render_Array_Type_Decl (Unit, Document, Type_Item, State);
       elsif Kind = "tuple" then
@@ -3897,6 +3901,33 @@ package body Safe_Frontend.Ada_Emit.Types is
         & Ada_Safe_Name (FT.To_String (Type_Item.Base))
         & ";";
    end Render_Subtype_Type_Decl;
+
+   function Render_Nominal_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+      Base : constant String := Ada_Qualified_Name (FT.To_String (Type_Item.Base));
+   begin
+      if Type_Item.Has_Low and then Type_Item.Has_High then
+         return
+           "type "
+           & Name
+           & " is new "
+           & Base
+           & " range "
+           & Trim_Image (Type_Item.Low)
+           & " .. "
+           & Trim_Image (Type_Item.High)
+           & ";";
+      end if;
+
+      return
+        "type "
+        & Name
+        & " is new "
+        & Base
+        & ";";
+   end Render_Nominal_Type_Decl;
 
    function Render_Array_Type_Decl
      (Unit      : CM.Resolved_Unit;

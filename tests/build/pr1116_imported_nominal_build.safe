@@ -1,0 +1,11 @@
+with pr1116_provider_nominal;
+
+package pr1116_imported_nominal_build
+
+   value : pr1116_provider_nominal.user_id = 41;
+   small : pr1116_provider_nominal.small_user_id = 5;
+
+   print (integer (value));
+
+   value = pr1116_provider_nominal.next (small);
+   print (integer (value));

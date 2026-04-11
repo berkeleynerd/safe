@@ -1,0 +1,22 @@
+package pr1116_nominal_integer_build
+
+   type user_id is new integer (0 to 1000);
+   subtype small_user_id is user_id (0 to 100);
+   type group_id is new integer (0 to 1000);
+
+   function bump (value : small_user_id) returns user_id
+
+      return value + 1
+
+   function as_integer (value : user_id) returns integer
+
+      return integer (value)
+
+   current : user_id = 41;
+   small : small_user_id = 42;
+   grouped : group_id = group_id (current);
+
+   current = bump (small);
+
+   print (as_integer (current));
+   print (integer (grouped));
