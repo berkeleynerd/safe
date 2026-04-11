@@ -977,10 +977,9 @@ package body Safe_Frontend.Mir_Analyze is
      (Info : GM.Type_Descriptor) return Interval
    is
       Binary_High : Wide_Integer;
+      Kind        : constant String := Lower (UString_Value (Info.Kind));
    begin
-      if (Lower (UString_Value (Info.Kind)) = "integer"
-          or else Lower (UString_Value (Info.Kind)) = "subtype"
-          or else Lower (UString_Value (Info.Kind)) = "nominal")
+      if (Kind = "integer" or else Kind = "subtype" or else Kind = "nominal")
         and then Info.Has_Low and then Info.Has_High
       then
          return
@@ -991,7 +990,7 @@ package body Safe_Frontend.Mir_Analyze is
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
       elsif UString_Value (Info.Name) = "boolean" then
          return (Low => 0, High => 1, Excludes_Zero => False);
-      elsif Lower (UString_Value (Info.Kind)) = "enum"
+      elsif Kind = "enum"
         and then Info.Has_Low
         and then Info.Has_High
       then
@@ -999,8 +998,7 @@ package body Safe_Frontend.Mir_Analyze is
            (Low           => Wide_Integer (Info.Low),
             High          => Wide_Integer (Info.High),
             Excludes_Zero => Info.Low > 0 or else Info.High < 0);
-      elsif (Lower (UString_Value (Info.Kind)) = "binary"
-             or else (Lower (UString_Value (Info.Kind)) = "subtype" and then Info.Has_Bit_Width))
+      elsif (Kind = "binary" or else (Kind = "subtype" and then Info.Has_Bit_Width))
         and then Info.Has_Bit_Width
       then
          Binary_High :=

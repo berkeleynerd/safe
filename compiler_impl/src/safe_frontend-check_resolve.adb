@@ -14483,9 +14483,9 @@ package body Safe_Frontend.Check_Resolve is
             declare
                Parent      : constant GM.Type_Descriptor :=
                  Resolve_Type_Spec (Decl.Parent_Type, Type_Env, Const_Env, Path);
-               --  This is the resolver-local Base_Type, not the Ada emitter
-               --  wrapper. It follows all Has_Base links, including nominal
-               --  parents, so this fallback recovers root integer bounds.
+               --  This resolver-local Base_Type follows any locally resolvable
+               --  Has_Base link regardless of descriptor kind, unlike the Ada
+               --  emitter wrapper that preserves nominal boundaries by default.
                Parent_Base : constant GM.Type_Descriptor := Base_Type (Parent, Type_Env);
                Parent_Name : constant String := UString_Value (Parent.Name);
                Parent_Is_Anonymous_Constraint : constant Boolean :=

@@ -514,8 +514,15 @@ package body Safe_Frontend.Ada_Emit.Types is
          declare
             Result_Name : constant String := FT.To_String (Result.Name);
          begin
-            exit when Result_Name'Length = 0
-              or else Contains_Name (Seen, Result_Name);
+            if Result_Name'Length = 0 then
+               exit;
+            elsif Contains_Name (Seen, Result_Name) then
+               Raise_Internal
+                 ("cycle detected while walking base type chain during Ada emission: "
+                  & Join_Names (Seen)
+                  & " -> "
+                  & Result_Name);
+            end if;
 
             Seen.Append (FT.To_UString (Result_Name));
          end;

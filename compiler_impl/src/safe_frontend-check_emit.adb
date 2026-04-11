@@ -1493,7 +1493,7 @@ package body Safe_Frontend.Check_Emit is
               & ",""type_definition"":{""node_type"":""DerivedTypeDefinition"",""is_limited"":false,""subtype_indication"":"
               & Subtype_Indication_Node (Decl.Parent_Type)
               & ",""span"":"
-              & JS.Span_Object (Decl.Parent_Type.Span)
+              & JS.Span_Object (Decl.Span)
               & "},""span"":"
               & JS.Span_Object (Decl.Span)
               & "}";
