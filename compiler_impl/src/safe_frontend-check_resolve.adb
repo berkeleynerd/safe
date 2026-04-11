@@ -619,6 +619,19 @@ package body Safe_Frontend.Check_Resolve is
       raise Resolve_Failure;
    end Raise_Diag;
 
+   procedure Raise_Internal (Message : String);
+   pragma No_Return (Raise_Internal);
+
+   procedure Raise_Internal (Message : String) is
+   begin
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path    => "",
+            Span    => FT.Null_Span,
+            Message => "internal error: " & Message));
+      raise Resolve_Failure;
+   end Raise_Internal;
+
    function Default_Integer return GM.Type_Descriptor is
    begin
       return BT.Integer_Type (Current_Target_Bits);
@@ -1344,6 +1357,8 @@ package body Safe_Frontend.Check_Resolve is
       elsif Right_Has_Family then
          return Nominal_Integer_Literal_Compatible (Left_Expr, Right_Type, Type_Env);
       else
+         Raise_Internal
+           ("Nominal_Operands_Compatible called with no nominal-family operand");
          return False;
       end if;
    end Nominal_Operands_Compatible;
@@ -6684,16 +6699,6 @@ package body Safe_Frontend.Check_Resolve is
                Result.Kind := CM.Expr_Conversion;
                Result.Target := Expr.Callee;
                Result.Inner := Expr.Args (Expr.Args.First_Index);
-            elsif Has_Type (Type_Env, UString_Value (Callee_Name))
-              and then UString_Value
-                (Get_Type (Type_Env, UString_Value (Callee_Name)).Kind) = "nominal"
-              and then Natural (Expr.Args.Length) = 1
-            then
-               --  Imported nominal types live in the shared type environment,
-               --  not the local Var_Types map checked above.
-               Result.Kind := CM.Expr_Conversion;
-               Result.Target := Expr.Callee;
-               Result.Inner := Expr.Args (Expr.Args.First_Index);
             elsif UString_Value (Callee_Name) in "integer" | "float" | "long_float"
               and then Natural (Expr.Args.Length) = 1
             then
@@ -8048,7 +8053,7 @@ package body Safe_Frontend.Check_Resolve is
                           (Path    => Path,
                            Span    => Expr.Span,
                            Message =>
-                             "nominal arithmetic requires operands from the same nominal type family or integer literals"));
+                             "nominal arithmetic requires operands from the same nominal type family or in-range integer literals"));
                   end if;
                elsif Op = "&" then
                   if Is_String_Type (Left_Type, Type_Env)
@@ -8135,7 +8140,7 @@ package body Safe_Frontend.Check_Resolve is
                           (Path    => Path,
                            Span    => Expr.Span,
                            Message =>
-                             "nominal comparisons require operands from the same nominal type family or integer literals"));
+                             "nominal comparisons require operands from the same nominal type family or integer literals within the nominal target's bounds"));
                   end if;
                end if;
             end;
