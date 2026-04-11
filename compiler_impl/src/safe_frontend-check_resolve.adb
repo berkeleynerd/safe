@@ -1245,6 +1245,10 @@ package body Safe_Frontend.Check_Resolve is
             Current_Name : constant String :=
               Canonical_Name (UString_Value (Current.Name));
          begin
+            if Current_Name'Length = 0 then
+               return "";
+            end if;
+
             if Seen.Contains (Current_Name) then
                return "";
             end if;
@@ -1320,8 +1324,12 @@ package body Safe_Frontend.Check_Resolve is
       Target_Has_Family : constant Boolean := Has_Nominal_Family (Target, Type_Env);
    begin
       Value := 0;
-      if Target_Has_Family then
-         pragma Assert (Target.Has_Low and then Target.Has_High);
+      if Target_Has_Family
+        and then not (Target.Has_Low and then Target.Has_High)
+      then
+         Raise_Internal
+           ("nominal type missing bounds in literal out-of-bounds check: "
+            & UString_Value (Target.Name));
       end if;
       return Target_Has_Family
         and then Try_Integer_Literal_Context_Value (Expr, Value)
@@ -1338,8 +1346,12 @@ package body Safe_Frontend.Check_Resolve is
       Target_Has_Family : constant Boolean := Has_Nominal_Family (Target, Type_Env);
       Value             : CM.Wide_Integer := 0;
    begin
-      if Target_Has_Family then
-         pragma Assert (Target.Has_Low and then Target.Has_High);
+      if Target_Has_Family
+        and then not (Target.Has_Low and then Target.Has_High)
+      then
+         Raise_Internal
+           ("nominal type missing bounds in literal compatible check: "
+            & UString_Value (Target.Name));
       end if;
       return Target_Has_Family
         and then Try_Integer_Literal_Context_Value (Expr, Value)

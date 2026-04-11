@@ -3957,8 +3957,9 @@ package body Safe_Frontend.Ada_Emit.Types is
      (Type_Item : GM.Type_Descriptor) return String
    is
       Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
-      --  Nominal parents may be imported qualified types. Ada_Qualified_Name
-      --  still maps unqualified builtins through Ada_Safe_Name.
+      --  Resolve stores imported nominal parents with their package-qualified
+      --  MIR name; Ada_Qualified_Name preserves that qualifier and still maps
+      --  unqualified builtins through Ada_Safe_Name.
       Base : constant String :=
         (if Type_Item.Has_Base
          then Ada_Qualified_Name (FT.To_String (Type_Item.Base))
