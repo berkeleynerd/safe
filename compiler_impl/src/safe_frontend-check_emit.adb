@@ -1481,6 +1481,27 @@ package body Safe_Frontend.Check_Emit is
               & "},""span"":"
               & JS.Span_Object (Decl.Span)
               & "}";
+         when CM.Type_Decl_Nominal =>
+            --  Parent_Type.Span is already used by the nested SubtypeIndication
+            --  node and does not include the `new` keyword. Until the parser
+            --  stores an `is new ...` span, keep the derived definition aligned
+            --  with the other type_definition nodes by using the declaration span.
+            --  TODO(PR11.16-follow-up): add a parser span for derived definitions.
+            return
+              "{""node_type"":""TypeDeclaration"",""is_public"":"
+              & JS.Bool_Literal (Decl.Is_Public)
+              & ",""name"":"
+              & JS.Quote (Decl.Name)
+              & Generic_Formals_Field (Decl.Generic_Formals)
+              & ",""discriminant_part"":"
+              & Discriminant_Part_Node (Decl)
+              & ",""type_definition"":{""node_type"":""DerivedTypeDefinition"",""is_limited"":false,""subtype_indication"":"
+              & Subtype_Indication_Node (Decl.Parent_Type)
+              & ",""span"":"
+              & JS.Span_Object (Decl.Span)
+              & "},""span"":"
+              & JS.Span_Object (Decl.Span)
+              & "}";
          when CM.Type_Decl_Enumeration =>
             declare
                Literals : String_Vectors.Vector;

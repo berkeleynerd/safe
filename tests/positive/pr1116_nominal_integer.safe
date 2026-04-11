@@ -1,0 +1,46 @@
+package pr1116_nominal_integer
+
+   type user_id is new integer (0 to 1000);
+   subtype small_user_id is user_id (0 to 100);
+   type group_id is new integer (0 to 1000);
+   type derived_user_id is new user_id (0 to 1000);
+
+   function bump (value : small_user_id) returns user_id
+
+      return value + 1
+
+   function widen (value : small_user_id) returns user_id
+
+      result : user_id = value
+      return result + 1
+
+   function checked_narrow (value : user_id) returns small_user_id
+
+      if value <= 100
+         result : small_user_id = value
+         return result
+
+      return 0
+
+   function below_limit (value : user_id) returns boolean
+
+      return value < 1000
+
+   function explicit_bridge (value : user_id) returns group_id
+
+      return group_id (value)
+
+   function explicit_derived (value : user_id) returns derived_user_id
+
+      return derived_user_id (value)
+
+   current : user_id = 42;
+   small : small_user_id = 7;
+   grouped : group_id = explicit_bridge (current);
+   derived : derived_user_id = explicit_derived (current);
+
+   current = bump (small);
+   small = checked_narrow (current);
+
+   if current > 0 and then current < 1000
+      current = current + 1

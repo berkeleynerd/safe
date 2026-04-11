@@ -196,6 +196,8 @@ package body Safe_Frontend.Ada_Emit.Types is
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
       Type_Item : GM.Type_Descriptor) return String;
+   function Render_Nominal_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String;
    function Render_Array_Type_Decl
      (Unit      : CM.Resolved_Unit;
       Document  : GM.Mir_Document;
@@ -488,21 +490,67 @@ package body Safe_Frontend.Ada_Emit.Types is
       return (others => <>);
    end Lookup_Type;
 
-   function Base_Type
+   function Walk_Base_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
-      Info     : GM.Type_Descriptor) return GM.Type_Descriptor
+      Info     : GM.Type_Descriptor;
+      Include_Nominal : Boolean) return GM.Type_Descriptor
    is
       Result : GM.Type_Descriptor := Preferred_Imported_Synthetic_Type (Unit, Info);
+
+      Seen : FT.UString_Vectors.Vector;
+
+      function Should_Walk return Boolean is
+         Kind : constant String := FT.To_String (Result.Kind);
+      begin
+         return Kind = "subtype"
+           or else (Include_Nominal and then Kind = "nominal");
+      end Should_Walk;
    begin
-      while FT.To_String (Result.Kind) = "subtype"
+      while Should_Walk
         and then Result.Has_Base
         and then Has_Type (Unit, Document, FT.To_String (Result.Base))
       loop
-         Result := Lookup_Type (Unit, Document, FT.To_String (Result.Base));
+         declare
+            Result_Name : constant String := FT.To_String (Result.Name);
+         begin
+            if Result_Name'Length = 0 then
+               exit;
+            elsif Contains_Name (Seen, Result_Name) then
+               Raise_Internal
+                 ("cycle detected while walking base type chain during Ada emission: "
+                  & Join_Names (Seen)
+                  & " -> "
+                  & Result_Name);
+            end if;
+
+            Seen.Append (FT.To_UString (Result_Name));
+         end;
+
+         declare
+            Base_Name : constant String := FT.To_String (Result.Base);
+         begin
+            Result := Lookup_Type (Unit, Document, Base_Name);
+         end;
       end loop;
       return Result;
+   end Walk_Base_Type;
+
+   function Base_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return GM.Type_Descriptor is
+   begin
+      return Walk_Base_Type (Unit, Document, Info, Include_Nominal => False);
    end Base_Type;
+
+   function Integer_Base_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return GM.Type_Descriptor is
+   begin
+      return Walk_Base_Type (Unit, Document, Info, Include_Nominal => True);
+   end Integer_Base_Type;
 
    function Has_Type
      (Unit     : CM.Resolved_Unit;
@@ -975,11 +1023,16 @@ package body Safe_Frontend.Ada_Emit.Types is
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean
    is
-      Base            : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Base            : constant GM.Type_Descriptor := Integer_Base_Type (Unit, Document, Info);
       Kind            : constant String := FT.To_String (Base.Kind);
       Name            : constant String := FT.To_String (Base.Name);
+      --  If Integer_Base_Type stopped at a cross-unit subtype/nominal whose
+      --  base is not registered locally, peek at the unresolved base name so
+      --  builtin integer roots still classify as integer-family.
       Unresolved_Base : constant String :=
-        (if Kind = "subtype" and then Base.Has_Base then FT.To_String (Base.Base) else "");
+        (if Kind in "subtype" | "nominal" and then Base.Has_Base
+         then FT.To_String (Base.Base)
+         else "");
    begin
       return Kind = "integer"
         or else Is_Builtin_Integer_Name (Name)
@@ -3175,6 +3228,8 @@ package body Safe_Frontend.Ada_Emit.Types is
          return Render_Binary_Type_Decl (Type_Item);
       elsif Kind = "subtype" then
          return Render_Subtype_Type_Decl (Unit, Document, Type_Item);
+      elsif Kind = "nominal" then
+         return Render_Nominal_Type_Decl (Type_Item);
       elsif Kind = "array" then
          return Render_Array_Type_Decl (Unit, Document, Type_Item, State);
       elsif Kind = "tuple" then
@@ -3897,6 +3952,40 @@ package body Safe_Frontend.Ada_Emit.Types is
         & Ada_Safe_Name (FT.To_String (Type_Item.Base))
         & ";";
    end Render_Subtype_Type_Decl;
+
+   function Render_Nominal_Type_Decl
+     (Type_Item : GM.Type_Descriptor) return String
+   is
+      Name : constant String := Ada_Safe_Name (FT.To_String (Type_Item.Name));
+      --  Resolve stores imported nominal parents with their package-qualified
+      --  MIR name; Ada_Qualified_Name preserves that qualifier and still maps
+      --  unqualified builtins through Ada_Safe_Name.
+      Base : constant String :=
+        (if Type_Item.Has_Base
+         then Ada_Qualified_Name (FT.To_String (Type_Item.Base))
+         else "");
+   begin
+      if Base'Length = 0 then
+         Raise_Internal ("nominal type missing base during Ada emission");
+      end if;
+
+      if Type_Item.Has_Low and then Type_Item.Has_High then
+         return
+           "type "
+           & Name
+           & " is new "
+           & Base
+           & " range "
+           & Trim_Image (Type_Item.Low)
+           & " .. "
+           & Trim_Image (Type_Item.High)
+           & ";";
+      end if;
+
+      --  Raise_Internal is No_Return; missing bounds indicate invalid MIR that
+      --  should have been rejected before Ada emission.
+      Raise_Internal ("nominal type missing range bounds during Ada emission");
+   end Render_Nominal_Type_Decl;
 
    function Render_Array_Type_Decl
      (Unit      : CM.Resolved_Unit;

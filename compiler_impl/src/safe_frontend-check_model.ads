@@ -277,6 +277,7 @@ package Safe_Frontend.Check_Model is
      (Type_Decl_Unknown,
       Type_Decl_Incomplete,
       Type_Decl_Interface,
+      Type_Decl_Nominal,
       Type_Decl_Integer,
       Type_Decl_Binary,
       Type_Decl_Float,
@@ -299,6 +300,7 @@ package Safe_Frontend.Check_Model is
       Enum_Literals  : FT.UString_Vectors.Vector;
       Low_Expr       : Expr_Access := null;
       High_Expr      : Expr_Access := null;
+      Parent_Type    : Type_Spec;
       Indexes        : Array_Index_Vectors.Vector;
       Component_Type : Type_Spec;
       Components     : Component_Decl_Vectors.Vector;

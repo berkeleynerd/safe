@@ -178,11 +178,26 @@ package body Safe_Frontend.Check_Lower is
       Type_Env : Type_Maps.Map) return GM.Type_Descriptor
    is
       Current : GM.Type_Descriptor := Info;
+      Seen    : Index_Maps.Map;
    begin
-      while UString_Value (Current.Kind) = "subtype"
+      while UString_Value (Current.Kind) in "subtype" | "nominal"
         and then Current.Has_Base
         and then Type_Env.Contains (UString_Value (Current.Base))
       loop
+         declare
+            Current_Name : constant String := UString_Value (Current.Name);
+         begin
+            if Current_Name'Length > 0 then
+               if Seen.Contains (Current_Name) then
+                  raise Program_Error
+                    with "cycle detected while walking base type chain during MIR lowering: "
+                         & Current_Name;
+               end if;
+
+               Seen.Include (Current_Name, 1);
+            end if;
+         end;
+
          Current := Type_Env.Element (UString_Value (Current.Base));
       end loop;
       return Current;
@@ -776,7 +791,7 @@ package body Safe_Frontend.Check_Lower is
    function Is_Integerish (Info : GM.Type_Descriptor) return Boolean is
       Kind : constant String := FT.Lowercase (UString_Value (Info.Kind));
    begin
-      return Kind = "integer" or else Kind = "subtype";
+      return Kind in "integer" | "subtype" | "nominal";
    end Is_Integerish;
 
    function Static_Integer_Value

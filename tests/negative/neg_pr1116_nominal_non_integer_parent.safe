@@ -1,0 +1,3 @@
+package neg_pr1116_nominal_non_integer_parent
+
+   type bad_id is new boolean;

@@ -1665,6 +1665,11 @@ package body Safe_Frontend.Check_Parse is
             Item.High_Expr := Parse_Expression (State);
             Item.Kind := CM.Type_Decl_Float;
             Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+         elsif Current_Lower (State) = "new" then
+            Advance (State);
+            Item.Parent_Type := Parse_Object_Type (State);
+            Item.Kind := CM.Type_Decl_Nominal;
+            Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
          elsif FT.To_String (Current (State).Lexeme) = "(" then
             Item := Parse_Enumeration_Type (State, Start);
             Item.Is_Public := Is_Public;
