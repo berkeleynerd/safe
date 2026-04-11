@@ -1019,6 +1019,9 @@ package body Safe_Frontend.Ada_Emit.Types is
       Base            : constant GM.Type_Descriptor := Integer_Base_Type (Unit, Document, Info);
       Kind            : constant String := FT.To_String (Base.Kind);
       Name            : constant String := FT.To_String (Base.Name);
+      --  If Integer_Base_Type stopped at a cross-unit subtype/nominal whose
+      --  base is not registered locally, peek at the unresolved base name so
+      --  builtin integer roots still classify as integer-family.
       Unresolved_Base : constant String :=
         (if Kind in "subtype" | "nominal" and then Base.Has_Base
          then FT.To_String (Base.Base)

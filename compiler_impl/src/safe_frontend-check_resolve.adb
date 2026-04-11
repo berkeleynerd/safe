@@ -14514,7 +14514,9 @@ package body Safe_Frontend.Check_Resolve is
                        (Path    => Path,
                         Span    => Decl.Parent_Type.Span,
                         Message =>
-                          "internal error: nominal type parent resolved to nested anonymous constraint "
+                          "internal error: while resolving nominal type '"
+                          & UString_Value (Decl.Name)
+                          & "' its parent resolved to nested anonymous constraint "
                           & Base_Name));
                end if;
 
