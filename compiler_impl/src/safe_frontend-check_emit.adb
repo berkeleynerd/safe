@@ -1486,6 +1486,7 @@ package body Safe_Frontend.Check_Emit is
             --  node and does not include the `new` keyword. Until the parser
             --  stores an `is new ...` span, keep the derived definition aligned
             --  with the other type_definition nodes by using the declaration span.
+            --  TODO(PR11.16-follow-up): add a parser span for derived definitions.
             return
               "{""node_type"":""TypeDeclaration"",""is_public"":"
               & JS.Bool_Literal (Decl.Is_Public)

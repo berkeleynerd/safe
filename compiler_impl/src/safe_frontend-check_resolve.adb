@@ -1317,9 +1317,13 @@ package body Safe_Frontend.Check_Resolve is
       Type_Env : Type_Maps.Map;
       Value    : out CM.Wide_Integer) return Boolean
    is
+      Target_Has_Family : constant Boolean := Has_Nominal_Family (Target, Type_Env);
    begin
       Value := 0;
-      return Has_Nominal_Family (Target, Type_Env)
+      if Target_Has_Family then
+         pragma Assert (Target.Has_Low and then Target.Has_High);
+      end if;
+      return Target_Has_Family
         and then Try_Integer_Literal_Context_Value (Expr, Value)
         and then
           ((Target.Has_Low and then Value < CM.Wide_Integer (Target.Low))
@@ -1331,9 +1335,13 @@ package body Safe_Frontend.Check_Resolve is
       Target   : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
    is
-      Value : CM.Wide_Integer := 0;
+      Target_Has_Family : constant Boolean := Has_Nominal_Family (Target, Type_Env);
+      Value             : CM.Wide_Integer := 0;
    begin
-      return Has_Nominal_Family (Target, Type_Env)
+      if Target_Has_Family then
+         pragma Assert (Target.Has_Low and then Target.Has_High);
+      end if;
+      return Target_Has_Family
         and then Try_Integer_Literal_Context_Value (Expr, Value)
         --  Literal operands are gated by the immediate target type bounds.
         --  Subtypes of a nominal family intentionally keep their narrower
@@ -1380,14 +1388,14 @@ package body Safe_Frontend.Check_Resolve is
       Right    : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
    is
+      Left_Family  : constant String := Nominal_Family_Name (Left, Type_Env);
+      Right_Family : constant String := Nominal_Family_Name (Right, Type_Env);
    begin
-      if Has_Nominal_Family (Left, Type_Env)
-        or else Has_Nominal_Family (Right, Type_Env)
-      then
+      if Left_Family'Length > 0 or else Right_Family'Length > 0 then
          --  PR11.16 nominal types are integer-family-only, so nominal
          --  identity takes precedence over the broad integerish fallback
          --  below without suppressing access/tuple/float compatibility.
-         return Same_Nominal_Family (Left, Right, Type_Env);
+         return Left_Family'Length > 0 and then Left_Family = Right_Family;
       end if;
 
       declare
@@ -1435,52 +1443,55 @@ package body Safe_Frontend.Check_Resolve is
       Right    : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
    is
-      Left_Base  : constant GM.Type_Descriptor := Base_Type (Left, Type_Env);
-      Right_Base : constant GM.Type_Descriptor := Base_Type (Right, Type_Env);
-      Left_Kind  : constant String := FT.Lowercase (UString_Value (Left_Base.Kind));
-      Right_Kind : constant String := FT.Lowercase (UString_Value (Right_Base.Kind));
+      Left_Family  : constant String := Nominal_Family_Name (Left, Type_Env);
+      Right_Family : constant String := Nominal_Family_Name (Right, Type_Env);
    begin
-      if Has_Nominal_Family (Left, Type_Env)
-        or else Has_Nominal_Family (Right, Type_Env)
-      then
+      if Left_Family'Length > 0 or else Right_Family'Length > 0 then
          --  Subtypes of a nominal root share the same family. Directional
          --  range narrowing is enforced by the generated Ada/SPARK subtype
          --  checks; the Safe type check here only requires family identity.
-         return Same_Nominal_Family (Left, Right, Type_Env);
+         return Left_Family'Length > 0 and then Left_Family = Right_Family;
       end if;
 
-      return Equivalent_Type (Left, Right, Type_Env)
-        or else (Left_Kind = "access" and then Right_Kind = "null")
-        or else (Left_Kind = "null" and then Right_Kind = "access")
-        or else
-          (Left_Kind = "access"
-           and then Right_Kind = "access"
-           and then Left_Base.Has_Target
-           and then Right_Base.Has_Target
-           and then Equivalent_Type
-             (Resolve_Type (UString_Value (Left_Base.Target), Type_Env, "", FT.Null_Span),
-              Resolve_Type (UString_Value (Right_Base.Target), Type_Env, "", FT.Null_Span),
-              Type_Env))
-        or else (Is_String_Type (Left, Type_Env) and then Is_String_Type (Right, Type_Env))
-        or else
-          (FT.Lowercase (UString_Value (Left_Base.Kind)) = "array"
-           and then FT.Lowercase (UString_Value (Right_Base.Kind)) = "array"
-           and then Left_Base.Growable
-           and then Right_Base.Growable
-           and then Left_Base.Has_Component_Type
-           and then Right_Base.Has_Component_Type
-           and then Compatible_Type
-             (Resolve_Type (UString_Value (Left_Base.Component_Type), Type_Env, "", FT.Null_Span),
-              Resolve_Type (UString_Value (Right_Base.Component_Type), Type_Env, "", FT.Null_Span),
-              Type_Env))
-        or else (Is_Tuple_Type (Left, Type_Env)
-                 and then Is_Tuple_Type (Right, Type_Env)
-                 and then Equivalent_Type (Left, Right, Type_Env))
-        or else (Is_Integerish (Left, Type_Env) and then Is_Integerish (Right, Type_Env))
-        or else (Is_Binary_Type (Left, Type_Env)
-                 and then Is_Binary_Type (Right, Type_Env)
-                 and then Binary_Bit_Width (Left, Type_Env) = Binary_Bit_Width (Right, Type_Env))
-        or else (Left_Kind = "float" and then Right_Kind = "float");
+      declare
+         Left_Base  : constant GM.Type_Descriptor := Base_Type (Left, Type_Env);
+         Right_Base : constant GM.Type_Descriptor := Base_Type (Right, Type_Env);
+         Left_Kind  : constant String := FT.Lowercase (UString_Value (Left_Base.Kind));
+         Right_Kind : constant String := FT.Lowercase (UString_Value (Right_Base.Kind));
+      begin
+         return Equivalent_Type (Left, Right, Type_Env)
+           or else (Left_Kind = "access" and then Right_Kind = "null")
+           or else (Left_Kind = "null" and then Right_Kind = "access")
+           or else
+             (Left_Kind = "access"
+              and then Right_Kind = "access"
+              and then Left_Base.Has_Target
+              and then Right_Base.Has_Target
+              and then Equivalent_Type
+                (Resolve_Type (UString_Value (Left_Base.Target), Type_Env, "", FT.Null_Span),
+                 Resolve_Type (UString_Value (Right_Base.Target), Type_Env, "", FT.Null_Span),
+                 Type_Env))
+           or else (Is_String_Type (Left, Type_Env) and then Is_String_Type (Right, Type_Env))
+           or else
+             (FT.Lowercase (UString_Value (Left_Base.Kind)) = "array"
+              and then FT.Lowercase (UString_Value (Right_Base.Kind)) = "array"
+              and then Left_Base.Growable
+              and then Right_Base.Growable
+              and then Left_Base.Has_Component_Type
+              and then Right_Base.Has_Component_Type
+              and then Compatible_Type
+                (Resolve_Type (UString_Value (Left_Base.Component_Type), Type_Env, "", FT.Null_Span),
+                 Resolve_Type (UString_Value (Right_Base.Component_Type), Type_Env, "", FT.Null_Span),
+                 Type_Env))
+           or else (Is_Tuple_Type (Left, Type_Env)
+                    and then Is_Tuple_Type (Right, Type_Env)
+                    and then Equivalent_Type (Left, Right, Type_Env))
+           or else (Is_Integerish (Left, Type_Env) and then Is_Integerish (Right, Type_Env))
+           or else (Is_Binary_Type (Left, Type_Env)
+                    and then Is_Binary_Type (Right, Type_Env)
+                    and then Binary_Bit_Width (Left, Type_Env) = Binary_Bit_Width (Right, Type_Env))
+           or else (Left_Kind = "float" and then Right_Kind = "float");
+      end;
    end Compatible_Type;
 
    function Compatible_Source_To_Target_Type
