@@ -613,6 +613,9 @@ package body Safe_Frontend.Check_Resolve is
       Put_Function (Functions, "print", Info);
    end Add_Builtin_Functions;
 
+   procedure Raise_Diag (Item : CM.MD.Diagnostic);
+   pragma No_Return (Raise_Diag);
+
    procedure Raise_Diag (Item : CM.MD.Diagnostic) is
    begin
       Raised_Diag := Item;
@@ -629,7 +632,6 @@ package body Safe_Frontend.Check_Resolve is
            (Path    => "",
             Span    => FT.Null_Span,
             Message => "internal error: " & Message));
-      raise Resolve_Failure;
    end Raise_Internal;
 
    function Default_Integer return GM.Type_Descriptor is
@@ -1359,7 +1361,6 @@ package body Safe_Frontend.Check_Resolve is
       else
          Raise_Internal
            ("Nominal_Operands_Compatible called with no nominal-family operand");
-         return False;
       end if;
    end Nominal_Operands_Compatible;
 
@@ -9410,7 +9411,7 @@ package body Safe_Frontend.Check_Resolve is
                            Message =>
                              "integer literal "
                              & Wide_Integer_Image (Literal_Value)
-                             & " is outside range of nominal type "
+                             & " is outside range of nominal-family type "
                              & UString_Value (Result.Type_Info.Name)
                              & Range_Text));
                   end;
