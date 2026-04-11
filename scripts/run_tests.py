@@ -930,7 +930,7 @@ BUILD_SUCCESS_CASES = [
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr1116_imported_nominal_build.safe",
-        "41\n6\n",
+        "41\n6\n6\n",
         False,
     ),
 ]

@@ -3981,6 +3981,8 @@ package body Safe_Frontend.Ada_Emit.Types is
            & ";";
       end if;
 
+      --  Raise_Internal is No_Return; missing bounds indicate invalid MIR that
+      --  should have been rejected before Ada emission.
       Raise_Internal ("nominal type missing range bounds during Ada emission");
    end Render_Nominal_Type_Decl;
 

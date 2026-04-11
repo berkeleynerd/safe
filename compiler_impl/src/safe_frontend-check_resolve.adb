@@ -1380,10 +1380,6 @@ package body Safe_Frontend.Check_Resolve is
       Right    : GM.Type_Descriptor;
       Type_Env : Type_Maps.Map) return Boolean
    is
-      Left_Base  : constant GM.Type_Descriptor := Base_Type (Left, Type_Env);
-      Right_Base : constant GM.Type_Descriptor := Base_Type (Right, Type_Env);
-      Left_Tail  : constant String := Synthetic_Type_Tail_Name (UString_Value (Left_Base.Name));
-      Right_Tail : constant String := Synthetic_Type_Tail_Name (UString_Value (Right_Base.Name));
    begin
       if Has_Nominal_Family (Left, Type_Env)
         or else Has_Nominal_Family (Right, Type_Env)
@@ -1394,35 +1390,44 @@ package body Safe_Frontend.Check_Resolve is
          return Same_Nominal_Family (Left, Right, Type_Env);
       end if;
 
-      if FT.Lowercase (UString_Value (Left_Base.Kind)) = "tuple"
-        or else FT.Lowercase (UString_Value (Right_Base.Kind)) = "tuple"
-      then
-         if FT.Lowercase (UString_Value (Left_Base.Kind)) /= "tuple"
-           or else FT.Lowercase (UString_Value (Right_Base.Kind)) /= "tuple"
-           or else Natural (Left_Base.Tuple_Element_Types.Length) /=
-                    Natural (Right_Base.Tuple_Element_Types.Length)
+      declare
+         Left_Base  : constant GM.Type_Descriptor := Base_Type (Left, Type_Env);
+         Right_Base : constant GM.Type_Descriptor := Base_Type (Right, Type_Env);
+         Left_Tail  : constant String :=
+           Synthetic_Type_Tail_Name (UString_Value (Left_Base.Name));
+         Right_Tail : constant String :=
+           Synthetic_Type_Tail_Name (UString_Value (Right_Base.Name));
+      begin
+         if FT.Lowercase (UString_Value (Left_Base.Kind)) = "tuple"
+           or else FT.Lowercase (UString_Value (Right_Base.Kind)) = "tuple"
          then
-            return False;
-         end if;
-         for Index in Left_Base.Tuple_Element_Types.First_Index .. Left_Base.Tuple_Element_Types.Last_Index loop
-            if not Equivalent_Type
-              (Resolve_Type (UString_Value (Left_Base.Tuple_Element_Types (Index)), Type_Env, "", FT.Null_Span),
-               Resolve_Type (UString_Value (Right_Base.Tuple_Element_Types (Index)), Type_Env, "", FT.Null_Span),
-               Type_Env)
+            if FT.Lowercase (UString_Value (Left_Base.Kind)) /= "tuple"
+              or else FT.Lowercase (UString_Value (Right_Base.Kind)) /= "tuple"
+              or else Natural (Left_Base.Tuple_Element_Types.Length) /=
+                       Natural (Right_Base.Tuple_Element_Types.Length)
             then
                return False;
             end if;
-         end loop;
-         return True;
-      end if;
-      return UString_Value (Left.Name) = UString_Value (Right.Name)
-        or else UString_Value (Left_Base.Name) = UString_Value (Right_Base.Name)
-        or else
-          (Left_Tail'Length > 2
-           and then Right_Tail'Length > 2
-           and then Left_Tail (Left_Tail'First .. Left_Tail'First + 1) = "__"
-           and then Right_Tail (Right_Tail'First .. Right_Tail'First + 1) = "__"
-           and then Left_Tail = Right_Tail);
+            for Index in Left_Base.Tuple_Element_Types.First_Index .. Left_Base.Tuple_Element_Types.Last_Index loop
+               if not Equivalent_Type
+                 (Resolve_Type (UString_Value (Left_Base.Tuple_Element_Types (Index)), Type_Env, "", FT.Null_Span),
+                  Resolve_Type (UString_Value (Right_Base.Tuple_Element_Types (Index)), Type_Env, "", FT.Null_Span),
+                  Type_Env)
+               then
+                  return False;
+               end if;
+            end loop;
+            return True;
+         end if;
+         return UString_Value (Left.Name) = UString_Value (Right.Name)
+           or else UString_Value (Left_Base.Name) = UString_Value (Right_Base.Name)
+           or else
+             (Left_Tail'Length > 2
+              and then Right_Tail'Length > 2
+              and then Left_Tail (Left_Tail'First .. Left_Tail'First + 1) = "__"
+              and then Right_Tail (Right_Tail'First .. Right_Tail'First + 1) = "__"
+              and then Left_Tail = Right_Tail);
+      end;
    end Equivalent_Type;
 
    function Compatible_Type
