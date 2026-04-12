@@ -1,0 +1,14 @@
+-- Test: neg_pr222_transitive_mutating_function
+-- Description: Result-returning functions must not call subprograms that mutate package globals.
+-- Expected: REJECT
+
+counter : integer = 0;
+
+function write_counter
+   counter = 3;
+
+function bump returns integer
+   write_counter ();
+   return counter;
+
+print (bump ())

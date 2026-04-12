@@ -2,8 +2,9 @@ with provider_shared_record;
 
 package client_shared_record
 
-   function total returns integer
+   function exercise
       snapshot : provider_shared_record.settings = provider_shared_record.cfg;
+      ok : boolean = false;
 
       provider_shared_record.cfg.count = 5;
       provider_shared_record.cfg.nested.depth = 7;
@@ -12,5 +13,4 @@ package client_shared_record
       if snapshot.count == 1
          if provider_shared_record.cfg.count == 8
             if provider_shared_record.cfg.nested.depth == 9
-               return 1;
-      return 0;
+               ok = true;

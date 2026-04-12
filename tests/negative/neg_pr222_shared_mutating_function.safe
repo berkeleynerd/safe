@@ -1,0 +1,14 @@
+-- Test: neg_pr222_shared_mutating_function
+-- Description: Result-returning functions must not mutate shared state.
+-- Expected: REJECT
+
+type state is record
+   total : integer;
+
+shared ledger : state = (total = 1);
+
+function bump returns integer
+   ledger.total = 2;
+   return 2;
+
+print (bump ())

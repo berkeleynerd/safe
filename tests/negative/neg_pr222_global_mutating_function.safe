@@ -1,0 +1,11 @@
+-- Test: neg_pr222_global_mutating_function
+-- Description: Result-returning functions must not mutate package globals.
+-- Expected: REJECT
+
+counter : integer = 0;
+
+function bump returns integer
+   counter = 2;
+   return counter;
+
+print (bump ())

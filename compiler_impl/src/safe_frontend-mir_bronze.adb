@@ -82,6 +82,7 @@ package body Safe_Frontend.Mir_Bronze is
    type Direct_Summary is record
       Name           : FT.UString := FT.To_UString ("");
       Kind           : FT.UString := FT.To_UString ("");
+      Has_Return_Type : Boolean := False;
       Is_Task        : Boolean := False;
       Priority       : Long_Long_Integer := 0;
       Direct_Reads   : String_Sets.Set;
@@ -1337,6 +1338,7 @@ package body Safe_Frontend.Mir_Bronze is
    begin
       Result.Name := Graph.Name;
       Result.Kind := Graph.Kind;
+      Result.Has_Return_Type := Graph.Has_Return_Type;
       Result.Is_Task := UString_Value (Graph.Kind) = "task";
       if Result.Is_Task and then Graph.Has_Priority then
          Result.Priority := Graph.Priority;
@@ -1506,6 +1508,95 @@ package body Safe_Frontend.Mir_Bronze is
       end if;
       return Result;
    end Summary_Diagnostic;
+
+   function Has_Function_Global_Effect
+     (Summary      : Direct_Summary;
+      Global_Spans : Span_Maps.Map) return Boolean
+   is
+      Cursor : String_Sets.Cursor := Summary.Writes.First;
+   begin
+      while String_Sets.Has_Element (Cursor) loop
+         declare
+            Name : constant String := String_Sets.Element (Cursor);
+         begin
+            if not Is_Synthetic_Attribute_Marker (Name, Global_Spans) then
+               return True;
+            end if;
+            String_Sets.Next (Cursor);
+         end;
+      end loop;
+
+      return
+        not Summary.Shared_Reads.Is_Empty
+        or else not Summary.Shared_Writes.Is_Empty
+        or else not Summary.Sends.Is_Empty
+        or else not Summary.Receives.Is_Empty;
+   end Has_Function_Global_Effect;
+
+   function Function_Global_Effect_Span
+     (Summary      : Direct_Summary;
+      Global_Spans : Span_Maps.Map;
+      Summaries    : Summary_Maps.Map) return FT.Source_Span
+   is
+      Result : FT.Source_Span := FT.Null_Span;
+
+      procedure Consider_Name
+        (Name           : String;
+         Skip_Synthetic : Boolean := False) is
+      begin
+         if Name = ""
+           or else
+             (Skip_Synthetic
+              and then Is_Synthetic_Attribute_Marker (Name, Global_Spans))
+         then
+            return;
+         end if;
+         Result := Earlier_Span (Result, Use_Span_For (Summary, Name));
+      end Consider_Name;
+
+      procedure Consider_Set
+        (Items          : String_Sets.Set;
+         Skip_Synthetic : Boolean := False)
+      is
+         Cursor : String_Sets.Cursor := Items.First;
+      begin
+         while String_Sets.Has_Element (Cursor) loop
+            Consider_Name (String_Sets.Element (Cursor), Skip_Synthetic);
+            String_Sets.Next (Cursor);
+         end loop;
+      end Consider_Set;
+   begin
+      Consider_Set (Summary.Direct_Writes, Skip_Synthetic => True);
+      Consider_Set (Summary.Direct_Shared_Reads);
+      Consider_Set (Summary.Direct_Shared_Writes);
+      Consider_Set (Summary.Direct_Sends);
+      Consider_Set (Summary.Direct_Receives);
+
+      for Call of Summary.Call_Sites loop
+         declare
+            Callee : constant String := UString_Value (Call.Callee);
+         begin
+            if Summaries.Contains (Callee)
+              and then Has_Function_Global_Effect
+                (Summaries.Element (Callee),
+                 Global_Spans)
+            then
+               Result := Earlier_Span (Result, Call.Span);
+            end if;
+         end;
+      end loop;
+
+      Consider_Set (Summary.Writes, Skip_Synthetic => True);
+      Consider_Set (Summary.Shared_Reads);
+      Consider_Set (Summary.Shared_Writes);
+      Consider_Set (Summary.Sends);
+      Consider_Set (Summary.Receives);
+
+      if Has_Span (Result) then
+         return Result;
+      end if;
+      return Summary.Span;
+   end Function_Global_Effect_Span;
 
    function Summarize
      (Document    : GM.Mir_Document;
@@ -1848,6 +1939,27 @@ package body Safe_Frontend.Mir_Bronze is
             Item.Outputs := To_Vector (Summary.Outputs);
             Item.Depends := Dependency_Vector (Summary.Outputs, Summary.Inputs);
             Result.Graphs.Append (Item);
+
+            if Summary.Has_Return_Type
+              and then Has_Function_Global_Effect (Summary, Global_Spans)
+            then
+               declare
+                  Effect_Span : constant FT.Source_Span :=
+                    Function_Global_Effect_Span
+                      (Summary,
+                       Global_Spans,
+                       Summaries);
+               begin
+                  Result.Diagnostics.Append
+                    (Summary_Diagnostic
+                       (Path_String,
+                        "function_global_effect",
+                        "result-returning functions cannot mutate package state or access shared/channel state",
+                        Effect_Span,
+                        "SPARK functions cannot combine return values with global mutation or volatile shared access",
+                        "move the shared/channel access into a procedure and pass local snapshots to pure functions"));
+               end;
+            end if;
 
             if Summary.Is_Task then
                declare

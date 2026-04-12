@@ -1,0 +1,13 @@
+-- Test: neg_pr222_shared_read_function
+-- Description: Result-returning functions must not read shared state.
+-- Expected: REJECT
+
+type state is record
+   total : integer;
+
+shared ledger : state = (total = 1);
+
+function peek returns integer
+   return ledger.total;
+
+print (peek ())

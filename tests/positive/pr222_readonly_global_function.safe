@@ -1,0 +1,9 @@
+-- Test: pr222_readonly_global_function
+-- Description: Result-returning functions may read package globals.
+
+counter : integer = 7;
+
+function current returns integer
+   return counter;
+
+print (current ())

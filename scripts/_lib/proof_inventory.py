@@ -376,6 +376,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/constant_shadow_mutable.safe",
     "tests/positive/emitter_surface_proc.safe",
     "tests/positive/emitter_surface_record.safe",
+    "tests/positive/pr222_readonly_global_function.safe",
     "tests/positive/pr1122f1_multi_decl_object.safe",
     "tests/build/pr212_string_literal_build.safe",
     "tests/build/pr223_provider_enum.safe",
