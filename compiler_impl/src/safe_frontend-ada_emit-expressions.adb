@@ -1115,7 +1115,8 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       Type_Info : GM.Type_Descriptor;
       State     : in out Emit_State) return String
    is
-      Result : SU.Unbounded_String := SU.To_Unbounded_String ("(");
+      Record_Info : constant GM.Type_Descriptor := Base_Type (Unit, Document, Type_Info);
+      Result      : SU.Unbounded_String := SU.To_Unbounded_String ("(");
       First_Association : Boolean := True;
    begin
       if Expr = null then
@@ -1141,7 +1142,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
          declare
             Field_Type : GM.Type_Descriptor := (others => <>);
          begin
-            for Item of Type_Info.Fields loop
+            for Item of Record_Info.Fields loop
                if FT.To_String (Item.Name) = FT.To_String (Field.Field_Name) then
                   Field_Type := Resolve_Type_Name (Unit, Document, FT.To_String (Item.Type_Name));
                   exit;
