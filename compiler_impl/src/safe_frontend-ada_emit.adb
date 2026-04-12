@@ -2273,10 +2273,10 @@ package body Safe_Frontend.Ada_Emit is
                   Package_Name   : constant String :=
                     Enclosing_Package_Name (Enum_Type_Name);
                begin
-                  if Spec_Uses_Imported_Enum_Type (Enum_Type_Name) then
-                     if Package_Name'Length > 0
-                       and then not Contains_Name (Imported_Enum_Withs, Package_Name)
-                     then
+                  if Package_Name'Length > 0
+                    and then Spec_Uses_Imported_Enum_Type (Enum_Type_Name)
+                  then
+                     if not Contains_Name (Imported_Enum_Withs, Package_Name) then
                         Append_Line (Context.Spec_Text, "with " & Package_Name & ";");
                         Imported_Enum_Withs.Append (FT.To_UString (Package_Name));
                      end if;
