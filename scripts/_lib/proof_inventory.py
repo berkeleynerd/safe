@@ -378,6 +378,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/emitter_surface_record.safe",
     "tests/positive/pr1122f1_multi_decl_object.safe",
     "tests/build/pr212_string_literal_build.safe",
+    "tests/build/pr223_provider_enum.safe",
     "tests/build/pr223_imported_enum_comparison_build.safe",
     "tests/build/pr226_remainder_boolean_build.safe",
     "tests/build/pr225_maker.safe",
