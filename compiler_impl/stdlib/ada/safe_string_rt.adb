@@ -86,6 +86,8 @@ package body Safe_String_RT is
 
    function Equal (Left, Right : Safe_String) return Boolean is
    begin
+      --  CONTRACT: re-verify manually if this body changes; the spec
+      --  postcondition is assumed because this body is SPARK_Mode (Off).
       return To_String (Left) = To_String (Right);
    end Equal;
 end Safe_String_RT;

@@ -21,6 +21,10 @@ This audit checked the shared Ada runtime packages under
   identity equality.
 - `Safe_Array_RT` was missing length postconditions for `Slice` and `Concat`.
   These are representation-independent and follow directly from the body.
+- `Safe_Array_RT` and `Safe_Array_Identity_RT` omit the redundant
+  `Low > Length (Value)` slice-postcondition guard because `High < Low` is
+  checked first and `High > Length (Value)` covers the remaining out-of-range
+  case.
 - `Concat` postconditions now widen operand lengths before addition so the
   contract expression does not introduce its own `Natural` overflow check.
 - `Safe_String_RT` was missing length postconditions for `Copy`, `Free`, and

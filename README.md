@@ -3,9 +3,12 @@
 A systems programming language built around SPARK-class safety guarantees, with
 a smaller surface designed to avoid sharp edges rather than expose them.
 
+A language where if it compiles, it is safe — whether a human or an AI wrote
+it.
+
 [![CI](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml/badge.svg)](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml)
 ![Spec version](https://img.shields.io/badge/spec-v0.1_working_draft-blue)
-![Proved fixtures](https://img.shields.io/badge/proved_fixtures-161-brightgreen)
+![Proved fixtures](https://img.shields.io/badge/proved_fixtures-229-brightgreen)
 
 Safe is a language in its own right. The current toolchain compiles it through
 Ada/SPARK-oriented artifacts, but the user-facing goal is not to preserve Ada
@@ -15,6 +18,25 @@ sharp edges.
 
 The current admitted source surface is fully lowercase, with underscores as the
 word separator for multiword spellings.
+
+---
+
+## Why Safe Exists
+
+Safe is designed for software that may be written by humans, AI agents, or both
+and still needs narrow, reviewable failure modes.
+
+- **Blast radius.** The language rejects entire classes of accidental misuse
+  before runtime. Nominal integer-family aliases, for example, let APIs
+  distinguish `user_id` from `group_id` even when both have the same integer
+  representation.
+- **Reviewability.** Safety-relevant guards are source-level program facts, not
+  comments or after-the-fact test expectations. A reviewer can see why a value
+  is in range, initialized, non-null, or exclusively borrowed at the point of
+  use.
+- **Recovery.** When proof fails, the goal is to report a concrete source
+  location and the missing guard or type fact, so the next edit can be local
+  rather than a broad rewrite.
 
 ---
 
@@ -109,22 +131,25 @@ Honesty about limits is part of the safety story:
 Two independent evidence channels back the safety claims:
 
 **Emitted proof corpus.** The blocking emitted-proof inventory currently covers
-161 fixtures with 4 explicit exclusions and 0 uncovered fixtures. These
+229 fixtures with 10 explicit exclusions and 0 uncovered fixtures. These
 fixtures are emitted as Ada/SPARK and verified by GNATprove through the
 repository proof lane.
 
-**Companion emission templates.** The companion inventory currently reports 325
-total VCs across 17 units: 107 Bronze flow checks passed, 217 Silver proof VCs
-proved, 1 Silver VC justified, and 0 unproved.
+**Companion emission templates.** The companion inventory currently reports 553
+total VCs across 20 units: 138 Bronze flow checks passed, 414 Silver proof VCs
+proved, 1 Silver VC justified, and 0 unproved. Its 16 templates account for
+315 template checks.
 
 | Metric | Value |
 |--------|-------|
-| Proved emitted fixtures | 161 (4 exclusions, 0 uncovered) |
-| Companion template VCs | 325 total (217 proved, 1 justified, 0 unproved, 107 flow passed) |
+| Proved emitted fixtures | 229 (10 exclusions, 0 uncovered) |
+| Companion template VCs | 553 total (414 proved, 1 justified, 0 unproved, 138 flow passed) |
+| Companion templates | 16 templates, 315 template checks |
 | Tracked proof assumptions | 12 |
-| Test corpus | 418+ files (positive, negative, build, concurrency, interfaces, embedded) |
+| Test corpus | 608 `.safe` files (positive, negative, build, concurrency, interfaces, embedded) |
 | Embedded evidence lane | STM32F4 / Jorvik / Renode (blocking in CI) |
-| Compiler size | ~54K LOC Ada across 62 source files |
+| Compiler size | ~73K LOC Ada across 75 source files |
+| Emitter size | ~26K LOC Ada across 14 emitter source files |
 
 ---
 
@@ -198,12 +223,17 @@ python3 scripts/safe_repl.py
 ## Roadmap
 
 Recent milestones cover artifact-contract stabilization, dispatcher-based fair
-`select`, structured error handling, user-defined enumerations, and
-incremental multi-file builds. The next larger milestones are:
+`select`, structured error handling, built-in containers, structural interfaces
+and generics, shared concurrent records, sum types, nominal integer-family
+aliases, resolver cleanup, test-runner modularization, and the shared standard
+library contract audit.
 
-- **PR11.10** — Built-in parameterized containers (`list of T`, `map of (K, V)`,
-  `optional T`)
-- **PR11.11** — User-defined generics
+PR11.14 (closures) and PR11.15 (string interpolation) are deferred
+indefinitely on the proposal track. They remain implementable, but are not
+high-value enough relative to the current roadmap.
+
+The next larger milestone is **PR11.23**: proof diagnostic mapping, which maps
+GNATprove failures back to Safe source locations with classified fix guidance.
 
 See [`docs/roadmap.md`](docs/roadmap.md) for the
 full roadmap.
