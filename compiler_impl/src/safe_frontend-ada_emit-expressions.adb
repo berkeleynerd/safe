@@ -1451,7 +1451,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       elsif Expr.Kind = CM.Expr_Aggregate
         and then FT.Lowercase (FT.To_String (Target_Base.Kind)) = "record"
       then
-         return Render_Record_Aggregate_For_Type (Unit, Document, Expr, Target_Base, State);
+         return Render_Record_Aggregate_For_Type (Unit, Document, Expr, Target_Info, State);
       elsif AI.Is_Owner_Access (Target_Info)
         and then Target_Info.Has_Target
         and then Expr.Kind in CM.Expr_Aggregate | CM.Expr_Tuple
@@ -1789,7 +1789,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                   begin
                      for Formal of Param.Params loop
                         Position := Position + 1;
-                        exit when Position > Natural (Index);
                         if Position = Natural (Index) then
                            if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
                               Arg_Image :=
@@ -1830,7 +1829,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                         begin
                            for Formal of Imported.Params loop
                               Position := Position + 1;
-                              exit when Position > Natural (Index);
                               if Position = Natural (Index) then
                                  if FT.To_String (Formal.Mode) in "" | "in" | "borrow" then
                                     Arg_Image :=
