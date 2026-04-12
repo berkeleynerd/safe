@@ -192,15 +192,15 @@ def run_safe_prove_success_checks() -> RunCounts:
 def run_safe_prove_failure_checks() -> RunCounts:
     passed = 0
     failures: list[tuple[str, str]] = []
+
+    result = run_safe_prove_directory_case()
+    passed += record_result(failures, "safe prove current directory", result)
+
     for label, verbose in (
-        ("safe prove current directory", False),
         ("safe prove failure stage", False),
         ("safe prove verbose failure", True),
     ):
-        if label == "safe prove current directory":
-            result = run_safe_prove_directory_case()
-        else:
-            result = run_safe_prove_failure_case(verbose=verbose)
+        result = run_safe_prove_failure_case(verbose=verbose)
         passed += record_result(failures, label, result)
 
     passed += record_result(failures, "safe prove empty directory", run_safe_prove_no_sources_case())
