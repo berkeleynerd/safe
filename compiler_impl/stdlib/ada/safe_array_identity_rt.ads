@@ -76,7 +76,6 @@ is
                or else Low = 0
                or else High = 0
                or else High < Low
-               or else Low > Length (Value)
                or else High > Length (Value)
               then Length (Slice'Result) = 0
               else
@@ -89,7 +88,9 @@ is
    function Concat (Left, Right : Safe_Array) return Safe_Array
       with Global => null,
            Post =>
-             Length (Concat'Result) = Length (Left) + Length (Right)
+             Long_Long_Integer (Length (Concat'Result)) =
+               Long_Long_Integer (Length (Left))
+               + Long_Long_Integer (Length (Right))
              and then
              (for all Index in 1 .. Length (Left) =>
                  Element (Concat'Result, Positive (Index)) =

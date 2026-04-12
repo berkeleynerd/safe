@@ -41,7 +41,10 @@ package Safe_String_RT is
            Depends => (Slice'Result => (Value, Low, High));
    function Concat (Left, Right : Safe_String) return Safe_String
       with Global => null,
-           Post => Length (Concat'Result) = Length (Left) + Length (Right),
+           Post =>
+             Long_Long_Integer (Length (Concat'Result)) =
+               Long_Long_Integer (Length (Left))
+               + Long_Long_Integer (Length (Right)),
            Depends => (Concat'Result => (Left, Right));
    function Equal (Left, Right : Safe_String) return Boolean
       with Global => null,
