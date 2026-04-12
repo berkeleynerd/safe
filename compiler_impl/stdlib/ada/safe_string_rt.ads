@@ -16,10 +16,12 @@ package Safe_String_RT is
    procedure Copy (Target : in out Safe_String; Source : Safe_String)
       with Global => null,
            Always_Terminates,
+           Post => Length (Target) = Length (Source),
            Depends => (Target => (Target, Source));
    procedure Free (Value : in out Safe_String)
       with Global => null,
            Always_Terminates,
+           Post => Length (Value) = 0,
            Depends => (Value => Value);
    procedure Dispose (Value : in out Safe_String) renames Free;
 
@@ -39,9 +41,17 @@ package Safe_String_RT is
            Depends => (Slice'Result => (Value, Low, High));
    function Concat (Left, Right : Safe_String) return Safe_String
       with Global => null,
+           Post =>
+             Long_Long_Integer (Length (Concat'Result)) =
+               Long_Long_Integer (Length (Left))
+               + Long_Long_Integer (Length (Right)),
            Depends => (Concat'Result => (Left, Right));
    function Equal (Left, Right : Safe_String) return Boolean
       with Global => null,
+           Post => Equal'Result = (To_String (Left) = To_String (Right)),
+           --  Body is SPARK_Mode (Off); this postcondition is an assumed
+           --  contract verified manually against the body, not discharged by
+           --  GNATprove.
            Depends => (Equal'Result => (Left, Right));
 
 private

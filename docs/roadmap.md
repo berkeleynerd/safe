@@ -88,10 +88,11 @@ Dependency chain:
 - PR11.22d follows PR11.22c (emitter deduplication and vestigial code removal).
 - PR11.22e follows PR11.22d (emitter file split into domain-focused modules).
 - PR11.22f follows PR11.22e (resolver cleanup and builtin-resolution consolidation).
-- PR11.15 follows PR11.22f (string interpolation — low risk, high usability).
-- PR11.16 follows PR11.15 (nominal type aliases — distinct types with no implicit conversion).
-- PR11.14 follows PR11.16 (closures — deferred past hygiene to reduce implementation risk).
-- PR11.22g follows PR11.14 (test infrastructure modularization).
+- PR11.15 / PR11.14 are deferred indefinitely on the proposal track
+  (implementable, but not high-value enough relative to current priorities).
+- PR11.16 follows PR11.22f (nominal type aliases — distinct types with no
+  implicit conversion).
+- PR11.22g follows PR11.16 (test infrastructure modularization).
 - PR11.22h follows PR11.22g (shared stdlib contract audit and body-drift check).
 - PR11.23 follows PR11.22h (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
 - PR11.17–PR11.21 moved to PR14 series (deferred past all existing work; see PR14 below).
@@ -2706,28 +2707,14 @@ Follows PR11.12f.
 
 ## PR11.15: String Interpolation
 
-Add `f"..."` string interpolation syntax.
+**Status:** Deferred indefinitely — not high-value enough relative to current
+priorities. Design preserved in `docs/syntax_proposals.md` for future
+reconsideration.
 
-### Scope
-
-- `f"count: {n}"` desugars to `"count: " & to_string(n)`.
-- `to_string` is a standard interface method that scalar types, enums,
-  strings, and optionals satisfy by default.
-- User-defined types can satisfy `to_string` through the existing
-  method/interface machinery from PR11.11a-b.
-- Interpolation expressions must be printable (satisfy `to_string`).
-  Complex expressions are allowed: `f"total: {a + b}"`.
-- No format specifiers in the first slice (no `{n:04d}`). Formatting
-  is post-v1.0 work.
-
-### Proof impact
-
-Zero. Pure desugaring to existing concatenation and `to_string` calls.
-
-### Dependency
-
-Follows PR11.22f (resolver cleanup). Moved earlier in the series
-because it is pure syntactic sugar with zero proof impact.
+String interpolation remains implementable, but it is ergonomic sugar rather
+than core safety or proof infrastructure. It should return to the numbered
+roadmap only after proposal evidence from real programs shows clear
+readability benefit.
 
 ---
 
@@ -2754,39 +2741,19 @@ as its parent. GNATprove proves the same VCs.
 
 ### Dependency
 
-Follows PR11.15.
+Follows PR11.22f.
 
 ---
 
 ## PR11.14: Closures
 
-Add value-capture-only first-class functions.
+**Status:** Deferred indefinitely — not high-value enough relative to current
+priorities. Design preserved in `docs/syntax_proposals.md` for future
+reconsideration.
 
-### Scope
-
-- Anonymous function syntax: `fn (x : integer) returns integer => x + 1`
-- Closures capture enclosing variables by value (copy at capture time),
-  not by reference. No mutable upvalue captures.
-- A closure is internally a record of captured values plus a function
-  pointer. The function pointer is statically known at each use site
-  through monomorphization via an interface constraint (e.g., a standard
-  `callable` interface).
-- Closure types are value types: copy on assignment, free on scope exit.
-- No dynamic dispatch — every closure call site is monomorphized.
-- Enables functional patterns: `items.filter(fn (x) => x > 0)`,
-  `items.map(fn (x) => x * 2)`, callback parameters.
-
-### Proof impact
-
-Zero new proof model. The closure body is proved as an ordinary function.
-Captured values are record fields with known types. The monomorphized
-call is a concrete function call that GNATprove handles natively.
-
-### Dependency
-
-Follows PR11.16 (nominal type aliases). Deferred past the PR11.22c–e
-emitter hygiene pass so the monomorphization implementation lands in a
-clean, decomposed emitter rather than the current 19.7K-line monolith.
+Closures remain implementable, but they are a larger language-design bet than
+the remaining hygiene and proof-diagnostic work. They should not sit on the
+critical path without proposal evidence from real programs.
 
 ---
 
@@ -3182,7 +3149,7 @@ Split into:
 
 ### Dependency
 
-Follows PR11.22f. Medium effort, low risk.
+Follows PR11.16. Medium effort, low risk.
 
 ---
 
@@ -4421,6 +4388,8 @@ would be implemented.
 | Optional Semicolons | PR11.5 |
 | `else if` Keyword | PR11.4 |
 | Simplified Predefined Type Names | Superseded by PR11.8 unified `integer`; `short` and `byte` are not admitted |
+| String Interpolation | Deferred indefinitely / proposal-only |
+| Value-Capture Closures | Deferred indefinitely / proposal-only |
 | Capitalisation as Reference Signal | WON'T FIX — redundant after PR11.8e eliminates explicit access types |
 | Implicit Dereference | WON'T FIX — moot after PR11.8e removes user-visible access types |
 | `to` Range Keyword | PR11.4 |

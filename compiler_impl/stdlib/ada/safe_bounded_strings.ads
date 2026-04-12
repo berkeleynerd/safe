@@ -10,25 +10,38 @@ package Safe_Bounded_Strings is
 
       Empty : constant Bounded_String;
 
-      function Length (Value : Bounded_String) return Natural;
+      function Length (Value : Bounded_String) return Natural
+        with Global => null,
+             Depends => (Length'Result => Value);
 
       function To_Bounded (Value : String) return Bounded_String
-        with Pre  => Value'Length <= Capacity,
-             Post => Length (To_Bounded'Result) = Value'Length;
+        with Global => null,
+             Pre  => Value'Length <= Capacity,
+             Post => Length (To_Bounded'Result) = Value'Length,
+             Depends => (To_Bounded'Result => Value);
 
-      function To_String (Value : Bounded_String) return String;
+      function To_String (Value : Bounded_String) return String
+        with Global => null,
+             Post => To_String'Result'Length = Length (Value),
+             Depends => (To_String'Result => Value);
 
       function Element (Value : Bounded_String; Index : Positive) return String
-        with Pre  => Index <= Length (Value),
-             Post => Element'Result'Length = 1;
+        with Global => null,
+             Pre  => Index <= Length (Value),
+             Post => Element'Result'Length = 1,
+             Depends => (Element'Result => (Value, Index));
 
       function Slice (Value : Bounded_String; Low, High : Positive) return String
-        with Pre => Low <= High and then High <= Length (Value),
-             Post => Slice'Result'Length = High - Low + 1;
+        with Global => null,
+             Pre => Low <= High and then High <= Length (Value),
+             Post => Slice'Result'Length = High - Low + 1,
+             Depends => (Slice'Result => (Value, Low, High));
 
       function Slice_Bounded (Value : Bounded_String; Low, High : Positive) return Bounded_String
-        with Pre => Low <= High and then High <= Length (Value),
-             Post => Length (Slice_Bounded'Result) = High - Low + 1;
+        with Global => null,
+             Pre => Low <= High and then High <= Length (Value),
+             Post => Length (Slice_Bounded'Result) = High - Low + 1,
+             Depends => (Slice_Bounded'Result => (Value, Low, High));
 
    private
       type Bounded_String is record

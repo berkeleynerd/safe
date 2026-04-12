@@ -3349,6 +3349,64 @@ The `procedure` keyword. No other language construct is affected.
 
 ---
 
+# String Interpolation
+
+Status: deferred indefinitely / proposal-only. This is not an active PR11
+milestone because it is ergonomic sugar rather than core safety or proof
+infrastructure. It remains implementable and can be reconsidered if real
+sample evidence shows enough readability benefit.
+
+## Proposed Change
+
+Add `f"..."` string interpolation syntax.
+
+- `f"count: {n}"` desugars to `"count: " & to_string(n)`.
+- `to_string` is a standard interface method that scalar types, enums,
+  strings, and optionals satisfy by default.
+- User-defined types can satisfy `to_string` through the existing
+  method/interface machinery from PR11.11a-b.
+- Interpolation expressions must be printable (satisfy `to_string`).
+  Complex expressions are allowed: `f"total: {a + b}"`.
+- No format specifiers in the first slice (no `{n:04d}`). Formatting is
+  post-v1.0 work.
+
+## Proof Impact
+
+Zero. Pure desugaring to existing concatenation and `to_string` calls.
+
+---
+
+# Value-Capture Closures
+
+Status: deferred indefinitely / proposal-only. This is not an active PR11
+milestone because closures are a larger language-design bet than the remaining
+hygiene and proof-diagnostic work. They remain implementable and can be
+reconsidered if proposal evidence from real programs justifies the cost.
+
+## Proposed Change
+
+Add value-capture-only first-class functions.
+
+- Anonymous function syntax: `fn (x : integer) returns integer => x + 1`
+- Closures capture enclosing variables by value (copy at capture time), not by
+  reference. No mutable upvalue captures.
+- A closure is internally a record of captured values plus a function pointer.
+  The function pointer is statically known at each use site through
+  monomorphization via an interface constraint (for example, a standard
+  `callable` interface).
+- Closure types are value types: copy on assignment, free on scope exit.
+- No dynamic dispatch: every closure call site is monomorphized.
+- Enables functional patterns: `items.filter(fn (x) => x > 0)`,
+  `items.map(fn (x) => x * 2)`, callback parameters.
+
+## Proof Impact
+
+Zero new proof model. The closure body is proved as an ordinary function.
+Captured values are record fields with known types. The monomorphized call is
+a concrete function call that GNATprove handles natively.
+
+---
+
 # Predefined Immutable `string` Type
 
 ## Motivation

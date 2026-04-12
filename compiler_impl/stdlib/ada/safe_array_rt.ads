@@ -55,9 +55,21 @@ package Safe_Array_RT is
            Depends => (Value => (Value, Index, Item));
    function Slice (Value : Safe_Array; Low, High : Natural) return Safe_Array
       with Global => null,
+           Post =>
+             (if Length (Value) = 0
+               or else Low = 0
+               or else High = 0
+               or else High < Low
+               or else High > Length (Value)
+              then Length (Slice'Result) = 0
+              else Length (Slice'Result) = High - Low + 1),
            Depends => (Slice'Result => (Value, Low, High));
    function Concat (Left, Right : Safe_Array) return Safe_Array
       with Global => null,
+           Post =>
+             Long_Long_Integer (Length (Concat'Result)) =
+               Long_Long_Integer (Length (Left))
+               + Long_Long_Integer (Length (Right)),
            Depends => (Concat'Result => (Left, Right));
 
 private
