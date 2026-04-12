@@ -2129,6 +2129,39 @@ package body Safe_Frontend.Ada_Emit is
         Ada.Strings.Fixed.Index (Original_Spec, "System.") > 0;
       Spec_Needs_Safe_Ownership_RT : constant Boolean :=
         not Context.Owner_Access_Helper_Types.Is_Empty;
+
+      function Enclosing_Package_Name (Qualified_Type : String) return String is
+      begin
+         for Index in reverse Qualified_Type'Range loop
+            if Qualified_Type (Index) = '.' then
+               return Qualified_Type (Qualified_Type'First .. Index - 1);
+            end if;
+         end loop;
+         return "";
+      end Enclosing_Package_Name;
+
+      function Spec_Uses_Imported_Enum_Type (Qualified_Type : String) return Boolean is
+         Package_Name : constant String := Enclosing_Package_Name (Qualified_Type);
+      begin
+         return
+           Ada.Strings.Fixed.Index (Original_Spec, Qualified_Type) > 0
+           or else
+             (Package_Name'Length > 0
+              and then Ada.Strings.Fixed.Index (Original_Spec, Package_Name & ".") > 0);
+      end Spec_Uses_Imported_Enum_Type;
+
+      function Spec_Needs_Imported_Enum_Use_Types return Boolean is
+      begin
+         for Item of Context.Imported_Enum_Use_Types loop
+            if Spec_Uses_Imported_Enum_Type (FT.To_String (Item)) then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Spec_Needs_Imported_Enum_Use_Types;
+
+      Spec_Needs_Imported_Enums : constant Boolean :=
+        Spec_Needs_Imported_Enum_Use_Types;
    begin
       if (Spec_Needs_Safe_Runtime
           or else Spec_Needs_Safe_String_RT
@@ -2141,7 +2174,7 @@ package body Safe_Frontend.Ada_Emit is
           or else Spec_Needs_Interfaces
           or else Spec_Needs_System
           or else Spec_Needs_Safe_Ownership_RT
-          or else not Context.Imported_Enum_Use_Types.Is_Empty
+          or else Spec_Needs_Imported_Enums
           or else Context.State.Needs_Unevaluated_Use_Of_Old)
         and then Original_Spec'Length >= Pragma_Block'Length
         and then
@@ -2189,9 +2222,27 @@ package body Safe_Frontend.Ada_Emit is
             Append_Line (Context.Spec_Text, "with Safe_Runtime;");
             Append_Line (Context.Spec_Text, "use type Safe_Runtime.Wide_Integer;");
          end if;
-         for Item of Context.Imported_Enum_Use_Types loop
-            Append_Line (Context.Spec_Text, "use type " & FT.To_String (Item) & ";");
-         end loop;
+         declare
+            Imported_Enum_Withs : FT.UString_Vectors.Vector;
+         begin
+            for Item of Context.Imported_Enum_Use_Types loop
+               declare
+                  Enum_Type_Name : constant String := FT.To_String (Item);
+                  Package_Name   : constant String :=
+                    Enclosing_Package_Name (Enum_Type_Name);
+               begin
+                  if Spec_Uses_Imported_Enum_Type (Enum_Type_Name) then
+                     if Package_Name'Length > 0
+                       and then not Contains_Name (Imported_Enum_Withs, Package_Name)
+                     then
+                        Append_Line (Context.Spec_Text, "with " & Package_Name & ";");
+                        Imported_Enum_Withs.Append (FT.To_UString (Package_Name));
+                     end if;
+                     Append_Line (Context.Spec_Text, "use type " & Enum_Type_Name & ";");
+                  end if;
+               end;
+            end loop;
+         end;
          if Spec_Needs_Safe_Ownership_RT then
             Append_Line (Context.Spec_Text, "with Safe_Ownership_RT;");
          end if;
