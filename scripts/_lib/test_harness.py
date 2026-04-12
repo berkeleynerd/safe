@@ -46,10 +46,6 @@ def repo_rel(path: Path) -> str:
     return str(path.relative_to(REPO_ROOT))
 
 
-def find_command(name: str, fallback: Path | None = None) -> str:
-    return harness_find_command(name, fallback)
-
-
 def run_command(
     argv: list[str],
     *,
@@ -59,6 +55,8 @@ def run_command(
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     if input_text is None and timeout is None:
+        # Same stdin behavior as subprocess.run(input=None), while reusing
+        # the shared capture helper for the common no-timeout path.
         return run_capture(argv, cwd=cwd, env=env)
     return subprocess.run(
         argv,
@@ -90,7 +88,7 @@ def extract_expected_block(path: Path) -> str:
 
 
 def build_compiler() -> Path:
-    alr = find_command("alr", ALR_FALLBACK)
+    alr = harness_find_command("alr", ALR_FALLBACK)
     completed = run_command([alr, "build"], cwd=COMPILER_ROOT)
     if completed.returncode != 0:
         raise RuntimeError(first_message(completed))
