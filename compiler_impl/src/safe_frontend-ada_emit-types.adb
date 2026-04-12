@@ -1101,6 +1101,47 @@ package body Safe_Frontend.Ada_Emit.Types is
       return False;
    end Is_Integer_Type;
 
+   function Is_Boolean_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean
+   is
+      Base            : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+      Kind            : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+      Name            : constant String := FT.Lowercase (FT.To_String (Base.Name));
+      Unresolved_Base : constant String :=
+        (if Kind in "subtype" | "nominal" and then Base.Has_Base
+         then FT.Lowercase (FT.To_String (Base.Base))
+         else "");
+   begin
+      return Kind = "boolean"
+        or else Name = "boolean"
+        or else Unresolved_Base = "boolean";
+   end Is_Boolean_Type;
+
+   function Is_Wide_Integer_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean is
+   begin
+      return Is_Integer_Type (Unit, Document, Info)
+        and then not Is_Boolean_Type (Unit, Document, Info);
+   end Is_Wide_Integer_Type;
+
+   function Is_Wide_Integer_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Name     : String) return Boolean
+   is
+   begin
+      if FT.Lowercase (Name) = "boolean" then
+         return False;
+      elsif Has_Type (Unit, Document, Name) then
+         return Is_Wide_Integer_Type (Unit, Document, Lookup_Type (Unit, Document, Name));
+      end if;
+      return Is_Integer_Type (Unit, Document, Name);
+   end Is_Wide_Integer_Type;
+
    function Is_Binary_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;

@@ -1344,7 +1344,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Constant_Qualifier : constant String :=
         (if Is_Constant and then not AI.Is_Owner_Access (Type_Info) then "constant " else "");
       Type_Name : constant String :=
-        (if Is_Integer_Type (Unit, Document, Type_Info)
+        (if Is_Wide_Integer_Type (Unit, Document, Type_Info)
            and then Names_Use_Wide_Storage (State, Names)
          then "safe_runtime.wide_integer"
          elsif Local_Context
@@ -1457,7 +1457,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                  Result
                  & SU.To_Unbounded_String
                      (" := " & Default_Value_Expr (Unit, Document, Type_Info));
-            elsif Is_Integer_Type (Unit, Document, Type_Info)
+            elsif Is_Wide_Integer_Type (Unit, Document, Type_Info)
               and then Uses_Wide_Value (Unit, Document, State, Initializer)
             then
                Result :=
@@ -4989,7 +4989,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                Snapshot_Name & " : constant " & Snapshot_Type & " := " & Target_Image & ";",
                Depth + 1);
             Append_Line (Buffer, "begin", Depth);
-            if Is_Integer_Type (Unit, Document, Target_Type)
+            if Is_Wide_Integer_Type (Unit, Document, Target_Type)
               and then Uses_Wide_Value (Unit, Document, State, Stmt.Value)
             then
                declare
@@ -5106,7 +5106,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                & "'Last));",
                Depth);
          end if;
-      elsif Is_Integer_Type (Unit, Document, Target_Type)
+      elsif Is_Wide_Integer_Type (Unit, Document, Target_Type)
         and then Uses_Wide_Value (Unit, Document, State, Stmt.Value)
       then
          Append_Narrowing_Assignment
@@ -5347,7 +5347,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
             Inner_Image => Render_Expr (Unit, Document, Value.Inner, State),
             Depth => Depth);
       elsif Return_Type'Length > 0
-        and then Is_Integer_Type (Unit, Document, Return_Type)
+        and then Is_Wide_Integer_Type (Unit, Document, Return_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
       then
          declare
@@ -5446,7 +5446,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
             & ");",
             Depth + 1);
          Append_Line (Buffer, "Return_Value : " & Return_Type & ";", Depth + 1);
-      elsif Is_Integer_Type (Unit, Document, Return_Type)
+      elsif Is_Wide_Integer_Type (Unit, Document, Return_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
       then
          declare
@@ -5483,7 +5483,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
            (Buffer,
             "Return_Value := " & Return_Type & " (Narrowed_Float_Value);",
             Depth + 1);
-      elsif Is_Integer_Type (Unit, Document, Return_Type)
+      elsif Is_Wide_Integer_Type (Unit, Document, Return_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
       then
          Append_Line
@@ -5988,7 +5988,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       State     : in out Emit_State;
       Decl      : CM.Resolved_Object_Decl) is
    begin
-      if Is_Integer_Type (Unit, Document, Decl.Type_Info)
+      if Is_Wide_Integer_Type (Unit, Document, Decl.Type_Info)
         and then Decl.Has_Initializer
         and then Uses_Wide_Value (Unit, Document, State, Decl.Initializer)
       then
@@ -6004,7 +6004,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       State     : in out Emit_State;
       Decl      : CM.Object_Decl) is
    begin
-      if Is_Integer_Type (Unit, Document, Decl.Type_Info)
+      if Is_Wide_Integer_Type (Unit, Document, Decl.Type_Info)
         and then Decl.Has_Initializer
         and then Uses_Wide_Value (Unit, Document, State, Decl.Initializer)
       then

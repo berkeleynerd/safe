@@ -2573,7 +2573,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
         Lookup_Channel (Unit, Channel_Name);
    begin
       if Has_Text (Channel_Item.Name)
-        and then Is_Integer_Type (Unit, Document, Channel_Item.Element_Type)
+        and then Is_Wide_Integer_Type (Unit, Document, Channel_Item.Element_Type)
         and then Uses_Wide_Value (Unit, Document, State, Value)
       then
          return
@@ -2675,7 +2675,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
             return "Safe_Runtime.Wide_Integer (" & Render_Expr (Unit, Document, Expr, State) & ")";
          when CM.Expr_Conversion =>
             if Has_Text (Expr.Type_Name)
-              and then Is_Integer_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+              and then Is_Wide_Integer_Type (Unit, Document, FT.To_String (Expr.Type_Name))
               and then Expr.Inner /= null
             then
                return Render_Wide_Expr (Unit, Document, Expr.Inner, State);
@@ -2746,7 +2746,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
               & ")";
          when CM.Expr_Conversion =>
             if Has_Text (Expr.Type_Name)
-              and then Is_Integer_Type (Unit, Document, FT.To_String (Expr.Type_Name))
+              and then Is_Wide_Integer_Type (Unit, Document, FT.To_String (Expr.Type_Name))
               and then Expr.Inner /= null
             then
                return

@@ -1,0 +1,8 @@
+package pr226_remainder_boolean_build
+
+   flag : boolean = (18 rem 2) == 0;
+
+   if flag
+      print (1)
+   else
+      print (0)

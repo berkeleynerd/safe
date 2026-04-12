@@ -76,6 +76,14 @@ private package Safe_Frontend.Ada_Emit.Types is
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Info     : GM.Type_Descriptor) return Boolean;
+   function Is_Wide_Integer_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Name     : String) return Boolean;
+   function Is_Wide_Integer_Type
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return Boolean;
    function Is_Binary_Type
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;

@@ -84,6 +84,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr226_remainder_boolean_build.safe",
+        "1\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr1110a_optional_string_build.safe",
         "Ada\n",
         False,
