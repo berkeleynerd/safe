@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "0a06bbde48a47a042ffa8e60cdbfa263b277594d2776a1c4c388bd2dc4fa874a",
+  "compiler_hash": "3ffcd49d594b8538438c661ba570d32f3dc977c8dd182ee17102796df66e812f",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -425,8 +425,8 @@
       "pr227_public_shared_snapshot_order_build.ads": "52601e0d81620667bf4fa121f237bc132a8161db68f4240260b845ccc2195da2"
     },
     "tests/build/pr228_imported_shared_condition_build.safe": {
-      "pr228_imported_shared_condition_build.adb": "681d79954088b0288609adeea87dda1354fbd9c5f97e0253b38c9c3b9a982093",
-      "pr228_imported_shared_condition_build.ads": "442fd29fd02963d64b7f4d367eba7213dd00fa6a0caa1276526e21b0db3b3b7a",
+      "pr228_imported_shared_condition_build.adb": "3d4510dadd9019c99caf565318723b2ef9f1a5459830b6439f53cebb8ee804b6",
+      "pr228_imported_shared_condition_build.ads": "66b38069418c9f320ff98875e6912d7dba9cd64323a8526c99a87490a0d7a9c3",
       "pr228_provider_shared_condition.adb": "0c1ede5c46e9c03ff5b79c2f923c6f6a6610d7465b803196231a471a0e57cb6a",
       "pr228_provider_shared_condition.ads": "d2b6b16f5cb87c9ac64328bc26761f03f81221b75431539a9bccaa333d10c19f"
     },
@@ -438,6 +438,11 @@
       "main.adb": "9681dabb7bd304e29ed949804f326c58acb7cabc2f2caefa1ddc48c34be49487",
       "pr228_shared_field_condition_build.adb": "40755ff1a9151d94c7e862384893b0b81441d0179ac5a2cb3ec555a13dcaa549",
       "pr228_shared_field_condition_build.ads": "3df79c2a6c6ae94de5b2e360be7bee39866f02ea35d00db7d007595d2f1cdeaf"
+    },
+    "tests/build/pr228_shared_loop_exit_condition_build.safe": {
+      "main.adb": "9a915e253aaffd06f105eff78cbc6cc7cb8f7eb423e5d882483b872bc918f694",
+      "pr228_shared_loop_exit_condition_build.adb": "6d4262dea601b8c42b962433e0d13bffa5e19d3e2cf50a16e9aee02761b9d781",
+      "pr228_shared_loop_exit_condition_build.ads": "488ed0bdd3345bce4490e5ba792f1e79834e0c669cead9c9a085ad28c1e347a1"
     },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "channel_ceiling_priority.adb": "d1fd5c5e37859ecdb13a969943dff13b203fd0738a40c3c4710dcdaddf6c8921",

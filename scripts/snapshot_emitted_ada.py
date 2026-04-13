@@ -19,6 +19,9 @@ from _lib.proof_inventory import EMITTED_PROOF_FIXTURES
 
 SNAPSHOT_PATH = REPO_ROOT / "tests" / "emitted_ada_snapshot.json"
 SNAPSHOT_VERSION = 1
+SNAPSHOT_EXTRA_FIXTURES = [
+    "tests/build/pr228_shared_loop_exit_condition_build.safe",
+]
 
 
 def repo_arg(path: Path) -> str:
@@ -79,9 +82,13 @@ def emit_fixture(*, safec: Path, source: Path) -> dict[str, str]:
         }
 
 
+def snapshot_fixture_paths() -> list[str]:
+    return sorted(set(EMITTED_PROOF_FIXTURES) | set(SNAPSHOT_EXTRA_FIXTURES))
+
+
 def build_manifest(*, safec: Path) -> dict[str, object]:
     fixtures: dict[str, dict[str, str]] = {}
-    for fixture_rel in sorted(EMITTED_PROOF_FIXTURES):
+    for fixture_rel in snapshot_fixture_paths():
         print(f"[snapshot_emitted_ada] {fixture_rel}", flush=True)
         fixtures[fixture_rel] = emit_fixture(safec=safec, source=REPO_ROOT / fixture_rel)
     return {
@@ -124,7 +131,7 @@ def compare_snapshot(*, snapshot: dict[str, object], current_hash: str, safec: P
 
     failures: list[str] = []
     expected_fixture_keys = sorted(str(item) for item in manifest_fixtures.keys())
-    current_fixture_keys = sorted(EMITTED_PROOF_FIXTURES)
+    current_fixture_keys = snapshot_fixture_paths()
     if expected_fixture_keys != current_fixture_keys:
         missing = sorted(set(current_fixture_keys) - set(expected_fixture_keys))
         extra = sorted(set(expected_fixture_keys) - set(current_fixture_keys))

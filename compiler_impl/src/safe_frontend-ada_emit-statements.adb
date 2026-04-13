@@ -1,5 +1,5 @@
 with Ada.Containers;
-with Ada.Containers.Indefinite_Vectors;
+with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Ada_Emit.Internal;
@@ -27,6 +27,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
    type Shared_Field_Getter_Info is record
       Found               : Boolean := False;
       Root_Key            : FT.UString := FT.To_UString ("");
+      Call_Image          : FT.UString := FT.To_UString ("");
       Snapshot_Type_Image : FT.UString := FT.To_UString ("");
       Snapshot_Init_Image : FT.UString := FT.To_UString ("");
       Field_Ada_Name      : FT.UString := FT.To_UString ("");
@@ -39,7 +40,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Snapshot_Init_Image : FT.UString := FT.To_UString ("");
    end record;
 
-   package Shared_Condition_Snapshot_Vectors is new Ada.Containers.Indefinite_Vectors
+   package Shared_Condition_Snapshot_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Shared_Condition_Snapshot);
 
@@ -48,7 +49,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Replacement_Image : FT.UString := FT.To_UString ("");
    end record;
 
-   package Shared_Condition_Replacement_Vectors is new Ada.Containers.Indefinite_Vectors
+   package Shared_Condition_Replacement_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Shared_Condition_Replacement);
 
@@ -1674,6 +1675,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       function Info_For
         (Root_Key     : String;
+         Call_Image   : String;
          Type_Info    : GM.Type_Descriptor;
          Init_Image   : String;
          Field_Name   : String) return Shared_Field_Getter_Info
@@ -1682,6 +1684,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
          return
            (Found               => True,
             Root_Key            => FT.To_UString (Root_Key),
+            Call_Image          => FT.To_UString (Call_Image),
             Snapshot_Type_Image => FT.To_UString (Render_Type_Name (Type_Info)),
             Snapshot_Init_Image => FT.To_UString (Init_Image),
             Field_Ada_Name      => FT.To_UString (Ada_Safe_Name (Field_Name)));
@@ -1709,11 +1712,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
                declare
                   Field_Name  : constant String := FT.To_String (Field.Name);
                   Getter_Name : constant String := Shared_Field_Getter_Name (Field_Name);
-                  Expected    : constant String :=
-                    FT.Lowercase
-                      (if Is_Public
-                       then Shared_Public_Helper_Name (Root_Name, Getter_Name)
-                       else Shared_Wrapper_Object_Name (Root_Name) & "." & Getter_Name);
+                  Expected_Image : constant String :=
+                    (if Is_Public
+                     then Shared_Public_Helper_Name (Root_Name, Getter_Name)
+                     else Shared_Wrapper_Object_Name (Root_Name) & "." & Getter_Name);
+                  Expected       : constant String := FT.Lowercase (Expected_Image);
                begin
                   if Callee_Key = Expected then
                      return
@@ -1721,6 +1724,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                          (Root_Key   =>
                             (if Is_Public then "public:" else "private:")
                             & FT.Lowercase (Root_Name),
+                          Call_Image => Expected_Image,
                           Type_Info  => Decl.Type_Info,
                           Init_Image =>
                             (if Is_Public
@@ -1773,16 +1777,17 @@ package body Safe_Frontend.Ada_Emit.Statements is
                declare
                   Field_Name  : constant String := FT.To_String (Field.Name);
                   Getter_Name : constant String := Shared_Field_Getter_Name (Field_Name);
-                  Expected    : constant String :=
-                    FT.Lowercase
-                      (Package_Name
-                       & "."
-                       & Shared_Public_Helper_Name (Root_Name, Getter_Name));
+                  Expected_Image : constant String :=
+                    Package_Name
+                    & "."
+                    & Shared_Public_Helper_Name (Root_Name, Getter_Name);
+                  Expected       : constant String := FT.Lowercase (Expected_Image);
                begin
                   if Callee_Key = Expected then
                      return
                        Info_For
                          (Root_Key   => "imported:" & FT.Lowercase (Full_Name),
+                          Call_Image => Expected_Image,
                           Type_Info  => Decl.Type_Info,
                           Init_Image =>
                             Package_Name
@@ -1928,7 +1933,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Unit            : CM.Resolved_Unit;
       Document        : GM.Mir_Document;
       Expr            : CM.Expr_Access;
-      State           : in out Emit_State;
       Statement_Index : Positive;
       Rendered        : in out Shared_Condition_Render)
    is
@@ -1948,8 +1952,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                    (Info, Statement_Index, Rendered.Snapshots);
             begin
                Rendered.Replacements.Append
-                 ((Call_Image =>
-                     FT.To_UString (Render_Expr (Unit, Document, Expr, State)),
+                 ((Call_Image => Info.Call_Image,
                    Replacement_Image =>
                      FT.To_UString
                        (Snapshot_Name & "." & FT.To_String (Info.Field_Ada_Name))));
@@ -1960,46 +1963,46 @@ package body Safe_Frontend.Ada_Emit.Statements is
       case Expr.Kind is
          when CM.Expr_Call =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Callee, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Callee, Statement_Index, Rendered);
             for Arg of Expr.Args loop
                Collect_Shared_Condition_Snapshots
-                 (Unit, Document, Arg, State, Statement_Index, Rendered);
+                 (Unit, Document, Arg, Statement_Index, Rendered);
             end loop;
          when CM.Expr_Select =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Prefix, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Prefix, Statement_Index, Rendered);
          when CM.Expr_Resolved_Index =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Prefix, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Prefix, Statement_Index, Rendered);
             for Arg of Expr.Args loop
                Collect_Shared_Condition_Snapshots
-                 (Unit, Document, Arg, State, Statement_Index, Rendered);
+                 (Unit, Document, Arg, Statement_Index, Rendered);
             end loop;
          when CM.Expr_Conversion | CM.Expr_Annotated =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Inner, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Inner, Statement_Index, Rendered);
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Target, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Target, Statement_Index, Rendered);
          when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Inner, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Inner, Statement_Index, Rendered);
          when CM.Expr_Binary =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Left, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Left, Statement_Index, Rendered);
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Right, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Right, Statement_Index, Rendered);
          when CM.Expr_Allocator =>
             Collect_Shared_Condition_Snapshots
-              (Unit, Document, Expr.Value, State, Statement_Index, Rendered);
+              (Unit, Document, Expr.Value, Statement_Index, Rendered);
          when CM.Expr_Aggregate =>
             for Field of Expr.Fields loop
                Collect_Shared_Condition_Snapshots
-                 (Unit, Document, Field.Expr, State, Statement_Index, Rendered);
+                 (Unit, Document, Field.Expr, Statement_Index, Rendered);
             end loop;
          when CM.Expr_Array_Literal | CM.Expr_Tuple =>
             for Item of Expr.Elements loop
                Collect_Shared_Condition_Snapshots
-                 (Unit, Document, Item, State, Statement_Index, Rendered);
+                 (Unit, Document, Item, Statement_Index, Rendered);
             end loop;
          when others =>
             null;
@@ -2027,7 +2030,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
       begin
          return
            (Position = Text'First
-            or else not Is_Ada_Name_Character (Text (Position - 1)))
+            or else
+              (Text (Position - 1) /= '.'
+               and then not Is_Ada_Name_Character (Text (Position - 1))))
            and then
              (After > Text'Last
               or else not Is_Ada_Name_Character (Text (After)));
@@ -2072,7 +2077,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Image  : SU.Unbounded_String;
    begin
       Collect_Shared_Condition_Snapshots
-        (Unit, Document, Expr, State, Statement_Index, Result);
+        (Unit, Document, Expr, Statement_Index, Result);
       Image := SU.To_Unbounded_String (Render_Expr (Unit, Document, Expr, State));
 
       for Replacement of Result.Replacements loop
@@ -3224,6 +3229,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      Append_Line (Buffer, "end loop;", Depth);
                   else
                      Append_Line (Buffer, "loop", Depth);
+                     if Variant_Image'Length > 0 then
+                        Append_Line
+                          (Buffer,
+                           "pragma Loop_Variant (" & Variant_Image & ");",
+                           Depth + 1);
+                     end if;
                      Append_Line (Buffer, "declare", Depth + 1);
                      Append_Shared_Condition_Declarations
                        (Buffer, Rendered, Depth + 2);
@@ -3233,9 +3244,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         "exit when not (" & FT.To_String (Rendered.Image) & ");",
                         Depth + 2);
                      Append_Line (Buffer, "end;", Depth + 1);
-                     if Variant_Image'Length > 0 then
-                        Append_Line (Buffer, "pragma Loop_Variant (" & Variant_Image & ");", Depth + 1);
-                     end if;
                      Render_Required_Statement_Suite
                        (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
                      Append_Line (Buffer, "end loop;", Depth);
