@@ -14,6 +14,9 @@ private package Safe_Frontend.Ada_Emit.Statements is
    function Statements_Use_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean;
+   function Statements_Immediately_Overwrite_Name
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Name       : String) return Boolean;
    procedure Collect_Wide_Locals
      (Unit         : CM.Resolved_Unit;
       Document     : GM.Mir_Document;

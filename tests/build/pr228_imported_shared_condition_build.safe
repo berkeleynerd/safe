@@ -1,0 +1,17 @@
+-- Test: pr228_imported_shared_condition_build
+-- Description: Imported public shared field reads in conditions must snapshot before proof-visible comparison.
+-- Expected: BUILD_SUCCESS
+
+with pr228_provider_shared_condition;
+
+package pr228_imported_shared_condition_build
+
+   value : integer = 0;
+
+   pr228_provider_shared_condition.cfg.total = 8;
+   pr228_provider_shared_condition.cfg.ready = true;
+
+   if pr228_provider_shared_condition.cfg.total == 8 and then pr228_provider_shared_condition.cfg.ready
+      value = 17;
+
+   print (value)

@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "d24406524b8e526533189d410cc48a61486ccc44e808c4a70a029c9fb524eb60",
+  "compiler_hash": "0a06bbde48a47a042ffa8e60cdbfa263b277594d2776a1c4c388bd2dc4fa874a",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -423,6 +423,21 @@
     "tests/build/pr227_public_shared_snapshot_order_build.safe": {
       "pr227_public_shared_snapshot_order_build.adb": "0b76bfe49f020936a628f9bcaa340f52dca90ff10cd2a98c79f96e651ef71785",
       "pr227_public_shared_snapshot_order_build.ads": "52601e0d81620667bf4fa121f237bc132a8161db68f4240260b845ccc2195da2"
+    },
+    "tests/build/pr228_imported_shared_condition_build.safe": {
+      "pr228_imported_shared_condition_build.adb": "681d79954088b0288609adeea87dda1354fbd9c5f97e0253b38c9c3b9a982093",
+      "pr228_imported_shared_condition_build.ads": "442fd29fd02963d64b7f4d367eba7213dd00fa6a0caa1276526e21b0db3b3b7a",
+      "pr228_provider_shared_condition.adb": "0c1ede5c46e9c03ff5b79c2f923c6f6a6610d7465b803196231a471a0e57cb6a",
+      "pr228_provider_shared_condition.ads": "d2b6b16f5cb87c9ac64328bc26761f03f81221b75431539a9bccaa333d10c19f"
+    },
+    "tests/build/pr228_provider_shared_condition.safe": {
+      "pr228_provider_shared_condition.adb": "0c1ede5c46e9c03ff5b79c2f923c6f6a6610d7465b803196231a471a0e57cb6a",
+      "pr228_provider_shared_condition.ads": "d2b6b16f5cb87c9ac64328bc26761f03f81221b75431539a9bccaa333d10c19f"
+    },
+    "tests/build/pr228_shared_field_condition_build.safe": {
+      "main.adb": "9681dabb7bd304e29ed949804f326c58acb7cabc2f2caefa1ddc48c34be49487",
+      "pr228_shared_field_condition_build.adb": "40755ff1a9151d94c7e862384893b0b81441d0179ac5a2cb3ec555a13dcaa549",
+      "pr228_shared_field_condition_build.ads": "3df79c2a6c6ae94de5b2e360be7bee39866f02ea35d00db7d007595d2f1cdeaf"
     },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "channel_ceiling_priority.adb": "d1fd5c5e37859ecdb13a969943dff13b203fd0738a40c3c4710dcdaddf6c8921",

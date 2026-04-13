@@ -705,9 +705,7 @@ package body Safe_Frontend.Ada_Emit is
                  Is_Public_Shared_Helper_Call (Expr.Left, Root_Name)
                  or else Is_Public_Shared_Helper_Call (Expr.Right, Root_Name);
             when CM.Expr_Unary =>
-               return
-                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
-                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
+               return Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name);
             when CM.Expr_Annotated =>
                return
                  Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
@@ -765,6 +763,34 @@ package body Safe_Frontend.Ada_Emit is
 
       return False;
    end Decl_Uses_Shared_Object_Name;
+
+   function Package_Object_Initializer_Immediately_Overwritten
+     (Unit : CM.Resolved_Unit;
+      Decl : CM.Resolved_Object_Decl) return Boolean
+   is
+   begin
+      if Decl.Is_Constant
+        or else not Decl.Has_Initializer
+        or else Decl.Names.Is_Empty
+      then
+         return False;
+      end if;
+
+      for Name of Decl.Names loop
+         declare
+            Name_Text : constant String := FT.To_String (Name);
+         begin
+            if Name_Text'Length = 0
+              or else not Statements_Immediately_Overwrite_Name
+                (Unit.Statements, Name_Text)
+            then
+               return False;
+            end if;
+         end;
+      end loop;
+
+      return True;
+   end Package_Object_Initializer_Immediately_Overwritten;
 
    function Should_Defer_Package_Object_Initializer
      (Unit     : CM.Resolved_Unit;
@@ -870,9 +896,7 @@ package body Safe_Frontend.Ada_Emit is
               Expr_Uses_Public_Shared_Helper (Expr.Left)
               or else Expr_Uses_Public_Shared_Helper (Expr.Right);
          when CM.Expr_Unary =>
-            return
-              Expr_Uses_Public_Shared_Helper (Expr.Inner)
-              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
+            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
          when CM.Expr_Annotated =>
             return
               Expr_Uses_Public_Shared_Helper (Expr.Inner)
@@ -1486,8 +1510,11 @@ package body Safe_Frontend.Ada_Emit is
                   Defer_Package_Initializer : constant Boolean :=
                     Should_Defer_Package_Object_Initializer
                       (Unit, Document, Decl, Context.Deferred_Package_Init_Names);
+                  Initializer_Immediately_Overwritten : constant Boolean :=
+                    Package_Object_Initializer_Immediately_Overwritten (Unit, Decl);
                   Needs_Decl_Warning_Fence : constant Boolean :=
                     Defer_Package_Initializer
+                    or else Initializer_Immediately_Overwritten
                     or else
                       (not Decl.Is_Constant
                        and then

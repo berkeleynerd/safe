@@ -204,6 +204,21 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr228_shared_field_condition_build.safe",
+        "17\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr228_imported_shared_condition_build.safe",
+        "17\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr228_shared_loop_exit_condition_build.safe",
+        "17\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr1112c_shared_string_build.safe",
         "start\ninner\nworld\nBob\nright\n",
         False,

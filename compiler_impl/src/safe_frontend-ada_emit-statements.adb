@@ -1,4 +1,5 @@
 with Ada.Containers;
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Safe_Frontend.Ada_Emit.Internal;
@@ -22,6 +23,40 @@ package body Safe_Frontend.Ada_Emit.Statements is
    subtype Cleanup_Item is AI.Cleanup_Item;
    subtype Warning_Suppression_Array is AI.Warning_Suppression_Array;
    subtype Warning_Restore_Array is AI.Warning_Restore_Array;
+
+   type Shared_Field_Getter_Info is record
+      Found               : Boolean := False;
+      Root_Key            : FT.UString := FT.To_UString ("");
+      Snapshot_Type_Image : FT.UString := FT.To_UString ("");
+      Snapshot_Init_Image : FT.UString := FT.To_UString ("");
+      Field_Ada_Name      : FT.UString := FT.To_UString ("");
+   end record;
+
+   type Shared_Condition_Snapshot is record
+      Root_Key            : FT.UString := FT.To_UString ("");
+      Snapshot_Name       : FT.UString := FT.To_UString ("");
+      Snapshot_Type_Image : FT.UString := FT.To_UString ("");
+      Snapshot_Init_Image : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Shared_Condition_Snapshot_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Shared_Condition_Snapshot);
+
+   type Shared_Condition_Replacement is record
+      Call_Image        : FT.UString := FT.To_UString ("");
+      Replacement_Image : FT.UString := FT.To_UString ("");
+   end record;
+
+   package Shared_Condition_Replacement_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type   => Positive,
+      Element_Type => Shared_Condition_Replacement);
+
+   type Shared_Condition_Render is record
+      Image        : FT.UString := FT.To_UString ("");
+      Snapshots    : Shared_Condition_Snapshot_Vectors.Vector;
+      Replacements : Shared_Condition_Replacement_Vectors.Vector;
+   end record;
 
    procedure Raise_Internal (Message : String) renames AI.Raise_Internal;
    procedure Raise_Unsupported
@@ -231,9 +266,22 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean
    ;
-   function Statements_Immediately_Overwrite_Name
-     (Statements : CM.Statement_Access_Vectors.Vector;
-      Name       : String) return Boolean
+   function Expr_Needs_Shared_Condition_Snapshot
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access) return Boolean
+   ;
+   function Render_Shared_Condition
+     (Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Expr            : CM.Expr_Access;
+      State           : in out Emit_State;
+      Statement_Index : Positive) return Shared_Condition_Render
+   ;
+   procedure Append_Shared_Condition_Declarations
+     (Buffer   : in out SU.Unbounded_String;
+      Rendered : Shared_Condition_Render;
+      Depth    : Natural)
    ;
    function Is_Explicit_Float_Narrowing
      (Unit        : CM.Resolved_Unit;
@@ -1612,6 +1660,453 @@ package body Safe_Frontend.Ada_Emit.Statements is
       return "";
    end Loop_Variant_Image;
 
+   function Shared_Field_Getter_Call_Info
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access) return Shared_Field_Getter_Info
+   is
+      Callee_Key : constant String :=
+        (if Expr = null
+          or else Expr.Kind /= CM.Expr_Call
+          or else Expr.Callee = null
+         then ""
+         else FT.Lowercase (CM.Flatten_Name (Expr.Callee)));
+
+      function Info_For
+        (Root_Key     : String;
+         Type_Info    : GM.Type_Descriptor;
+         Init_Image   : String;
+         Field_Name   : String) return Shared_Field_Getter_Info
+      is
+      begin
+         return
+           (Found               => True,
+            Root_Key            => FT.To_UString (Root_Key),
+            Snapshot_Type_Image => FT.To_UString (Render_Type_Name (Type_Info)),
+            Snapshot_Init_Image => FT.To_UString (Init_Image),
+            Field_Ada_Name      => FT.To_UString (Ada_Safe_Name (Field_Name)));
+      end Info_For;
+
+      function Match_Local
+        (Decl      : CM.Resolved_Object_Decl;
+         Is_Public : Boolean) return Shared_Field_Getter_Info
+      is
+      begin
+         if not Decl.Is_Shared
+           or else Decl.Names.Is_Empty
+           or else Decl.Is_Public /= Is_Public
+         then
+            return (others => <>);
+         end if;
+
+         declare
+            Root_Name : constant String :=
+              FT.To_String (Decl.Names (Decl.Names.First_Index));
+            Root_Type : constant GM.Type_Descriptor :=
+              Base_Type (Unit, Document, Decl.Type_Info);
+         begin
+            for Field of Root_Type.Fields loop
+               declare
+                  Field_Name  : constant String := FT.To_String (Field.Name);
+                  Getter_Name : constant String := Shared_Field_Getter_Name (Field_Name);
+                  Expected    : constant String :=
+                    FT.Lowercase
+                      (if Is_Public
+                       then Shared_Public_Helper_Name (Root_Name, Getter_Name)
+                       else Shared_Wrapper_Object_Name (Root_Name) & "." & Getter_Name);
+               begin
+                  if Callee_Key = Expected then
+                     return
+                       Info_For
+                         (Root_Key   =>
+                            (if Is_Public then "public:" else "private:")
+                            & FT.Lowercase (Root_Name),
+                          Type_Info  => Decl.Type_Info,
+                          Init_Image =>
+                            (if Is_Public
+                             then Shared_Public_Helper_Name (Root_Name, Shared_Get_All_Name)
+                             else Shared_Wrapper_Object_Name (Root_Name)
+                                  & "."
+                                  & Shared_Get_All_Name),
+                          Field_Name => Field_Name);
+                  end if;
+               end;
+            end loop;
+         end;
+
+         return (others => <>);
+      end Match_Local;
+
+      function Match_Imported
+        (Decl : CM.Imported_Object_Decl) return Shared_Field_Getter_Info
+      is
+         Full_Name : constant String := FT.To_String (Decl.Name);
+         Dot_Index : Natural := 0;
+      begin
+         if not Decl.Is_Shared or else Full_Name'Length = 0 then
+            return (others => <>);
+         end if;
+
+         for Index in reverse Full_Name'Range loop
+            if Full_Name (Index) = '.' then
+               Dot_Index := Index;
+               exit;
+            end if;
+         end loop;
+
+         if Dot_Index = 0
+           or else Dot_Index = Full_Name'First
+           or else Dot_Index = Full_Name'Last
+         then
+            return (others => <>);
+         end if;
+
+         declare
+            Package_Name : constant String :=
+              Full_Name (Full_Name'First .. Dot_Index - 1);
+            Root_Name    : constant String :=
+              Full_Name (Dot_Index + 1 .. Full_Name'Last);
+            Root_Type    : constant GM.Type_Descriptor :=
+              Base_Type (Unit, Document, Decl.Type_Info);
+         begin
+            for Field of Root_Type.Fields loop
+               declare
+                  Field_Name  : constant String := FT.To_String (Field.Name);
+                  Getter_Name : constant String := Shared_Field_Getter_Name (Field_Name);
+                  Expected    : constant String :=
+                    FT.Lowercase
+                      (Package_Name
+                       & "."
+                       & Shared_Public_Helper_Name (Root_Name, Getter_Name));
+               begin
+                  if Callee_Key = Expected then
+                     return
+                       Info_For
+                         (Root_Key   => "imported:" & FT.Lowercase (Full_Name),
+                          Type_Info  => Decl.Type_Info,
+                          Init_Image =>
+                            Package_Name
+                            & "."
+                            & Shared_Public_Helper_Name (Root_Name, Shared_Get_All_Name),
+                          Field_Name => Field_Name);
+                  end if;
+               end;
+            end loop;
+         end;
+
+         return (others => <>);
+      end Match_Imported;
+   begin
+      if Callee_Key'Length = 0 then
+         return (others => <>);
+      end if;
+
+      for Decl of Unit.Objects loop
+         declare
+            Private_Info : constant Shared_Field_Getter_Info :=
+              Match_Local (Decl, Is_Public => False);
+            Public_Info  : constant Shared_Field_Getter_Info :=
+              Match_Local (Decl, Is_Public => True);
+         begin
+            if Private_Info.Found then
+               return Private_Info;
+            elsif Public_Info.Found then
+               return Public_Info;
+            end if;
+         end;
+      end loop;
+
+      for Decl of Unit.Imported_Objects loop
+         declare
+            Imported_Info : constant Shared_Field_Getter_Info := Match_Imported (Decl);
+         begin
+            if Imported_Info.Found then
+               return Imported_Info;
+            end if;
+         end;
+      end loop;
+
+      return (others => <>);
+   end Shared_Field_Getter_Call_Info;
+
+   function Expr_Needs_Shared_Condition_Snapshot
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Expr     : CM.Expr_Access) return Boolean
+   is
+   begin
+      if Expr = null then
+         return False;
+      elsif Shared_Field_Getter_Call_Info (Unit, Document, Expr).Found then
+         return True;
+      end if;
+
+      case Expr.Kind is
+         when CM.Expr_Call =>
+            if Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Callee) then
+               return True;
+            end if;
+            for Arg of Expr.Args loop
+               if Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Arg) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Select =>
+            return Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Prefix);
+         when CM.Expr_Resolved_Index =>
+            if Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Prefix) then
+               return True;
+            end if;
+            for Arg of Expr.Args loop
+               if Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Arg) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Conversion | CM.Expr_Annotated =>
+            return
+              Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Inner)
+              or else Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Target);
+         when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
+            return Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Inner);
+         when CM.Expr_Binary =>
+            return
+              Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Left)
+              or else Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Right);
+         when CM.Expr_Allocator =>
+            return Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Expr.Value);
+         when CM.Expr_Aggregate =>
+            for Field of Expr.Fields loop
+               if Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Field.Expr) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               if Expr_Needs_Shared_Condition_Snapshot (Unit, Document, Item) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when others =>
+            return False;
+      end case;
+   end Expr_Needs_Shared_Condition_Snapshot;
+
+   function Shared_Condition_Snapshot_Name
+     (Info            : Shared_Field_Getter_Info;
+      Statement_Index : Positive;
+      Snapshots       : in out Shared_Condition_Snapshot_Vectors.Vector) return String
+   is
+   begin
+      for Snapshot of Snapshots loop
+         if Snapshot.Root_Key = Info.Root_Key then
+            return FT.To_String (Snapshot.Snapshot_Name);
+         end if;
+      end loop;
+
+      declare
+         Name : constant String :=
+           "Safe_Shared_Condition_"
+           & Ada.Strings.Fixed.Trim (Positive'Image (Statement_Index), Ada.Strings.Both)
+           & "_"
+           & Ada.Strings.Fixed.Trim
+               (Positive'Image (Positive (Natural (Snapshots.Length) + 1)), Ada.Strings.Both);
+      begin
+         Snapshots.Append
+           ((Root_Key            => Info.Root_Key,
+             Snapshot_Name       => FT.To_UString (Name),
+             Snapshot_Type_Image => Info.Snapshot_Type_Image,
+             Snapshot_Init_Image => Info.Snapshot_Init_Image));
+         return Name;
+      end;
+   end Shared_Condition_Snapshot_Name;
+
+   procedure Collect_Shared_Condition_Snapshots
+     (Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Expr            : CM.Expr_Access;
+      State           : in out Emit_State;
+      Statement_Index : Positive;
+      Rendered        : in out Shared_Condition_Render)
+   is
+   begin
+      if Expr = null then
+         return;
+      end if;
+
+      declare
+         Info : constant Shared_Field_Getter_Info :=
+           Shared_Field_Getter_Call_Info (Unit, Document, Expr);
+      begin
+         if Info.Found then
+            declare
+               Snapshot_Name : constant String :=
+                 Shared_Condition_Snapshot_Name
+                   (Info, Statement_Index, Rendered.Snapshots);
+            begin
+               Rendered.Replacements.Append
+                 ((Call_Image =>
+                     FT.To_UString (Render_Expr (Unit, Document, Expr, State)),
+                   Replacement_Image =>
+                     FT.To_UString
+                       (Snapshot_Name & "." & FT.To_String (Info.Field_Ada_Name))));
+            end;
+         end if;
+      end;
+
+      case Expr.Kind is
+         when CM.Expr_Call =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Callee, State, Statement_Index, Rendered);
+            for Arg of Expr.Args loop
+               Collect_Shared_Condition_Snapshots
+                 (Unit, Document, Arg, State, Statement_Index, Rendered);
+            end loop;
+         when CM.Expr_Select =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Prefix, State, Statement_Index, Rendered);
+         when CM.Expr_Resolved_Index =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Prefix, State, Statement_Index, Rendered);
+            for Arg of Expr.Args loop
+               Collect_Shared_Condition_Snapshots
+                 (Unit, Document, Arg, State, Statement_Index, Rendered);
+            end loop;
+         when CM.Expr_Conversion | CM.Expr_Annotated =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Inner, State, Statement_Index, Rendered);
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Target, State, Statement_Index, Rendered);
+         when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Inner, State, Statement_Index, Rendered);
+         when CM.Expr_Binary =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Left, State, Statement_Index, Rendered);
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Right, State, Statement_Index, Rendered);
+         when CM.Expr_Allocator =>
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Expr.Value, State, Statement_Index, Rendered);
+         when CM.Expr_Aggregate =>
+            for Field of Expr.Fields loop
+               Collect_Shared_Condition_Snapshots
+                 (Unit, Document, Field.Expr, State, Statement_Index, Rendered);
+            end loop;
+         when CM.Expr_Array_Literal | CM.Expr_Tuple =>
+            for Item of Expr.Elements loop
+               Collect_Shared_Condition_Snapshots
+                 (Unit, Document, Item, State, Statement_Index, Rendered);
+            end loop;
+         when others =>
+            null;
+      end case;
+   end Collect_Shared_Condition_Snapshots;
+
+   function Replace_All
+     (Text : String;
+      From : String;
+      To   : String) return String
+   is
+      Result : SU.Unbounded_String := SU.Null_Unbounded_String;
+      Cursor : Natural := Text'First;
+
+      function Is_Ada_Name_Character (Item : Character) return Boolean is
+      begin
+         return Item in 'A' .. 'Z'
+           or else Item in 'a' .. 'z'
+           or else Item in '0' .. '9'
+           or else Item = '_';
+      end Is_Ada_Name_Character;
+
+      function Has_Name_Boundaries (Position : Positive) return Boolean is
+         After : constant Natural := Position + From'Length;
+      begin
+         return
+           (Position = Text'First
+            or else not Is_Ada_Name_Character (Text (Position - 1)))
+           and then
+             (After > Text'Last
+              or else not Is_Ada_Name_Character (Text (After)));
+      end Has_Name_Boundaries;
+   begin
+      if From'Length = 0 then
+         return Text;
+      end if;
+
+      while Cursor <= Text'Last loop
+         declare
+            Pos : constant Natural :=
+              Ada.Strings.Fixed.Index (Text, From, From => Positive (Cursor));
+         begin
+            if Pos = 0 then
+               Result := Result & SU.To_Unbounded_String (Text (Cursor .. Text'Last));
+               Cursor := Text'Last + 1;
+            elsif Has_Name_Boundaries (Pos) then
+               if Pos > Cursor then
+                  Result := Result & SU.To_Unbounded_String (Text (Cursor .. Pos - 1));
+               end if;
+               Result := Result & SU.To_Unbounded_String (To);
+               Cursor := Pos + From'Length;
+            else
+               Result := Result & SU.To_Unbounded_String (Text (Cursor .. Pos));
+               Cursor := Pos + 1;
+            end if;
+         end;
+      end loop;
+
+      return SU.To_String (Result);
+   end Replace_All;
+
+   function Render_Shared_Condition
+     (Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Expr            : CM.Expr_Access;
+      State           : in out Emit_State;
+      Statement_Index : Positive) return Shared_Condition_Render
+   is
+      Result : Shared_Condition_Render;
+      Image  : SU.Unbounded_String;
+   begin
+      Collect_Shared_Condition_Snapshots
+        (Unit, Document, Expr, State, Statement_Index, Result);
+      Image := SU.To_Unbounded_String (Render_Expr (Unit, Document, Expr, State));
+
+      for Replacement of Result.Replacements loop
+         Image :=
+           SU.To_Unbounded_String
+             (Replace_All
+                (SU.To_String (Image),
+                 FT.To_String (Replacement.Call_Image),
+                 FT.To_String (Replacement.Replacement_Image)));
+      end loop;
+
+      Result.Image := FT.To_UString (SU.To_String (Image));
+      return Result;
+   end Render_Shared_Condition;
+
+   procedure Append_Shared_Condition_Declarations
+     (Buffer   : in out SU.Unbounded_String;
+      Rendered : Shared_Condition_Render;
+      Depth    : Natural)
+   is
+   begin
+      for Snapshot of Rendered.Snapshots loop
+         Append_Line
+           (Buffer,
+            FT.To_String (Snapshot.Snapshot_Name)
+            & " : constant "
+            & FT.To_String (Snapshot.Snapshot_Type_Image)
+            & " := "
+            & FT.To_String (Snapshot.Snapshot_Init_Image)
+            & ";",
+            Depth);
+      end loop;
+   end Append_Shared_Condition_Declarations;
+
    function Tail_Statements
      (Statements : CM.Statement_Access_Vectors.Vector;
       First      : Positive) return CM.Statement_Access_Vectors.Vector
@@ -2390,39 +2885,162 @@ package body Safe_Frontend.Ada_Emit.Statements is
                     State.Static_Integer_Bindings.Length;
                   Previous_Static_String_Count : constant Ada.Containers.Count_Type :=
                     State.Static_String_Bindings.Length;
+
+                  function Needs_Shared_Condition_Snapshot return Boolean is
+                  begin
+                     if Expr_Needs_Shared_Condition_Snapshot
+                          (Unit, Document, Item.Condition)
+                     then
+                        return True;
+                     end if;
+
+                     for Part of Item.Elsifs loop
+                        if Expr_Needs_Shared_Condition_Snapshot
+                             (Unit, Document, Part.Condition)
+                        then
+                           return True;
+                        end if;
+                     end loop;
+
+                     return False;
+                  end Needs_Shared_Condition_Snapshot;
+
+                  Arm_Count : constant Positive :=
+                    Positive (Natural (Item.Elsifs.Length) + 1);
+
+                  function Arm_Condition
+                    (Arm_Number : Positive) return CM.Expr_Access
+                  is
+                  begin
+                     if Arm_Number = 1 then
+                        return Item.Condition;
+                     end if;
+
+                     return
+                       Item.Elsifs
+                         (Item.Elsifs.First_Index + Arm_Number - 2).Condition;
+                  end Arm_Condition;
+
+                  procedure Render_Arm_Statements
+                    (Arm_Number  : Positive;
+                     Suite_Depth : Natural)
+                  is
+                  begin
+                     if Arm_Number = 1 then
+                        Render_Required_Statement_Suite
+                          (Buffer,
+                           Unit,
+                           Document,
+                           Item.Then_Stmts,
+                           State,
+                           Suite_Depth,
+                           Return_Type,
+                           In_Loop);
+                     else
+                        Render_Required_Statement_Suite
+                          (Buffer,
+                           Unit,
+                           Document,
+                           Item.Elsifs
+                             (Item.Elsifs.First_Index + Arm_Number - 2).Statements,
+                           State,
+                           Suite_Depth,
+                           Return_Type,
+                           In_Loop);
+                     end if;
+                  end Render_Arm_Statements;
+
+                  procedure Restore_Static_Counts is
+                  begin
+                     Restore_Static_Length_Bindings (State, Previous_Static_Length_Count);
+                     Restore_Static_Integer_Bindings (State, Previous_Static_Integer_Count);
+                     Restore_Static_String_Bindings (State, Previous_Static_String_Count);
+                  end Restore_Static_Counts;
+
+                  procedure Render_Snapshot_If_Arm
+                    (Arm_Number : Positive;
+                     Arm_Depth  : Natural)
+                  is
+                     Rendered : constant Shared_Condition_Render :=
+                       Render_Shared_Condition
+                         (Unit,
+                          Document,
+                          Arm_Condition (Arm_Number),
+                          State,
+                          Index);
+                     Wrapped : constant Boolean := not Rendered.Snapshots.Is_Empty;
+                     If_Depth : constant Natural :=
+                       (if Wrapped then Arm_Depth + 1 else Arm_Depth);
+                  begin
+                     if Wrapped then
+                        Append_Line (Buffer, "declare", Arm_Depth);
+                        Append_Shared_Condition_Declarations
+                          (Buffer, Rendered, Arm_Depth + 1);
+                        Append_Line (Buffer, "begin", Arm_Depth);
+                     end if;
+
+                     Append_Line
+                       (Buffer,
+                        "if " & FT.To_String (Rendered.Image) & " then",
+                        If_Depth);
+                     Render_Arm_Statements (Arm_Number, If_Depth + 1);
+                     Restore_Static_Counts;
+
+                     if Arm_Number < Arm_Count then
+                        Append_Line (Buffer, "else", If_Depth);
+                        Render_Snapshot_If_Arm (Arm_Number + 1, If_Depth + 1);
+                     elsif Item.Has_Else then
+                        Append_Line (Buffer, "else", If_Depth);
+                        Render_Required_Statement_Suite
+                          (Buffer,
+                           Unit,
+                           Document,
+                           Item.Else_Stmts,
+                           State,
+                           If_Depth + 1,
+                           Return_Type,
+                           In_Loop);
+                        Restore_Static_Counts;
+                     end if;
+
+                     Append_Line (Buffer, "end if;", If_Depth);
+                     if Wrapped then
+                        Append_Line (Buffer, "end;", Arm_Depth);
+                     end if;
+                  end Render_Snapshot_If_Arm;
                begin
                   if State.Task_Body_Depth > 0 then
                      Append_Task_If_Warning_Suppression (Buffer, Depth);
                   end if;
-                  Append_Line
-                    (Buffer,
-                     "if " & Render_Expr (Unit, Document, Item.Condition, State) & " then",
-                     Depth);
-                  Render_Required_Statement_Suite
-                    (Buffer, Unit, Document, Item.Then_Stmts, State, Depth + 1, Return_Type, In_Loop);
-                  Restore_Static_Length_Bindings (State, Previous_Static_Length_Count);
-                  Restore_Static_Integer_Bindings (State, Previous_Static_Integer_Count);
-                  Restore_Static_String_Bindings (State, Previous_Static_String_Count);
-                  for Part of Item.Elsifs loop
+
+                  if Needs_Shared_Condition_Snapshot then
+                     Render_Snapshot_If_Arm (1, Depth);
+                  else
                      Append_Line
                        (Buffer,
-                        "elsif " & Render_Expr (Unit, Document, Part.Condition, State) & " then",
+                        "if " & Render_Expr (Unit, Document, Item.Condition, State) & " then",
                         Depth);
                      Render_Required_Statement_Suite
-                       (Buffer, Unit, Document, Part.Statements, State, Depth + 1, Return_Type, In_Loop);
-                     Restore_Static_Length_Bindings (State, Previous_Static_Length_Count);
-                     Restore_Static_Integer_Bindings (State, Previous_Static_Integer_Count);
-                     Restore_Static_String_Bindings (State, Previous_Static_String_Count);
-                  end loop;
-                  if Item.Has_Else then
-                     Append_Line (Buffer, "else", Depth);
-                     Render_Required_Statement_Suite
-                       (Buffer, Unit, Document, Item.Else_Stmts, State, Depth + 1, Return_Type, In_Loop);
-                     Restore_Static_Length_Bindings (State, Previous_Static_Length_Count);
-                     Restore_Static_Integer_Bindings (State, Previous_Static_Integer_Count);
-                     Restore_Static_String_Bindings (State, Previous_Static_String_Count);
+                       (Buffer, Unit, Document, Item.Then_Stmts, State, Depth + 1, Return_Type, In_Loop);
+                     Restore_Static_Counts;
+                     for Part of Item.Elsifs loop
+                        Append_Line
+                          (Buffer,
+                           "elsif " & Render_Expr (Unit, Document, Part.Condition, State) & " then",
+                           Depth);
+                        Render_Required_Statement_Suite
+                          (Buffer, Unit, Document, Part.Statements, State, Depth + 1, Return_Type, In_Loop);
+                        Restore_Static_Counts;
+                     end loop;
+                     if Item.Has_Else then
+                        Append_Line (Buffer, "else", Depth);
+                        Render_Required_Statement_Suite
+                          (Buffer, Unit, Document, Item.Else_Stmts, State, Depth + 1, Return_Type, In_Loop);
+                        Restore_Static_Counts;
+                     end if;
+                     Append_Line (Buffer, "end if;", Depth);
                   end if;
-                  Append_Line (Buffer, "end if;", Depth);
+
                   if State.Task_Body_Depth > 0 then
                      Append_Task_If_Warning_Restore (Buffer, Depth);
                   end if;
@@ -2588,20 +3206,41 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   end if;
                end;
             when CM.Stmt_While =>
-               Append_Line
-                 (Buffer,
-                  "while " & Render_Expr (Unit, Document, Item.Condition, State) & " loop",
-                  Depth);
                declare
+                  Rendered : constant Shared_Condition_Render :=
+                    Render_Shared_Condition (Unit, Document, Item.Condition, State, Index);
                   Variant_Image : constant String := Loop_Variant_Image (Unit, Document, Item.Condition, State);
                begin
-                  if Variant_Image'Length > 0 then
-                     Append_Line (Buffer, "pragma Loop_Variant (" & Variant_Image & ");", Depth + 1);
+                  if Rendered.Snapshots.Is_Empty then
+                     Append_Line
+                       (Buffer,
+                        "while " & FT.To_String (Rendered.Image) & " loop",
+                        Depth);
+                     if Variant_Image'Length > 0 then
+                        Append_Line (Buffer, "pragma Loop_Variant (" & Variant_Image & ");", Depth + 1);
+                     end if;
+                     Render_Required_Statement_Suite
+                       (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
+                     Append_Line (Buffer, "end loop;", Depth);
+                  else
+                     Append_Line (Buffer, "loop", Depth);
+                     Append_Line (Buffer, "declare", Depth + 1);
+                     Append_Shared_Condition_Declarations
+                       (Buffer, Rendered, Depth + 2);
+                     Append_Line (Buffer, "begin", Depth + 1);
+                     Append_Line
+                       (Buffer,
+                        "exit when not (" & FT.To_String (Rendered.Image) & ");",
+                        Depth + 2);
+                     Append_Line (Buffer, "end;", Depth + 1);
+                     if Variant_Image'Length > 0 then
+                        Append_Line (Buffer, "pragma Loop_Variant (" & Variant_Image & ");", Depth + 1);
+                     end if;
+                     Render_Required_Statement_Suite
+                       (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
+                     Append_Line (Buffer, "end loop;", Depth);
                   end if;
                end;
-               Render_Required_Statement_Suite
-                 (Buffer, Unit, Document, Item.Body_Stmts, State, Depth + 1, Return_Type, True);
-               Append_Line (Buffer, "end loop;", Depth);
             when CM.Stmt_For =>
                if Item.Loop_Iterable /= null then
                   declare
@@ -4052,10 +4691,28 @@ package body Safe_Frontend.Ada_Emit.Statements is
                Append_Line (Buffer, "end loop;", Depth);
             when CM.Stmt_Exit =>
                if Item.Condition /= null then
-                  Append_Line
-                    (Buffer,
-                     "exit when " & Render_Expr (Unit, Document, Item.Condition, State) & ";",
-                     Depth);
+                  declare
+                     Rendered : constant Shared_Condition_Render :=
+                       Render_Shared_Condition
+                         (Unit, Document, Item.Condition, State, Index);
+                  begin
+                     if Rendered.Snapshots.Is_Empty then
+                        Append_Line
+                          (Buffer,
+                           "exit when " & FT.To_String (Rendered.Image) & ";",
+                           Depth);
+                     else
+                        Append_Line (Buffer, "declare", Depth);
+                        Append_Shared_Condition_Declarations
+                          (Buffer, Rendered, Depth + 1);
+                        Append_Line (Buffer, "begin", Depth);
+                        Append_Line
+                          (Buffer,
+                           "exit when " & FT.To_String (Rendered.Image) & ";",
+                           Depth + 1);
+                        Append_Line (Buffer, "end;", Depth);
+                     end if;
+                  end;
                else
                   Append_Line (Buffer, "exit;", Depth);
                end if;

@@ -383,6 +383,9 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr223_imported_enum_comparison_build.safe",
     "tests/build/pr226_remainder_boolean_build.safe",
     "tests/build/pr227_public_shared_snapshot_order_build.safe",
+    "tests/build/pr228_shared_field_condition_build.safe",
+    "tests/build/pr228_provider_shared_condition.safe",
+    "tests/build/pr228_imported_shared_condition_build.safe",
     "tests/build/pr225_maker.safe",
     "tests/build/pr225_imported_string_literal_build.safe",
     "tests/build/pr224_provider_printable.safe",
@@ -469,6 +472,12 @@ EMITTED_PROOF_EXCLUSIONS = [
         reason="runtime-only shared-snapshot ordering regression; proof remains covered by issue #228 volatile shared field read follow-up",
         owner="runtime-regression-only",
         milestone="issue-227",
+    ),
+    EmittedProofExclusion(
+        path="tests/build/pr228_shared_loop_exit_condition_build.safe",
+        reason="runtime-only exit-condition snapshot regression; current loop-variant surface does not prove the enclosing loop shape",
+        owner="runtime-regression-only",
+        milestone="issue-228",
     ),
     EmittedProofExclusion(
         path="tests/interfaces/pr119a_select_delay_receive.safe",

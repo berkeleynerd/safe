@@ -1,0 +1,7 @@
+package pr228_provider_shared_condition
+
+   public type state is record
+      total : integer;
+      ready : boolean;
+
+   public shared cfg : state = (total = 1, ready = false);
