@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "a72a542467b6de2fcd83ba9811afc857476af04fd595967fca8eb6954d9ce579",
+  "compiler_hash": "d24406524b8e526533189d410cc48a61486ccc44e808c4a70a029c9fb524eb60",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -419,6 +419,10 @@
     "tests/build/pr226_remainder_boolean_build.safe": {
       "pr226_remainder_boolean_build.adb": "8a32c2883504abb60e40e7de15c730c4a13779ac2dbda11ea2f7e1638e95ef87",
       "pr226_remainder_boolean_build.ads": "1bc40b3f9c089dbbe42f5f77fab9fc51769d05f5eb3e1c743978b741d880684b"
+    },
+    "tests/build/pr227_public_shared_snapshot_order_build.safe": {
+      "pr227_public_shared_snapshot_order_build.adb": "0b76bfe49f020936a628f9bcaa340f52dca90ff10cd2a98c79f96e651ef71785",
+      "pr227_public_shared_snapshot_order_build.ads": "52601e0d81620667bf4fa121f237bc132a8161db68f4240260b845ccc2195da2"
     },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "channel_ceiling_priority.adb": "d1fd5c5e37859ecdb13a969943dff13b203fd0738a40c3c4710dcdaddf6c8921",

@@ -697,13 +697,23 @@ package body Safe_Frontend.Ada_Emit is
                end loop;
                return False;
             when CM.Expr_Conversion =>
-               return Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name);
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
             when CM.Expr_Binary =>
                return
                  Is_Public_Shared_Helper_Call (Expr.Left, Root_Name)
                  or else Is_Public_Shared_Helper_Call (Expr.Right, Root_Name);
             when CM.Expr_Unary =>
-               return Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name);
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
+            when CM.Expr_Annotated =>
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
+            when CM.Expr_Allocator =>
+               return Is_Public_Shared_Helper_Call (Expr.Value, Root_Name);
             when CM.Expr_Aggregate =>
                for Field of Expr.Fields loop
                   if Is_Public_Shared_Helper_Call (Field.Expr, Root_Name) then
@@ -852,13 +862,23 @@ package body Safe_Frontend.Ada_Emit is
             end loop;
             return False;
          when CM.Expr_Conversion =>
-            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Inner)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
          when CM.Expr_Binary =>
             return
               Expr_Uses_Public_Shared_Helper (Expr.Left)
               or else Expr_Uses_Public_Shared_Helper (Expr.Right);
          when CM.Expr_Unary =>
-            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Inner)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
+         when CM.Expr_Annotated =>
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Inner)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
+         when CM.Expr_Allocator =>
+            return Expr_Uses_Public_Shared_Helper (Expr.Value);
          when CM.Expr_Aggregate =>
             for Field of Expr.Fields loop
                if Expr_Uses_Public_Shared_Helper (Field.Expr) then
