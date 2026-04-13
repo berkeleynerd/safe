@@ -190,11 +190,10 @@ EMITTED_REQUIRED_SHAPE_CASES = [
         "select-zero-delay-ready-precheck-before-timeout",
         REPO_ROOT / "tests" / "interfaces" / "pr119a_select_zero_delay_ready.safe",
         [
-            "Select_Timeout_Observed := Select_Start >= Select_Deadline;",
-            "if not Select_Timeout_Observed then",
             "if not Select_Done then",
             "msg_ch.Try_Receive (item, Arm_Success);",
-            "if Select_Timeout_Observed then",
+            "delay 0.0;",
+            "result := Long_Long_Integer (9);",
         ],
     ),
     (

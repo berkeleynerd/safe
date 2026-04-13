@@ -391,6 +391,10 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr224_provider_printable.safe",
     "tests/build/pr224_imported_generic_string_aggregate_build.safe",
     "tests/build/pr119d_send_single_eval_build.safe",
+    "tests/build/pr230_top_level_select_delay_build.safe",
+    "tests/interfaces/pr119a_select_delay_receive.safe",
+    "tests/interfaces/pr119a_select_delay_timeout.safe",
+    "tests/interfaces/pr119a_select_zero_delay_ready.safe",
 ]
 
 
@@ -478,24 +482,6 @@ EMITTED_PROOF_EXCLUSIONS = [
         reason="runtime-only exit-condition snapshot regression; current loop-variant surface does not prove the enclosing loop shape",
         owner="runtime-regression-only",
         milestone="issue-228",
-    ),
-    EmittedProofExclusion(
-        path="tests/interfaces/pr119a_select_delay_receive.safe",
-        reason="runtime-only entry-unit select-with-delay witness; current generated elaboration helper is accepted for build/run coverage but not yet proof-closed",
-        owner="runtime-regression-only",
-        milestone="PR11.9a",
-    ),
-    EmittedProofExclusion(
-        path="tests/interfaces/pr119a_select_delay_timeout.safe",
-        reason="runtime-only entry-unit select-with-delay witness; current generated elaboration helper is accepted for build/run coverage but not yet proof-closed",
-        owner="runtime-regression-only",
-        milestone="PR11.9a",
-    ),
-    EmittedProofExclusion(
-        path="tests/interfaces/pr119a_select_zero_delay_ready.safe",
-        reason="runtime-only entry-unit select-with-delay witness; current generated elaboration helper is accepted for build/run coverage but not yet proof-closed",
-        owner="runtime-regression-only",
-        milestone="PR11.9a",
     ),
 ]
 

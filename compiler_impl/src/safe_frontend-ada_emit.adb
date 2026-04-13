@@ -1024,9 +1024,6 @@ package body Safe_Frontend.Ada_Emit is
       Collect_Select_Dispatcher_Names
         (Unit.Statements,
          Context.Package_Dispatcher_Names);
-      Collect_Select_Delay_Timer_Names
-        (Unit.Statements,
-         Context.Package_Dispatcher_Timer_Names);
       Collect_Select_Rotation_State
         (Unit.Statements,
          Context.Package_Select_Rotation_Names,

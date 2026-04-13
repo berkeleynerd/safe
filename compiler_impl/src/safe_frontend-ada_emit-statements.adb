@@ -5067,7 +5067,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         & Trim_Image (Long_Long_Integer (Next_Arm_Ordinal))
                         & ";",
                         Select_Depth + 3);
-                     if Delay_Arm_Count > 0 then
+                     if State.Task_Body_Depth > 0
+                       and then Delay_Arm_Count > 0
+                     then
                         Append_Line
                           (Buffer,
                            "pragma Warnings (GNATprove, Off, ""is set by"", Reason => ""generated timer cancel result is intentionally ignored"");",
@@ -5243,75 +5245,90 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            "select with delay supports exactly one delay arm in Ada emission");
                      end if;
 
-                     State.Needs_Ada_Real_Time := True;
-                     Append_Line (Buffer, "declare", Depth);
-                     Append_Line (Buffer, "Select_Done : Boolean := False;", Depth + 1);
-                     Append_Line (Buffer, "Select_Timed_Out : Boolean;", Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        "Select_Handler_Cancelled : Boolean;",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        "Select_Delay_Span : constant Ada.Real_Time.Time_Span := "
-                        & "Ada.Real_Time.To_Time_Span ("
-                       & Delay_Expr_Image
-                       & ");",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        "Select_Start : constant Ada.Real_Time.Time := "
-                        & "Ada.Real_Time.Clock;",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        "Select_Deadline : constant Ada.Real_Time.Time :=",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        Select_Dispatcher_Name (Item)
-                        & "_Compute_Deadline (Select_Start, Select_Delay_Span);",
-                        Depth + 2);
-                     Append_Line
-                       (Buffer,
-                        "Select_Timeout_Observed : Boolean;",
-                        Depth + 1);
-                     Append_Line (Buffer, "begin", Depth);
-                     Append_Line
-                       (Buffer,
-                        Dispatcher_Name & ".Reset;",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        "Select_Timeout_Observed := Select_Start >= Select_Deadline;",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        "if not Select_Timeout_Observed then",
-                        Depth + 1);
-                     Append_Line
-                       (Buffer,
-                        Select_Dispatcher_Arm_Helper_Name (Item)
-                        & " (Select_Deadline);",
-                        Depth + 2);
-                     Append_Line (Buffer, "end if;", Depth + 1);
-                     Append_Line (Buffer, "loop", Depth + 1);
-                     Render_Select_Precheck (Depth + 2);
-                     Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
-                     Append_Line (Buffer, "if Select_Timeout_Observed then", Depth + 2);
-                     Render_Delay_Arm_Statements (Depth + 3);
-                     Append_Line (Buffer, "exit;", Depth + 3);
-                     Append_Line (Buffer, "end if;", Depth + 2);
-                     Append_Line
-                       (Buffer,
-                        Dispatcher_Name & ".Await (Select_Timed_Out);",
-                        Depth + 2);
-                     Append_Line
-                       (Buffer,
-                        "Select_Timeout_Observed := Select_Timed_Out;",
-                        Depth + 2);
-                     Append_Line (Buffer, "end loop;", Depth + 1);
-                     Append_Line (Buffer, "end;", Depth);
+                     if State.Task_Body_Depth = 0 then
+                        Append_Line (Buffer, "declare", Depth);
+                        Append_Line (Buffer, "Select_Done : Boolean := False;", Depth + 1);
+                        Append_Line (Buffer, "begin", Depth);
+                        Render_Select_Precheck (Depth + 1);
+                        Append_Line (Buffer, "if not Select_Done then", Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "delay " & Delay_Expr_Image & ";",
+                           Depth + 2);
+                        Render_Delay_Arm_Statements (Depth + 2);
+                        Append_Line (Buffer, "end if;", Depth + 1);
+                        Append_Line (Buffer, "end;", Depth);
+                     else
+                        State.Needs_Ada_Real_Time := True;
+                        Append_Line (Buffer, "declare", Depth);
+                        Append_Line (Buffer, "Select_Done : Boolean := False;", Depth + 1);
+                        Append_Line (Buffer, "Select_Timed_Out : Boolean;", Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "Select_Handler_Cancelled : Boolean;",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "Select_Delay_Span : constant Ada.Real_Time.Time_Span := "
+                           & "Ada.Real_Time.To_Time_Span ("
+                          & Delay_Expr_Image
+                          & ");",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "Select_Start : constant Ada.Real_Time.Time := "
+                           & "Ada.Real_Time.Clock;",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "Select_Deadline : constant Ada.Real_Time.Time :=",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           Select_Dispatcher_Name (Item)
+                           & "_Compute_Deadline (Select_Start, Select_Delay_Span);",
+                           Depth + 2);
+                        Append_Line
+                          (Buffer,
+                           "Select_Timeout_Observed : Boolean;",
+                           Depth + 1);
+                        Append_Line (Buffer, "begin", Depth);
+                        Append_Line
+                          (Buffer,
+                           Dispatcher_Name & ".Reset;",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "Select_Timeout_Observed := Select_Start >= Select_Deadline;",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           "if not Select_Timeout_Observed then",
+                           Depth + 1);
+                        Append_Line
+                          (Buffer,
+                           Select_Dispatcher_Arm_Helper_Name (Item)
+                           & " (Select_Deadline);",
+                           Depth + 2);
+                        Append_Line (Buffer, "end if;", Depth + 1);
+                        Append_Line (Buffer, "loop", Depth + 1);
+                        Render_Select_Precheck (Depth + 2);
+                        Append_Line (Buffer, "exit when Select_Done;", Depth + 2);
+                        Append_Line (Buffer, "if Select_Timeout_Observed then", Depth + 2);
+                        Render_Delay_Arm_Statements (Depth + 3);
+                        Append_Line (Buffer, "exit;", Depth + 3);
+                        Append_Line (Buffer, "end if;", Depth + 2);
+                        Append_Line
+                          (Buffer,
+                           Dispatcher_Name & ".Await (Select_Timed_Out);",
+                           Depth + 2);
+                        Append_Line
+                          (Buffer,
+                           "Select_Timeout_Observed := Select_Timed_Out;",
+                           Depth + 2);
+                        Append_Line (Buffer, "end loop;", Depth + 1);
+                        Append_Line (Buffer, "end;", Depth);
+                     end if;
                   else
                      Append_Line (Buffer, "declare", Depth);
                      Append_Line (Buffer, "Select_Done : Boolean := False;", Depth + 1);
