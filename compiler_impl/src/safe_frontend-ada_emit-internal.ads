@@ -107,7 +107,7 @@ private package Safe_Frontend.Ada_Emit.Internal is
       Spec_Text  : SU.Unbounded_String;
       Body_Text  : SU.Unbounded_String;
       Body_Withs : FT.UString_Vectors.Vector;
-      Imported_Enum_Use_Types : FT.UString_Vectors.Vector;
+      Imported_Use_Types : FT.UString_Vectors.Vector;
       Imported_Enum_Literal_Use_Names : FT.UString_Vectors.Vector;
       Synthetic_Types : GM.Type_Descriptor_Vectors.Vector;
       Owner_Access_Helper_Types : GM.Type_Descriptor_Vectors.Vector;
@@ -367,7 +367,7 @@ private package Safe_Frontend.Ada_Emit.Internal is
    procedure Add_Body_With
      (Context : in out Emit_Context;
       Name    : String);
-   procedure Add_Imported_Enum_Use_Type
+   procedure Add_Imported_Use_Type
      (Context : in out Emit_Context;
       Name    : String);
    function Package_Select_Refined_State

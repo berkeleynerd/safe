@@ -197,6 +197,14 @@ EMITTED_REQUIRED_SHAPE_CASES = [
         ],
     ),
     (
+        "imported-numeric-elaboration-precondition",
+        REPO_ROOT / "tests" / "build" / "pr232_imported_numeric_elab_build.safe",
+        [
+            "channel_score = tally (0)",
+            "score = pr232_provider_numeric.user_id (0)",
+        ],
+    ),
+    (
         "select-no-delay-dispatcher-await",
         REPO_ROOT / "tests" / "embedded" / "select_single_ready_result.safe",
         [

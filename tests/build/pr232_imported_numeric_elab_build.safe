@@ -1,0 +1,20 @@
+with pr232_provider_numeric;
+
+package pr232_imported_numeric_elab_build
+
+   subtype tally is pr232_provider_numeric.tally;
+
+   channel idle_ch : string capacity 1;
+
+   channel_score : tally = 0;
+   score : pr232_provider_numeric.user_id = 0;
+   echo_text : string = "";
+   got_idle : boolean = false;
+
+   try_receive idle_ch, echo_text, got_idle
+   if not got_idle and then echo_text.length == 0
+      channel_score = channel_score + 1;
+      score = pr232_provider_numeric.user_id (integer (score) + 1);
+
+   print (integer (channel_score));
+   print (integer (score))

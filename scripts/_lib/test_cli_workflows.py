@@ -314,6 +314,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr232_imported_numeric_elab_build.safe",
+        "1\n1\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr118d_tuple_string_build.safe",
         "ok\n",
         False,
