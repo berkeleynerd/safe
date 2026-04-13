@@ -199,6 +199,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr227_public_shared_snapshot_order_build.safe",
+        "17\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr1112c_shared_string_build.safe",
         "start\ninner\nworld\nBob\nright\n",
         False,
