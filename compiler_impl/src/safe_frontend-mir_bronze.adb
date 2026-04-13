@@ -83,6 +83,7 @@ package body Safe_Frontend.Mir_Bronze is
       Name           : FT.UString := FT.To_UString ("");
       Kind           : FT.UString := FT.To_UString ("");
       Has_Return_Type : Boolean := False;
+      Is_External    : Boolean := False;
       Is_Task        : Boolean := False;
       Priority       : Long_Long_Integer := 0;
       Direct_Reads   : String_Sets.Set;
@@ -1068,6 +1069,7 @@ package body Safe_Frontend.Mir_Bronze is
       Result.Name := Value.Name;
       Result.Kind := Value.Kind;
       Result.Has_Return_Type := Value.Has_Return_Type;
+      Result.Is_External := True;
       Result.Span := Value.Span;
       for Item of Value.Effect_Summary.Reads loop
          declare
@@ -2011,7 +2013,8 @@ package body Safe_Frontend.Mir_Bronze is
             Item.Depends := Dependency_Vector (Summary.Outputs, Summary.Inputs);
             Result.Graphs.Append (Item);
 
-            if Summary.Has_Return_Type
+            if not Summary.Is_External
+              and then Summary.Has_Return_Type
               and then Has_Function_Global_Effect (Summary, Global_Spans)
             then
                declare

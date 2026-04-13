@@ -103,6 +103,18 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_result_mutated.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_pr222_global_mutating_function.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_global_mutating_function.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr222_projected_global_output_function.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_projected_global_output_function.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr222_shared_read_function.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_shared_read_function.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_pr222_shared_mutating_function.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_shared_mutating_function.txt",
     ),

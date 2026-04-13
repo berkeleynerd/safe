@@ -1,0 +1,13 @@
+Diagnostics Golden: Projected Global Output Function
+Source: tests/negative/neg_pr222_projected_global_output_function.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr222_projected_global_output_function.safe:11:15: error: result-returning functions cannot mutate package state or access shared/channel state
+  |
+  | 11 |    set_value (counter);
+  |    |               ^~~~~~~
+  |
+  note: SPARK functions cannot combine return values with global mutation or volatile shared access
+  note: move the shared/channel access into a procedure and pass local snapshots to pure functions
+------------------------------------------------------------------------
