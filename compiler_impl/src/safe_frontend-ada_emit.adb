@@ -836,13 +836,9 @@ package body Safe_Frontend.Ada_Emit is
      (Context : in out Emit_Context;
       Name    : String) renames AI.Add_Body_With;
 
-   procedure Add_Imported_Enum_Use_Type
-     (Context : in out Emit_Context;
-      Name    : String) renames AI.Add_Imported_Enum_Use_Type;
-
    procedure Add_Imported_Use_Type
      (Context : in out Emit_Context;
-      Name    : String) renames AI.Add_Imported_Enum_Use_Type;
+      Name    : String) renames AI.Add_Imported_Use_Type;
 
    function Package_Select_Refined_State
      (Context : Emit_Context) return String renames AI.Package_Select_Refined_State;
@@ -1051,7 +1047,7 @@ package body Safe_Frontend.Ada_Emit is
                Enum_Type_Name : constant String :=
                  Ada_Qualified_Name (FT.To_String (Item.Name));
             begin
-               Add_Imported_Enum_Use_Type (Context, Enum_Type_Name);
+               Add_Imported_Use_Type (Context, Enum_Type_Name);
                for Literal of Item.Enum_Literals loop
                   declare
                      Literal_Key : constant String :=
@@ -1791,16 +1787,22 @@ package body Safe_Frontend.Ada_Emit is
          end if;
 
          if Is_Wide_Integer_Type (Unit, Document, Decl.Type_Info)
-           and then Try_Static_Integer_Value (Decl.Initializer, Static_Value)
+           and then Try_Tracked_Static_Integer_Value
+             (Context.State, Decl.Initializer, Static_Value)
          then
             declare
                Type_Image : constant String :=
                  Render_Subtype_Indication (Unit, Document, Decl.Type_Info);
+               Type_Use_Name : constant String :=
+                 Ada_Qualified_Name
+                   (FT.To_String
+                      (Preferred_Imported_Synthetic_Type
+                         (Unit, Decl.Type_Info).Name));
                Uses_Qualified_Type : constant Boolean :=
-                 Ada.Strings.Fixed.Index (Type_Image, ".") > 0;
+                 Ada.Strings.Fixed.Index (Type_Use_Name, ".") > 0;
             begin
                if Uses_Qualified_Type then
-                  Add_Imported_Use_Type (Context, Type_Image);
+                  Add_Imported_Use_Type (Context, Type_Use_Name);
                end if;
 
                if Base_Kind /= "integer" or else Uses_Qualified_Type then
@@ -2334,7 +2336,7 @@ package body Safe_Frontend.Ada_Emit is
          Append_Line (Context.Body_Text, "use type Interfaces.Unsigned_32;");
          Append_Line (Context.Body_Text, "use type Interfaces.Unsigned_64;");
       end if;
-      for Item of Context.Imported_Enum_Use_Types loop
+      for Item of Context.Imported_Use_Types loop
          Append_Line (Context.Body_Text, "use type " & FT.To_String (Item) & ";");
       end loop;
       if not Context.Body_Withs.Is_Empty then
@@ -2382,7 +2384,7 @@ package body Safe_Frontend.Ada_Emit is
          return "";
       end Enclosing_Package_Name;
 
-      function Spec_Uses_Imported_Enum_Type (Qualified_Type : String) return Boolean is
+      function Spec_Uses_Imported_Use_Type (Qualified_Type : String) return Boolean is
          function Spec_Uses_Imported_Enum_Literal return Boolean is
          begin
             for Item of Context.Imported_Enum_Literal_Use_Names loop
@@ -2411,20 +2413,20 @@ package body Safe_Frontend.Ada_Emit is
          return
            Ada.Strings.Fixed.Index (Original_Spec, Qualified_Type) > 0
            or else Spec_Uses_Imported_Enum_Literal;
-      end Spec_Uses_Imported_Enum_Type;
+      end Spec_Uses_Imported_Use_Type;
 
-      function Spec_Needs_Imported_Enum_Use_Types return Boolean is
+      function Spec_Needs_Imported_Use_Types return Boolean is
       begin
-         for Item of Context.Imported_Enum_Use_Types loop
-            if Spec_Uses_Imported_Enum_Type (FT.To_String (Item)) then
+         for Item of Context.Imported_Use_Types loop
+            if Spec_Uses_Imported_Use_Type (FT.To_String (Item)) then
                return True;
             end if;
          end loop;
          return False;
-      end Spec_Needs_Imported_Enum_Use_Types;
+      end Spec_Needs_Imported_Use_Types;
 
-      Spec_Needs_Imported_Enums : constant Boolean :=
-        Spec_Needs_Imported_Enum_Use_Types;
+      Spec_Needs_Imported_Use_Type_Clauses : constant Boolean :=
+        Spec_Needs_Imported_Use_Types;
    begin
       if (Spec_Needs_Safe_Runtime
           or else Spec_Needs_Safe_String_RT
@@ -2437,7 +2439,7 @@ package body Safe_Frontend.Ada_Emit is
           or else Spec_Needs_Interfaces
           or else Spec_Needs_System
           or else Spec_Needs_Safe_Ownership_RT
-          or else Spec_Needs_Imported_Enums
+          or else Spec_Needs_Imported_Use_Type_Clauses
           or else Context.State.Needs_Unevaluated_Use_Of_Old)
         and then Original_Spec'Length >= Pragma_Block'Length
         and then
@@ -2486,22 +2488,22 @@ package body Safe_Frontend.Ada_Emit is
             Append_Line (Context.Spec_Text, "use type Safe_Runtime.Wide_Integer;");
          end if;
          declare
-            Imported_Enum_Withs : FT.UString_Vectors.Vector;
+            Imported_Type_Withs : FT.UString_Vectors.Vector;
          begin
-            for Item of Context.Imported_Enum_Use_Types loop
+            for Item of Context.Imported_Use_Types loop
                declare
-                  Enum_Type_Name : constant String := FT.To_String (Item);
+                  Imported_Type_Name : constant String := FT.To_String (Item);
                   Package_Name   : constant String :=
-                    Enclosing_Package_Name (Enum_Type_Name);
+                    Enclosing_Package_Name (Imported_Type_Name);
                begin
                   if Package_Name'Length > 0
-                    and then Spec_Uses_Imported_Enum_Type (Enum_Type_Name)
+                    and then Spec_Uses_Imported_Use_Type (Imported_Type_Name)
                   then
-                     if not Contains_Name (Imported_Enum_Withs, Package_Name) then
+                     if not Contains_Name (Imported_Type_Withs, Package_Name) then
                         Append_Line (Context.Spec_Text, "with " & Package_Name & ";");
-                        Imported_Enum_Withs.Append (FT.To_UString (Package_Name));
+                        Imported_Type_Withs.Append (FT.To_UString (Package_Name));
                      end if;
-                     Append_Line (Context.Spec_Text, "use type " & Enum_Type_Name & ";");
+                     Append_Line (Context.Spec_Text, "use type " & Imported_Type_Name & ";");
                   end if;
                end;
             end loop;

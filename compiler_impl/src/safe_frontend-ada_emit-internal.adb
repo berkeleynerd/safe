@@ -1210,17 +1210,17 @@ package body Safe_Frontend.Ada_Emit.Internal is
       Context.Body_Withs.Append (FT.To_UString (Name));
    end Add_Body_With;
 
-   procedure Add_Imported_Enum_Use_Type
+   procedure Add_Imported_Use_Type
      (Context : in out Emit_Context;
       Name    : String) is
    begin
-      for Item of Context.Imported_Enum_Use_Types loop
+      for Item of Context.Imported_Use_Types loop
          if FT.To_String (Item) = Name then
             return;
          end if;
       end loop;
-      Context.Imported_Enum_Use_Types.Append (FT.To_UString (Name));
-   end Add_Imported_Enum_Use_Type;
+      Context.Imported_Use_Types.Append (FT.To_UString (Name));
+   end Add_Imported_Use_Type;
 
    function Package_Select_Refined_State
      (Context : Emit_Context) return String is
