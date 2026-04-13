@@ -107,6 +107,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_shared_mutating_function.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_pr222_transitive_mutating_function.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_transitive_mutating_function.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_rule5_div_zero.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_rule5_div_zero.txt",
     ),

@@ -1515,6 +1515,33 @@ package body Safe_Frontend.Mir_Bronze is
       Global_Spans : Span_Maps.Map) return Boolean
    is
       Cursor : String_Sets.Cursor := Summary.Writes.First;
+
+      function Has_Global_Output return Boolean
+      is
+         Prefix        : constant String := "global:";
+         Output_Cursor : String_Sets.Cursor := Summary.Outputs.First;
+      begin
+         while String_Sets.Has_Element (Output_Cursor) loop
+            declare
+               Marker : constant String := String_Sets.Element (Output_Cursor);
+            begin
+               if Starts_With (Marker, Prefix)
+                 and then Marker'Length > Prefix'Length
+               then
+                  declare
+                     Name : constant String :=
+                       Marker (Marker'First + Prefix'Length .. Marker'Last);
+                  begin
+                     if not Is_Synthetic_Attribute_Marker (Name, Global_Spans) then
+                        return True;
+                     end if;
+                  end;
+               end if;
+               String_Sets.Next (Output_Cursor);
+            end;
+         end loop;
+         return False;
+      end Has_Global_Output;
    begin
       while String_Sets.Has_Element (Cursor) loop
          declare
@@ -1528,7 +1555,8 @@ package body Safe_Frontend.Mir_Bronze is
       end loop;
 
       return
-        not Summary.Shared_Reads.Is_Empty
+        Has_Global_Output
+        or else not Summary.Shared_Reads.Is_Empty
         or else not Summary.Shared_Writes.Is_Empty
         or else not Summary.Channels.Is_Empty
         or else not Summary.Sends.Is_Empty
@@ -1568,6 +1596,39 @@ package body Safe_Frontend.Mir_Bronze is
             String_Sets.Next (Cursor);
          end loop;
       end Consider_Set;
+
+      procedure Consider_Global_Outputs (Items : String_Sets.Set)
+      is
+         Prefix : constant String := "global:";
+         Cursor : String_Sets.Cursor := Items.First;
+      begin
+         while String_Sets.Has_Element (Cursor) loop
+            declare
+               Marker : constant String := String_Sets.Element (Cursor);
+            begin
+               if Starts_With (Marker, Prefix)
+                 and then Marker'Length > Prefix'Length
+               then
+                  declare
+                     Name : constant String :=
+                       Marker (Marker'First + Prefix'Length .. Marker'Last);
+                  begin
+                     if not Is_Synthetic_Attribute_Marker (Name, Global_Spans) then
+                        if Summary.Use_Spans.Contains (Marker) then
+                           Result :=
+                             Earlier_Span
+                               (Result,
+                                Summary.Use_Spans.Element (Marker));
+                        else
+                           Consider_Name (Name, Skip_Synthetic => True);
+                        end if;
+                     end if;
+                  end;
+               end if;
+               String_Sets.Next (Cursor);
+            end;
+         end loop;
+      end Consider_Global_Outputs;
    begin
       Consider_Set (Summary.Direct_Writes, Skip_Synthetic => True);
       Consider_Set (Summary.Direct_Shared_Reads);
@@ -1591,13 +1652,16 @@ package body Safe_Frontend.Mir_Bronze is
          end;
       end loop;
 
-      Consider_Set (Summary.Writes, Skip_Synthetic => True);
-      Consider_Set (Summary.Shared_Reads);
-      Consider_Set (Summary.Shared_Writes);
-      Consider_Set (Summary.Channels);
-      Consider_Set (Summary.Sends);
-      Consider_Set (Summary.Receives);
-      Consider_Set (Summary.Legacy_Channels);
+      if not Has_Span (Result) then
+         Consider_Set (Summary.Writes, Skip_Synthetic => True);
+         Consider_Global_Outputs (Summary.Outputs);
+         Consider_Set (Summary.Shared_Reads);
+         Consider_Set (Summary.Shared_Writes);
+         Consider_Set (Summary.Channels);
+         Consider_Set (Summary.Sends);
+         Consider_Set (Summary.Receives);
+         Consider_Set (Summary.Legacy_Channels);
+      end if;
 
       if Has_Span (Result) then
          return Result;
