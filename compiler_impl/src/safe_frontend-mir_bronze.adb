@@ -1067,6 +1067,7 @@ package body Safe_Frontend.Mir_Bronze is
    begin
       Result.Name := Value.Name;
       Result.Kind := Value.Kind;
+      Result.Has_Return_Type := Value.Has_Return_Type;
       Result.Span := Value.Span;
       for Item of Value.Effect_Summary.Reads loop
          declare
@@ -1529,8 +1530,10 @@ package body Safe_Frontend.Mir_Bronze is
       return
         not Summary.Shared_Reads.Is_Empty
         or else not Summary.Shared_Writes.Is_Empty
+        or else not Summary.Channels.Is_Empty
         or else not Summary.Sends.Is_Empty
-        or else not Summary.Receives.Is_Empty;
+        or else not Summary.Receives.Is_Empty
+        or else not Summary.Legacy_Channels.Is_Empty;
    end Has_Function_Global_Effect;
 
    function Function_Global_Effect_Span
@@ -1569,8 +1572,10 @@ package body Safe_Frontend.Mir_Bronze is
       Consider_Set (Summary.Direct_Writes, Skip_Synthetic => True);
       Consider_Set (Summary.Direct_Shared_Reads);
       Consider_Set (Summary.Direct_Shared_Writes);
+      Consider_Set (Summary.Direct_Channels);
       Consider_Set (Summary.Direct_Sends);
       Consider_Set (Summary.Direct_Receives);
+      Consider_Set (Summary.Direct_Legacy_Channels);
 
       for Call of Summary.Call_Sites loop
          declare
@@ -1589,8 +1594,10 @@ package body Safe_Frontend.Mir_Bronze is
       Consider_Set (Summary.Writes, Skip_Synthetic => True);
       Consider_Set (Summary.Shared_Reads);
       Consider_Set (Summary.Shared_Writes);
+      Consider_Set (Summary.Channels);
       Consider_Set (Summary.Sends);
       Consider_Set (Summary.Receives);
+      Consider_Set (Summary.Legacy_Channels);
 
       if Has_Span (Result) then
          return Result;

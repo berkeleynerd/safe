@@ -1,0 +1,6 @@
+with provider_pr222_legacy_channel_result;
+
+package client_pr222_legacy_channel_result
+
+   function total returns integer
+      return provider_pr222_legacy_channel_result.read ();

@@ -306,6 +306,12 @@ STATIC_INTERFACE_CASES = [
         1,
     ),
     (
+        "legacy-channel-result-function-rejected",
+        REPO_ROOT / "tests" / "interfaces" / "provider_pr222_legacy_channel_result.safei.json",
+        REPO_ROOT / "tests" / "interfaces" / "client_pr222_legacy_channel_result.safe",
+        1,
+    ),
+    (
         "bad-return-flag-type",
         REPO_ROOT / "tests" / "interfaces" / "provider_bad_return_flag.safei.json",
         REPO_ROOT / "tests" / "interfaces" / "client_bad_return_flag.safe",

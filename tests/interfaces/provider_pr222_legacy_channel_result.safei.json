@@ -1,0 +1,91 @@
+{
+  "format": "safei-v2",
+  "unit_kind": "package",
+  "package_name": "provider_pr222_legacy_channel_result",
+  "dependencies": [],
+  "executables": [
+    {
+      "name": "read",
+      "kind": "function",
+      "signature": "function read () returns integer",
+      "span": {
+        "start_line": 6,
+        "start_col": 11,
+        "end_line": 8,
+        "end_col": 21
+      }
+    }
+  ],
+  "public_declarations": [
+    {
+      "name": "read",
+      "kind": "SubprogramBody",
+      "signature": "function read () returns integer",
+      "span": {
+        "start_line": 6,
+        "start_col": 11,
+        "end_line": 8,
+        "end_col": 21
+      }
+    }
+  ],
+  "types": [],
+  "subtypes": [],
+  "channels": [
+    {
+      "name": "data_ch",
+      "is_public": true,
+      "element_type": {
+        "name": "integer",
+        "kind": "integer"
+      },
+      "capacity": 1,
+      "span": {
+        "start_line": 4,
+        "start_col": 11,
+        "end_line": 4,
+        "end_col": 46
+      }
+    }
+  ],
+  "objects": [],
+  "subprograms": [
+    {
+      "name": "read",
+      "kind": "function",
+      "signature": "function read () returns integer",
+      "params": [],
+      "has_return_type": true,
+      "return_type": {
+        "name": "integer",
+        "kind": "integer"
+      },
+      "span": {
+        "start_line": 6,
+        "start_col": 11,
+        "end_line": 8,
+        "end_col": 21
+      }
+    }
+  ],
+  "effect_summaries": [
+    {
+      "name": "read",
+      "signature": "function read () returns integer",
+      "reads": [],
+      "writes": [],
+      "inputs": [],
+      "outputs": [],
+      "depends": []
+    }
+  ],
+  "channel_access_summaries": [
+    {
+      "name": "read",
+      "signature": "function read () returns integer",
+      "channels": [
+        "data_ch"
+      ]
+    }
+  ]
+}
