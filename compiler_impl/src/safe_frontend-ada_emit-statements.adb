@@ -1342,7 +1342,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
    is
       Result : SU.Unbounded_String;
       Constant_Qualifier : constant String :=
-        (if Is_Constant and then not AI.Is_Owner_Access (Type_Info) then "constant " else "");
+        (if Is_Constant
+           and then not Defer_Initializer
+           and then not AI.Is_Owner_Access (Type_Info)
+         then "constant "
+         else "");
       Type_Name : constant String :=
         (if Is_Wide_Integer_Type (Unit, Document, Type_Info)
            and then Names_Use_Wide_Storage (State, Names)

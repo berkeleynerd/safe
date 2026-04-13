@@ -618,21 +618,176 @@ package body Safe_Frontend.Ada_Emit is
       return False;
    end Decl_Uses_Package_Subprogram_Name;
 
+   function Decl_Uses_Shared_Object_Name
+     (Unit : CM.Resolved_Unit;
+      Decl : CM.Resolved_Object_Decl) return Boolean
+   is
+      function Is_Public_Shared_Helper_Call
+        (Expr      : CM.Expr_Access;
+         Root_Name : String) return Boolean
+      is
+         Helper_Prefix : constant String :=
+           FT.Lowercase (AI.Shared_Public_Helper_Base_Name (Root_Name)) & "_";
+
+         function Remainder_Is_Shared_Operation
+           (Remainder : String) return Boolean
+         is
+         begin
+            return
+              Remainder = "get_all"
+              or else Remainder = "set_all"
+              or else Remainder = "get_length"
+              or else Remainder = "append"
+              or else Remainder = "pop_last"
+              or else Remainder = "contains"
+              or else Remainder = "get"
+              or else Remainder = "set"
+              or else Remainder = "remove"
+              or else Starts_With (Remainder, "get_")
+              or else Starts_With (Remainder, "set_");
+         end Remainder_Is_Shared_Operation;
+
+         function Call_Name_Matches return Boolean is
+            Flat_Name : constant String :=
+              (if Expr = null or else Expr.Callee = null
+               then ""
+               else FT.Lowercase (CM.Flatten_Name (Expr.Callee)));
+            Prefix_Start : constant Natural :=
+              Ada.Strings.Fixed.Index (Flat_Name, Helper_Prefix);
+            Remainder_First : constant Natural :=
+              Prefix_Start + Helper_Prefix'Length;
+         begin
+            if Prefix_Start = 0 or else Remainder_First > Flat_Name'Last then
+               return False;
+            end if;
+
+            return
+              Remainder_Is_Shared_Operation
+                (Flat_Name (Remainder_First .. Flat_Name'Last));
+         end Call_Name_Matches;
+      begin
+         if Expr = null then
+            return False;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Call =>
+               if Call_Name_Matches then
+                  return True;
+               end if;
+               if Is_Public_Shared_Helper_Call (Expr.Callee, Root_Name) then
+                  return True;
+               end if;
+               for Arg of Expr.Args loop
+                  if Is_Public_Shared_Helper_Call (Arg, Root_Name) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when CM.Expr_Select =>
+               return Is_Public_Shared_Helper_Call (Expr.Prefix, Root_Name);
+            when CM.Expr_Resolved_Index =>
+               if Is_Public_Shared_Helper_Call (Expr.Prefix, Root_Name) then
+                  return True;
+               end if;
+               for Arg of Expr.Args loop
+                  if Is_Public_Shared_Helper_Call (Arg, Root_Name) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when CM.Expr_Conversion =>
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
+            when CM.Expr_Binary =>
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Left, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Right, Root_Name);
+            when CM.Expr_Unary =>
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
+            when CM.Expr_Annotated =>
+               return
+                 Is_Public_Shared_Helper_Call (Expr.Inner, Root_Name)
+                 or else Is_Public_Shared_Helper_Call (Expr.Target, Root_Name);
+            when CM.Expr_Allocator =>
+               return Is_Public_Shared_Helper_Call (Expr.Value, Root_Name);
+            when CM.Expr_Aggregate =>
+               for Field of Expr.Fields loop
+                  if Is_Public_Shared_Helper_Call (Field.Expr, Root_Name) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when CM.Expr_Tuple =>
+               for Item of Expr.Elements loop
+                  if Is_Public_Shared_Helper_Call (Item, Root_Name) then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            when others =>
+               return False;
+         end case;
+      end Is_Public_Shared_Helper_Call;
+   begin
+      if Decl.Initializer = null or else Unit.Objects.Is_Empty then
+         return False;
+      end if;
+
+      for Object_Decl of Unit.Objects loop
+         if Object_Decl.Is_Shared then
+            for Name of Object_Decl.Names loop
+               declare
+                  Name_Text : constant String := FT.To_String (Name);
+               begin
+                  if Name_Text'Length > 0
+                    and then
+                      (Expr_Uses_Name (Decl.Initializer, Name_Text)
+                       or else
+                         Expr_Uses_Name
+                           (Decl.Initializer,
+                            Shared_Wrapper_Object_Name (Name_Text))
+                       or else
+                         (Object_Decl.Is_Public
+                          and then
+                            Is_Public_Shared_Helper_Call
+                              (Decl.Initializer, Name_Text)))
+                  then
+                     return True;
+                  end if;
+               end;
+            end loop;
+         end if;
+      end loop;
+
+      return False;
+   end Decl_Uses_Shared_Object_Name;
+
    function Should_Defer_Package_Object_Initializer
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;
       Decl     : CM.Resolved_Object_Decl;
       Names    : FT.UString_Vectors.Vector) return Boolean
    is
+      Uses_Deferred_Init_Name : constant Boolean :=
+        Decl_Uses_Deferred_Package_Init_Name (Decl, Names);
+      Uses_Shared_Object : constant Boolean :=
+        Decl_Uses_Shared_Object_Name (Unit, Decl);
    begin
       return
-        not Decl.Is_Constant
-        and then Decl.Has_Initializer
+        Decl.Has_Initializer
         and then
-          (Has_Heap_Value_Type (Unit, Document, Decl.Type_Info)
-           or else Is_Owner_Access (Decl.Type_Info)
-           or else Decl_Uses_Deferred_Package_Init_Name (Decl, Names)
-           or else Decl_Uses_Package_Subprogram_Name (Unit, Decl));
+          (Uses_Shared_Object
+           or else Uses_Deferred_Init_Name
+           or else
+             (not Decl.Is_Constant
+              and then
+                (Has_Heap_Value_Type (Unit, Document, Decl.Type_Info)
+                 or else Is_Owner_Access (Decl.Type_Info)
+                 or else Decl_Uses_Package_Subprogram_Name (Unit, Decl))));
    end Should_Defer_Package_Object_Initializer;
 
    procedure Register_Deferred_Package_Init_Names
@@ -707,13 +862,23 @@ package body Safe_Frontend.Ada_Emit is
             end loop;
             return False;
          when CM.Expr_Conversion =>
-            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Inner)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
          when CM.Expr_Binary =>
             return
               Expr_Uses_Public_Shared_Helper (Expr.Left)
               or else Expr_Uses_Public_Shared_Helper (Expr.Right);
          when CM.Expr_Unary =>
-            return Expr_Uses_Public_Shared_Helper (Expr.Inner);
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Inner)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
+         when CM.Expr_Annotated =>
+            return
+              Expr_Uses_Public_Shared_Helper (Expr.Inner)
+              or else Expr_Uses_Public_Shared_Helper (Expr.Target);
+         when CM.Expr_Allocator =>
+            return Expr_Uses_Public_Shared_Helper (Expr.Value);
          when CM.Expr_Aggregate =>
             for Field of Expr.Fields loop
                if Expr_Uses_Public_Shared_Helper (Field.Expr) then
@@ -1301,6 +1466,15 @@ package body Safe_Frontend.Ada_Emit is
            (Context.Spec_Inner, Unit, Document, Type_Item);
       end loop;
 
+      if (for some Decl of Unit.Objects => Decl.Is_Shared) then
+         for Decl of Unit.Objects loop
+            if Decl.Is_Shared then
+               Render_Shared_Object_Spec
+                 (Context.Spec_Inner, Unit, Document, Decl, Bronze, Context.State);
+            end if;
+         end loop;
+      end if;
+
       if not Unit.Objects.Is_Empty then
          for Decl of Unit.Objects loop
             if not Decl.Is_Shared then
@@ -1313,33 +1487,34 @@ package body Safe_Frontend.Ada_Emit is
                     Should_Defer_Package_Object_Initializer
                       (Unit, Document, Decl, Context.Deferred_Package_Init_Names);
                   Needs_Decl_Warning_Fence : constant Boolean :=
-                    not Decl.Is_Constant
-                    and then
-                      ((not Decl.Has_Initializer
-                        and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
-                       or else
-                         Defer_Package_Initializer
-                       or else
-                         (Decl.Has_Initializer
-                          and then Decl.Names.Length = 1
-                          and then
-                            (FT.Lowercase
-                               (FT.To_String
-                                  (Base_Type (Unit, Document, Decl.Type_Info).Kind))
-                             = "boolean"
-                             or else
-                               FT.Lowercase
-                                 (FT.To_String
-                                    (Base_Type (Unit, Document, Decl.Type_Info).Name))
-                               = "boolean")
-                          and then
-                            Statements_Use_Name (Unit.Statements, Decl_Name))
-                       or else
-                         (Decl.Has_Initializer
-                          and then Decl.Names.Length = 1
-                          and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
-                          and then
-                            Statements_Use_Name (Unit.Statements, Decl_Name)));
+                    Defer_Package_Initializer
+                    or else
+                      (not Decl.Is_Constant
+                       and then
+                         ((not Decl.Has_Initializer
+                           and then
+                             Has_Heap_Value_Type (Unit, Document, Decl.Type_Info))
+                          or else
+                            (Decl.Has_Initializer
+                             and then Decl.Names.Length = 1
+                             and then
+                               (FT.Lowercase
+                                  (FT.To_String
+                                     (Base_Type (Unit, Document, Decl.Type_Info).Kind))
+                                = "boolean"
+                                or else
+                                  FT.Lowercase
+                                    (FT.To_String
+                                       (Base_Type (Unit, Document, Decl.Type_Info).Name))
+                                  = "boolean")
+                             and then
+                               Statements_Use_Name (Unit.Statements, Decl_Name))
+                          or else
+                            (Decl.Has_Initializer
+                             and then Decl.Names.Length = 1
+                             and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
+                             and then
+                               Statements_Use_Name (Unit.Statements, Decl_Name))));
                begin
                   if Needs_Decl_Warning_Fence then
                      Append_Local_Warning_Suppression (Context.Spec_Inner, 1);
@@ -1366,15 +1541,6 @@ package body Safe_Frontend.Ada_Emit is
          if (for some Decl of Unit.Objects => not Decl.Is_Shared) then
             Append_Line (Context.Spec_Inner);
          end if;
-      end if;
-
-      if (for some Decl of Unit.Objects => Decl.Is_Shared) then
-         for Decl of Unit.Objects loop
-            if Decl.Is_Shared then
-               Render_Shared_Object_Spec
-                 (Context.Spec_Inner, Unit, Document, Decl, Bronze, Context.State);
-            end if;
-         end loop;
       end if;
 
       if not Unit.Channels.Is_Empty then
@@ -1647,8 +1813,9 @@ package body Safe_Frontend.Ada_Emit is
             Deferred_Names : FT.UString_Vectors.Vector;
          begin
             for Decl of Unit.Objects loop
-               if Should_Defer_Package_Object_Initializer
-                 (Unit, Document, Decl, Deferred_Names)
+               if not Decl.Is_Shared
+                 and then Should_Defer_Package_Object_Initializer
+                   (Unit, Document, Decl, Deferred_Names)
                then
                   Register_Deferred_Package_Init_Names (Decl, Deferred_Names);
                else

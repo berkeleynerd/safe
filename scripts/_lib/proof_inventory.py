@@ -382,6 +382,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr223_provider_enum.safe",
     "tests/build/pr223_imported_enum_comparison_build.safe",
     "tests/build/pr226_remainder_boolean_build.safe",
+    "tests/build/pr227_public_shared_snapshot_order_build.safe",
     "tests/build/pr225_maker.safe",
     "tests/build/pr225_imported_string_literal_build.safe",
     "tests/build/pr224_provider_printable.safe",
@@ -462,6 +463,12 @@ EMITTED_PROOF_EXCLUSIONS = [
         reason="runtime-only static composite for-of unroll regression; build witness locks deep-copy before cleanup without adding another proof-heavy heap runtime target",
         owner="runtime-regression-only",
         milestone="PR11.10c",
+    ),
+    EmittedProofExclusion(
+        path="tests/build/pr227_shared_snapshot_order_build.safe",
+        reason="runtime-only shared-snapshot ordering regression; proof remains covered by issue #228 volatile shared field read follow-up",
+        owner="runtime-regression-only",
+        milestone="issue-227",
     ),
     EmittedProofExclusion(
         path="tests/interfaces/pr119a_select_delay_receive.safe",

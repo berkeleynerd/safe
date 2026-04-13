@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "940e9b19106a08d5226b3f47bb9dcaf39ed8b4f604298f635c7780e0a4bcf461",
+  "compiler_hash": "d24406524b8e526533189d410cc48a61486ccc44e808c4a70a029c9fb524eb60",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -83,7 +83,7 @@
     },
     "tests/build/pr1112b_shared_update_build.safe": {
       "pr1112b_shared_update_build.adb": "beb42079c81dc203aa2f6ebc68df30cf3b9f8db4282de47c9cec44256f27c118",
-      "pr1112b_shared_update_build.ads": "f4d6dc6e004f2140220bf547e72080cdd605c8cf693e2d27c65010258f382f40"
+      "pr1112b_shared_update_build.ads": "2f1150c7ef6f84e386f17056ca668661aa2d970023b3157973b3a59fffd6abcd"
     },
     "tests/build/pr1112c_layered_growable_type_build.safe": {
       "pr1112c_layered_growable_type_build.adb": "7abad2e7a858509a3cc7a799dac4b82f266e96603d524c2c63c5832105adb145",
@@ -91,27 +91,27 @@
     },
     "tests/build/pr1112c_shared_container_fields_build.safe": {
       "pr1112c_shared_container_fields_build.adb": "9e90db3c86ca44ae873edf3afce0112dde131299a29dcbf54b48d0c600339f6f",
-      "pr1112c_shared_container_fields_build.ads": "1057944b0b6b55b8af8980adcd0d9e9ca7988b850c51ee7254408e683b826f9c"
+      "pr1112c_shared_container_fields_build.ads": "b867bf3a5a7ff6b06b649b99b23fc21c8bc7d1d5e80d84e29b0667075d6cbdb7"
     },
     "tests/build/pr1112c_shared_string_build.safe": {
       "pr1112c_shared_string_build.adb": "2bb746058824aa020c85b06499d4f3777aee824fbcd364b77e87d63e3fd58d0d",
-      "pr1112c_shared_string_build.ads": "6d8975f0824aae50a1cc0a3edcdd4ebd6a539bc64379e3aa4bfee3afcb328a8a"
+      "pr1112c_shared_string_build.ads": "b2197f0d235caa61c008b15caa5fc179c52fe71385fc843d9cc155fd3e410217"
     },
     "tests/build/pr1112d_shared_growable_root_build.safe": {
       "pr1112d_shared_growable_root_build.adb": "420992595162495861b7aff0077f81b117bfadb958e46d6e7320983cfe941598",
-      "pr1112d_shared_growable_root_build.ads": "de49f40bb252b94f6e155f522594565fc21dda1f1a40480165a2b9bbadcddc91"
+      "pr1112d_shared_growable_root_build.ads": "bd817608687e073be9c19ecd2681873a92877421e36f45ff160bd5efcc5a5f44"
     },
     "tests/build/pr1112d_shared_list_root_build.safe": {
       "pr1112d_shared_list_root_build.adb": "8a6b3f0cc6c39990645a4f498b23cd0821934d67a08e3596e3207e2e2111c1fb",
-      "pr1112d_shared_list_root_build.ads": "ad55a7afb1dfb478a5298c656ca871ea5d57a530d7c993132b9d4a2e07d7b34d"
+      "pr1112d_shared_list_root_build.ads": "8a9ac63a93bcd88d067ebbcac4012d92f20f6e515d88f978e4d06f5aad0ea4cf"
     },
     "tests/build/pr1112d_shared_map_indexed_remove_build.safe": {
       "pr1112d_shared_map_indexed_remove_build.adb": "23b674b0363e016048960323467446b584b51a0068b715c52067036253559f5f",
-      "pr1112d_shared_map_indexed_remove_build.ads": "f334c5518e0037c5a34096317c1bb4c2f37528b2b3dfd9ca4470293f7cecefc3"
+      "pr1112d_shared_map_indexed_remove_build.ads": "e9ece1a70cab4670608b842038d2a67092074f0d0f736d3f5d62c78b0f70b777"
     },
     "tests/build/pr1112d_shared_map_root_build.safe": {
       "pr1112d_shared_map_root_build.adb": "5ef4c6fb2bf28103b1ce188a0ea4766662dfe1d3f6745bd77b73c64a91d85fce",
-      "pr1112d_shared_map_root_build.ads": "29f1a6e051b526ee0028a1cee64ffde45b5579fd7053db855eb947bb58c953a4"
+      "pr1112d_shared_map_root_build.ads": "75639d6d1c60f01e04d785925fc35d3df601d482e188331ee400fbc558375875"
     },
     "tests/build/pr1112e_imported_shared_list_build.safe": {
       "pr1112e_imported_shared_list_build.adb": "d4f151c68840307242e623040b0e35f00b88a65332f3ba9c10925d74f95a5f9c",
@@ -215,11 +215,11 @@
     },
     "tests/build/pr1122f2_shared_bounded_string_field_build.safe": {
       "pr1122f2_shared_bounded_string_field_build.adb": "e638dcf4a695534c6f6bf996116e2fc30664c290c238cf32feff393b1a1c8ecf",
-      "pr1122f2_shared_bounded_string_field_build.ads": "20c5b3d29b99770cd85c4701c182d14bb7f872d25d7bb05b372b1df2a9cb7351"
+      "pr1122f2_shared_bounded_string_field_build.ads": "110eb6dcd51494d5f0251a01c034e2e0bcc4b5cfb6d4722560914bb05c8e5035"
     },
     "tests/build/pr1122f2_shared_optional_string_none_build.safe": {
       "pr1122f2_shared_optional_string_none_build.adb": "e3ea44e54caa6743475dd5d9e2c5225131fe7de63d467d88b26433de7be32c6b",
-      "pr1122f2_shared_optional_string_none_build.ads": "863b0e1d75502cfd55ce39843b4996e1e2d3be2801bb71713808cea1f87aa17e"
+      "pr1122f2_shared_optional_string_none_build.ads": "766f0964380c70758a1111f9f016774aa936338d4f3c2bd5d4d7cbd4a490f79c"
     },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",
@@ -420,6 +420,10 @@
       "pr226_remainder_boolean_build.adb": "8a32c2883504abb60e40e7de15c730c4a13779ac2dbda11ea2f7e1638e95ef87",
       "pr226_remainder_boolean_build.ads": "1bc40b3f9c089dbbe42f5f77fab9fc51769d05f5eb3e1c743978b741d880684b"
     },
+    "tests/build/pr227_public_shared_snapshot_order_build.safe": {
+      "pr227_public_shared_snapshot_order_build.adb": "0b76bfe49f020936a628f9bcaa340f52dca90ff10cd2a98c79f96e651ef71785",
+      "pr227_public_shared_snapshot_order_build.ads": "52601e0d81620667bf4fa121f237bc132a8161db68f4240260b845ccc2195da2"
+    },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "channel_ceiling_priority.adb": "d1fd5c5e37859ecdb13a969943dff13b203fd0738a40c3c4710dcdaddf6c8921",
       "channel_ceiling_priority.ads": "b0b91fda0f7b5d5548b58d5befff47d5dd35b963ce3bbdbc74b5e14e5fcee56d"
@@ -614,11 +618,11 @@
     },
     "tests/positive/pr1112a_shared_field_access.safe": {
       "pr1112a_shared_field_access.adb": "56c2a9ff19d6ebccf27a41a3b021098561a14ade2e0d01d2f7a0130d6b7852f0",
-      "pr1112a_shared_field_access.ads": "fe291a2a633e3906113a57b6c6d8ca2569a8fa0c9c02632236e3c03c1f4ba1ff"
+      "pr1112a_shared_field_access.ads": "365c85f055af0e29732bdb3a7bc141e538635a712282ac0d357082b5398a5dc1"
     },
     "tests/positive/pr1112b_shared_snapshot.safe": {
       "pr1112b_shared_snapshot.adb": "f5a94863e2be125294fa4c415263a2059dde57084e8c436d84de5418a843c1aa",
-      "pr1112b_shared_snapshot.ads": "66e80bd378bcd7d33a45fdc08d1717bea3d26fe8d48cda9ef01ad2c0a95159dc"
+      "pr1112b_shared_snapshot.ads": "79e9a5066201360fe8373bb90c5f0eca9ffda92b6b8e3a5697cae23535fce349"
     },
     "tests/positive/pr1113a_sum_construction.safe": {
       "pr1113a_sum_construction.adb": "738463a873e8dda3978a0f4b0ecd99f3a8525f9fde1759c4ca2a13e2bec42dcb",
@@ -856,6 +860,11 @@
     "tests/positive/pr214_enum_variant_guard.safe": {
       "pr214_enum_variant_guard.adb": "5950867175ec5da482e640e1ce0f88fa327d632dd1013b685a47c0a90410bc45",
       "pr214_enum_variant_guard.ads": "5b5377425340a71dac9aefd603e75f77d7241b3ab94fb3e7812eaed492a15cd3"
+    },
+    "tests/positive/pr222_readonly_global_function.safe": {
+      "main.adb": "0db7d31639c2209f45d1e8ec411ce9cd9c116ff832e85fe73c50283523d31ac6",
+      "pr222_readonly_global_function.adb": "18221b19496d86a278a591e9a63d3c1e06aceed17f50e5464f348b9d50c5edf7",
+      "pr222_readonly_global_function.ads": "7687baa77f44f1b6b86a3d60cd62cab7243fbd9f2fc665f941c7a07993799a75"
     },
     "tests/positive/result_equality_check.safe": {
       "result_equality_check.adb": "70c3bf493506a2a3275e90b9788679a55a1b90ca8f97a00e3984ca219c02d45a",
