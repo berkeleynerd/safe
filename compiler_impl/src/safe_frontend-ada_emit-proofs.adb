@@ -2787,6 +2787,8 @@ package body Safe_Frontend.Ada_Emit.Proofs is
         Uses_Structural_Traversal_Lowering (Subprogram);
       Previous_Wide_Count : constant Ada.Containers.Count_Type :=
         State.Wide_Local_Names.Length;
+      Previous_Loop_Integer_Count : constant Ada.Containers.Count_Type :=
+        State.Loop_Integer_Bindings.Length;
       Outer_Declarations : constant CM.Resolved_Object_Decl_Vectors.Vector :=
         Effective_Subprogram_Outer_Declarations
           (Subprogram, Raw_Outer_Declarations);
@@ -2794,6 +2796,23 @@ package body Safe_Frontend.Ada_Emit.Proofs is
         (if Subprogram.Has_Return_Type then Render_Type_Name (Subprogram.Return_Type) else "");
       Suppress_Declaration_Warnings : constant Boolean :=
         not Structural_Traversal_Lowering and then not Outer_Declarations.Is_Empty;
+
+      procedure Bind_Loop_Integer_Declaration
+        (Decl : CM.Resolved_Object_Decl)
+      is
+         Static_Value : Long_Long_Integer := 0;
+      begin
+         if Decl.Has_Initializer
+           and then Decl.Initializer /= null
+           and then Is_Integer_Type (Unit, Document, Decl.Type_Info)
+           and then Try_Tracked_Static_Integer_Value
+             (State, Decl.Initializer, Static_Value)
+         then
+            for Name of Decl.Names loop
+               Bind_Loop_Integer (State, FT.To_String (Name), Static_Value);
+            end loop;
+         end if;
+      end Bind_Loop_Integer_Declaration;
    begin
       Collect_Wide_Locals
         (Unit, Document, State, Subprogram.Declarations, Subprogram.Statements);
@@ -2822,6 +2841,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
          Append_Line (Buffer);
          Pop_Cleanup_Frame (State);
          Pop_Type_Binding_Frame (State);
+         Restore_Loop_Integer_Bindings (State, Previous_Loop_Integer_Count);
          Restore_Wide_Names (State, Previous_Wide_Count);
          return;
       end if;
@@ -2831,9 +2851,10 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       for Decl of Outer_Declarations loop
          Append_Line
            (Buffer,
-            Render_Object_Decl_Text
-              (Unit, Document, State, Decl, Local_Context => True),
+             Render_Object_Decl_Text
+               (Unit, Document, State, Decl, Local_Context => True),
             2);
+         Bind_Loop_Integer_Declaration (Decl);
       end loop;
       if Suppress_Declaration_Warnings then
          Append_Initialization_Warning_Restore (Buffer, 2);
@@ -2874,6 +2895,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       Append_Line (Buffer);
       Pop_Cleanup_Frame (State);
       Pop_Type_Binding_Frame (State);
+      Restore_Loop_Integer_Bindings (State, Previous_Loop_Integer_Count);
       Restore_Wide_Names (State, Previous_Wide_Count);
    end Render_Subprogram_Body;
    procedure Render_Task_Body

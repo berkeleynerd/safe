@@ -1941,6 +1941,7 @@ package body Safe_Frontend.Ada_Emit is
                      Static_Value)
                   then
                      Bind_Static_Integer (State, Name_Text, Static_Value);
+                     AI.Bind_Loop_Integer (State, Name_Text, Static_Value);
                   end if;
 
                   if Is_Growable_Array_Type (Unit, Document, Decl.Type_Info)

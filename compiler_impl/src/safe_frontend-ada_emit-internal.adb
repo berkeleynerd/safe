@@ -427,6 +427,29 @@ package body Safe_Frontend.Ada_Emit.Internal is
         ((Name => FT.To_UString (Name), Known => False, Value => 0));
    end Invalidate_Static_Integer;
 
+   procedure Bind_Loop_Integer
+     (State : in out Emit_State;
+      Name  : String;
+      Value : Long_Long_Integer) is
+   begin
+      if Name'Length = 0 then
+         return;
+      end if;
+      State.Loop_Integer_Bindings.Append
+        ((Name => FT.To_UString (Name), Known => True, Value => Value));
+   end Bind_Loop_Integer;
+
+   procedure Invalidate_Loop_Integer
+     (State : in out Emit_State;
+      Name  : String) is
+   begin
+      if Name'Length = 0 then
+         return;
+      end if;
+      State.Loop_Integer_Bindings.Append
+        ((Name => FT.To_UString (Name), Known => False, Value => 0));
+   end Invalidate_Loop_Integer;
+
    procedure Bind_Static_String
      (State : in out Emit_State;
       Name  : String;
@@ -484,6 +507,50 @@ package body Safe_Frontend.Ada_Emit.Internal is
       return False;
    end Try_Static_Integer_Binding;
 
+   function Has_Loop_Integer_Tracking
+     (State : Emit_State;
+      Name  : String) return Boolean is
+   begin
+      if Name'Length = 0 or else State.Loop_Integer_Bindings.Is_Empty then
+         return False;
+      end if;
+
+      for Binding of State.Loop_Integer_Bindings loop
+         if Static_Binding_Name_Matches (FT.To_String (Binding.Name), Name) then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Has_Loop_Integer_Tracking;
+
+   function Try_Loop_Integer_Binding
+     (State : Emit_State;
+      Name  : String;
+      Value : out Long_Long_Integer) return Boolean is
+   begin
+      Value := 0;
+      if Name'Length = 0 or else State.Loop_Integer_Bindings.Is_Empty then
+         return False;
+      end if;
+
+      for Index in reverse State.Loop_Integer_Bindings.First_Index .. State.Loop_Integer_Bindings.Last_Index loop
+         declare
+            Binding : constant Static_Integer_Binding := State.Loop_Integer_Bindings (Index);
+         begin
+            if Static_Binding_Name_Matches (FT.To_String (Binding.Name), Name) then
+               if Binding.Known then
+                  Value := Binding.Value;
+                  return True;
+               end if;
+               return False;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Try_Loop_Integer_Binding;
+
    function Try_Static_String_Binding
      (State : Emit_State;
       Name  : String;
@@ -517,6 +584,15 @@ package body Safe_Frontend.Ada_Emit.Internal is
       end loop;
    end Restore_Static_Integer_Bindings;
 
+   procedure Restore_Loop_Integer_Bindings
+     (State           : in out Emit_State;
+      Previous_Length : Ada.Containers.Count_Type) is
+   begin
+      while State.Loop_Integer_Bindings.Length > Previous_Length loop
+         State.Loop_Integer_Bindings.Delete_Last;
+      end loop;
+   end Restore_Loop_Integer_Bindings;
+
    procedure Restore_Static_String_Bindings
      (State           : in out Emit_State;
       Previous_Length : Ada.Containers.Count_Type) is
@@ -530,6 +606,7 @@ package body Safe_Frontend.Ada_Emit.Internal is
    begin
       Restore_Static_Length_Bindings (State, 0);
       Restore_Static_Integer_Bindings (State, 0);
+      Restore_Loop_Integer_Bindings (State, 0);
       Restore_Static_String_Bindings (State, 0);
    end Clear_All_Static_Bindings;
 

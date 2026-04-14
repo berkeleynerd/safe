@@ -91,6 +91,7 @@ private package Safe_Frontend.Ada_Emit.Internal is
       Wide_Local_Names   : FT.UString_Vectors.Vector;
       Static_Length_Bindings : Static_Length_Binding_Vectors.Vector;
       Static_Integer_Bindings : Static_Integer_Binding_Vectors.Vector;
+      Loop_Integer_Bindings : Static_Integer_Binding_Vectors.Vector;
       Static_String_Bindings : Static_String_Binding_Vectors.Vector;
       Bounded_String_Bounds : FT.UString_Vectors.Vector;
       Type_Binding_Stack : Type_Binding_Frame_Vectors.Vector;
@@ -224,6 +225,13 @@ private package Safe_Frontend.Ada_Emit.Internal is
    procedure Invalidate_Static_Integer
      (State : in out Emit_State;
       Name  : String);
+   procedure Bind_Loop_Integer
+     (State : in out Emit_State;
+      Name  : String;
+      Value : Long_Long_Integer);
+   procedure Invalidate_Loop_Integer
+     (State : in out Emit_State;
+      Name  : String);
    procedure Bind_Static_String
      (State : in out Emit_State;
       Name  : String;
@@ -235,11 +243,21 @@ private package Safe_Frontend.Ada_Emit.Internal is
      (State : Emit_State;
       Name  : String;
       Value : out Long_Long_Integer) return Boolean;
+   function Has_Loop_Integer_Tracking
+     (State : Emit_State;
+      Name  : String) return Boolean;
+   function Try_Loop_Integer_Binding
+     (State : Emit_State;
+      Name  : String;
+      Value : out Long_Long_Integer) return Boolean;
    function Try_Static_String_Binding
      (State : Emit_State;
       Name  : String;
       Image : out SU.Unbounded_String) return Boolean;
    procedure Restore_Static_Integer_Bindings
+     (State           : in out Emit_State;
+      Previous_Length : Ada.Containers.Count_Type);
+   procedure Restore_Loop_Integer_Bindings
      (State           : in out Emit_State;
       Previous_Length : Ada.Containers.Count_Type);
    procedure Restore_Static_String_Bindings

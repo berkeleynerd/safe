@@ -1,0 +1,27 @@
+-- Test: pr233_bounded_index_counted_loop
+-- Description: Counted integer loops preserve lower-bound facts for subtype index conversions.
+-- Expected: ACCEPT
+
+package pr233_bounded_index_counted_loop
+
+   subtype tally is integer (0 to 10);
+   subtype slot is integer (1 to 3);
+
+   type fixed_window is array (slot) of tally;
+
+   function locate (values : fixed_window; target : tally) returns boolean
+      lo : integer = 1;
+      hi : integer = 3;
+
+      while lo <= hi
+         if values (slot (lo)) == target
+            return true;
+         else if lo == hi
+            return false;
+
+         lo = lo + 1;
+
+      return false;
+
+   items : fixed_window = (1, 2, 3);
+   found : boolean = locate (items, 2);
