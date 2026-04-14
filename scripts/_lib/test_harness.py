@@ -24,8 +24,10 @@ SAFE_REPL = REPO_ROOT / "scripts" / "safe_repl.py"
 EMBEDDED_SMOKE = REPO_ROOT / "scripts" / "run_embedded_smoke.py"
 VALIDATE_OUTPUT_CONTRACTS = REPO_ROOT / "scripts" / "validate_output_contracts.py"
 VALIDATE_AST_OUTPUT = REPO_ROOT / "scripts" / "validate_ast_output.py"
-VSCODE_README = REPO_ROOT / "editors" / "vscode" / "README.md"
-VSCODE_PACKAGE_JSON = REPO_ROOT / "editors" / "vscode" / "package.json"
+VSCODE_DIR = REPO_ROOT / "editors" / "vscode"
+VSCODE_INSTALL_LOCAL = VSCODE_DIR / "install-local.sh"
+VSCODE_README = VSCODE_DIR / "README.md"
+VSCODE_PACKAGE_JSON = VSCODE_DIR / "package.json"
 LOCAL_WITH_RE = re.compile(r"^\s*with\s+([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)\s*;\s*$")
 
 EMITTED_GNATPROVE_WARNING_RE = re.compile(

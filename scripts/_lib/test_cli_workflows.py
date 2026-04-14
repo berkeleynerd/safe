@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,8 @@ from _lib.test_harness import (
     REPO_ROOT,
     SAFE_CLI,
     SAFE_REPL,
+    VSCODE_DIR,
+    VSCODE_INSTALL_LOCAL,
     VSCODE_PACKAGE_JSON,
     VSCODE_README,
     RunCounts,
@@ -1162,6 +1165,39 @@ def run_vscode_surface_docs_case() -> tuple[bool, str]:
     return True, ""
 
 
+def run_vscode_install_local_replaces_stale_directory_case() -> tuple[bool, str]:
+    metadata = json.loads(VSCODE_PACKAGE_JSON.read_text(encoding="utf-8"))
+    install_name = f"{metadata['publisher']}.{metadata['name']}-{metadata['version']}"
+
+    with tempfile.TemporaryDirectory(prefix="safe-vscode-install-") as temp_root_str:
+        temp_home = Path(temp_root_str) / "home"
+        install_path = temp_home / ".vscode" / "extensions" / install_name
+        install_path.mkdir(parents=True)
+        (install_path / "sentinel.txt").write_text("stale extension directory", encoding="utf-8")
+
+        env = os.environ.copy()
+        env["HOME"] = str(temp_home)
+        completed = subprocess.run(
+            [str(VSCODE_INSTALL_LOCAL)],
+            cwd=REPO_ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if completed.returncode != 0:
+            return False, f"install-local failed: {first_message(completed)}"
+        if not install_path.is_symlink():
+            nested_link = install_path / "vscode"
+            if nested_link.is_symlink():
+                return False, "install-local created a nested symlink inside a stale directory"
+            return False, "install-local did not replace the stale extension directory"
+        if install_path.resolve() != VSCODE_DIR.resolve():
+            return False, f"install-local linked to {install_path.resolve()} instead of {VSCODE_DIR.resolve()}"
+
+    return True, ""
+
+
 def run_safe_deploy_reject_case(argv: list[str], expected_message: str) -> tuple[bool, str]:
     completed = run_command([sys.executable, str(SAFE_CLI), *argv], cwd=REPO_ROOT)
     if completed.returncode == 0:
@@ -1249,6 +1285,11 @@ def run_post_interface_cli_checks() -> RunCounts:
         passed += record_result(failures, f"safe cli help {' '.join(argv)}", run_safe_cli_help_case(argv, expected))
 
     passed += record_result(failures, "vscode surface docs", run_vscode_surface_docs_case())
+    passed += record_result(
+        failures,
+        "vscode install-local replaces stale directory",
+        run_vscode_install_local_replaces_stale_directory_case(),
+    )
 
     for argv, expected_message in DEPLOY_REJECT_ARGV_CASES:
         passed += record_result(
