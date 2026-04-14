@@ -94,7 +94,8 @@ Dependency chain:
   implicit conversion).
 - PR11.22g follows PR11.16 (test infrastructure modularization).
 - PR11.22h follows PR11.22g (shared stdlib contract audit and body-drift check).
-- PR11.23 follows PR11.22h (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
+- PR11.22h.1 follows PR11.22h (runtime-only emitted proof exclusion burn-down).
+- PR11.23 follows PR11.22h.1 (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
 - PR11.17–PR11.21 moved to PR14 series (deferred past all existing work; see PR14 below).
 
 ---
@@ -3181,6 +3182,72 @@ Follows PR11.22g. Safety-critical audit — medium effort, high value.
 
 ---
 
+## PR11.22h.1: Runtime-Only Proof Exclusion Burn-Down
+
+Close or explicitly reclassify the remaining fixtures that compile/build but
+are still excluded from the emitted-proof lane for runtime or GNATprove
+tractability reasons.
+
+### Why now
+
+The README positions Safe around the claim that accepted programs are safe by
+construction. That claim is only defensible if every compiling fixture in the
+admitted surface is either proved by the standard emitted-proof gate or rejected
+before emission with a direct Safe diagnostic. The live proof inventory already
+prevents unnamed coverage holes, but `runtime-regression-only` exclusions still
+weaken the stronger "if it compiles, it is safe" wording.
+
+### Scope
+
+- Audit every `owner="runtime-regression-only"` entry in
+  `scripts/_lib/proof_inventory.py`.
+- For each entry, choose exactly one outcome:
+  - move the original fixture into `EMITTED_PROOF_FIXTURES` by fixing the
+    emitted proof path;
+  - replace the full runtime fixture with smaller proof-bearing coverage and
+    retain only a narrowly documented full-runtime proof-performance exclusion;
+  - reject the source shape earlier in the frontend if it is outside the
+    admitted proof surface.
+- Keep the spec-excluded and tooling-reject exclusions separate from proof debt;
+  they are not burn-down targets unless their frontend behavior changes.
+- Refresh `README.md`, `docs/emitted_output_verification_matrix.md`, and this
+  roadmap from the live proof inventory rather than hardcoded historical
+  counts.
+
+### Initial Target Set
+
+The target set is the live `runtime-regression-only` inventory after the
+generated composite `for ... of` helper coverage lands:
+
+| Fixture | Current reason | Expected direction |
+|---------|----------------|--------------------|
+| `tests/build/pr1110b_list_empty_build.safe` | Empty-list `pop_last` witness triggers GNATprove ineffectual-branch warnings under `--warnings=error` | Prefer emitted proof closure; otherwise reject statically-empty pop from the proved surface |
+| `tests/build/pr213_map_entry_build.safe` | Full map-entry iteration remains proof-expensive; helper path has focused proof coverage | Keep only if the full map runtime remains too expensive after focused map proof coverage |
+| `tests/build/pr227_shared_snapshot_order_build.safe` | Runtime-only shared snapshot ordering regression | Fold into the shared-read proof closure work or reject unsupported shared read shape |
+| `tests/build/pr228_shared_loop_exit_condition_build.safe` | Shared loop exit-condition proof gap | Fold into the shared-read proof closure work or require an explicit local snapshot shape |
+
+### Acceptance Criteria
+
+- `scripts/run_proofs.py` passes with all non-excluded fixtures proved.
+- The count of `runtime-regression-only` exclusions is reduced to zero, or every
+  retained item is paired with smaller proof-bearing coverage and wording that
+  prevents an unqualified proof claim.
+- `scripts/run_tests.py` still enforces zero uncovered fixtures.
+- Public docs distinguish:
+  - proved admitted fixtures,
+  - frontend/spec exclusions,
+  - tooling-reject fixtures,
+  - any retained proof-performance exclusions.
+- The README safety claim is updated to match the live evidence.
+
+### Dependency
+
+Follows PR11.22h. This should land before PR11.23 so proof diagnostics are built
+on a proof surface whose remaining exclusions are intentional and accurately
+documented.
+
+---
+
 ## PR11.23: Proof Diagnostic Mapping
 
 Map GNATprove proof failures back to Safe source locations with
@@ -3268,7 +3335,7 @@ unchanged.
 
 ### Dependency
 
-Follows PR11.22h. Deferred until after the hygiene series so the
+Follows PR11.22h.1. Deferred until after the hygiene series so the
 mapping lands on a cleaned emitter and stabilized proof/build surface.
 
 ---

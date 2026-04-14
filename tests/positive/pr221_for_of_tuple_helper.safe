@@ -1,0 +1,18 @@
+-- Test: pr221_for_of_tuple_helper
+-- Description: Heap-backed tuple for-of copy/free helpers prove without the full map runtime.
+-- Expected: ACCEPT
+
+package pr221_for_of_tuple_helper
+
+   function count_pair returns integer
+      var values : list of (string, string) = [("alpha", "one")];
+
+      for item of values
+         first : string = item.1;
+         second : string = item.2;
+         if first == "alpha" and then second == "one"
+            return 1;
+
+      return 0;
+
+   result : integer = count_pair ();

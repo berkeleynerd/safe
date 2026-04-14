@@ -396,6 +396,9 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr232_imported_numeric_elab_build.safe",
     "tests/positive/pr231_fixed_literal_for_of_sum.safe",
     "tests/positive/pr233_bounded_index_counted_loop.safe",
+    "tests/build/pr220_for_of_composite_unroll_build.safe",
+    "tests/positive/pr221_for_of_tuple_helper.safe",
+    "tests/positive/pr221_for_of_discriminated_helper.safe",
     "tests/interfaces/pr119a_select_delay_receive.safe",
     "tests/interfaces/pr119a_select_delay_timeout.safe",
     "tests/interfaces/pr119a_select_zero_delay_ready.safe",
@@ -465,15 +468,9 @@ EMITTED_PROOF_EXCLUSIONS = [
     ),
     EmittedProofExclusion(
         path="tests/build/pr213_map_entry_build.safe",
-        reason="runtime-only map-entry iteration proof-performance issue; GNATprove spends unbounded time in the emitted heap-backed map runtime path",
+        reason="full map-entry iteration remains proof-expensive; generated tuple for-of helper path is covered by pr221_for_of_tuple_helper",
         owner="runtime-regression-only",
-        milestone="PR11.10c",
-    ),
-    EmittedProofExclusion(
-        path="tests/build/pr220_for_of_composite_unroll_build.safe",
-        reason="runtime-only static composite for-of unroll regression; build witness locks deep-copy before cleanup without adding another proof-heavy heap runtime target",
-        owner="runtime-regression-only",
-        milestone="PR11.10c",
+        milestone="issue-221",
     ),
     EmittedProofExclusion(
         path="tests/build/pr227_shared_snapshot_order_build.safe",

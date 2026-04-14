@@ -2963,12 +2963,14 @@ package body Safe_Frontend.Ada_Emit.Types is
             & Type_Name
             & " is",
             1);
+         Append_Initialization_Warning_Suppression (Buffer, 2);
          Append_Line
            (Buffer,
             "Result : "
             & Type_Name
             & " := Source;",
             2);
+         Append_Initialization_Warning_Restore (Buffer, 2);
          Append_Line (Buffer, "begin", 1);
          Append_Line
            (Buffer,
