@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "3ac4aac6e2b471aeddffd9dc031bcd35c18417a3d8a07fb05cae7a4f0de1598d",
+  "compiler_hash": "39e6843a9958f93f46d3b94b4f57213a4a45e0f72eb6c5c415f34d5786fa61fb",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -385,6 +385,10 @@
     "tests/build/pr212_string_literal_build.safe": {
       "pr212_string_literal_build.adb": "b2b1aec2936ca3c8b3b6cfdf04edf377801be21f8183a0c8ca2ef937f42bd9bb",
       "pr212_string_literal_build.ads": "36b053b230091162dd8326f6d480efabe8c506c11680dec1790c186af9540716"
+    },
+    "tests/build/pr220_for_of_composite_unroll_build.safe": {
+      "pr220_for_of_composite_unroll_build.adb": "12d1fb1200ad6ec2b279bbf7a072cc04b3826dd3ad73346b6993630851e33b8a",
+      "pr220_for_of_composite_unroll_build.ads": "9910d5dddf9dfe6b209358006da25c91d014c4a8e997e8f01563706a9d210dc4"
     },
     "tests/build/pr223_imported_enum_comparison_build.safe": {
       "pr223_imported_enum_comparison_build.adb": "bc462f82848f26892933e4e3f5d95cf0b40dfa81a119ea5adeecbb719f738383",
@@ -906,6 +910,14 @@
     "tests/positive/pr214_enum_variant_guard.safe": {
       "pr214_enum_variant_guard.adb": "5950867175ec5da482e640e1ce0f88fa327d632dd1013b685a47c0a90410bc45",
       "pr214_enum_variant_guard.ads": "5b5377425340a71dac9aefd603e75f77d7241b3ab94fb3e7812eaed492a15cd3"
+    },
+    "tests/positive/pr221_for_of_discriminated_helper.safe": {
+      "pr221_for_of_discriminated_helper.adb": "31347660ca76a8150dfe84ef8a1cb8b84577d659f07a88223fc40472c5b05b93",
+      "pr221_for_of_discriminated_helper.ads": "91d7df476ce74f3fad1183089be4674ed28861a5686cb20ef52f795c7a31829d"
+    },
+    "tests/positive/pr221_for_of_tuple_helper.safe": {
+      "pr221_for_of_tuple_helper.adb": "0f2ea207d7c0244b969a621c4c1524af74032b906d8058fcb09847557aff4713",
+      "pr221_for_of_tuple_helper.ads": "4ca76fce8bcbe840bf75220bbcfc701902a97aaca3b4c83a1df7a6e473991fae"
     },
     "tests/positive/pr222_readonly_global_function.safe": {
       "main.adb": "0db7d31639c2209f45d1e8ec411ce9cd9c116ff832e85fe73c50283523d31ac6",
