@@ -394,6 +394,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr230_top_level_select_delay_build.safe",
     "tests/build/pr232_provider_numeric.safe",
     "tests/build/pr232_imported_numeric_elab_build.safe",
+    "tests/positive/pr231_fixed_literal_for_of_sum.safe",
     "tests/positive/pr233_bounded_index_counted_loop.safe",
     "tests/interfaces/pr119a_select_delay_receive.safe",
     "tests/interfaces/pr119a_select_delay_timeout.safe",
