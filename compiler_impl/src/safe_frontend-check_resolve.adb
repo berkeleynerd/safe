@@ -10081,7 +10081,8 @@ package body Safe_Frontend.Check_Resolve is
    function Synthetic_If_Stmt
      (Condition  : CM.Expr_Access;
       Then_Stmts : CM.Statement_Access_Vectors.Vector;
-      Span       : FT.Source_Span) return CM.Statement_Access
+      Span       : FT.Source_Span;
+      Suppress_Local_Warnings : Boolean := False) return CM.Statement_Access
    is
       Result : constant CM.Statement_Access := new CM.Statement;
    begin
@@ -10090,6 +10091,7 @@ package body Safe_Frontend.Check_Resolve is
       Result.Span := Span;
       Result.Condition := Condition;
       Result.Then_Stmts := Then_Stmts;
+      Result.Suppress_Local_Warnings := Suppress_Local_Warnings;
       return Result;
    end Synthetic_If_Stmt;
 
@@ -10562,7 +10564,8 @@ package body Safe_Frontend.Check_Resolve is
                            Expr.Span,
                            "boolean"),
                         Trim_Then,
-                        Expr.Span));
+                        Expr.Span,
+                        Suppress_Local_Warnings => True));
                   Slice_Then.Append
                     (Synthetic_Assign_Stmt
                        (List_Expr,
@@ -10587,7 +10590,8 @@ package body Safe_Frontend.Check_Resolve is
                            Expr.Span,
                            "boolean"),
                         Slice_Then,
-                        Expr.Span));
+                        Expr.Span,
+                        Suppress_Local_Warnings => True));
 
                   Result.Preludes.Append
                     (Synthetic_If_Stmt

@@ -3214,17 +3214,18 @@ weaken the stronger "if it compiles, it is safe" wording.
   roadmap from the live proof inventory rather than hardcoded historical
   counts.
 
-### Initial Target Set
+### Burn-Down Tracking
 
-The target set is the live `runtime-regression-only` inventory after the
-generated composite `for ... of` helper coverage lands:
+The target set started as the live `runtime-regression-only` inventory after the
+generated composite `for ... of` helper coverage landed. PR11.22h.1a closes the
+low-risk proof promotions and leaves the two genuine loop-proof gaps explicit:
 
 | Fixture | Current reason | Expected direction |
 |---------|----------------|--------------------|
-| `tests/build/pr1110b_list_empty_build.safe` | Empty-list `pop_last` witness triggers GNATprove ineffectual-branch warnings under `--warnings=error` | Prefer emitted proof closure; otherwise reject statically-empty pop from the proved surface |
-| `tests/build/pr213_map_entry_build.safe` | Full map-entry iteration remains proof-expensive; helper path has focused proof coverage | Keep only if the full map runtime remains too expensive after focused map proof coverage |
-| `tests/build/pr227_shared_snapshot_order_build.safe` | Runtime-only shared snapshot ordering regression | Fold into the shared-read proof closure work or reject unsupported shared read shape |
-| `tests/build/pr228_shared_loop_exit_condition_build.safe` | Shared loop exit-condition proof gap | Fold into the shared-read proof closure work or require an explicit local snapshot shape |
+| `tests/build/pr1110b_list_empty_build.safe` | Empty-list `pop_last` witness produced GNATprove no-effect / unused-assignment warnings under `--warnings=error` | Closed by PR11.22h.1a with narrow generated-warning suppression around the two synthetic trim branches |
+| `tests/build/pr213_map_entry_build.safe` | Map-entry `for of` loop accumulator lacks generated loop facts for overflow proof | Add generated accumulator invariants/facts, or reclassify with a focused proof-bearing companion if the full shape remains intractable |
+| `tests/build/pr227_shared_snapshot_order_build.safe` | Former shared snapshot ordering regression now proves at level 2 | Closed by PR11.22h.1a by promoting the fixture to the emitted-proof regression list |
+| `tests/build/pr228_shared_loop_exit_condition_build.safe` | Shared exit-condition loop lowers to a static `while true` shape whose variant proof lacks the original `count < limit` guard fact | Preserve the dynamic guard for variant-bearing loops, or reject the unsupported source shape with a clear diagnostic |
 
 ### Acceptance Criteria
 
@@ -4786,7 +4787,7 @@ exists so that no deferred item drifts without a name.
 | Item | Why deferred | Future home |
 |------|-------------|-------------|
 | Non-static / non-singleton indexed `mut` alias paths | PR11.10b ships only statically provable singleton disjoint indices; broader container-element alias reasoning deferred | Post-PR11.10; scope after real usage patterns emerge |
-| Empty-list `pop_last` proof closure | `pr1110b_list_empty_build.safe` is a runtime-only witness; static empty-length lowering triggers GNATprove ineffectual-branch warnings | Proof exclusion with documented reason; revisit if GNATprove improves branch-elimination handling |
+| Empty-list `pop_last` proof closure | `pr1110b_list_empty_build.safe` now proves after PR11.22h.1a added narrow generated-warning suppression around the synthetic trim branches | Closed in PR11.22h.1a |
 
 ### Deferred from PR11.10c
 

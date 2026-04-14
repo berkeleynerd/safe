@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "39e6843a9958f93f46d3b94b4f57213a4a45e0f72eb6c5c415f34d5786fa61fb",
+  "compiler_hash": "0e70f7b00636b7bc37f580734d7852969d0ead5a4c8a1011d9b5d7a643902f36",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "c8395262c3d2f3864228b49c1aad214d296dfe5ef3c0356b7406688d0486787b",
@@ -10,15 +10,19 @@
       "pr1110a_optional_string_build.ads": "b6e5f1bb1b61abc37f070743e066b33273067a205aea33e44f45d2a494332fbe"
     },
     "tests/build/pr1110b_list_build.safe": {
-      "pr1110b_list_build.adb": "fb6e951e8f56775ba1d2f3853b15bb65cf0d27dab433bc90745ec6597915d38b",
+      "pr1110b_list_build.adb": "27c41ff04d7e53d6a39e3db470f5dda89410ad22205ce62512b68def2c8947c8",
       "pr1110b_list_build.ads": "32668c111d0188c8de77b4fbfee26c9b798c18b3c8303e1e098b4ed60fe7b162"
     },
+    "tests/build/pr1110b_list_empty_build.safe": {
+      "pr1110b_list_empty_build.adb": "44ca7103f86d099d290c0aff1f8a4e03f29a35f0f945145cd6f003777312bc39",
+      "pr1110b_list_empty_build.ads": "73ec6e112a8867fe6e59bfeb779f92ea7b82e72bf11f97339bc0fc2ac35bdec9"
+    },
     "tests/build/pr1110b_list_growable_build.safe": {
-      "pr1110b_list_growable_build.adb": "e6fbd27006c800a8f40ae5f79dee0424d145223231ffda748071d67c3f524827",
+      "pr1110b_list_growable_build.adb": "ed7d230b44bbf0e4ff95a6c3c0f9eb9ae5213b4dbd24f759845ee39fcbccb00c",
       "pr1110b_list_growable_build.ads": "c07242feba7adcfd65dbe247d9d1dd762b4648c3abb746242d8fb4ec02a8d17c"
     },
     "tests/build/pr1110b_list_string_build.safe": {
-      "pr1110b_list_string_build.adb": "c8af30d8687a83effe6a4fe5e504ddc36c3f34bfa75e6d80c615d4318c8a21df",
+      "pr1110b_list_string_build.adb": "8793560f646efc4182b085a470aa61afb714ba716e13b702c1b6cdf2f802c617",
       "pr1110b_list_string_build.ads": "e965932014367ee279d96851d3e071be7c7db742fd6549aa79b53396f15d97f8"
     },
     "tests/build/pr1110c_map_build.safe": {
@@ -34,11 +38,11 @@
       "pr1110c_map_string_build.ads": "8511f771cd69ff0ddd660ab38bf883091c9db3a1274e6fb87fcee0a875e8d1ef"
     },
     "tests/build/pr1111a_builtin_methods_build.safe": {
-      "pr1111a_builtin_methods_build.adb": "f4c19caccf55b6d180ef5a73b136ca7b3a7c9968d1b4b8dff6a34065c107fc51",
+      "pr1111a_builtin_methods_build.adb": "84b0b5105736d17761d862162bfd29ce498df27690f5fe64acf68f86517ed497",
       "pr1111a_builtin_methods_build.ads": "62e8300674290122ff2fc56ac3610d38523a88c7c6d6273107255f9bfe6caf4d"
     },
     "tests/build/pr1111b_interface_builtin_build.safe": {
-      "pr1111b_interface_builtin_build.adb": "e9972aba8e2413a597b7185bd1f56acc8e3ebab533e33f4b25a12f7ac495b196",
+      "pr1111b_interface_builtin_build.adb": "472f186676ae3e35b7e693798c2470eaa936ace7f6999b33e534e7f842e769ed",
       "pr1111b_interface_builtin_build.ads": "ecb68dd86faf82ab556808caf91900f1daef0e31b135d0cc9cf8d1fe6fdffd4b"
     },
     "tests/build/pr1111c_generic_build.safe": {
@@ -428,6 +432,11 @@
       "pr227_public_shared_snapshot_order_build.adb": "0b76bfe49f020936a628f9bcaa340f52dca90ff10cd2a98c79f96e651ef71785",
       "pr227_public_shared_snapshot_order_build.ads": "52601e0d81620667bf4fa121f237bc132a8161db68f4240260b845ccc2195da2"
     },
+    "tests/build/pr227_shared_snapshot_order_build.safe": {
+      "main.adb": "e002ae8210720223877ad77872bc85ae2736b94a0ae2917bf0134cd45c699aa3",
+      "pr227_shared_snapshot_order_build.adb": "bca41efe77f7174aa63e09ae7d55a1a4dc6bacc5b8b006332936f3cc15ece599",
+      "pr227_shared_snapshot_order_build.ads": "2a5a6b9a9e5873503e2e264c1fc1c00d398bdb2a639ac82fb533c7e1c45b3492"
+    },
     "tests/build/pr228_imported_shared_condition_build.safe": {
       "pr228_imported_shared_condition_build.adb": "3d4510dadd9019c99caf565318723b2ef9f1a5459830b6439f53cebb8ee804b6",
       "pr228_imported_shared_condition_build.ads": "66b38069418c9f320ff98875e6912d7dba9cd64323a8526c99a87490a0d7a9c3",
@@ -639,7 +648,7 @@
       "pr1110b_disjoint_mut_indices.ads": "205a2b33ce8c5a22408bee60eb4c6bff433ba4356166669772c041cc6b5228cb"
     },
     "tests/positive/pr1110b_list_basics.safe": {
-      "pr1110b_list_basics.adb": "76e14ad2bcbc711016c08006be3f0f14b23fadcc130f6c398c530731f14d25f5",
+      "pr1110b_list_basics.adb": "27765dc57d4284366e9bc5ad953f8726f84e6aed2eb452ada4d6afee27d64cad",
       "pr1110b_list_basics.ads": "bf4fcab14568ec6362ab5e742d4864fe6e00cdf1e20af811a9e80c8a8e0fe0c1"
     },
     "tests/positive/pr1110c_map_basics.safe": {
