@@ -3394,6 +3394,18 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   if State.Task_Body_Depth > 0 then
                      Append_Task_If_Warning_Suppression (Buffer, Depth);
                   end if;
+                  if Item.Suppress_Local_Warnings then
+                     Append_Gnatprove_Warning_Suppression
+                       (Buffer,
+                        "unused assignment",
+                        "generated pop_last trim branch is guarded by static length facts",
+                        Depth);
+                     Append_Gnatprove_Warning_Suppression
+                       (Buffer,
+                        "statement has no effect",
+                        "generated pop_last trim branch is guarded by static length facts",
+                        Depth);
+                  end if;
 
                   if Needs_Shared_Condition_Snapshot then
                      Render_Snapshot_If_Arm (1, Depth);
@@ -3423,6 +3435,16 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      Append_Line (Buffer, "end if;", Depth);
                   end if;
 
+                  if Item.Suppress_Local_Warnings then
+                     Append_Gnatprove_Warning_Restore
+                       (Buffer,
+                        "statement has no effect",
+                        Depth);
+                     Append_Gnatprove_Warning_Restore
+                       (Buffer,
+                        "unused assignment",
+                        Depth);
+                  end if;
                   if State.Task_Body_Depth > 0 then
                      Append_Task_If_Warning_Restore (Buffer, Depth);
                   end if;

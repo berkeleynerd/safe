@@ -464,6 +464,7 @@ package Safe_Frontend.Check_Model is
       Arms          : Select_Arm_Vectors.Vector;
       Scope_Id      : FT.UString := FT.To_UString ("");
       Is_Synthetic  : Boolean := False;
+      Suppress_Local_Warnings : Boolean := False;
    end record;
 
    type Subprogram_Body is record
