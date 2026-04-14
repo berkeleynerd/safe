@@ -11,10 +11,10 @@ package pr231_fixed_literal_for_of_sum
 
    function collection_bonus returns tally
       fixed : fixed_window = (2, 4, 6);
-      widened : fixed_window = fixed;
+      copy : fixed_window = fixed;
       total : tally = 0;
 
-      for item of widened
+      for item of copy
          total = total + item;
 
       if total == 12
