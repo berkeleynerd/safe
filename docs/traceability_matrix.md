@@ -425,7 +425,7 @@ affected POs/models, severity, and related spec references.
 - Severity: critical
 - Spec reference: `docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory`
 - Affects: Safe_String_RT, Safe_Array_RT, Safe_Array_Identity_RT, Safe_Ownership_RT, generated Clone_Element / Free_Element formals, Safe_String_RT.Equal postcondition
-- Related clauses: `docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory`
+- Related clauses: none. A-06 is an implementation trust-boundary record; the detailed boundary inventory lives in `docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory`.
 - Note: A-06 records an existing SPARK_Mode Off heap-runtime trust boundary exposed by the shared runtime audit; it does not add new emitted behavior or a new proof exemption.
 
 **B-01: Ownership state enumeration is complete**

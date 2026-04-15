@@ -90,7 +90,7 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 | `companion/spark/safe_model.adb` | 116 | Expression-function bodies for ghost models |
 | `companion/spark/safe_po.ads` | 390 | 23 PO procedure specifications with Pre/Post contracts |
 | `companion/spark/safe_po.adb` | 357 | PO procedure bodies (19 null/ghost + 4 computational) |
-| **SPARK total** | **1,079** | |
+| **SPARK total** | **1,229** | |
 
 ### 4.3 Build Configuration
 
