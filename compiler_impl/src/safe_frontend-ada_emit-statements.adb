@@ -3673,6 +3673,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      then Render_Variant_While_Guard_Image
                        (Unit, Document, Item.Condition, Rendered, State)
                      else "");
+                  --  Loop_Variant_Image only emits variants for binary guards
+                  --  whose operators are also renderable here; otherwise a
+                  --  fallback could silently re-open static-folded loop guards.
                   pragma Assert
                     (Variant_Image'Length = 0 or else Variant_Guard_Image'Length > 0);
                   Condition_Image : constant String :=
