@@ -3218,14 +3218,15 @@ weaken the stronger "if it compiles, it is safe" wording.
 
 The target set started as the live `runtime-regression-only` inventory after the
 generated composite `for ... of` helper coverage landed. PR11.22h.1a closes the
-low-risk proof promotions and leaves the two genuine loop-proof gaps explicit:
+low-risk proof promotions; PR11.22h.1b closes the shared exit-condition
+proof gap and leaves only the map-entry loop gap explicit:
 
 | Fixture | Current reason | Expected direction |
 |---------|----------------|--------------------|
 | `tests/build/pr1110b_list_empty_build.safe` | Empty-list `pop_last` witness produced GNATprove no-effect / unused-assignment warnings under `--warnings=error` | Closed by PR11.22h.1a with narrow generated-warning suppression around the two synthetic trim branches |
 | `tests/build/pr213_map_entry_build.safe` | Map-entry `for of` loop accumulator lacks generated loop facts for overflow proof | Add generated accumulator invariants/facts, or reclassify with a focused proof-bearing companion if the full shape remains intractable |
 | `tests/build/pr227_shared_snapshot_order_build.safe` | Former shared snapshot ordering regression now proves at level 2 | Closed by PR11.22h.1a by promoting the fixture to the emitted-proof regression list |
-| `tests/build/pr228_shared_loop_exit_condition_build.safe` | Shared exit-condition loop lowers to a static `while true` shape whose variant proof lacks the original `count < limit` guard fact | Preserve the dynamic guard for variant-bearing loops, or reject the unsupported source shape with a clear diagnostic |
+| `tests/build/pr228_shared_loop_exit_condition_build.safe` | Shared exit-condition loop lowered to a static `while true` shape whose variant proof lacked the original `count < limit` guard fact | Closed by PR11.22h.1b by preserving dynamic guards for variant-bearing `while` loops |
 
 ### Acceptance Criteria
 

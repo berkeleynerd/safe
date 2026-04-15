@@ -10555,6 +10555,9 @@ package body Safe_Frontend.Check_Resolve is
                        (List_Expr,
                         Empty_List_Expr,
                         Expr.Span));
+                  --  Suppress both generated trim branches. Static length
+                  --  facts can make one branch inert for empty-pop witnesses,
+                  --  while non-empty cases do not produce these warnings.
                   Then_Stmts.Append
                     (Synthetic_If_Stmt
                        (Binary_Expr

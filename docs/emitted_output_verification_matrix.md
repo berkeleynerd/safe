@@ -418,6 +418,11 @@ The parent checkpoint is closed under the same all-proved-only policy as the
 earlier emitted checkpoints. Unlike the container family, it currently carries
 no named proof exclusions. Shared-wrapper proof coverage therefore closes with
 zero unnamed holes and zero shared-specific exclusion inventory.
+`tests/build/pr228_shared_loop_exit_condition_build.safe` also proves through
+the regression lane after PR11.22h.1b preserved dynamic guards on
+variant-bearing loops with shared exit-condition snapshots. The same emission
+change intentionally refreshes snapshot hashes for existing simple
+variant-bearing loops whose guards were previously static-folded.
 
 ## Emitted GNATprove Warning Suppression Inventory
 

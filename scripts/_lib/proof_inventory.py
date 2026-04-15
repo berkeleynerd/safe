@@ -387,6 +387,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr228_shared_field_condition_build.safe",
     "tests/build/pr228_provider_shared_condition.safe",
     "tests/build/pr228_imported_shared_condition_build.safe",
+    "tests/build/pr228_shared_loop_exit_condition_build.safe",
     "tests/build/pr225_maker.safe",
     "tests/build/pr225_imported_string_literal_build.safe",
     "tests/build/pr224_provider_printable.safe",
@@ -467,12 +468,6 @@ EMITTED_PROOF_EXCLUSIONS = [
         reason="map-entry iteration accumulator lacks generated loop facts for overflow proof; generated tuple for-of helper path is covered by pr221_for_of_tuple_helper",
         owner="runtime-regression-only",
         milestone="issue-221",
-    ),
-    EmittedProofExclusion(
-        path="tests/build/pr228_shared_loop_exit_condition_build.safe",
-        reason="shared exit-condition loop lowers to a static true while-loop whose variant proof lacks the original guard fact",
-        owner="runtime-regression-only",
-        milestone="issue-228",
     ),
 ]
 

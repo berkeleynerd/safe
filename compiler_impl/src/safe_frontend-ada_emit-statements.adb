@@ -284,6 +284,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Rendered : Shared_Condition_Render;
       Depth    : Natural)
    ;
+   function Replace_All
+     (Text : String;
+      From : String;
+      To   : String) return String
+   ;
    function Is_Explicit_Float_Narrowing
      (Unit        : CM.Resolved_Unit;
       Document    : GM.Mir_Document;
@@ -1660,6 +1665,49 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       return "";
    end Loop_Variant_Image;
+
+   function Render_Variant_While_Guard_Image
+     (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
+      Condition : CM.Expr_Access;
+      Rendered  : Shared_Condition_Render;
+      State     : in out Emit_State) return String
+   is
+      Operator : constant String :=
+        (if Condition = null then "" else Map_Operator (FT.To_String (Condition.Operator)));
+      Image    : SU.Unbounded_String;
+   begin
+      if Condition = null
+        or else Condition.Kind /= CM.Expr_Binary
+        or else Condition.Left = null
+        or else Condition.Right = null
+        or else Operator'Length = 0
+      then
+         return "";
+      end if;
+
+      --  Keep variant-bearing while guards as runtime checks even when current
+      --  static bindings can prove the first iteration enters. Preserve any
+      --  shared-condition snapshots so getter calls remain single-evaluated.
+      Image :=
+        SU.To_Unbounded_String
+          (Render_Expr (Unit, Document, Condition.Left, State)
+           & " "
+           & Operator
+           & " "
+           & Render_Expr (Unit, Document, Condition.Right, State));
+
+      for Replacement of Rendered.Replacements loop
+         Image :=
+           SU.To_Unbounded_String
+             (Replace_All
+                (SU.To_String (Image),
+                 FT.To_String (Replacement.Call_Image),
+                 FT.To_String (Replacement.Replacement_Image)));
+      end loop;
+
+      return SU.To_String (Image);
+   end Render_Variant_While_Guard_Image;
 
    procedure Append_Counted_While_Lower_Bound_Invariant
      (Buffer   : in out SU.Unbounded_String;
@@ -3620,11 +3668,25 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Rendered : constant Shared_Condition_Render :=
                     Render_Shared_Condition (Unit, Document, Item.Condition, State, Index);
                   Variant_Image : constant String := Loop_Variant_Image (Unit, Document, Item.Condition, State);
+                  Variant_Guard_Image : constant String :=
+                    (if Variant_Image'Length > 0
+                     then Render_Variant_While_Guard_Image
+                       (Unit, Document, Item.Condition, Rendered, State)
+                     else "");
+                  --  Loop_Variant_Image only emits variants for binary guards
+                  --  whose operators are also renderable here; otherwise a
+                  --  fallback could silently re-open static-folded loop guards.
+                  pragma Assert
+                    (Variant_Image'Length = 0 or else Variant_Guard_Image'Length > 0);
+                  Condition_Image : constant String :=
+                    (if Variant_Guard_Image'Length > 0
+                     then Variant_Guard_Image
+                     else FT.To_String (Rendered.Image));
                begin
                   if Rendered.Snapshots.Is_Empty then
                      Append_Line
                        (Buffer,
-                        "while " & FT.To_String (Rendered.Image) & " loop",
+                        "while " & Condition_Image & " loop",
                         Depth);
                      if Variant_Image'Length > 0 then
                         Append_Line (Buffer, "pragma Loop_Variant (" & Variant_Image & ");", Depth + 1);
@@ -3650,7 +3712,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      Append_Line (Buffer, "begin", Depth + 1);
                      Append_Line
                        (Buffer,
-                        "exit when not (" & FT.To_String (Rendered.Image) & ");",
+                        "exit when not (" & Condition_Image & ");",
                         Depth + 2);
                      Append_Line (Buffer, "end;", Depth + 1);
                      Render_Required_Statement_Suite
