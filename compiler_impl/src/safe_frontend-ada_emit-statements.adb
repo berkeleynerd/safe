@@ -4080,6 +4080,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                     Unsafe);
                               end loop;
 
+                           when CM.Stmt_Select =>
+                              --  Select arms have synchronization semantics; keep this
+                              --  proof heuristic fail-closed instead of inferring headroom
+                              --  through channel/delay alternatives.
+                              Unsafe := True;
+
                            when others =>
                               if Statements_Use_Name (Stmt.Body_Stmts, Name)
                                 or else Expr_Uses_Name (Stmt.Target, Name)
