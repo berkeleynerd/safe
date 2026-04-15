@@ -35,25 +35,30 @@ The companion targets the Safe specification at commit `468cf72`. Any subsequent
 
 ```bash
 # From the repository root:
-scripts/run_all.sh
+python3 scripts/run_tests.py
+python3 scripts/run_proofs.py
+python3 scripts/run_embedded_smoke.py
+scripts/diff_assumptions.sh
 ```
 
-This executes the 5-step CI pipeline:
+This covers the current CI gates:
 
-1. **Compile** -- `gprbuild -P companion/gen/companion.gpr`
-2. **Flow analysis** -- `gnatprove --mode=flow` (Bronze gate)
-3. **Prove** -- `gnatprove --mode=prove --level=2` (Silver gate)
-4. **Extract assumptions** -- `scripts/extract_assumptions.sh`
-5. **Diff against golden** -- `scripts/diff_assumptions.sh`
+1. **Test** -- `python3 scripts/run_tests.py`
+2. **Prove** -- `python3 scripts/run_proofs.py` (includes the companion and emitted-proof checkpoints)
+3. **Embedded smoke** -- `python3 scripts/run_embedded_smoke.py`
+4. **Diff against golden** -- `scripts/diff_assumptions.sh`
 
-### Run Individual Steps
+### Run Companion Proof Steps Directly
 
 ```bash
+# Compile the companion project
+gprbuild -P companion/gen/companion.gpr
+
 # Bronze gate only (flow analysis)
-scripts/run_gnatprove_flow.sh
+gnatprove -P companion/gen/companion.gpr --mode=flow --report=all --warnings=error
 
 # Silver gate only (proof)
-scripts/run_gnatprove_prove.sh
+gnatprove -P companion/gen/companion.gpr --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=120
 ```
 
 ---
@@ -87,19 +92,23 @@ safe/
 │   ├── commit.txt             # Frozen spec SHA
 │   └── generator_version.txt  # Generator version (spec2spark v0.1.0)
 ├── scripts/
+│   ├── _lib/                  # Shared harness modules and inventories (16 files, 8,343 lines)
 │   ├── diff_assumptions.sh    # Assumption budget enforcement (194 lines)
 │   ├── extract_assumptions.sh # GNATprove output parser (129 lines)
-│   ├── generate_po_index.py   # PO index generator
-│   ├── generate_po_map.py     # PO map generator
-│   ├── lint_safe_syntax.sh    # Safe surface-syntax linter
-│   ├── run_all.sh             # Full CI pipeline (167 lines)
-│   ├── run_frontend_smoke.py  # Early frontend build + determinism smoke runner
-│   ├── run_gnatprove_flow.sh  # Bronze gate runner (58 lines)
-│   ├── run_gnatprove_prove.sh # Silver gate runner (81 lines)
+│   ├── generate_po_index.py   # PO index generator (272 lines)
+│   ├── generate_po_map.py     # PO map generator (1,137 lines)
+│   ├── run_embedded_smoke.py  # Embedded smoke runner (419 lines)
+│   ├── run_proofs.py          # Proof workflow runner (710 lines)
+│   ├── run_samples.py         # Sample sweep runner (333 lines)
+│   ├── run_tests.py           # Test-suite orchestrator (66 lines)
+│   ├── safe_cli.py            # Safe CLI driver (656 lines)
+│   ├── safe_lsp.py            # Language server entrypoint (238 lines)
+│   ├── safe_repl.py           # REPL entrypoint (131 lines)
+│   ├── snapshot_emitted_ada.py# Emitted Ada snapshot checker (198 lines)
 │   ├── spec2spark.sh          # Spec-to-SPARK generator (44 lines)
-│   ├── validate_ast_output.py # AST contract validator
-│   ├── render_execution_status.py  # Execution dashboard generator
-│   └── validate_execution_state.py # Execution ledger validator
+│   ├── validate_ast_output.py # AST contract validator (295 lines)
+│   ├── validate_mir_output.py # MIR contract validator (55 lines)
+│   └── validate_output_contracts.py # Output contract validator (770 lines)
 ├── spec/                      # Safe specification source (frozen at 468cf72)
 └── tests/
     ├── positive/              # 31 valid Safe programs
@@ -128,7 +137,7 @@ safe/
 | Tracked assumptions | 13 tracked (12 open, 1 resolved) |
 | Test files | 79 |
 | Documentation files | 4 |
-| CI scripts | 13 |
+| Repository scripts/modules | 32 tracked files (13,990 lines) |
 
 ---
 
@@ -169,7 +178,7 @@ The companion tracks 13 assumptions -- dependencies that the SPARK model relies 
 | Major | 4 tracked (3 open, 1 resolved) | A-05 (FP division overflow guard), B-01 (ownership state completeness), B-02 (FIFO ordering, resolved), B-03 (task-var map coverage) |
 | Minor | 4 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-02 (frozen spec commit) |
 
-**Budget limits:** max 15 open (current: 12), max 5 open critical (current: 5). Both within limits.
+**Budget limits:** max 15 open (current: 12), max 5 open critical (current: 5). Open count within limits; open-critical AT LIMIT.
 
 ---
 

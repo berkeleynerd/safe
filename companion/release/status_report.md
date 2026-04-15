@@ -28,7 +28,7 @@ The Safe Language Annotated SPARK Companion has completed all 13 tasks (T0-T12) 
 | T8 | Assumption registry | `companion/assumptions.yaml` | COMPLETE | 13 tracked assumptions (12 open, 1 resolved) |
 | T9 | Test suite | `tests/` (79 files across 5 dirs) | COMPLETE | 31 positive, 35 negative, 3 golden, 5 concurrency, 5 diagnostics |
 | T10 | Documentation | `docs/` (4 files) | COMPLETE | Traceability, GNATprove profile |
-| T11 | CI pipeline | `scripts/` (13 files) | COMPLETE | Execution guard, frontend smoke, and 5-step SPARK pipeline |
+| T11 | Repository scripts | `scripts/` (32 tracked files) | COMPLETE | Test/proof runners, CLI tools, validators, and companion utilities |
 | T12 | Release bundle | `companion/release/COMPANION_README.md`, `companion/release/status_report.md` | COMPLETE | This document |
 
 ---
@@ -110,24 +110,28 @@ gnatprove --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=12
 | `docs/traceability_matrix.csv` | 206 | Machine-readable traceability (1 header + 205 data rows) |
 | **Docs total** | **1,991** | |
 
-### 4.5 CI Scripts
+### 4.5 Repository Scripts
 
 | File | Lines | Description |
 |------|-------|-------------|
-| `scripts/run_all.sh` | 167 | Full 5-step CI pipeline |
-| `scripts/run_gnatprove_flow.sh` | 58 | Bronze gate runner |
-| `scripts/run_gnatprove_prove.sh` | 81 | Silver gate runner |
-| `scripts/extract_assumptions.sh` | 129 | GNATprove output parser |
+| `scripts/_lib/` | 8,343 | Shared harness modules, proof inventory, and test-runner helpers (16 files) |
 | `scripts/diff_assumptions.sh` | 194 | Assumption budget enforcement |
+| `scripts/extract_assumptions.sh` | 129 | GNATprove output parser |
+| `scripts/generate_po_index.py` | 272 | PO index generator |
+| `scripts/generate_po_map.py` | 1,137 | PO map generator |
+| `scripts/run_embedded_smoke.py` | 419 | Embedded smoke runner |
+| `scripts/run_proofs.py` | 710 | Proof workflow runner |
+| `scripts/run_samples.py` | 333 | Sample sweep runner |
+| `scripts/run_tests.py` | 66 | Test-suite orchestrator |
+| `scripts/safe_cli.py` | 656 | Safe CLI driver |
+| `scripts/safe_lsp.py` | 238 | Language server entrypoint |
+| `scripts/safe_repl.py` | 131 | REPL entrypoint |
+| `scripts/snapshot_emitted_ada.py` | 198 | Emitted Ada snapshot checker |
 | `scripts/spec2spark.sh` | 44 | Spec-to-SPARK generator |
-| `scripts/generate_po_map.py` | -- | PO map generator |
-| `scripts/generate_po_index.py` | -- | PO index generator |
-| `scripts/lint_safe_syntax.sh` | -- | Safe surface-syntax linter |
-| `scripts/render_execution_status.py` | -- | Execution dashboard generator |
-| `scripts/run_frontend_smoke.py` | -- | Early frontend build and determinism smoke runner |
-| `scripts/validate_ast_output.py` | -- | AST contract validator against `compiler/ast_schema.json` |
-| `scripts/validate_execution_state.py` | -- | Execution ledger and repo-fact validator |
-| **Scripts total** | **13 files** | |
+| `scripts/validate_ast_output.py` | 295 | AST contract validator |
+| `scripts/validate_mir_output.py` | 55 | MIR contract validator |
+| `scripts/validate_output_contracts.py` | 770 | Output contract validator |
+| **Scripts total** | **32 tracked files** | 13,990 lines |
 
 ### 4.6 Test Suite
 
