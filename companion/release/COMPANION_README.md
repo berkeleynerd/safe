@@ -35,25 +35,30 @@ The companion targets the Safe specification at commit `468cf72`. Any subsequent
 
 ```bash
 # From the repository root:
-scripts/run_all.sh
+python3 scripts/run_tests.py
+python3 scripts/run_proofs.py
+python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency
+scripts/diff_assumptions.sh
 ```
 
-This executes the 5-step CI pipeline:
+This covers the current CI gates:
 
-1. **Compile** -- `gprbuild -P companion/gen/companion.gpr`
-2. **Flow analysis** -- `gnatprove --mode=flow` (Bronze gate)
-3. **Prove** -- `gnatprove --mode=prove --level=2` (Silver gate)
-4. **Extract assumptions** -- `scripts/extract_assumptions.sh`
-5. **Diff against golden** -- `scripts/diff_assumptions.sh`
+1. **Test** -- `python3 scripts/run_tests.py`
+2. **Prove** -- `python3 scripts/run_proofs.py` (includes the companion and emitted-proof checkpoints)
+3. **Embedded smoke** -- `python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency`
+4. **Diff against golden** -- `scripts/diff_assumptions.sh`
 
-### Run Individual Steps
+### Run Companion Proof Steps Directly
 
 ```bash
+# Compile the companion project
+gprbuild -P companion/gen/companion.gpr
+
 # Bronze gate only (flow analysis)
-scripts/run_gnatprove_flow.sh
+gnatprove -P companion/gen/companion.gpr --mode=flow --report=all --warnings=error
 
 # Silver gate only (proof)
-scripts/run_gnatprove_prove.sh
+gnatprove -P companion/gen/companion.gpr --mode=prove --level=2 --prover=cvc5,z3,altergo --steps=0 --timeout=120
 ```
 
 ---
@@ -63,43 +68,47 @@ scripts/run_gnatprove_prove.sh
 ```
 safe/
 ├── clauses/
-│   ├── clauses.yaml           # 205 extracted normative clauses (2,638 lines)
-│   └── po_map.yaml            # 205 PO entries mapping clauses to artifacts (1,662 lines)
+│   ├── clauses.yaml           # 205 extracted normative clauses (2,632 lines)
+│   └── po_map.yaml            # 205 PO entries mapping clauses to artifacts (1,661 lines)
 ├── companion/
-│   ├── assumptions.yaml       # 14 tracked assumptions (220 lines)
+│   ├── assumptions.yaml       # 13 tracked assumptions (229 lines)
 │   ├── gen/
 │   │   ├── companion.gpr      # GNAT project file (31 lines)
-│   │   └── prove_golden.txt   # Golden proof baseline (19 lines)
+│   │   └── prove_golden.txt   # Golden proof baseline (18 lines)
 │   ├── release/
 │   │   ├── COMPANION_README.md    # This file
 │   │   └── status_report.md       # Quantitative status report
 │   └── spark/
-│       ├── safe_model.ads     # Ghost type/function models (319 lines)
-│       ├── safe_model.adb     # Ghost expression-function bodies (55 lines)
-│       ├── safe_po.ads        # 23 PO procedure specs (365 lines)
-│       └── safe_po.adb        # PO procedure bodies (340 lines)
+│       ├── safe_model.ads     # Ghost type/function models (366 lines)
+│       ├── safe_model.adb     # Ghost expression-function bodies (116 lines)
+│       ├── safe_po.ads        # 23 PO procedure specs (390 lines)
+│       └── safe_po.adb        # PO procedure bodies (357 lines)
 ├── docs/
-│   ├── gnatprove_profile.md   # GNATprove configuration & prover settings (435 lines)
-│   ├── po_index.md            # PO procedure index (677 lines)
-│   ├── traceability_matrix.md # Full clause-to-artifact traceability (652 lines)
+│   ├── gnatprove_profile.md   # GNATprove configuration & prover settings (448 lines)
+│   ├── po_index.md            # PO procedure index (673 lines)
+│   ├── traceability_matrix.md # Full clause-to-artifact traceability (664 lines)
 │   └── traceability_matrix.csv# Machine-readable traceability (206 lines)
 ├── meta/
 │   ├── commit.txt             # Frozen spec SHA
 │   └── generator_version.txt  # Generator version (spec2spark v0.1.0)
 ├── scripts/
-│   ├── diff_assumptions.sh    # Assumption budget enforcement (156 lines)
-│   ├── extract_assumptions.sh # GNATprove output parser (128 lines)
-│   ├── generate_po_index.py   # PO index generator
-│   ├── generate_po_map.py     # PO map generator
-│   ├── lint_safe_syntax.sh    # Safe surface-syntax linter
-│   ├── run_all.sh             # Full CI pipeline (167 lines)
-│   ├── run_frontend_smoke.py  # Early frontend build + determinism smoke runner
-│   ├── run_gnatprove_flow.sh  # Bronze gate runner (58 lines)
-│   ├── run_gnatprove_prove.sh # Silver gate runner (81 lines)
+│   ├── _lib/                  # Shared harness modules and inventories (16 files, 8,343 lines)
+│   ├── diff_assumptions.sh    # Assumption budget enforcement (196 lines)
+│   ├── extract_assumptions.sh # GNATprove output parser (129 lines)
+│   ├── generate_po_index.py   # PO index generator (272 lines)
+│   ├── generate_po_map.py     # PO map generator (1,137 lines)
+│   ├── run_embedded_smoke.py  # Embedded smoke runner (419 lines)
+│   ├── run_proofs.py          # Proof workflow runner (710 lines)
+│   ├── run_samples.py         # Sample sweep runner (333 lines)
+│   ├── run_tests.py           # Test-suite orchestrator (66 lines)
+│   ├── safe_cli.py            # Safe CLI driver (656 lines)
+│   ├── safe_lsp.py            # Language server entrypoint (238 lines)
+│   ├── safe_repl.py           # REPL entrypoint (131 lines)
+│   ├── snapshot_emitted_ada.py# Emitted Ada snapshot checker (198 lines)
 │   ├── spec2spark.sh          # Spec-to-SPARK generator (44 lines)
-│   ├── validate_ast_output.py # AST contract validator
-│   ├── render_execution_status.py  # Execution dashboard generator
-│   └── validate_execution_state.py # Execution ledger validator
+│   ├── validate_ast_output.py # AST contract validator (295 lines)
+│   ├── validate_mir_output.py # MIR contract validator (55 lines)
+│   └── validate_output_contracts.py # Output contract validator (770 lines)
 ├── spec/                      # Safe specification source (frozen at 468cf72)
 └── tests/
     ├── positive/              # 31 valid Safe programs
@@ -125,10 +134,10 @@ safe/
 | -- Proved (CVC5) | 99 (75%) |
 | -- Justified | 1 (1%) -- FP_Safe_Div, assumption A-05 |
 | -- Unproved | 0 |
-| Tracked assumptions | 12 tracked (11 open, 1 resolved) |
+| Tracked assumptions | 13 tracked (12 open, 1 resolved) |
 | Test files | 79 |
 | Documentation files | 4 |
-| CI scripts | 13 |
+| Repository scripts/modules | 32 tracked files (13,992 lines) |
 
 ---
 
@@ -161,15 +170,15 @@ safe/
 
 ## 7. Assumption Registry
 
-The companion tracks 12 assumptions -- dependencies that the SPARK model relies on but cannot verify within SPARK itself. One of those (`B-02`, FIFO ordering) is now retained as a resolved audit entry; the remaining 11 stay open. Full details are in `companion/assumptions.yaml`.
+The companion tracks 13 assumptions -- dependencies that the SPARK model relies on but cannot verify within SPARK itself. One of those (`B-02`, FIFO ordering) is retained as a resolved audit entry; the remaining 12 stay open. Full details are in `companion/assumptions.yaml`.
 
 | Severity | Count | IDs |
 |----------|-------|-----|
-| Critical | 4 | A-01 (64-bit intermediates), A-02 (IEEE 754 non-trapping), A-03 (range analysis soundness), A-04 (channel serialization) |
+| Critical | 5 | A-01 (64-bit intermediates), A-02 (IEEE 754 non-trapping), A-03 (range analysis soundness), A-04 (channel serialization), A-06 (heap runtime contracts) |
 | Major | 4 tracked (3 open, 1 resolved) | A-05 (FP division overflow guard), B-01 (ownership state completeness), B-02 (FIFO ordering, resolved), B-03 (task-var map coverage) |
 | Minor | 4 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-02 (frozen spec commit) |
 
-**Budget limits:** max 15 open (current: 11), max 4 open critical (current: 4). Both within limits.
+**Budget limits:** max 15 open (current: 12), max 5 open critical (current: 5). Open count within limits; open-critical AT LIMIT.
 
 ---
 

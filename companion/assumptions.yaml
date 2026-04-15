@@ -77,6 +77,45 @@
   severity: critical
   status: open
 
+- id: A-05
+  summary: "FP division result is finite when operands are finite"
+  description: >
+    The FP_Safe_Div body has a float overflow check that GNATprove cannot
+    discharge at level 2: dividing a finite X by a very small finite Y
+    (e.g., subnormal) can produce infinity.  The compiler's narrowing-point
+    analysis guarantees the result is finite before it reaches a narrowing
+    point (D27 Rule 5).  This runtime guarantee is modeled by a pragma
+    Annotate (GNATprove, Intentional) in the FP_Safe_Div body.
+  spec_reference: "spec/02-restrictions.md#2.8.5"
+  affects:
+    - Safe_PO.FP_Safe_Div
+  severity: major
+  status: open
+  note: "M3-AUD-002: GNATprove counterexample: X=-1.1e-5, Y=1.3e-318 → overflow."
+
+- id: A-06
+  summary: "Heap runtime bodies correctly implement their spec contracts"
+  description: >
+    Heap-backed runtime packages use SPARK_Mode Off bodies for allocation,
+    copying, deallocation, and selected equality operations.  GNATprove reasons
+    through their visible spec contracts but does not prove that the bodies
+    implement those contracts.  This assumption covers Safe_String_RT,
+    Safe_Array_RT, Safe_Array_Identity_RT, Safe_Ownership_RT, and the
+    generated Clone_Element / Free_Element seams that connect emitted Safe
+    types to those runtimes.  Safe_String_RT.Equal's string-equality
+    postcondition is a named manually-verified subcase of this assumption.
+  spec_reference: "spec/05-assurance.md#5.3.1"
+  affects:
+    - Safe_String_RT
+    - Safe_Array_RT
+    - Safe_Array_Identity_RT
+    - Safe_Ownership_RT
+    - "Generated Clone_Element and Free_Element formals"
+    - "Safe_String_RT.Equal postcondition"
+  severity: critical
+  status: open
+  note: "PR11.22h.2 records an existing trust boundary exposed by the shared runtime contract audit; it does not add new runtime behavior. Detailed boundary inventory: docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory."
+
 # ============================================================================
 #  B -- Modeling Assumptions (Ghost Model Fidelity)
 # ============================================================================
@@ -176,21 +215,6 @@
 #  D -- Specification Assumptions
 # ============================================================================
 
-- id: A-05
-  summary: "FP division result is finite when operands are finite"
-  description: >
-    The FP_Safe_Div body has a float overflow check that GNATprove cannot
-    discharge at level 2: dividing a finite X by a very small finite Y
-    (e.g., subnormal) can produce infinity.  The compiler's narrowing-point
-    analysis guarantees the result is finite before it reaches a narrowing
-    point (D27 Rule 5).  This runtime guarantee is modeled by a pragma
-    Annotate (GNATprove, Intentional) in the FP_Safe_Div body.
-  spec_reference: "spec/02-restrictions.md#2.8.5"
-  affects:
-    - Safe_PO.FP_Safe_Div
-  severity: major
-  status: open
-  note: "M3-AUD-002: GNATprove counterexample: X=-1.1e-5, Y=1.3e-318 → overflow."
 
 - id: D-02
   summary: "Frozen spec commit is authoritative"

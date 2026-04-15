@@ -451,20 +451,58 @@ be updated whenever a suppression is added or removed.
 | `"unused assignment"` / `"statement has no effect"` | "generated pop_last trim branch is guarded by static length facts" | Synthetic `pop_last` trim branches generated after the list length has been captured | GNATprove can statically fold some empty-list witnesses and report the guarded trim assignments as effect-free, but the branches are required for non-empty lists and are protected by the captured length fact | If the desugaring emitted the suppression outside the two generated trim branches or if the list value could be read from a stale length fact |
 | `"implicit aspect Always_Terminates"` | "shared runtime cleanup termination is accepted" | Constant-value cleanup blocks that copy a constant into a mutable local and call `Free` | The shared runtime `Free` procedures carry `Always_Terminates` on their specs; GNATprove cannot connect that contract through the generated mutable-copy block | **Fragile:** if a shared runtime `Free` ever lost its `Always_Terminates` aspect, this suppression would silently hide a real termination gap. Hardening improvement tracked: the emitter should verify the target `Free` carries `Always_Terminates` before emitting the suppression |
 
-### Shared stdlib `SPARK_Mode => Off` boundaries
+### SPARK_Mode Off Boundary Inventory
 
-These are standard SPARK boundary-unit patterns. GNATprove reasons through the
-spec contracts and does not analyze the implementation bodies. They are not proof
-compromises — they are the abstraction boundary between proved caller code and
-trusted runtime implementation.
+GNATprove reasons through visible spec contracts for these units but does not
+analyze the implementation bodies or private access-type representation. This
+is an explicit trust boundary tracked as assumption A-06 in
+[`companion/assumptions.yaml`](../companion/assumptions.yaml), except for the
+I/O wrapper, which is a separate proof-model boundary.
 
-| File | What is `SPARK_Mode => Off` | Why |
-|------|---------------------------|-----|
-| `safe_string_rt.ads` (private) + `.adb` | Heap-backed string representation and allocation | Access types and `Unchecked_Deallocation` |
-| `safe_array_rt.ads` (private) + `.adb` | Heap-backed array representation and allocation | Same |
-| `safe_array_identity_rt.ads` (private) + `.adb` | Identity-preserving array variant | Same underlying representation |
-| `safe_ownership_rt.adb` | Generic allocate/free/dispose | Same |
-| `io.adb` | `Ada.Text_IO.Put_Line` wrapper | I/O is outside SPARK's analysis model |
+| File / scope | Visible contract surface | Trusted implementation behavior | If wrong |
+|--------------|--------------------------|---------------------------------|----------|
+| `safe_string_rt.ads` private section + `safe_string_rt.adb` | String length, conversion, clone/free, concatenation, indexing, and equality contracts | Heap allocation, copying, deallocation, and `Equal` implementing `To_String (Left) = To_String (Right)` | String value facts, lifetime cleanup, or equality proof obligations could be unsound |
+| `safe_array_rt.ads` private section + `safe_array_rt.adb` | Length-only contracts for heap-backed array/list/map storage | Heap allocation, element clone/free calls, append/concat, and length tracking | Container length facts or value-semantics cleanup could be unsound |
+| `safe_array_identity_rt.ads` private section + `safe_array_identity_rt.adb` | Length plus element-preserving contracts for identity-clone element types | Same representation as `Safe_Array_RT`, with stronger reliance on identity-preserving element operations | Element-preservation facts for simple arrays could be unsound |
+| `safe_ownership_rt.adb` | Allocate/free/dispose specs for ownership runtime helpers | Single-object allocation and deallocation | Ownership cleanup could leak, double-free, or invalidate lifetime assumptions |
+| `io.adb` | `Put_Line` has `Global => null` and `Always_Terminates` | `Ada.Text_IO.Put_Line` writes to stdout and is assumed to return | I/O ordering, blocking, or side effects are outside the proof model |
+
+### Array Runtime Contract Tiers
+
+The emitter chooses an array runtime tier from the element type. This distinction
+is load-bearing for proofs that involve clone/copy operations.
+
+| Tier | Runtime | Applies to | Proved to callers | Trusted / not proved |
+|------|---------|------------|-------------------|----------------------|
+| Identity tier | `Safe_Array_Identity_RT` via `Safe_Array_Identity_Ops` | Simple value-identity elements such as integers, booleans, and enums | Length and element equality after clone/copy, including the wrapper-level fact that `Clone_Element'Result = Source` | The `SPARK_Mode Off` body plus correctness of tier selection and wrapper emission |
+| Base tier | `Safe_Array_RT` | Heap-backed elements such as strings, nested containers, maps, and records containing reference-backed fields | Length preservation and bounds facts | Element contents, clone independence, and deep-free behavior beyond the visible length contracts |
+
+Generated `Clone_Element` and `Free_Element` functions are the seam between
+emitted Safe types and these runtimes. For the identity tier, generated clone
+functions route through wrappers whose `Clone'Result = Source` postcondition is
+proved to callers; the remaining trust boundary is the `SPARK_Mode Off` runtime
+body together with correct tier selection/emission. For the base tier,
+generated clone/free functions are trusted to implement the value-semantics
+contract required by the runtime body, but callers only receive the runtime
+spec's length-level facts.
+
+### Cleanup Termination Trust Chain
+
+The emitter suppresses generated cleanup warnings for calls to shared runtime
+`Free` operations because those specs carry `Always_Terminates`. The bodies are
+`SPARK_Mode Off`, so GNATprove cannot prove that the implementations terminate.
+The current safety argument is manual: each `Free` body follows a bounded
+cleanup/deallocation/nulling pattern and the suppression is scoped to generated
+cleanup blocks. If a runtime `Free` lost `Always_Terminates` or stopped
+terminating, the suppression would hide a real termination gap.
+
+### I/O Proof-Model Boundary
+
+`IO.Put_Line` deliberately exposes `Global => null` even though its body writes
+to stdout through `Ada.Text_IO`. Safe currently proves memory/value safety and
+absence of runtime errors, not I/O ordering or external effects. Future I/O
+operations with stateful preconditions, file handles, or blocking behavior must
+revisit this model rather than copying the `Put_Line` contract blindly.
 
 ## PR10 Assurance Policy
 

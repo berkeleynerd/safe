@@ -95,7 +95,8 @@ Dependency chain:
 - PR11.22g follows PR11.16 (test infrastructure modularization).
 - PR11.22h follows PR11.22g (shared stdlib contract audit and body-drift check).
 - PR11.22h.1 follows PR11.22h (runtime-only emitted proof exclusion burn-down).
-- PR11.23 follows PR11.22h.1 (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
+- PR11.22h.2 follows PR11.22h.1 (proof guarantee governance and trust-boundary documentation).
+- PR11.23 follows PR11.22h.2 (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
 - PR11.17–PR11.21 moved to PR14 series (deferred past all existing work; see PR14 below).
 
 ---
@@ -3246,9 +3247,44 @@ gap, and PR11.22h.1c closes the final map-entry loop gap:
 
 ### Dependency
 
-Follows PR11.22h. This should land before PR11.23 so proof diagnostics are built
-on a proof surface whose remaining exclusions are intentional and accurately
-documented.
+Follows PR11.22h. This should land before PR11.22h.2 so proof-governance
+documentation can describe a proof surface whose remaining exclusions are
+intentional and accurately documented.
+
+---
+
+## PR11.22h.2: Proof Guarantee Governance and Trust Boundary Documentation
+
+Make the public proof claim auditable before proof diagnostics become
+user-facing. PR11.22h.1 removes the ambiguous runtime-only proof-exclusion
+bucket; PR11.22h.2 names the remaining trust boundaries and tightens the
+README wording so auditors can see exactly what "proved" means.
+
+### Scope
+
+- Add `A-06` to `companion/assumptions.yaml` for heap-backed runtime bodies
+  whose `SPARK_Mode Off` implementations are trusted to implement their specs.
+- Link README proof metrics to the assumption registry and add a concise
+  statement of what the proof covers, trusts, and excludes.
+- Expand the emitted-output verification matrix with the stdlib
+  `SPARK_Mode Off` boundary inventory, array runtime contract tiers, generated
+  clone/free formal trust chain, cleanup termination suppression chain, and
+  I/O proof-model boundary.
+- Update traceability and GNATprove-profile assumption summaries so the live
+  assumption count and critical-assumption budget match the registry.
+
+### Acceptance Criteria
+
+- Issues #297 through #305 are closed by documentation and registry updates.
+- Live docs report 13 tracked assumptions: 12 open and 1 resolved.
+- `scripts/diff_assumptions.sh` reports the updated assumption inventory
+  without a budget violation.
+- No compiler, runtime, emitted Ada, or proof fixture behavior changes.
+
+### Dependency
+
+Follows PR11.22h.1. This should land before PR11.23 so proof diagnostics are
+built on a proof claim whose trust boundaries are explicit.
 
 ---
 
@@ -3339,8 +3375,9 @@ unchanged.
 
 ### Dependency
 
-Follows PR11.22h.1. Deferred until after the hygiene series so the
-mapping lands on a cleaned emitter and stabilized proof/build surface.
+Follows PR11.22h.2. Deferred until after the hygiene and proof-governance
+series so the mapping lands on a cleaned emitter, stabilized proof/build
+surface, and precise public proof claim.
 
 ---
 
@@ -3400,7 +3437,7 @@ makes the distribution self-contained.
 
 ### Dependency
 
-Follows PR11.22h.
+Follows PR11.23.
 
 ---
 

@@ -378,13 +378,14 @@ affected POs/models, severity, and related spec references.
 | A-02 | IEEE 754 non-trapping floating-point mode | Safe_PO.FP_Not_NaN, Safe_PO.FP_Not_Infinity, Safe_PO.FP_Safe_Div | critical | spec/02-restrictions.md#2.8.5 | open |
 | A-03 | Static range analysis is sound | Safe_Model.Range64, Safe_Model.Contains, Safe_Model.Subset, Safe_Model.Intersect, Safe_Model.Widen | critical | spec/05-assurance.md#5.3.6 | open |
 | A-04 | Channel implementation correctly serializes access | Safe_PO.Check_Channel_Not_Full, Safe_PO.Check_Channel_Not_Empty, Safe_PO.Check_Channel_Capacity_Positive, Safe_Model.Channel_State | critical | spec/04-tasks-and-channels.md#4.3 | open |
+| A-05 | FP division result is finite when operands are finite | Safe_PO.FP_Safe_Div | major | spec/02-restrictions.md#2.8.5 | open |
+| A-06 | Heap runtime bodies correctly implement their spec contracts | Safe_String_RT, Safe_Array_RT, Safe_Array_Identity_RT, Safe_Ownership_RT, generated Clone_Element / Free_Element formals, Safe_String_RT.Equal postcondition | critical | spec/05-assurance.md#5.3.1 | open |
 | B-01 | Ownership state enumeration is complete | Safe_Model.Ownership_State, Safe_PO.Check_Not_Moved, Safe_PO.Check_Owned_For_Move, Safe_PO.Check_Borrow_Exclusive, Safe_PO.Check_Observe_Shared | major | spec/02-restrictions.md#2.3.2 | open |
 | B-02 | Channel FIFO ordering preserved by implementation | Safe_Model.Channel_State, Safe_Model.After_Append, Safe_Model.After_Remove, Template_Channel_FIFO.Model_Of | major | spec/04-tasks-and-channels.md#4.3.p23:197d9a49 | resolved |
 | B-03 | Task-variable map covers all shared variables | Safe_Model.Task_Var_Map, Safe_PO.Check_Exclusive_Ownership | major | spec/04-tasks-and-channels.md#4.5 | open |
 | B-04 | Not_Null_Ptr and Safe_Deref model Boolean null flag | Safe_PO.Not_Null_Ptr, Safe_PO.Safe_Deref | minor | spec/02-restrictions.md#2.8.4 | open |
 | C-01 | Flow analysis (Bronze gate) is sufficient for data-dependency proofs | All Safe_PO procedures (flow mode), All Safe_Model functions (flow mode) | minor | spec/05-assurance.md#5.2.1 | open |
 | C-02 | Proof-only (Ghost) procedures have no runtime effect | All Ghost PO procedures | minor | spec/05-assurance.md#5.3.1 | open |
-| A-05 | FP division result is finite when operands are finite | Safe_PO.FP_Safe_Div | major | spec/02-restrictions.md#2.8.5 | open |
 | D-02 | Frozen spec commit is authoritative | All clause IDs across all artifacts | minor | meta/commit.txt | open |
 
 ### Assumption-to-Clause Detail
@@ -412,6 +413,20 @@ affected POs/models, severity, and related spec references.
 - Spec reference: `spec/04-tasks-and-channels.md#4.3`
 - Affects: Safe_PO.Check_Channel_Not_Full, Safe_PO.Check_Channel_Not_Empty, Safe_PO.Check_Channel_Capacity_Positive, Safe_Model.Channel_State
 - Related clauses: `3.4.3.p46:b5f92bd9`, `4.3.p23:197d9a49`, `4.3.p24:9e47ed4c`, `4.3.p25:961abe5a`, `4.3.p26:3a9449c1`...
+
+**A-05: FP division result is finite when operands are finite**
+- Severity: major
+- Spec reference: `spec/02-restrictions.md#2.8.5`
+- Affects: Safe_PO.FP_Safe_Div
+- Related clauses: `2.8.5.p139:d50bc714`, `2.8.5.p139b:5e20032b`, `2.8.5.p139c:7fad4f7d`, `2.8.5.p139d:56f1f36b`
+- Note: M3-AUD-002: GNATprove counterexample: X=-1.1e-5, Y=1.3e-318 → overflow.
+
+**A-06: Heap runtime bodies correctly implement their spec contracts**
+- Severity: critical
+- Spec reference: `spec/05-assurance.md#5.3.1`
+- Affects: Safe_String_RT, Safe_Array_RT, Safe_Array_Identity_RT, Safe_Ownership_RT, generated Clone_Element / Free_Element formals, Safe_String_RT.Equal postcondition
+- Related clauses: `5.3.1.p12:99a94209`, `5.3.1.p12a:047a8410`. A-06 is an implementation trust-boundary record; the detailed boundary inventory lives in `docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory`.
+- Note: A-06 records an existing SPARK_Mode Off heap-runtime trust boundary exposed by the shared runtime audit; it does not add new emitted behavior or a new proof exemption.
 
 **B-01: Ownership state enumeration is complete**
 - Severity: major
@@ -451,13 +466,6 @@ affected POs/models, severity, and related spec references.
 - Spec reference: `spec/05-assurance.md#5.3.1`
 - Affects: All Ghost PO procedures
 - Related clauses: `5.3.1.p12:99a94209`, `5.3.1.p12a:047a8410`
-
-**A-05: FP division result is finite when operands are finite**
-- Severity: major
-- Spec reference: `spec/02-restrictions.md#2.8.5`
-- Affects: Safe_PO.FP_Safe_Div
-- Related clauses: `2.8.5.p139:d50bc714`, `2.8.5.p139b:5e20032b`, `2.8.5.p139c:7fad4f7d`, `2.8.5.p139d:56f1f36b`
-- Note: M3-AUD-002: GNATprove counterexample: X=-1.1e-5, Y=1.3e-318 → overflow.
 
 **D-02: Frozen spec commit is authoritative**
 - Severity: minor

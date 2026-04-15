@@ -126,6 +126,27 @@ Honesty about limits is part of the safety story:
 
 ---
 
+## What "Proven" Means
+
+In the default proof-enabled build pipeline, accepted Safe programs are emitted
+as Ada/SPARK and checked by GNATprove for Silver-level absence of runtime
+errors: no overflow, out-of-bounds access, division by zero, uninitialized
+read, null dereference, or type-constraint violation on the admitted proof
+surface. This proves the emitted Ada/SPARK; it does not constitute a formal
+semantic-preservation proof from Safe source to Ada.
+
+The proof story trusts GNATprove, GNAT and its runtime, the Safe compiler's
+emission correctness, and the tracked assumptions in
+[`companion/assumptions.yaml`](companion/assumptions.yaml). The largest named
+trust boundary is the heap-backed runtime bodies documented in A-06 and in the
+[`SPARK_Mode Off` boundary inventory](docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory).
+
+The proof does not cover business logic, I/O behavior, timing or deadline
+properties, resource exhaustion, or formal verification of the Safe compiler
+itself.
+
+---
+
 ## Evidence
 
 Two independent evidence channels back the safety claims:
@@ -147,7 +168,7 @@ proved, 1 Silver VC justified, and 0 unproved. Its 16 templates account for
 | Proved emitted fixtures | 256 (4 exclusions: 3 spec, 1 tooling, 0 runtime proof gaps; 0 uncovered) |
 | Companion template VCs | 553 total (414 proved, 1 justified, 0 unproved, 138 flow passed) |
 | Companion templates | 16 templates, 315 template checks |
-| Tracked proof assumptions | 12 |
+| Tracked proof assumptions | [13](companion/assumptions.yaml) (12 open, 1 resolved) |
 | Test corpus | 635 `.safe` files (positive, negative, build, concurrency, interfaces, embedded) |
 | Embedded evidence lane | STM32F4 / Jorvik / Renode (blocking in CI) |
 | Compiler size | ~73K LOC Ada across 75 source files |

@@ -262,8 +262,7 @@ Each assumption documents a dependency that the SPARK companion relies on but ca
 
 | Category | Meaning | Count |
 |----------|---------|-------|
-| **A** -- Implementation/Target | Properties of the compiler, runtime, or hardware (e.g., 64-bit arithmetic, IEEE 754 mode) | 4 |
-| **A** -- Implementation/Target | Properties of the compiler, runtime, or hardware (e.g., 64-bit arithmetic, IEEE 754 mode, FP overflow guard) | 5 |
+| **A** -- Implementation/Target | Properties of the compiler, runtime, or hardware (e.g., 64-bit arithmetic, IEEE 754 mode, FP overflow guard, heap runtime contracts) | 6 |
 | **B** -- Modeling | Fidelity of the ghost model to the real system (e.g., ownership state completeness, task-var map coverage) | 4 tracked (3 open, 1 resolved) |
 | **C** -- Proof-Mode | Properties of the GNATprove verification methodology (e.g., flow analysis sufficiency, Ghost erasure) | 2 |
 | **D** -- Specification | Properties of the Safe specification text itself (e.g., frozen commit authority) | 1 |
@@ -272,10 +271,10 @@ Each assumption documents a dependency that the SPARK companion relies on but ca
 
 | Severity | Count | IDs |
 |----------|-------|-----|
-| **Critical** | 4 | A-01 (64-bit intermediates), A-02 (IEEE 754 non-trapping), A-03 (range analysis soundness), A-04 (channel serialization) |
+| **Critical** | 5 | A-01 (64-bit intermediates), A-02 (IEEE 754 non-trapping), A-03 (range analysis soundness), A-04 (channel serialization), A-06 (heap runtime contracts) |
 | **Major** | 4 tracked (3 open, 1 resolved) | A-05 (FP division overflow guard), B-01 (ownership state completeness), B-02 (FIFO ordering, resolved), B-03 (task-var map coverage) |
 | **Minor** | 4 | B-04 (Boolean null model), C-01 (flow analysis sufficiency), C-02 (Ghost erasure), D-02 (frozen spec commit) |
-| **Total** | **12 tracked (11 open, 1 resolved)** | |
+| **Total** | **13 tracked (12 open, 1 resolved)** | |
 
 ### 6.4 Assumption Extraction and Diffing
 
@@ -285,7 +284,7 @@ After each spec regeneration, the assumption budget should be reviewed:
 2. **Diff**: Run `scripts/diff_assumptions.sh` which:
    - Verifies the GNATprove proof summary matches the committed golden baseline (`companion/gen/prove_golden.txt`).
    - Counts tracked/open/resolved assumptions and severities from `companion/assumptions.yaml`.
-   - Enforces budget limits against **open** assumptions only (max 15 open, max 4 open critical).
+   - Enforces budget limits against **open** assumptions only (max 15 open, max 5 open critical).
    - Exits with a nonzero code if drift or budget violations are detected.
 3. **Review**: Any new assumption must be explicitly justified in a review comment before the change is merged.
 
@@ -294,7 +293,7 @@ After each spec regeneration, the assumption budget should be reviewed:
 - **New assumptions require explicit justification.** No assumption may be added to `assumptions.yaml` without a review that documents the rationale, the affected procedures, and the severity classification.
 - **Critical assumptions require sign-off** from at least two engineers.
 - **Assumption removal** (resolution) is encouraged and should be tracked with a `status: resolved` field and a note explaining how the assumption was discharged.
-- **Target**: The total assumption count should not grow beyond 15 without a formal budget review. Any growth in critical assumptions beyond 4 requires escalation.
+- **Target**: The total assumption count should not grow beyond 15 without a formal budget review. Any growth in open critical assumptions beyond 5 requires escalation.
 
 ---
 
@@ -418,7 +417,7 @@ scripts/diff_assumptions.sh
 The `scripts/diff_assumptions.sh` script:
 - Compares the GNATprove proof summary against the committed golden baseline (`companion/gen/prove_golden.txt`).
 - Parses the YAML to extract assumption IDs and severities.
-- Enforces budget limits (max 15 total, max 4 critical per gnatprove_profile.md Section 6.5).
+- Enforces budget limits (max 15 open, max 5 open critical per gnatprove_profile.md Section 6.5).
 - Exits nonzero if drift or budget violations are detected.
 
 ### 9.3 Golden Output Comparison
