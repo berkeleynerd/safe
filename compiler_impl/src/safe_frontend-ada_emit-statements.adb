@@ -4022,6 +4022,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
                            when CM.Stmt_If =>
                               if Expr_Uses_Name (Stmt.Condition, Name) then
+                                 --  Guard-dependent increments can be safe, but this
+                                 --  optional proof heuristic is only emitted for
+                                 --  unconditional accumulator progress.
                                  Unsafe := True;
                                  return;
                               end if;
@@ -4031,6 +4034,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  Unsafe);
                               for Part of Stmt.Elsifs loop
                                  if Expr_Uses_Name (Part.Condition, Name) then
+                                    --  Keep guard-dependent accumulator updates
+                                    --  fail-closed for this optional invariant.
                                     Unsafe := True;
                                     return;
                                  end if;
@@ -4150,10 +4155,19 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            else CM.Wide_Integer (Long_Long_Integer'First));
                         Required_Headroom : constant CM.Wide_Integer :=
                           CM.Wide_Integer (Max_Delta) * CM.Wide_Integer (Natural'Last);
+                        Runtime_Wide_Last : constant CM.Wide_Integer :=
+                          CM.Wide_Integer (Long_Long_Integer'Last);
+                        Range_Width : constant CM.Wide_Integer :=
+                          High_Value - Low_Value;
                      begin
+                        --  The emitted invariant performs the headroom arithmetic in
+                        --  Safe_Runtime.Wide_Integer. Require the conservative
+                        --  Natural'Last budget to fit that runtime type as well as
+                        --  the accumulator's declared range.
                         return Max_Delta > 0
                           and then Low_Value <= High_Value
-                          and then Required_Headroom <= High_Value - Low_Value;
+                          and then Required_Headroom <= Runtime_Wide_Last
+                          and then Required_Headroom <= Range_Width;
                      end Growable_Accumulator_Headroom_OK;
 
                      function Contains_Growable_Accumulator (Name : String) return Boolean is
