@@ -3386,7 +3386,9 @@ unchanged.
 
 Follows PR11.23i. Deferred until after the hygiene, proof-governance, and
 proof-expansion burn-down series so the mapping lands on a cleaned emitter,
-stabilized proof/build surface, and precise public proof claim.
+stabilized proof/build surface, and precise public proof claim. It does not
+block PR12.1 because diagnostic mapping rewrites proof output and sidecar
+diagnostics rather than defining the native CLI ABI.
 
 ---
 
@@ -3427,7 +3429,9 @@ that gap before the claims-hardening work begins.
 
 ## Dependency Chain
 
-- PR12.1 follows PR11.23i (compiled native `safe` CLI binary).
+- PR12.1 follows PR11.23i (compiled native `safe` CLI binary; PR11.23 can
+  proceed independently because proof diagnostic mapping does not define the
+  native CLI ABI).
 - PR12.2 follows PR12.1 (single-archive distribution).
 - PR12.3 follows PR12.2 (`safe fmt` — code formatter).
 - PR12.4 follows PR12.3 (full LSP server).
@@ -3470,7 +3474,9 @@ makes the distribution self-contained.
 
 ### Dependency
 
-Follows PR11.23i.
+Follows PR11.23i. PR11.23 may proceed in parallel after PR11.23i because
+it adapts proof-output presentation rather than changing the native CLI
+interface contract.
 
 ---
 
