@@ -322,10 +322,10 @@ def report_proof_failure(command_label: str, result: object) -> None:
     captured = stage_output.get(stage, "")
     if captured:
         print(
-                        captured,
-                        end="" if captured.endswith("\n") else "\n",
-                        file=sys.stderr,
-                    )
+            captured,
+            end="" if captured.endswith("\n") else "\n",
+            file=sys.stderr,
+        )
         return
     detail = getattr(result, "detail", "")
     if detail:
