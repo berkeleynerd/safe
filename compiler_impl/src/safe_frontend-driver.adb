@@ -209,6 +209,7 @@ package body Safe_Frontend.Driver is
       Body_File : String;
       Body_Text : String) return String
    is
+      --  Keep marker parsing semantics in sync with scripts/_lib/proof_diagnostics.py.
       Safe_Marker : constant String := "-- safe:";
       LF          : constant String := (1 => ASCII.LF);
       Result      : SU.Unbounded_String := SU.Null_Unbounded_String;

@@ -321,7 +321,11 @@ def report_proof_failure(command_label: str, result: object) -> None:
     stage = getattr(result, "stage", "")
     captured = stage_output.get(stage, "")
     if captured:
-        print(captured, end="" if captured.endswith("\n") else "\n", file=sys.stderr)
+        print(
+                        captured,
+                        end="" if captured.endswith("\n") else "\n",
+                        file=sys.stderr,
+                    )
         return
     detail = getattr(result, "detail", "")
     if detail:
@@ -524,10 +528,15 @@ def safe_prove(args: argparse.Namespace) -> int:
         print(f"FAIL {label} [{result.stage}] {result.detail}")
         if result.stage in {"flow", "prove"}:
             write_diagnostics_sidecar(result)
-            stage_output = getattr(result, "stage_output", {})
-            captured = stage_output.get(result.stage, "")
-            if captured:
-                print(captured, end="" if captured.endswith("\n") else "\n", file=sys.stderr)
+            if not args.verbose:
+                stage_output = getattr(result, "stage_output", {})
+                captured = stage_output.get(result.stage, "")
+                if captured:
+                    print(
+                        captured,
+                        end="" if captured.endswith("\n") else "\n",
+                        file=sys.stderr,
+                    )
         if args.verbose:
             replay_failure_logs(result)
 
