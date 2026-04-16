@@ -257,6 +257,14 @@ def run_rewrite_output_fallback_case() -> tuple[bool, str]:
         return False, f"fallback leaked raw Ada path {human!r}"
     if diagnostics:
         return False, f"fallback should not emit JSON diagnostics {diagnostics!r}"
+    human, diagnostics = rewrite_gnatprove_output(
+        "/tmp/out/demo.adb:5:11: info: assertion proved",
+        Path(temp_root_str),
+        stage="prove",
+        fallback_on_empty=False,
+    )
+    if human or diagnostics:
+        return False, f"non-failure fallback should be empty, got {human!r} {diagnostics!r}"
     return True, ""
 
 
@@ -276,7 +284,7 @@ def run_record_gnatprove_pass_output_case() -> tuple[bool, str]:
             stderr="",
         )
         record_gnatprove_stage_output(result, "prove", completed, ada_dir=temp_root)
-    if result.stage_output.get("prove") != "no proof diagnostics to report\n":
+    if result.stage_output.get("prove") != "":
         return False, f"unexpected passing stage output {result.stage_output!r}"
     if "/tmp/out/demo.adb" not in result.raw_stage_output.get("prove", ""):
         return False, f"raw passing output was not preserved {result.raw_stage_output!r}"

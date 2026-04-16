@@ -198,12 +198,12 @@ def record_gnatprove_stage_output(
 ) -> None:
     raw_output = format_completed_output(completed)
     result.raw_stage_output[stage] = raw_output
-    if completed.returncode == 0:
-        # Passing runs can still emit GNATprove info/warning text; keep it raw-only
-        # for --verbose so normal output reports diagnostics only for failures.
-        result.stage_output[stage] = "no proof diagnostics to report\n"
-        return
-    rewritten, diagnostics = rewrite_gnatprove_output(raw_output, ada_dir, stage=stage)
+    rewritten, diagnostics = rewrite_gnatprove_output(
+        raw_output,
+        ada_dir,
+        stage=stage,
+        fallback_on_empty=completed.returncode != 0,
+    )
     result.stage_output[stage] = rewritten
     result.diagnostics_json.extend(diagnostics)
 

@@ -297,6 +297,7 @@ def rewrite_gnatprove_output(
     ada_dir: Path,
     *,
     stage: str,
+    fallback_on_empty: bool = True,
 ) -> tuple[str, list[dict[str, object]]]:
     line_maps = load_all_line_maps(ada_dir)
     diagnostics: list[SafeDiagnostic] = []
@@ -309,6 +310,8 @@ def rewrite_gnatprove_output(
         diagnostics.append(safe_diag)
         rendered.append(render_safe_diagnostic(safe_diag))
     if not diagnostics:
+        if not fallback_on_empty:
+            return "", []
         return (
             "proof failed: no Safe-mappable diagnostics found; re-run with --verbose for raw output\n",
             [],
