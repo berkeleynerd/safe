@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "a2db9e06a7aac1f6bad0fb6d6d488304ce67c74ac6bdcee4c1b903c7fddb2f41",
+  "compiler_hash": "7655c08a40141e59d579a91da179a1c4db484533eb001e54fba9988145be5b37",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -291,6 +291,11 @@
       "pr1123a_binary_wraparound_build.adb": "e835f1f8a29ded7e03f52f4ee6c780a7e153a9d9d95f582de6b66667c43e921b",
       "pr1123a_binary_wraparound_build.ads": "734a27cf9b42d5052c17c07ff753cf2983515e8225f387dc640669366705d9d9",
       "pr1123a_binary_wraparound_build_line_map.json": "79d663d743ca653eb0237054adfa20be3963fc33522e95a195a4cf5e02b4a88b"
+    },
+    "tests/build/pr1123b_while_variant_patterns_build.safe": {
+      "pr1123b_while_variant_patterns_build.adb": "b82098d1c57361678640efdd19939843868faf890a0a1c89d680dc863bb46d59",
+      "pr1123b_while_variant_patterns_build.ads": "f5882a8843c42c8afe7b2f3685d38560bb028d0de226471a4e20e432f1c2b8d1",
+      "pr1123b_while_variant_patterns_build_line_map.json": "3efa56f7568b11be658ac808066f657f8d6bcbd1d52d96f5d648fa0c7677035a"
     },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",

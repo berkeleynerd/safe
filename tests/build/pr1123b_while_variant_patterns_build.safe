@@ -1,0 +1,30 @@
+package pr1123b_while_variant_patterns_build
+
+   function drain_length_guard returns integer
+      var text : string = "abc";
+
+      while text.length > 0
+         text = "";
+
+      return text.length;
+
+   function countdown_strict returns integer
+      var remaining : integer = 3;
+
+      while remaining > 0
+         remaining = remaining - 1;
+
+      return remaining;
+
+   function countdown_inclusive_bound returns integer
+      lower_bound : constant integer = 1;
+      var index : integer = 3;
+
+      while index >= lower_bound
+         index = index - 1;
+
+      return index;
+
+   print (drain_length_guard);
+   print (countdown_strict);
+   print (countdown_inclusive_bound)

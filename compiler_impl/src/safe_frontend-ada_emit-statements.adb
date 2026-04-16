@@ -1593,6 +1593,57 @@ package body Safe_Frontend.Ada_Emit.Statements is
    is
       Operator : constant String :=
         (if Condition = null then "" else Map_Operator (FT.To_String (Condition.Operator)));
+
+      function Is_Integer_Ident (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then Expr.Kind = CM.Expr_Ident
+           and then Is_Integer_Type (Unit, Document, FT.To_String (Expr.Type_Name));
+      end Is_Integer_Ident;
+
+      function Is_Integer_Bound (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then
+             (Expr.Kind = CM.Expr_Int
+              or else
+              (Expr.Kind = CM.Expr_Ident
+               and then Is_Integer_Type (Unit, Document, FT.To_String (Expr.Type_Name))));
+      end Is_Integer_Bound;
+
+      function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then Expr.Kind = CM.Expr_Select
+           and then FT.To_String (Expr.Selector) = "length";
+      end Is_Length_Select;
+
+      function Is_Zero (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = CM.Expr_Int and then Expr.Int_Value = 0;
+      end Is_Zero;
+
+      function Is_One (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = CM.Expr_Int and then Expr.Int_Value = 1;
+      end Is_One;
+
+      function Positive_Bound_For_Operator
+        (Op    : String;
+         Bound : CM.Expr_Access) return Boolean is
+      begin
+         return
+           (Op = ">" and then Is_Zero (Bound))
+           or else
+           (Op = ">=" and then Is_One (Bound))
+           or else
+           (Op = "<" and then Is_Zero (Bound))
+           or else
+           (Op = "<=" and then Is_One (Bound));
+      end Positive_Bound_For_Operator;
    begin
       if Condition = null or else Condition.Kind /= CM.Expr_Binary then
          return "";
@@ -1623,44 +1674,52 @@ package body Safe_Frontend.Ada_Emit.Statements is
             end if;
          end;
       elsif Operator in "<" | "<=" then
-         if Condition.Left /= null
-           and then Condition.Right /= null
-           and then Condition.Left.Kind = CM.Expr_Ident
-           and then Condition.Right.Kind = CM.Expr_Ident
-           and then Is_Integer_Type (Unit, Document, FT.To_String (Condition.Left.Type_Name))
-           and then Is_Integer_Type (Unit, Document, FT.To_String (Condition.Right.Type_Name))
+         if Is_Integer_Ident (Condition.Left)
+           and then Is_Integer_Ident (Condition.Right)
          then
             return
               "Increases => "
               & FT.To_String (Condition.Left.Name)
               & ", Decreases => "
               & FT.To_String (Condition.Right.Name);
+         elsif Positive_Bound_For_Operator (Operator, Condition.Left)
+           and then Is_Integer_Ident (Condition.Right)
+         then
+            return "Decreases => " & FT.To_String (Condition.Right.Name);
+         elsif Positive_Bound_For_Operator (Operator, Condition.Left)
+           and then Is_Length_Select (Condition.Right)
+         then
+            return
+              "Decreases => "
+              & Render_Expr (Unit, Document, Condition.Right, State);
+         end if;
+      elsif Operator in ">" | ">=" then
+         if Is_Integer_Ident (Condition.Left)
+           and then Is_Integer_Bound (Condition.Right)
+         then
+            return "Decreases => " & FT.To_String (Condition.Left.Name);
+         elsif Is_Length_Select (Condition.Left)
+           and then Positive_Bound_For_Operator (Operator, Condition.Right)
+         then
+            return
+              "Decreases => "
+              & Render_Expr (Unit, Document, Condition.Left, State);
          end if;
       elsif Operator = "=" then
-         declare
-            function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
-            begin
-               return
-                 Expr /= null
-                 and then Expr.Kind = CM.Expr_Select
-                 and then FT.To_String (Expr.Selector) = "length";
-            end Is_Length_Select;
-         begin
-            if (Is_Length_Select (Condition.Left)
-                and then Condition.Right /= null
-                and then Condition.Right.Kind = CM.Expr_Int)
-              or else
-              (Is_Length_Select (Condition.Right)
-               and then Condition.Left /= null
-               and then Condition.Left.Kind = CM.Expr_Int)
-            then
-               return
-                 "Decreases => "
-                 & (if Is_Length_Select (Condition.Left)
-                    then Render_Expr (Unit, Document, Condition.Left, State)
-                    else Render_Expr (Unit, Document, Condition.Right, State));
-            end if;
-         end;
+         if (Is_Length_Select (Condition.Left)
+             and then Condition.Right /= null
+             and then Condition.Right.Kind = CM.Expr_Int)
+           or else
+           (Is_Length_Select (Condition.Right)
+            and then Condition.Left /= null
+            and then Condition.Left.Kind = CM.Expr_Int)
+         then
+            return
+              "Decreases => "
+              & (if Is_Length_Select (Condition.Left)
+                 then Render_Expr (Unit, Document, Condition.Left, State)
+                 else Render_Expr (Unit, Document, Condition.Right, State));
+         end if;
       end if;
 
       return "";

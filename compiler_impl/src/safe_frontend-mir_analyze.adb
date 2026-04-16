@@ -3342,6 +3342,49 @@ package body Safe_Frontend.Mir_Analyze is
          Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
          return Lower (UString_Value (Prefix_Type.Kind)) in "string" | "array";
       end Is_Length_Select;
+
+      function Is_Integer_Ident (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then Expr.Kind = GM.Expr_Ident
+           and then Is_Integer_Type (Expr_Type (Expr, Var_Types, Type_Env, Functions));
+      end Is_Integer_Ident;
+
+      function Is_Integer_Bound (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then
+             (Expr.Kind = GM.Expr_Int
+              or else
+              (Expr.Kind = GM.Expr_Ident
+               and then Is_Integer_Type (Expr_Type (Expr, Var_Types, Type_Env, Functions))));
+      end Is_Integer_Bound;
+
+      function Is_Zero (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = GM.Expr_Int and then Expr.Int_Value = 0;
+      end Is_Zero;
+
+      function Is_One (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = GM.Expr_Int and then Expr.Int_Value = 1;
+      end Is_One;
+
+      function Positive_Bound_For_Operator
+        (Op    : String;
+         Bound : GM.Expr_Access) return Boolean is
+      begin
+         return
+           (Op = ">" and then Is_Zero (Bound))
+           or else
+           (Op = ">=" and then Is_One (Bound))
+           or else
+           (Op = "<" and then Is_Zero (Bound))
+           or else
+           (Op = "<=" and then Is_One (Bound));
+      end Positive_Bound_For_Operator;
    begin
       if Condition = null or else Condition.Kind /= GM.Expr_Binary then
          return False;
@@ -3361,16 +3404,24 @@ package body Safe_Frontend.Mir_Analyze is
             and then Condition.Left.Kind = GM.Expr_Null
             and then Flatten_Name (Condition.Right)'Length > 0);
       elsif UString_Value (Condition.Operator) in "<" | "<=" then
-         if Condition.Left /= null
-           and then Condition.Right /= null
-           and then Condition.Left.Kind = GM.Expr_Ident
-           and then Condition.Right.Kind = GM.Expr_Ident
+         if Is_Integer_Ident (Condition.Left)
+           and then Is_Integer_Ident (Condition.Right)
          then
-            return
-              Is_Integer_Type (Expr_Type (Condition.Left, Var_Types, Type_Env, Functions))
-              and then
-              Is_Integer_Type (Expr_Type (Condition.Right, Var_Types, Type_Env, Functions));
+            return True;
          end if;
+         return
+           Positive_Bound_For_Operator (UString_Value (Condition.Operator), Condition.Left)
+           and then
+             (Is_Integer_Ident (Condition.Right)
+              or else Is_Length_Select (Condition.Right));
+      elsif UString_Value (Condition.Operator) in ">" | ">=" then
+         return
+           (Is_Integer_Ident (Condition.Left)
+            and then Is_Integer_Bound (Condition.Right))
+           or else
+           (Is_Length_Select (Condition.Left)
+            and then Positive_Bound_For_Operator
+              (UString_Value (Condition.Operator), Condition.Right));
       elsif UString_Value (Condition.Operator) = "==" then
          return
            (Is_Length_Select (Condition.Left)
@@ -3400,7 +3451,10 @@ package body Safe_Frontend.Mir_Analyze is
       Result.Highlight_Span := Focus;
       Result.Notes.Append
         (FT.To_UString
-           ("supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, and direct exact-length guards like `values.length == N`."));
+           ("supported while-loop proof shapes are structural `Cursor != null` traversal,"
+            & " simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, countdown guards"
+            & " like `remaining > 0`, and direct length guards like `values.length == N`"
+            & " or `values.length > 0`."));
       Result.Notes.Append
         (FT.To_UString
            ("rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant."));
