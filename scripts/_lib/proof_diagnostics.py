@@ -13,7 +13,7 @@ from .proof_diagnostic_catalog import DEFAULT_CATALOG, ProofDiagnosticPattern
 
 DIAG_RE = re.compile(
     r"^(?P<file>.+\.(?:adb|ads)):(?P<line>\d+):(?P<col>\d+): "
-    r"(?P<severity>high|medium|low|warning|info): (?P<message>.*)$",
+    r"(?P<severity>high|medium|low|error|warning|info): (?P<message>.*)$",
     re.IGNORECASE,
 )
 SAFE_MARKER = "-- safe:"

@@ -44,6 +44,9 @@ def run_parse_gnatprove_diagnostic_case() -> tuple[bool, str]:
     )
     if parsed is None or parsed.ada_file != "/tmp/out/demo.ads" or parsed.severity != "warning":
         return False, f"failed to parse warning with absolute path {parsed!r}"
+    parsed = parse_gnatprove_diagnostic("demo.adb:7:2: error: project file is invalid")
+    if parsed is None or parsed.severity != "error" or parsed.ada_line != 7:
+        return False, f"failed to parse error severity {parsed!r}"
     if parse_gnatprove_diagnostic("gnatprove: unproved check messages considered as errors") is not None:
         return False, "expected non-diagnostic GNATprove line to be ignored"
     return True, ""

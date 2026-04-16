@@ -416,7 +416,6 @@ def build_source(
             if not result.passed:
                 report_proof_failure(command_label, result)
                 return 1
-    clear_diagnostics_sidecar(source)
     return env, executable
 
 

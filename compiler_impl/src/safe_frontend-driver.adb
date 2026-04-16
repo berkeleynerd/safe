@@ -242,23 +242,35 @@ package body Safe_Frontend.Driver is
                return;
             end if;
 
-            if Entry_Count = 0 then
-               SU.Append (Result, ASCII.LF);
-            else
-               SU.Append (Result, "," & ASCII.LF);
-            end if;
-            Entry_Count := Entry_Count + 1;
-            SU.Append
-              (Result,
-               "    {""ada_file"":" & FJ.Quote (Ada_File)
-               & ",""ada_line"":" & FT.Image (Ada_Line)
-               & ",""safe_file"":"
-               & FJ.Quote (Prefix (Prefix'First .. Prev_Colon - 1))
-               & ",""safe_line"":"
-               & Prefix (Prev_Colon + 1 .. Prefix'Last)
-               & ",""safe_col"":"
-               & Payload (Last_Colon + 1 .. Payload'Last)
-               & "}");
+            declare
+               Safe_Line : constant Integer :=
+                 Integer'Value (Prefix (Prev_Colon + 1 .. Prefix'Last));
+               Safe_Col : constant Integer :=
+                 Integer'Value (Payload (Last_Colon + 1 .. Payload'Last));
+            begin
+               if Safe_Line <= 0 or else Safe_Col <= 0 then
+                  return;
+               end if;
+
+               if Entry_Count = 0 then
+                  SU.Append (Result, ASCII.LF);
+               else
+                  SU.Append (Result, "," & ASCII.LF);
+               end if;
+               Entry_Count := Entry_Count + 1;
+               SU.Append
+                 (Result,
+                  "    {""ada_file"":" & FJ.Quote (Ada_File)
+                  & ",""ada_line"":" & FT.Image (Ada_Line)
+                  & ",""safe_file"":"
+                  & FJ.Quote (Prefix (Prefix'First .. Prev_Colon - 1))
+                  & ",""safe_line"":" & FT.Image (Safe_Line)
+                  & ",""safe_col"":" & FT.Image (Safe_Col)
+                  & "}");
+            exception
+               when Constraint_Error =>
+                  return;
+            end;
          end;
       end Append_Entry;
 
