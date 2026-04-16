@@ -287,6 +287,11 @@
       "pr1122f2_shared_optional_string_none_build.ads": "84ddb739c6f7359b76b2cd37745fc3f8cd32e8f120f095bec7c064c282114711",
       "pr1122f2_shared_optional_string_none_build_line_map.json": "42a27595a99c91d2789fb0ea5991805316488420a99ff0187e53670781053f78"
     },
+    "tests/build/pr1123a_binary_wraparound_build.safe": {
+      "pr1123a_binary_wraparound_build.adb": "e835f1f8a29ded7e03f52f4ee6c780a7e153a9d9d95f582de6b66667c43e921b",
+      "pr1123a_binary_wraparound_build.ads": "734a27cf9b42d5052c17c07ff753cf2983515e8225f387dc640669366705d9d9",
+      "pr1123a_binary_wraparound_build_line_map.json": "79d663d743ca653eb0237054adfa20be3963fc33522e95a195a4cf5e02b4a88b"
+    },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",
       "pr118c2_entry_build.adb": "4d5a032db25ec5d26466735b493402f5a182a8b3a5bd9cf6d26aefbbbb3437f8",

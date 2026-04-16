@@ -1,0 +1,14 @@
+package pr1123a_binary_wraparound_build
+
+   function wraparound_ok returns integer
+      var counter : binary (8) = binary (8) (250);
+      var step : binary (8) = binary (8) (10);
+
+      counter = counter + step
+
+      if counter == binary (8) (4)
+         return 1
+
+      return 0
+
+   print (wraparound_ok)

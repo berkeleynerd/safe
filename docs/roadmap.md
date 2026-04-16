@@ -96,7 +96,16 @@ Dependency chain:
 - PR11.22h follows PR11.22g (shared stdlib contract audit and body-drift check).
 - PR11.22h.1 follows PR11.22h (runtime-only emitted proof exclusion burn-down).
 - PR11.22h.2 follows PR11.22h.1 (proof guarantee governance and trust-boundary documentation).
-- PR11.23 follows PR11.22h.2 (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
+- PR11.23a follows PR11.22h.2 (binary modular arithmetic wraparound proof coverage).
+- PR11.23b follows PR11.23a (additional while-loop variant patterns).
+- PR11.23c follows PR11.23b (conditional static-delta accumulator coverage).
+- PR11.23d follows PR11.23c (conditional string append growth invariants).
+- PR11.23e follows PR11.23d (multiple independent accumulator invariants).
+- PR11.23f follows PR11.23e (scoped sum/count relational invariants).
+- PR11.23g follows PR11.23f (fixed-depth nested iteration invariant composition).
+- PR11.23h follows PR11.23g (auto-snapshot compound shared reads).
+- PR11.23i follows PR11.23h (clamp-style exported postconditions).
+- PR11.23 follows PR11.23i (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
 - PR11.17–PR11.21 moved to PR14 series (deferred past all existing work; see PR14 below).
 
 ---
@@ -3375,9 +3384,35 @@ unchanged.
 
 ### Dependency
 
-Follows PR11.22h.2. Deferred until after the hygiene and proof-governance
-series so the mapping lands on a cleaned emitter, stabilized proof/build
-surface, and precise public proof claim.
+Follows PR11.23i. Deferred until after the hygiene, proof-governance, and
+proof-expansion burn-down series so the mapping lands on a cleaned emitter,
+stabilized proof/build surface, and precise public proof claim. It does not
+block PR12.1 because diagnostic mapping rewrites proof output and sidecar
+diagnostics rather than defining the native CLI ABI.
+
+---
+
+## PR11.23a–PR11.23i: Proof-Expansion Burn-Down
+
+Close the small proof-surface issues identified after PR11.22h.2 before
+starting the PR12 native CLI rewrite. Each slice is one issue and one proof fixture,
+with optional emitter heuristics kept fail-closed.
+
+| Slice | Issue | Target |
+|---|---|---|
+| PR11.23a | #294 | Binary modular arithmetic wraparound proof coverage |
+| PR11.23b | #282 | Additional while-loop variant patterns |
+| PR11.23c | #279 | Conditional static-delta accumulator coverage |
+| PR11.23d | #280 | Conditional string append growth invariants |
+| PR11.23e | #283 | Multiple independent accumulator invariants |
+| PR11.23f | #285 | Scoped sum/count relational invariants |
+| PR11.23g | #284 | Fixed-depth nested iteration invariant composition |
+| PR11.23h | #287 | Auto-snapshot compound shared reads |
+| PR11.23i | #288 | Clamp-style exported postconditions |
+
+### Dependency
+
+Follows PR11.22h.2. PR11.23 follows PR11.23i. PR12.1 follows PR11.23i.
 
 ---
 
@@ -3394,7 +3429,9 @@ that gap before the claims-hardening work begins.
 
 ## Dependency Chain
 
-- PR12.1 follows PR11.23 (compiled native `safe` CLI binary).
+- PR12.1 follows PR11.23i (compiled native `safe` CLI binary; PR11.23 can
+  proceed independently because proof diagnostic mapping does not define the
+  native CLI ABI).
 - PR12.2 follows PR12.1 (single-archive distribution).
 - PR12.3 follows PR12.2 (`safe fmt` — code formatter).
 - PR12.4 follows PR12.3 (full LSP server).
@@ -3437,7 +3474,9 @@ makes the distribution self-contained.
 
 ### Dependency
 
-Follows PR11.23.
+Follows PR11.23i. PR11.23 may proceed in parallel after PR11.23i because
+it adapts proof-output presentation rather than changing the native CLI
+interface contract.
 
 ---
 

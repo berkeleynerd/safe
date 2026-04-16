@@ -7,7 +7,7 @@ prevent entire categories of bugs. The language's goal is ...
 
 [![CI](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml/badge.svg)](https://github.com/berkeleynerd/safe/actions/workflows/ci.yml)
 ![Spec version](https://img.shields.io/badge/spec-v0.1_working_draft-blue)
-![Proved fixtures](https://img.shields.io/badge/proved_fixtures-256-brightgreen)
+![Proved fixtures](https://img.shields.io/badge/proved_fixtures-257-brightgreen)
 
 The current toolchain compiles it through
 Ada/SPARK-oriented artifacts. The user-facing goal is not to preserve Ada
@@ -150,7 +150,7 @@ itself.
 Two independent evidence channels back the safety claims:
 
 **Emitted proof corpus.** The blocking emitted-proof inventory currently covers
-256 fixtures with 4 explicit exclusions and 0 uncovered fixtures: 3 frontend
+257 fixtures with 4 explicit exclusions and 0 uncovered fixtures: 3 frontend
 spec exclusions and 1 intentional tooling-reject fixture. No compiling
 runtime-regression fixture remains outside the emitted proof lane. These
 fixtures are emitted as Ada/SPARK and verified by GNATprove through the
@@ -163,11 +163,11 @@ proved, 1 Silver VC justified, and 0 unproved. Its 16 templates account for
 
 | Metric | Value |
 |--------|-------|
-| Proved emitted fixtures | 256 (4 exclusions: 3 spec, 1 tooling, 0 runtime proof gaps; 0 uncovered) |
+| Proved emitted fixtures | 257 (4 exclusions: 3 spec, 1 tooling, 0 runtime proof gaps; 0 uncovered) |
 | Companion template VCs | 553 total (414 proved, 1 justified, 0 unproved, 138 flow passed) |
 | Companion templates | 16 templates, 315 template checks |
 | Tracked proof assumptions | [13](companion/assumptions.yaml) (12 open, 1 resolved) |
-| Test corpus | 635 `.safe` files (positive, negative, build, concurrency, interfaces, embedded) |
+| Test corpus | 636 `.safe` files (positive, negative, build, concurrency, interfaces, embedded) |
 | Embedded evidence lane | STM32F4 / Jorvik / Renode (blocking in CI) |
 | Compiler size | ~73K LOC Ada across 75 source files |
 | Emitter size | ~26K LOC Ada across 14 emitter source files |
@@ -253,8 +253,8 @@ PR11.14 (closures) and PR11.15 (string interpolation) are deferred
 indefinitely on the proposal track. They remain implementable, but are not
 high-value enough relative to the current roadmap.
 
-The next larger milestone is **PR11.23**: proof diagnostic mapping, which maps
-GNATprove failures back to Safe source locations with classified fix guidance.
+The current pre-PR12 work is the **PR11.23 proof-expansion burn-down**:
+small, targeted proof-surface closures before the native CLI rewrite begins.
 
 See [`docs/roadmap.md`](docs/roadmap.md) for the
 full roadmap.
