@@ -132,7 +132,7 @@ def write_line_map_sidecar(ada_dir: Path, unit: str) -> Path:
     stem = unit.lower()
     path = ada_dir / f"{stem}_line_map.json"
     payload = build_line_map_payload(ada_dir, stem)
-    path.write_text(json.dumps(payload, separators=(",", ":")) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return path
 
 
