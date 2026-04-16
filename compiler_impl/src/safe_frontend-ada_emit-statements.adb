@@ -1631,19 +1631,25 @@ package body Safe_Frontend.Ada_Emit.Statements is
          return Expr /= null and then Expr.Kind = CM.Expr_Int and then Expr.Int_Value = 1;
       end Is_One;
 
-      function Positive_Bound_For_Operator
+      function Is_Positive_Right_Bound
         (Op    : String;
          Bound : CM.Expr_Access) return Boolean is
       begin
          return
            (Op = ">" and then Is_Zero (Bound))
            or else
-           (Op = ">=" and then Is_One (Bound))
-           or else
+           (Op = ">=" and then Is_One (Bound));
+      end Is_Positive_Right_Bound;
+
+      function Is_Positive_Left_Mirror_Bound
+        (Op    : String;
+         Bound : CM.Expr_Access) return Boolean is
+      begin
+         return
            (Op = "<" and then Is_Zero (Bound))
            or else
            (Op = "<=" and then Is_One (Bound));
-      end Positive_Bound_For_Operator;
+      end Is_Positive_Left_Mirror_Bound;
    begin
       if Condition = null or else Condition.Kind /= CM.Expr_Binary then
          return "";
@@ -1682,11 +1688,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
               & FT.To_String (Condition.Left.Name)
               & ", Decreases => "
               & FT.To_String (Condition.Right.Name);
-         elsif Positive_Bound_For_Operator (Operator, Condition.Left)
+         elsif Is_Positive_Left_Mirror_Bound (Operator, Condition.Left)
            and then Is_Integer_Ident (Condition.Right)
          then
             return "Decreases => " & FT.To_String (Condition.Right.Name);
-         elsif Positive_Bound_For_Operator (Operator, Condition.Left)
+         elsif Is_Positive_Left_Mirror_Bound (Operator, Condition.Left)
            and then Is_Length_Select (Condition.Right)
          then
             return
@@ -1694,12 +1700,14 @@ package body Safe_Frontend.Ada_Emit.Statements is
               & Render_Expr (Unit, Document, Condition.Right, State);
          end if;
       elsif Operator in ">" | ">=" then
+         --  Downward countdowns intentionally track the moving left side only.
+         --  The existing < / <= two-identifier path keeps the bidirectional form.
          if Is_Integer_Ident (Condition.Left)
            and then Is_Integer_Bound (Condition.Right)
          then
             return "Decreases => " & FT.To_String (Condition.Left.Name);
          elsif Is_Length_Select (Condition.Left)
-           and then Positive_Bound_For_Operator (Operator, Condition.Right)
+           and then Is_Positive_Right_Bound (Operator, Condition.Right)
          then
             return
               "Decreases => "

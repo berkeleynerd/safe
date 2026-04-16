@@ -8,6 +8,6 @@ neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot 
   | 16 |       while value < goal
   |    |             ^~~~~~~~~~~~
   |
-  note: supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, countdown guards like `remaining > 0`, and direct length guards like `values.length == N` or `values.length > 0`.
+  note: supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, countdown guards like `remaining > 0` / `remaining >= 1`, and direct length guards like `values.length == N`, `values.length > 0`, or `values.length >= 1`.
   note: rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant.
 ------------------------------------------------------------------------

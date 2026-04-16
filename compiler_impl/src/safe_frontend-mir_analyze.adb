@@ -3372,19 +3372,25 @@ package body Safe_Frontend.Mir_Analyze is
          return Expr /= null and then Expr.Kind = GM.Expr_Int and then Expr.Int_Value = 1;
       end Is_One;
 
-      function Positive_Bound_For_Operator
+      function Is_Positive_Right_Bound
         (Op    : String;
          Bound : GM.Expr_Access) return Boolean is
       begin
          return
            (Op = ">" and then Is_Zero (Bound))
            or else
-           (Op = ">=" and then Is_One (Bound))
-           or else
+           (Op = ">=" and then Is_One (Bound));
+      end Is_Positive_Right_Bound;
+
+      function Is_Positive_Left_Mirror_Bound
+        (Op    : String;
+         Bound : GM.Expr_Access) return Boolean is
+      begin
+         return
            (Op = "<" and then Is_Zero (Bound))
            or else
            (Op = "<=" and then Is_One (Bound));
-      end Positive_Bound_For_Operator;
+      end Is_Positive_Left_Mirror_Bound;
    begin
       if Condition = null or else Condition.Kind /= GM.Expr_Binary then
          return False;
@@ -3410,17 +3416,19 @@ package body Safe_Frontend.Mir_Analyze is
             return True;
          end if;
          return
-           Positive_Bound_For_Operator (UString_Value (Condition.Operator), Condition.Left)
+           Is_Positive_Left_Mirror_Bound (UString_Value (Condition.Operator), Condition.Left)
            and then
              (Is_Integer_Ident (Condition.Right)
               or else Is_Length_Select (Condition.Right));
       elsif UString_Value (Condition.Operator) in ">" | ">=" then
+         --  Downward countdowns derive a decreasing left-side variant; the
+         --  existing < / <= two-identifier path keeps the bidirectional form.
          return
            (Is_Integer_Ident (Condition.Left)
             and then Is_Integer_Bound (Condition.Right))
            or else
            (Is_Length_Select (Condition.Left)
-            and then Positive_Bound_For_Operator
+            and then Is_Positive_Right_Bound
               (UString_Value (Condition.Operator), Condition.Right));
       elsif UString_Value (Condition.Operator) = "==" then
          return
@@ -3453,8 +3461,8 @@ package body Safe_Frontend.Mir_Analyze is
         (FT.To_UString
            ("supported while-loop proof shapes are structural `Cursor != null` traversal,"
             & " simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, countdown guards"
-            & " like `remaining > 0`, and direct length guards like `values.length == N`"
-            & " or `values.length > 0`."));
+            & " like `remaining > 0` / `remaining >= 1`, and direct length guards"
+            & " like `values.length == N`, `values.length > 0`, or `values.length >= 1`."));
       Result.Notes.Append
         (FT.To_UString
            ("rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant."));
