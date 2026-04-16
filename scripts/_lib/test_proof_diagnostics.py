@@ -223,6 +223,27 @@ def run_rewrite_output_case() -> tuple[bool, str]:
     return True, ""
 
 
+def run_rewrite_output_fallback_case() -> tuple[bool, str]:
+    with tempfile.TemporaryDirectory(prefix="safe-rewrite-output-fallback-") as temp_root_str:
+        human, diagnostics = rewrite_gnatprove_output(
+            "\n".join(
+                [
+                    "/tmp/out/demo.adb:5:11: info: assertion proved",
+                    "/tmp/out/demo.adb: malformed unrecognized proof output",
+                ]
+            ),
+            Path(temp_root_str),
+            stage="prove",
+        )
+    if "no Safe-mappable diagnostics found" not in human:
+        return False, f"missing neutral fallback in {human!r}"
+    if "/tmp/out/demo.adb" in human:
+        return False, f"fallback leaked raw Ada path {human!r}"
+    if diagnostics:
+        return False, f"fallback should not emit JSON diagnostics {diagnostics!r}"
+    return True, ""
+
+
 def run_cli_diagnostics_sidecar_case() -> tuple[bool, str]:
     with tempfile.TemporaryDirectory(prefix="safe-diagnostics-sidecar-") as temp_root_str:
         source = Path(temp_root_str) / "demo.safe"
@@ -265,6 +286,7 @@ def run_proof_diagnostic_checks() -> RunCounts:
         ("proof-diagnostic-line-map-refresh", run_line_map_sidecar_refresh_case),
         ("proof-diagnostic-rewrite", run_rewrite_diagnostic_case),
         ("proof-diagnostic-output", run_rewrite_output_case),
+        ("proof-diagnostic-output-fallback", run_rewrite_output_fallback_case),
         ("proof-diagnostic-cli-sidecar", run_cli_diagnostics_sidecar_case),
     ]
     for label, case in cases:

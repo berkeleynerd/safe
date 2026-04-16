@@ -326,6 +326,7 @@ def resolve_project_sources(root_source: Path) -> list[Path]:
 
 
 def mirror_with_clauses_into_emitted_unit(source: Path, ada_dir: Path) -> None:
+    # Keep in sync with proof_eval.mirror_with_clauses_into_emitted_unit.
     dependencies = leading_with_dependencies(source)
     if not dependencies:
         return

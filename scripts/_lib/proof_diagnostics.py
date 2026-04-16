@@ -257,7 +257,10 @@ def rewrite_gnatprove_output(
         diagnostics.append(safe_diag)
         rendered.append(render_safe_diagnostic(safe_diag))
     if not diagnostics:
-        return raw_output, []
+        return (
+            "proof failed: no Safe-mappable diagnostics found; re-run with --verbose for raw output\n",
+            [],
+        )
     return "\n".join(rendered) + "\n", [item.to_json() for item in diagnostics]
 
 

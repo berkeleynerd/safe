@@ -224,7 +224,9 @@ package body Safe_Frontend.Driver is
          Last_Colon :=
            Ada.Strings.Fixed.Index
              (Payload, ":", Going => Ada.Strings.Backward);
-         if Last_Colon <= Payload'First then
+         if Last_Colon <= Payload'First
+           or else Last_Colon >= Payload'Last
+         then
             return;
          end if;
 
@@ -234,7 +236,9 @@ package body Safe_Frontend.Driver is
             Prev_Colon :=
               Ada.Strings.Fixed.Index
                 (Prefix, ":", Going => Ada.Strings.Backward);
-            if Prev_Colon <= Prefix'First then
+            if Prev_Colon <= Prefix'First
+              or else Prev_Colon >= Prefix'Last
+            then
                return;
             end if;
 

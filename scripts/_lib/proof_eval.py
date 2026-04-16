@@ -291,6 +291,7 @@ def local_dependency_source(source_dir: Path, package_name: str) -> Path | None:
 
 
 def mirror_with_clauses_into_emitted_unit(source: Path, ada_dir: Path) -> None:
+    # Keep in sync with project_cache.mirror_with_clauses_into_emitted_unit.
     dependencies = leading_with_dependencies(source)
     if not dependencies:
         return
