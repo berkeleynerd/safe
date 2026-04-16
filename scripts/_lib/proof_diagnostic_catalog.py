@@ -34,7 +34,7 @@ DEFAULT_CATALOG: list[ProofDiagnosticPattern] = [
         "Use a wider accumulator type or restructure to avoid bounded-type accumulation in loops.",
     ),
     ProofDiagnosticPattern.from_regex(
-        r"assertion might fail, cannot prove",
+        r"assertion might fail",
         "generated proof assertion could not be verified",
         "Check that all variables used in the expression are initialized and in range at this point.",
     ),

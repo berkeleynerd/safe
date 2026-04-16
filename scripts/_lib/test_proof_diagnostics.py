@@ -17,6 +17,7 @@ from _lib.proof_diagnostics import (
     parse_gnatprove_diagnostic,
     rewrite_diagnostic,
     rewrite_gnatprove_output,
+    write_line_map_sidecar,
 )
 from _lib.test_harness import RunCounts, record_result
 from safe_cli import (
@@ -50,7 +51,7 @@ def run_catalog_coverage_case() -> tuple[bool, str]:
     samples = [
         ("range check might fail", "value may exceed type range at conversion"),
         ("overflow check might fail", "arithmetic may overflow"),
-        ("assertion might fail, cannot prove", "generated proof assertion could not be verified"),
+        ("assertion might fail", "generated proof assertion could not be verified"),
         ("loop should mention Total in a loop invariant", "prover cannot establish loop body safety"),
         ("call to a volatile function in interfering context", "shared reads in compound conditions"),
         ("cannot write X during elaboration", "imported state cannot be modified at unit scope"),
@@ -109,6 +110,28 @@ def run_line_map_loading_case() -> tuple[bool, str]:
         return False, f"exact lookup returned {entry!r}"
     if lookup_line_map_entry(line_maps, "demo.adb", 5) is not None:
         return False, "expected lookup before first mapping to be unmapped"
+    return True, ""
+
+
+def run_line_map_sidecar_refresh_case() -> tuple[bool, str]:
+    with tempfile.TemporaryDirectory(prefix="safe-line-map-refresh-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        (temp_root / "demo.ads").write_text(
+            "with Provider;\npackage demo is\n   -- safe:demo.safe:3:4\nend demo;\n",
+            encoding="utf-8",
+        )
+        (temp_root / "demo.adb").write_text(
+            "with Provider;\npackage body demo is\n   -- safe:demo.safe:6:7\nbegin\n   null;\nend demo;\n",
+            encoding="utf-8",
+        )
+        write_line_map_sidecar(temp_root, "demo")
+        line_maps = load_all_line_maps(temp_root)
+    spec_entry = lookup_line_map_entry(line_maps, "demo.ads", 3)
+    if spec_entry != LineMapEntry("demo.ads", 3, "demo.safe", 3, 4):
+        return False, f"unexpected spec refreshed line-map entry {spec_entry!r}"
+    body_entry = lookup_line_map_entry(line_maps, "demo.adb", 3)
+    if body_entry != LineMapEntry("demo.adb", 3, "demo.safe", 6, 7):
+        return False, f"unexpected body refreshed line-map entry {body_entry!r}"
     return True, ""
 
 
@@ -239,6 +262,7 @@ def run_proof_diagnostic_checks() -> RunCounts:
         ("proof-diagnostic-parse", run_parse_gnatprove_diagnostic_case),
         ("proof-diagnostic-catalog", run_catalog_coverage_case),
         ("proof-diagnostic-line-map", run_line_map_loading_case),
+        ("proof-diagnostic-line-map-refresh", run_line_map_sidecar_refresh_case),
         ("proof-diagnostic-rewrite", run_rewrite_diagnostic_case),
         ("proof-diagnostic-output", run_rewrite_output_case),
         ("proof-diagnostic-cli-sidecar", run_cli_diagnostics_sidecar_case),

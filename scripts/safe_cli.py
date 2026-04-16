@@ -521,7 +521,7 @@ def safe_prove(args: argparse.Namespace) -> int:
         failed += 1
         print(f"FAIL {label} [{result.stage}] {result.detail}")
         if result.stage in {"flow", "prove"}:
-            report_proof_failure("prove", result)
+            write_diagnostics_sidecar(result)
         if args.verbose:
             replay_failure_logs(result)
 

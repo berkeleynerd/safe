@@ -40,6 +40,7 @@ def main() -> int:
 
     add_counts(test_fixtures.run_basic_fixture_checks(safec))
     add_counts(test_proof_cli.run_internal_proof_checks())
+    add_counts(test_proof_diagnostics.run_proof_diagnostic_checks())
 
     with tempfile.TemporaryDirectory(prefix="safe-tests-") as temp_root_str:
         temp_root = Path(temp_root_str)

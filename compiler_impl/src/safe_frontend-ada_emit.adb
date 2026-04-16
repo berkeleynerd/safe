@@ -2193,9 +2193,9 @@ package body Safe_Frontend.Ada_Emit is
                  and then Should_Defer_Package_Object_Initializer
                    (Unit, Document, Decl, Deferred_Names)
                then
+                  Append_Source_Comment
+                    (Context.Body_Inner, FT.To_String (Unit.Path), Decl.Span, 2);
                   for Name of Decl.Names loop
-                     Append_Source_Comment
-                       (Context.Body_Inner, FT.To_String (Unit.Path), Decl.Span, 2);
                      Append_Gnatprove_Warning_Suppression
                        (Context.Body_Inner,
                         "unused assignment",

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .harness_common import COMPILER_ROOT, REPO_ROOT, find_command, require_safec, sha256_file
 from .pr09_emit import emitted_body_file
-from .proof_diagnostics import rewrite_gnatprove_output
+from .proof_diagnostics import rewrite_gnatprove_output, write_line_map_sidecar
 from .project_cache import (
     STDLIB_ADA_DIR,
     ProjectEmitError,
@@ -295,6 +295,7 @@ def mirror_with_clauses_into_emitted_unit(source: Path, ada_dir: Path) -> None:
     if not dependencies:
         return
 
+    changed = False
     lower_dependencies = [dependency.lower() for dependency in dependencies]
     for suffix in (".ads", ".adb"):
         unit_path = ada_dir / f"{source.stem.lower()}{suffix}"
@@ -326,6 +327,10 @@ def mirror_with_clauses_into_emitted_unit(source: Path, ada_dir: Path) -> None:
             continue
         updated = lines[:insertion] + new_withs + lines[insertion:]
         unit_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+        changed = True
+
+    if changed:
+        write_line_map_sidecar(ada_dir, source.stem)
 
 
 def write_emitted_project(ada_dir: Path) -> Path:

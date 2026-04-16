@@ -12,6 +12,7 @@ from pathlib import Path
 from .harness_common import REPO_ROOT, sha256_file, sha256_text
 from .pr09_emit import emitted_body_file
 from .pr111_language_eval import executable_name, safe_build_main_text
+from .proof_diagnostics import write_line_map_sidecar
 
 CACHE_VERSION = 2
 STDLIB_ADA_DIR = REPO_ROOT / "compiler_impl" / "stdlib" / "ada"
@@ -329,6 +330,7 @@ def mirror_with_clauses_into_emitted_unit(source: Path, ada_dir: Path) -> None:
     if not dependencies:
         return
 
+    changed = False
     lowered_dependencies = [dependency.lower() for dependency in dependencies]
     for suffix in (".ads", ".adb"):
         unit_path = ada_dir / f"{source.stem.lower()}{suffix}"
@@ -358,6 +360,10 @@ def mirror_with_clauses_into_emitted_unit(source: Path, ada_dir: Path) -> None:
         if not additions:
             continue
         unit_path.write_text("\n".join(lines[:insertion] + additions + lines[insertion:]) + "\n", encoding="utf-8")
+        changed = True
+
+    if changed:
+        write_line_map_sidecar(ada_dir, source.stem)
 
 
 def unit_artifact_hashes(paths: dict[str, Path], source: Path) -> dict[str, str]:

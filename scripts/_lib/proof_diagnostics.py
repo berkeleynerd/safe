@@ -16,6 +16,8 @@ DIAG_RE = re.compile(
     r"(?P<severity>high|medium|low|warning|info): (?P<message>.*)$",
     re.IGNORECASE,
 )
+SAFE_MARKER = "-- safe:"
+LINE_MAP_FORMAT = "safe-line-map-v0"
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,50 @@ def parse_gnatprove_diagnostic(line: str) -> GnatproveDiag | None:
     )
 
 
+def _entry_payloads_from_text(ada_file: str, text: str) -> list[dict[str, object]]:
+    entries: list[dict[str, object]] = []
+    for ada_line, line in enumerate(text.splitlines(), start=1):
+        marker = line.find(SAFE_MARKER)
+        if marker < 0:
+            continue
+        payload = line[marker + len(SAFE_MARKER) :].strip()
+        try:
+            safe_file, safe_line, safe_col = payload.rsplit(":", 2)
+            safe_line_int = int(safe_line)
+            safe_col_int = int(safe_col)
+        except ValueError:
+            continue
+        entries.append(
+            {
+                "ada_file": ada_file,
+                "ada_line": ada_line,
+                "safe_file": safe_file,
+                "safe_line": safe_line_int,
+                "safe_col": safe_col_int,
+            }
+        )
+    return entries
+
+
+def build_line_map_payload(ada_dir: Path, unit: str) -> dict[str, object]:
+    stem = unit.lower()
+    entries: list[dict[str, object]] = []
+    for suffix in (".ads", ".adb"):
+        path = ada_dir / f"{stem}{suffix}"
+        if not path.exists():
+            continue
+        entries.extend(_entry_payloads_from_text(path.name, path.read_text(encoding="utf-8")))
+    return {"format": LINE_MAP_FORMAT, "unit": stem, "entries": entries}
+
+
+def write_line_map_sidecar(ada_dir: Path, unit: str) -> Path:
+    stem = unit.lower()
+    path = ada_dir / f"{stem}_line_map.json"
+    payload = build_line_map_payload(ada_dir, stem)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def _entry_from_payload(payload: dict[str, object]) -> LineMapEntry | None:
     try:
         ada_file = str(payload["ada_file"])
@@ -107,7 +153,7 @@ def load_all_line_maps(ada_dir: Path) -> LineMap:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if payload.get("format") != "safe-line-map-v0":
+        if payload.get("format") != LINE_MAP_FORMAT:
             continue
         entries = payload.get("entries")
         if not isinstance(entries, list):
@@ -219,6 +265,7 @@ __all__ = [
     "GnatproveDiag",
     "LineMapEntry",
     "SafeDiagnostic",
+    "build_line_map_payload",
     "classify_message",
     "load_all_line_maps",
     "lookup_line_map_entry",
@@ -226,4 +273,5 @@ __all__ = [
     "render_safe_diagnostic",
     "rewrite_diagnostic",
     "rewrite_gnatprove_output",
+    "write_line_map_sidecar",
 ]
