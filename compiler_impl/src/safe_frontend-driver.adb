@@ -225,8 +225,9 @@ package body Safe_Frontend.Driver is
          Last_Colon :=
            Ada.Strings.Fixed.Index
              (Payload, ":", Going => Ada.Strings.Backward);
-         if Last_Colon <= Payload'First
-           or else Last_Colon >= Payload'Last
+         if Last_Colon = 0
+           or else Last_Colon <= Payload'First
+           or else Last_Colon = Payload'Last
          then
             return;
          end if;
@@ -237,8 +238,9 @@ package body Safe_Frontend.Driver is
             Prev_Colon :=
               Ada.Strings.Fixed.Index
                 (Prefix, ":", Going => Ada.Strings.Backward);
-            if Prev_Colon <= Prefix'First
-              or else Prev_Colon >= Prefix'Last
+            if Prev_Colon = 0
+              or else Prev_Colon <= Prefix'First
+              or else Prev_Colon = Prefix'Last
             then
                return;
             end if;
@@ -294,18 +296,37 @@ package body Safe_Frontend.Driver is
             begin
                if Line_Start <= Line_End then
                   declare
-                     Line       : constant String := Text (Line_Start .. Line_End);
-                     Marker_Pos : constant Natural :=
-                       Ada.Strings.Fixed.Index (Line, Safe_Marker);
+                     Line            : constant String := Text (Line_Start .. Line_End);
+                     First_Non_Space : Natural := Line'First;
                   begin
-                     if Marker_Pos > 0
-                       and then Marker_Pos + Safe_Marker'Length <= Line'Last
+                     while First_Non_Space <= Line'Last
+                       and then (Line (First_Non_Space) = ' '
+                                 or else Line (First_Non_Space) = ASCII.HT)
+                     loop
+                        First_Non_Space := First_Non_Space + 1;
+                     end loop;
+
+                     if First_Non_Space <= Line'Last
+                       and then First_Non_Space + Safe_Marker'Length - 1
+                                <= Line'Last
+                       and then Line
+                                  (First_Non_Space
+                                   .. First_Non_Space
+                                      + Safe_Marker'Length
+                                      - 1)
+                                = Safe_Marker
                      then
-                        Append_Entry
-                          (Ada_File,
-                           Line_No,
-                           Line
-                             (Marker_Pos + Safe_Marker'Length .. Line'Last));
+                        declare
+                           Payload_Start : constant Natural :=
+                             First_Non_Space + Safe_Marker'Length;
+                        begin
+                           if Payload_Start <= Line'Last then
+                              Append_Entry
+                                (Ada_File,
+                                 Line_No,
+                                 Line (Payload_Start .. Line'Last));
+                           end if;
+                        end;
                      end if;
                   end;
                end if;

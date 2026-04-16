@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from _lib.proof_diagnostic_catalog import DEFAULT_CATALOG
 from _lib.proof_diagnostics import (
     GnatproveDiag,
+    LineMapEntries,
     LineMapEntry,
     classify_message,
     load_all_line_maps,
@@ -135,7 +136,14 @@ def run_line_map_sidecar_refresh_case() -> tuple[bool, str]:
             encoding="utf-8",
         )
         (temp_root / "demo.adb").write_text(
-            "with Provider;\npackage body demo is\n   -- safe:demo.safe:6:7\nbegin\n   null;\nend demo;\n",
+            """with Provider;
+package body demo is
+   Msg : constant String := "bad -- safe:forged.safe:1:1";
+   -- safe:demo.safe:6:7
+begin
+   null;
+end demo;
+""",
             encoding="utf-8",
         )
         write_line_map_sidecar(temp_root, "demo")
@@ -143,23 +151,28 @@ def run_line_map_sidecar_refresh_case() -> tuple[bool, str]:
     spec_entry = lookup_line_map_entry(line_maps, "demo.ads", 3)
     if spec_entry != LineMapEntry("demo.ads", 3, "demo.safe", 3, 4):
         return False, f"unexpected spec refreshed line-map entry {spec_entry!r}"
-    body_entry = lookup_line_map_entry(line_maps, "demo.adb", 3)
-    if body_entry != LineMapEntry("demo.adb", 3, "demo.safe", 6, 7):
+    if lookup_line_map_entry(line_maps, "demo.adb", 3) is not None:
+        return False, "expected marker inside string literal to be ignored"
+    body_entry = lookup_line_map_entry(line_maps, "demo.adb", 4)
+    if body_entry != LineMapEntry("demo.adb", 4, "demo.safe", 6, 7):
         return False, f"unexpected body refreshed line-map entry {body_entry!r}"
     return True, ""
 
 
 def run_rewrite_diagnostic_case() -> tuple[bool, str]:
     line_maps = {
-        "demo.adb": [
-            LineMapEntry(
-                ada_file="demo.adb",
-                ada_line=9,
-                safe_file="tests/build/demo.safe",
-                safe_line=3,
-                safe_col=5,
-            )
-        ]
+        "demo.adb": LineMapEntries(
+            ada_lines=(9,),
+            entries=(
+                LineMapEntry(
+                    ada_file="demo.adb",
+                    ada_line=9,
+                    safe_file="tests/build/demo.safe",
+                    safe_line=3,
+                    safe_col=5,
+                ),
+            ),
+        )
     }
     rewritten = rewrite_diagnostic(
         GnatproveDiag(
@@ -293,7 +306,49 @@ def run_record_gnatprove_pass_output_case() -> tuple[bool, str]:
     return True, ""
 
 
-def run_verbose_replay_prefers_empty_raw_output_case() -> tuple[bool, str]:
+def run_record_gnatprove_target_bits_case() -> tuple[bool, str]:
+    with tempfile.TemporaryDirectory(prefix="safe-proof-target-bits-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        (temp_root / "demo_line_map.json").write_text(
+            json.dumps(
+                {
+                    "format": "safe-line-map-v0",
+                    "unit": "demo",
+                    "entries": [
+                        {
+                            "ada_file": "demo.adb",
+                            "ada_line": 4,
+                            "safe_file": "demo.safe",
+                            "safe_line": 2,
+                            "safe_col": 1,
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        result = ProofRunResult(
+            source=temp_root / "demo.safe",
+            proof_root=temp_root,
+            passed=False,
+            stage="prove",
+            target_bits=32,
+        )
+        completed = subprocess.CompletedProcess(
+            args=["gnatprove"],
+            returncode=1,
+            stdout="demo.adb:5:11: high: overflow check might fail\n",
+            stderr="",
+        )
+        record_gnatprove_stage_output(result, "prove", completed, ada_dir=temp_root)
+    if not result.diagnostics_json:
+        return False, "expected diagnostic JSON for failing proof output"
+    if result.diagnostics_json[0].get("target_bits") != 32:
+        return False, f"missing target_bits metadata {result.diagnostics_json!r}"
+    return True, ""
+
+
+def run_verbose_replay_falls_back_from_empty_raw_output_case() -> tuple[bool, str]:
     result = SimpleNamespace(
         stage="prove",
         raw_stage_output={"prove": ""},
@@ -303,8 +358,8 @@ def run_verbose_replay_prefers_empty_raw_output_case() -> tuple[bool, str]:
     with contextlib.redirect_stderr(stream):
         replay_failure_logs(result)
     rendered = stream.getvalue()
-    if rendered:
-        return False, f"expected empty raw output to suppress fallback replay, got {rendered!r}"
+    if "no Safe-mappable diagnostics found" not in rendered:
+        return False, f"expected empty raw output to fall back to Safe output, got {rendered!r}"
     return True, ""
 
 
@@ -352,7 +407,8 @@ def run_proof_diagnostic_checks() -> RunCounts:
         ("proof-diagnostic-output", run_rewrite_output_case),
         ("proof-diagnostic-output-fallback", run_rewrite_output_fallback_case),
         ("proof-diagnostic-pass-output", run_record_gnatprove_pass_output_case),
-        ("proof-diagnostic-verbose-empty-raw", run_verbose_replay_prefers_empty_raw_output_case),
+        ("proof-diagnostic-target-bits", run_record_gnatprove_target_bits_case),
+        ("proof-diagnostic-verbose-empty-raw", run_verbose_replay_falls_back_from_empty_raw_output_case),
         ("proof-diagnostic-cli-sidecar", run_cli_diagnostics_sidecar_case),
     ]
     for label, case in cases:

@@ -12,7 +12,12 @@ from pathlib import Path
 
 from .harness_common import COMPILER_ROOT, REPO_ROOT, find_command, require_safec, sha256_file
 from .pr09_emit import emitted_body_file
-from .proof_diagnostics import mirror_with_clauses_into_emitted_unit_files, rewrite_gnatprove_output
+from .proof_diagnostics import (
+    LineMap,
+    load_all_line_maps,
+    mirror_with_clauses_into_emitted_unit_files,
+    rewrite_gnatprove_output,
+)
 from .project_cache import (
     STDLIB_ADA_DIR,
     ProjectEmitError,
@@ -88,6 +93,7 @@ class ProofRunResult:
     proof_root: Path
     passed: bool
     stage: str
+    target_bits: int = 64
     detail: str = ""
     flow_summary: SummaryRow | None = None
     prove_summary: SummaryRow | None = None
@@ -195,6 +201,7 @@ def record_gnatprove_stage_output(
     completed: subprocess.CompletedProcess[str],
     *,
     ada_dir: Path,
+    line_maps: LineMap | None = None,
 ) -> None:
     raw_output = format_completed_output(completed)
     result.raw_stage_output[stage] = raw_output
@@ -203,9 +210,13 @@ def record_gnatprove_stage_output(
         ada_dir,
         stage=stage,
         fallback_on_empty=completed.returncode != 0,
+        line_maps=line_maps,
     )
     result.stage_output[stage] = rewritten
-    result.diagnostics_json.extend(diagnostics)
+    result.diagnostics_json.extend(
+        dict(item, target_bits=result.target_bits)
+        for item in diagnostics
+    )
 
 
 def non_info_lines(completed: subprocess.CompletedProcess[str]) -> list[str]:
@@ -599,6 +610,7 @@ def run_cached_source_proof(
         proof_root=safe_prove_paths(source, target_bits=target_bits)["root"],
         passed=False,
         stage="check" if run_check else "emit",
+        target_bits=target_bits,
     )
 
     try:
@@ -654,6 +666,7 @@ def run_cached_source_proof(
 
     project_paths = ensure_safe_prove_root(source, target_bits=target_bits)
     write_safe_prove_project(project_paths, ada_dir=shared_paths["ada"])
+    line_maps = load_all_line_maps(shared_paths["ada"])
 
     compile_completed = compile_cached_proof_project(
         project_paths,
@@ -693,7 +706,13 @@ def run_cached_source_proof(
             timeout=command_timeout,
         )
         result.stage = mode
-        record_gnatprove_stage_output(result, mode, completed, ada_dir=shared_paths["ada"])
+        record_gnatprove_stage_output(
+            result,
+            mode,
+            completed,
+            ada_dir=shared_paths["ada"],
+            line_maps=line_maps,
+        )
         try:
             rows = parse_gnatprove_summary(summary_path)
         except (FileNotFoundError, RuntimeError) as exc:
@@ -799,6 +818,7 @@ def run_source_proof(
         result.detail = f"emit failed: {first_message(emit_completed)}"
         return result
     mirror_with_clauses_into_emitted_unit(source, paths["ada"])
+    line_maps = load_all_line_maps(paths["ada"])
 
     compile_completed = compile_emitted_ada(paths["ada"], toolchain=toolchain)
     result.stage = "compile"
@@ -833,7 +853,13 @@ def run_source_proof(
             timeout=command_timeout,
         )
         result.stage = mode
-        record_gnatprove_stage_output(result, mode, completed, ada_dir=paths["ada"])
+        record_gnatprove_stage_output(
+            result,
+            mode,
+            completed,
+            ada_dir=paths["ada"],
+            line_maps=line_maps,
+        )
         try:
             rows = parse_gnatprove_summary(summary_path)
         except (FileNotFoundError, RuntimeError) as exc:

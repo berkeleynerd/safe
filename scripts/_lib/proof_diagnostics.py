@@ -30,6 +30,12 @@ class LineMapEntry:
 
 
 @dataclass(frozen=True)
+class LineMapEntries:
+    ada_lines: tuple[int, ...]
+    entries: tuple[LineMapEntry, ...]
+
+
+@dataclass(frozen=True)
 class GnatproveDiag:
     ada_file: str
     ada_line: int
@@ -68,7 +74,7 @@ class SafeDiagnostic:
         }
 
 
-LineMap = dict[str, list[LineMapEntry]]
+LineMap = dict[str, LineMapEntries]
 
 
 def parse_gnatprove_diagnostic(line: str) -> GnatproveDiag | None:
@@ -87,15 +93,17 @@ def parse_gnatprove_diagnostic(line: str) -> GnatproveDiag | None:
 def _entry_payloads_from_text(ada_file: str, text: str) -> list[dict[str, object]]:
     entries: list[dict[str, object]] = []
     for ada_line, line in enumerate(text.splitlines(), start=1):
-        marker = line.find(SAFE_MARKER)
-        if marker < 0:
+        stripped = line.lstrip()
+        if not stripped.startswith(SAFE_MARKER):
             continue
-        payload = line[marker + len(SAFE_MARKER) :].strip()
+        payload = stripped[len(SAFE_MARKER) :].strip()
         try:
             safe_file, safe_line, safe_col = payload.rsplit(":", 2)
             safe_line_int = int(safe_line)
             safe_col_int = int(safe_col)
         except ValueError:
+            continue
+        if safe_line_int <= 0 or safe_col_int <= 0:
             continue
         entries.append(
             {
@@ -196,7 +204,7 @@ def _entry_from_payload(payload: dict[str, object]) -> LineMapEntry | None:
 
 
 def load_all_line_maps(ada_dir: Path) -> LineMap:
-    line_maps: LineMap = {}
+    grouped: dict[str, list[LineMapEntry]] = {}
     for path in sorted(ada_dir.glob("*_line_map.json")):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
@@ -215,21 +223,25 @@ def load_all_line_maps(ada_dir: Path) -> LineMap:
             entry = _entry_from_payload(raw_entry)
             if entry is None:
                 continue
-            line_maps.setdefault(entry.ada_file, []).append(entry)
-    for entries in line_maps.values():
+            grouped.setdefault(entry.ada_file, []).append(entry)
+    line_maps: LineMap = {}
+    for ada_file, entries in grouped.items():
         entries.sort(key=lambda item: item.ada_line)
+        line_maps[ada_file] = LineMapEntries(
+            ada_lines=tuple(entry.ada_line for entry in entries),
+            entries=tuple(entries),
+        )
     return line_maps
 
 
 def lookup_line_map_entry(line_maps: LineMap, ada_file: str, ada_line: int) -> LineMapEntry | None:
-    entries = line_maps.get(Path(ada_file).name)
-    if not entries:
+    mapped = line_maps.get(Path(ada_file).name)
+    if mapped is None:
         return None
-    lines = [entry.ada_line for entry in entries]
-    index = bisect_right(lines, ada_line) - 1
+    index = bisect_right(mapped.ada_lines, ada_line) - 1
     if index < 0:
         return None
-    return entries[index]
+    return mapped.entries[index]
 
 
 def classify_message(
@@ -298,8 +310,10 @@ def rewrite_gnatprove_output(
     *,
     stage: str,
     fallback_on_empty: bool = True,
+    line_maps: LineMap | None = None,
 ) -> tuple[str, list[dict[str, object]]]:
-    line_maps = load_all_line_maps(ada_dir)
+    if line_maps is None:
+        line_maps = load_all_line_maps(ada_dir)
     diagnostics: list[SafeDiagnostic] = []
     rendered: list[str] = []
     for line in raw_output.splitlines():
