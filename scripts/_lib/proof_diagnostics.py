@@ -204,15 +204,16 @@ def rewrite_diagnostic(
     mapped = lookup_line_map_entry(line_maps, diag.ada_file, diag.ada_line)
     message, fix = classify_message(diag.message, catalog)
     if mapped is None:
+        ada_file = Path(diag.ada_file).name
         return SafeDiagnostic(
-            file=diag.ada_file,
+            file=ada_file,
             line=diag.ada_line,
             column=diag.ada_col,
             severity=diag.severity,
             message=message,
             fix=fix,
             raw_gnatprove_message=diag.message,
-            ada_file=diag.ada_file,
+            ada_file=ada_file,
             ada_line=diag.ada_line,
             ada_column=diag.ada_col,
             stage=stage,

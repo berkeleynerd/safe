@@ -166,7 +166,7 @@ def run_rewrite_diagnostic_case() -> tuple[bool, str]:
         return False, f"unexpected classified message {rewritten.message!r}"
     unmapped = rewrite_diagnostic(
         GnatproveDiag(
-            ada_file="other.adb",
+            ada_file="/tmp/out/other.adb",
             ada_line=2,
             ada_col=4,
             severity="medium",
@@ -175,8 +175,10 @@ def run_rewrite_diagnostic_case() -> tuple[bool, str]:
         line_maps,
         stage="flow",
     )
-    if unmapped.file != "other.adb" or unmapped.line != 2 or unmapped.column != 4:
-        return False, f"expected unmapped diagnostic to retain Ada location {unmapped!r}"
+    if unmapped.file != "other.adb" or unmapped.ada_file != "other.adb":
+        return False, f"expected unmapped diagnostic to use Ada basename {unmapped!r}"
+    if unmapped.line != 2 or unmapped.column != 4:
+        return False, f"expected unmapped diagnostic to retain Ada line/column {unmapped!r}"
     return True, ""
 
 
