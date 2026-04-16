@@ -92,7 +92,7 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
-        REPO_ROOT / "tests" / "build" / "proof_expansion_binary_wraparound_build.safe",
+        REPO_ROOT / "tests" / "build" / "pr1123a_binary_wraparound_build.safe",
         "1\n",
         False,
     ),

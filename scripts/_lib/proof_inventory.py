@@ -367,8 +367,9 @@ PR11_8I1_CHECKPOINT_FIXTURES = [
 ]
 
 
+# All PR11.23a-i proof-expansion burn-down fixtures accumulate here.
 PR11_23_PROOF_EXPANSION_FIXTURES = [
-    "tests/build/proof_expansion_binary_wraparound_build.safe",
+    "tests/build/pr1123a_binary_wraparound_build.safe",
 ]
 
 
