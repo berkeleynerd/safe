@@ -49,9 +49,27 @@ package pr1123b_while_variant_patterns_build
 
       return index;
 
+   function mirror_int_countdown returns integer
+      var remaining : integer = 3;
+
+      while 0 < remaining
+         remaining = remaining - 1;
+
+      return remaining;
+
+   function mirror_length_guard returns integer
+      var text : string = "abc";
+
+      while 1 <= text.length
+         text = "";
+
+      return text.length;
+
    print (drain_length_guard);
    print (drain_bounded_length_guard);
    print (drain_length_inclusive_guard);
    print (countdown_strict);
    print (countdown_inclusive_literal);
-   print (countdown_inclusive_bound)
+   print (countdown_inclusive_bound);
+   print (mirror_int_countdown);
+   print (mirror_length_guard)

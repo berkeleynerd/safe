@@ -1737,8 +1737,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
            and then Is_Integer_Ident (Condition.Right)
          then
             --  Use one bidirectional shape for mutable and constant right
-            --  identifiers; a constant right side is stable while the left
-            --  side supplies the strict decrease.
+            --  identifiers. The right side may be stable or fail to increase;
+            --  GNATprove still requires the left side's strict decrease.
             return
               "Increases => "
               & FT.To_String (Condition.Right.Name)
@@ -1757,6 +1757,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
               & Render_Expr (Unit, Document, Condition.Left, State);
          end if;
       elsif Operator = "=" then
+         --  Lockstep fix: the old local helper did not check the prefix type,
+         --  so record fields named "length" could match here even though MIR
+         --  validation rejected them before emission.
          if (Is_Length_Select (Condition.Left)
              and then Condition.Right /= null
              and then Condition.Right.Kind = CM.Expr_Int)
