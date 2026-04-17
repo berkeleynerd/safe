@@ -1657,10 +1657,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
             return False;
          elsif Expr.Kind = CM.Expr_Int then
             return True;
-         elsif Expr.Kind = CM.Expr_Ident and then Is_Integer_Ident (Expr) then
-            if Is_Constant_Ident (Expr) then
-               return True;
-            end if;
+         elsif Is_Constant_Ident (Expr) and then Is_Integer_Ident (Expr) then
+            return True;
          end if;
 
          return False;

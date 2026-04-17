@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "4a28d258b3b22dc7db9acde5768b398edbcb6c853e97ffd754fa8d1b2f5aaffe",
+  "compiler_hash": "a7a69ff05dfa676b6f77cbdb573268469e6219d5f508aba87244c0746ab3b92c",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
