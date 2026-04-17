@@ -8,6 +8,14 @@ package pr1123b_while_variant_patterns_build
 
       return text.length;
 
+   function drain_bounded_length_guard returns integer
+      var text : string (3) = "abc";
+
+      while text.length > 0
+         text = "";
+
+      return text.length;
+
    function countdown_strict returns integer
       var remaining : integer = 3;
 
@@ -26,5 +34,6 @@ package pr1123b_while_variant_patterns_build
       return index;
 
    print (drain_length_guard);
+   print (drain_bounded_length_guard);
    print (countdown_strict);
    print (countdown_inclusive_bound)

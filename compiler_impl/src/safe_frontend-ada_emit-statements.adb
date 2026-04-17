@@ -1628,14 +1628,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
          declare
             Prefix_Info : constant GM.Type_Descriptor :=
-              Base_Type
-                (Unit,
-                 Document,
-                 Expr_Type_Info (Unit, Document, Expr.Prefix));
+              Expr_Type_Info (Unit, Document, Expr.Prefix);
+            Prefix_Kind : constant String :=
+              FT.Lowercase (FT.To_String (Prefix_Info.Kind));
          begin
-            return
-              Is_Plain_String_Type (Unit, Document, Prefix_Info)
-              or else Is_Array_Type (Unit, Document, Prefix_Info);
+            return Prefix_Kind = "string" or else Prefix_Kind = "array";
          end;
       end Is_Length_Select;
 
