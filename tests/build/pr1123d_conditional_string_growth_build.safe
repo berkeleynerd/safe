@@ -1,0 +1,15 @@
+package pr1123d_conditional_string_growth_build
+
+   function classify_chars returns integer
+      var text : string = "hello"
+      var result : string (15) = ""
+
+      for ch of text
+         if ch == "a" or else ch == "e" or else ch == "i" or else ch == "o" or else ch == "u"
+            result = result & "yes"
+         else
+            result = result & "no"
+
+      return result.length
+
+   print (classify_chars)

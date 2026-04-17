@@ -3423,6 +3423,15 @@ with conditional branch deltas of `1` and `10`. This slice moves that fixture
 into the PR11.23 proof-expansion manifest so #279 has direct issue-to-fixture
 traceability without duplicating proof-lane execution.
 
+### PR11.23d Note
+
+PR11.23d implements #280 with the documented `&` concatenation operator rather
+than the issue's stale `+` examples; `+` remains numeric-only. The slice admits
+binary `&` at parser level, rejects non-string/non-growable-array `&` operands
+before emit, and adds a fail-closed bounded-string growth invariant for
+conditional `for of` append patterns. `tests/build/pr1123d_conditional_string_growth_build.safe`
+is the level-2 proof checkpoint, using branch append deltas of `3` and `2`.
+
 ---
 
 # PR12: Tooling and Developer Ergonomics

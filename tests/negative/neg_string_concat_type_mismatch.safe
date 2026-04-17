@@ -1,0 +1,8 @@
+package neg_string_concat_type_mismatch
+
+   function bad_concat returns integer
+      left : integer = 1;
+      right : integer = 2;
+      combined : integer = left & right;
+
+      return combined;

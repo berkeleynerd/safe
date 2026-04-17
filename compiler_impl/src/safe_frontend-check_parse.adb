@@ -3272,7 +3272,7 @@ package body Safe_Frontend.Check_Parse is
          declare
             Lower : constant String := FT.To_String (Current (State).Lexeme);
          begin
-            exit when Lower not in "+" | "-";
+            exit when Lower not in "+" | "-" | "&";
             declare
                Op : constant FT.UString := Current (State).Lexeme;
             begin

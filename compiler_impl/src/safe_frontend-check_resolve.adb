@@ -8120,6 +8120,12 @@ package body Safe_Frontend.Check_Resolve is
                               Span    => Expr.Span,
                               Message => "growable-array concatenation requires arrays with compatible element types"));
                      end if;
+                  else
+                     Raise_Diag
+                       (CM.Source_Frontend_Error
+                          (Path    => Path,
+                           Span    => Expr.Span,
+                           Message => "& concatenation requires string or compatible growable-array operands"));
                   end if;
                elsif Op in "==" | "!=" | "<" | "<=" | ">" | ">=" then
                   if Is_Enum_Type (Left_Type, Type_Env)

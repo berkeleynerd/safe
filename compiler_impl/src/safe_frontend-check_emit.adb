@@ -767,7 +767,7 @@ package body Safe_Frontend.Check_Emit is
       begin
          if Item /= null
            and then Item.Kind = CM.Expr_Binary
-           and then Operator_String (Item.Operator) in "+" | "-"
+           and then Operator_String (Item.Operator) in "+" | "-" | "&"
          then
             Collect (Item.Left);
             Ops.Append (JS.Quote (Item.Operator));

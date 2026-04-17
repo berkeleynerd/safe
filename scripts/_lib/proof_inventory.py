@@ -372,6 +372,7 @@ PR11_23_PROOF_EXPANSION_FIXTURES = [
     "tests/build/pr1123a_binary_wraparound_build.safe",
     "tests/build/pr1123b_while_variant_patterns_build.safe",
     "tests/build/pr213_map_entry_build.safe",
+    "tests/build/pr1123d_conditional_string_growth_build.safe",
 ]
 
 

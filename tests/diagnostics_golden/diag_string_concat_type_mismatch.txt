@@ -1,0 +1,11 @@
+Diagnostics Golden: String Concatenation Type Mismatch
+Source: tests/negative/neg_string_concat_type_mismatch.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_string_concat_type_mismatch.safe:6:28: error: & concatenation requires string or compatible growable-array operands
+  |
+  | 6 |       combined : integer = left & right;
+  |   |                            ^~~~~~~~~~~~
+  |
+------------------------------------------------------------------------
