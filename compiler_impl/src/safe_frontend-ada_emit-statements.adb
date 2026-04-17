@@ -3989,6 +3989,106 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return False;
                      end Contains_Name;
 
+                     function Statements_Declare_Name
+                       (Statements : CM.Statement_Access_Vectors.Vector;
+                        Name       : String) return Boolean
+                     is
+                     begin
+                        if Name'Length = 0 then
+                           return False;
+                        end if;
+
+                        for Nested of Statements loop
+                           if Nested = null then
+                              null;
+                           else
+                              case Nested.Kind is
+                                 when CM.Stmt_Object_Decl =>
+                                    for Decl_Name of Nested.Decl.Names loop
+                                       if FT.To_String (Decl_Name) = Name then
+                                          return True;
+                                       end if;
+                                    end loop;
+                                 when CM.Stmt_Destructure_Decl =>
+                                    for Decl_Name of Nested.Destructure.Names loop
+                                       if FT.To_String (Decl_Name) = Name then
+                                          return True;
+                                       end if;
+                                    end loop;
+                                 when CM.Stmt_If =>
+                                    if Statements_Declare_Name (Nested.Then_Stmts, Name) then
+                                       return True;
+                                    end if;
+                                    for Part of Nested.Elsifs loop
+                                       if Statements_Declare_Name (Part.Statements, Name) then
+                                          return True;
+                                       end if;
+                                    end loop;
+                                    if Nested.Has_Else
+                                      and then Statements_Declare_Name (Nested.Else_Stmts, Name)
+                                    then
+                                       return True;
+                                    end if;
+                                 when CM.Stmt_Case =>
+                                    for Arm of Nested.Case_Arms loop
+                                       if Statements_Declare_Name (Arm.Statements, Name) then
+                                          return True;
+                                       end if;
+                                    end loop;
+                                 when CM.Stmt_Match =>
+                                    for Arm of Nested.Match_Arms loop
+                                       for Binder of Arm.Binders loop
+                                          if FT.To_String (Binder) = Name then
+                                             return True;
+                                          end if;
+                                       end loop;
+                                       if Statements_Declare_Name (Arm.Statements, Name) then
+                                          return True;
+                                       end if;
+                                    end loop;
+                                 when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+                                    if Nested.Kind = CM.Stmt_For
+                                      and then FT.To_String (Nested.Loop_Var) = Name
+                                    then
+                                       return True;
+                                    end if;
+                                    if Statements_Declare_Name (Nested.Body_Stmts, Name) then
+                                       return True;
+                                    end if;
+                                 when CM.Stmt_Select =>
+                                    for Arm of Nested.Arms loop
+                                       case Arm.Kind is
+                                          when CM.Select_Arm_Channel =>
+                                             if Statements_Declare_Name
+                                                  (Arm.Channel_Data.Statements,
+                                                   Name)
+                                             then
+                                                return True;
+                                             end if;
+                                          when CM.Select_Arm_Delay =>
+                                             if Statements_Declare_Name
+                                                  (Arm.Delay_Data.Statements,
+                                                   Name)
+                                             then
+                                                return True;
+                                             end if;
+                                          when others =>
+                                             null;
+                                       end case;
+                                    end loop;
+                                 when others =>
+                                    null;
+                              end case;
+                           end if;
+                        end loop;
+
+                        return False;
+                     end Statements_Declare_Name;
+
+                     Loop_Item_Name : constant String := FT.To_String (Item.Loop_Var);
+                     Loop_Item_Name_Shadowed : constant Boolean :=
+                       Statements_Declare_Name (Item.Body_Stmts, Loop_Item_Name);
+
                      procedure Remove_Accumulator (Name : String) is
                      begin
                         if Accumulator_Names.Is_Empty then
@@ -4098,7 +4198,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            then Element_Info.Low
                            elsif Element_Base.Has_Low
                            then Element_Base.Low
-                           else 0);
+                           else Long_Long_Integer'First);
                         High_Value : constant Long_Long_Integer :=
                           (if Element_Info.Has_High
                            then Element_Info.High
@@ -4109,8 +4209,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         Step_Value := 0;
                         if Expr = null
                           or else Expr.Kind /= CM.Expr_Ident
-                          or else FT.To_String (Expr.Name) /= FT.To_String (Item.Loop_Var)
-                          or else Name = FT.To_String (Item.Loop_Var)
+                          or else Loop_Item_Name_Shadowed
+                          or else FT.To_String (Expr.Name) /= Loop_Item_Name
+                          or else Name = Loop_Item_Name
                           or else not Is_Integer_Type (Unit, Document, Element_Info)
                           or else not (Element_Info.Has_Low or else Element_Base.Has_Low)
                           or else not (Element_Info.Has_High or else Element_Base.Has_High)
@@ -4144,6 +4245,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            end if;
 
                            if Same_Target_Name (Value_Expr.Left, Name) then
+                              --  These two step recognizers are intentionally
+                              --  mutually exclusive: a static nonnegative
+                              --  expression is not a direct loop-item ident.
                               return
                                 Try_Nonnegative_Static_Step
                                   (Value_Expr.Right,
