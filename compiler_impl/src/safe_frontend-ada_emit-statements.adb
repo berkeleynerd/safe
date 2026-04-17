@@ -1597,6 +1597,19 @@ package body Safe_Frontend.Ada_Emit.Statements is
       --  Keep these recognizers in lockstep with While_Variant_Derivable in
       --  Mir_Analyze. The validator decides which guards are accepted; the
       --  emitter must produce the same variant shape for each accepted guard.
+      function Resolved_Type_Info (Expr : CM.Expr_Access) return GM.Type_Descriptor is
+         Bound_Info : GM.Type_Descriptor := (others => <>);
+      begin
+         if Expr /= null
+           and then Expr.Kind = CM.Expr_Ident
+           and then Lookup_Bound_Type (State, FT.To_String (Expr.Name), Bound_Info)
+         then
+            return Bound_Info;
+         end if;
+
+         return Expr_Type_Info (Unit, Document, Expr);
+      end Resolved_Type_Info;
+
       function Is_Integer_Ident (Expr : CM.Expr_Access) return Boolean is
       begin
          return
@@ -1604,7 +1617,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
            and then Expr.Kind = CM.Expr_Ident
            and then
              Is_Integer_Type
-               (Unit, Document, Expr_Type_Info (Unit, Document, Expr));
+               (Unit, Document, Resolved_Type_Info (Expr));
       end Is_Integer_Ident;
 
       function Is_Integer_Bound (Expr : CM.Expr_Access) return Boolean is
@@ -1617,7 +1630,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
               (Expr.Kind = CM.Expr_Ident
                and then
                  Is_Integer_Type
-                   (Unit, Document, Expr_Type_Info (Unit, Document, Expr))));
+                   (Unit, Document, Resolved_Type_Info (Expr))));
       end Is_Integer_Bound;
 
       function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
@@ -1632,10 +1645,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
          declare
             Prefix_Info : constant GM.Type_Descriptor :=
-              Expr_Type_Info (Unit, Document, Expr.Prefix);
+              Resolved_Type_Info (Expr.Prefix);
             Prefix_Kind : constant String :=
               FT.Lowercase (FT.To_String (Prefix_Info.Kind));
          begin
+            --  Match MIR validation: only string/array length attributes are
+            --  derivable variants; record fields named "length" are excluded.
             return Prefix_Kind = "string" or else Prefix_Kind = "array";
          end;
       end Is_Length_Select;
