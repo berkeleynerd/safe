@@ -123,6 +123,11 @@ EMITTED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "build" / "pr1112b_shared_update_build.safe",
         ["Safe_Shared_Snapshot_", "Safe_Shared_cfg.Set_All (Safe_Shared_Snapshot_"],
     ),
+    (
+        "shadowed-loop-item-no-accumulator-invariant",
+        REPO_ROOT / "tests" / "emitted" / "pr1123e_shadowed_loop_item.safe",
+        ["pragma Loop_Invariant (Safe_Runtime.Wide_Integer (sum)"],
+    ),
 ]
 
 EMITTED_REQUIRED_SHAPE_CASES = [

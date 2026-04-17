@@ -3432,6 +3432,16 @@ before emit, and adds a fail-closed bounded-string growth invariant for
 conditional `for of` append patterns. `tests/build/pr1123d_conditional_string_growth_build.safe`
 is the level-2 proof checkpoint, using branch append deltas of `3` and `2`.
 
+### PR11.23e Note
+
+PR11.23e implements #283 by enabling the existing vector-based growable
+accumulator invariant emission for multiple independent accumulators in one
+`for of` body. It also consumes one narrow #281 sub-shape: direct
+`target = target + loop_var` updates where the loop item type has a static,
+nonnegative high bound. Broader dynamic-delta inference remains in #281:
+field reads, arithmetic on the item, condition-derived bounds, dynamic ranges,
+and other non-direct item expressions are still out of scope.
+
 ---
 
 # PR12: Tooling and Developer Ergonomics
