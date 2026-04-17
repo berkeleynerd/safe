@@ -3,9 +3,9 @@ Source: tests/negative/neg_string_concat_type_mismatch.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_string_concat_type_mismatch.safe:6:28: error: & concatenation requires string or compatible growable-array operands
+neg_string_concat_type_mismatch.safe:6:32: error: & concatenation requires string or compatible growable-array operands
   |
-  | 6 |       combined : integer = left & right;
-  |   |                            ^~~~~~~~~~~~
+  | 6 |       var combined : integer = left & right
+  |   |                                ^~~~~~~~~~~~
   |
 ------------------------------------------------------------------------

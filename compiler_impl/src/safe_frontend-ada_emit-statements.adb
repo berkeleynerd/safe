@@ -4339,21 +4339,31 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            elsif Base_Info.Has_Low
                            then CM.Wide_Integer (Base_Info.Low)
                            else CM.Wide_Integer (Long_Long_Integer'First));
-                        Required_Headroom : constant CM.Wide_Integer :=
-                          CM.Wide_Integer (Max_Delta) * CM.Wide_Integer (Natural'Last);
                         Runtime_Wide_Last : constant CM.Wide_Integer :=
                           CM.Wide_Integer (Long_Long_Integer'Last);
                         Range_Width : constant CM.Wide_Integer :=
                           High_Value - Low_Value;
+                        Max_Delta_Wide : constant CM.Wide_Integer :=
+                          CM.Wide_Integer (Max_Delta);
                      begin
                         --  The emitted invariant performs the headroom arithmetic in
                         --  Safe_Runtime.Wide_Integer. Require the conservative
                         --  Natural'Last budget to fit that runtime type as well as
                         --  the accumulator's declared range.
-                        return Max_Delta > 0
-                          and then Low_Value <= High_Value
-                          and then Required_Headroom <= Runtime_Wide_Last
-                          and then Required_Headroom <= Range_Width;
+                        if Max_Delta <= 0
+                          or else Low_Value > High_Value
+                          or else Max_Delta_Wide
+                            > Runtime_Wide_Last / CM.Wide_Integer (Natural'Last)
+                        then
+                           return False;
+                        end if;
+                        declare
+                           Required_Headroom : constant CM.Wide_Integer :=
+                             Max_Delta_Wide * CM.Wide_Integer (Natural'Last);
+                        begin
+                           return Required_Headroom <= Runtime_Wide_Last
+                             and then Required_Headroom <= Range_Width;
+                        end;
                      end Growable_Accumulator_Headroom_OK;
 
                      function Contains_Growable_Accumulator (Name : String) return Boolean is
@@ -4615,6 +4625,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                 (Stmt.Then_Stmts,
                                  Max_Step,
                                  Unsafe);
+                              if Unsafe then
+                                 return;
+                              end if;
                               for Part of Stmt.Elsifs loop
                                  if Expr_Uses_Name (Part.Condition, Name) then
                                     Unsafe := True;
@@ -4624,7 +4637,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                    (Part.Statements,
                                     Max_Step,
                                     Unsafe);
+                                 exit when Unsafe;
                               end loop;
+                              if Unsafe then
+                                 return;
+                              end if;
                               if Stmt.Has_Else then
                                  Add_Branch
                                    (Stmt.Else_Stmts,
@@ -4646,6 +4663,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                    (Arm.Statements,
                                     Max_Step,
                                     Unsafe);
+                                 exit when Unsafe;
                               end loop;
 
                            when CM.Stmt_Match =>
@@ -4664,6 +4682,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                    (Arm.Statements,
                                     Max_Step,
                                     Unsafe);
+                                 exit when Unsafe;
                               end loop;
 
                            when CM.Stmt_Select =>
@@ -4716,11 +4735,19 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      function String_Growth_Accumulator_Headroom_OK
                        (Max_Delta : Long_Long_Integer) return Boolean
                      is
-                        Required_Headroom : constant CM.Wide_Integer :=
-                          CM.Wide_Integer (Max_Delta) * CM.Wide_Integer (Natural'Last);
+                        Runtime_Wide_Last : constant CM.Wide_Integer :=
+                          CM.Wide_Integer (Long_Long_Integer'Last);
+                        Max_Delta_Wide : constant CM.Wide_Integer :=
+                          CM.Wide_Integer (Max_Delta);
                      begin
-                        return Max_Delta > 0
-                          and then Required_Headroom <= CM.Wide_Integer (Long_Long_Integer'Last);
+                        if Max_Delta <= 0
+                          or else Max_Delta_Wide
+                            > Runtime_Wide_Last / CM.Wide_Integer (Natural'Last)
+                        then
+                           return False;
+                        end if;
+                        return Max_Delta_Wide * CM.Wide_Integer (Natural'Last)
+                          <= Runtime_Wide_Last;
                      end String_Growth_Accumulator_Headroom_OK;
 
                      function Contains_String_Growth_Accumulator (Name : String) return Boolean is

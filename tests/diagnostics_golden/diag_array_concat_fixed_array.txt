@@ -1,0 +1,11 @@
+Diagnostics Golden: Fixed Array Concatenation Rejection
+Source: tests/negative/neg_array_concat_fixed_array.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_array_concat_fixed_array.safe:9:31: error: growable-array concatenation requires arrays with compatible element types
+  |
+  | 9 |       var combined : window = left & right
+  |   |                               ^~~~~~~~~~~~
+  |
+------------------------------------------------------------------------

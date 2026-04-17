@@ -8102,16 +8102,14 @@ package body Safe_Frontend.Check_Resolve is
                               Span    => Expr.Span,
                               Message => "string concatenation requires string operands"));
                      end if;
-                  elsif FT.Lowercase (UString_Value (Left_Type.Kind)) = "array"
-                    or else FT.Lowercase (UString_Value (Right_Type.Kind)) = "array"
+                  elsif Is_Array_Type (Left_Type, Type_Env)
+                    or else Is_Array_Type (Right_Type, Type_Env)
                   then
-                     if FT.Lowercase (UString_Value (Left_Type.Kind)) /= "array"
-                       or else FT.Lowercase (UString_Value (Right_Type.Kind)) /= "array"
-                       or else not Left_Type.Has_Component_Type
-                       or else not Right_Type.Has_Component_Type
+                     if not Is_Growable_Array_Type (Left_Type, Type_Env)
+                       or else not Is_Growable_Array_Type (Right_Type, Type_Env)
                        or else not Compatible_Type
-                         (Resolve_Type (UString_Value (Left_Type.Component_Type), Type_Env, "", FT.Null_Span),
-                          Resolve_Type (UString_Value (Right_Type.Component_Type), Type_Env, "", FT.Null_Span),
+                         (Growable_Array_Element_Type (Left_Type, Type_Env),
+                          Growable_Array_Element_Type (Right_Type, Type_Env),
                           Type_Env)
                      then
                         Raise_Diag
