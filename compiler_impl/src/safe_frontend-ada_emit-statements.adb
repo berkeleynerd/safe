@@ -1691,7 +1691,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       function Is_String_Length_Select (Expr : CM.Expr_Access) return Boolean is
       begin
-         if not Is_Length_Select (Expr) then
+         if Expr = null
+           or else Expr.Kind /= CM.Expr_Select
+           or else Expr.Prefix = null
+           or else FT.To_String (Expr.Selector) /= "length"
+         then
             return False;
          end if;
 
@@ -1799,6 +1803,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
            and then Is_Integer_Operand (Condition.Right)
          then
             return "Decreases => " & FT.To_String (Condition.Left.Name);
+         elsif Is_Integer_Ident (Condition.Left) then
+            Raise_Internal
+              ("while-variant countdown right bound accepted by MIR but not recognised as a constant during Ada emission");
          elsif Is_String_Length_Select (Condition.Left)
            and then Is_Positive_Right_Bound (Operator, Condition.Right)
          then
