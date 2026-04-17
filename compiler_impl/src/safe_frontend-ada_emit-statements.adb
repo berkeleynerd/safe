@@ -1620,6 +1620,16 @@ package body Safe_Frontend.Ada_Emit.Statements is
                (Unit, Document, Resolved_Type_Info (Expr));
       end Is_Integer_Ident;
 
+      function Is_Integer_Operand (Expr : CM.Expr_Access) return Boolean is
+      begin
+         --  Keep mirrored with While_Variant_Derivable.Is_Integer_Operand.
+         return
+           Expr /= null
+           and then
+             (Expr.Kind = CM.Expr_Int
+              or else Is_Integer_Ident (Expr));
+      end Is_Integer_Operand;
+
       function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
       begin
          if Expr = null
@@ -1735,12 +1745,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
          --  > 0 / >= 1 because the runtime contracts only expose empty-bound
          --  decrease facts.
          if Is_Integer_Ident (Condition.Left)
-           and then Is_Integer_Ident (Condition.Right)
-         then
-            return "Decreases => " & FT.To_String (Condition.Left.Name);
-         elsif Is_Integer_Ident (Condition.Left)
-           and then Condition.Right /= null
-           and then Condition.Right.Kind = CM.Expr_Int
+           and then Is_Integer_Operand (Condition.Right)
          then
             return "Decreases => " & FT.To_String (Condition.Left.Name);
          elsif Is_Length_Select (Condition.Left)

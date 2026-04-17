@@ -3357,6 +3357,7 @@ package body Safe_Frontend.Mir_Analyze is
 
       function Is_Integer_Operand (Expr : GM.Expr_Access) return Boolean is
       begin
+         --  Keep mirrored with Loop_Variant_Image.Is_Integer_Operand.
          return
            Expr /= null
            and then

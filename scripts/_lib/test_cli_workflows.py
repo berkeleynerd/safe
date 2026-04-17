@@ -98,7 +98,7 @@ BUILD_SUCCESS_CASES = [
     ),
     (
         REPO_ROOT / "tests" / "build" / "pr1123b_while_variant_patterns_build.safe",
-        "0\n0\n0\n0\n0\n0\n0\n0\n0\n",
+        "0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n",
         False,
     ),
     (
