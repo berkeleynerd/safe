@@ -191,6 +191,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_string_concat_type_mismatch.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_string_concat_array_mismatch.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_string_concat_array_mismatch.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_array_concat_fixed_array.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_array_concat_fixed_array.txt",
     ),

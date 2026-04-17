@@ -167,7 +167,7 @@ proved, 1 Silver VC justified, and 0 unproved. Its 16 templates account for
 | Companion template VCs | 553 total (414 proved, 1 justified, 0 unproved, 138 flow passed) |
 | Companion templates | 16 templates, 315 template checks |
 | Tracked proof assumptions | [13](companion/assumptions.yaml) (12 open, 1 resolved) |
-| Test corpus | 643 `.safe` files (positive, negative, build, concurrency, interfaces, embedded) |
+| Test corpus | 644 `.safe` files (positive, negative, build, concurrency, interfaces, embedded) |
 | Embedded evidence lane | STM32F4 / Jorvik / Renode (blocking in CI) |
 | Compiler size | ~73K LOC Ada across 75 source files |
 | Emitter size | ~26K LOC Ada across 14 emitter source files |

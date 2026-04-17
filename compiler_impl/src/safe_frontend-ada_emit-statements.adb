@@ -4664,6 +4664,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                     Unsafe);
                                  exit when Unsafe;
                               end loop;
+                              if Unsafe then
+                                 return;
+                              end if;
 
                            when CM.Stmt_Match =>
                               if Expr_Uses_Name (Stmt.Match_Expr, Name) then
@@ -4683,6 +4686,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                     Unsafe);
                                  exit when Unsafe;
                               end loop;
+                              if Unsafe then
+                                 return;
+                              end if;
 
                            when CM.Stmt_Select =>
                               Unsafe := True;
@@ -4739,6 +4745,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         Max_Delta_Wide : constant CM.Wide_Integer :=
                           CM.Wide_Integer (Max_Delta);
                      begin
+                        --  Capacity feasibility is left to GNATprove: when the
+                        --  emitted invariant is too strong for a specific bound,
+                        --  proof fails closed instead of silently accepting it.
                         return Max_Delta > 0
                           and then Max_Delta_Wide
                             <= Runtime_Wide_Last / CM.Wide_Integer (Natural'Last);

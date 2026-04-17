@@ -1,0 +1,11 @@
+Diagnostics Golden: String Concatenation Array Mismatch
+Source: tests/negative/neg_string_concat_array_mismatch.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_string_concat_array_mismatch.safe:8:35: error: string concatenation requires string operands
+  |
+  | 8 |       var combined : string (8) = text & values
+  |   |                                   ^~~~~~~~~~~~~
+  |
+------------------------------------------------------------------------
