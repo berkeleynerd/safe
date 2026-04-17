@@ -1649,15 +1649,27 @@ package body Safe_Frontend.Ada_Emit.Statements is
       end Is_Constant_Ident;
 
       function Is_Integer_Operand (Expr : CM.Expr_Access) return Boolean is
+         Bound_Info : GM.Type_Descriptor := (others => <>);
       begin
          --  Keep mirrored with While_Variant_Derivable.Is_Integer_Operand.
          --  Identifier bounds are limited to constants so the emitted
          --  left-side variant is not accepted for a moving lower bound.
-         return
-           Expr /= null
-           and then
-             (Expr.Kind = CM.Expr_Int
-              or else (Is_Constant_Ident (Expr) and then Is_Integer_Ident (Expr)));
+         if Expr = null then
+            return False;
+         elsif Expr.Kind = CM.Expr_Int then
+            return True;
+         elsif Expr.Kind = CM.Expr_Ident and then Is_Integer_Ident (Expr) then
+            if Is_Constant_Ident (Expr) then
+               return True;
+            elsif not Lookup_Bound_Type (State, FT.To_String (Expr.Name), Bound_Info) then
+               Raise_Internal
+                 ("while-variant identifier `"
+                  & FT.To_String (Expr.Name)
+                  & "` is missing a binding during constant-bound emission");
+            end if;
+         end if;
+
+         return False;
       end Is_Integer_Operand;
 
       function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
@@ -1677,10 +1689,27 @@ package body Safe_Frontend.Ada_Emit.Statements is
               FT.Lowercase (FT.To_String (Prefix_Info.Kind));
          begin
             --  Match MIR validation: only string/array length attributes are
-            --  derivable variants; record fields named "length" are excluded.
+            --  derivable equality variants; record fields named "length" are
+            --  excluded. Strict countdown drains narrow this further to
+            --  strings until array runtime contracts expose strict-decrease
+            --  facts.
             return Prefix_Kind = "string" or else Prefix_Kind = "array";
          end;
       end Is_Length_Select;
+
+      function Is_String_Length_Select (Expr : CM.Expr_Access) return Boolean is
+      begin
+         if not Is_Length_Select (Expr) then
+            return False;
+         end if;
+
+         declare
+            Prefix_Info : constant GM.Type_Descriptor :=
+              Resolved_Type_Info (Expr.Prefix);
+         begin
+            return FT.Lowercase (FT.To_String (Prefix_Info.Kind)) = "string";
+         end;
+      end Is_String_Length_Select;
 
       function Is_Zero (Expr : CM.Expr_Access) return Boolean is
       begin
@@ -1759,7 +1788,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                then
                   return "Decreases => " & FT.To_String (Condition.Right.Name);
                elsif Has_Positive_Left_Bound
-                 and then Is_Length_Select (Condition.Right)
+                 and then Is_String_Length_Select (Condition.Right)
                then
                   return
                     "Decreases => "
@@ -1778,7 +1807,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
            and then Is_Integer_Operand (Condition.Right)
          then
             return "Decreases => " & FT.To_String (Condition.Left.Name);
-         elsif Is_Length_Select (Condition.Left)
+         elsif Is_String_Length_Select (Condition.Left)
            and then Is_Positive_Right_Bound (Operator, Condition.Right)
          then
             return

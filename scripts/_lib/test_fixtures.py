@@ -147,6 +147,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_while_variant_length_bound.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_while_variant_array_length_drain.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_while_variant_array_length_drain.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_while_variant_mutable_bound.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_while_variant_mutable_bound.txt",
     ),

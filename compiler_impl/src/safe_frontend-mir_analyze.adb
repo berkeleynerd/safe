@@ -3349,6 +3349,17 @@ package body Safe_Frontend.Mir_Analyze is
          return Lower (UString_Value (Prefix_Type.Kind)) in "string" | "array";
       end Is_Length_Select;
 
+      function Is_String_Length_Select (Expr : GM.Expr_Access) return Boolean is
+         Prefix_Type : GM.Type_Descriptor;
+      begin
+         if not Is_Length_Select (Expr) then
+            return False;
+         end if;
+
+         Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
+         return Lower (UString_Value (Prefix_Type.Kind)) = "string";
+      end Is_String_Length_Select;
+
       function Is_Integer_Ident (Expr : GM.Expr_Access) return Boolean is
       begin
          return
@@ -3427,19 +3438,19 @@ package body Safe_Frontend.Mir_Analyze is
            (Is_Positive_Left_Mirror_Bound (UString_Value (Condition.Operator), Condition.Left)
             and then
               (Is_Integer_Ident (Condition.Right)
-               or else Is_Length_Select (Condition.Right)));
+               or else Is_String_Length_Select (Condition.Right)));
       elsif UString_Value (Condition.Operator) in ">" | ">=" then
          --  Descending integer countdowns track the left side in the emitter.
          --  The right side may be a literal or constant identifier; mutable
          --  right-side identifiers are rejected here rather than left to a
-         --  downstream proof failure. Length drains stay limited to > 0 / >= 1
-         --  because the runtime contracts only expose empty-bound decrease
-         --  facts.
+         --  downstream proof failure. Length drains stay limited to string
+         --  > 0 / >= 1 because array runtime contracts do not expose
+         --  strict-decrease facts yet.
          return
            (Is_Integer_Ident (Condition.Left)
             and then Is_Integer_Operand (Condition.Right))
            or else
-           (Is_Length_Select (Condition.Left)
+           (Is_String_Length_Select (Condition.Left)
             and then Is_Positive_Right_Bound
               (UString_Value (Condition.Operator), Condition.Right));
       elsif UString_Value (Condition.Operator) = "==" then
@@ -3473,10 +3484,10 @@ package body Safe_Frontend.Mir_Analyze is
         (FT.To_UString
            ("supported while-loop proof shapes are structural `Cursor != null` traversal,"
             & " simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, literal-left"
-            & " mirror forms like `0 < remaining` / `1 <= values.length`, countdown"
+            & " mirror forms like `0 < remaining` / `1 <= text.length`, countdown"
             & " guards like `remaining > 0`, `remaining >= 1`, `index > constant_bound`,"
             & " or `index >= constant_bound`, and direct length guards like"
-            & " `values.length == N`, `values.length > 0`, or `values.length >= 1`."));
+            & " `values.length == N`, `text.length > 0`, or `text.length >= 1`."));
       Result.Notes.Append
         (FT.To_UString
            ("rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant."));

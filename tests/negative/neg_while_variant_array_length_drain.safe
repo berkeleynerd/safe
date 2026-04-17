@@ -1,0 +1,13 @@
+-- Test: neg_while_variant_array_length_drain
+-- Description: Array/list length drains stay outside automatic Loop_Variant derivation until runtime contracts expose strict-decrease facts.
+-- Expected: REJECT loop_variant_not_derivable
+
+package neg_while_variant_array_length_drain
+
+   function drain returns integer
+      var values : list of integer = [1, 2];
+
+      while values.length > 0
+         last : constant optional integer = pop_last (values);
+
+      return values.length

@@ -8,6 +8,6 @@ neg_while_variant_length_bound.safe:10:13: error: current proof surface cannot d
   | 10 |       while text.length > 2
   |    |             ^~~~~~~~~~~~~~~
   |
-  note: supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, literal-left mirror forms like `0 < remaining` / `1 <= values.length`, countdown guards like `remaining > 0`, `remaining >= 1`, `index > constant_bound`, or `index >= constant_bound`, and direct length guards like `values.length == N`, `values.length > 0`, or `values.length >= 1`.
+  note: supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, literal-left mirror forms like `0 < remaining` / `1 <= text.length`, countdown guards like `remaining > 0`, `remaining >= 1`, `index > constant_bound`, or `index >= constant_bound`, and direct length guards like `values.length == N`, `text.length > 0`, or `text.length >= 1`.
   note: rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant.
 ------------------------------------------------------------------------
