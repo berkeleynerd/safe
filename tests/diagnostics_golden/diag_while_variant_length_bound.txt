@@ -1,12 +1,12 @@
-Diagnostics Golden: Loop Variant Not Derivable
-Source: tests/negative/neg_while_variant_not_derivable.safe
+Diagnostics Golden: While Variant Length Bound
+Source: tests/negative/neg_while_variant_length_bound.safe
 
 Expected diagnostic output:
 ------------------------------------------------------------------------
-neg_while_variant_not_derivable.safe:16:13: error: current proof surface cannot derive a supported Loop_Variant from this while condition
+neg_while_variant_length_bound.safe:10:13: error: current proof surface cannot derive a supported Loop_Variant from this while condition
   |
-  | 16 |       while value < goal
-  |    |             ^~~~~~~~~~~~
+  | 10 |       while text.length > 2
+  |    |             ^~~~~~~~~~~~~~~
   |
   note: supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, literal-left mirror forms like `0 < remaining` / `1 <= text.length`, countdown guards like `remaining > 0`, `remaining >= 1`, `index > constant_bound`, or `index >= constant_bound`, direct length guards like `values.length == N`, and string length guards like `text.length > 0` or `text.length >= 1` (strings only).
   note: for `>` / `>=` two-identifier countdown guards, the right-hand bound must be a literal or constant; use `Lo < Hi` / `Lo <= Hi` for bidirectional moving bounds.

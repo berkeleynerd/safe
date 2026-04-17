@@ -490,6 +490,7 @@ package body Safe_Frontend.Mir_Analyze is
       Functions  : Function_Maps.Map) return Float_Interval;
    function While_Variant_Derivable
      (Condition : GM.Expr_Access;
+      Local_Meta : Local_Maps.Map;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map) return Boolean;
@@ -3326,10 +3327,15 @@ package body Safe_Frontend.Mir_Analyze is
 
    function While_Variant_Derivable
      (Condition : GM.Expr_Access;
+      Local_Meta : Local_Maps.Map;
       Var_Types : Type_Maps.Map;
       Type_Env  : Type_Maps.Map;
       Functions : Function_Maps.Map) return Boolean
    is
+      --  Keep these recognizers in lockstep with Loop_Variant_Image in
+      --  Ada_Emit.Statements. The MIR gate decides which guards are accepted;
+      --  the emitter must produce the same variant shape for each accepted
+      --  guard.
       function Is_Length_Select (Expr : GM.Expr_Access) return Boolean is
          Prefix_Type : GM.Type_Descriptor;
       begin
@@ -3342,6 +3348,70 @@ package body Safe_Frontend.Mir_Analyze is
          Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
          return Lower (UString_Value (Prefix_Type.Kind)) in "string" | "array";
       end Is_Length_Select;
+
+      function Is_String_Length_Select (Expr : GM.Expr_Access) return Boolean is
+         Prefix_Type : GM.Type_Descriptor;
+      begin
+         if not Is_Length_Select (Expr) then
+            return False;
+         end if;
+
+         Prefix_Type := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
+         return Lower (UString_Value (Prefix_Type.Kind)) = "string";
+      end Is_String_Length_Select;
+
+      function Is_Integer_Ident (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then Expr.Kind = GM.Expr_Ident
+           and then Is_Integer_Type (Expr_Type (Expr, Var_Types, Type_Env, Functions));
+      end Is_Integer_Ident;
+
+      function Is_Integer_Operand (Expr : GM.Expr_Access) return Boolean is
+      begin
+         --  Keep mirrored with Loop_Variant_Image.Is_Integer_Operand.
+         --  Identifier bounds are limited to constants so a descending
+         --  left-side variant does not admit a moving lower bound.
+         return
+           Expr /= null
+           and then
+             (Expr.Kind = GM.Expr_Int
+              or else
+              (Expr.Kind = GM.Expr_Ident
+               and then Is_Constant_Target (Expr, Local_Meta)
+               and then Is_Integer_Type (Expr_Type (Expr, Var_Types, Type_Env, Functions))));
+      end Is_Integer_Operand;
+
+      function Is_Zero (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = GM.Expr_Int and then Expr.Int_Value = 0;
+      end Is_Zero;
+
+      function Is_One (Expr : GM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = GM.Expr_Int and then Expr.Int_Value = 1;
+      end Is_One;
+
+      function Is_Positive_Right_Bound
+        (Op    : String;
+         Bound : GM.Expr_Access) return Boolean is
+      begin
+         return
+           (Op = ">" and then Is_Zero (Bound))
+           or else
+           (Op = ">=" and then Is_One (Bound));
+      end Is_Positive_Right_Bound;
+
+      function Is_Positive_Left_Mirror_Bound
+        (Op    : String;
+         Bound : GM.Expr_Access) return Boolean is
+      begin
+         return
+           (Op = "<" and then Is_Zero (Bound))
+           or else
+           (Op = "<=" and then Is_One (Bound));
+      end Is_Positive_Left_Mirror_Bound;
    begin
       if Condition = null or else Condition.Kind /= GM.Expr_Binary then
          return False;
@@ -3361,16 +3431,28 @@ package body Safe_Frontend.Mir_Analyze is
             and then Condition.Left.Kind = GM.Expr_Null
             and then Flatten_Name (Condition.Right)'Length > 0);
       elsif UString_Value (Condition.Operator) in "<" | "<=" then
-         if Condition.Left /= null
-           and then Condition.Right /= null
-           and then Condition.Left.Kind = GM.Expr_Ident
-           and then Condition.Right.Kind = GM.Expr_Ident
-         then
-            return
-              Is_Integer_Type (Expr_Type (Condition.Left, Var_Types, Type_Env, Functions))
-              and then
-              Is_Integer_Type (Expr_Type (Condition.Right, Var_Types, Type_Env, Functions));
-         end if;
+         return
+           (Is_Integer_Ident (Condition.Left)
+            and then Is_Integer_Ident (Condition.Right))
+           or else
+           (Is_Positive_Left_Mirror_Bound (UString_Value (Condition.Operator), Condition.Left)
+            and then
+              (Is_Integer_Ident (Condition.Right)
+               or else Is_String_Length_Select (Condition.Right)));
+      elsif UString_Value (Condition.Operator) in ">" | ">=" then
+         --  Descending integer countdowns track the left side in the emitter.
+         --  The right side may be a literal or constant identifier; mutable
+         --  right-side identifiers are rejected here rather than left to a
+         --  downstream proof failure. Length drains stay limited to string
+         --  > 0 / >= 1 because array runtime contracts do not expose
+         --  strict-decrease facts yet.
+         return
+           (Is_Integer_Ident (Condition.Left)
+            and then Is_Integer_Operand (Condition.Right))
+           or else
+           (Is_String_Length_Select (Condition.Left)
+            and then Is_Positive_Right_Bound
+              (UString_Value (Condition.Operator), Condition.Right));
       elsif UString_Value (Condition.Operator) = "==" then
          return
            (Is_Length_Select (Condition.Left)
@@ -3400,7 +3482,16 @@ package body Safe_Frontend.Mir_Analyze is
       Result.Highlight_Span := Focus;
       Result.Notes.Append
         (FT.To_UString
-           ("supported while-loop proof shapes are structural `Cursor != null` traversal, simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, and direct exact-length guards like `values.length == N`."));
+           ("supported while-loop proof shapes are structural `Cursor != null` traversal,"
+            & " simple integer-bound `Lo < Hi` / `Lo <= Hi` conditions, literal-left"
+            & " mirror forms like `0 < remaining` / `1 <= text.length`, countdown"
+            & " guards like `remaining > 0`, `remaining >= 1`, `index > constant_bound`,"
+            & " or `index >= constant_bound`, direct length guards like"
+            & " `values.length == N`, and string length guards like"
+            & " `text.length > 0` or `text.length >= 1` (strings only)."));
+      Result.Notes.Append
+        (FT.To_UString
+           ("for `>` / `>=` two-identifier countdown guards, the right-hand bound must be a literal or constant; use `Lo < Hi` / `Lo <= Hi` for bidirectional moving bounds."));
       Result.Notes.Append
         (FT.To_UString
            ("rewrite the loop to match one of those forms, or use a different construct whose termination proof does not depend on an emitted Loop_Variant."));
@@ -6232,6 +6323,7 @@ package body Safe_Frontend.Mir_Analyze is
                   if UString_Value (Block.Role) = "while_header"
                     and then not While_Variant_Derivable
                       (Block.Terminator.Condition,
+                       Local_Meta,
                        Var_Types,
                        Type_Env,
                        Functions)

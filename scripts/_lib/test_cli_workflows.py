@@ -97,6 +97,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr1123b_while_variant_patterns_build.safe",
+        "0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr223_imported_enum_comparison_build.safe",
         "1\n",
         False,

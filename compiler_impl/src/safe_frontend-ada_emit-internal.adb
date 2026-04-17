@@ -648,7 +648,8 @@ package body Safe_Frontend.Ada_Emit.Internal is
    procedure Add_Type_Binding
      (State     : in out Emit_State;
       Name      : String;
-      Type_Info : GM.Type_Descriptor) is
+      Type_Info : GM.Type_Descriptor;
+      Is_Constant : Boolean := False) is
    begin
       if State.Type_Binding_Stack.Is_Empty then
          Raise_Internal ("type binding added outside an active binding scope during Ada emission");
@@ -659,7 +660,8 @@ package body Safe_Frontend.Ada_Emit.Internal is
       begin
          Frame.Bindings.Append
            ((Name      => FT.To_UString (Name),
-             Type_Info => Type_Info));
+             Type_Info => Type_Info,
+             Is_Constant => Is_Constant));
          State.Type_Binding_Stack.Replace_Element (State.Type_Binding_Stack.Last_Index, Frame);
       end;
    end Add_Type_Binding;
@@ -670,7 +672,8 @@ package body Safe_Frontend.Ada_Emit.Internal is
    begin
       for Decl of Declarations loop
          for Name of Decl.Names loop
-            Add_Type_Binding (State, FT.To_String (Name), Decl.Type_Info);
+            Add_Type_Binding
+              (State, FT.To_String (Name), Decl.Type_Info, Decl.Is_Constant);
          end loop;
       end loop;
    end Register_Type_Bindings;
@@ -681,7 +684,8 @@ package body Safe_Frontend.Ada_Emit.Internal is
    begin
       for Decl of Declarations loop
          for Name of Decl.Names loop
-            Add_Type_Binding (State, FT.To_String (Name), Decl.Type_Info);
+            Add_Type_Binding
+              (State, FT.To_String (Name), Decl.Type_Info, Decl.Is_Constant);
          end loop;
       end loop;
    end Register_Type_Bindings;
@@ -725,6 +729,35 @@ package body Safe_Frontend.Ada_Emit.Internal is
 
       return False;
    end Lookup_Bound_Type;
+
+   function Lookup_Bound_Is_Constant
+     (State : Emit_State;
+      Name  : String) return Boolean is
+   begin
+      if Name'Length = 0 or else State.Type_Binding_Stack.Is_Empty then
+         return False;
+      end if;
+
+      for Frame_Index in reverse State.Type_Binding_Stack.First_Index .. State.Type_Binding_Stack.Last_Index loop
+         declare
+            Frame : constant Type_Binding_Frame := State.Type_Binding_Stack (Frame_Index);
+         begin
+            if not Frame.Bindings.Is_Empty then
+               for Binding_Index in reverse Frame.Bindings.First_Index .. Frame.Bindings.Last_Index loop
+                  declare
+                     Binding : constant Type_Binding := Frame.Bindings (Binding_Index);
+                  begin
+                     if FT.To_String (Binding.Name) = Name then
+                        return Binding.Is_Constant;
+                     end if;
+                  end;
+               end loop;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Lookup_Bound_Is_Constant;
 
    procedure Push_Cleanup_Frame (State : in out Emit_State) is
    begin

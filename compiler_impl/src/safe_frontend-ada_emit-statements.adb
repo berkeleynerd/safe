@@ -94,7 +94,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
    procedure Add_Type_Binding
      (State     : in out Emit_State;
       Name      : String;
-      Type_Info : GM.Type_Descriptor) renames AI.Add_Type_Binding;
+      Type_Info : GM.Type_Descriptor;
+      Is_Constant : Boolean := False) renames AI.Add_Type_Binding;
    procedure Register_Type_Bindings
      (State        : in out Emit_State;
       Declarations : CM.Resolved_Object_Decl_Vectors.Vector) renames AI.Register_Type_Bindings;
@@ -108,6 +109,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (State     : Emit_State;
       Name      : String;
       Type_Info : out GM.Type_Descriptor) return Boolean renames AI.Lookup_Bound_Type;
+   function Lookup_Bound_Is_Constant
+     (State : Emit_State;
+      Name  : String) return Boolean renames AI.Lookup_Bound_Is_Constant;
    procedure Push_Cleanup_Frame (State : in out Emit_State) renames AI.Push_Cleanup_Frame;
    procedure Pop_Cleanup_Frame (State : in out Emit_State) renames AI.Pop_Cleanup_Frame;
    procedure Add_Cleanup_Item
@@ -1593,6 +1597,145 @@ package body Safe_Frontend.Ada_Emit.Statements is
    is
       Operator : constant String :=
         (if Condition = null then "" else Map_Operator (FT.To_String (Condition.Operator)));
+
+      --  Keep these recognizers in lockstep with While_Variant_Derivable in
+      --  Mir_Analyze. The validator decides which guards are accepted; the
+      --  emitter must produce the same variant shape for each accepted guard.
+      function Resolved_Type_Info (Expr : CM.Expr_Access) return GM.Type_Descriptor is
+         Annotated_Info : constant GM.Type_Descriptor :=
+           Expr_Type_Info (Unit, Document, Expr);
+         Bound_Info : GM.Type_Descriptor := (others => <>);
+      begin
+         if Has_Text (Annotated_Info.Kind) then
+            return Annotated_Info;
+         end if;
+
+         if Expr /= null
+           and then Expr.Kind = CM.Expr_Ident
+           and then Lookup_Bound_Type (State, FT.To_String (Expr.Name), Bound_Info)
+         then
+            return Bound_Info;
+         end if;
+
+         if Expr /= null and then Expr.Kind = CM.Expr_Ident then
+            --  Invariant: identifiers that reach emission in accepted
+            --  while-variant guards were bound by Register_Type_Bindings or
+            --  Register_Param_Type_Bindings during statement rendering.
+            Raise_Internal
+              ("while-variant identifier `"
+               & FT.To_String (Expr.Name)
+               & "` is missing type information during Ada emission");
+         end if;
+
+         return Annotated_Info;
+      end Resolved_Type_Info;
+
+      function Is_Integer_Ident (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then Expr.Kind = CM.Expr_Ident
+           and then
+             Is_Integer_Type
+                 (Unit, Document, Resolved_Type_Info (Expr));
+      end Is_Integer_Ident;
+
+      function Is_Constant_Ident (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return
+           Expr /= null
+           and then Expr.Kind = CM.Expr_Ident
+           and then Lookup_Bound_Is_Constant (State, FT.To_String (Expr.Name));
+      end Is_Constant_Ident;
+
+      function Is_Integer_Operand (Expr : CM.Expr_Access) return Boolean is
+      begin
+         --  Keep mirrored with While_Variant_Derivable.Is_Integer_Operand.
+         --  Identifier bounds are limited to constants so the emitted
+         --  left-side variant is not accepted for a moving lower bound.
+         if Expr = null then
+            return False;
+         elsif Expr.Kind = CM.Expr_Int then
+            return True;
+         elsif Is_Constant_Ident (Expr) and then Is_Integer_Ident (Expr) then
+            return True;
+         end if;
+
+         return False;
+      end Is_Integer_Operand;
+
+      function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
+      begin
+         if Expr = null
+           or else Expr.Kind /= CM.Expr_Select
+           or else Expr.Prefix = null
+           or else FT.To_String (Expr.Selector) /= "length"
+         then
+            return False;
+         end if;
+
+         declare
+            Prefix_Info : constant GM.Type_Descriptor :=
+              Resolved_Type_Info (Expr.Prefix);
+            Prefix_Kind : constant String :=
+              FT.Lowercase (FT.To_String (Prefix_Info.Kind));
+         begin
+            --  Match MIR validation: only string/array length attributes are
+            --  derivable equality variants; record fields named "length" are
+            --  excluded. Strict countdown drains narrow this further to
+            --  strings until array runtime contracts expose strict-decrease
+            --  facts.
+            return Prefix_Kind = "string" or else Prefix_Kind = "array";
+         end;
+      end Is_Length_Select;
+
+      function Is_String_Length_Select (Expr : CM.Expr_Access) return Boolean is
+      begin
+         if Expr = null
+           or else Expr.Kind /= CM.Expr_Select
+           or else Expr.Prefix = null
+           or else FT.To_String (Expr.Selector) /= "length"
+         then
+            return False;
+         end if;
+
+         declare
+            Prefix_Info : constant GM.Type_Descriptor :=
+              Resolved_Type_Info (Expr.Prefix);
+         begin
+            return FT.Lowercase (FT.To_String (Prefix_Info.Kind)) = "string";
+         end;
+      end Is_String_Length_Select;
+
+      function Is_Zero (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = CM.Expr_Int and then Expr.Int_Value = 0;
+      end Is_Zero;
+
+      function Is_One (Expr : CM.Expr_Access) return Boolean is
+      begin
+         return Expr /= null and then Expr.Kind = CM.Expr_Int and then Expr.Int_Value = 1;
+      end Is_One;
+
+      function Is_Positive_Right_Bound
+        (Op    : String;
+         Bound : CM.Expr_Access) return Boolean is
+      begin
+         return
+           (Op = ">" and then Is_Zero (Bound))
+           or else
+           (Op = ">=" and then Is_One (Bound));
+      end Is_Positive_Right_Bound;
+
+      function Is_Positive_Left_Mirror_Bound
+        (Op    : String;
+         Bound : CM.Expr_Access) return Boolean is
+      begin
+         return
+           (Op = "<" and then Is_Zero (Bound))
+           or else
+           (Op = "<=" and then Is_One (Bound));
+      end Is_Positive_Left_Mirror_Bound;
    begin
       if Condition = null or else Condition.Kind /= CM.Expr_Binary then
          return "";
@@ -1623,44 +1766,71 @@ package body Safe_Frontend.Ada_Emit.Statements is
             end if;
          end;
       elsif Operator in "<" | "<=" then
-         if Condition.Left /= null
-           and then Condition.Right /= null
-           and then Condition.Left.Kind = CM.Expr_Ident
-           and then Condition.Right.Kind = CM.Expr_Ident
-           and then Is_Integer_Type (Unit, Document, FT.To_String (Condition.Left.Type_Name))
-           and then Is_Integer_Type (Unit, Document, FT.To_String (Condition.Right.Type_Name))
+         if Is_Integer_Ident (Condition.Left)
+           and then Is_Integer_Ident (Condition.Right)
          then
             return
               "Increases => "
               & FT.To_String (Condition.Left.Name)
               & ", Decreases => "
               & FT.To_String (Condition.Right.Name);
+         else
+            declare
+               Has_Positive_Left_Bound : constant Boolean :=
+                 Is_Positive_Left_Mirror_Bound (Operator, Condition.Left);
+            begin
+               if Has_Positive_Left_Bound
+                 and then Is_Integer_Ident (Condition.Right)
+               then
+                  return "Decreases => " & FT.To_String (Condition.Right.Name);
+               elsif Has_Positive_Left_Bound
+                 and then Is_String_Length_Select (Condition.Right)
+               then
+                  return
+                    "Decreases => "
+                    & Render_Expr (Unit, Document, Condition.Right, State);
+               end if;
+            end;
+         end if;
+      elsif Operator in ">" | ">=" then
+         --  Descending integer countdowns track the left side only. The right
+         --  side may be a literal or constant identifier; mutable right-side
+         --  identifiers are rejected during MIR validation rather than left to
+         --  a downstream proof failure. Length drains stay limited to
+         --  > 0 / >= 1 because the runtime contracts only expose empty-bound
+         --  decrease facts.
+         if Is_Integer_Ident (Condition.Left)
+           and then Is_Integer_Operand (Condition.Right)
+         then
+            return "Decreases => " & FT.To_String (Condition.Left.Name);
+         elsif Is_Integer_Ident (Condition.Left) then
+            Raise_Internal
+              ("while-variant countdown right bound accepted by MIR but not recognised as a constant during Ada emission");
+         elsif Is_String_Length_Select (Condition.Left)
+           and then Is_Positive_Right_Bound (Operator, Condition.Right)
+         then
+            return
+              "Decreases => "
+              & Render_Expr (Unit, Document, Condition.Left, State);
          end if;
       elsif Operator = "=" then
-         declare
-            function Is_Length_Select (Expr : CM.Expr_Access) return Boolean is
-            begin
-               return
-                 Expr /= null
-                 and then Expr.Kind = CM.Expr_Select
-                 and then FT.To_String (Expr.Selector) = "length";
-            end Is_Length_Select;
-         begin
-            if (Is_Length_Select (Condition.Left)
-                and then Condition.Right /= null
-                and then Condition.Right.Kind = CM.Expr_Int)
-              or else
-              (Is_Length_Select (Condition.Right)
-               and then Condition.Left /= null
-               and then Condition.Left.Kind = CM.Expr_Int)
-            then
-               return
-                 "Decreases => "
-                 & (if Is_Length_Select (Condition.Left)
-                    then Render_Expr (Unit, Document, Condition.Left, State)
-                    else Render_Expr (Unit, Document, Condition.Right, State));
-            end if;
-         end;
+         --  Lockstep fix: the old local helper did not check the prefix type,
+         --  so record fields named "length" could match here even though MIR
+         --  validation rejected them before emission.
+         if (Is_Length_Select (Condition.Left)
+             and then Condition.Right /= null
+             and then Condition.Right.Kind = CM.Expr_Int)
+           or else
+           (Is_Length_Select (Condition.Right)
+            and then Condition.Left /= null
+            and then Condition.Left.Kind = CM.Expr_Int)
+         then
+            return
+              "Decreases => "
+              & (if Is_Length_Select (Condition.Left)
+                 then Render_Expr (Unit, Document, Condition.Left, State)
+                 else Render_Expr (Unit, Document, Condition.Right, State));
+         end if;
       end if;
 
       return "";

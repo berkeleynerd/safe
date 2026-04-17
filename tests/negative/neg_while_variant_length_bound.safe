@@ -1,0 +1,13 @@
+-- Test: neg_while_variant_length_bound
+-- Description: Length guards with non-empty lower bounds stay outside automatic Loop_Variant derivation.
+-- Expected: REJECT loop_variant_not_derivable
+
+package neg_while_variant_length_bound
+
+   function shrink_text returns integer
+      var text : string = "abcdef";
+
+      while text.length > 2
+         text = "";
+
+      return text.length;

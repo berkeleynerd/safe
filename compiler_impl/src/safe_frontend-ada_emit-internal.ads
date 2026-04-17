@@ -34,6 +34,7 @@ private package Safe_Frontend.Ada_Emit.Internal is
    type Type_Binding is record
       Name      : FT.UString := FT.To_UString ("");
       Type_Info : GM.Type_Descriptor;
+      Is_Constant : Boolean := False;
    end record;
 
    package Type_Binding_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -274,7 +275,8 @@ private package Safe_Frontend.Ada_Emit.Internal is
    procedure Add_Type_Binding
      (State     : in out Emit_State;
       Name      : String;
-      Type_Info : GM.Type_Descriptor);
+      Type_Info : GM.Type_Descriptor;
+      Is_Constant : Boolean := False);
    procedure Register_Type_Bindings
      (State        : in out Emit_State;
       Declarations : CM.Resolved_Object_Decl_Vectors.Vector);
@@ -288,6 +290,9 @@ private package Safe_Frontend.Ada_Emit.Internal is
      (State     : Emit_State;
       Name      : String;
       Type_Info : out GM.Type_Descriptor) return Boolean;
+   function Lookup_Bound_Is_Constant
+     (State : Emit_State;
+      Name  : String) return Boolean;
    procedure Push_Cleanup_Frame (State : in out Emit_State);
    procedure Pop_Cleanup_Frame (State : in out Emit_State);
    procedure Add_Cleanup_Item

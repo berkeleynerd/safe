@@ -61,7 +61,8 @@ package body Safe_Frontend.Ada_Emit.Expressions is
    procedure Add_Type_Binding
      (State     : in out Emit_State;
       Name      : String;
-      Type_Info : GM.Type_Descriptor) renames AI.Add_Type_Binding;
+      Type_Info : GM.Type_Descriptor;
+      Is_Constant : Boolean := False) renames AI.Add_Type_Binding;
    procedure Register_Type_Bindings
      (State        : in out Emit_State;
       Declarations : CM.Resolved_Object_Decl_Vectors.Vector) renames AI.Register_Type_Bindings;
