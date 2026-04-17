@@ -8105,7 +8105,15 @@ package body Safe_Frontend.Check_Resolve is
                   elsif Is_Array_Type (Left_Type, Type_Env)
                     or else Is_Array_Type (Right_Type, Type_Env)
                   then
-                     if not Is_Growable_Array_Type (Left_Type, Type_Env)
+                     if not Is_Array_Type (Left_Type, Type_Env)
+                       or else not Is_Array_Type (Right_Type, Type_Env)
+                     then
+                        Raise_Diag
+                          (CM.Source_Frontend_Error
+                             (Path    => Path,
+                              Span    => Expr.Span,
+                              Message => "both operands of & must be growable arrays of compatible element types"));
+                     elsif not Is_Growable_Array_Type (Left_Type, Type_Env)
                        or else not Is_Growable_Array_Type (Right_Type, Type_Env)
                      then
                         Raise_Diag

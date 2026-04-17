@@ -1,0 +1,11 @@
+Diagnostics Golden: Growable Array Concatenation Scalar Mismatch
+Source: tests/negative/neg_array_concat_scalar_mismatch.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_array_concat_scalar_mismatch.safe:8:33: error: both operands of & must be growable arrays of compatible element types
+  |
+  | 8 |       var combined : int_list = values & extra
+  |   |                                 ^~~~~~~~~~~~~~
+  |
+------------------------------------------------------------------------

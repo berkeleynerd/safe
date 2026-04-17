@@ -1,0 +1,10 @@
+package neg_array_concat_scalar_mismatch
+
+   type int_list is array of integer;
+
+   function bad_concat returns integer
+      var values : int_list = [1, 2]
+      var extra : integer = 3
+      var combined : int_list = values & extra
+
+      return combined (1)
