@@ -1,0 +1,22 @@
+package pr1123e_multi_accumulator_build
+
+   subtype point is integer (0 to 40);
+
+   function stats returns integer
+      var items : list of point = [10, 20, 30, 40]
+      var sum : integer = 0
+      var count : integer = 0
+      var max_seen : point = 0
+
+      for item of items
+         sum = sum + item
+         count = count + 1
+         if item > max_seen
+            max_seen = item
+
+      if count == 4 and then sum == 100 and then max_seen == 40
+         return sum + count + max_seen
+
+      return 0
+
+   print (stats)

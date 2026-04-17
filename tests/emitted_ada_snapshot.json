@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "9d06a3268b12dcbf375b979180e301f482333b131a5e3106da2a49e1509f9d65",
+  "compiler_hash": "d7d9138fbdcc3fc26368eeb1cc8dfe2da347a43727160f87f82b3339e3602d9a",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -301,6 +301,11 @@
       "pr1123d_conditional_string_growth_build.adb": "526bf53d49ca104e3a1ddefc74e0d213df482dd681a16fe64ca9c1155d7ab170",
       "pr1123d_conditional_string_growth_build.ads": "afd4c12f8b8abebf26b97bd92b0b8f5f91e67ccd0f55bcf2e3810649e9e46a4a",
       "pr1123d_conditional_string_growth_build_line_map.json": "0ed1c92f51c81cfb48cd6c1d87d215bf48398319c8e81df659a851601096f85b"
+    },
+    "tests/build/pr1123e_multi_accumulator_build.safe": {
+      "pr1123e_multi_accumulator_build.adb": "ec1efe10a988b01ec9cacc2e6a5ffc3e54466ea431b5935c848c3868b425c964",
+      "pr1123e_multi_accumulator_build.ads": "2fe43e2baec486a30957e2a294408b1901c19b9d47dc7b1a97969bf808da1111",
+      "pr1123e_multi_accumulator_build_line_map.json": "1a5d3c11029d8a44cf6032d4db6fd74461cd99333971961838405cdc804a7b7d"
     },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",

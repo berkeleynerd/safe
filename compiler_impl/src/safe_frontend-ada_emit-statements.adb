@@ -4082,6 +4082,48 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return True;
                      end Try_Nonnegative_Static_Step;
 
+                     function Try_Direct_Loop_Item_Step
+                       (Expr       : CM.Expr_Access;
+                        Name       : String;
+                        Step_Value : out Long_Long_Integer) return Boolean
+                     is
+                        --  Narrow PR11.23e/#281 overlap: only a direct loop
+                        --  item with a static nonnegative range can bound one
+                        --  accumulator step. Field reads and item arithmetic
+                        --  remain fail-closed for the broader #281 work.
+                        Element_Base : constant GM.Type_Descriptor :=
+                          Base_Type (Unit, Document, Element_Info);
+                        Low_Value : constant Long_Long_Integer :=
+                          (if Element_Info.Has_Low
+                           then Element_Info.Low
+                           elsif Element_Base.Has_Low
+                           then Element_Base.Low
+                           else 0);
+                        High_Value : constant Long_Long_Integer :=
+                          (if Element_Info.Has_High
+                           then Element_Info.High
+                           elsif Element_Base.Has_High
+                           then Element_Base.High
+                           else 0);
+                     begin
+                        Step_Value := 0;
+                        if Expr = null
+                          or else Expr.Kind /= CM.Expr_Ident
+                          or else FT.To_String (Expr.Name) /= FT.To_String (Item.Loop_Var)
+                          or else Name = FT.To_String (Item.Loop_Var)
+                          or else not Is_Integer_Type (Unit, Document, Element_Info)
+                          or else not (Element_Info.Has_Low or else Element_Base.Has_Low)
+                          or else not (Element_Info.Has_High or else Element_Base.Has_High)
+                          or else Low_Value < 0
+                          or else High_Value <= 0
+                        then
+                           return False;
+                        end if;
+
+                        Step_Value := High_Value;
+                        return True;
+                     end Try_Direct_Loop_Item_Step;
+
                      function Supported_Accumulator_Assignment
                        (Stmt       : CM.Statement;
                         Name       : String;
@@ -4102,15 +4144,25 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            end if;
 
                            if Same_Target_Name (Value_Expr.Left, Name) then
-                              return Try_Nonnegative_Static_Step
-                                (Value_Expr.Right,
-                                 Name,
-                                 Step_Value);
+                              return
+                                Try_Nonnegative_Static_Step
+                                  (Value_Expr.Right,
+                                   Name,
+                                   Step_Value)
+                                or else Try_Direct_Loop_Item_Step
+                                  (Value_Expr.Right,
+                                   Name,
+                                   Step_Value);
                            elsif Same_Target_Name (Value_Expr.Right, Name) then
-                              return Try_Nonnegative_Static_Step
-                                (Value_Expr.Left,
-                                 Name,
-                                 Step_Value);
+                              return
+                                Try_Nonnegative_Static_Step
+                                  (Value_Expr.Left,
+                                   Name,
+                                   Step_Value)
+                                or else Try_Direct_Loop_Item_Step
+                                  (Value_Expr.Left,
+                                   Name,
+                                   Step_Value);
                            end if;
                         end;
 
@@ -5948,17 +6000,15 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  end loop;
                               end if;
                            elsif Iterable_Info.Growable then
-                              if Needs_Composite_Heap_Helper then
-                                 Collect_Growable_Accumulators (Item.Body_Stmts);
-                                 if not Growable_Accumulators.Is_Empty then
-                                    Has_Top_Level_Loop_Invariant := True;
-                                    for Candidate of Growable_Accumulators loop
-                                       Append_Line
-                                         (Buffer,
-                                          Growable_Accumulator_Invariant (Candidate),
-                                          Depth + 2);
-                                    end loop;
-                                 end if;
+                              Collect_Growable_Accumulators (Item.Body_Stmts);
+                              if not Growable_Accumulators.Is_Empty then
+                                 Has_Top_Level_Loop_Invariant := True;
+                                 for Candidate of Growable_Accumulators loop
+                                    Append_Line
+                                      (Buffer,
+                                       Growable_Accumulator_Invariant (Candidate),
+                                       Depth + 2);
+                                 end loop;
                               end if;
                               declare
                                  Invariant_Image : constant String := Static_Growable_Prefix_Sum_Invariant;
