@@ -4251,6 +4251,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
                         --  Unknown calls may still mutate a name through an unsupported
                         --  signature path, but only if that name is passed as an actual.
+                        --  Without a signature, fail closed even though the actual may be
+                        --  observe-only; suppressing an optional invariant is safer than
+                        --  assuming a call cannot mutate the counter.
                         for Actual of Call_Expr.Args loop
                            if Actual_Targets_Name (Actual) then
                               return True;
@@ -4781,7 +4784,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
                      procedure Add_Exact_Counter (Name : String) is
                      begin
-                        if Contains_Exact_Counter (Name) then
+                        --  A single exact counter is sufficient for the relational invariant
+                        --  family; keeping only the first makes that precondition structural.
+                        if not Exact_Counters.Is_Empty
+                          or else Contains_Exact_Counter (Name)
+                        then
                            return;
                         end if;
 

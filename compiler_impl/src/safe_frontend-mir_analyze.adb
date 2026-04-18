@@ -3675,9 +3675,13 @@ package body Safe_Frontend.Mir_Analyze is
             Add_Divisor (1);
          end if;
       elsif Right.Low = 0 and then Right.High > 0 then
-         Add_Divisor (1);
+         if Right.High /= 1 then
+            Add_Divisor (1);
+         end if;
       elsif Right.Low < 0 and then Right.High = 0 then
-         Add_Divisor (-1);
+         if Right.Low /= -1 then
+            Add_Divisor (-1);
+         end if;
       end if;
 
       if Needs_Wide_Result or else Value_Count = 0 then
