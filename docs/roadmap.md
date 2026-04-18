@@ -3451,6 +3451,16 @@ unguarded `sum / count` case after a statically non-empty `for of` loop remains
 tracked under #321 as post-loop fact propagation, not another loop-invariant
 recognizer.
 
+### PR11.23g Note
+
+PR11.23g implements #284 for fixed two-level nested `for of` loops by composing
+the inner loop's bounded nonnegative product delta with a literal-backed inner
+iterable length. The recognizer remains fail-closed: the inner iterable must be
+a static-length local growable collection, the accumulator update must be
+independently analyzable, and arbitrary-depth nesting, dynamic inner lengths,
+and type-capacity inference stay out of scope. `tests/build/pr1123g_nested_iteration_build.safe`
+is the level-2 proof checkpoint for the shipped shape.
+
 ---
 
 # PR12: Tooling and Developer Ergonomics

@@ -3284,9 +3284,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                     State.Wide_Local_Names.Length;
                   Previous_Loop_Integer_Count : constant Ada.Containers.Count_Type :=
                     State.Loop_Integer_Bindings.Length;
+                  Previous_Static_Length_Count : constant Ada.Containers.Count_Type :=
+                    State.Static_Length_Bindings.Length;
                   Block_Declarations  : CM.Object_Decl_Vectors.Vector;
                   Suppress_Initialization_Warnings : Boolean := False;
                   Static_Value        : Long_Long_Integer := 0;
+                  Static_Length       : Natural := 0;
                begin
                   Block_Declarations.Append (Item.Decl);
                   Suppress_Initialization_Warnings :=
@@ -3322,6 +3325,25 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         Bind_Loop_Integer (State, FT.To_String (Name), Static_Value);
                      end loop;
                   end if;
+                  if Item.Decl.Has_Initializer
+                    and then Item.Decl.Initializer /= null
+                    and then Is_Growable_Array_Type
+                      (Unit,
+                       Document,
+                       Item.Decl.Type_Info)
+                    and then Try_Static_Array_Length_From_Expr
+                      (Unit,
+                       Document,
+                       Item.Decl.Initializer,
+                       Static_Length)
+                  then
+                     for Name of Item.Decl.Names loop
+                        Bind_Static_Length
+                          (State,
+                           FT.To_String (Name),
+                           Static_Length);
+                     end loop;
+                  end if;
                   if Suppress_Initialization_Warnings then
                      Append_Initialization_Warning_Restore
                        (Buffer, Depth + 1);
@@ -3343,6 +3365,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Pop_Cleanup_Frame (State);
                   Pop_Type_Binding_Frame (State);
                   Restore_Loop_Integer_Bindings (State, Previous_Loop_Integer_Count);
+                  Restore_Static_Length_Bindings (State, Previous_Static_Length_Count);
                   Restore_Wide_Names (State, Previous_Wide_Count);
                end;
                return;
@@ -3458,6 +3481,17 @@ package body Safe_Frontend.Ada_Emit.Statements is
                else
                   Emit_Call_Statement
                     (Buffer, Unit, Document, Item.Call, Index, State, Depth);
+               end if;
+               if Item.Call /= null and then Item.Call.Kind = CM.Expr_Call then
+                  for Actual of Item.Call.Args loop
+                     declare
+                        Actual_Root : constant String := Root_Name (Actual);
+                     begin
+                        if Actual_Root'Length > 0 then
+                           Invalidate_Static_Length (State, Actual_Root);
+                        end if;
+                     end;
+                  end loop;
                end if;
             when CM.Stmt_Return =>
                if Item.Value /= null and then Has_Active_Cleanup_Items (State) then
@@ -4519,6 +4553,97 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return Result;
                      end Statement_Write_Count;
 
+                     function Prior_Local_Literal_Length
+                       (Name   : String;
+                        Length : out Long_Long_Integer) return Boolean
+                     is
+                        Decl_Index     : Positive := Statements.First_Index;
+                        Found_Decl     : Boolean := False;
+                        Literal_Length : Ada.Containers.Count_Type := 0;
+                        Static_Length  : Natural := 0;
+
+                        function Literal_Source
+                          (Expr : CM.Expr_Access) return CM.Expr_Access
+                        is
+                        begin
+                           if Expr /= null
+                             and then Expr.Kind
+                               in CM.Expr_Annotated | CM.Expr_Conversion
+                             and then Expr.Inner /= null
+                           then
+                              return Literal_Source (Expr.Inner);
+                           end if;
+
+                           return Expr;
+                        end Literal_Source;
+                     begin
+                        Length := 0;
+                        if Try_Static_Length (State, Name, Static_Length) then
+                           Length := Long_Long_Integer (Static_Length);
+                           return Length > 0;
+                        end if;
+
+                        if Name'Length = 0
+                          or else Statements.Is_Empty
+                          or else Index = Statements.First_Index
+                        then
+                           return False;
+                        end if;
+
+                        for Candidate_Index in Statements.First_Index .. Index - 1 loop
+                           declare
+                              Candidate : constant CM.Statement_Access :=
+                                Statements (Candidate_Index);
+                           begin
+                              if Candidate /= null
+                                and then Candidate.Kind = CM.Stmt_Object_Decl
+                              then
+                                 for Decl_Name of Candidate.Decl.Names loop
+                                    if FT.To_String (Decl_Name) = Name then
+                                       declare
+                                          Initializer : constant CM.Expr_Access :=
+                                            Literal_Source (Candidate.Decl.Initializer);
+                                       begin
+                                          if Found_Decl
+                                            or else not Candidate.Decl.Has_Initializer
+                                            or else Initializer = null
+                                            or else Initializer.Kind
+                                              /= CM.Expr_Array_Literal
+                                            or else Initializer.Elements.Is_Empty
+                                          then
+                                             return False;
+                                          end if;
+
+                                          Found_Decl := True;
+                                          Decl_Index := Candidate_Index;
+                                          Literal_Length :=
+                                            Initializer.Elements.Length;
+                                       end;
+                                    end if;
+                                 end loop;
+                              end if;
+                           end;
+                        end loop;
+
+                        if not Found_Decl then
+                           return False;
+                        end if;
+
+                        if Decl_Index + 1 <= Index - 1 then
+                           for Candidate_Index in Decl_Index + 1 .. Index - 1 loop
+                              if Statement_Write_Count
+                                (Statements (Candidate_Index),
+                                 Name) > 0
+                              then
+                                 return False;
+                              end if;
+                           end loop;
+                        end if;
+
+                        Length := Long_Long_Integer (Literal_Length);
+                        return Length > 0;
+                     end Prior_Local_Literal_Length;
+
                      function Accumulator_Value_Expr
                        (Expr : CM.Expr_Access) return CM.Expr_Access is
                      begin
@@ -4596,6 +4721,116 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return True;
                      end Try_Direct_Loop_Item_Step;
 
+                     function Try_Bounded_Integer_High
+                       (Expr       : CM.Expr_Access;
+                        Name       : String;
+                        High_Value : out Long_Long_Integer) return Boolean
+                     is
+                     begin
+                        High_Value := 0;
+                        if Expr = null or else Expr_Uses_Name (Expr, Name) then
+                           return False;
+                        end if;
+
+                        declare
+                           Value_Expr : constant CM.Expr_Access :=
+                             Accumulator_Value_Expr (Expr);
+                        begin
+                           if Value_Expr = null then
+                              return False;
+                           elsif Value_Expr.Kind = CM.Expr_Int then
+                              if Value_Expr.Int_Value < 0
+                                or else Value_Expr.Int_Value
+                                  > CM.Wide_Integer (Long_Long_Integer'Last)
+                              then
+                                 return False;
+                              end if;
+                              High_Value := Long_Long_Integer (Value_Expr.Int_Value);
+                              return True;
+                           elsif Value_Expr.Kind = CM.Expr_Ident then
+                              declare
+                                 Info : constant GM.Type_Descriptor :=
+                                   Expr_Type_Info (Unit, Document, Value_Expr);
+                                 Base_Info : constant GM.Type_Descriptor :=
+                                   Base_Type (Unit, Document, Info);
+                                 Low_Value : constant Long_Long_Integer :=
+                                   (if Info.Has_Low
+                                    then Info.Low
+                                    elsif Base_Info.Has_Low
+                                    then Base_Info.Low
+                                    else Long_Long_Integer'First);
+                                 Type_High : constant Long_Long_Integer :=
+                                   (if Info.Has_High
+                                    then Info.High
+                                    elsif Base_Info.Has_High
+                                    then Base_Info.High
+                                    else 0);
+                              begin
+                                 if not Is_Integer_Type (Unit, Document, Info)
+                                   or else not (Info.Has_Low or else Base_Info.Has_Low)
+                                   or else not (Info.Has_High or else Base_Info.Has_High)
+                                   or else Low_Value < 0
+                                   or else Type_High < 0
+                                 then
+                                    return False;
+                                 end if;
+
+                                 High_Value := Type_High;
+                                 return True;
+                              end;
+                           end if;
+                        end;
+
+                        return False;
+                     end Try_Bounded_Integer_High;
+
+                     function Multiply_Step
+                       (Left    : Long_Long_Integer;
+                        Right   : Long_Long_Integer;
+                        Product : out Long_Long_Integer) return Boolean
+                     is
+                        Wide_Product : constant CM.Wide_Integer :=
+                          CM.Wide_Integer (Left) * CM.Wide_Integer (Right);
+                     begin
+                        Product := 0;
+                        if Wide_Product <= 0
+                          or else Wide_Product
+                            > CM.Wide_Integer (Long_Long_Integer'Last)
+                        then
+                           return False;
+                        end if;
+
+                        Product := Long_Long_Integer (Wide_Product);
+                        return True;
+                     end Multiply_Step;
+
+                     function Try_Bounded_Product_Step
+                       (Expr       : CM.Expr_Access;
+                        Name       : String;
+                        Step_Value : out Long_Long_Integer) return Boolean
+                     is
+                        Left_High  : Long_Long_Integer := 0;
+                        Right_High : Long_Long_Integer := 0;
+                     begin
+                        Step_Value := 0;
+                        if Expr = null
+                          or else Expr.Kind /= CM.Expr_Binary
+                          or else FT.To_String (Expr.Operator) /= "*"
+                          or else not Try_Bounded_Integer_High
+                            (Expr.Left,
+                             Name,
+                             Left_High)
+                          or else not Try_Bounded_Integer_High
+                            (Expr.Right,
+                             Name,
+                             Right_High)
+                        then
+                           return False;
+                        end if;
+
+                        return Multiply_Step (Left_High, Right_High, Step_Value);
+                     end Try_Bounded_Product_Step;
+
                      function Supported_Accumulator_Assignment
                        (Stmt       : CM.Statement;
                         Name       : String;
@@ -4616,15 +4851,18 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            end if;
 
                            if Same_Target_Name (Value_Expr.Left, Name) then
-                              --  These two step recognizers are intentionally
-                              --  mutually exclusive: a static nonnegative
-                              --  expression is not a direct loop-item ident.
+                              --  Keep each optional step recognizer fail-closed;
+                              --  only one needs to explain the per-iteration delta.
                               return
                                 Try_Nonnegative_Static_Step
                                   (Value_Expr.Right,
                                    Name,
                                    Step_Value)
                                 or else Try_Direct_Loop_Item_Step
+                                  (Value_Expr.Right,
+                                   Name,
+                                   Step_Value)
+                                or else Try_Bounded_Product_Step
                                   (Value_Expr.Right,
                                    Name,
                                    Step_Value);
@@ -4635,6 +4873,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                    Name,
                                    Step_Value)
                                 or else Try_Direct_Loop_Item_Step
+                                  (Value_Expr.Left,
+                                   Name,
+                                   Step_Value)
+                                or else Try_Bounded_Product_Step
                                   (Value_Expr.Left,
                                    Name,
                                    Step_Value);
@@ -4684,13 +4926,15 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        (Statements : CM.Statement_Access_Vectors.Vector;
                         Name       : String;
                         Max_Step   : out Long_Long_Integer;
-                        Unsafe     : out Boolean);
+                        Unsafe     : out Boolean;
+                        Allow_Nested_For : Boolean := True);
 
                      procedure Analyze_Accumulator_Statement
                        (Stmt     : CM.Statement_Access;
                         Name     : String;
                         Max_Step : out Long_Long_Integer;
-                        Unsafe   : out Boolean)
+                        Unsafe   : out Boolean;
+                        Allow_Nested_For : Boolean)
                      is
                         procedure Add_Branch
                           (Branch_Statements : CM.Statement_Access_Vectors.Vector;
@@ -4704,13 +4948,72 @@ package body Safe_Frontend.Ada_Emit.Statements is
                              (Branch_Statements,
                               Name,
                               Candidate_Step,
-                              Candidate_Unsafe);
+                              Candidate_Unsafe,
+                              Allow_Nested_For);
                            if Candidate_Unsafe then
                               Branch_Unsafe := True;
                            elsif Candidate_Step > Branch_Max then
                               Branch_Max := Candidate_Step;
                            end if;
                         end Add_Branch;
+
+                        function Try_Nested_For_Step
+                          (Loop_Stmt  : CM.Statement;
+                           Step_Value : out Long_Long_Integer) return Boolean
+                        is
+                           Inner_Name       : constant String :=
+                             FT.To_String (Loop_Stmt.Loop_Var);
+                           Iterable_Name    : constant String :=
+                             (if Loop_Stmt.Loop_Iterable /= null
+                                and then Loop_Stmt.Loop_Iterable.Kind = CM.Expr_Ident
+                              then FT.To_String (Loop_Stmt.Loop_Iterable.Name)
+                              else "");
+                           Inner_Length     : Long_Long_Integer := 0;
+                           Inner_Max_Step   : Long_Long_Integer := 0;
+                           Inner_Unsafe     : Boolean := False;
+                        begin
+                           Step_Value := 0;
+                           if not Allow_Nested_For
+                             or else Iterable_Name'Length = 0
+                             or else Inner_Name'Length = 0
+                             or else Inner_Name = Name
+                             or else Inner_Name = Loop_Item_Name
+                             or else Name = Loop_Item_Name
+                             or else Statements_Declare_Name
+                               (Loop_Stmt.Body_Stmts,
+                                Name)
+                             or else Statements_Declare_Name
+                               (Loop_Stmt.Body_Stmts,
+                                Loop_Item_Name)
+                             or else Statements_Declare_Name
+                               (Loop_Stmt.Body_Stmts,
+                                Inner_Name)
+                             or else Statements_Write_Count
+                               (Item.Body_Stmts,
+                                Iterable_Name) > 0
+                             or else not Prior_Local_Literal_Length
+                               (Iterable_Name,
+                                Inner_Length)
+                           then
+                              return False;
+                           end if;
+
+                           Analyze_Accumulator_Statements
+                             (Loop_Stmt.Body_Stmts,
+                              Name,
+                              Inner_Max_Step,
+                              Inner_Unsafe,
+                              False);
+                           if Inner_Unsafe then
+                              return False;
+                           end if;
+
+                           return
+                             Multiply_Step
+                               (Inner_Max_Step,
+                                Inner_Length,
+                                Step_Value);
+                        end Try_Nested_For_Step;
 
                         Step_Value : Long_Long_Integer := 0;
                      begin
@@ -4823,6 +5126,13 @@ package body Safe_Frontend.Ada_Emit.Statements is
                               --  through channel/delay alternatives.
                               Unsafe := True;
 
+                           when CM.Stmt_For =>
+                              if Try_Nested_For_Step (Stmt.all, Step_Value) then
+                                 Max_Step := Step_Value;
+                              else
+                                 Unsafe := True;
+                              end if;
+
                            when others =>
                               if Statements_Use_Name (Stmt.Body_Stmts, Name)
                                 or else Expr_Uses_Name (Stmt.Target, Name)
@@ -4840,7 +5150,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        (Statements : CM.Statement_Access_Vectors.Vector;
                         Name       : String;
                         Max_Step   : out Long_Long_Integer;
-                        Unsafe     : out Boolean)
+                        Unsafe     : out Boolean;
+                        Allow_Nested_For : Boolean := True)
                      is
                         Total : Long_Long_Integer := 0;
                      begin
@@ -4855,7 +5166,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                 (Nested,
                                  Name,
                                  Statement_Step,
-                                 Statement_Unsafe);
+                                 Statement_Unsafe,
+                                 Allow_Nested_For);
                               if Statement_Unsafe
                                 or else not Add_Step (Total, Statement_Step, Total)
                               then
@@ -5119,6 +5431,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                          (Arm.Statements,
                                           Loop_Statements);
                                     end loop;
+                                 when CM.Stmt_For =>
+                                    Collect_Growable_Accumulators
+                                      (Nested.Body_Stmts,
+                                       Loop_Statements);
                                  when others =>
                                     null;
                               end case;
@@ -5151,6 +5467,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                           & " - Safe_Runtime.Wide_Integer ("
                           & Index_Name
                           & ") + Safe_Runtime.Wide_Integer (1))";
+                        Progress_Image : constant String :=
+                          "Safe_Runtime.Wide_Integer ("
+                          & Delta_Image
+                          & ") * (Safe_Runtime.Wide_Integer ("
+                          & Index_Name
+                          & ") - Safe_Runtime.Wide_Integer (1))";
                      begin
                         State.Needs_Safe_Runtime := True;
                         return
@@ -5170,6 +5492,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                           & Type_Image
                           & "'Last) - "
                           & Remaining_Image
+                          & " and then Safe_Runtime.Wide_Integer ("
+                          & Name_Text
+                          & ") <= Safe_Runtime.Wide_Integer ("
+                          & Name_Text
+                          & "'Loop_Entry) + "
+                          & Progress_Image
                           & ");";
                      end Growable_Accumulator_Invariant;
 
