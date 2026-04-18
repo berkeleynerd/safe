@@ -87,6 +87,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_zero_div.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_pr1123f_unguarded_sum_count.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr1123f_unguarded_sum_count.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_rule4_null_deref.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_null_deref.txt",
     ),

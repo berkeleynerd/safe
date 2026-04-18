@@ -3617,7 +3617,39 @@ package body Safe_Frontend.Mir_Analyze is
       Denominator_Name : FT.UString := FT.To_UString ("");
       Factor           : Wide_Integer;
       Bound            : Wide_Integer;
-      Values           : array (1 .. 4) of Wide_Integer;
+      Values           : array (1 .. 8) of Wide_Integer;
+      Value_Count      : Natural := 0;
+      Needs_Wide_Result : Boolean := False;
+
+      procedure Add_Quotient
+        (Numerator : Wide_Integer;
+         Divisor   : Wide_Integer) is
+      begin
+         if Needs_Wide_Result then
+            return;
+         end if;
+
+         if Divisor = -1 and then Numerator = INT64_LOW then
+            Needs_Wide_Result := True;
+            return;
+         end if;
+
+         Value_Count := Value_Count + 1;
+         Values (Value_Count) := Numerator / Divisor;
+      end Add_Quotient;
+
+      procedure Add_Divisor (Divisor : Wide_Integer) is
+      begin
+         if Divisor = 0 or else Needs_Wide_Result then
+            return;
+         end if;
+
+         --  At most four candidate divisors are sampled, each adding up to two
+         --  numerator endpoints, so Values'Last must remain at least 8.
+         pragma Assert (Value_Count + 2 <= Values'Last);
+         Add_Quotient (Left.Low, Divisor);
+         Add_Quotient (Left.High, Divisor);
+      end Add_Divisor;
    begin
       Factor := Numerator_Factor (Expr.Left, Numerator_Name);
       Denominator_Name := FT.To_UString (Denominator_Var (Expr.Right));
@@ -3637,14 +3669,39 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
          end;
       end if;
-      Values (1) := Left.Low / Right.Low;
-      Values (2) := Left.Low / Right.High;
-      Values (3) := Left.High / Right.Low;
-      Values (4) := Left.High / Right.High;
-      return
-        (Low  => Wide_Integer'Min (Wide_Integer'Min (Values (1), Values (2)), Wide_Integer'Min (Values (3), Values (4))),
-         High => Wide_Integer'Max (Wide_Integer'Max (Values (1), Values (2)), Wide_Integer'Max (Values (3), Values (4))),
-         Excludes_Zero => False);
+      Add_Divisor (Right.Low);
+      Add_Divisor (Right.High);
+      if Right.Low < 0 and then Right.High > 0 then
+         if Right.Low /= -1 then
+            Add_Divisor (-1);
+         end if;
+         if Right.High /= 1 then
+            Add_Divisor (1);
+         end if;
+      elsif Right.Low = 0 and then Right.High > 0 then
+         if Right.High /= 1 then
+            Add_Divisor (1);
+         end if;
+      elsif Right.Low < 0 and then Right.High = 0 then
+         if Right.Low /= -1 then
+            Add_Divisor (-1);
+         end if;
+      end if;
+
+      if Needs_Wide_Result or else Value_Count = 0 then
+         return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
+      end if;
+
+      declare
+         Low_Value  : Wide_Integer := Values (1);
+         High_Value : Wide_Integer := Values (1);
+      begin
+         for Index in 2 .. Value_Count loop
+            Low_Value := Wide_Integer'Min (Low_Value, Values (Index));
+            High_Value := Wide_Integer'Max (High_Value, Values (Index));
+         end loop;
+         return (Low => Low_Value, High => High_Value, Excludes_Zero => False);
+      end;
    end Division_Interval;
 
    function Overflow_Checked

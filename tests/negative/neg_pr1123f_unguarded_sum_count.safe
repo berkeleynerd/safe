@@ -1,0 +1,21 @@
+-- Test: neg_pr1123f_unguarded_sum_count
+-- Description: PR11.23f leaves unguarded sum/count division fail-closed.
+--   Post-loop nonzero fact propagation for statically non-empty iterations
+--   is tracked separately from the guarded relational-invariant proof slice.
+-- Clause: Rule 3 division-by-zero restriction.
+-- Expected: REJECT division_by_zero
+
+package neg_pr1123f_unguarded_sum_count
+
+   subtype point is integer (0 to 40);
+
+   function average returns integer
+      var items : list of point = [10, 20, 30]
+      var sum : integer = 0
+      var count : integer = 0
+
+      for item of items
+         sum = sum + item
+         count = count + 1
+
+      return sum / count

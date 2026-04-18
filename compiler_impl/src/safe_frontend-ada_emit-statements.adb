@@ -3960,6 +3960,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      package Growable_Accumulator_Vectors is new Ada.Containers.Vectors
                        (Index_Type   => Positive,
                         Element_Type => Growable_Accumulator_Info);
+                     type Exact_Counter_Info is record
+                        Name : FT.UString := FT.To_UString ("");
+                     end record;
+                     package Exact_Counter_Vectors is new Ada.Containers.Vectors
+                       (Index_Type   => Positive,
+                        Element_Type => Exact_Counter_Info);
                      type String_Growth_Accumulator_Info is record
                         Name          : FT.UString := FT.To_UString ("");
                         Instance_Name : FT.UString := FT.To_UString ("");
@@ -3973,6 +3979,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      Accumulator_Type_Images : FT.UString_Vectors.Vector;
                      Invalidated_Accumulator_Names : FT.UString_Vectors.Vector;
                      Growable_Accumulators : Growable_Accumulator_Vectors.Vector;
+                     Exact_Counters : Exact_Counter_Vectors.Vector;
                      String_Growth_Accumulators : String_Growth_Accumulator_Vectors.Vector;
                      Has_Top_Level_Loop_Invariant : Boolean := False;
 
@@ -4148,6 +4155,370 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return "";
                      end Target_Ident_Name;
 
+                     function Mode_Writes_Actual (Mode : String) return Boolean is
+                     begin
+                        return Mode in "mut" | "in out" | "out";
+                     end Mode_Writes_Actual;
+
+                     function Call_Mutates_Name
+                       (Call_Expr : CM.Expr_Access;
+                        Name      : String) return Boolean
+                     is
+                        function Unwrapped_Actual_Target
+                          (Actual : CM.Expr_Access) return CM.Expr_Access
+                        is
+                        begin
+                           if Actual /= null
+                             and then Actual.Kind in CM.Expr_Annotated | CM.Expr_Conversion
+                             and then Actual.Inner /= null
+                           then
+                              return Unwrapped_Actual_Target (Actual.Inner);
+                           end if;
+
+                           return Actual;
+                        end Unwrapped_Actual_Target;
+
+                        function Actual_Targets_Name (Actual : CM.Expr_Access) return Boolean is
+                        begin
+                           return Root_Name (Unwrapped_Actual_Target (Actual)) = Name;
+                        end Actual_Targets_Name;
+
+                        function Local_Params_Mutate_Name
+                          (Params : CM.Symbol_Vectors.Vector) return Boolean
+                        is
+                        begin
+                           if Params.Is_Empty or else Call_Expr.Args.Is_Empty then
+                              return False;
+                           end if;
+
+                           for Formal_Index in Params.First_Index .. Params.Last_Index loop
+                              exit when Formal_Index > Call_Expr.Args.Last_Index;
+                              if Mode_Writes_Actual (FT.To_String (Params (Formal_Index).Mode))
+                                and then Actual_Targets_Name (Call_Expr.Args (Formal_Index))
+                              then
+                                 return True;
+                              end if;
+                           end loop;
+                           return False;
+                        end Local_Params_Mutate_Name;
+
+                        function Imported_Params_Mutate_Name
+                          (Params : GM.Local_Vectors.Vector) return Boolean
+                        is
+                        begin
+                           if Params.Is_Empty or else Call_Expr.Args.Is_Empty then
+                              return False;
+                           end if;
+
+                           for Formal_Index in Params.First_Index .. Params.Last_Index loop
+                              exit when Formal_Index > Call_Expr.Args.Last_Index;
+                              if Mode_Writes_Actual (FT.To_String (Params (Formal_Index).Mode))
+                                and then Actual_Targets_Name (Call_Expr.Args (Formal_Index))
+                              then
+                                 return True;
+                              end if;
+                           end loop;
+                           return False;
+                        end Imported_Params_Mutate_Name;
+                     begin
+                        if Call_Expr = null
+                          or else Call_Expr.Kind /= CM.Expr_Call
+                          or else Call_Expr.Callee = null
+                          or else Name'Length = 0
+                        then
+                           return False;
+                        end if;
+
+                        declare
+                           Callee_Name : constant String :=
+                             FT.Lowercase (CM.Flatten_Name (Call_Expr.Callee));
+                           Known_Callee_Found : Boolean := False;
+                        begin
+                           for Candidate of Unit.Subprograms loop
+                              if FT.Lowercase (FT.To_String (Candidate.Name)) = Callee_Name
+                                or else
+                                  FT.Lowercase
+                                    (FT.To_String (Unit.Package_Name)
+                                     & "."
+                                     & FT.To_String (Candidate.Name)) = Callee_Name
+                              then
+                                 Known_Callee_Found := True;
+                                 if Local_Params_Mutate_Name (Candidate.Params) then
+                                    return True;
+                                 end if;
+                              end if;
+                           end loop;
+
+                           for Imported of Unit.Imported_Subprograms loop
+                              declare
+                                 Imported_Name  : constant String :=
+                                   FT.Lowercase (FT.To_String (Imported.Name));
+                                 Imported_Short : constant String :=
+                                   FT.Lowercase
+                                     (AET.Synthetic_Type_Tail_Name
+                                        (FT.To_String (Imported.Name)));
+                              begin
+                                 if Imported_Name = Callee_Name
+                                   or else Imported_Short = Callee_Name
+                                 then
+                                    Known_Callee_Found := True;
+                                    if Imported_Params_Mutate_Name (Imported.Params) then
+                                       return True;
+                                    end if;
+                                 end if;
+                              end;
+                           end loop;
+
+                           if Known_Callee_Found then
+                              return False;
+                           end if;
+                        end;
+
+                        --  Unknown calls may still mutate a name through an unsupported
+                        --  signature path, but only if that name is passed as an actual.
+                        --  Without a signature, fail closed even though the actual may be
+                        --  observe-only; suppressing an optional invariant is safer than
+                        --  assuming a call cannot mutate the counter.
+                        for Actual of Call_Expr.Args loop
+                           if Actual_Targets_Name (Actual) then
+                              return True;
+                           end if;
+                        end loop;
+                        return False;
+                     end Call_Mutates_Name;
+
+                     function Expr_Mutating_Call_Count
+                       (Expr : CM.Expr_Access;
+                        Name : String) return Natural
+                     is
+                        Result : Natural := 0;
+
+                        procedure Add_From (Child : CM.Expr_Access) is
+                        begin
+                           Result := Result + Expr_Mutating_Call_Count (Child, Name);
+                        end Add_From;
+                     begin
+                        if Expr = null or else Name'Length = 0 then
+                           return 0;
+                        end if;
+
+                        case Expr.Kind is
+                           when CM.Expr_Call =>
+                              if Call_Mutates_Name (Expr, Name) then
+                                 Result := Result + 1;
+                              end if;
+                              Add_From (Expr.Callee);
+                              for Item of Expr.Args loop
+                                 Add_From (Item);
+                              end loop;
+
+                           when CM.Expr_Select =>
+                              Add_From (Expr.Prefix);
+
+                           when CM.Expr_Resolved_Index =>
+                              Add_From (Expr.Prefix);
+                              for Item of Expr.Args loop
+                                 Add_From (Item);
+                              end loop;
+
+                           when CM.Expr_Conversion | CM.Expr_Annotated | CM.Expr_Unary =>
+                              Add_From (Expr.Inner);
+                              Add_From (Expr.Target);
+
+                           when CM.Expr_Binary =>
+                              Add_From (Expr.Left);
+                              Add_From (Expr.Right);
+
+                           when CM.Expr_Allocator =>
+                              Add_From (Expr.Value);
+
+                           when CM.Expr_Aggregate =>
+                              for Field of Expr.Fields loop
+                                 Add_From (Field.Expr);
+                              end loop;
+
+                           when CM.Expr_Tuple =>
+                              for Item of Expr.Elements loop
+                                 Add_From (Item);
+                              end loop;
+
+                           when others =>
+                              null;
+                        end case;
+
+                        return Result;
+                     end Expr_Mutating_Call_Count;
+
+                     function Statement_Write_Count
+                       (Stmt : CM.Statement_Access;
+                        Name : String) return Natural;
+
+                     function Statements_Write_Count
+                       (Statements : CM.Statement_Access_Vectors.Vector;
+                        Name       : String) return Natural
+                     is
+                        Result : Natural := 0;
+                     begin
+                        if Name'Length = 0 then
+                           return 0;
+                        end if;
+
+                        for Nested of Statements loop
+                           Result := Result + Statement_Write_Count (Nested, Name);
+                        end loop;
+                        return Result;
+                     end Statements_Write_Count;
+
+                     function Statement_Write_Count
+                       (Stmt : CM.Statement_Access;
+                        Name : String) return Natural
+                     is
+                        Result : Natural := 0;
+                     begin
+                        if Stmt = null or else Name'Length = 0 then
+                           return 0;
+                        end if;
+
+                        case Stmt.Kind is
+                           when CM.Stmt_Object_Decl =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count
+                                    (Stmt.Decl.Initializer,
+                                     Name);
+
+                           when CM.Stmt_Destructure_Decl =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count
+                                    (Stmt.Destructure.Initializer,
+                                     Name);
+
+                           when CM.Stmt_Assign =>
+                              if Target_Ident_Name (Stmt.Target) = Name then
+                                 Result := Result + 1;
+                              end if;
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Target, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Value, Name);
+
+                           when CM.Stmt_Call =>
+                              Result :=
+                                Result + Expr_Mutating_Call_Count (Stmt.Call, Name);
+
+                           when CM.Stmt_Receive | CM.Stmt_Try_Receive =>
+                              if Target_Ident_Name (Stmt.Target) = Name then
+                                 Result := Result + 1;
+                              end if;
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Channel_Name, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Value, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Target, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Success_Var, Name);
+
+                           when CM.Stmt_If =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Condition, Name)
+                                + Statements_Write_Count (Stmt.Then_Stmts, Name);
+                              for Part of Stmt.Elsifs loop
+                                 Result :=
+                                   Result
+                                   + Expr_Mutating_Call_Count (Part.Condition, Name)
+                                   + Statements_Write_Count (Part.Statements, Name);
+                              end loop;
+                              if Stmt.Has_Else then
+                                 Result := Result + Statements_Write_Count (Stmt.Else_Stmts, Name);
+                              end if;
+
+                           when CM.Stmt_Case =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Case_Expr, Name);
+                              for Arm of Stmt.Case_Arms loop
+                                 Result :=
+                                   Result
+                                   + Expr_Mutating_Call_Count (Arm.Choice, Name)
+                                   + Statements_Write_Count (Arm.Statements, Name);
+                              end loop;
+
+                           when CM.Stmt_Match =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Match_Expr, Name);
+                              for Arm of Stmt.Match_Arms loop
+                                 Result := Result + Statements_Write_Count (Arm.Statements, Name);
+                              end loop;
+
+                           when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Condition, Name)
+                                + Expr_Mutating_Call_Count
+                                    (Stmt.Loop_Range.Name_Expr,
+                                     Name)
+                                + Expr_Mutating_Call_Count
+                                    (Stmt.Loop_Range.Low_Expr,
+                                     Name)
+                                + Expr_Mutating_Call_Count
+                                    (Stmt.Loop_Range.High_Expr,
+                                     Name)
+                                + Expr_Mutating_Call_Count (Stmt.Loop_Iterable, Name)
+                                + Statements_Write_Count (Stmt.Body_Stmts, Name);
+
+                           when CM.Stmt_Exit =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Condition, Name);
+
+                           when CM.Stmt_Return =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Value, Name);
+
+                           when CM.Stmt_Send =>
+                              Result :=
+                                Result
+                                + Expr_Mutating_Call_Count (Stmt.Channel_Name, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Value, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Target, Name)
+                                + Expr_Mutating_Call_Count (Stmt.Success_Var, Name);
+
+                           when CM.Stmt_Select =>
+                              for Arm of Stmt.Arms loop
+                                 case Arm.Kind is
+                                    when CM.Select_Arm_Channel =>
+                                       Result :=
+                                         Result
+                                         + Expr_Mutating_Call_Count
+                                             (Arm.Channel_Data.Channel_Name,
+                                              Name)
+                                         + Statements_Write_Count
+                                             (Arm.Channel_Data.Statements,
+                                              Name);
+                                    when CM.Select_Arm_Delay =>
+                                       Result :=
+                                         Result
+                                         + Expr_Mutating_Call_Count
+                                             (Arm.Delay_Data.Duration_Expr,
+                                              Name)
+                                         + Statements_Write_Count
+                                             (Arm.Delay_Data.Statements,
+                                              Name);
+                                    when others =>
+                                       null;
+                                 end case;
+                              end loop;
+
+                           when others =>
+                              null;
+                        end case;
+
+                        return Result;
+                     end Statement_Write_Count;
+
                      function Accumulator_Value_Expr
                        (Expr : CM.Expr_Access) return CM.Expr_Access is
                      begin
@@ -4272,6 +4643,25 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
                         return False;
                      end Supported_Accumulator_Assignment;
+
+                     function Supported_Exact_Counter_Assignment
+                       (Stmt : CM.Statement;
+                        Name : String) return Boolean
+                     is
+                        Value_Expr : constant CM.Expr_Access :=
+                          Accumulator_Value_Expr (Stmt.Value);
+                     begin
+                        return Target_Ident_Name (Stmt.Target) = Name
+                          and then Value_Expr /= null
+                          and then Value_Expr.Kind = CM.Expr_Binary
+                          and then FT.To_String (Value_Expr.Operator) = "+"
+                          and then
+                            ((Same_Target_Name (Value_Expr.Left, Name)
+                              and then Expr_Is_One (Value_Expr.Right))
+                             or else
+                               (Same_Target_Name (Value_Expr.Right, Name)
+                                and then Expr_Is_One (Value_Expr.Left)));
+                     end Supported_Exact_Counter_Assignment;
 
                      function Add_Step
                        (Left  : Long_Long_Integer;
@@ -4546,8 +4936,114 @@ package body Safe_Frontend.Ada_Emit.Statements is
                             Max_Delta  => Max_Delta));
                      end Add_Growable_Accumulator;
 
+                     function Contains_Exact_Counter (Name : String) return Boolean is
+                     begin
+                        for Info of Exact_Counters loop
+                           if FT.To_String (Info.Name) = Name then
+                              return True;
+                           end if;
+                        end loop;
+                        return False;
+                     end Contains_Exact_Counter;
+
+                     function Has_Sum_Count_Relational_Candidate return Boolean is
+                     begin
+                        for Candidate of Growable_Accumulators loop
+                           if not Contains_Exact_Counter (FT.To_String (Candidate.Name)) then
+                              return True;
+                           end if;
+                        end loop;
+                        return False;
+                     end Has_Sum_Count_Relational_Candidate;
+
+                     procedure Add_Exact_Counter (Name : String) is
+                     begin
+                        --  A single exact counter is sufficient for the relational invariant
+                        --  family; keeping only the first makes that precondition structural.
+                        if not Exact_Counters.Is_Empty then
+                           return;
+                        end if;
+
+                        Exact_Counters.Append ((Name => FT.To_UString (Name)));
+                     end Add_Exact_Counter;
+
+                     function Top_Level_Exact_Counter_Assignments
+                       (Statements : CM.Statement_Access_Vectors.Vector;
+                        Name       : String) return Natural
+                     is
+                        Result : Natural := 0;
+                     begin
+                        if Name'Length = 0 then
+                           return 0;
+                        end if;
+
+                        for Nested of Statements loop
+                           if Nested /= null
+                             and then Nested.Kind = CM.Stmt_Assign
+                             and then Supported_Exact_Counter_Assignment
+                               (Nested.all,
+                                Name)
+                           then
+                              Result := Result + 1;
+                           end if;
+                        end loop;
+
+                        return Result;
+                     end Top_Level_Exact_Counter_Assignments;
+
+                     function Supported_Exact_Counter
+                       (Loop_Statements : CM.Statement_Access_Vectors.Vector;
+                        Name            : String) return Boolean
+                     is
+                     begin
+                        return not Statements_Declare_Name (Loop_Statements, Name)
+                          and then Top_Level_Exact_Counter_Assignments
+                            (Loop_Statements,
+                             Name) = 1
+                          and then Statements_Write_Count
+                            (Loop_Statements,
+                             Name) = 1;
+                     end Supported_Exact_Counter;
+
+                     procedure Collect_Exact_Counters
+                       (Candidate_Statements : CM.Statement_Access_Vectors.Vector;
+                        Loop_Statements      : CM.Statement_Access_Vectors.Vector)
+                     is
+                     begin
+                        for Nested of Candidate_Statements loop
+                           if Nested /= null and then Nested.Kind = CM.Stmt_Assign then
+                              declare
+                                 Name_Image  : constant String :=
+                                   Target_Ident_Name (Nested.Target);
+                              begin
+                                 if Name_Image'Length > 0 then
+                                    declare
+                                       Target_Info : constant GM.Type_Descriptor :=
+                                         Expr_Type_Info (Unit, Document, Nested.Target);
+                                    begin
+                                       if Is_Integer_Type
+                                         (Unit,
+                                          Document,
+                                          Target_Info)
+                                         and then Supported_Exact_Counter
+                                           (Loop_Statements,
+                                            Name_Image)
+                                         and then Growable_Accumulator_Headroom_OK
+                                           (Target_Info,
+                                            1)
+                                       then
+                                          Add_Exact_Counter (Name_Image);
+                                       end if;
+                                    end;
+                                 end if;
+                              end;
+                           end if;
+                        end loop;
+                     end Collect_Exact_Counters;
+
                      procedure Collect_Growable_Accumulators
-                       (Statements : CM.Statement_Access_Vectors.Vector)
+                       (Candidate_Statements : CM.Statement_Access_Vectors.Vector;
+                        Loop_Statements      : CM.Statement_Access_Vectors.Vector)
                      is
                         procedure Visit_Assignment (Stmt : CM.Statement) is
                            Name_Image  : constant String := Target_Ident_Name (Stmt.Target);
@@ -4573,7 +5069,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                               end if;
 
                               Analyze_Accumulator_Statements
-                                (Item.Body_Stmts,
+                                (Loop_Statements,
                                  Name_Image,
                                  Max_Delta,
                                  Unsafe);
@@ -4590,7 +5086,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            end;
                         end Visit_Assignment;
                      begin
-                        for Nested of Statements loop
+                        for Nested of Candidate_Statements loop
                            if Nested = null then
                               null;
                            else
@@ -4598,20 +5094,30 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  when CM.Stmt_Assign =>
                                     Visit_Assignment (Nested.all);
                                  when CM.Stmt_If =>
-                                    Collect_Growable_Accumulators (Nested.Then_Stmts);
+                                    Collect_Growable_Accumulators
+                                      (Nested.Then_Stmts,
+                                       Loop_Statements);
                                     for Part of Nested.Elsifs loop
-                                       Collect_Growable_Accumulators (Part.Statements);
+                                       Collect_Growable_Accumulators
+                                         (Part.Statements,
+                                          Loop_Statements);
                                     end loop;
                                     if Nested.Has_Else then
-                                       Collect_Growable_Accumulators (Nested.Else_Stmts);
+                                       Collect_Growable_Accumulators
+                                         (Nested.Else_Stmts,
+                                          Loop_Statements);
                                     end if;
                                  when CM.Stmt_Case =>
                                     for Arm of Nested.Case_Arms loop
-                                       Collect_Growable_Accumulators (Arm.Statements);
+                                       Collect_Growable_Accumulators
+                                         (Arm.Statements,
+                                          Loop_Statements);
                                     end loop;
                                  when CM.Stmt_Match =>
                                     for Arm of Nested.Match_Arms loop
-                                       Collect_Growable_Accumulators (Arm.Statements);
+                                       Collect_Growable_Accumulators
+                                         (Arm.Statements,
+                                          Loop_Statements);
                                     end loop;
                                  when others =>
                                     null;
@@ -4666,6 +5172,43 @@ package body Safe_Frontend.Ada_Emit.Statements is
                           & Remaining_Image
                           & ");";
                      end Growable_Accumulator_Invariant;
+
+                     function Sum_Count_Relational_Invariant
+                       (Sum_Info   : Growable_Accumulator_Info;
+                        Count_Info : Exact_Counter_Info) return String
+                     is
+                        Sum_Name    : constant String := FT.To_String (Sum_Info.Name);
+                        Count_Name  : constant String := FT.To_String (Count_Info.Name);
+                        Delta_Image : constant String := Trim_Image (Sum_Info.Max_Delta);
+                        Count_Steps : constant String :=
+                          "(Safe_Runtime.Wide_Integer ("
+                          & Count_Name
+                          & ") - Safe_Runtime.Wide_Integer ("
+                          & Count_Name
+                          & "'Loop_Entry))";
+                     begin
+                        State.Needs_Safe_Runtime := True;
+                        --  This invariant is emitted before the loop body; the count conjunct
+                        --  intentionally describes the pre-increment value for this iteration.
+                        --  Growable for-of indices start at 1, so "- 1" converts the index to
+                        --  the number of completed pre-body iterations.
+                        return
+                          "pragma Loop_Invariant (Safe_Runtime.Wide_Integer ("
+                          & Count_Name
+                          & ") = Safe_Runtime.Wide_Integer ("
+                          & Count_Name
+                          & "'Loop_Entry) + (Safe_Runtime.Wide_Integer ("
+                          & Index_Name
+                          & ") - Safe_Runtime.Wide_Integer (1)) and then Safe_Runtime.Wide_Integer ("
+                          & Sum_Name
+                          & ") <= Safe_Runtime.Wide_Integer ("
+                          & Sum_Name
+                          & "'Loop_Entry) + Safe_Runtime.Wide_Integer ("
+                          & Delta_Image
+                          & ") * "
+                          & Count_Steps
+                          & ");";
+                     end Sum_Count_Relational_Invariant;
 
                      function Try_Static_String_Append_Step
                        (Stmt       : CM.Statement;
@@ -6104,7 +6647,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  end loop;
                               end if;
                            elsif Iterable_Info.Growable then
-                              Collect_Growable_Accumulators (Item.Body_Stmts);
+                              Collect_Growable_Accumulators
+                                (Item.Body_Stmts,
+                                 Item.Body_Stmts);
+                              Collect_Exact_Counters
+                                (Item.Body_Stmts,
+                                 Item.Body_Stmts);
                               if not Growable_Accumulators.Is_Empty then
                                  Has_Top_Level_Loop_Invariant := True;
                                  for Candidate of Growable_Accumulators loop
@@ -6113,6 +6661,35 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                        Growable_Accumulator_Invariant (Candidate),
                                        Depth + 2);
                                  end loop;
+                                 if not Exact_Counters.Is_Empty
+                                   and then Has_Sum_Count_Relational_Candidate
+                                 then
+                                    --  Growable for-of headers are emitted as 1 .. Length;
+                                    --  make that origin dependency explicit in the generated proof.
+                                    Append_Line
+                                      (Buffer,
+                                       "pragma Loop_Invariant (" & Index_Name & " >= 1);",
+                                       Depth + 2);
+                                    declare
+                                       Counter_Candidate : constant Exact_Counter_Info :=
+                                         Exact_Counters (Exact_Counters.First_Index);
+                                    begin
+                                       --  Every exact counter advances once per iteration, so one
+                                       --  counter is enough to prove each sum/count relation.
+                                       for Sum_Candidate of Growable_Accumulators loop
+                                          if not Contains_Exact_Counter
+                                            (FT.To_String (Sum_Candidate.Name))
+                                          then
+                                             Append_Line
+                                               (Buffer,
+                                                Sum_Count_Relational_Invariant
+                                                  (Sum_Candidate,
+                                                   Counter_Candidate),
+                                                Depth + 2);
+                                          end if;
+                                       end loop;
+                                    end;
+                                 end if;
                               end if;
                               declare
                                  Invariant_Image : constant String := Static_Growable_Prefix_Sum_Invariant;

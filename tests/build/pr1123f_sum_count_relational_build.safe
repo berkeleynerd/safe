@@ -1,0 +1,20 @@
+package pr1123f_sum_count_relational_build
+
+   subtype point is integer (0 to 40);
+   subtype average_value is integer (0 to 40);
+
+   function average returns average_value
+      var items : list of point = [10, 20, 30]
+      var sum : integer = 0
+      var count : integer = 0
+
+      for item of items
+         sum = sum + item
+         count = count + 1
+
+      if count > 0
+         return average_value (sum / count)
+
+      return 0
+
+   print (average)

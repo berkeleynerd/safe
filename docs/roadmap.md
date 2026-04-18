@@ -3442,6 +3442,15 @@ nonnegative high bound. Broader dynamic-delta inference remains in #281:
 field reads, arithmetic on the item, condition-derived bounds, dynamic ranges,
 and other non-direct item expressions are still out of scope.
 
+### PR11.23f Note
+
+PR11.23f consumes the guarded-division half of #285 by emitting scoped
+sum/count relational invariants for growable `for of` loops with one exact
+top-level counter and a distinct bounded nonnegative sum accumulator. The
+unguarded `sum / count` case after a statically non-empty `for of` loop remains
+tracked under #321 as post-loop fact propagation, not another loop-invariant
+recognizer.
+
 ---
 
 # PR12: Tooling and Developer Ergonomics
