@@ -3,8 +3,9 @@ package pr1123h_shared_call_argument_snapshot_build
    type sensor is record
       temperature : integer;
       active : boolean;
+      label : string (5);
 
-   shared probe : sensor = (temperature = 0, active = false);
+   shared probe : sensor = (temperature = 0, active = false, label = "idle-");
 
    condition_result : integer = 0;
    flat_result : integer = 0;
@@ -18,8 +19,12 @@ package pr1123h_shared_call_argument_snapshot_build
          return 1
       return 0
 
+   function echo_label (value : string (5)) returns string (5)
+      return value
+
    probe.temperature = 72;
    probe.active = true;
+   probe.label = "ready";
 
    --  Original #287 condition shape: already supported, pinned here.
    if probe.temperature > 0 and then probe.active
@@ -30,6 +35,7 @@ package pr1123h_shared_call_argument_snapshot_build
    nested_result = choose (is_hot (probe.temperature), probe.active);
 
    print (choose (is_hot (probe.temperature), probe.active));
+   print (echo_label (probe.label));
    print (condition_result);
    print (flat_result);
    print (nested_result)

@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "079339752ce495d92615034bbb8d841833cde7fb3642b4954546d11e258c7172",
+  "compiler_hash": "aaec811bd273a8edb67e83b4e29e25dfd585161b61e583dc159e285d965aecbb",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -318,9 +318,9 @@
       "pr1123g_nested_iteration_build_line_map.json": "3ba5542d365c9758d308267a724c3eb549286d6485bf79812b236e26700ac0a5"
     },
     "tests/build/pr1123h_shared_call_argument_snapshot_build.safe": {
-      "pr1123h_shared_call_argument_snapshot_build.adb": "38448648f7d0b8dbbe042b15e621b8668640d2b3710a2033a45d9a3ba87ee48c",
-      "pr1123h_shared_call_argument_snapshot_build.ads": "523fa819651ce8d5679fa12173d75e510d6bf8a3dcb127bd123ab6ee00bacc3a",
-      "pr1123h_shared_call_argument_snapshot_build_line_map.json": "dea4f96aa2d16e9113c397670f020367044fd957623c525fa251305541d1d814"
+      "pr1123h_shared_call_argument_snapshot_build.adb": "b1c95768aa042ed60fd27789b7b165003fbcf6c17ada2bf1210416b76c20cd97",
+      "pr1123h_shared_call_argument_snapshot_build.ads": "10ff138dbf3dd1568e89fb179158fb32fedd0e65185d65947bba5629a9dfddbe",
+      "pr1123h_shared_call_argument_snapshot_build_line_map.json": "d53e45d0c1c5a78a68035330e6e720794327bfd6a821cc0a464edc4e1854c8f7"
     },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",

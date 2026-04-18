@@ -2718,6 +2718,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
       --  A renderer may fold or rewrite an expression before replacement. Keep
       --  only snapshots whose getter text was actually replaced in Base_Image.
       Rendered.Snapshots := Used_Snapshots;
+      --  Variant while guards reuse the replacement vector after condition
+      --  rendering, so keep it in sync with the pruned snapshot set.
       Rendered.Replacements := Used_Replacements;
       Rendered.Image := FT.To_UString (SU.To_String (Image));
    end Apply_Shared_Condition_Replacements;
@@ -3111,8 +3113,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
       begin
          --  Target_Subprogram is populated before this helper is called; the
          --  early fallback path renders without using this copy-back-aware pass.
-         Collect_Shared_Condition_Snapshots
-           (Unit, Document, Call_Expr.Callee, Statement_Index, Result);
+         --  Callees are subprogram references, so collect snapshots from value
+         --  actuals only.
 
          for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
             if not Skip_Copy_Back_Actuals
@@ -3630,7 +3632,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        Render_Shared_Condition_From_Image
                          (Unit,
                           Document,
-                          Item.Call,
+                          Item.Call.Args (Item.Call.Args.First_Index),
                           Index,
                           Print_Image);
                   begin
