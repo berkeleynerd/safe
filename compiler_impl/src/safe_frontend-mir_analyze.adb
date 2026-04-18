@@ -3640,6 +3640,8 @@ package body Safe_Frontend.Mir_Analyze is
             return;
          end if;
 
+         --  At most four candidate divisors are sampled, each adding two
+         --  numerator endpoints, so Values'Last must remain at least 8.
          pragma Assert (Value_Count + 2 <= Values'Last);
          Add_Quotient (Left.Low, Divisor);
          Add_Quotient (Left.High, Divisor);
@@ -3678,7 +3680,7 @@ package body Safe_Frontend.Mir_Analyze is
          Add_Divisor (-1);
       end if;
 
-      if Value_Count = 0 then
+      if Needs_Wide_Result or else Value_Count = 0 then
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
       end if;
 
@@ -3690,9 +3692,6 @@ package body Safe_Frontend.Mir_Analyze is
             Low_Value := Wide_Integer'Min (Low_Value, Values (Index));
             High_Value := Wide_Integer'Max (High_Value, Values (Index));
          end loop;
-         if Needs_Wide_Result then
-            High_Value := INT64_HIGH;
-         end if;
          return (Low => Low_Value, High => High_Value, Excludes_Zero => False);
       end;
    end Division_Interval;
