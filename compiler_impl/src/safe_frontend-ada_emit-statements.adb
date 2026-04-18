@@ -6488,6 +6488,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                        Depth + 2);
                                  end loop;
                                  if not Exact_Counters.Is_Empty then
+                                    --  Growable for-of headers are emitted as 1 .. Length;
+                                    --  make that origin dependency explicit in the generated proof.
+                                    Append_Line
+                                      (Buffer,
+                                       "pragma Loop_Invariant (" & Index_Name & " >= 1);",
+                                       Depth + 2);
                                     declare
                                        Counter_Candidate : constant Exact_Counter_Info :=
                                          Exact_Counters (Exact_Counters.First_Index);
