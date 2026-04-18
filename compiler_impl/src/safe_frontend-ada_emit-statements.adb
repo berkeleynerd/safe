@@ -2662,17 +2662,63 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Rendered   : in out Shared_Condition_Render;
       Base_Image : String)
    is
-      Image  : SU.Unbounded_String := SU.To_Unbounded_String (Base_Image);
+      Image             : SU.Unbounded_String := SU.To_Unbounded_String (Base_Image);
+      Used_Snapshots    : Shared_Condition_Snapshot_Vectors.Vector;
+      Used_Replacements : Shared_Condition_Replacement_Vectors.Vector;
+
+      function Uses_Snapshot
+        (Replacement : Shared_Condition_Replacement;
+         Snapshot    : Shared_Condition_Snapshot) return Boolean
+      is
+         Prefix : constant String := FT.To_String (Snapshot.Snapshot_Name) & ".";
+         Image  : constant String := FT.To_String (Replacement.Replacement_Image);
+      begin
+         return
+           Image'Length >= Prefix'Length
+           and then Image (Image'First .. Image'First + Prefix'Length - 1) = Prefix;
+      end Uses_Snapshot;
+
+      procedure Keep_Replacement_Snapshot
+        (Replacement : Shared_Condition_Replacement)
+      is
+      begin
+         for Snapshot of Rendered.Snapshots loop
+            if Uses_Snapshot (Replacement, Snapshot) then
+               for Existing of Used_Snapshots loop
+                  if FT.To_String (Existing.Snapshot_Name)
+                    = FT.To_String (Snapshot.Snapshot_Name)
+                  then
+                     return;
+                  end if;
+               end loop;
+
+               Used_Snapshots.Append (Snapshot);
+               return;
+            end if;
+         end loop;
+      end Keep_Replacement_Snapshot;
    begin
       for Replacement of Rendered.Replacements loop
-         Image :=
-           SU.To_Unbounded_String
-             (Replace_All
-                (SU.To_String (Image),
+         declare
+            Before : constant String := SU.To_String (Image);
+            After  : constant String :=
+              Replace_All
+                (Before,
                  FT.To_String (Replacement.Call_Image),
-                 FT.To_String (Replacement.Replacement_Image)));
+                 FT.To_String (Replacement.Replacement_Image));
+         begin
+            if After /= Before then
+               Image := SU.To_Unbounded_String (After);
+               Used_Replacements.Append (Replacement);
+               Keep_Replacement_Snapshot (Replacement);
+            end if;
+         end;
       end loop;
 
+      --  A renderer may fold or rewrite an expression before replacement. Keep
+      --  only snapshots whose getter text was actually replaced in Base_Image.
+      Rendered.Snapshots := Used_Snapshots;
+      Rendered.Replacements := Used_Replacements;
       Rendered.Image := FT.To_UString (SU.To_String (Image));
    end Apply_Shared_Condition_Replacements;
 
@@ -3063,6 +3109,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
       is
          Result : Shared_Condition_Render;
       begin
+         --  Target_Subprogram is populated before this helper is called; the
+         --  early fallback path renders without using this copy-back-aware pass.
          Collect_Shared_Condition_Snapshots
            (Unit, Document, Call_Expr.Callee, Statement_Index, Result);
 
