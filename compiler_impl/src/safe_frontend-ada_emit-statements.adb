@@ -4557,7 +4557,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        (Name   : String;
                         Length : out Long_Long_Integer) return Boolean
                      is
-                        Decl_Index     : Positive := Statements.First_Index;
                         Found_Decl     : Boolean := False;
                         Literal_Length : Ada.Containers.Count_Type := 0;
                         Static_Length  : Natural := 0;
@@ -4629,7 +4628,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                           end if;
 
                                           Found_Decl := True;
-                                          Decl_Index := Candidate_Index;
                                           Literal_Length :=
                                             Initializer.Elements.Length;
                                        end;
@@ -4641,17 +4639,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
                         if not Found_Decl then
                            return False;
-                        end if;
-
-                        if Decl_Index + 1 <= Index - 1 then
-                           for Candidate_Index in Decl_Index + 1 .. Index - 1 loop
-                              if Statement_Write_Count
-                                (Statements (Candidate_Index),
-                                 Name) > 0
-                              then
-                                 return False;
-                              end if;
-                           end loop;
                         end if;
 
                         Length := Long_Long_Integer (Literal_Length);
