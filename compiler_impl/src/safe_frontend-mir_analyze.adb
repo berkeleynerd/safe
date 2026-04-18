@@ -3625,6 +3625,10 @@ package body Safe_Frontend.Mir_Analyze is
         (Numerator : Wide_Integer;
          Divisor   : Wide_Integer) is
       begin
+         if Needs_Wide_Result then
+            return;
+         end if;
+
          if Divisor = -1 and then Numerator = INT64_LOW then
             Needs_Wide_Result := True;
             return;
