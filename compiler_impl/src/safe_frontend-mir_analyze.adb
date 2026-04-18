@@ -3678,7 +3678,7 @@ package body Safe_Frontend.Mir_Analyze is
          Add_Divisor (-1);
       end if;
 
-      if Needs_Wide_Result or else Value_Count = 0 then
+      if Value_Count = 0 then
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
       end if;
 
@@ -3690,6 +3690,9 @@ package body Safe_Frontend.Mir_Analyze is
             Low_Value := Wide_Integer'Min (Low_Value, Values (Index));
             High_Value := Wide_Integer'Max (High_Value, Values (Index));
          end loop;
+         if Needs_Wide_Result then
+            High_Value := INT64_HIGH;
+         end if;
          return (Low => Low_Value, High => High_Value, Excludes_Zero => False);
       end;
    end Division_Interval;

@@ -4812,22 +4812,26 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return Result;
                      end Top_Level_Exact_Counter_Assignments;
 
-                     function Supported_Exact_Counter (Name : String) return Boolean is
+                     function Supported_Exact_Counter
+                       (Loop_Statements : CM.Statement_Access_Vectors.Vector;
+                        Name            : String) return Boolean
+                     is
                      begin
-                        return not Statements_Declare_Name (Item.Body_Stmts, Name)
+                        return not Statements_Declare_Name (Loop_Statements, Name)
                           and then Top_Level_Exact_Counter_Assignments
-                            (Item.Body_Stmts,
+                            (Loop_Statements,
                              Name) = 1
                           and then Statements_Write_Count
-                            (Item.Body_Stmts,
+                            (Loop_Statements,
                              Name) = 1;
                      end Supported_Exact_Counter;
 
                      procedure Collect_Exact_Counters
-                       (Statements : CM.Statement_Access_Vectors.Vector)
+                       (Candidate_Statements : CM.Statement_Access_Vectors.Vector;
+                        Loop_Statements      : CM.Statement_Access_Vectors.Vector)
                      is
                      begin
-                        for Nested of Statements loop
+                        for Nested of Candidate_Statements loop
                            if Nested /= null and then Nested.Kind = CM.Stmt_Assign then
                               declare
                                  Name_Image  : constant String :=
@@ -4842,7 +4846,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                          (Unit,
                                           Document,
                                           Target_Info)
-                                         and then Supported_Exact_Counter (Name_Image)
+                                         and then Supported_Exact_Counter
+                                           (Loop_Statements,
+                                            Name_Image)
                                        then
                                           Add_Exact_Counter (Name_Image);
                                        end if;
@@ -4854,7 +4860,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      end Collect_Exact_Counters;
 
                      procedure Collect_Growable_Accumulators
-                       (Statements : CM.Statement_Access_Vectors.Vector)
+                       (Candidate_Statements : CM.Statement_Access_Vectors.Vector;
+                        Loop_Statements      : CM.Statement_Access_Vectors.Vector)
                      is
                         procedure Visit_Assignment (Stmt : CM.Statement) is
                            Name_Image  : constant String := Target_Ident_Name (Stmt.Target);
@@ -4880,7 +4887,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                               end if;
 
                               Analyze_Accumulator_Statements
-                                (Item.Body_Stmts,
+                                (Loop_Statements,
                                  Name_Image,
                                  Max_Delta,
                                  Unsafe);
@@ -4897,7 +4904,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                            end;
                         end Visit_Assignment;
                      begin
-                        for Nested of Statements loop
+                        for Nested of Candidate_Statements loop
                            if Nested = null then
                               null;
                            else
@@ -4905,20 +4912,30 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  when CM.Stmt_Assign =>
                                     Visit_Assignment (Nested.all);
                                  when CM.Stmt_If =>
-                                    Collect_Growable_Accumulators (Nested.Then_Stmts);
+                                    Collect_Growable_Accumulators
+                                      (Nested.Then_Stmts,
+                                       Loop_Statements);
                                     for Part of Nested.Elsifs loop
-                                       Collect_Growable_Accumulators (Part.Statements);
+                                       Collect_Growable_Accumulators
+                                         (Part.Statements,
+                                          Loop_Statements);
                                     end loop;
                                     if Nested.Has_Else then
-                                       Collect_Growable_Accumulators (Nested.Else_Stmts);
+                                       Collect_Growable_Accumulators
+                                         (Nested.Else_Stmts,
+                                          Loop_Statements);
                                     end if;
                                  when CM.Stmt_Case =>
                                     for Arm of Nested.Case_Arms loop
-                                       Collect_Growable_Accumulators (Arm.Statements);
+                                       Collect_Growable_Accumulators
+                                         (Arm.Statements,
+                                          Loop_Statements);
                                     end loop;
                                  when CM.Stmt_Match =>
                                     for Arm of Nested.Match_Arms loop
-                                       Collect_Growable_Accumulators (Arm.Statements);
+                                       Collect_Growable_Accumulators
+                                         (Arm.Statements,
+                                          Loop_Statements);
                                     end loop;
                                  when others =>
                                     null;
@@ -6446,8 +6463,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  end loop;
                               end if;
                            elsif Iterable_Info.Growable then
-                              Collect_Growable_Accumulators (Item.Body_Stmts);
-                              Collect_Exact_Counters (Item.Body_Stmts);
+                              Collect_Growable_Accumulators
+                                (Item.Body_Stmts,
+                                 Item.Body_Stmts);
+                              Collect_Exact_Counters
+                                (Item.Body_Stmts,
+                                 Item.Body_Stmts);
                               if not Growable_Accumulators.Is_Empty then
                                  Has_Top_Level_Loop_Invariant := True;
                                  for Candidate of Growable_Accumulators loop
