@@ -3474,6 +3474,17 @@ accumulator invariants. Snapshot churn in adjacent fixtures such as
 `pr1123f_sum_count_relational_build.safe` is therefore expected and should be
 checked when refactoring this helper.
 
+### PR11.23h Note
+
+PR11.23h implements #287 by reusing the shared-condition snapshot collector for
+assignment RHS and standalone call-argument contexts. The condition path was
+already covered by the PR11.22h.1 shared-condition fixtures; this slice pins the
+original compound-condition shape and adds flat plus nested call-argument
+coverage in `tests/build/pr1123h_shared_call_argument_snapshot_build.safe`.
+Snapshotting remains scoped to statement contexts with a clear declaration
+insertion point and preserves one whole-root snapshot per shared object per
+statement.
+
 ---
 
 ## PR11.23j: Post-Sprint Emitter Analysis Hardening

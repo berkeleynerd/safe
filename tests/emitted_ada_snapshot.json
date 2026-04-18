@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "026cda1ff9e8b4fc30561b0dc55254341fb8e2b1cf9c75475f5f99be05f84c48",
+  "compiler_hash": "3bd4b30618a48c1ed13cb68ce2aae8ec1663c6be4b4f5d34c73380681b5fbc29",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -104,9 +104,9 @@
       "pr1111c_provider_collision_right_line_map.json": "49180721ecd03bc59d854871e47838e9e276329ad607280dd02e5100262583a9"
     },
     "tests/build/pr1112a_shared_task_build.safe": {
-      "pr1112a_shared_task_build.adb": "3cff2b435cf28d9e5cf116932624c11275fa5118cd98637735d6cf5712a75395",
+      "pr1112a_shared_task_build.adb": "15c2bbf3bae591a52bec31e64cadd8e92d0ae0b53fcc336ff11c3f76def1b1b1",
       "pr1112a_shared_task_build.ads": "ed4c327d0d3fc83a99a46bcf89bde0b066cf4df398d8795709cd7d8049d72cb7",
-      "pr1112a_shared_task_build_line_map.json": "e88692a6785298d53b744c7dbb8284e0f326efe5fdbfd2fcd99f79de2fb26eaf"
+      "pr1112a_shared_task_build_line_map.json": "6681d4411c7ce3ae1774bfe0b82965b65f3dd38b531396f59ab64a5784fd035c"
     },
     "tests/build/pr1112b_shared_update_build.safe": {
       "pr1112b_shared_update_build.adb": "f82a5fceb2dbf1c02ce22501ff2c61c2721ae9fa530b1d48c115c77783e44fb7",
@@ -165,9 +165,9 @@
       "pr1112e_provider_shared_map_line_map.json": "b65f10e43e0989576e2fabd0b127888cf381dca248fe5bc3e09fb296cfdc6864"
     },
     "tests/build/pr1112e_imported_shared_record_build.safe": {
-      "pr1112e_imported_shared_record_build.adb": "937a2324ad1ebfaae0f15dc36691490668ae91b8e67b8554c76efbcb8af6978f",
+      "pr1112e_imported_shared_record_build.adb": "1e8ad26eb5981c1a5ba8f5c79daed1b0fa80329d8c1510b780f45ff451d8b61a",
       "pr1112e_imported_shared_record_build.ads": "8b184d315efb51a593eca3f5248cd311f75eb1808ce0b78adfa1d181070bfa39",
-      "pr1112e_imported_shared_record_build_line_map.json": "6fdaa51ea22a828882df3176eab0242ac0b73d7120e6982b0ad8de8ecea2d2be",
+      "pr1112e_imported_shared_record_build_line_map.json": "93895ca150b9a0674114d3fffbd39c00468c0fdbb65859aac480a8bc9800b836",
       "pr1112e_provider_shared_record.adb": "6bc78c1eaf43077609ce21ee920b179ccc99bc45deb837accfc97a666659a427",
       "pr1112e_provider_shared_record.ads": "59603312f15ded5e528134f3db75e9af0c2f863d02e8e836ab636a09bccd529d",
       "pr1112e_provider_shared_record_line_map.json": "603577aa15364a2c4fc4fac600e81e49cc16e3e4319f7636149abf4b86dd64e2"
@@ -316,6 +316,11 @@
       "pr1123g_nested_iteration_build.adb": "39ca495f059ba88695d931bf168238ef10f677b421a4e6b001ea2eef29888fb1",
       "pr1123g_nested_iteration_build.ads": "e03683786f0da559f74ce959736ca31144365595633029aad1fc17c5a9e3deaa",
       "pr1123g_nested_iteration_build_line_map.json": "3ba5542d365c9758d308267a724c3eb549286d6485bf79812b236e26700ac0a5"
+    },
+    "tests/build/pr1123h_shared_call_argument_snapshot_build.safe": {
+      "pr1123h_shared_call_argument_snapshot_build.adb": "38448648f7d0b8dbbe042b15e621b8668640d2b3710a2033a45d9a3ba87ee48c",
+      "pr1123h_shared_call_argument_snapshot_build.ads": "523fa819651ce8d5679fa12173d75e510d6bf8a3dcb127bd123ab6ee00bacc3a",
+      "pr1123h_shared_call_argument_snapshot_build_line_map.json": "dea4f96aa2d16e9113c397670f020367044fd957623c525fa251305541d1d814"
     },
     "tests/build/pr118c2_entry_build.safe": {
       "main.adb": "50641acff6114f530b052e2addbe1a8ad1b3ec3e57b8ba07ff78c9fa27e40289",
@@ -887,14 +892,14 @@
       "pr1111c_generic_constraint_line_map.json": "cddb4f8bb9467048bff595807b0a505030f928cef3748189e422298edc3a5336"
     },
     "tests/positive/pr1112a_shared_field_access.safe": {
-      "pr1112a_shared_field_access.adb": "f1ba1bd19584c3e8828054a0a1a6df671842ff526d5fb6c41509faed42d2bfcb",
+      "pr1112a_shared_field_access.adb": "7ea2cc62a669e21a3d3128d79d6e8a819628f709afe7ed2d4e02b7560716e954",
       "pr1112a_shared_field_access.ads": "e3bb9ecc0617a890ba43664e4e7d9b1508a6c58419c9f3d62b5d535143a81851",
-      "pr1112a_shared_field_access_line_map.json": "1815dd67948babd6656aaec3c49a2639d4d3aeee861513d7a51081db4cdb88c3"
+      "pr1112a_shared_field_access_line_map.json": "6417f967e2a5c0b1479f656c399d7cfefdc140d1928d6dbbfd22546c1f3b2f26"
     },
     "tests/positive/pr1112b_shared_snapshot.safe": {
-      "pr1112b_shared_snapshot.adb": "b0065b53e0b0f615959115ae6962c58ef7e84c3d5d9c449930d2b8356b4d4ce1",
+      "pr1112b_shared_snapshot.adb": "e9d992c38933cc86e5ad044d46c0dc71052c9b7db405b3323ac346e90bb5b5ba",
       "pr1112b_shared_snapshot.ads": "62e27e30b914b93ce95827369ef22fd57e7953ed0961a7da12a8ea81bed88500",
-      "pr1112b_shared_snapshot_line_map.json": "4374186c00395e5321a043988a64f1a5639017ccc98f72c9384f3213645f62fa"
+      "pr1112b_shared_snapshot_line_map.json": "42f3c71717c73cba3802fb4b4b39468397e67f6fa0d1f7c64ac6f25a4754fa06"
     },
     "tests/positive/pr1113a_sum_construction.safe": {
       "pr1113a_sum_construction.adb": "06ef559f7e17551d9eefb6d9b52814e8dbdbdf3ec04a51215b65a98de195428a",

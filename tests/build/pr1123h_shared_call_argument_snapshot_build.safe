@@ -1,0 +1,35 @@
+package pr1123h_shared_call_argument_snapshot_build
+
+   type sensor is record
+      temperature : integer;
+      active : boolean;
+
+   shared probe : sensor = (temperature = 0, active = false);
+
+   condition_result : integer = 0;
+   flat_result : integer = 0;
+   nested_result : integer = 0;
+
+   function is_hot (temperature : integer) returns boolean
+      return temperature > 0
+
+   function choose (hot : boolean; on : boolean) returns integer
+      if hot and then on
+         return 1
+      return 0
+
+   probe.temperature = 72;
+   probe.active = true;
+
+   --  Original #287 condition shape: already supported, pinned here.
+   if probe.temperature > 0 and then probe.active
+      condition_result = 1;
+
+   --  PR11.23h extends snapshots into call arguments and nested calls.
+   flat_result = choose (probe.temperature > 0, probe.active);
+   nested_result = choose (is_hot (probe.temperature), probe.active);
+
+   print (choose (is_hot (probe.temperature), probe.active));
+   print (condition_result);
+   print (flat_result);
+   print (nested_result)
