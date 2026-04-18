@@ -4164,9 +4164,23 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        (Call_Expr : CM.Expr_Access;
                         Name      : String) return Boolean
                      is
+                        function Unwrapped_Actual_Target
+                          (Actual : CM.Expr_Access) return CM.Expr_Access
+                        is
+                        begin
+                           if Actual /= null
+                             and then Actual.Kind in CM.Expr_Annotated | CM.Expr_Conversion
+                             and then Actual.Inner /= null
+                           then
+                              return Unwrapped_Actual_Target (Actual.Inner);
+                           end if;
+
+                           return Actual;
+                        end Unwrapped_Actual_Target;
+
                         function Actual_Targets_Name (Actual : CM.Expr_Access) return Boolean is
                         begin
-                           return Root_Name (Actual) = Name;
+                           return Root_Name (Unwrapped_Actual_Target (Actual)) = Name;
                         end Actual_Targets_Name;
 
                         function Local_Params_Mutate_Name
@@ -4786,9 +4800,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      begin
                         --  A single exact counter is sufficient for the relational invariant
                         --  family; keeping only the first makes that precondition structural.
-                        if not Exact_Counters.Is_Empty
-                          or else Contains_Exact_Counter (Name)
-                        then
+                        if not Exact_Counters.Is_Empty then
                            return;
                         end if;
 
@@ -5018,6 +5030,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         State.Needs_Safe_Runtime := True;
                         --  This invariant is emitted before the loop body; the count conjunct
                         --  intentionally describes the pre-increment value for this iteration.
+                        --  Growable for-of indices start at 1, so "- 1" converts the index to
+                        --  the number of completed pre-body iterations.
                         return
                           "pragma Loop_Invariant (Safe_Runtime.Wide_Integer ("
                           & Count_Name
