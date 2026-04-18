@@ -26,4 +26,21 @@ package pr1123g_nested_iteration_build
 
       return total + last
 
+   function independent_inner_loop_dynamic returns integer
+      var xs : list of factor = [1, 2, 3]
+      var ys : list of factor = []
+      var total : integer = 0
+      var last : factor = 0
+
+      append (ys, 4)
+      append (ys, 5)
+      append (ys, 6)
+
+      for x of xs
+         for y of ys
+            last = y
+         total = total + x
+
+      return total + last
+
    print (dot_product)

@@ -4794,7 +4794,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                           CM.Wide_Integer (Left) * CM.Wide_Integer (Right);
                      begin
                         Product := 0;
-                        if Wide_Product <= 0
+                        if Wide_Product < 0
                           or else Wide_Product
                             > CM.Wide_Integer (Long_Long_Integer'Last)
                         then
@@ -5024,6 +5024,37 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                 Step_Value);
                         end Try_Nested_For_Step;
 
+                        function Loop_Touches_Accumulator
+                          (Loop_Stmt : CM.Statement) return Boolean
+                        is
+                        begin
+                           if FT.To_String (Loop_Stmt.Loop_Var) = Name
+                             or else Statements_Declare_Name
+                               (Loop_Stmt.Body_Stmts,
+                                Name)
+                           then
+                              return True;
+                           end if;
+
+                           return
+                             Expr_Uses_Name (Loop_Stmt.Condition, Name)
+                             or else Expr_Uses_Name
+                               (Loop_Stmt.Loop_Range.Name_Expr,
+                                Name)
+                             or else Expr_Uses_Name
+                               (Loop_Stmt.Loop_Range.Low_Expr,
+                                Name)
+                             or else Expr_Uses_Name
+                               (Loop_Stmt.Loop_Range.High_Expr,
+                                Name)
+                             or else Expr_Uses_Name
+                               (Loop_Stmt.Loop_Iterable,
+                                Name)
+                             or else Statements_Use_Name
+                               (Loop_Stmt.Body_Stmts,
+                                Name);
+                        end Loop_Touches_Accumulator;
+
                         Step_Value : Long_Long_Integer := 0;
                      begin
                         Max_Step := 0;
@@ -5136,7 +5167,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                               Unsafe := True;
 
                            when CM.Stmt_For =>
-                              if Try_Nested_For_Step (Stmt.all, Step_Value) then
+                              if not Loop_Touches_Accumulator (Stmt.all) then
+                                 null;
+                              elsif Try_Nested_For_Step (Stmt.all, Step_Value) then
                                  Max_Step := Step_Value;
                               else
                                  Unsafe := True;
