@@ -3619,6 +3619,20 @@ package body Safe_Frontend.Mir_Analyze is
       Bound            : Wide_Integer;
       Values           : array (1 .. 8) of Wide_Integer;
       Value_Count      : Natural := 0;
+      Needs_Wide_Result : Boolean := False;
+
+      procedure Add_Quotient
+        (Numerator : Wide_Integer;
+         Divisor   : Wide_Integer) is
+      begin
+         if Divisor = -1 and then Numerator = INT64_LOW then
+            Needs_Wide_Result := True;
+            return;
+         end if;
+
+         Value_Count := Value_Count + 1;
+         Values (Value_Count) := Numerator / Divisor;
+      end Add_Quotient;
 
       procedure Add_Divisor (Divisor : Wide_Integer) is
       begin
@@ -3626,10 +3640,9 @@ package body Safe_Frontend.Mir_Analyze is
             return;
          end if;
 
-         Value_Count := Value_Count + 1;
-         Values (Value_Count) := Left.Low / Divisor;
-         Value_Count := Value_Count + 1;
-         Values (Value_Count) := Left.High / Divisor;
+         pragma Assert (Value_Count + 2 <= Values'Last);
+         Add_Quotient (Left.Low, Divisor);
+         Add_Quotient (Left.High, Divisor);
       end Add_Divisor;
    begin
       Factor := Numerator_Factor (Expr.Left, Numerator_Name);
@@ -3661,7 +3674,7 @@ package body Safe_Frontend.Mir_Analyze is
          Add_Divisor (-1);
       end if;
 
-      if Value_Count = 0 then
+      if Needs_Wide_Result or else Value_Count = 0 then
          return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
       end if;
 

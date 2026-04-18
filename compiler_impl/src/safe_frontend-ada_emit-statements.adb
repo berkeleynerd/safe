@@ -4155,6 +4155,105 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         return "";
                      end Target_Ident_Name;
 
+                     function Mode_Writes_Actual (Mode : String) return Boolean is
+                     begin
+                        return Mode in "mut" | "in out" | "out";
+                     end Mode_Writes_Actual;
+
+                     function Call_Mutates_Name
+                       (Call_Expr : CM.Expr_Access;
+                        Name      : String) return Boolean
+                     is
+                        function Actual_Targets_Name (Actual : CM.Expr_Access) return Boolean is
+                        begin
+                           return Root_Name (Actual) = Name;
+                        end Actual_Targets_Name;
+
+                        function Local_Params_Mutate_Name
+                          (Params : CM.Symbol_Vectors.Vector) return Boolean
+                        is
+                        begin
+                           if Params.Is_Empty or else Call_Expr.Args.Is_Empty then
+                              return False;
+                           end if;
+
+                           for Formal_Index in Params.First_Index .. Params.Last_Index loop
+                              exit when Formal_Index > Call_Expr.Args.Last_Index;
+                              if Mode_Writes_Actual (FT.To_String (Params (Formal_Index).Mode))
+                                and then Actual_Targets_Name (Call_Expr.Args (Formal_Index))
+                              then
+                                 return True;
+                              end if;
+                           end loop;
+                           return False;
+                        end Local_Params_Mutate_Name;
+
+                        function Imported_Params_Mutate_Name
+                          (Params : GM.Local_Vectors.Vector) return Boolean
+                        is
+                        begin
+                           if Params.Is_Empty or else Call_Expr.Args.Is_Empty then
+                              return False;
+                           end if;
+
+                           for Formal_Index in Params.First_Index .. Params.Last_Index loop
+                              exit when Formal_Index > Call_Expr.Args.Last_Index;
+                              if Mode_Writes_Actual (FT.To_String (Params (Formal_Index).Mode))
+                                and then Actual_Targets_Name (Call_Expr.Args (Formal_Index))
+                              then
+                                 return True;
+                              end if;
+                           end loop;
+                           return False;
+                        end Imported_Params_Mutate_Name;
+                     begin
+                        if Call_Expr = null
+                          or else Call_Expr.Kind /= CM.Expr_Call
+                          or else Call_Expr.Callee = null
+                          or else Name'Length = 0
+                        then
+                           return False;
+                        end if;
+
+                        declare
+                           Callee_Name : constant String :=
+                             FT.Lowercase (CM.Flatten_Name (Call_Expr.Callee));
+                        begin
+                           for Candidate of Unit.Subprograms loop
+                              if FT.Lowercase (FT.To_String (Candidate.Name)) = Callee_Name
+                                or else
+                                  FT.Lowercase
+                                    (FT.To_String (Unit.Package_Name)
+                                     & "."
+                                     & FT.To_String (Candidate.Name)) = Callee_Name
+                              then
+                                 return Local_Params_Mutate_Name (Candidate.Params);
+                              end if;
+                           end loop;
+
+                           for Imported of Unit.Imported_Subprograms loop
+                              declare
+                                 Imported_Name  : constant String :=
+                                   FT.Lowercase (FT.To_String (Imported.Name));
+                                 Imported_Short : constant String :=
+                                   FT.Lowercase
+                                     (AET.Synthetic_Type_Tail_Name
+                                        (FT.To_String (Imported.Name)));
+                              begin
+                                 if Imported_Name = Callee_Name
+                                   or else Imported_Short = Callee_Name
+                                 then
+                                    return Imported_Params_Mutate_Name (Imported.Params);
+                                 end if;
+                              end;
+                           end loop;
+                        end;
+
+                        --  Unknown calls that mention the counter may mutate it through an
+                        --  unsupported signature path, so the exact-counter heuristic fails closed.
+                        return Expr_Uses_Name (Call_Expr, Name);
+                     end Call_Mutates_Name;
+
                      function Statement_Write_Count
                        (Stmt : CM.Statement_Access;
                         Name : String) return Natural;
@@ -4187,9 +4286,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
                         case Stmt.Kind is
                            when CM.Stmt_Assign =>
-                              if Target_Ident_Name (Stmt.Target) = Name
-                                or else Expr_Uses_Name (Stmt.Target, Name)
-                              then
+                              if Target_Ident_Name (Stmt.Target) = Name then
+                                 Result := Result + 1;
+                              end if;
+
+                           when CM.Stmt_Call =>
+                              if Call_Mutates_Name (Stmt.Call, Name) then
                                  Result := Result + 1;
                               end if;
 
