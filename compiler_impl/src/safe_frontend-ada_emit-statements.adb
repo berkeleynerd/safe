@@ -2660,17 +2660,18 @@ package body Safe_Frontend.Ada_Emit.Statements is
         (Replacement : Shared_Condition_Replacement;
          Snapshot    : Shared_Condition_Snapshot) return Boolean
       is
-         Prefix : constant String := FT.To_String (Replacement.Snapshot_Name) & ".";
-         Image  : constant String := FT.To_String (Replacement.Replacement_Image);
+         Prefix           : constant String := FT.To_String (Replacement.Snapshot_Name) & ".";
+         Replacement_Text : constant String := FT.To_String (Replacement.Replacement_Image);
       begin
          --  Snapshot-name equality identifies the paired declaration. Keep
-         --  the prefix check as a fail-fast invariant guard: a future
-         --  malformed replacement image must not retain an unrelated or
-         --  unused snapshot declaration silently.
+         --  the prefix check as a fail-fast construction guard: a future
+         --  malformed replacement image must still name the retained snapshot
+         --  local it depends on.
          return
            Snapshot.Snapshot_Name = Replacement.Snapshot_Name
-           and then Image'Length >= Prefix'Length
-           and then Image (Image'First .. Image'First + Prefix'Length - 1) = Prefix;
+           and then Replacement_Text'Length >= Prefix'Length
+           and then Replacement_Text
+             (Replacement_Text'First .. Replacement_Text'First + Prefix'Length - 1) = Prefix;
       end Uses_Snapshot;
 
       function Collect_Replacement_Snapshot
@@ -2751,6 +2752,34 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       return SU.To_String (Result);
    end Apply_Shared_Replacements_To_Image;
+
+   procedure Require_Shared_Replacements
+     (Unit            : CM.Resolved_Unit;
+      Document        : GM.Mir_Document;
+      Expr            : CM.Expr_Access;
+      Statement_Index : Positive;
+      Base_Image      : String;
+      Context         : String)
+   is
+      Probe : Shared_Condition_Render;
+   begin
+      Collect_Shared_Condition_Snapshots
+        (Unit, Document, Expr, Statement_Index, Probe);
+
+      for Replacement of Probe.Replacements loop
+         if Replace_All
+             (Base_Image,
+              FT.To_String (Replacement.Call_Image),
+              FT.To_String (Replacement.Replacement_Image))
+           = Base_Image
+         then
+            Raise_Internal
+              ("shared snapshot replacement missing from rendered "
+               & Context
+               & " during Ada emission");
+         end if;
+      end loop;
+   end Require_Shared_Replacements;
 
    function Render_Shared_Condition_From_Image
      (Unit            : CM.Resolved_Unit;
@@ -3163,6 +3192,16 @@ package body Safe_Frontend.Ada_Emit.Statements is
               (Unit, Document, Call_Expr.Args (Arg_Index), Statement_Index, Result);
          end loop;
 
+         for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
+            Require_Shared_Replacements
+              (Unit,
+               Document,
+               Call_Expr.Args (Arg_Index),
+               Statement_Index,
+               Base_Image,
+               "call argument");
+         end loop;
+
          Apply_Shared_Condition_Replacements (Result, Base_Image);
          return Result;
       end Render_Call_From_Image;
@@ -3179,8 +3218,35 @@ package body Safe_Frontend.Ada_Emit.Statements is
            & "_"
            & Ada.Strings.Fixed.Trim
                (Natural'Image (Natural (Arg_Index)),
-                Ada.Strings.Both);
+               Ada.Strings.Both);
       end Mutable_Actual_Temp_Name;
+
+      function Mutable_Actual_Index_Temp_Name
+        (Statement_Index : Positive;
+         Arg_Index       : Positive) return String is
+      begin
+         return Mutable_Actual_Temp_Name (Statement_Index, Arg_Index) & "_Index";
+      end Mutable_Actual_Index_Temp_Name;
+
+      function Growable_Indexed_Element_Image
+        (Actual      : CM.Expr_Access;
+         Index_Image : String) return String
+      is
+         Prefix_Info : constant GM.Type_Descriptor :=
+           Base_Type
+             (Unit,
+              Document,
+              Expr_Type_Info (Unit, Document, Actual.Prefix));
+      begin
+         State.Needs_Safe_Array_RT := True;
+         return
+           Array_Runtime_Instance_Name (Prefix_Info)
+           & ".Element ("
+           & Render_Expr (Unit, Document, Actual.Prefix, State)
+           & ", "
+           & Index_Image
+           & ")";
+      end Growable_Indexed_Element_Image;
 
       function Growable_Indexed_Writeback_Image
         (Actual       : CM.Expr_Access;
@@ -3370,6 +3436,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                     Target_Subprogram.Params (Formal_Index);
                   Temp_Name  : constant String :=
                     Mutable_Actual_Temp_Name (Statement_Index, Formal_Index);
+                  Index_Temp_Name : constant String :=
+                    Mutable_Actual_Index_Temp_Name (Statement_Index, Formal_Index);
                   Index_Expr : constant CM.Expr_Access :=
                     Actual.Args (Actual.Args.First_Index);
                begin
@@ -3385,6 +3453,14 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   declare
                      Index_Image : constant String :=
                        Render_Expr (Unit, Document, Index_Expr, State);
+                     Index_Declaration_Image : constant String :=
+                       Index_Temp_Name
+                       & " : constant Integer := Integer ("
+                       & Index_Image
+                       & ");";
+                     Actual_Value_Image : constant String :=
+                       Growable_Indexed_Element_Image
+                         (Actual, Index_Temp_Name);
                      Init_Image : constant String :=
                        (if FT.To_String (Formal.Mode) = "out"
                         then
@@ -3393,12 +3469,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                              Document,
                              Formal.Type_Info)
                         else
-                          Render_Expr_For_Target_Type
-                            (Unit,
-                             Document,
-                             Actual,
-                             Formal.Type_Info,
-                             State));
+                          Actual_Value_Image);
                      Declaration_Image : constant String :=
                        Temp_Name
                        & " : "
@@ -3408,7 +3479,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        & ";";
                      Writeback_Image : constant String :=
                        Growable_Indexed_Writeback_Image
-                         (Actual, Index_Image, Temp_Name);
+                         (Actual, Index_Temp_Name, Temp_Name);
                   begin
                      --  Snapshot only the index expression. The prefix is the
                      --  mutable Replace_Element target; rewriting it to a
@@ -3420,24 +3491,21 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         Statement_Index,
                         Statement_Rendered);
 
-                     --  Keep the full indexed actual render tied to the same
-                     --  Index_Image substring: the replacement guard below
-                     --  relies on seeing each isolated index getter call in
-                     --  the enclosing initializer text.
-                     if FT.To_String (Formal.Mode) /= "out" then
-                        Require_Shared_Index_Replacements
-                          (Index_Expr,
-                           Declaration_Image,
-                           "copy-back temp initializer");
-                     end if;
+                     --  Evaluate the index once before the call. The temp
+                     --  initializer and writeback both use this value, so
+                     --  copy-back cannot retarget if the call mutates data
+                     --  used by the original index expression.
                      Require_Shared_Index_Replacements
                        (Index_Expr,
-                        Writeback_Image,
-                        "copy-back writeback");
+                        Index_Declaration_Image,
+                        "copy-back index temp");
 
+                     Temp_Declarations.Append
+                       (FT.To_UString (Index_Declaration_Image));
                      Temp_Declarations.Append
                        (FT.To_UString (Declaration_Image));
                      Writebacks.Append (FT.To_UString (Writeback_Image));
+                     Include_Image (Index_Declaration_Image);
                      Include_Image (Declaration_Image);
                      Include_Image (Writeback_Image);
                   end;
@@ -3510,6 +3578,23 @@ package body Safe_Frontend.Ada_Emit.Statements is
          end loop;
          Call_Image := Call_Image & SU.To_Unbounded_String (")");
          Include_Image (SU.To_String (Call_Image));
+
+         for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
+            if not
+              (Has_Formal_For_Arg (Arg_Index)
+               and then Needs_Growable_Indexed_Copy_Back
+                 (Target_Subprogram.Params (Arg_Index),
+                  Call_Expr.Args (Arg_Index)))
+            then
+               Require_Shared_Replacements
+                 (Unit,
+                  Document,
+                  Call_Expr.Args (Arg_Index),
+                  Statement_Index,
+                  SU.To_String (Combined_Image),
+                  "copy-back call argument");
+            end if;
+         end loop;
 
          --  Combined_Image is not emitted. This call uses the final rendered
          --  declaration/writeback/call text only to prune snapshots and
@@ -3800,6 +3885,13 @@ package body Safe_Frontend.Ada_Emit.Statements is
                           Print_Image);
                   begin
                      State.Needs_Safe_IO := True;
+                     Require_Shared_Replacements
+                       (Unit,
+                        Document,
+                        Item.Call.Args (Item.Call.Args.First_Index),
+                        Index,
+                        Print_Image,
+                        "print argument");
                      Append_Shared_Rendered_Statement (Buffer, Rendered, Depth);
                   end;
                else
@@ -8627,24 +8719,14 @@ package body Safe_Frontend.Ada_Emit.Statements is
          Context     : String;
          Source_Expr : CM.Expr_Access := Stmt.Value)
       is
-         Probe : Shared_Condition_Render;
       begin
-         Collect_Shared_Condition_Snapshots
-           (Unit, Document, Source_Expr, Statement_Index, Probe);
-
-         for Replacement of Probe.Replacements loop
-            if Replace_All
-                (Base_Image,
-                 FT.To_String (Replacement.Call_Image),
-                 FT.To_String (Replacement.Replacement_Image))
-              = Base_Image
-            then
-               Raise_Internal
-                 ("shared snapshot replacement missing from rendered "
-                  & Context
-                  & " during Ada emission");
-            end if;
-         end loop;
+         Require_Shared_Replacements
+           (Unit,
+            Document,
+            Source_Expr,
+            Statement_Index,
+            Base_Image,
+            Context);
       end Require_Shared_Value_Replacements;
    begin
       if Suppress_Target_Static_Binding then
