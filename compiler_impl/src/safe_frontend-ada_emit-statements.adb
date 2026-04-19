@@ -46,6 +46,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
    type Shared_Condition_Replacement is record
       Call_Image        : FT.UString := FT.To_UString ("");
+      Snapshot_Name     : FT.UString := FT.To_UString ("");
       Replacement_Image : FT.UString := FT.To_UString ("");
    end record;
 
@@ -2534,6 +2535,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
             begin
                Rendered.Replacements.Append
                  ((Call_Image => Info.Call_Image,
+                   Snapshot_Name => FT.To_UString (Snapshot_Name),
                    Replacement_Image =>
                      FT.To_UString
                        (Snapshot_Name & "." & FT.To_String (Info.Field_Ada_Name))));
@@ -2670,11 +2672,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
         (Replacement : Shared_Condition_Replacement;
          Snapshot    : Shared_Condition_Snapshot) return Boolean
       is
-         Prefix : constant String := FT.To_String (Snapshot.Snapshot_Name) & ".";
+         Prefix : constant String := FT.To_String (Replacement.Snapshot_Name) & ".";
          Image  : constant String := FT.To_String (Replacement.Replacement_Image);
       begin
          return
-           Image'Length >= Prefix'Length
+           Snapshot.Snapshot_Name = Replacement.Snapshot_Name
+           and then Image'Length >= Prefix'Length
            and then Image (Image'First .. Image'First + Prefix'Length - 1) = Prefix;
       end Uses_Snapshot;
 
@@ -3112,6 +3115,13 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Target_Subprogram_Resolved : Boolean := False;
       Needs_Copy_Back            : Boolean := False;
 
+      function Has_Formal_For_Arg (Arg_Index : Positive) return Boolean is
+      begin
+         return
+           Arg_Index >= Target_Subprogram.Params.First_Index
+           and then Arg_Index <= Target_Subprogram.Params.Last_Index;
+      end Has_Formal_For_Arg;
+
       function Render_Call_From_Image
         (Base_Image             : String;
          Skip_Copy_Back_Actuals : Boolean) return Shared_Condition_Render
@@ -3129,7 +3139,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
          for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
             if not Skip_Copy_Back_Actuals
-              or else Arg_Index > Target_Subprogram.Params.Last_Index
+              or else not Has_Formal_For_Arg (Arg_Index)
               or else not Needs_Growable_Indexed_Copy_Back
                 (Target_Subprogram.Params (Arg_Index),
                  Call_Expr.Args (Arg_Index))
@@ -3170,21 +3180,30 @@ package body Safe_Frontend.Ada_Emit.Statements is
               Expr_Type_Info (Unit, Document, Actual.Prefix));
       begin
          State.Needs_Safe_Array_RT := True;
-         Append_Line
-           (Buffer,
-            Array_Runtime_Instance_Name (Prefix_Info)
-            & ".Replace_Element ("
-            & Render_Expr (Unit, Document, Actual.Prefix, State)
-            & ", Integer ("
-            & Render_Expr
+         declare
+            Statement_Image : constant String :=
+              Array_Runtime_Instance_Name (Prefix_Info)
+              & ".Replace_Element ("
+              & Render_Expr (Unit, Document, Actual.Prefix, State)
+              & ", Integer ("
+              & Render_Expr
+                  (Unit,
+                   Document,
+                   Actual.Args (Actual.Args.First_Index),
+                   State)
+              & "), "
+              & Temp_Name
+              & ")";
+            Rendered : constant Shared_Condition_Render :=
+              Render_Shared_Condition_From_Image
                 (Unit,
                  Document,
-                 Actual.Args (Actual.Args.First_Index),
-                 State)
-            & "), "
-            & Temp_Name
-            & ");",
-            Depth);
+                 Actual,
+                 Statement_Index,
+                 Statement_Image);
+         begin
+            Append_Shared_Rendered_Statement (Buffer, Rendered, Depth);
+         end;
       end Append_Growable_Indexed_Writeback;
 
    begin
@@ -3235,7 +3254,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      Call_Image := Call_Image & SU.To_Unbounded_String (", ");
                   end if;
 
-                  if Arg_Index <= Target_Subprogram.Params.Last_Index then
+                  if Has_Formal_For_Arg (Arg_Index) then
                      declare
                         Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
                      begin
@@ -3305,16 +3324,23 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        Call_Expr.Args (Formal_Index),
                        Formal.Type_Info,
                        State));
+               Declaration_Image : constant String :=
+                 Temp_Name
+                 & " : "
+                 & Render_Type_Name (Formal.Type_Info)
+                 & " := "
+                 & Init_Image
+                 & ";";
+               Rendered : constant Shared_Condition_Render :=
+                 Render_Shared_Condition_From_Image
+                   (Unit,
+                    Document,
+                    Call_Expr.Args (Formal_Index),
+                    Statement_Index + Formal_Index,
+                    Declaration_Image);
             begin
-               Append_Line
-                 (Buffer,
-                  Temp_Name
-                  & " : "
-                  & Render_Type_Name (Formal.Type_Info)
-                  & " := "
-                  & Init_Image
-                  & ";",
-                  Depth + 1);
+               Append_Shared_Condition_Declarations (Buffer, Rendered, Depth + 1);
+               Append_Line (Buffer, FT.To_String (Rendered.Image), Depth + 1);
             end;
          end if;
       end loop;
@@ -3333,7 +3359,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Call_Image := Call_Image & SU.To_Unbounded_String (", ");
                end if;
 
-               if Arg_Index <= Target_Subprogram.Params.Last_Index
+               if Has_Formal_For_Arg (Arg_Index)
                  and then Needs_Growable_Indexed_Copy_Back
                    (Target_Subprogram.Params (Arg_Index),
                     Call_Expr.Args (Arg_Index))
@@ -3342,7 +3368,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                     SU.To_Unbounded_String
                       (Mutable_Actual_Temp_Name (Statement_Index, Arg_Index));
                   Used_Formal := True;
-               elsif Arg_Index <= Target_Subprogram.Params.Last_Index then
+               elsif Has_Formal_For_Arg (Arg_Index) then
                   declare
                      Formal : constant CM.Symbol := Target_Subprogram.Params (Arg_Index);
                   begin

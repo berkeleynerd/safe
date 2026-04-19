@@ -1,15 +1,21 @@
 package pr1123h_shared_call_argument_snapshot_build
 
+   subtype slot_index is integer (1 to 3);
+   subtype small_value is integer (0 to 40);
+   type int_list is array of small_value;
+
    type sensor is record
       temperature : integer;
       active : boolean;
       label : string (5);
+      slot : slot_index;
 
-   shared probe : sensor = (temperature = 0, active = false, label = "idle-");
+   shared probe : sensor = (temperature = 0, active = false, label = "idle-", slot = 1);
 
    condition_result : integer = 0;
    flat_result : integer = 0;
    nested_result : integer = 0;
+   values : int_list = [10, 20, 30];
 
    function is_hot (temperature : integer) returns boolean
       return temperature > 0
@@ -22,9 +28,14 @@ package pr1123h_shared_call_argument_snapshot_build
    function echo_label (value : string (5)) returns string (5)
       return value
 
+   function bump (item : mut small_value)
+      if item < 40
+         item = item + 1;
+
    probe.temperature = 72;
    probe.active = true;
    probe.label = "ready";
+   probe.slot = 2;
 
    --  Original #287 condition shape: already supported, pinned here.
    if probe.temperature > 0 and then probe.active
@@ -38,4 +49,8 @@ package pr1123h_shared_call_argument_snapshot_build
    print (echo_label (probe.label));
    print (condition_result);
    print (flat_result);
-   print (nested_result)
+   print (nested_result);
+
+   --  Copy-back temp initialization/writeback also need snapshots.
+   bump (values (probe.slot));
+   print (values (2))
