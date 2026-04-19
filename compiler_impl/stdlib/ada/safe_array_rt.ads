@@ -44,6 +44,7 @@ package Safe_Array_RT is
       Item  : Element_Type)
       with Global => null,
            Pre => Index <= Length (Value),
+           Always_Terminates,
            Post =>
              Length (Value) = Length (Value'Old)
              and then Element (Value, Index) = Item
