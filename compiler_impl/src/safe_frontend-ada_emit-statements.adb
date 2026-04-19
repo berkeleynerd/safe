@@ -2678,7 +2678,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
            and then Image (Image'First .. Image'First + Prefix'Length - 1) = Prefix;
       end Uses_Snapshot;
 
-      function Keep_Replacement_Snapshot
+      function Collect_Replacement_Snapshot
         (Replacement : Shared_Condition_Replacement)
          return Boolean
       is
@@ -2698,7 +2698,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
             end if;
          end loop;
          return False;
-      end Keep_Replacement_Snapshot;
+      end Collect_Replacement_Snapshot;
    begin
       for Replacement of Rendered.Replacements loop
          declare
@@ -2710,7 +2710,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                  FT.To_String (Replacement.Replacement_Image));
          begin
             if After /= Before then
-               if Keep_Replacement_Snapshot (Replacement) then
+               if Collect_Replacement_Snapshot (Replacement) then
                   Image := SU.To_Unbounded_String (After);
                   Used_Replacements.Append (Replacement);
                else
@@ -3216,7 +3216,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
               Render_Shared_Condition_From_Image
                 (Unit,
                  Document,
-                 Actual,
+                 --  Snapshot only the index expression. The prefix is the
+                 --  mutable array target passed to Replace_Element and must
+                 --  remain writable, not be rewritten to a snapshot value.
+                 Actual.Args (Actual.Args.First_Index),
                  Statement_Index,
                  Statement_Image);
          begin
@@ -8755,20 +8758,77 @@ package body Safe_Frontend.Ada_Emit.Statements is
                  Lower_Image,
                  Upper_Image)
             then
-               Append_Line
-                 (Buffer,
-                  "if " & FT.To_String (Condition_Image) & " then",
-                  Depth);
-               Append_Line
-                 (Buffer,
-                  Target_Image & " := " & FT.To_String (Lower_Image) & ";",
-                  Depth + 1);
-               Append_Line (Buffer, "else", Depth);
-               Append_Line
-                 (Buffer,
-                  Target_Image & " := " & FT.To_String (Upper_Image) & ";",
-                  Depth + 1);
-               Append_Line (Buffer, "end if;", Depth);
+               declare
+                  Combined_Image : constant String :=
+                    FT.To_String (Condition_Image)
+                    & " "
+                    & FT.To_String (Lower_Image)
+                    & " "
+                    & FT.To_String (Upper_Image);
+                  Rendered : constant Shared_Condition_Render :=
+                    Render_Shared_Value_From_Image (Combined_Image);
+                  Rewritten_Condition : SU.Unbounded_String :=
+                    SU.To_Unbounded_String (FT.To_String (Condition_Image));
+                  Rewritten_Lower : SU.Unbounded_String :=
+                    SU.To_Unbounded_String (FT.To_String (Lower_Image));
+                  Rewritten_Upper : SU.Unbounded_String :=
+                    SU.To_Unbounded_String (FT.To_String (Upper_Image));
+                  Line_Depth : constant Natural :=
+                    (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+               begin
+                  for Replacement of Rendered.Replacements loop
+                     Rewritten_Condition :=
+                       SU.To_Unbounded_String
+                         (Replace_All
+                            (SU.To_String (Rewritten_Condition),
+                             FT.To_String (Replacement.Call_Image),
+                             FT.To_String (Replacement.Replacement_Image)));
+                     Rewritten_Lower :=
+                       SU.To_Unbounded_String
+                         (Replace_All
+                            (SU.To_String (Rewritten_Lower),
+                             FT.To_String (Replacement.Call_Image),
+                             FT.To_String (Replacement.Replacement_Image)));
+                     Rewritten_Upper :=
+                       SU.To_Unbounded_String
+                         (Replace_All
+                            (SU.To_String (Rewritten_Upper),
+                             FT.To_String (Replacement.Call_Image),
+                             FT.To_String (Replacement.Replacement_Image)));
+                  end loop;
+
+                  if not Rendered.Snapshots.Is_Empty then
+                     Append_Line (Buffer, "declare", Depth);
+                     Append_Shared_Condition_Declarations
+                       (Buffer, Rendered, Depth + 1);
+                     Append_Line (Buffer, "begin", Depth);
+                  end if;
+
+                  Append_Line
+                    (Buffer,
+                     "if " & SU.To_String (Rewritten_Condition) & " then",
+                     Line_Depth);
+                  Append_Line
+                    (Buffer,
+                     Target_Image
+                     & " := "
+                     & SU.To_String (Rewritten_Lower)
+                     & ";",
+                     Line_Depth + 1);
+                  Append_Line (Buffer, "else", Line_Depth);
+                  Append_Line
+                    (Buffer,
+                     Target_Image
+                     & " := "
+                     & SU.To_String (Rewritten_Upper)
+                     & ";",
+                     Line_Depth + 1);
+                  Append_Line (Buffer, "end if;", Line_Depth);
+
+                  if not Rendered.Snapshots.Is_Empty then
+                     Append_Line (Buffer, "end;", Depth);
+                  end if;
+               end;
             elsif Is_Explicit_Float_Narrowing (Unit, Document, Target_Type, Stmt.Value) then
                declare
                   Rendered : constant Shared_Condition_Render :=
