@@ -32,8 +32,22 @@ jobs:
                cache paths, temp directories)
             3. Supply chain risks in CI (unpinned downloads, missing
                checksums, mutable external artifacts)
-            4. Proof integrity risks (new pragma Assume, new SPARK_Mode
-               Off, new Skip_Proof that could mask safety violations)
+            4. Proof integrity risks — flag each NEW occurrence introduced by
+               this diff:
+               (a) `pragma Assume` — especially in emitter output paths or
+                   shared stdlib, where an unchecked assumption becomes a proof
+                   gap.
+               (b) `pragma SPARK_Mode (Off)` applied to a unit under
+                   `compiler_impl/stdlib/ada/` or any shared stdlib package —
+                   these are trust-boundary expansions and must be justified.
+               (c) `Skip_Proof`, `pragma Annotate (GNATprove, Skip_Proof, ...)`,
+                   or `pragma Annotate (GNATprove, False_Positive, ...)` on
+                   safety-critical checks.
+               (d) New trusted boundaries: any new unit added to a
+                   trusted-stdlib allowlist, new `Global => null` on a body that
+                   reads external state, or new `Pure` / `Preelaborate` claims
+                   on impure bodies.
+               Do not flag occurrences that already existed before the diff.
             5. Deserialization safety (JSON parsing of safei/typed/MIR
                files from untrusted sources)
 

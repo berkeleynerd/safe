@@ -70,3 +70,44 @@ python3 scripts/snapshot_emitted_ada.py --check
   `python3 scripts/snapshot_emitted_ada.py --check`. If emitted Ada changes
   intentionally, regenerate `tests/emitted_ada_snapshot.json` with
   `python3 scripts/snapshot_emitted_ada.py`.
+
+## Review Process
+
+The repository has three Claude review workflows:
+
+- Claude Code Review is automatic on PR open/push and is diff-scoped. It should
+  focus on issues introduced by the PR.
+- Claude Security Review is automatic on PR open/push and is limited to concrete
+  security and proof-integrity concerns.
+- Claude Deep Audit is on-demand and audits whole files around a change. It is
+  for latent surrounding-code issues, not normal PR review.
+
+Invoke Claude Deep Audit on a PR by adding the `deep-audit` label:
+
+```bash
+gh pr edit <N> --add-label deep-audit
+```
+
+If the label does not exist yet, a repo admin should create it once:
+
+```bash
+gh label create deep-audit --color B60205 \
+  --description "Trigger Claude heavy-audit workflow on this PR"
+```
+
+Invoke it manually against an open PR:
+
+```bash
+gh workflow run claude-audit.yml -f pr_number=<N>
+```
+
+Invoke it manually against explicit paths on main:
+
+```bash
+gh workflow run claude-audit.yml -f paths=compiler_impl/src/safe_frontend-mir_analyze.adb
+```
+
+Deep Audit looks for fail-closed violations, walker exhaustiveness gaps,
+`Wide_Integer` overflow and narrowing risks, dead or duplicated emit/decode
+logic, and contract drift. It intentionally does not duplicate the automatic
+diff review or security review.
