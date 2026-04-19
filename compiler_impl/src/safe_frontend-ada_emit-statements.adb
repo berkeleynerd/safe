@@ -2664,6 +2664,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
          Prefix : constant String := FT.To_String (Replacement.Snapshot_Name) & ".";
          Image  : constant String := FT.To_String (Replacement.Replacement_Image);
       begin
+         --  Snapshot-name equality identifies the paired declaration. Keep
+         --  the prefix check as a fail-fast invariant guard: a future
+         --  malformed replacement image must not retain an unrelated or
+         --  unused snapshot declaration silently.
          return
            Snapshot.Snapshot_Name = Replacement.Snapshot_Name
            and then Image'Length >= Prefix'Length
@@ -3134,8 +3138,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       end Has_Formal_For_Arg;
 
       function Render_Call_From_Image
-        (Base_Image             : String;
-         Skip_Copy_Back_Actuals : Boolean) return Shared_Condition_Render
+        (Base_Image : String) return Shared_Condition_Render
       is
          Result : Shared_Condition_Render;
       begin
@@ -3151,15 +3154,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
          --  actuals only.
 
          for Arg_Index in Call_Expr.Args.First_Index .. Call_Expr.Args.Last_Index loop
-            if not Skip_Copy_Back_Actuals
-              or else not Has_Formal_For_Arg (Arg_Index)
-              or else not Needs_Growable_Indexed_Copy_Back
-                (Target_Subprogram.Params (Arg_Index),
-                 Call_Expr.Args (Arg_Index))
-            then
-               Collect_Shared_Condition_Snapshots
-                 (Unit, Document, Call_Expr.Args (Arg_Index), Statement_Index, Result);
-            end if;
+            Collect_Shared_Condition_Snapshots
+              (Unit, Document, Call_Expr.Args (Arg_Index), Statement_Index, Result);
          end loop;
 
          Apply_Shared_Condition_Replacements (Result, Base_Image);
@@ -3290,9 +3286,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
             Call_Image := Call_Image & SU.To_Unbounded_String (")");
             declare
                Rendered : constant Shared_Condition_Render :=
-                 Render_Call_From_Image
-                   (SU.To_String (Call_Image),
-                    Skip_Copy_Back_Actuals => False);
+                 Render_Call_From_Image (SU.To_String (Call_Image));
             begin
                Append_Shared_Rendered_Statement (Buffer, Rendered, Depth);
             end;
