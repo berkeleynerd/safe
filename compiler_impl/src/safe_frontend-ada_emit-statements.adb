@@ -3243,6 +3243,25 @@ package body Safe_Frontend.Ada_Emit.Statements is
            & ")";
       end Growable_Indexed_Element_Image;
 
+      function Copy_Back_Init_Image
+        (Formal        : CM.Symbol;
+         Element_Image : String) return String
+      is
+      begin
+         if Is_Integer_Type (Unit, Document, Formal.Type_Info)
+           or else Is_Float_Type (Unit, Document, Formal.Type_Info)
+           or else Is_Binary_Type (Unit, Document, Formal.Type_Info)
+         then
+            return
+              Render_Subtype_Indication (Unit, Document, Formal.Type_Info)
+              & " ("
+              & Element_Image
+              & ")";
+         end if;
+
+         return Element_Image;
+      end Copy_Back_Init_Image;
+
       function Growable_Indexed_Writeback_Image
         (Actual       : CM.Expr_Access;
          Prefix_Image : String;
@@ -3441,7 +3460,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                              Document,
                              Formal.Type_Info)
                         else
-                          Actual_Value_Image);
+                          Copy_Back_Init_Image (Formal, Actual_Value_Image));
                      Declaration_Image : constant String :=
                        Temp_Name
                        & " : "
@@ -8850,86 +8869,96 @@ package body Safe_Frontend.Ada_Emit.Statements is
         and then Is_Wide_Name (State, FT.To_String (Stmt.Target.Name))
       then
          declare
-            Rendered : constant Shared_Condition_Render :=
-              Render_Shared_Value_From_Image
-                (Render_Wide_Expr (Unit, Document, Stmt.Value, State));
-            Line_Depth : constant Natural :=
-              (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+            Base_Image : constant String :=
+              Render_Wide_Expr (Unit, Document, Stmt.Value, State);
          begin
-            if not Rendered.Snapshots.Is_Empty then
-               Append_Line (Buffer, "declare", Depth);
-               Append_Shared_Condition_Declarations
-                 (Buffer, Rendered, Depth + 1);
-               Append_Line (Buffer, "begin", Depth);
-            end if;
+            Require_Shared_Value_Replacements (Base_Image, "wide assignment");
+            declare
+               Rendered : constant Shared_Condition_Render :=
+                 Render_Shared_Value_From_Image (Base_Image);
+               Line_Depth : constant Natural :=
+                 (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+            begin
+               if not Rendered.Snapshots.Is_Empty then
+                  Append_Line (Buffer, "declare", Depth);
+                  Append_Shared_Condition_Declarations
+                    (Buffer, Rendered, Depth + 1);
+                  Append_Line (Buffer, "begin", Depth);
+               end if;
 
-            if FT.Lowercase (Target_Type) /= "integer" then
+               if FT.Lowercase (Target_Type) /= "integer" then
+                  Append_Line
+                    (Buffer,
+                     "pragma Assert ("
+                     & FT.To_String (Rendered.Image)
+                     & " >= Safe_Runtime.Wide_Integer ("
+                     & Target_Type
+                     & "'First) and then "
+                     & FT.To_String (Rendered.Image)
+                     & " <= Safe_Runtime.Wide_Integer ("
+                     & Target_Type
+                     & "'Last));",
+                     Line_Depth);
+               end if;
                Append_Line
                  (Buffer,
-                  "pragma Assert ("
-                  & FT.To_String (Rendered.Image)
-                  & " >= Safe_Runtime.Wide_Integer ("
-                  & Target_Type
-                  & "'First) and then "
-                  & FT.To_String (Rendered.Image)
-                  & " <= Safe_Runtime.Wide_Integer ("
-                  & Target_Type
-                  & "'Last));",
+                  Target_Image & " := " & FT.To_String (Rendered.Image) & ";",
                   Line_Depth);
-            end if;
-            Append_Line
-              (Buffer,
-               Target_Image & " := " & FT.To_String (Rendered.Image) & ";",
-               Line_Depth);
-            if FT.Lowercase (Target_Type) /= "integer" then
-               Append_Line
-                 (Buffer,
-                  "pragma Assert ("
-                  & Target_Image
-                  & " >= Safe_Runtime.Wide_Integer ("
-                  & Target_Type
-                  & "'First) and then "
-                  & Target_Image
-                  & " <= Safe_Runtime.Wide_Integer ("
-                  & Target_Type
-                  & "'Last));",
-                  Line_Depth);
-            end if;
+               if FT.Lowercase (Target_Type) /= "integer" then
+                  Append_Line
+                    (Buffer,
+                     "pragma Assert ("
+                     & Target_Image
+                     & " >= Safe_Runtime.Wide_Integer ("
+                     & Target_Type
+                     & "'First) and then "
+                     & Target_Image
+                     & " <= Safe_Runtime.Wide_Integer ("
+                     & Target_Type
+                     & "'Last));",
+                     Line_Depth);
+               end if;
 
-            if not Rendered.Snapshots.Is_Empty then
-               Append_Line (Buffer, "end;", Depth);
-            end if;
+               if not Rendered.Snapshots.Is_Empty then
+                  Append_Line (Buffer, "end;", Depth);
+               end if;
+            end;
          end;
       elsif Is_Wide_Integer_Type (Unit, Document, Target_Type)
         and then Uses_Wide_Value (Unit, Document, State, Stmt.Value)
       then
          declare
-            Rendered : constant Shared_Condition_Render :=
-              Render_Shared_Value_From_Image
-                (Render_Wide_Expr (Unit, Document, Stmt.Value, State));
-            Line_Depth : constant Natural :=
-              (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+            Base_Image : constant String :=
+              Render_Wide_Expr (Unit, Document, Stmt.Value, State);
          begin
-            if not Rendered.Snapshots.Is_Empty then
-               Append_Line (Buffer, "declare", Depth);
-               Append_Shared_Condition_Declarations
-                 (Buffer, Rendered, Depth + 1);
-               Append_Line (Buffer, "begin", Depth);
-            end if;
+            Require_Shared_Value_Replacements (Base_Image, "wide narrowing assignment");
+            declare
+               Rendered : constant Shared_Condition_Render :=
+                 Render_Shared_Value_From_Image (Base_Image);
+               Line_Depth : constant Natural :=
+                 (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+            begin
+               if not Rendered.Snapshots.Is_Empty then
+                  Append_Line (Buffer, "declare", Depth);
+                  Append_Shared_Condition_Declarations
+                    (Buffer, Rendered, Depth + 1);
+                  Append_Line (Buffer, "begin", Depth);
+               end if;
 
-            Append_Narrowing_Assignment
-              (Buffer,
-               Unit,
-               Document,
-               State,
-               Stmt.Target,
-               Stmt.Value,
-               Line_Depth,
-               Rendered_Value_Image => FT.To_String (Rendered.Image));
+               Append_Narrowing_Assignment
+                 (Buffer,
+                  Unit,
+                  Document,
+                  State,
+                  Stmt.Target,
+                  Stmt.Value,
+                  Line_Depth,
+                  Rendered_Value_Image => FT.To_String (Rendered.Image));
 
-            if not Rendered.Snapshots.Is_Empty then
-               Append_Line (Buffer, "end;", Depth);
-            end if;
+               if not Rendered.Snapshots.Is_Empty then
+                  Append_Line (Buffer, "end;", Depth);
+               end if;
+            end;
          end;
       else
          declare
@@ -9027,65 +9056,79 @@ package body Safe_Frontend.Ada_Emit.Statements is
                end;
             elsif Is_Explicit_Float_Narrowing (Unit, Document, Target_Type, Stmt.Value) then
                declare
-                  Rendered : constant Shared_Condition_Render :=
-                    Render_Shared_Value_From_Image
-                      (Render_Expr (Unit, Document, Stmt.Value.Inner, State),
-                       Source_Expr => Stmt.Value.Inner);
-                  Line_Depth : constant Natural :=
-                    (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+                  Base_Image : constant String :=
+                    Render_Expr (Unit, Document, Stmt.Value.Inner, State);
                begin
-                  if not Rendered.Snapshots.Is_Empty then
-                     Append_Line (Buffer, "declare", Depth);
-                     Append_Shared_Condition_Declarations
-                       (Buffer, Rendered, Depth + 1);
-                     Append_Line (Buffer, "begin", Depth);
-                  end if;
+                  Require_Shared_Value_Replacements
+                    (Base_Image,
+                     "float narrowing assignment",
+                     Source_Expr => Stmt.Value.Inner);
+                  declare
+                     Rendered : constant Shared_Condition_Render :=
+                       Render_Shared_Value_From_Image
+                         (Base_Image,
+                          Source_Expr => Stmt.Value.Inner);
+                     Line_Depth : constant Natural :=
+                       (if Rendered.Snapshots.Is_Empty then Depth else Depth + 1);
+                  begin
+                     if not Rendered.Snapshots.Is_Empty then
+                        Append_Line (Buffer, "declare", Depth);
+                        Append_Shared_Condition_Declarations
+                          (Buffer, Rendered, Depth + 1);
+                        Append_Line (Buffer, "begin", Depth);
+                     end if;
 
-                  Append_Float_Narrowing_Assignment
-                    (Buffer,
-                     Unit => Unit,
-                     Document => Document,
-                     Target_Type => Target_Type,
-                     Target_Image => Target_Image,
-                     Inner_Image => FT.To_String (Rendered.Image),
-                     Depth => Line_Depth);
+                     Append_Float_Narrowing_Assignment
+                       (Buffer,
+                        Unit => Unit,
+                        Document => Document,
+                        Target_Type => Target_Type,
+                        Target_Image => Target_Image,
+                        Inner_Image => FT.To_String (Rendered.Image),
+                        Depth => Line_Depth);
 
-                  if not Rendered.Snapshots.Is_Empty then
-                     Append_Line (Buffer, "end;", Depth);
-                  end if;
+                     if not Rendered.Snapshots.Is_Empty then
+                        Append_Line (Buffer, "end;", Depth);
+                     end if;
+                  end;
                end;
             else
                declare
                   Static_Image : constant String :=
                     Static_Integer_Assignment_Image;
-                  Rendered : constant Shared_Condition_Render :=
-                    Render_Shared_Value_From_Image
-                      ((if Static_Image'Length > 0
-                        then Static_Image
-                        else Value_Image));
+                  Base_Image : constant String :=
+                    (if Static_Image'Length > 0
+                     then Static_Image
+                     else Value_Image);
                begin
-                  if Rendered.Snapshots.Is_Empty then
-                     Append_Line
-                       (Buffer,
-                        Target_Image
-                        & " := "
-                        & FT.To_String (Rendered.Image)
-                        & ";",
-                        Depth);
-                  else
-                     Append_Line (Buffer, "declare", Depth);
-                     Append_Shared_Condition_Declarations
-                       (Buffer, Rendered, Depth + 1);
-                     Append_Line (Buffer, "begin", Depth);
-                     Append_Line
-                       (Buffer,
-                        Target_Image
-                        & " := "
-                        & FT.To_String (Rendered.Image)
-                        & ";",
-                        Depth + 1);
-                     Append_Line (Buffer, "end;", Depth);
-                  end if;
+                  Require_Shared_Value_Replacements (Base_Image, "assignment value");
+                  declare
+                     Rendered : constant Shared_Condition_Render :=
+                       Render_Shared_Value_From_Image (Base_Image);
+                  begin
+                     if Rendered.Snapshots.Is_Empty then
+                        Append_Line
+                          (Buffer,
+                           Target_Image
+                           & " := "
+                           & FT.To_String (Rendered.Image)
+                           & ";",
+                           Depth);
+                     else
+                        Append_Line (Buffer, "declare", Depth);
+                        Append_Shared_Condition_Declarations
+                          (Buffer, Rendered, Depth + 1);
+                        Append_Line (Buffer, "begin", Depth);
+                        Append_Line
+                          (Buffer,
+                           Target_Image
+                           & " := "
+                           & FT.To_String (Rendered.Image)
+                           & ";",
+                           Depth + 1);
+                        Append_Line (Buffer, "end;", Depth);
+                     end if;
+                  end;
                end;
             end if;
          end;
