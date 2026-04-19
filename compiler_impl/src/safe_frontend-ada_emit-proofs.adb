@@ -1815,6 +1815,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       function Is_Param_Name (Name : String) return Boolean;
       function Is_Safe_Condition (Expr : CM.Expr_Access) return Boolean;
       function Is_Safe_Return (Expr : CM.Expr_Access) return Boolean;
+      function Render_Post_Expr (Expr : CM.Expr_Access) return String;
       function Safe_Condition_Image (Expr : CM.Expr_Access) return String;
       function Safe_Return_Image (Expr : CM.Expr_Access) return String;
       function Return_Statement_Image (Stmt : CM.Statement_Access) return String;
@@ -1916,10 +1917,16 @@ package body Safe_Frontend.Ada_Emit.Proofs is
          return False;
       end Is_Safe_Return;
 
+      function Render_Post_Expr (Expr : CM.Expr_Access) return String is
+         Local_State : Emit_State := State;
+      begin
+         return Render_Expr (Unit, Document, Expr, Local_State);
+      end Render_Post_Expr;
+
       function Safe_Condition_Image (Expr : CM.Expr_Access) return String is
       begin
          if Is_Safe_Condition (Expr) then
-            return Render_Expr (Unit, Document, Expr, State);
+            return Render_Post_Expr (Expr);
          end if;
 
          return "";
@@ -1928,7 +1935,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       function Safe_Return_Image (Expr : CM.Expr_Access) return String is
       begin
          if Is_Safe_Return (Expr) then
-            return Render_Expr (Unit, Document, Expr, State);
+            return Render_Post_Expr (Expr);
          end if;
 
          return "";
@@ -2056,6 +2063,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       Result := Result & SU.To_Unbounded_String (" else " & SU.To_String (Else_Image) & ")");
       return SU.To_String (Result);
    end Render_Inferred_Result_Postcondition;
+
    function Effective_Subprogram_Outer_Declarations
      (Subprogram              : CM.Resolved_Subprogram;
       Raw_Outer_Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
@@ -2626,8 +2634,8 @@ package body Safe_Frontend.Ada_Emit.Proofs is
         Render_Access_Param_Postcondition (Unit, Document, Subprogram, State);
       Inferred_Post_Image : constant String :=
         Render_Inferred_Result_Postcondition (Unit, Document, Subprogram, State);
-      --  The combined path is currently forward-looking: access postconditions
-      --  reject Stmt_If bodies today, while inferred result postconditions need one.
+      --  TODO: access postconditions reject Stmt_If bodies today. Keep this
+      --  deterministic composition path for when that restriction is lifted.
       Post_Image : constant String :=
         (if Inferred_Post_Image'Length > 0 and then Access_Post_Image'Length > 0
          then Inferred_Post_Image & " and then " & Access_Post_Image
