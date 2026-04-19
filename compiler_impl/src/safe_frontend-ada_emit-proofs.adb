@@ -1799,6 +1799,271 @@ package body Safe_Frontend.Ada_Emit.Proofs is
         & ") * "
         & Trim_Wide_Image (Step_Limit);
    end Structural_Accumulator_Count_Total_Bound;
+
+   function Render_Inferred_Result_Postcondition
+     (Unit       : CM.Resolved_Unit;
+      Document   : GM.Mir_Document;
+      Subprogram : CM.Resolved_Subprogram;
+      State      : in out Emit_State) return String
+   is
+      --  Emit only branch-equality facts. A range claim for clamp(value, lo, hi)
+      --  would be unsound when callers pass lo > hi.
+      Function_Name : constant String := FT.To_String (Subprogram.Name);
+
+      function Is_Integer_Non_Boolean_Type (Info : GM.Type_Descriptor) return Boolean;
+      function Is_Read_Only_Integer_Param (Param : CM.Symbol) return Boolean;
+      function Is_Param_Name (Name : String) return Boolean;
+      function Is_Safe_Condition (Expr : CM.Expr_Access) return Boolean;
+      function Is_Safe_Return (Expr : CM.Expr_Access) return Boolean;
+      function Render_Post_Expr (Expr : CM.Expr_Access) return String;
+      function Safe_Condition_Image (Expr : CM.Expr_Access) return String;
+      function Safe_Return_Image (Expr : CM.Expr_Access) return String;
+      function Return_Statement_Image (Stmt : CM.Statement_Access) return String;
+      function Single_Return_Image
+        (Statements : CM.Statement_Access_Vectors.Vector) return String;
+      function Result_Equality (Expr_Image : String) return String;
+
+      function Is_Integer_Non_Boolean_Type (Info : GM.Type_Descriptor) return Boolean is
+         Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
+         Kind : constant String := FT.Lowercase (FT.To_String (Base.Kind));
+         Name : constant String := FT.Lowercase (FT.To_String (Base.Name));
+      begin
+         return
+           Is_Integer_Type (Unit, Document, Info)
+           and then Kind /= "boolean"
+           and then Name /= "boolean";
+      end Is_Integer_Non_Boolean_Type;
+
+      function Is_Read_Only_Integer_Param (Param : CM.Symbol) return Boolean is
+         Mode : constant String := FT.Lowercase (FT.To_String (Param.Mode));
+      begin
+         return
+           Mode not in "mut" | "in out" | "out"
+           and then Is_Integer_Non_Boolean_Type (Param.Type_Info);
+      end Is_Read_Only_Integer_Param;
+
+      function Is_Param_Name (Name : String) return Boolean is
+      begin
+         for Param of Subprogram.Params loop
+            if FT.To_String (Param.Name) = Name then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Is_Param_Name;
+
+      function Is_Safe_Condition (Expr : CM.Expr_Access) return Boolean is
+         Operator : constant String :=
+           (if Expr = null then "" else FT.To_String (Expr.Operator));
+      begin
+         if Expr = null then
+            return False;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Int =>
+               return True;
+            when CM.Expr_Ident =>
+               if Is_Param_Name (FT.To_String (Expr.Name)) then
+                  return True;
+               end if;
+            when CM.Expr_Unary =>
+               if Operator in "+" | "-" then
+                  return Is_Safe_Condition (Expr.Inner);
+               end if;
+            when CM.Expr_Binary =>
+               --  Safe equality reaches MIR as == / !=; Render_Expr maps those to Ada = / /=.
+               if Operator in "<" | "<=" | ">" | ">=" | "=" | "==" | "/=" | "!="
+                 | "and then" | "or else" | "+" | "-"
+               then
+                  return Is_Safe_Condition (Expr.Left)
+                    and then Is_Safe_Condition (Expr.Right);
+               end if;
+            when others =>
+               null;
+         end case;
+
+         return False;
+      end Is_Safe_Condition;
+
+      function Is_Safe_Return (Expr : CM.Expr_Access) return Boolean is
+         Operator : constant String :=
+           (if Expr = null then "" else FT.To_String (Expr.Operator));
+      begin
+         if Expr = null then
+            return False;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Int =>
+               return True;
+            when CM.Expr_Ident =>
+               if Is_Param_Name (FT.To_String (Expr.Name)) then
+                  return True;
+               end if;
+            when CM.Expr_Unary =>
+               if Operator in "+" | "-" then
+                  return Is_Safe_Return (Expr.Inner);
+               end if;
+            when CM.Expr_Binary =>
+               if Operator in "+" | "-" then
+                  return Is_Safe_Return (Expr.Left)
+                    and then Is_Safe_Return (Expr.Right);
+               end if;
+            when others =>
+               null;
+         end case;
+
+         return False;
+      end Is_Safe_Return;
+
+      function Render_Post_Expr (Expr : CM.Expr_Access) return String is
+         Local_State : Emit_State := State;
+      begin
+         return Render_Expr (Unit, Document, Expr, Local_State);
+      end Render_Post_Expr;
+
+      function Safe_Condition_Image (Expr : CM.Expr_Access) return String is
+      begin
+         if Is_Safe_Condition (Expr) then
+            return Render_Post_Expr (Expr);
+         end if;
+
+         return "";
+      end Safe_Condition_Image;
+
+      function Safe_Return_Image (Expr : CM.Expr_Access) return String is
+      begin
+         if Is_Safe_Return (Expr) then
+            return Render_Post_Expr (Expr);
+         end if;
+
+         return "";
+      end Safe_Return_Image;
+
+      function Return_Statement_Image (Stmt : CM.Statement_Access) return String is
+      begin
+         if Stmt = null
+           or else Stmt.Kind /= CM.Stmt_Return
+           or else Stmt.Value = null
+         then
+            return "";
+         end if;
+
+         return Safe_Return_Image (Stmt.Value);
+      end Return_Statement_Image;
+
+      function Single_Return_Image
+        (Statements : CM.Statement_Access_Vectors.Vector) return String is
+      begin
+         if Statements.Length /= 1 then
+            return "";
+         end if;
+
+         return Return_Statement_Image (Statements (Statements.First_Index));
+      end Single_Return_Image;
+
+      function Result_Equality (Expr_Image : String) return String is
+      begin
+         if Expr_Image'Length = 0 then
+            return "";
+         end if;
+
+         return Function_Name & "'Result = " & Expr_Image;
+      end Result_Equality;
+
+      If_Stmt    : CM.Statement_Access := null;
+      Else_Image : SU.Unbounded_String;
+      Result     : SU.Unbounded_String;
+   begin
+      if Function_Name'Length = 0
+        or else not Subprogram.Has_Return_Type
+        or else Subprogram.Params.Is_Empty
+        or else not Subprogram.Declarations.Is_Empty
+        or else not Is_Integer_Non_Boolean_Type (Subprogram.Return_Type)
+        or else
+          (Subprogram.Statements.Length /= 1 and then Subprogram.Statements.Length /= 2)
+      then
+         return "";
+      end if;
+
+      for Param of Subprogram.Params loop
+         if not Is_Read_Only_Integer_Param (Param) then
+            return "";
+         end if;
+      end loop;
+
+      If_Stmt := Subprogram.Statements (Subprogram.Statements.First_Index);
+      if If_Stmt = null
+        or else If_Stmt.Kind /= CM.Stmt_If
+        or else If_Stmt.Elsifs.Is_Empty
+      then
+         return "";
+      end if;
+
+      if Subprogram.Statements.Length = 1 then
+         if not If_Stmt.Has_Else then
+            return "";
+         end if;
+         Else_Image :=
+           SU.To_Unbounded_String
+             (Result_Equality (Single_Return_Image (If_Stmt.Else_Stmts)));
+      else
+         if If_Stmt.Has_Else then
+            return "";
+         end if;
+         Else_Image :=
+           SU.To_Unbounded_String
+             (Result_Equality
+                (Return_Statement_Image
+                   (Subprogram.Statements (Subprogram.Statements.Last_Index))));
+      end if;
+
+      if SU.Length (Else_Image) = 0 then
+         return "";
+      end if;
+
+      declare
+         Condition_Image : constant String := Safe_Condition_Image (If_Stmt.Condition);
+         Then_Image      : constant String :=
+           Result_Equality (Single_Return_Image (If_Stmt.Then_Stmts));
+      begin
+         if Condition_Image'Length = 0 or else Then_Image'Length = 0 then
+            return "";
+         end if;
+
+         Result :=
+           SU.To_Unbounded_String
+             ("(if "
+              & Condition_Image
+              & " then "
+              & Then_Image);
+      end;
+
+      for Part of If_Stmt.Elsifs loop
+         declare
+            Condition_Image : constant String := Safe_Condition_Image (Part.Condition);
+            Branch_Image    : constant String :=
+              Result_Equality (Single_Return_Image (Part.Statements));
+         begin
+            if Condition_Image'Length = 0 or else Branch_Image'Length = 0 then
+               return "";
+            end if;
+
+            Result :=
+              Result
+              & SU.To_Unbounded_String
+                  (" elsif "
+                   & Condition_Image
+                   & " then "
+                   & Branch_Image);
+         end;
+      end loop;
+
+      Result := Result & SU.To_Unbounded_String (" else " & SU.To_String (Else_Image) & ")");
+      return SU.To_String (Result);
+   end Render_Inferred_Result_Postcondition;
+
    function Effective_Subprogram_Outer_Declarations
      (Subprogram              : CM.Resolved_Subprogram;
       Raw_Outer_Declarations : CM.Resolved_Object_Decl_Vectors.Vector)
@@ -2365,8 +2630,18 @@ package body Safe_Frontend.Ada_Emit.Proofs is
         Render_Depends_Aspect (Unit, Subprogram, Summary, Bronze);
       Pre_Image : constant String :=
         Render_Access_Param_Precondition (Unit, Document, Subprogram, State);
-      Post_Image : constant String :=
+      Access_Post_Image : constant String :=
         Render_Access_Param_Postcondition (Unit, Document, Subprogram, State);
+      Inferred_Post_Image : constant String :=
+        Render_Inferred_Result_Postcondition (Unit, Document, Subprogram, State);
+      --  TODO: access postconditions reject Stmt_If bodies today. Keep this
+      --  deterministic composition path for when that restriction is lifted.
+      Post_Image : constant String :=
+        (if Inferred_Post_Image'Length > 0 and then Access_Post_Image'Length > 0
+         then Inferred_Post_Image & " and then " & Access_Post_Image
+         elsif Inferred_Post_Image'Length > 0
+         then Inferred_Post_Image
+         else Access_Post_Image);
       Structural_Pre_Image : constant String :=
         (if Uses_Structural_Traversal and then Subprogram.Params.Length >= 3
          then

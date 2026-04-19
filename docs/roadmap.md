@@ -3489,6 +3489,28 @@ assignments or `print` calls, including `pr1112a_shared_task_build.safe`,
 `pr1112e_imported_shared_record_build.safe`, `pr1112a_shared_field_access.safe`,
 and `pr1112b_shared_snapshot.safe`.
 
+### PR11.23i Note
+
+PR11.23i implements #288 by emitting conservative branch-equality `Post`
+aspects on generated package specs for pure integer clamp-style functions.
+The contract describes the function body rather than claiming an unconditional
+result range: for `clamp(value, lo, hi)`, a caller can pass `lo > hi`, making
+`Result <= hi` unsound, but `(if value < lo then Result = lo elsif value > hi
+then Result = hi else Result = value)` remains true. Cross-package callers can
+combine that imported branch fact with concrete actuals such as `lo = 1` and
+`hi = 100` to prove constrained assignments and downstream divisions.
+
+The recognizer is intentionally narrow: one top-level `if`/`elsif` chain plus
+an `else` or fallthrough return, read-only integer parameters, no declarations,
+calls, heap/shared/global reads, mutation, loops, multiplication, division,
+`mod`, or `rem`. Unsupported functions keep their existing minimal spec
+contract. `tests/build/pr1123i_exported_postconditions_build.safe` is the
+level-2 cross-package proof checkpoint, with
+`tests/build/pr1123i_clamp_provider.safe` included as the corresponding
+provider-side proof fixture. The existing `tests/positive/rule1_return.safe`
+`signum` helper also matches the same narrow `elsif` shape, so its emitted
+snapshot intentionally gains the same branch-equality contract.
+
 ---
 
 ## PR11.23j: Post-Sprint Emitter Analysis Hardening

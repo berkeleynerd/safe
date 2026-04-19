@@ -1,0 +1,13 @@
+with pr1123i_clamp_provider;
+
+package pr1123i_exported_postconditions_build
+
+   subtype bounded_value is integer (1 to 100);
+
+   function ratio_value returns integer
+      raw : integer = 500;
+      bounded : bounded_value = pr1123i_clamp_provider.clamp (raw, 1, 100);
+
+      return 1000 / bounded;
+
+   print (ratio_value)

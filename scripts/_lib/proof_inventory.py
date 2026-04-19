@@ -377,6 +377,8 @@ PR11_23_PROOF_EXPANSION_FIXTURES = [
     "tests/build/pr1123f_sum_count_relational_build.safe",
     "tests/build/pr1123g_nested_iteration_build.safe",
     "tests/build/pr1123h_shared_call_argument_snapshot_build.safe",
+    "tests/build/pr1123i_clamp_provider.safe",
+    "tests/build/pr1123i_exported_postconditions_build.safe",
 ]
 
 
