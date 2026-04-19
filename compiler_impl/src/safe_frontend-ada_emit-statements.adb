@@ -3176,12 +3176,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       is
          Result : Shared_Condition_Render;
       begin
-         --  Keep this as a fail-fast runtime guard, not just an assertion:
-         --  future call sites must not render from an unresolved target.
-         if not Target_Subprogram_Resolved then
-            Raise_Internal
-              ("call snapshot rendering requires a resolved target subprogram");
-         end if;
+         pragma Assert (Target_Subprogram_Resolved);
 
          --  The early fallback path renders without using this copy-back-aware pass.
          --  Callees are subprogram references, so iterate only arguments here;
@@ -3239,7 +3234,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
               Document,
               Expr_Type_Info (Unit, Document, Actual.Prefix));
       begin
-         State.Needs_Safe_Array_RT := True;
          return
            Array_Runtime_Instance_Name (Prefix_Info)
            & ".Element ("
@@ -3261,7 +3255,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
               Document,
               Expr_Type_Info (Unit, Document, Actual.Prefix));
       begin
-         State.Needs_Safe_Array_RT := True;
          --  Keep Index_Image embedded literally: copy-back snapshot coverage
          --  checks validate that any shared getter calls in the isolated index
          --  render also appear in this enclosing writeback image.
@@ -3275,31 +3268,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
            & Temp_Name
            & ")";
       end Growable_Indexed_Writeback_Image;
-
-      procedure Require_Shared_Index_Replacements
-        (Index_Expr : CM.Expr_Access;
-         Image      : String;
-         Context    : String)
-      is
-         Probe : Shared_Condition_Render;
-      begin
-         Collect_Shared_Condition_Snapshots
-           (Unit, Document, Index_Expr, Statement_Index, Probe);
-
-         for Replacement of Probe.Replacements loop
-            if Replace_All
-                (Image,
-                 FT.To_String (Replacement.Call_Image),
-                 FT.To_String (Replacement.Replacement_Image))
-              = Image
-            then
-               Raise_Internal
-                 ("shared snapshot replacement missing from rendered "
-                  & Context
-                  & " during Ada emission");
-            end if;
-         end loop;
-      end Require_Shared_Index_Replacements;
 
    begin
       if Call_Expr = null then
@@ -3485,6 +3453,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        Growable_Indexed_Writeback_Image
                          (Actual, Prefix_Image, Index_Temp_Name, Temp_Name);
                   begin
+                     State.Needs_Safe_Array_RT := True;
                      --  Snapshot only the index expression. The prefix is the
                      --  mutable Replace_Element target; rewriting it to a
                      --  snapshot copy would discard the writeback.
@@ -3499,8 +3468,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      --  initializer and writeback both use this value, so
                      --  copy-back cannot retarget if the call mutates data
                      --  used by the original index expression.
-                     Require_Shared_Index_Replacements
-                       (Index_Expr,
+                     Require_Shared_Replacements
+                       (Unit,
+                        Document,
+                        Index_Expr,
+                        Statement_Index,
                         Index_Declaration_Image,
                         "copy-back index temp");
 
@@ -3882,6 +3854,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
                        & ")";
                   begin
                      State.Needs_Safe_IO := True;
+                     --  Validate before rendering the shared statement. The
+                     --  render helper intentionally recollects snapshots so
+                     --  all callers share the same pruning path.
                      Require_Shared_Replacements
                        (Unit,
                         Document,
