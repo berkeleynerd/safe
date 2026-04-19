@@ -2649,14 +2649,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
       return SU.To_String (Result);
    end Replace_All;
 
-   function Render_Shared_Condition_From_Image
-     (Unit            : CM.Resolved_Unit;
-      Document        : GM.Mir_Document;
-      Expr            : CM.Expr_Access;
-      Statement_Index : Positive;
-      Base_Image      : String) return Shared_Condition_Render
-   ;
-
    procedure Apply_Shared_Condition_Replacements
      (Rendered   : in out Shared_Condition_Render;
       Base_Image : String)
@@ -3133,6 +3125,49 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Target_Subprogram_Resolved : Boolean := False;
       Needs_Copy_Back            : Boolean := False;
 
+      type Copy_Back_Index_Image is record
+         Formal_Index : Positive;
+         Image        : FT.UString := FT.To_UString ("");
+      end record;
+
+      package Copy_Back_Index_Image_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Positive,
+         Element_Type => Copy_Back_Index_Image);
+
+      Copy_Back_Index_Images : Copy_Back_Index_Image_Vectors.Vector;
+
+      procedure Remember_Copy_Back_Index_Image
+        (Formal_Index : Positive;
+         Image        : String)
+      is
+      begin
+         for Existing of Copy_Back_Index_Images loop
+            if Existing.Formal_Index = Formal_Index then
+               Raise_Internal
+                 ("duplicate copy-back index image during Ada emission");
+            end if;
+         end loop;
+
+         Copy_Back_Index_Images.Append
+           ((Formal_Index => Formal_Index,
+             Image        => FT.To_UString (Image)));
+      end Remember_Copy_Back_Index_Image;
+
+      function Copy_Back_Index_Image_For
+        (Formal_Index : Positive) return String
+      is
+      begin
+         for Existing of Copy_Back_Index_Images loop
+            if Existing.Formal_Index = Formal_Index then
+               return FT.To_String (Existing.Image);
+            end if;
+         end loop;
+
+         Raise_Internal
+           ("copy-back index image missing during Ada emission");
+         return "";
+      end Copy_Back_Index_Image_For;
+
       function Has_Formal_For_Arg (Arg_Index : Positive) return Boolean is
       begin
          return
@@ -3225,7 +3260,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       procedure Append_Growable_Indexed_Writeback
         (Actual       : CM.Expr_Access;
-         Formal_Index : Positive;
+         Index_Image  : String;
          Temp_Name    : String;
          Depth        : Natural)
       is
@@ -3242,8 +3277,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
               & ".Replace_Element ("
               & Render_Expr (Unit, Document, Actual.Prefix, State)
               & ", Integer ("
-              & FT.To_String
-                  (Render_Copy_Back_Index (Actual, Formal_Index).Image)
+              & Index_Image
               & "), "
               & Temp_Name
               & ")";
@@ -3393,6 +3427,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                  & Init_Image
                  & ";";
             begin
+               Remember_Copy_Back_Index_Image
+                 (Formal_Index, FT.To_String (Index_Rendered.Image));
                Append_Shared_Condition_Declarations
                  (Buffer, Index_Rendered, Depth + 1);
                Append_Line (Buffer, Declaration_Image, Depth + 1);
@@ -3473,7 +3509,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
          then
             Append_Growable_Indexed_Writeback
               (Call_Expr.Args (Formal_Index),
-               Formal_Index,
+               Copy_Back_Index_Image_For (Formal_Index),
                Mutable_Actual_Temp_Name (Statement_Index, Formal_Index),
                Depth + 1);
          end if;
@@ -8806,6 +8842,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
                     & " "
                     & FT.To_String (Upper_Image);
                   Rendered : constant Shared_Condition_Render :=
+                    --  The stable interpolation images are rendered only from
+                    --  subexpressions reachable through Stmt.Value, so walking
+                    --  the whole RHS captures every shared getter eligible for
+                    --  replacement in the generated condition/lower/upper text.
                     Render_Shared_Value_From_Image (Combined_Image);
                   Rewritten_Condition : SU.Unbounded_String :=
                     SU.To_Unbounded_String (FT.To_String (Condition_Image));
