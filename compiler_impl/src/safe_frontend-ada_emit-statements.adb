@@ -3335,44 +3335,59 @@ package body Safe_Frontend.Ada_Emit.Statements is
                     Mutable_Actual_Temp_Name (Statement_Index, Formal_Index);
                   Index_Expr : constant CM.Expr_Access :=
                     Actual.Args (Actual.Args.First_Index);
-                  Index_Image : constant String :=
-                    Render_Expr (Unit, Document, Index_Expr, State);
-                  Init_Image : constant String :=
-                    (if FT.To_String (Formal.Mode) = "out"
-                     then
-                       Default_Value_Expr
-                         (Unit,
-                          Document,
-                          Formal.Type_Info)
-                     else
-                       Render_Expr_For_Target_Type
-                         (Unit,
-                          Document,
-                          Actual,
-                          Formal.Type_Info,
-                          State));
-                  Declaration_Image : constant String :=
-                    Temp_Name
-                    & " : "
-                    & Render_Type_Name (Formal.Type_Info)
-                    & " := "
-                    & Init_Image
-                    & ";";
-                  Writeback_Image : constant String :=
-                    Growable_Indexed_Writeback_Image
-                      (Actual, Index_Image, Temp_Name);
                begin
-                  Collect_Shared_Condition_Snapshots
-                    (Unit,
-                     Document,
-                     Index_Expr,
-                     Statement_Index,
-                     Statement_Rendered);
-                  Temp_Declarations.Append
-                    (FT.To_UString (Declaration_Image));
-                  Writebacks.Append (FT.To_UString (Writeback_Image));
-                  Include_Image (Declaration_Image);
-                  Include_Image (Writeback_Image);
+                  if Expr_Needs_Shared_Condition_Snapshot
+                    (Unit, Document, Actual.Prefix)
+                  then
+                     Raise_Unsupported
+                       (State,
+                        Actual.Prefix.Span,
+                        "growable copy-back targets cannot be rooted in shared reads");
+                  end if;
+
+                  declare
+                     Index_Image : constant String :=
+                       Render_Expr (Unit, Document, Index_Expr, State);
+                     Init_Image : constant String :=
+                       (if FT.To_String (Formal.Mode) = "out"
+                        then
+                          Default_Value_Expr
+                            (Unit,
+                             Document,
+                             Formal.Type_Info)
+                        else
+                          Render_Expr_For_Target_Type
+                            (Unit,
+                             Document,
+                             Actual,
+                             Formal.Type_Info,
+                             State));
+                     Declaration_Image : constant String :=
+                       Temp_Name
+                       & " : "
+                       & Render_Type_Name (Formal.Type_Info)
+                       & " := "
+                       & Init_Image
+                       & ";";
+                     Writeback_Image : constant String :=
+                       Growable_Indexed_Writeback_Image
+                         (Actual, Index_Image, Temp_Name);
+                  begin
+                     --  Snapshot only the index expression. The prefix is the
+                     --  mutable Replace_Element target; rewriting it to a
+                     --  snapshot copy would discard the writeback.
+                     Collect_Shared_Condition_Snapshots
+                       (Unit,
+                        Document,
+                        Index_Expr,
+                        Statement_Index,
+                        Statement_Rendered);
+                     Temp_Declarations.Append
+                       (FT.To_UString (Declaration_Image));
+                     Writebacks.Append (FT.To_UString (Writeback_Image));
+                     Include_Image (Declaration_Image);
+                     Include_Image (Writeback_Image);
+                  end;
                end;
             end if;
          end loop;
