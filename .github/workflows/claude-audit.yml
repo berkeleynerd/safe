@@ -17,6 +17,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   audit:
@@ -62,6 +63,10 @@ jobs:
               if ! head_repo=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '.head.repo.full_name' 2>/dev/null); then
                 run_claude=false
                 skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} not found in ${REPOSITORY}."
+                printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+              elif [ "$head_repo" = "null" ] || [ -z "$head_repo" ]; then
+                run_claude=false
+                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} head repo is unavailable."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               elif [ "$head_repo" != "$REPOSITORY" ]; then
                 run_claude=false
@@ -164,11 +169,12 @@ jobs:
                state.
 
             If a PR number is available, post exactly one top-level PR comment via
-            `gh pr comment`. Include confirmed findings as `file:line` entries with
-            a one-sentence diagnosis and a concrete fix suggestion. If no PR number
-            is available, append the same summary to `$GITHUB_STEP_SUMMARY` with
-            `printf`. If there are no confirmed findings, still post or append a
-            short "No confirmed deep-audit findings." summary.
+            `gh pr comment <PR_NUMBER> --repo "$REPO" --body "..."`. Include
+            confirmed findings as `file:line` entries with a one-sentence diagnosis
+            and a concrete fix suggestion. If no PR number is available, append the
+            same summary to `$GITHUB_STEP_SUMMARY` with `printf`. If there are no
+            confirmed findings, still post or append a short "No confirmed
+            deep-audit findings." summary.
 
             Do not comment on style, documentation, test coverage, or performance.
             Do not duplicate the diff-scoped review's focus areas.
