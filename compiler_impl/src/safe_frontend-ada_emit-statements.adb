@@ -2656,10 +2656,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Statement_Index : Positive;
       Base_Image      : String) return Shared_Condition_Render
    ;
-   procedure Apply_Shared_Condition_Replacements
-     (Rendered   : in out Shared_Condition_Render;
-      Base_Image : String)
-   ;
+
    procedure Apply_Shared_Condition_Replacements
      (Rendered   : in out Shared_Condition_Render;
       Base_Image : String)
@@ -3180,6 +3177,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
          if Formal_Index >= Copy_Back_Snapshot_Index_Stride then
             Raise_Internal
               ("copy-back snapshot index exceeded supported formal count");
+         end if;
+         if Statement_Index >= Positive'Last / Copy_Back_Snapshot_Index_Stride then
+            Raise_Internal
+              ("copy-back snapshot statement index exceeded safe range");
          end if;
 
          return Statement_Index * Copy_Back_Snapshot_Index_Stride + Formal_Index;
