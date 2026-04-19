@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       paths:
-        description: "Optional comma-separated file paths to audit on the checked-out ref"
+        description: "Optional comma-separated repo-relative file paths to audit on the checked-out ref"
         required: false
         type: string
 
@@ -39,25 +39,51 @@ jobs:
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
           INPUT_PATHS: ${{ inputs.paths }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DISPATCH_REF: ${{ github.ref }}
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
           run_claude=true
           skip_reason=
+          audit_pr_number=
+          explicit_paths=
 
           if [ "$EVENT_NAME" = "pull_request" ]; then
             printf 'ref=refs/pull/%s/merge\n' "$EVENT_PR_NUMBER" >> "$GITHUB_OUTPUT"
+            audit_pr_number="$EVENT_PR_NUMBER"
           elif [ -n "$INPUT_PR_NUMBER" ]; then
-            head_repo=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '.head.repo.full_name')
-            if [ "$head_repo" != "$REPOSITORY" ]; then
+            if [[ ! "$INPUT_PR_NUMBER" =~ ^[0-9]+$ ]]; then
               run_claude=false
-              skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${head_repo}; manual PR audits require same-repo branches."
+              skip_reason="Deep Audit skipped: pr_number must be numeric."
               printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
             else
-              printf 'ref=refs/pull/%s/merge\n' "$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
+              head_repo=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '.head.repo.full_name')
+              if [ "$head_repo" != "$REPOSITORY" ]; then
+                run_claude=false
+                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${head_repo}; manual PR audits require same-repo branches."
+                printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+              else
+                printf 'ref=refs/pull/%s/merge\n' "$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
+                audit_pr_number="$INPUT_PR_NUMBER"
+              fi
             fi
           elif [ -n "${INPUT_PATHS//[[:space:]]/}" ]; then
-            printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+            if [[ "$INPUT_PATHS" == *$'\n'* || "$INPUT_PATHS" == *$'\r'* ]]; then
+              run_claude=false
+              skip_reason="Deep Audit skipped: paths must be a single comma-separated line."
+              printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+            elif [[ ! "$INPUT_PATHS" =~ ^[A-Za-z0-9_./,+:-]+$ ]]; then
+              run_claude=false
+              skip_reason="Deep Audit skipped: paths must be comma-separated repo-relative file paths."
+              printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+            elif [[ "$INPUT_PATHS" == /* || "$INPUT_PATHS" == *..* ]]; then
+              run_claude=false
+              skip_reason="Deep Audit skipped: paths must not be absolute or contain '..'."
+              printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+            else
+              printf 'ref=%s\n' "$DISPATCH_REF" >> "$GITHUB_OUTPUT"
+              explicit_paths="$INPUT_PATHS"
+            fi
           else
             run_claude=false
             skip_reason="No audit scope provided. Re-run with pr_number or paths."
@@ -66,6 +92,8 @@ jobs:
 
           printf 'run_claude=%s\n' "$run_claude" >> "$GITHUB_OUTPUT"
           printf 'skip_reason=%s\n' "$skip_reason" >> "$GITHUB_OUTPUT"
+          printf 'pr_number=%s\n' "$audit_pr_number" >> "$GITHUB_OUTPUT"
+          printf 'explicit_paths=%s\n' "$explicit_paths" >> "$GITHUB_OUTPUT"
 
       - name: Report skipped audit
         if: steps.audit-ref.outputs.run_claude != 'true'
@@ -88,8 +116,8 @@ jobs:
           show_full_output: true
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-            EXPLICIT PATHS: ${{ inputs.paths }}
+            PR NUMBER: ${{ steps.audit-ref.outputs.pr_number }}
+            EXPLICIT PATHS: ${{ steps.audit-ref.outputs.explicit_paths }}
 
             You are performing a HEAVY AUDIT of surrounding code, not a diff review.
             Another workflow (Claude Code Review) already covers diff-scoped review;
