@@ -3200,6 +3200,32 @@ package body Safe_Frontend.Ada_Emit.Statements is
            & ")";
       end Growable_Indexed_Writeback_Image;
 
+      procedure Require_Shared_Index_Replacements
+        (Index_Expr : CM.Expr_Access;
+         Image      : String;
+         Context    : String)
+      is
+         Probe    : Shared_Condition_Render;
+         Expected : Ada.Containers.Count_Type;
+      begin
+         Collect_Shared_Condition_Snapshots
+           (Unit, Document, Index_Expr, Statement_Index, Probe);
+         Expected := Probe.Replacements.Length;
+
+         if Expected = 0 then
+            return;
+         end if;
+
+         Apply_Shared_Condition_Replacements (Probe, Image);
+
+         if Probe.Replacements.Length /= Expected then
+            Raise_Internal
+              ("shared snapshot replacement missing from rendered "
+               & Context
+               & " during Ada emission");
+         end if;
+      end Require_Shared_Index_Replacements;
+
    begin
       Target_Subprogram_Resolved := Find_Called_Subprogram (Call_Expr, Target_Subprogram);
 
@@ -3382,6 +3408,18 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         Index_Expr,
                         Statement_Index,
                         Statement_Rendered);
+
+                     if FT.To_String (Formal.Mode) /= "out" then
+                        Require_Shared_Index_Replacements
+                          (Index_Expr,
+                           Declaration_Image,
+                           "copy-back temp initializer");
+                     end if;
+                     Require_Shared_Index_Replacements
+                       (Index_Expr,
+                        Writeback_Image,
+                        "copy-back writeback");
+
                      Temp_Declarations.Append
                        (FT.To_UString (Declaration_Image));
                      Writebacks.Append (FT.To_UString (Writeback_Image));
@@ -3457,6 +3495,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
          end loop;
          Call_Image := Call_Image & SU.To_Unbounded_String (")");
          Include_Image (SU.To_String (Call_Image));
+
+         --  Combined_Image is not emitted. This call uses the final rendered
+         --  declaration/writeback/call text only to prune snapshots and
+         --  replacements that did not actually match those images.
          Apply_Shared_Condition_Replacements
            (Statement_Rendered, SU.To_String (Combined_Image));
 
