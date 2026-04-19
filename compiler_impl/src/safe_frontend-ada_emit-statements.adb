@@ -2735,6 +2735,17 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Rendered.Image := FT.To_UString (SU.To_String (Image));
    end Apply_Shared_Condition_Replacements;
 
+   procedure Prune_Shared_Snapshots
+     (Rendered   : in out Shared_Condition_Render;
+      Base_Image : String)
+   is
+      Probe : Shared_Condition_Render := Rendered;
+   begin
+      Apply_Shared_Condition_Replacements (Probe, Base_Image);
+      Rendered.Snapshots := Probe.Snapshots;
+      Rendered.Replacements := Probe.Replacements;
+   end Prune_Shared_Snapshots;
+
    function Apply_Shared_Replacements_To_Image
      (Image        : String;
       Replacements : Shared_Condition_Replacement_Vectors.Vector) return String
@@ -3176,8 +3187,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
       is
          Result : Shared_Condition_Render;
       begin
-         pragma Assert (Target_Subprogram_Resolved);
-
+         --  The outer call-statement gate resolves the target before this
+         --  renderer is reachable.
          --  The early fallback path renders without using this copy-back-aware pass.
          --  Callees are subprogram references, so iterate only arguments here;
          --  arguments with no shared getter call contribute no snapshots.
@@ -3248,7 +3259,13 @@ package body Safe_Frontend.Ada_Emit.Statements is
          Element_Image : String) return String
       is
       begin
-         if Is_Integer_Type (Unit, Document, Formal.Type_Info)
+         if Is_Plain_String_Type (Unit, Document, Formal.Type_Info) then
+            State.Needs_Safe_String_RT := True;
+            return Element_Image;
+         elsif Is_Bounded_String_Type (Formal.Type_Info) then
+            Register_Bounded_String_Type (State, Formal.Type_Info);
+            return Element_Image;
+         elsif Is_Integer_Type (Unit, Document, Formal.Type_Info)
            or else Is_Float_Type (Unit, Document, Formal.Type_Info)
            or else Is_Binary_Type (Unit, Document, Formal.Type_Info)
          then
@@ -3591,10 +3608,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
             end if;
          end loop;
 
-         --  Combined_Image is not emitted. This call uses the final rendered
+         --  Combined_Image is not emitted. Use the final rendered
          --  declaration/writeback/call text only to prune snapshots and
          --  replacements that did not actually match those images.
-         Apply_Shared_Condition_Replacements
+         Prune_Shared_Snapshots
            (Statement_Rendered, SU.To_String (Combined_Image));
 
          Append_Line (Buffer, "declare", Depth);
