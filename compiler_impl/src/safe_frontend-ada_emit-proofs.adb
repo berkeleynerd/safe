@@ -1866,10 +1866,11 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                   return True;
                end if;
             when CM.Expr_Unary =>
-               if Operator in "not" | "+" | "-" then
+               if Operator in "+" | "-" then
                   return Is_Safe_Condition (Expr.Inner);
                end if;
             when CM.Expr_Binary =>
+               --  Safe equality reaches MIR as == / !=; Render_Expr maps those to Ada = / /=.
                if Operator in "<" | "<=" | ">" | ">=" | "=" | "==" | "/=" | "!="
                  | "and then" | "or else" | "+" | "-"
                then
