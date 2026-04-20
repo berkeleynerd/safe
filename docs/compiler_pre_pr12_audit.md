@@ -65,7 +65,8 @@ Use structured entries instead of wide Markdown tables.
   - `hygiene`: duplication, non-behavioral dead code, style, or documentation
     drift.
 - Urgency:
-  - `now`: blocks active work or is soundness x now.
+  - `now`: should be resolved before continuing the relevant workstream. Only
+    `soundness` severity plus `now` urgency triggers the audit interrupt rule.
   - `before-PR12.1`: should land before the PR12.1 rewrite inherits the debt.
   - `whenever`: retain in the ledger without scheduling pressure.
 - Confidence:
@@ -111,16 +112,17 @@ the proposed mechanism, such as grep-based CI, GNAT warning policy, or future
 
 ## Baseline Counts
 
-Commands run at `Audit SHA` (each command emits the total reported in the summary):
+Commands run at `Audit SHA` (each command emits the total reported in the summary).
+Check out `Audit SHA` before running the `rg` commands.
 
 ```bash
-git rev-parse HEAD
+git rev-parse e5a57f1d8f3056646634f9a2ff8108926b1452e4
 rg --version
 rg -c -g '*.adb' -g '*.ads' 'when others =>' compiler_impl/src compiler_impl/stdlib/ada companion | awk -F: '{sum += $NF} END {print sum + 0}'
 rg -c -g '*.adb' -g '*.ads' 'SPARK_Mode \(Off\)' compiler_impl/src compiler_impl/stdlib/ada companion | awk -F: '{sum += $NF} END {print sum + 0}'
 rg -c -g '*.adb' -g '*.ads' 'Raise_Unsupported' compiler_impl/src compiler_impl/stdlib/ada companion | awk -F: '{sum += $NF} END {print sum + 0}'
 rg -c -g '*.adb' -g '*.ads' 'pragma Assume|pragma Annotate \(GNATprove' compiler_impl/src compiler_impl/stdlib/ada companion | awk -F: '{sum += $NF} END {print sum + 0}'
-git ls-tree -r --name-only HEAD samples | awk '/(^|\/)([^\/]*canary[^\/]*\.safe|surface_tour\.safe)$/ {count++} END {print count + 0}'
+git ls-tree -r --name-only e5a57f1d8f3056646634f9a2ff8108926b1452e4 samples | awk '/(^|\/)([^\/]*canary[^\/]*\.safe|surface_tour\.safe)$/ {count++} END {print count + 0}'
 ```
 
 Summary:
@@ -188,9 +190,13 @@ compiler_impl/src/safe_frontend-ada_emit-internal.ads:2
 compiler_impl/src/safe_frontend-ada_emit-statements.adb:1
 ```
 
-The baseline commands include tracked Ada sources under `companion/` via
-`*.adb` / `*.ads` globs. No companion Ada source matched the baseline patterns
-at `Audit SHA`.
+The baseline commands include tracked Ada sources under
+`compiler_impl/stdlib/ada/` and `companion/` via `*.adb` / `*.ads` globs. No
+companion Ada source matched the baseline patterns at `Audit SHA`. The
+`SPARK_Mode (Off)` count is the only pattern with `compiler_impl/stdlib/ada/`
+matches, listed above; `when others =>`, `Raise_Unsupported`, and
+`pragma Assume` / `pragma Annotate (GNATprove, ...)` had zero matches in
+`compiler_impl/stdlib/ada/` and `companion/` at `Audit SHA`.
 
 ## Phase 0 - Scaffold And Baseline
 
@@ -385,8 +391,10 @@ None yet.
 
 ## Phase 3 - Canary And Cross-Cutting Replay
 
-Replay only the Phase 0 frozen canary corpus. Classify failures into existing
-CPA entries or create new confirmed entries. Promote canary defect issues only
+Replay only the Phase 0 frozen canary corpus. This pinned audit cycle has an
+empty canary corpus, so the canary replay sub-scope is explicitly empty. Do not
+retroactively promote ordinary samples into canaries. Phase 3 still runs the
+arithmetic and classification replay below. Promote replay defect issues only
 after minimized repros confirm distinct root causes.
 
 ### Frozen Canary Corpus
@@ -397,9 +405,9 @@ Captured at `Audit SHA`:
 No tracked canary files matched at `Audit SHA`.
 ```
 
-`samples/showcase/surface_tour.safe` was not present at `Audit SHA`, so it is
-not part of this pinned replay corpus. If it lands later, audit it after Phase 4
-or in the next cycle.
+A future showcase sample such as `surface_tour.safe` was not present at
+`Audit SHA`, so it is not part of this pinned replay corpus. If such a sample
+lands later, audit it after Phase 4 or in the next cycle.
 
 ### Arithmetic And Classification Replay
 
@@ -419,7 +427,7 @@ None yet.
 Run:
 
 ```bash
-git log e5a57f1d8f3056646634f9a2ff8108926b1452e4..main -- compiler_impl/src/ compiler_impl/stdlib/ada/ companion/
+git log e5a57f1d8f3056646634f9a2ff8108926b1452e4..main -- compiler_impl/src/ compiler_impl/stdlib/ada/ companion/ docs/ tests/ samples/
 ```
 
 Classify each changed path as:
