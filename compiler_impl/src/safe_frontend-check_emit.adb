@@ -394,8 +394,6 @@ package body Safe_Frontend.Check_Emit is
            and then FT.To_String (Expr.Selector) = "all"
          then JS.Quote ("ImplicitDereference")
          else "null");
-      Call_Span : constant FT.Source_Span :=
-        (if Expr /= null and then Expr.Has_Call_Span then Expr.Call_Span else FT.Null_Span);
    begin
       if Expr = null then
          return Name_From_String ("", FT.Null_Span);
@@ -1067,22 +1065,6 @@ package body Safe_Frontend.Check_Emit is
         & "}";
    end Discriminant_Part_Node;
 
-   function Bool_Choice_Expression
-     (Value : Boolean;
-      Span  : FT.Source_Span) return String
-   is
-      Expr : constant CM.Expr_Access := new CM.Expr_Node'
-        (Kind       => CM.Expr_Bool,
-         Span       => Span,
-         Type_Name  => FT.To_UString ("boolean"),
-         Text       => FT.To_UString (""),
-         Int_Value  => 0,
-         Bool_Value => Value,
-         others     => <>);
-   begin
-      return Expression_Node (Expr);
-   end Bool_Choice_Expression;
-
    function Variant_Part_Node (Decl : CM.Type_Decl) return String is
       Variants   : String_Vectors.Vector;
       Components : String_Vectors.Vector;
@@ -1418,7 +1400,6 @@ package body Safe_Frontend.Check_Emit is
 
    function Type_Definition_Node (Decl : CM.Type_Decl) return String is
       Indexes : String_Vectors.Vector;
-      Components : String_Vectors.Vector;
    begin
       case Decl.Kind is
          when CM.Type_Decl_Incomplete =>
