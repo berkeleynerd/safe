@@ -769,6 +769,11 @@
       "provider_shared_ceiling.ads": "ac1d7815c2a9daae9d038f155310e632ec67d8c3edcdaff25e33329bd77b0472",
       "provider_shared_ceiling_line_map.json": "d9743e600fe613dedfd3d030493e5c3a82bb531b11dc1abb786dccc1cf9cb632"
     },
+    "tests/interfaces/provider_transitive_global.safe": {
+      "provider_transitive_global.adb": "74c09d55656be2b04207a1135e2014ac6869e0dce7950c0091b937f238cc5751",
+      "provider_transitive_global.ads": "892e6db1adb44d10f17523768abfe680688821132ab887815d3965d9a70dda64",
+      "provider_transitive_global_line_map.json": "198fd553678f6a59bfe6b70ed0ae3bd9cb851e6a742c2304fa9ad82a401c0915"
+    },
     "tests/positive/channel_pingpong.safe": {
       "ping_pong.adb": "7409fd6718c229edab52979bbd496acff3c7b9cc1663cdd2249699c4899d9f1b",
       "ping_pong.ads": "460ef5174127f475f65dec6be7d1560b78312c89d260269a4fd2b6e2499882f1",

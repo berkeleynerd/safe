@@ -4,10 +4,7 @@ package provider_transitive_global
 
    function touch_internal
 
-      if global_value
-         global_value = false
-      else
-         global_value = true;
+      global_value = not global_value;
 
    public function touch
 
