@@ -1,4 +1,3 @@
-with Ada.Containers;
 with Safe_Frontend.Ada_Emit.Statements;
 with Safe_Frontend.Ada_Emit.Types;
 
