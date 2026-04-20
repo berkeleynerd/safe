@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from _lib import (
+    test_ceiling_priority,
     test_cli_workflows,
     test_contracts,
     test_embedded_listing,
@@ -40,7 +41,7 @@ def main() -> int:
         return 1
 
     if skip_ceiling_tests:
-        ceiling_fixture_count = len(test_cli_workflows.CEILING_PRIORITY_FIXTURES)
+        ceiling_fixture_count = len(test_ceiling_priority.CEILING_PRIORITY_FIXTURES)
         ceiling_case_count = (
             test_cli_workflows.ceiling_priority_run_test_case_count()
             + test_interfaces.ceiling_priority_interface_case_count()
@@ -83,12 +84,7 @@ def main() -> int:
 
     add_counts(test_fixtures.run_diagnostic_golden_checks(safec))
     add_counts(test_cli_workflows.run_build_run_checks(skip_ceiling_tests=skip_ceiling_tests))
-    add_counts(
-        test_interfaces.run_interface_target_bits_checks(
-            safec,
-            skip_ceiling_tests=skip_ceiling_tests,
-        )
-    )
+    add_counts(test_interfaces.run_interface_target_bits_checks(safec))
     add_counts(test_cli_workflows.run_post_interface_cli_checks())
     add_counts(test_proof_cli.run_safe_prove_success_checks())
     add_counts(test_cli_workflows.run_prove_workflow_checks())

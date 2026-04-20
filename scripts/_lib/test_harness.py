@@ -62,7 +62,7 @@ def can_set_rt_priority() -> bool:
         import resource
 
         soft, _ = resource.getrlimit(resource.RLIMIT_RTPRIO)
-        return soft > 0
+        return soft == resource.RLIM_INFINITY or soft > 0
     except (ImportError, AttributeError, OSError, ValueError):
         return False
 
