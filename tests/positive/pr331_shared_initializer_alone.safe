@@ -1,0 +1,12 @@
+-- Test: pr331_shared_initializer_alone
+-- Description: Package elaboration may snapshot a shared root into a package object.
+
+package pr331_shared_initializer_alone
+
+   type state is record
+      total : integer;
+
+   shared audit : state = (total = 1);
+   audit_snapshot : state = audit;
+
+   print (audit_snapshot.total)

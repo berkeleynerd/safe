@@ -1,0 +1,12 @@
+-- Test: pr331_package_initializer_task_pollution
+-- Description:
+--   Package initializers are lowered into unit init, not duplicated into task bodies.
+
+package pr331_package_initializer_task_pollution
+
+   seed : integer = 1;
+   snapshot : integer = seed;
+
+   task worker
+      loop
+         delay 0.01;

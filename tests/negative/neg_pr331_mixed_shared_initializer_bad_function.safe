@@ -1,0 +1,17 @@
+-- Test: neg_pr331_mixed_shared_initializer_bad_function
+-- Description:
+--   Legal package shared-root snapshots must not hide illegal in-function shared reads.
+-- Expected: REJECT function_global_effect
+
+package neg_pr331_mixed_shared_initializer_bad_function
+
+   type state is record
+      total : integer;
+
+   shared audit : state = (total = 1);
+   audit_snapshot : state = audit;
+
+   function bad returns integer
+      return audit.total;
+
+   print (bad ())
