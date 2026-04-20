@@ -20,6 +20,8 @@ PROOF_COVERAGE_ROOTS = (
     "tests/build",
     "tests/concurrency",
 )
+# `tests/interfaces` contains provider/client halves and intentional rejection
+# fixtures, so proof-bearing interface roots must be enrolled explicitly below.
 
 
 COMPANION_PROJECTS = [
