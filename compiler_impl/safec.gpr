@@ -8,7 +8,8 @@ project Safec is
 
    package Compiler is
       for Default_Switches ("Ada") use
-        Safec_Config.Ada_Compiler_Switches & ("-gnatyM200");
+        Safec_Config.Ada_Compiler_Switches
+        & ("-gnatwe", "-gnatyM200");
    end Compiler;
 
    package Binder is
