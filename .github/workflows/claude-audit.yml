@@ -79,7 +79,8 @@ jobs:
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               elif [ "$pr_lookup_output" != "$REPOSITORY" ]; then
                 run_claude=false
-                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${pr_lookup_output}; manual PR audits require same-repo branches."
+                pr_lookup_summary=$(printf '%s' "$pr_lookup_output" | tr '\r\n' '  ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
+                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${pr_lookup_summary}; manual PR audits require same-repo branches."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               else
                 printf 'ref=refs/pull/%s/merge\n' "$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
@@ -217,12 +218,12 @@ jobs:
             If a PR number is available, post exactly one top-level PR comment via
             `gh pr comment <PR_NUMBER> --repo "$REPO" --body "..."`. Include
             confirmed findings as `file:line` entries with a one-sentence diagnosis
-            and a concrete fix suggestion. If no PR number is available, append the
-            same summary to `$GITHUB_STEP_SUMMARY` with `printf`. If there are no
-            confirmed findings, still post or append a short "No confirmed
-            deep-audit findings." summary.
+            and a concrete fix suggestion. If no PR number is available, return the
+            same summary in your final response so the workflow logs capture it.
+            If there are no confirmed findings, still post or return a short
+            "No confirmed deep-audit findings." summary.
 
             Do not comment on style, documentation, test coverage, or performance.
             Do not duplicate the diff-scoped review's focus areas.
           claude_args: |
-            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(printf:*),Read,Grep,Glob"
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
