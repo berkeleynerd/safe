@@ -551,6 +551,8 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                         Wrapper_Name := Expr.Callee.Prefix.Name;
                         Selector_Name := Expr.Callee.Selector;
                      elsif Expr.Callee.Kind = CM.Expr_Ident then
+                        --  The helper lookup's out parameters are the useful result;
+                        --  the Wrapper_Name length check below handles misses.
                         declare
                            Helper_Found : constant Boolean :=
                              Try_Shared_Public_Helper
@@ -562,6 +564,8 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                            null;
                         end;
                      elsif Expr.Callee.Kind = CM.Expr_Select then
+                        --  The helper lookup's out parameters are the useful result;
+                        --  the Wrapper_Name length check below handles misses.
                         declare
                            Helper_Found : constant Boolean :=
                              Try_Shared_Public_Helper
