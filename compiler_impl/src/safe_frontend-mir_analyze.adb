@@ -142,13 +142,6 @@ package body Safe_Frontend.Mir_Analyze is
       Equivalent_Keys => "=",
       "="             => GM."=");
 
-   package Scope_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (Key_Type        => String,
-      Element_Type    => GM.Scope_Entry,
-      Hash            => Ada.Strings.Hash,
-      Equivalent_Keys => "=",
-      "="             => GM."=");
-
    package Block_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => GM.Block_Entry,
@@ -587,8 +580,7 @@ package body Safe_Frontend.Mir_Analyze is
       Entry_State : out State;
       Var_Types   : out Type_Maps.Map;
       Owner_Vars  : out String_Sets.Set;
-      Local_Meta  : out Local_Maps.Map;
-      Scope_Map   : out Scope_Maps.Map);
+      Local_Meta  : out Local_Maps.Map);
    procedure Invalidate_Scope_Exit
      (Current    : in out State;
       Local_Names : FT.UString_Vectors.Vector;
@@ -4567,15 +4559,11 @@ package body Safe_Frontend.Mir_Analyze is
       Entry_State : out State;
       Var_Types   : out Type_Maps.Map;
       Owner_Vars  : out String_Sets.Set;
-      Local_Meta  : out Local_Maps.Map;
-      Scope_Map   : out Scope_Maps.Map)
+      Local_Meta  : out Local_Maps.Map)
    is
    begin
       Var_Types := Graph_Var_Types (Graph, Type_Env);
       Local_Meta := Graph_Local_Meta (Graph);
-      for Scope of Graph.Scopes loop
-         Scope_Map.Include (UString_Value (Scope.Id), Scope);
-      end loop;
       for Local of Graph.Locals loop
          if Lower (UString_Value (Local.Type_Info.Kind)) = "access"
            and then Type_Access_Role (Var_Types.Element (UString_Value (Local.Name))) = Role_Owner
@@ -5339,7 +5327,6 @@ package body Safe_Frontend.Mir_Analyze is
       Diag        : MD.Diagnostic := Null_Diagnostic;
       Has_Diag    : Boolean;
       Interval_Value : Interval;
-      Float_Value : Float_Interval;
    begin
       if Expr = null or else Expr.Kind /= GM.Expr_Call or else not Functions.Contains (Name) then
          return Null_Diagnostic;
@@ -5414,16 +5401,21 @@ package body Safe_Frontend.Mir_Analyze is
                end if;
                goto Continue;
             elsif Is_Float_Type (Formal.Type_Info) then
-               Float_Value :=
-                 Eval_Float_Expr_With_Diag
-                   (Actual,
-                    Current,
-                    Var_Types,
-                    Type_Env,
-                    Functions,
-                    Formal.Type_Info,
-                    Has_Diag,
-                    Diag);
+               declare
+                  Float_Value : constant Float_Interval :=
+                    Eval_Float_Expr_With_Diag
+                      (Actual,
+                       Current,
+                       Var_Types,
+                       Type_Env,
+                       Functions,
+                       Formal.Type_Info,
+                       Has_Diag,
+                       Diag);
+                  pragma Unreferenced (Float_Value);
+               begin
+                  null;
+               end;
                if Has_Diag then
                   return Diag;
                end if;
@@ -5800,7 +5792,6 @@ package body Safe_Frontend.Mir_Analyze is
       Lender        : FT.UString := FT.To_UString ("");
       Source_Name   : FT.UString := FT.To_UString ("");
       Interval_Value : Interval;
-      Float_Value    : Float_Interval;
       Diag          : MD.Diagnostic := Null_Diagnostic;
       Has_Diag      : Boolean;
    begin
@@ -5850,16 +5841,21 @@ package body Safe_Frontend.Mir_Analyze is
          end if;
          return Null_Diagnostic;
       elsif Is_Float_Type (Return_Type) then
-         Float_Value :=
-           Eval_Float_Expr_With_Diag
-             (Expr,
-              Current,
-              Var_Types,
-              Type_Env,
-              Functions,
-              Return_Type,
-              Has_Diag,
-              Diag);
+         declare
+            Float_Value : constant Float_Interval :=
+              Eval_Float_Expr_With_Diag
+                (Expr,
+                 Current,
+                 Var_Types,
+                 Type_Env,
+                 Functions,
+                 Return_Type,
+                 Has_Diag,
+                 Diag);
+            pragma Unreferenced (Float_Value);
+         begin
+            null;
+         end;
          if Has_Diag then
             return Diag;
          end if;
@@ -6236,7 +6232,6 @@ package body Safe_Frontend.Mir_Analyze is
       Var_Types           : Type_Maps.Map;
       Owner_Vars          : String_Sets.Set;
       Local_Meta          : Local_Maps.Map;
-      Scope_Map           : Scope_Maps.Map;
       Block_Map           : Block_Maps.Map;
       Pending             : String_Vectors.Vector;
       In_States           : State_Maps.Map;
@@ -6244,8 +6239,7 @@ package body Safe_Frontend.Mir_Analyze is
       Loop_Header_Updates : Natural_Maps.Map;
       Sequence            : Natural := 0;
    begin
-      pragma Unreferenced (Scope_Map);
-      Initialize_Graph_Entry_State (Graph, Type_Env, Entry_State, Var_Types, Owner_Vars, Local_Meta, Scope_Map);
+      Initialize_Graph_Entry_State (Graph, Type_Env, Entry_State, Var_Types, Owner_Vars, Local_Meta);
       for Block of Graph.Blocks loop
          Block_Map.Include (UString_Value (Block.Id), Block);
       end loop;
