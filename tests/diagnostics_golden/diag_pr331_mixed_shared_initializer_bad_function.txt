@@ -1,0 +1,13 @@
+Diagnostics Golden: PR331 Mixed Shared Initializer Bad Function
+Source: tests/negative/neg_pr331_mixed_shared_initializer_bad_function.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr331_mixed_shared_initializer_bad_function.safe:15:14: error: result-returning functions cannot mutate package state or access shared/channel state
+  |
+  | 15 |       return audit.total;
+  |    |              ^~~~~~~~~~~
+  |
+  note: SPARK functions cannot combine return values with global mutation or volatile shared access
+  note: move the shared/channel access into a procedure and pass local snapshots to pure functions
+------------------------------------------------------------------------

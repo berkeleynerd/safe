@@ -1,0 +1,40 @@
+package pr331_shared_initializer_effect_pollution_build
+
+   type state is record
+      total : integer;
+
+   type printable is interface
+      function (self : printable) label returns string;
+
+   type widget is record
+      text : string;
+
+   function pure_value returns integer
+      return 1
+
+   shared audit : state = (total = 1);
+   audit_snapshot : state = audit;
+
+   function (self : widget) label returns string
+      return self.text;
+
+   function render (item : printable) returns string
+      return item.label();
+
+   function render_score returns integer
+      item : widget = (text = "Ada");
+
+      if render (item) == "Ada"
+         return 3
+      return 0
+
+   function one returns (result, integer)
+      return (ok (), 7)
+
+   function try_total returns (result, integer)
+      var first : integer = try one ()
+      return (ok (), first + 5)
+
+   print (pure_value ())
+   print (render_score ())
+   print (try_total ().2)

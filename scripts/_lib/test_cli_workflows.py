@@ -167,6 +167,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "pr331_shared_initializer_effect_pollution_build.safe",
+        "1\n3\n12\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr220_for_of_composite_unroll_build.safe",
         "Ada\nAda\n",
         False,

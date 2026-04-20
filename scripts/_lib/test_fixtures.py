@@ -119,6 +119,10 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_shared_read_function.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_pr331_mixed_shared_initializer_bad_function.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr331_mixed_shared_initializer_bad_function.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_pr222_shared_mutating_function.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr222_shared_mutating_function.txt",
     ),

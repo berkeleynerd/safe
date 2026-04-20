@@ -20,6 +20,8 @@ PROOF_COVERAGE_ROOTS = (
     "tests/build",
     "tests/concurrency",
 )
+# `tests/interfaces` contains provider/client halves and intentional rejection
+# fixtures, so proof-bearing interface roots must be enrolled explicitly below.
 
 
 COMPANION_PROJECTS = [
@@ -393,6 +395,9 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/emitter_surface_record.safe",
     "tests/positive/pr222_readonly_global_function.safe",
     "tests/positive/pr1122f1_multi_decl_object.safe",
+    "tests/positive/pr331_shared_initializer_alone.safe",
+    "tests/positive/pr331_package_initializer_task_pollution.safe",
+    "tests/interfaces/provider_transitive_global.safe",
     "tests/build/pr212_string_literal_build.safe",
     "tests/build/pr223_provider_enum.safe",
     "tests/build/pr223_imported_enum_comparison_build.safe",
@@ -411,6 +416,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/build/pr230_top_level_select_delay_build.safe",
     "tests/build/pr232_provider_numeric.safe",
     "tests/build/pr232_imported_numeric_elab_build.safe",
+    "tests/build/pr331_shared_initializer_effect_pollution_build.safe",
     "tests/positive/pr231_fixed_literal_for_of_sum.safe",
     "tests/positive/pr233_bounded_index_counted_loop.safe",
     "tests/build/pr220_for_of_composite_unroll_build.safe",

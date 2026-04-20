@@ -2683,43 +2683,6 @@ package body Safe_Frontend.Check_Lower is
          Add_Op (Work, UString_Value (Entry_Id), Scope_Op);
       end if;
 
-      --  Visible already contains all package and local declaration names from
-      --  the registration passes above, so these declaration-init targets do
-      --  not need a separate Decl_Visible overlay.
-      for Decl of Package_Objects loop
-         if not Decl.Is_Shared then
-            for Name of Decl.Names loop
-               if Decl.Has_Initializer and then Decl.Initializer /= null then
-                  declare
-                     Target_Expr : constant CM.Expr_Access :=
-                       Ident_Expr
-                         (UString_Value (Name),
-                          Decl.Span,
-                          UString_Value (Decl.Type_Info.Name));
-                  begin
-                     Assign_Op :=
-                       Build_Assignment_Op
-                         (Target_Expr,
-                          Decl.Initializer,
-                          Visible,
-                          Visible,
-                          Type_Env,
-                          Decl.Span,
-                          Ownership_Assignment_Effect
-                            (Target_Expr,
-                             Decl.Initializer,
-                             Visible,
-                             Visible,
-                             Type_Env),
-                          Declaration_Init => True,
-                          Type_Name        => Decl.Type_Info.Name);
-                  end;
-                  Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
-               end if;
-            end loop;
-         end if;
-      end loop;
-
       for Decl of Subprogram.Declarations loop
          for Name of Decl.Names loop
             if Decl.Has_Initializer and then Decl.Initializer /= null then
@@ -2982,43 +2945,6 @@ package body Safe_Frontend.Check_Lower is
          Scope_Op.Locals := Root_Locals;
          Add_Op (Work, UString_Value (Entry_Id), Scope_Op);
       end if;
-
-      --  Visible already contains all package and task-local declaration names
-      --  from the registration passes above, so these declaration-init targets
-      --  do not need a separate Decl_Visible overlay.
-      for Decl of Package_Objects loop
-         if not Decl.Is_Shared then
-            for Name of Decl.Names loop
-               if Decl.Has_Initializer and then Decl.Initializer /= null then
-                  declare
-                     Target_Expr : constant CM.Expr_Access :=
-                       Ident_Expr
-                         (UString_Value (Name),
-                          Decl.Span,
-                          UString_Value (Decl.Type_Info.Name));
-                  begin
-                     Assign_Op :=
-                       Build_Assignment_Op
-                         (Target_Expr,
-                          Decl.Initializer,
-                          Visible,
-                          Visible,
-                          Type_Env,
-                          Decl.Span,
-                          Ownership_Assignment_Effect
-                            (Target_Expr,
-                             Decl.Initializer,
-                             Visible,
-                             Visible,
-                             Type_Env),
-                          Declaration_Init => True,
-                          Type_Name        => Decl.Type_Info.Name);
-                  end;
-                  Add_Op (Work, UString_Value (Entry_Id), Assign_Op);
-               end if;
-            end loop;
-         end if;
-      end loop;
 
       for Decl of Task_Item.Declarations loop
          for Name of Decl.Names loop

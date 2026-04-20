@@ -1,10 +1,10 @@
 package provider_transitive_global
 
-   global_value : integer = 0;
+   global_value : boolean = false;
 
    function touch_internal
 
-      global_value = global_value + 1;
+      global_value = not global_value;
 
    public function touch
 
