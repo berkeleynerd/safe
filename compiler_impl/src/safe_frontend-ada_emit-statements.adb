@@ -17,9 +17,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
    use type FT.UString;
 
    subtype Cleanup_Action is AI.Cleanup_Action;
-   subtype Cleanup_Item is AI.Cleanup_Item;
-   subtype Warning_Suppression_Array is AI.Warning_Suppression_Array;
-   subtype Warning_Restore_Array is AI.Warning_Restore_Array;
 
    type Shared_Field_Getter_Info is record
       Found               : Boolean := False;
@@ -66,12 +63,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
    function Has_Text (Item : FT.UString) return Boolean renames AI.Has_Text;
    function Trim_Image (Value : Long_Long_Integer) return String renames AI.Trim_Image;
    function Trim_Wide_Image (Value : CM.Wide_Integer) return String renames AI.Trim_Wide_Image;
-   function Indentation (Depth : Natural) return String renames AI.Indentation;
    procedure Append_Line
      (Buffer : in out SU.Unbounded_String;
       Text   : String := "";
       Depth  : Natural := 0) renames AI.Append_Line;
-   function Join_Names (Items : FT.UString_Vectors.Vector) return String renames AI.Join_Names;
    function Contains_Name
      (Items : FT.UString_Vectors.Vector;
       Name  : String) return Boolean renames AI.Contains_Name;
@@ -96,13 +91,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Is_Constant : Boolean := False) renames AI.Add_Type_Binding;
    procedure Register_Type_Bindings
      (State        : in out Emit_State;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector) renames AI.Register_Type_Bindings;
-   procedure Register_Type_Bindings
-     (State        : in out Emit_State;
       Declarations : CM.Object_Decl_Vectors.Vector) renames AI.Register_Type_Bindings;
-   procedure Register_Param_Type_Bindings
-     (State  : in out Emit_State;
-      Params : CM.Symbol_Vectors.Vector) renames AI.Register_Param_Type_Bindings;
    function Lookup_Bound_Type
      (State     : Emit_State;
       Name      : String;
@@ -122,14 +111,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Action    : Cleanup_Action := AI.Cleanup_Deallocate) renames AI.Add_Cleanup_Item;
    procedure Register_Cleanup_Items
      (State        : in out Emit_State;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector) renames AI.Register_Cleanup_Items;
-   procedure Register_Cleanup_Items
-     (State        : in out Emit_State;
       Declarations : CM.Object_Decl_Vectors.Vector) renames AI.Register_Cleanup_Items;
-   procedure Render_Cleanup_Item
-     (Buffer : in out SU.Unbounded_String;
-      Item   : Cleanup_Item;
-      Depth  : Natural) renames AI.Render_Cleanup_Item;
    procedure Render_Active_Cleanup
      (Buffer    : in out SU.Unbounded_String;
       State     : Emit_State;
@@ -140,14 +122,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       State  : Emit_State;
       Depth  : Natural) renames AI.Render_Current_Cleanup_Frame;
    function Has_Active_Cleanup_Items (State : Emit_State) return Boolean renames AI.Has_Active_Cleanup_Items;
-   procedure Render_Cleanup
-     (Buffer       : in out SU.Unbounded_String;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
-      Depth        : Natural) renames AI.Render_Cleanup;
-   function Statement_Falls_Through (Item : CM.Statement_Access) return Boolean renames AI.Statement_Falls_Through;
    function Statements_Fall_Through (Statements : CM.Statement_Access_Vectors.Vector) return Boolean renames AI.Statements_Fall_Through;
-   function Statement_Contains_Exit (Item : CM.Statement_Access) return Boolean renames AI.Statement_Contains_Exit;
-   function Statements_Contain_Exit (Statements : CM.Statement_Access_Vectors.Vector) return Boolean renames AI.Statements_Contain_Exit;
    procedure Append_Gnatprove_Warning_Suppression
      (Buffer  : in out SU.Unbounded_String;
       Pattern : String;
@@ -157,14 +132,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Buffer  : in out SU.Unbounded_String;
       Pattern : String;
       Depth   : Natural) renames AI.Append_Gnatprove_Warning_Restore;
-   procedure Append_Gnatprove_Warning_Suppressions
-     (Buffer   : in out SU.Unbounded_String;
-      Warnings : Warning_Suppression_Array;
-      Depth    : Natural) renames AI.Append_Gnatprove_Warning_Suppressions;
-   procedure Append_Gnatprove_Warning_Restores
-     (Buffer   : in out SU.Unbounded_String;
-      Warnings : Warning_Restore_Array;
-      Depth    : Natural) renames AI.Append_Gnatprove_Warning_Restores;
    procedure Append_Initialization_Warning_Suppression
      (Buffer : in out SU.Unbounded_String;
       Depth  : Natural) renames AI.Append_Initialization_Warning_Suppression;
