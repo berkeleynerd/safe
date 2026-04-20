@@ -1253,7 +1253,7 @@ package body Safe_Frontend.Mir_Bronze is
       Inputs  : String_Sets.Set) return Depends_Vectors.Vector
    is
       Result        : Depends_Vectors.Vector;
-      Output_Items  : FT.UString_Vectors.Vector := To_Vector (Outputs);
+      Output_Items  : constant FT.UString_Vectors.Vector := To_Vector (Outputs);
       Input_Items   : constant FT.UString_Vectors.Vector := To_Vector (Inputs);
       Depends_Item  : Depends_Entry;
    begin
@@ -1791,7 +1791,7 @@ package body Safe_Frontend.Mir_Bronze is
          while Summary_Maps.Has_Element (Cursor) loop
             declare
                Name    : constant String := Summary_Maps.Key (Cursor);
-               Summary : Direct_Summary := Summary_Maps.Element (Cursor);
+               Summary : constant Direct_Summary := Summary_Maps.Element (Cursor);
                Updated : Direct_Summary := Summary;
             begin
                if not Summary.Call_Sites.Is_Empty then
@@ -2171,7 +2171,7 @@ package body Safe_Frontend.Mir_Bronze is
             declare
                Global_Name : constant String := Set_Maps.Key (Access_Cursor);
                Tasks       : constant String_Sets.Set := Set_Maps.Element (Access_Cursor);
-               Task_Names  : FT.UString_Vectors.Vector := To_Vector (Tasks);
+               Task_Names  : constant FT.UString_Vectors.Vector := To_Vector (Tasks);
             begin
                if Task_Names.Length > 1 then
                   Result.Diagnostics.Append
@@ -2201,7 +2201,7 @@ package body Safe_Frontend.Mir_Bronze is
             declare
                Callee      : constant String := Set_Maps.Key (Call_Cursor);
                Tasks       : constant String_Sets.Set := Set_Maps.Element (Call_Cursor);
-               Task_Names  : FT.UString_Vectors.Vector := To_Vector (Tasks);
+               Task_Names  : constant FT.UString_Vectors.Vector := To_Vector (Tasks);
             begin
                if Task_Names.Length > 1 and then Summaries.Contains (Callee) then
                   declare
@@ -2252,7 +2252,7 @@ package body Safe_Frontend.Mir_Bronze is
             declare
                Channel_Name : constant String := Set_Maps.Key (Channel_Cursor);
                Tasks        : constant String_Sets.Set := Set_Maps.Element (Channel_Cursor);
-               Task_Names   : FT.UString_Vectors.Vector := To_Vector (Tasks);
+               Task_Names   : constant FT.UString_Vectors.Vector := To_Vector (Tasks);
                Priority     : Long_Long_Integer := 0;
                Ceiling      : Ceiling_Entry;
             begin
@@ -2286,7 +2286,7 @@ package body Safe_Frontend.Mir_Bronze is
             declare
                Shared_Name : constant String := Set_Maps.Key (Shared_Cursor);
                Tasks       : constant String_Sets.Set := Set_Maps.Element (Shared_Cursor);
-               Task_Names  : FT.UString_Vectors.Vector := To_Vector (Tasks);
+               Task_Names  : constant FT.UString_Vectors.Vector := To_Vector (Tasks);
                Priority    : Long_Long_Integer := 0;
                Ceiling     : Shared_Ceiling_Entry;
             begin

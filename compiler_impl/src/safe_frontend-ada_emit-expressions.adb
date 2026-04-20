@@ -1720,7 +1720,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
             if not Used_Formal and then Expr.Callee /= null then
                declare
                   Shared_Formal_Found : Boolean := False;
-                  Shared_Formal_Type  : GM.Type_Descriptor :=
+                  Shared_Formal_Type  : constant GM.Type_Descriptor :=
                     Shared_Call_Formal_Type
                       (Unit,
                        Document,

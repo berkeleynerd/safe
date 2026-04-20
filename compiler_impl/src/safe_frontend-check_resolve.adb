@@ -14818,7 +14818,7 @@ package body Safe_Frontend.Check_Resolve is
                Record_Result          : GM.Type_Descriptor;
                Self_Name              : constant String := UString_Value (Decl.Name);
                Hidden_Target_Name     : constant String := Hidden_Reference_Target_Name (Self_Name);
-               Inferred_Reference     : Boolean :=
+               Inferred_Reference     : constant Boolean :=
                  Is_Admitted_Record_Family_Member
                    (Self_Name,
                     Family_By_Name,
@@ -16967,9 +16967,9 @@ package body Safe_Frontend.Check_Resolve is
       Reject_Shared_Wrapper_Name_Collisions;
 
       declare
-         Visible : Type_Maps.Map := Package_Vars;
+         Visible : constant Type_Maps.Map := Package_Vars;
          Visible_Constants : Type_Maps.Map;
-         Visible_Static_Constants : Static_Value_Maps.Map := Const_Env;
+         Visible_Static_Constants : constant Static_Value_Maps.Map := Const_Env;
       begin
          for Object_Decl of Result.Objects loop
             if Object_Decl.Is_Constant then
@@ -17159,7 +17159,7 @@ package body Safe_Frontend.Check_Resolve is
                Visible_Static_Constants : Static_Value_Maps.Map := Const_Env;
                Task_Item      : CM.Resolved_Task;
                Local_Decl     : CM.Resolved_Object_Decl;
-               Task_Index     : Natural := Natural (Result.Tasks.Length) + 1;
+               Task_Index     : constant Natural := Natural (Result.Tasks.Length) + 1;
             begin
                if UString_Value (Item.Task_Data.End_Name) /=
                  UString_Value (Item.Task_Data.Name)

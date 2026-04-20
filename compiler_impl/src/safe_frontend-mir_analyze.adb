@@ -1641,7 +1641,7 @@ package body Safe_Frontend.Mir_Analyze is
    function Highlight_Span
      (Expr : GM.Expr_Access) return FT.Source_Span
    is
-      Result   : FT.Source_Span := FT.Null_Span;
+      Result   : constant FT.Source_Span := FT.Null_Span;
       Op_Start : Positive;
    begin
       if Expr = null then
@@ -2693,7 +2693,7 @@ package body Safe_Frontend.Mir_Analyze is
       Type_Env   : Type_Maps.Map;
       Functions  : Function_Maps.Map) return Interval
    is
-      Prefix_Type : GM.Type_Descriptor := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
+      Prefix_Type : constant GM.Type_Descriptor := Expr_Type (Expr.Prefix, Var_Types, Type_Env, Functions);
       Bounds      : Interval;
       Value       : Interval;
       Prefix_Name : FT.UString := FT.To_UString ("");
@@ -4066,9 +4066,9 @@ package body Safe_Frontend.Mir_Analyze is
       Left_Const  : Wide_Integer;
       Right_Real  : Real_Value;
       Op          : constant String := UString_Value (Expr.Operator);
-      Have_Right_Const : Boolean := Has_Constant_Value (Expr.Right, Current, Var_Types, Type_Env);
+      Have_Right_Const : constant Boolean := Has_Constant_Value (Expr.Right, Current, Var_Types, Type_Env);
       Have_Left_Const  : Boolean := Has_Constant_Value (Expr.Left, Current, Var_Types, Type_Env);
-      Have_Right_Real  : Boolean := Has_Real_Constant (Expr.Right, Current, Var_Types, Type_Env);
+      Have_Right_Real  : constant Boolean := Has_Real_Constant (Expr.Right, Current, Var_Types, Type_Env);
    begin
       if Left_Name /= ""
         and then Var_Types.Contains (Left_Name)
@@ -6361,7 +6361,7 @@ package body Safe_Frontend.Mir_Analyze is
                   else
                      declare
                         True_State  : State := Refine_Condition (Current, Block.Terminator.Condition, True, Var_Types, Type_Env);
-                        False_State : State := Refine_Condition (Current, Block.Terminator.Condition, False, Var_Types, Type_Env);
+                        False_State : constant State := Refine_Condition (Current, Block.Terminator.Condition, False, Var_Types, Type_Env);
                      begin
                         if UString_Value (Block.Role) = "for_header"
                           and then Block.Has_Loop_Info
