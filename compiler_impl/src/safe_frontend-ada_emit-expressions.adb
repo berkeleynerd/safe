@@ -1,4 +1,3 @@
-with Ada.Characters.Handling;
 with Ada.Containers;
 with Ada.Strings.Fixed;
 with Safe_Frontend.Builtin_Types;
@@ -16,11 +15,6 @@ package body Safe_Frontend.Ada_Emit.Expressions is
    use type CM.Statement_Kind;
    use type FT.UString;
 
-   subtype Cleanup_Action is AI.Cleanup_Action;
-   subtype Cleanup_Item is AI.Cleanup_Item;
-   subtype Warning_Suppression_Array is AI.Warning_Suppression_Array;
-   subtype Warning_Restore_Array is AI.Warning_Restore_Array;
-
    procedure Raise_Internal (Message : String) renames AI.Raise_Internal;
    procedure Raise_Unsupported
      (State   : in out Emit_State;
@@ -30,138 +24,9 @@ package body Safe_Frontend.Ada_Emit.Expressions is
    function Has_Text (Item : FT.UString) return Boolean renames AI.Has_Text;
    function Trim_Image (Value : Long_Long_Integer) return String renames AI.Trim_Image;
    function Trim_Wide_Image (Value : CM.Wide_Integer) return String renames AI.Trim_Wide_Image;
-   function Indentation (Depth : Natural) return String renames AI.Indentation;
-   procedure Append_Line
-     (Buffer : in out SU.Unbounded_String;
-      Text   : String := "";
-      Depth  : Natural := 0) renames AI.Append_Line;
-   function Join_Names (Items : FT.UString_Vectors.Vector) return String renames AI.Join_Names;
-   function Contains_Name
-     (Items : FT.UString_Vectors.Vector;
-      Name  : String) return Boolean renames AI.Contains_Name;
-   procedure Add_Wide_Name
-     (State : in out Emit_State;
-      Name  : String) renames AI.Add_Wide_Name;
    function Is_Wide_Name
      (State : Emit_State;
       Name  : String) return Boolean renames AI.Is_Wide_Name;
-   function Names_Use_Wide_Storage
-     (State : Emit_State;
-      Names : FT.UString_Vectors.Vector) return Boolean renames AI.Names_Use_Wide_Storage;
-   procedure Restore_Wide_Names
-     (State           : in out Emit_State;
-      Previous_Length : Ada.Containers.Count_Type) renames AI.Restore_Wide_Names;
-   procedure Push_Type_Binding_Frame (State : in out Emit_State) renames AI.Push_Type_Binding_Frame;
-   procedure Pop_Type_Binding_Frame (State : in out Emit_State) renames AI.Pop_Type_Binding_Frame;
-   procedure Add_Type_Binding
-     (State     : in out Emit_State;
-      Name      : String;
-      Type_Info : GM.Type_Descriptor;
-      Is_Constant : Boolean := False) renames AI.Add_Type_Binding;
-   procedure Register_Type_Bindings
-     (State        : in out Emit_State;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector) renames AI.Register_Type_Bindings;
-   procedure Register_Type_Bindings
-     (State        : in out Emit_State;
-      Declarations : CM.Object_Decl_Vectors.Vector) renames AI.Register_Type_Bindings;
-   procedure Register_Param_Type_Bindings
-     (State  : in out Emit_State;
-      Params : CM.Symbol_Vectors.Vector) renames AI.Register_Param_Type_Bindings;
-   function Lookup_Bound_Type
-     (State     : Emit_State;
-      Name      : String;
-      Type_Info : out GM.Type_Descriptor) return Boolean renames AI.Lookup_Bound_Type;
-   procedure Push_Cleanup_Frame (State : in out Emit_State) renames AI.Push_Cleanup_Frame;
-   procedure Pop_Cleanup_Frame (State : in out Emit_State) renames AI.Pop_Cleanup_Frame;
-   procedure Add_Cleanup_Item
-     (State     : in out Emit_State;
-      Name      : String;
-      Type_Name : String;
-      Free_Proc : String := "";
-      Is_Constant : Boolean := False;
-      Always_Terminates_Suppression_OK : Boolean := False;
-      Action    : Cleanup_Action := AI.Cleanup_Deallocate) renames AI.Add_Cleanup_Item;
-   procedure Register_Cleanup_Items
-     (State        : in out Emit_State;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector) renames AI.Register_Cleanup_Items;
-   procedure Register_Cleanup_Items
-     (State        : in out Emit_State;
-      Declarations : CM.Object_Decl_Vectors.Vector) renames AI.Register_Cleanup_Items;
-   procedure Render_Cleanup_Item
-     (Buffer : in out SU.Unbounded_String;
-      Item   : Cleanup_Item;
-      Depth  : Natural) renames AI.Render_Cleanup_Item;
-   procedure Render_Active_Cleanup
-     (Buffer    : in out SU.Unbounded_String;
-      State     : Emit_State;
-      Depth     : Natural;
-      Skip_Name : String := "") renames AI.Render_Active_Cleanup;
-   procedure Render_Current_Cleanup_Frame
-     (Buffer : in out SU.Unbounded_String;
-      State  : Emit_State;
-      Depth  : Natural) renames AI.Render_Current_Cleanup_Frame;
-   function Has_Active_Cleanup_Items (State : Emit_State) return Boolean renames AI.Has_Active_Cleanup_Items;
-   procedure Render_Cleanup
-     (Buffer       : in out SU.Unbounded_String;
-      Declarations : CM.Resolved_Object_Decl_Vectors.Vector;
-      Depth        : Natural) renames AI.Render_Cleanup;
-   function Statement_Falls_Through (Item : CM.Statement_Access) return Boolean renames AI.Statement_Falls_Through;
-   function Statements_Fall_Through (Statements : CM.Statement_Access_Vectors.Vector) return Boolean renames AI.Statements_Fall_Through;
-   function Statement_Contains_Exit (Item : CM.Statement_Access) return Boolean renames AI.Statement_Contains_Exit;
-   function Statements_Contain_Exit (Statements : CM.Statement_Access_Vectors.Vector) return Boolean renames AI.Statements_Contain_Exit;
-   procedure Append_Gnatprove_Warning_Suppression
-     (Buffer  : in out SU.Unbounded_String;
-      Pattern : String;
-      Reason  : String;
-      Depth   : Natural) renames AI.Append_Gnatprove_Warning_Suppression;
-   procedure Append_Gnatprove_Warning_Restore
-     (Buffer  : in out SU.Unbounded_String;
-      Pattern : String;
-      Depth   : Natural) renames AI.Append_Gnatprove_Warning_Restore;
-   procedure Append_Gnatprove_Warning_Suppressions
-     (Buffer   : in out SU.Unbounded_String;
-      Warnings : Warning_Suppression_Array;
-      Depth    : Natural) renames AI.Append_Gnatprove_Warning_Suppressions;
-   procedure Append_Gnatprove_Warning_Restores
-     (Buffer   : in out SU.Unbounded_String;
-      Warnings : Warning_Restore_Array;
-      Depth    : Natural) renames AI.Append_Gnatprove_Warning_Restores;
-   procedure Append_Initialization_Warning_Suppression
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Initialization_Warning_Suppression;
-   procedure Append_Initialization_Warning_Restore
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Initialization_Warning_Restore;
-   procedure Append_Local_Warning_Suppression
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Local_Warning_Suppression;
-   procedure Append_Local_Warning_Restore
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Local_Warning_Restore;
-   procedure Append_Channel_Staged_Call_Warning_Suppression
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Channel_Staged_Call_Warning_Suppression;
-   procedure Append_Channel_Staged_Call_Warning_Restore
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Channel_Staged_Call_Warning_Restore;
-   procedure Append_Task_Assignment_Warning_Suppression
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Task_Assignment_Warning_Suppression;
-   procedure Append_Task_Assignment_Warning_Restore
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Task_Assignment_Warning_Restore;
-   procedure Append_Task_If_Warning_Suppression
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Task_If_Warning_Suppression;
-   procedure Append_Task_If_Warning_Restore
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Task_If_Warning_Restore;
-   procedure Append_Task_Channel_Call_Warning_Suppression
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Task_Channel_Call_Warning_Suppression;
-   procedure Append_Task_Channel_Call_Warning_Restore
-     (Buffer : in out SU.Unbounded_String;
-      Depth  : Natural) renames AI.Append_Task_Channel_Call_Warning_Restore;
 
    package AET renames Safe_Frontend.Ada_Emit.Types;
    use AET;
