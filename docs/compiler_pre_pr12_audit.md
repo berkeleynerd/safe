@@ -190,7 +190,7 @@ compiler_impl/src/safe_frontend-ada_emit-statements.adb:1
 
 ## Phase 0 - Scaffold And Baseline
 
-Status: complete locally; commit/push pending.
+Status: complete.
 
 Deliverables:
 
