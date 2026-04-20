@@ -63,17 +63,23 @@ jobs:
               skip_reason="Deep Audit skipped: pr_number must be numeric."
               printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
             else
-              if ! head_repo=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '.head.repo.full_name' 2>/dev/null); then
+              pr_lookup_output=
+              if ! pr_lookup_output=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '.head.repo.full_name' 2>&1); then
                 run_claude=false
-                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} not found in ${REPOSITORY}."
+                pr_lookup_error=$(printf '%s' "$pr_lookup_output" | tr '\r\n' '  ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
+                if printf '%s' "$pr_lookup_output" | grep -qiE 'HTTP 404|Not Found'; then
+                  skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} not found in ${REPOSITORY}."
+                else
+                  skip_reason="Deep Audit skipped: failed to fetch PR #${INPUT_PR_NUMBER} from ${REPOSITORY}: ${pr_lookup_error}"
+                fi
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
-              elif [ "$head_repo" = "null" ] || [ -z "$head_repo" ]; then
+              elif [ "$pr_lookup_output" = "null" ] || [ -z "$pr_lookup_output" ]; then
                 run_claude=false
                 skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} head repo is unavailable."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
-              elif [ "$head_repo" != "$REPOSITORY" ]; then
+              elif [ "$pr_lookup_output" != "$REPOSITORY" ]; then
                 run_claude=false
-                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${head_repo}; manual PR audits require same-repo branches."
+                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${pr_lookup_output}; manual PR audits require same-repo branches."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               else
                 printf 'ref=refs/pull/%s/merge\n' "$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
@@ -89,13 +95,34 @@ jobs:
               run_claude=false
               skip_reason="Deep Audit skipped: paths must be comma-separated repo-relative file paths."
               printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
-            elif [[ "$INPUT_PATHS" == /* || "$INPUT_PATHS" == *..* ]]; then
-              run_claude=false
-              skip_reason="Deep Audit skipped: paths must not be absolute or contain '..'."
-              printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
             else
-              printf 'ref=%s\n' "$DISPATCH_REF" >> "$GITHUB_OUTPUT"
-              explicit_paths="$INPUT_PATHS"
+              paths_valid=true
+              if [[ "$INPUT_PATHS" == *, || "$INPUT_PATHS" == ,* || "$INPUT_PATHS" == *,,* ]]; then
+                paths_valid=false
+                skip_reason="Deep Audit skipped: paths must not contain empty entries."
+              else
+                IFS=',' read -r -a path_parts <<< "$INPUT_PATHS"
+                for path_part in "${path_parts[@]}"; do
+                  if [ -z "$path_part" ]; then
+                    paths_valid=false
+                    skip_reason="Deep Audit skipped: paths must not contain empty entries."
+                    break
+                  fi
+                  if [[ "$path_part" == /* || "$path_part" == ".." || "$path_part" == "../"* || "$path_part" == *"/.." || "$path_part" == *"/../"* ]]; then
+                    paths_valid=false
+                    skip_reason="Deep Audit skipped: paths must be repo-relative and must not contain '..' path components."
+                    break
+                  fi
+                done
+              fi
+
+              if [ "$paths_valid" != "true" ]; then
+                run_claude=false
+                printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+              else
+                printf 'ref=%s\n' "$DISPATCH_REF" >> "$GITHUB_OUTPUT"
+                explicit_paths="$INPUT_PATHS"
+              fi
             fi
           else
             run_claude=false
@@ -118,7 +145,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         if: steps.audit-ref.outputs.run_claude == 'true'
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           ref: ${{ steps.audit-ref.outputs.ref }}
 
       - name: Write audit scope
@@ -140,7 +167,7 @@ jobs:
           prompt: |
             REPO: ${{ github.repository }}
 
-            You are performing a HEAVY AUDIT of surrounding code, not a diff review.
+            You are performing a DEEP AUDIT of surrounding code, not a diff review.
             Another workflow (Claude Code Review) already covers diff-scoped review;
             do not duplicate it.
 
