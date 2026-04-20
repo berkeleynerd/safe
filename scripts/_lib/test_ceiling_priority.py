@@ -45,6 +45,7 @@ CEILING_PRIORITY_FIXTURES = {
     REPO_ROOT / "tests" / "build" / "pr118g_record_string_channel_build.safe",
     REPO_ROOT / "tests" / "build" / "pr118g_try_string_channel_build.safe",
     REPO_ROOT / "tests" / "build" / "pr119d_send_single_eval_build.safe",
+    REPO_ROOT / "tests" / "build" / "pr331_shared_initializer_effect_pollution_build.safe",
 }
 
 
