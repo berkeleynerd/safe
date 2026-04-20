@@ -4411,7 +4411,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                      Growable_Accumulators : Growable_Accumulator_Vectors.Vector;
                      Exact_Counters : Exact_Counter_Vectors.Vector;
                      String_Growth_Accumulators : String_Growth_Accumulator_Vectors.Vector;
-                     Has_Top_Level_Loop_Invariant : Boolean := False;
 
                      function Contains_Name
                        (Items : FT.UString_Vectors.Vector;
@@ -7381,7 +7380,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                               Collect_String_Accumulators (Item.Body_Stmts);
                               Collect_String_Growth_Accumulators (Item.Body_Stmts);
                               if not Accumulator_Names.Is_Empty then
-                                 Has_Top_Level_Loop_Invariant := True;
                                  for Candidate_Index in Accumulator_Names.First_Index .. Accumulator_Names.Last_Index loop
                                     Append_Line
                                       (Buffer,
@@ -7404,7 +7402,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  end loop;
                               end if;
                               if not String_Growth_Accumulators.Is_Empty then
-                                 Has_Top_Level_Loop_Invariant := True;
                                  for Candidate of String_Growth_Accumulators loop
                                     Append_Line
                                       (Buffer,
@@ -7420,7 +7417,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                 (Item.Body_Stmts,
                                  Item.Body_Stmts);
                               if not Growable_Accumulators.Is_Empty then
-                                 Has_Top_Level_Loop_Invariant := True;
                                  for Candidate of Growable_Accumulators loop
                                     Append_Line
                                       (Buffer,
@@ -7461,7 +7457,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
                                  Invariant_Image : constant String := Static_Growable_Prefix_Sum_Invariant;
                               begin
                                  if Invariant_Image'Length > 0 then
-                                    Has_Top_Level_Loop_Invariant := True;
                                     Append_Line (Buffer, Invariant_Image, Depth + 2);
                                  end if;
                               end;
