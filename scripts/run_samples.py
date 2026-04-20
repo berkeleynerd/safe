@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 from _lib.proof_eval import ProofToolchain, prepare_proof_toolchain, run_source_proof
+from _lib.test_harness import should_skip_ceiling_tests
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COMPILER_ROOT = REPO_ROOT / "compiler_impl"
@@ -58,8 +59,12 @@ def build_toolchain() -> ProofToolchain:
     return prepare_proof_toolchain(env=os.environ.copy())
 
 
-def print_summary(*, passed: int, failures: list[tuple[str, str]]) -> None:
-    print(f"{passed} passed, {len(failures)} failed")
+def print_summary(*, passed: int, skipped: int, failures: list[tuple[str, str]]) -> None:
+    summary = f"{passed} passed"
+    if skipped:
+        summary += f", {skipped} skipped"
+    summary += f", {len(failures)} failed"
+    print(summary)
     if failures:
         print("Failures:")
         for label, detail in failures:
@@ -307,25 +312,42 @@ def run_sample(
 
 def main() -> int:
     try:
+        skip_ceiling_tests, ceiling_skip_reason = should_skip_ceiling_tests()
+    except ValueError as exc:
+        print(f"run_samples: ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    try:
         toolchain = build_toolchain()
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"run_samples: ERROR: {exc}", file=sys.stderr)
         return 1
 
+    if skip_ceiling_tests:
+        print(
+            "Skipping ceiling-priority sample — "
+            f"{ceiling_skip_reason}. 1 sample will be skipped. "
+            "Set SAFE_SKIP_CEILING_TESTS=never to force run."
+        )
+
     passed = 0
+    skipped = 0
     failures: list[tuple[str, str]] = []
     samples = sorted(SAMPLES_ROOT.rglob("*.safe"))
 
     with tempfile.TemporaryDirectory(prefix="safe-samples-") as temp_dir:
         temp_root = Path(temp_dir)
         for sample in samples:
+            if skip_ceiling_tests and repo_rel(sample) == PRODUCER_CONSUMER_SAMPLE:
+                skipped += 1
+                continue
             detail = run_sample(toolchain=toolchain, sample=sample, temp_root=temp_root)
             if detail is None:
                 passed += 1
             else:
                 failures.append((repo_rel(sample), detail))
 
-    print_summary(passed=passed, failures=failures)
+    print_summary(passed=passed, skipped=skipped, failures=failures)
     return 0 if not failures else 1
 
 

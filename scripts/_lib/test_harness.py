@@ -43,9 +43,47 @@ CaseResult = tuple[bool, str]
 Failure = tuple[str, str]
 RunCounts = tuple[int, int, list[Failure]]
 
+SAFE_SKIP_CEILING_TESTS_ENV = "SAFE_SKIP_CEILING_TESTS"
+SAFE_SKIP_CEILING_TESTS_VALUES = {"auto", "always", "never"}
+
 
 def repo_rel(path: Path) -> str:
     return str(path.relative_to(REPO_ROOT))
+
+
+def can_set_rt_priority() -> bool:
+    """Return whether the process appears able to request real-time priority.
+
+    This checks the soft RLIMIT_RTPRIO value, which is a pragmatic preflight
+    proxy. A host can still fail later if it has a positive limit but lacks the
+    scheduler capability needed by the runtime.
+    """
+    try:
+        import resource
+
+        soft, _ = resource.getrlimit(resource.RLIMIT_RTPRIO)
+        return soft == resource.RLIM_INFINITY or soft > 0
+    except (ImportError, AttributeError, OSError, ValueError):
+        return False
+
+
+def ceiling_skip_setting() -> str:
+    value = os.environ.get(SAFE_SKIP_CEILING_TESTS_ENV, "auto").strip().lower()
+    if value not in SAFE_SKIP_CEILING_TESTS_VALUES:
+        choices = ", ".join(sorted(SAFE_SKIP_CEILING_TESTS_VALUES))
+        raise ValueError(f"{SAFE_SKIP_CEILING_TESTS_ENV} must be one of {choices}; got {value!r}")
+    return value
+
+
+def should_skip_ceiling_tests() -> tuple[bool, str]:
+    setting = ceiling_skip_setting()
+    if setting == "always":
+        return True, f"{SAFE_SKIP_CEILING_TESTS_ENV}=always"
+    if setting == "never":
+        return False, f"{SAFE_SKIP_CEILING_TESTS_ENV}=never"
+    if can_set_rt_priority():
+        return False, "RLIMIT_RTPRIO>0"
+    return True, "RLIMIT_RTPRIO=0"
 
 
 def run_command(

@@ -10,6 +10,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _lib.test_ceiling_priority import is_ceiling_priority_fixture
 from _lib.test_harness import (
     REPO_ROOT,
     SAFE_CLI,
@@ -1243,12 +1244,27 @@ def run_repl_case(
     return True, ""
 
 
+def ceiling_priority_run_test_case_count() -> int:
+    return sum(
+        1
+        for source, _expected_stdout, _allow_timeout in BUILD_SUCCESS_CASES
+        if is_ceiling_priority_fixture(source)
+    ) + sum(
+        1
+        for source, _expected_stdout, _allow_timeout in RUN_SUCCESS_CASES
+        if is_ceiling_priority_fixture(source)
+    )
 
-def run_build_run_checks() -> RunCounts:
+
+def run_build_run_checks(*, skip_ceiling_tests: bool = False) -> RunCounts:
     passed = 0
+    skipped = 0
     failures: list[tuple[str, str]] = []
 
     for source, expected_stdout, allow_timeout in BUILD_SUCCESS_CASES:
+        if skip_ceiling_tests and is_ceiling_priority_fixture(source):
+            skipped += 1
+            continue
         passed += record_result(
             failures,
             f"safe build {repo_rel(source)}",
@@ -1263,6 +1279,9 @@ def run_build_run_checks() -> RunCounts:
         )
 
     for source, expected_stdout, allow_timeout in RUN_SUCCESS_CASES:
+        if skip_ceiling_tests and is_ceiling_priority_fixture(source):
+            skipped += 1
+            continue
         passed += record_result(
             failures,
             f"safe run {repo_rel(source)}",
@@ -1278,7 +1297,7 @@ def run_build_run_checks() -> RunCounts:
 
     passed += record_result(failures, "safe run mutated iterable", run_safe_run_mutated_iterable_case())
     passed += record_result(failures, "safe build incremental", run_safe_build_incremental_case())
-    return passed, 0, failures
+    return passed, skipped, failures
 
 
 def run_target_bits_check_section(safec: Path) -> RunCounts:
