@@ -1,7 +1,7 @@
 name: Claude Deep Audit
 
 on:
-  pull_request_target:
+  pull_request:
     types: [labeled]
   workflow_dispatch:
     inputs:
@@ -27,8 +27,9 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (
-        github.event_name == 'pull_request_target' &&
-        github.event.label.name == 'deep-audit'
+        github.event_name == 'pull_request' &&
+        github.event.label.name == 'deep-audit' &&
+        github.event.pull_request.head.repo.full_name == github.repository
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -41,8 +42,6 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
-          EVENT_PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          EVENT_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
           INPUT_PATHS: ${{ inputs.paths }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -54,11 +53,9 @@ jobs:
           skip_reason=
           audit_pr_number=
           explicit_paths=
-          audit_repository="$REPOSITORY"
 
-          if [ "$EVENT_NAME" = "pull_request_target" ]; then
-            printf 'ref=%s\n' "$EVENT_PR_HEAD_REF" >> "$GITHUB_OUTPUT"
-            audit_repository="$EVENT_PR_HEAD_REPO"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            printf 'ref=refs/pull/%s/merge\n' "$EVENT_PR_NUMBER" >> "$GITHUB_OUTPUT"
             audit_pr_number="$EVENT_PR_NUMBER"
           elif [ -n "$INPUT_PR_NUMBER" ] && [ -n "${INPUT_PATHS//[[:space:]]/}" ]; then
             run_claude=false
@@ -71,7 +68,7 @@ jobs:
               printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
             else
               pr_lookup_output=
-              if ! pr_lookup_output=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '[.head.repo.full_name, .head.ref, .state] | @tsv' 2>&1); then
+              if ! pr_lookup_output=$(gh api "repos/${REPOSITORY}/pulls/${INPUT_PR_NUMBER}" --jq '[.head.repo.full_name, .state] | @tsv' 2>&1); then
                 run_claude=false
                 pr_lookup_error=$(printf '%s' "$pr_lookup_output" | tr '\r\n' '  ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
                 if printf '%s' "$pr_lookup_output" | grep -qiE 'HTTP 404|Not Found'; then
@@ -81,16 +78,12 @@ jobs:
                 fi
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               else
-                IFS=$'\t' read -r pr_head_repo pr_head_ref pr_state <<< "$pr_lookup_output"
+                IFS=$'\t' read -r pr_head_repo pr_state <<< "$pr_lookup_output"
               fi
 
               if [ "$run_claude" = "true" ] && { [ "$pr_head_repo" = "null" ] || [ -z "$pr_head_repo" ]; }; then
                 run_claude=false
                 skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} head repo is unavailable."
-                printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
-              elif [ "$run_claude" = "true" ] && { [ "$pr_head_ref" = "null" ] || [ -z "$pr_head_ref" ]; }; then
-                run_claude=false
-                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} head ref is unavailable."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               elif [ "$run_claude" = "true" ] && [ -z "$pr_state" ]; then
                 run_claude=false
@@ -100,9 +93,13 @@ jobs:
                 run_claude=false
                 skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is ${pr_state}; manual PR audits require an open pull request."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+              elif [ "$run_claude" = "true" ] && [ "$pr_head_repo" != "$REPOSITORY" ]; then
+                run_claude=false
+                pr_lookup_summary=$(printf '%s' "$pr_head_repo" | tr '\r\n' '  ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
+                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${pr_lookup_summary}; manual PR audits require same-repo branches."
+                printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               elif [ "$run_claude" = "true" ]; then
-                printf 'ref=%s\n' "$pr_head_ref" >> "$GITHUB_OUTPUT"
-                audit_repository="$pr_head_repo"
+                printf 'ref=refs/pull/%s/merge\n' "$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
                 audit_pr_number="$INPUT_PR_NUMBER"
               fi
             fi
@@ -154,7 +151,6 @@ jobs:
           printf 'skip_reason=%s\n' "$skip_reason" >> "$GITHUB_OUTPUT"
           printf 'pr_number=%s\n' "$audit_pr_number" >> "$GITHUB_OUTPUT"
           printf 'explicit_paths=%s\n' "$explicit_paths" >> "$GITHUB_OUTPUT"
-          printf 'repository=%s\n' "$audit_repository" >> "$GITHUB_OUTPUT"
 
       - name: Report skipped audit
         if: steps.audit-ref.outputs.run_claude != 'true'
@@ -167,7 +163,6 @@ jobs:
         if: steps.audit-ref.outputs.run_claude == 'true'
         with:
           fetch-depth: 1
-          repository: ${{ steps.audit-ref.outputs.repository }}
           ref: ${{ steps.audit-ref.outputs.ref }}
 
       - name: Write audit scope
