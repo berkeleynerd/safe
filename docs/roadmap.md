@@ -107,7 +107,8 @@ Dependency chain:
 - PR11.23i follows PR11.23h (clamp-style exported postconditions).
 - PR11.23j follows PR11.23i (post-sprint emitter analysis hardening:
   centralized call-mutation classification and walker exhaustiveness).
-- PR11.23 follows PR11.23i (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance).
+- PR11.23k follows PR11.23j (local initializer overwrite-before-read warning suppression hardening).
+- PR11.23 follows PR11.23i (proof diagnostic mapping — Safe-native proof failure messages with source locations and fix guidance; independent of PR11.23j-k).
 - PR11.17–PR11.21 moved to PR14 series (deferred past all existing work; see PR14 below).
 
 ---
@@ -3555,6 +3556,43 @@ than an emitter-analysis milestone.
 
 ---
 
+## PR11.23k: Local Initializer Overwrite-Analysis Hardening
+
+Track #344 after PR11.23j and before PR12.1 starts. This is a bounded emitter
+correction for one GNATprove warning-suppression site: generated local
+initializers that are overwritten before first read even when unrelated leading
+statements or supported branching appear between the declaration and the
+overwrite.
+
+### Scope
+
+- Replace the local declaration's first-statement-only overwrite check with a
+  statement-sequence analysis over subsequent statements.
+- Suppress `"initialization of"` only when the declaration actually emits a
+  local initializer and the later local sequence overwrites the name before any
+  read via one of three supported shapes: direct assignment, exhaustive
+  `if`/`elsif`/`else`, or exhaustive `case`.
+- Keep loops, calls, partial-path writes, ambiguous control flow, and package
+  elaboration behavior fail-closed and unchanged.
+- Add proof-bearing regression fixtures for implicit-default and explicit local
+  initializer cases, plus emitted-shape fixtures that pin the positive
+  `if`/`case` forms and the negative partial-`if` / loop forms.
+
+### Non-goals
+
+- No package-level or unit-initializer warning-suppression changes.
+- No call-body or loop-body analysis that tries to prove overwrite-before-read
+  through callee behavior or loop execution.
+- No broader cleanup of unrelated warning suppressions.
+
+### Dependency
+
+Follows PR11.23j. Precedes PR12.1. PR11.23 proof diagnostic mapping may proceed
+independently after PR11.23i because it rewrites proof output rather than
+depending on this emitter-side hardening slice.
+
+---
+
 # PR12: Tooling and Developer Ergonomics
 
 The PR11 series delivers a language that is safe by construction. The PR12
@@ -3568,7 +3606,7 @@ that gap before the claims-hardening work begins.
 
 ## Dependency Chain
 
-- PR12.1 follows PR11.23j (compiled native `safe` CLI binary; PR11.23 can
+- PR12.1 follows PR11.23k (compiled native `safe` CLI binary; PR11.23 can
   proceed independently because proof diagnostic mapping does not define the
   native CLI ABI).
 - PR12.2 follows PR12.1 (single-archive distribution).
@@ -3613,7 +3651,7 @@ makes the distribution self-contained.
 
 ### Dependency
 
-Follows PR11.23j. PR11.23 may proceed in parallel after PR11.23i because it
+Follows PR11.23k. PR11.23 may proceed in parallel after PR11.23i because it
 adapts proof-output presentation rather than changing the native CLI interface
 contract.
 

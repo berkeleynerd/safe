@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "f98ab1acde75abfe46bcc6bd4529f232725087ad1615b0a31520c6ee09e4112a",
+  "compiler_hash": "2545c4f615bcda80156c64e688b9466db316ddc6bab87c7958f5c0c600dcbe4b",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -658,6 +658,16 @@
       "pr331_shared_initializer_effect_pollution_build.adb": "9806b3358ae595cc7d710729d99f6dfdd28f1605c4a62f3fdd5b0950bf59d171",
       "pr331_shared_initializer_effect_pollution_build.ads": "59d9bf66766a1b875d78cccffb255cbe66445373710699c1fa98eba86385138e",
       "pr331_shared_initializer_effect_pollution_build_line_map.json": "3f83fb95e405e2772e8e97eae2aef8079fdd2d6adbd2640407901360ce317c2c"
+    },
+    "tests/build/pr344_explicit_local_overwrite_build.safe": {
+      "pr344_explicit_local_overwrite_build.adb": "f5e5fbf787e661332305871699da1bf193275e49b21192161596ee08495592a0",
+      "pr344_explicit_local_overwrite_build.ads": "7ac698b1ad229b10eb93e0ba721a76d40f199843ff2dc02972163cb28b118aa8",
+      "pr344_explicit_local_overwrite_build_line_map.json": "db1ba67557013a17d4004d0229572a972526f32703d782fa973965d7ee1c93c6"
+    },
+    "tests/build/pr344_implicit_local_overwrite_build.safe": {
+      "pr344_implicit_local_overwrite_build.adb": "ed5ef8f1e34c55fec3b9045797205eff748a63f1e9c58efe808010102c17e129",
+      "pr344_implicit_local_overwrite_build.ads": "9996802340c573a9d630e917c1f57e2d77ca3acff672d38f5b1f51a78f42ad00",
+      "pr344_implicit_local_overwrite_build_line_map.json": "2848d57b83e00bf4b7f6e2308393ef7601d395029a0814510328c686e3e2ad70"
     },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "channel_ceiling_priority.adb": "a0cff49798793d14f174408b1467817e72c09e65cdbfa1174c61150bb96ed5ef",

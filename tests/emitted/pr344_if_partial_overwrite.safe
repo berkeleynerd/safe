@@ -1,0 +1,16 @@
+package pr344_if_partial_overwrite
+
+   subtype tally is integer (0 to 10);
+
+   function compute_total returns integer
+      var total : tally = 0
+
+      if 1 == 1
+         total = 1
+      else
+         print (0)
+
+      total = 2
+      return total
+
+   print (compute_total)

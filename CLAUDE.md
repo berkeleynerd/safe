@@ -42,16 +42,6 @@ python3 scripts/snapshot_emitted_ada.py --check
 - Supported: local Linux and Ubuntu-based CI
 - Unsupported: macOS and Windows
 
-## Codex Workspace
-
-Some Codex/container workspaces report `RLIMIT_RTPRIO=0`, which prevents the
-Ada runtime from setting real-time priorities for ceiling-priority task and
-channel fixtures. `scripts/run_tests.py` and `scripts/run_samples.py` default
-to `SAFE_SKIP_CEILING_TESTS=auto`, which skips those fixtures only when the
-preflight detects no real-time-priority allowance. Use a local VM or CI to
-exercise the full ceiling-priority lane, or set `SAFE_SKIP_CEILING_TESTS=never`
-to force the tests when diagnosing container capabilities.
-
 ## Guidance
 
 - The repo-local wrapper CLI in `scripts/safe_cli.py` supports:

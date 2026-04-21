@@ -1,0 +1,14 @@
+package pr344_loop_blocks_suppression
+
+   subtype tally is integer (0 to 10);
+
+   function compute_total returns integer
+      var total : tally = 0
+
+      while total > 0
+         total = total - 1
+
+      total = 2
+      return total
+
+   print (compute_total)

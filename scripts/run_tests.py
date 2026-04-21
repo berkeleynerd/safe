@@ -8,7 +8,6 @@ import tempfile
 from pathlib import Path
 
 from _lib import (
-    test_ceiling_priority,
     test_cli_workflows,
     test_contracts,
     test_embedded_listing,
@@ -23,35 +22,15 @@ from _lib.test_harness import (
     RunCounts,
     build_compiler,
     print_summary,
-    should_skip_ceiling_tests,
 )
 
 
 def main() -> int:
     try:
-        skip_ceiling_tests, ceiling_skip_reason = should_skip_ceiling_tests()
-    except ValueError as exc:
-        print(f"run_tests: ERROR: {exc}", file=sys.stderr)
-        return 1
-
-    try:
         safec = build_compiler()
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"run_tests: ERROR: {exc}", file=sys.stderr)
         return 1
-
-    if skip_ceiling_tests:
-        ceiling_fixture_count = len(test_ceiling_priority.CEILING_PRIORITY_FIXTURES)
-        ceiling_case_count = (
-            test_cli_workflows.ceiling_priority_run_test_case_count()
-            + test_interfaces.ceiling_priority_interface_case_count()
-        )
-        print(
-            "Skipping ceiling-priority checks — "
-            f"{ceiling_skip_reason}. {ceiling_fixture_count} fixture files listed; "
-            f"{ceiling_case_count} ceiling-priority test cases will be skipped. "
-            "Set SAFE_SKIP_CEILING_TESTS=never to force run."
-        )
 
     passed = 0
     skipped = 0
@@ -74,7 +53,6 @@ def main() -> int:
             test_interfaces.run_interface_checks(
                 safec,
                 temp_root=temp_root,
-                skip_ceiling_tests=skip_ceiling_tests,
             )
         )
         add_counts(test_contracts.run_contract_checks(safec, temp_root=temp_root))
@@ -83,7 +61,7 @@ def main() -> int:
         add_counts(test_emitted_shape.run_emitted_shape_checks(safec, temp_root=temp_root))
 
     add_counts(test_fixtures.run_diagnostic_golden_checks(safec))
-    add_counts(test_cli_workflows.run_build_run_checks(skip_ceiling_tests=skip_ceiling_tests))
+    add_counts(test_cli_workflows.run_build_run_checks())
     add_counts(test_interfaces.run_interface_target_bits_checks(safec))
     add_counts(test_cli_workflows.run_post_interface_cli_checks())
     add_counts(test_proof_cli.run_safe_prove_success_checks())

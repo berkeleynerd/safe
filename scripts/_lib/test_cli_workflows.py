@@ -10,7 +10,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _lib.test_ceiling_priority import is_ceiling_priority_fixture
 from _lib.test_harness import (
     REPO_ROOT,
     SAFE_CLI,
@@ -105,6 +104,16 @@ BUILD_SUCCESS_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr1123j_known_mutating_call_length_build.safe",
         "3\n4\n0\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr344_implicit_local_overwrite_build.safe",
+        "9\n3\n",
+        False,
+    ),
+    (
+        REPO_ROOT / "tests" / "build" / "pr344_explicit_local_overwrite_build.safe",
+        "1\n7\n",
         False,
     ),
     (
@@ -1249,27 +1258,12 @@ def run_repl_case(
     return True, ""
 
 
-def ceiling_priority_run_test_case_count() -> int:
-    return sum(
-        1
-        for source, _expected_stdout, _allow_timeout in BUILD_SUCCESS_CASES
-        if is_ceiling_priority_fixture(source)
-    ) + sum(
-        1
-        for source, _expected_stdout, _allow_timeout in RUN_SUCCESS_CASES
-        if is_ceiling_priority_fixture(source)
-    )
-
-
-def run_build_run_checks(*, skip_ceiling_tests: bool = False) -> RunCounts:
+def run_build_run_checks() -> RunCounts:
     passed = 0
     skipped = 0
     failures: list[tuple[str, str]] = []
 
     for source, expected_stdout, allow_timeout in BUILD_SUCCESS_CASES:
-        if skip_ceiling_tests and is_ceiling_priority_fixture(source):
-            skipped += 1
-            continue
         passed += record_result(
             failures,
             f"safe build {repo_rel(source)}",
@@ -1284,9 +1278,6 @@ def run_build_run_checks(*, skip_ceiling_tests: bool = False) -> RunCounts:
         )
 
     for source, expected_stdout, allow_timeout in RUN_SUCCESS_CASES:
-        if skip_ceiling_tests and is_ceiling_priority_fixture(source):
-            skipped += 1
-            continue
         passed += record_result(
             failures,
             f"safe run {repo_rel(source)}",

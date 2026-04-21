@@ -1,0 +1,16 @@
+package pr344_case_all_arms_overwrite
+
+   subtype tally is integer (0 to 10);
+
+   function compute_total returns integer
+      var total : tally = 0
+
+      case 1
+         when 1
+            total = 1
+         when others
+            total = 2
+
+      return total
+
+   print (compute_total)

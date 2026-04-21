@@ -177,9 +177,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
    function Unit_Runtime_Assigns_Name
      (Unit : CM.Resolved_Unit;
       Name : String) return Boolean;
-   function Block_Declarations_Immediately_Overwritten
-     (Declarations : CM.Object_Decl_Vectors.Vector;
-      Statements   : CM.Statement_Access_Vectors.Vector) return Boolean;
    function Channel_Copy_Helper_Name
      (Channel_Item : CM.Resolved_Channel_Decl) return String;
    function Channel_Free_Helper_Name
@@ -702,6 +699,111 @@ package body Safe_Frontend.Ada_Emit.Statements is
       end case;
    end Expr_Uses_Name;
 
+   function Statement_Uses_Name
+     (Statement : CM.Statement_Access;
+      Name      : String) return Boolean
+   is
+   begin
+      if Statement = null or else Name'Length = 0 then
+         return False;
+      end if;
+
+      case Statement.Kind is
+         when CM.Stmt_Unknown =>
+            return True;
+         when CM.Stmt_Object_Decl =>
+            return Expr_Uses_Name (Statement.Decl.Initializer, Name);
+         when CM.Stmt_Destructure_Decl =>
+            return Expr_Uses_Name (Statement.Destructure.Initializer, Name);
+         when CM.Stmt_Assign =>
+            return
+              Expr_Uses_Name (Statement.Target, Name)
+              or else Expr_Uses_Name (Statement.Value, Name);
+         when CM.Stmt_Call =>
+            return Expr_Uses_Name (Statement.Call, Name);
+         when CM.Stmt_Return =>
+            return Expr_Uses_Name (Statement.Value, Name);
+         when CM.Stmt_If =>
+            if Expr_Uses_Name (Statement.Condition, Name)
+              or else Statements_Use_Name (Statement.Then_Stmts, Name)
+            then
+               return True;
+            end if;
+            for Part of Statement.Elsifs loop
+               if Expr_Uses_Name (Part.Condition, Name)
+                 or else Statements_Use_Name (Part.Statements, Name)
+               then
+                  return True;
+               end if;
+            end loop;
+            return
+              Statement.Has_Else
+              and then Statements_Use_Name (Statement.Else_Stmts, Name);
+         when CM.Stmt_Case =>
+            if Expr_Uses_Name (Statement.Case_Expr, Name) then
+               return True;
+            end if;
+            for Arm of Statement.Case_Arms loop
+               if Expr_Uses_Name (Arm.Choice, Name)
+                 or else Statements_Use_Name (Arm.Statements, Name)
+               then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Stmt_Match =>
+            if Expr_Uses_Name (Statement.Match_Expr, Name) then
+               return True;
+            end if;
+            for Arm of Statement.Match_Arms loop
+               if Statements_Use_Name (Arm.Statements, Name) then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
+            return
+              Expr_Uses_Name (Statement.Condition, Name)
+              or else Expr_Uses_Name (Statement.Loop_Range.Name_Expr, Name)
+              or else Expr_Uses_Name (Statement.Loop_Range.Low_Expr, Name)
+              or else Expr_Uses_Name (Statement.Loop_Range.High_Expr, Name)
+              or else Expr_Uses_Name (Statement.Loop_Iterable, Name)
+              or else Statements_Use_Name (Statement.Body_Stmts, Name);
+         when CM.Stmt_Exit =>
+            return Expr_Uses_Name (Statement.Condition, Name);
+         when CM.Stmt_Send | CM.Stmt_Receive | CM.Stmt_Try_Receive =>
+            return
+              Expr_Uses_Name (Statement.Channel_Name, Name)
+              or else Expr_Uses_Name (Statement.Value, Name)
+              or else Expr_Uses_Name (Statement.Target, Name)
+              or else Expr_Uses_Name (Statement.Success_Var, Name);
+         when CM.Stmt_Try_Send =>
+            Raise_Internal ("unreachable: try_send rejected by resolver");
+         when CM.Stmt_Select =>
+            for Arm of Statement.Arms loop
+               case Arm.Kind is
+                  when CM.Select_Arm_Channel =>
+                     if Expr_Uses_Name (Arm.Channel_Data.Channel_Name, Name)
+                       or else Statements_Use_Name (Arm.Channel_Data.Statements, Name)
+                     then
+                        return True;
+                     end if;
+                  when CM.Select_Arm_Delay =>
+                     if Expr_Uses_Name (Arm.Delay_Data.Duration_Expr, Name)
+                       or else Statements_Use_Name (Arm.Delay_Data.Statements, Name)
+                     then
+                        return True;
+                     end if;
+                  when CM.Select_Arm_Unknown =>
+                     return True;
+               end case;
+            end loop;
+            return False;
+         when CM.Stmt_Delay =>
+            return Expr_Uses_Name (Statement.Value, Name);
+      end case;
+   end Statement_Uses_Name;
+
    function Statements_Use_Name
      (Statements : CM.Statement_Access_Vectors.Vector;
       Name       : String) return Boolean
@@ -712,125 +814,160 @@ package body Safe_Frontend.Ada_Emit.Statements is
       end if;
 
       for Item of Statements loop
-         if Item = null then
-            null;
-         else
-            case Item.Kind is
-               when CM.Stmt_Unknown =>
-                  return True;
-               when CM.Stmt_Object_Decl =>
-                  if Expr_Uses_Name (Item.Decl.Initializer, Name) then
-                     return True;
-                  end if;
-               when CM.Stmt_Destructure_Decl =>
-                  if Expr_Uses_Name (Item.Destructure.Initializer, Name) then
-                     return True;
-                  end if;
-               when CM.Stmt_Assign =>
-                  if Expr_Uses_Name (Item.Target, Name)
-                    or else Expr_Uses_Name (Item.Value, Name)
-                  then
-                     return True;
-                  end if;
-               when CM.Stmt_Call =>
-                  if Expr_Uses_Name (Item.Call, Name) then
-                     return True;
-                  end if;
-               when CM.Stmt_Return =>
-                  if Expr_Uses_Name (Item.Value, Name) then
-                     return True;
-                  end if;
-               when CM.Stmt_If =>
-                  if Expr_Uses_Name (Item.Condition, Name)
-                    or else Statements_Use_Name (Item.Then_Stmts, Name)
-                  then
-                     return True;
-                  end if;
-                  for Part of Item.Elsifs loop
-                     if Expr_Uses_Name (Part.Condition, Name)
-                       or else Statements_Use_Name (Part.Statements, Name)
-                     then
-                        return True;
-                     end if;
-                  end loop;
-                  if Item.Has_Else
-                    and then Statements_Use_Name (Item.Else_Stmts, Name)
-                  then
-                     return True;
-                  end if;
-               when CM.Stmt_Case =>
-                  if Expr_Uses_Name (Item.Case_Expr, Name) then
-                     return True;
-                  end if;
-                  for Arm of Item.Case_Arms loop
-                     if Expr_Uses_Name (Arm.Choice, Name)
-                       or else Statements_Use_Name (Arm.Statements, Name)
-                     then
-                        return True;
-                     end if;
-                  end loop;
-               when CM.Stmt_Match =>
-                  if Expr_Uses_Name (Item.Match_Expr, Name) then
-                     return True;
-                  end if;
-                  for Arm of Item.Match_Arms loop
-                     if Statements_Use_Name (Arm.Statements, Name) then
-                        return True;
-                     end if;
-                  end loop;
-               when CM.Stmt_While | CM.Stmt_For | CM.Stmt_Loop =>
-                  if Expr_Uses_Name (Item.Condition, Name)
-                    or else Expr_Uses_Name (Item.Loop_Range.Name_Expr, Name)
-                    or else Expr_Uses_Name (Item.Loop_Range.Low_Expr, Name)
-                    or else Expr_Uses_Name (Item.Loop_Range.High_Expr, Name)
-                    or else Expr_Uses_Name (Item.Loop_Iterable, Name)
-                    or else Statements_Use_Name (Item.Body_Stmts, Name)
-                  then
-                     return True;
-                  end if;
-               when CM.Stmt_Exit =>
-                  if Expr_Uses_Name (Item.Condition, Name) then
-                     return True;
-                  end if;
-               when CM.Stmt_Send | CM.Stmt_Receive | CM.Stmt_Try_Receive =>
-                  if Expr_Uses_Name (Item.Channel_Name, Name)
-                    or else Expr_Uses_Name (Item.Value, Name)
-                    or else Expr_Uses_Name (Item.Target, Name)
-                    or else Expr_Uses_Name (Item.Success_Var, Name)
-                  then
-                     return True;
-                  end if;
-               when CM.Stmt_Try_Send =>
-                  Raise_Internal ("unreachable: try_send rejected by resolver");
-               when CM.Stmt_Select =>
-                  for Arm of Item.Arms loop
-                     case Arm.Kind is
-                        when CM.Select_Arm_Channel =>
-                           if Expr_Uses_Name (Arm.Channel_Data.Channel_Name, Name)
-                             or else Statements_Use_Name (Arm.Channel_Data.Statements, Name)
-                           then
-                              return True;
-                           end if;
-                        when CM.Select_Arm_Delay =>
-                           if Expr_Uses_Name (Arm.Delay_Data.Duration_Expr, Name)
-                             or else Statements_Use_Name (Arm.Delay_Data.Statements, Name)
-                           then
-                              return True;
-                           end if;
-                        when CM.Select_Arm_Unknown =>
-                           return True;
-                     end case;
-                  end loop;
-               when CM.Stmt_Delay =>
-                  if Expr_Uses_Name (Item.Value, Name) then
-                     return True;
-                  end if;
-            end case;
+         if Statement_Uses_Name (Item, Name) then
+            return True;
          end if;
       end loop;
 
       return False;
    end Statements_Use_Name;
+
+   function Decl_Emits_Local_Initializer
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Decl     : CM.Object_Decl) return Boolean
+   is
+      Suppress_Explicit_Null_Init : constant Boolean :=
+        Decl.Initializer /= null
+        and then Decl.Initializer.Kind = CM.Expr_Null
+        and then not Decl.Is_Constant
+        and then AI.Is_Owner_Access (Decl.Type_Info);
+      Implicit_Heap_Default_Init : constant Boolean :=
+        Decl.Initializer = null
+        and then not Decl.Is_Constant
+        and then not AI.Is_Owner_Access (Decl.Type_Info)
+        and then Has_Heap_Value_Type (Unit, Document, Decl.Type_Info);
+      Needs_Explicit_Default_Init : constant Boolean :=
+        Decl.Has_Implicit_Default_Init
+        and then Decl.Initializer = null
+        and then Needs_Explicit_Default_Initializer (Unit, Document, Decl.Type_Info);
+   begin
+      --  Returns True iff local lowering will emit an initializer at this
+      --  declaration site, whether explicit or compiler-generated. The
+      --  overwrite-before-read suppression is only sound when an initializer
+      --  actually exists in the emitted Ada.
+      return
+        (Decl.Has_Initializer and then not Suppress_Explicit_Null_Init)
+        or else Needs_Explicit_Default_Init
+        or else Implicit_Heap_Default_Init;
+   end Decl_Emits_Local_Initializer;
+
+   function Statements_Overwrite_Name_Before_Read
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Name       : String) return Boolean;
+
+   function Statement_Overwrites_Name_Before_Read
+     (Statement : CM.Statement_Access;
+      Name      : String) return Boolean
+   is
+   begin
+      --  Returns True iff this statement unconditionally overwrites Name
+      --  before reading it. Unsupported control flow, partial-path writes,
+      --  or any read/call involving Name fail closed.
+      if Statement = null or else Name'Length = 0 then
+         return False;
+      end if;
+
+      case Statement.Kind is
+         when CM.Stmt_Unknown =>
+            return False;
+         when CM.Stmt_Object_Decl =>
+            return False;
+         when CM.Stmt_Destructure_Decl =>
+            return False;
+         when CM.Stmt_Assign =>
+            return Statement.Target /= null
+              and then Statement.Target.Kind = CM.Expr_Ident
+              and then FT.To_String (Statement.Target.Name) = Name
+              and then not Expr_Uses_Name (Statement.Value, Name);
+         when CM.Stmt_Call =>
+            --  Do not consult call-mutation classification here. Even a call
+            --  that eventually mutates Name may read it first, so overwrite-
+            --  before-read remains unprovable at this site.
+            return False;
+         when CM.Stmt_Return =>
+            return False;
+         when CM.Stmt_If =>
+            if Expr_Uses_Name (Statement.Condition, Name)
+              or else not Statements_Overwrite_Name_Before_Read
+                (Statement.Then_Stmts, Name)
+            then
+               return False;
+            end if;
+            for Part of Statement.Elsifs loop
+               if Expr_Uses_Name (Part.Condition, Name)
+                 or else not Statements_Overwrite_Name_Before_Read
+                   (Part.Statements, Name)
+               then
+                  return False;
+               end if;
+            end loop;
+            return
+              Statement.Has_Else
+              and then Statements_Overwrite_Name_Before_Read
+                (Statement.Else_Stmts, Name);
+         when CM.Stmt_Case =>
+            if Expr_Uses_Name (Statement.Case_Expr, Name)
+              or else Statement.Case_Arms.Is_Empty
+            then
+               return False;
+            end if;
+            for Arm of Statement.Case_Arms loop
+               if Expr_Uses_Name (Arm.Choice, Name)
+                 or else not Statements_Overwrite_Name_Before_Read
+                   (Arm.Statements, Name)
+               then
+                  return False;
+               end if;
+            end loop;
+            return True;
+         when CM.Stmt_While =>
+            return False;
+         when CM.Stmt_For =>
+            return False;
+         when CM.Stmt_Loop =>
+            return False;
+         when CM.Stmt_Exit =>
+            return False;
+         when CM.Stmt_Send =>
+            return False;
+         when CM.Stmt_Receive =>
+            return False;
+         when CM.Stmt_Try_Send =>
+            return False;
+         when CM.Stmt_Try_Receive =>
+            return False;
+         when CM.Stmt_Match =>
+            return False;
+         when CM.Stmt_Select =>
+            return False;
+         when CM.Stmt_Delay =>
+            return False;
+      end case;
+   end Statement_Overwrites_Name_Before_Read;
+
+   function Statements_Overwrite_Name_Before_Read
+     (Statements : CM.Statement_Access_Vectors.Vector;
+      Name       : String) return Boolean
+   is
+   begin
+      --  Scans left-to-right until the first statement that mentions Name.
+      --  Irrelevant statements are skipped. The first mention must be an
+      --  unconditional overwrite-before-read in the supported subset.
+      if Name'Length = 0 or else Statements.Is_Empty then
+         return False;
+      end if;
+
+      for Item of Statements loop
+         if not Statement_Uses_Name (Item, Name) then
+            null;
+         else
+            return Statement_Overwrites_Name_Before_Read (Item, Name);
+         end if;
+      end loop;
+
+      return False;
+   end Statements_Overwrite_Name_Before_Read;
 
    function Select_Dispatcher_Name
      (Stmt : CM.Statement_Access) return String
@@ -3978,10 +4115,20 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Static_Length       : Natural := 0;
                begin
                   Block_Declarations.Append (Item.Decl);
-                  Suppress_Initialization_Warnings :=
-                    State.Task_Body_Depth > 0
-                    or else Block_Declarations_Immediately_Overwritten
-                      (Block_Declarations, Tail);
+                  Suppress_Initialization_Warnings := State.Task_Body_Depth > 0;
+                  if not Suppress_Initialization_Warnings
+                    and then Decl_Emits_Local_Initializer (Unit, Document, Item.Decl)
+                  then
+                     Suppress_Initialization_Warnings := True;
+                     for Name of Item.Decl.Names loop
+                        if not Statements_Overwrite_Name_Before_Read
+                          (Tail, FT.To_String (Name))
+                        then
+                           Suppress_Initialization_Warnings := False;
+                           exit;
+                        end if;
+                     end loop;
+                  end if;
                   Collect_Wide_Locals
                     (Unit,
                      Document,
@@ -8776,31 +8923,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       return False;
    end Unit_Runtime_Assigns_Name;
-
-   function Block_Declarations_Immediately_Overwritten
-     (Declarations : CM.Object_Decl_Vectors.Vector;
-      Statements   : CM.Statement_Access_Vectors.Vector) return Boolean
-   is
-   begin
-      if Declarations.Is_Empty or else Statements.Is_Empty then
-         return False;
-      end if;
-
-      for Decl of Declarations loop
-         if Decl.Is_Constant or else Decl.Initializer = null then
-            return False;
-         end if;
-         for Name of Decl.Names loop
-            if not Statements_Immediately_Overwrite_Name
-              (Statements, FT.To_String (Name))
-            then
-               return False;
-            end if;
-         end loop;
-      end loop;
-
-      return True;
-   end Block_Declarations_Immediately_Overwritten;
 
    function Channel_Copy_Helper_Name
      (Channel_Item : CM.Resolved_Channel_Decl) return String is
