@@ -1,7 +1,7 @@
 name: Claude Deep Audit
 
 on:
-  pull_request:
+  pull_request_target:
     types: [labeled]
   workflow_dispatch:
     inputs:
@@ -27,9 +27,8 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (
-        github.event_name == 'pull_request' &&
-        github.event.label.name == 'deep-audit' &&
-        github.event.pull_request.head.repo.full_name == github.repository
+        github.event_name == 'pull_request_target' &&
+        github.event.label.name == 'deep-audit'
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -54,7 +53,7 @@ jobs:
           audit_pr_number=
           explicit_paths=
 
-          if [ "$EVENT_NAME" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request_target" ]; then
             printf 'ref=refs/pull/%s/merge\n' "$EVENT_PR_NUMBER" >> "$GITHUB_OUTPUT"
             audit_pr_number="$EVENT_PR_NUMBER"
           elif [ -n "$INPUT_PR_NUMBER" ] && [ -n "${INPUT_PATHS//[[:space:]]/}" ]; then
@@ -92,11 +91,6 @@ jobs:
               elif [ "$run_claude" = "true" ] && [ "$pr_state" != "open" ]; then
                 run_claude=false
                 skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is ${pr_state}; manual PR audits require an open pull request."
-                printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
-              elif [ "$run_claude" = "true" ] && [ "$pr_head_repo" != "$REPOSITORY" ]; then
-                run_claude=false
-                pr_lookup_summary=$(printf '%s' "$pr_head_repo" | tr '\r\n' '  ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
-                skip_reason="Deep Audit skipped: PR #${INPUT_PR_NUMBER} is from ${pr_lookup_summary}; manual PR audits require same-repo branches."
                 printf 'ref=%s\n' "$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
               elif [ "$run_claude" = "true" ]; then
                 printf 'ref=refs/pull/%s/merge\n' "$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
