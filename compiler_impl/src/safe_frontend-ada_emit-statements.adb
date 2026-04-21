@@ -427,6 +427,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
 
       Actual_Root : constant String := Root_Name (Unwrapped_Call_Actual (Actual));
       Param_Index : constant Natural := Call_Actual_Index;
+      Known_Callee_Found : Boolean := False;
    begin
       if Actual_Root'Length = 0 or else Is_Observer_Attribute_Actual (Actual) then
          return Call_Actual_Observes;
@@ -452,7 +453,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                    & "."
                    & FT.To_String (Candidate.Name)) = Callee_Name
             then
-               return Local_Param_Effect (Candidate.Params, Param_Index);
+               Known_Callee_Found := True;
+               if Local_Param_Effect (Candidate.Params, Param_Index) =
+                    Call_Actual_Mutates
+               then
+                  return Call_Actual_Mutates;
+               end if;
             end if;
          end loop;
 
@@ -468,11 +474,20 @@ package body Safe_Frontend.Ada_Emit.Statements is
                if Imported_Name = Callee_Name
                  or else Imported_Short = Callee_Name
                then
-                  return Imported_Param_Effect (Imported.Params, Param_Index);
+                  Known_Callee_Found := True;
+                  if Imported_Param_Effect (Imported.Params, Param_Index) =
+                       Call_Actual_Mutates
+                  then
+                     return Call_Actual_Mutates;
+                  end if;
                end if;
             end;
          end loop;
       end;
+
+      if Known_Callee_Found then
+         return Call_Actual_Observes;
+      end if;
 
       return Call_Actual_Unknown;
    end Classify_Call_Actual;

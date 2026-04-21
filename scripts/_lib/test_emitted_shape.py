@@ -231,6 +231,13 @@ EMITTED_REQUIRED_SHAPE_CASES = [
         ],
     ),
     (
+        "overloaded-mutating-call-invalidates-length",
+        REPO_ROOT / "tests" / "emitted" / "pr1123j_overloaded_mutating_call_invalidates_length.safe",
+        [
+            "IO.Put_Line (Ada.Strings.Fixed.Trim (Long_Long_Integer'Image (Long_Long_Integer (Long_Long_Integer (Safe_growable_array_factor_RT.Length (ys)))), Ada.Strings.Both));",
+        ],
+    ),
+    (
         "mutating-call-expr-invalidates-length",
         REPO_ROOT / "tests" / "emitted" / "pr1123j_mutating_call_expr_invalidates_length.safe",
         [

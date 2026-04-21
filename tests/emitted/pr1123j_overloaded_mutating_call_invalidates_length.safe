@@ -1,0 +1,20 @@
+package pr1123j_overloaded_mutating_call_invalidates_length
+
+   subtype factor is integer (0 to 6);
+
+   function grow (left, right : integer)
+      print (left + right)
+
+   function grow (items : mut list of factor)
+      append (items, 6)
+
+   function show_lengths returns integer
+      var ys : list of factor = [4, 5, 6]
+
+      print (ys.length)
+      grow (ys)
+      print (ys.length)
+
+      return 0
+
+   print (show_lengths)
