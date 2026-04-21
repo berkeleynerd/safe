@@ -141,6 +141,13 @@ EMITTED_SHAPE_CASES = [
         ],
     ),
     (
+        "if-condition-read-blocks-init-warning-suppression",
+        REPO_ROOT / "tests" / "emitted" / "pr344_if_condition_reads_name.safe",
+        [
+            'pragma Warnings (GNATprove, Off, "initialization of", Reason => "generated local initialization is intentional");',
+        ],
+    ),
+    (
         "loop-between-decl-and-overwrite-keeps-init-warning",
         REPO_ROOT / "tests" / "emitted" / "pr344_loop_blocks_suppression.safe",
         [

@@ -1,0 +1,15 @@
+package pr344_if_condition_reads_name
+
+   subtype tally is integer (0 to 10);
+
+   function compute_total returns integer
+      var total : tally = 0
+
+      if total > 0
+         total = 1
+      else
+         total = 2
+
+      return total
+
+   print (compute_total)
