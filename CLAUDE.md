@@ -94,6 +94,20 @@ The repository has three Claude review workflows:
 - Claude Deep Audit is on-demand and audits whole files around a change. It is
   for latent surrounding-code issues, not normal PR review.
 
+When a PR should trigger the guarded Claude review/security workflows, the PR
+head branch must live in `berkeleynerd/safe`. Fork PRs do not satisfy the
+same-repo guard and should not be used as the primary review path.
+
+Preferred publishing flow:
+
+```bash
+git push upstream HEAD:refs/heads/<branch-name>
+```
+
+Then open the PR from `berkeleynerd:<branch-name>` to `main`. If development
+started on a fork branch, mirror the branch to `upstream` before opening the
+review PR.
+
 Invoke Claude Deep Audit on a PR by adding the `deep-audit` label:
 
 ```bash
