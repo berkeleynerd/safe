@@ -147,6 +147,13 @@ EMITTED_SHAPE_CASES = [
             'pragma Warnings (GNATprove, Off, "initialization of", Reason => "generated local initialization is intentional");',
         ],
     ),
+    (
+        "shadowing-declaration-blocks-init-warning-suppression",
+        REPO_ROOT / "tests" / "emitted" / "pr344_shadowing_decl_blocks_suppression.safe",
+        [
+            'pragma Warnings (GNATprove, Off, "initialization of", Reason => "generated local initialization is intentional");',
+        ],
+    ),
 ]
 
 EMITTED_REQUIRED_SHAPE_CASES = [

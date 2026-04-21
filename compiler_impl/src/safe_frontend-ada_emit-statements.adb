@@ -703,6 +703,17 @@ package body Safe_Frontend.Ada_Emit.Statements is
      (Statement : CM.Statement_Access;
       Name      : String) return Boolean
    is
+      function Declares_Name
+        (Names : FT.UString_Vectors.Vector) return Boolean
+      is
+      begin
+         for Declared_Name of Names loop
+            if FT.To_String (Declared_Name) = Name then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Declares_Name;
    begin
       if Statement = null or else Name'Length = 0 then
          return False;
@@ -712,9 +723,11 @@ package body Safe_Frontend.Ada_Emit.Statements is
          when CM.Stmt_Unknown =>
             return True;
          when CM.Stmt_Object_Decl =>
-            return Expr_Uses_Name (Statement.Decl.Initializer, Name);
+            return Declares_Name (Statement.Decl.Names)
+              or else Expr_Uses_Name (Statement.Decl.Initializer, Name);
          when CM.Stmt_Destructure_Decl =>
-            return Expr_Uses_Name (Statement.Destructure.Initializer, Name);
+            return Declares_Name (Statement.Destructure.Names)
+              or else Expr_Uses_Name (Statement.Destructure.Initializer, Name);
          when CM.Stmt_Assign =>
             return
               Expr_Uses_Name (Statement.Target, Name)
@@ -912,6 +925,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
             then
                return False;
             end if;
+            --  Case statements reaching emission are exhaustive: the parser
+            --  currently requires a final `when others` arm.
             for Arm of Statement.Case_Arms loop
                if Expr_Uses_Name (Arm.Choice, Name)
                  or else not Statements_Overwrite_Name_Before_Read
