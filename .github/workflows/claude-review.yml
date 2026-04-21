@@ -20,7 +20,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de # v1
         with:
@@ -51,10 +52,29 @@ jobs:
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-24.04
     steps:
+      - name: Resolve PR head checkout
+        id: pr-head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          pr_head=$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}" --jq '[.head.repo.full_name, .head.ref] | @tsv')
+          IFS=$'\t' read -r head_repo head_ref <<< "$pr_head"
+
+          if [ "$head_repo" = "null" ] || [ -z "$head_repo" ] || [ -z "$head_ref" ]; then
+            echo "::error::Unable to resolve PR #${PR_NUMBER} head repository/ref"
+            exit 1
+          fi
+
+          printf 'repository=%s\n' "$head_repo" >> "$GITHUB_OUTPUT"
+          printf 'ref=%s\n' "$head_ref" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          ref: refs/pull/${{ github.event.issue.number }}/merge
+          repository: ${{ steps.pr-head.outputs.repository }}
+          ref: ${{ steps.pr-head.outputs.ref }}
 
       - uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de # v1
         with:
