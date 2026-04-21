@@ -773,7 +773,9 @@ def validate_sample_consistency(records: Iterable[InventoryRecord]) -> None:
         if record is None:
             missing.append(f"{sample_path} -> {title} (missing task record)")
             continue
-        if record.porting_status != "ported":
+        # This is a deliberate assertion for the current imported Rosetta sample slice tracked by #347.
+        # Future non-Bucket-1 Rosetta imports should update this contract together with the inventory design.
+        if record.bucket != "1" or record.subbucket != "(none)" or record.porting_status != "ported":
             missing.append(
                 f"{sample_path} -> {title} (bucket={record.bucket}, sub={record.subbucket}, porting={record.porting_status})"
             )
@@ -870,6 +872,7 @@ def fetch_project_fields(project_number: int, *, owner: str) -> tuple[str, dict[
         [
             "gh",
             "api",
+            "--paginate",
             f"/users/{owner}/projectsV2/{project_number}/fields",
             "-H",
             "Accept: application/vnd.github+json",

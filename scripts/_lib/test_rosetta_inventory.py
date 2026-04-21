@@ -275,18 +275,23 @@ def run_title_helpers_case() -> tuple[bool, str]:
 
 
 def run_sample_consistency_case() -> tuple[bool, str]:
-    records = [make_record(title, porting_status="ported") for title in sorted(set(inventory.PORTED_SAMPLE_TITLE_ALIASES.values()))]
-    # Future ported samples do not need to stay in bucket 1; the invariant is that aliased imports are marked ported.
+    baseline_records = [make_record(title, porting_status="ported") for title in sorted(set(inventory.PORTED_SAMPLE_TITLE_ALIASES.values()))]
+    inventory.validate_sample_consistency(baseline_records)
+
+    # The current aliased Rosetta imports are intentionally the Bucket 1/(none) sample set tracked by #347.
+    records = list(baseline_records)
     records[0] = make_record(records[0].title, bucket="2", subbucket="2a", porting_status="ported")
     try:
         inventory.validate_sample_consistency(records)
-    except RuntimeError as exc:
-        return False, f"ported sample consistency rejected a non-bucket-1 ported task: {exc}"
+    except RuntimeError:
+        pass
+    else:
+        return False, "ported sample consistency accepted a non-bucket-1 aliased sample"
 
-    broken_records = list(records)
-    broken_records[0] = make_record(broken_records[0].title, bucket="2", subbucket="2a", porting_status="not-started")
+    records = list(baseline_records)
+    records[0] = make_record(records[0].title, porting_status="not-started")
     try:
-        inventory.validate_sample_consistency(broken_records)
+        inventory.validate_sample_consistency(records)
     except RuntimeError:
         return True, ""
     return False, "ported sample consistency accepted a non-ported aliased sample"
@@ -329,6 +334,61 @@ def run_plan_sync_parent_issue_case() -> tuple[bool, str]:
     plan = inventory.plan_sync(desired_records, [parent_issue_item], parent_issue=347)
     if len(plan.missing) != 1 or plan.missing[0].issue_number != 999:
         return False, f"non-parent issue should remain in missing set, got {plan.missing!r}"
+    return True, ""
+
+
+def run_fetch_project_fields_case() -> tuple[bool, str]:
+    original_gh_json = inventory.gh_json
+    original_gh_paginated_arrays = inventory.gh_paginated_arrays
+    captured: dict[str, list[str]] = {}
+
+    def fake_gh_json(argv: list[str]) -> dict[str, object]:
+        return {"id": "PVT_kwDOA"}
+
+    def fake_gh_paginated_arrays(argv: list[str]) -> list[dict[str, object]]:
+        captured["argv"] = list(argv)
+        names = (
+            "Bucket",
+            "Sub-bucket",
+            "Porting Status",
+            "Difficulty",
+            "Rosetta Category",
+            "Rosetta URL",
+            "Features Used",
+        )
+        return [
+            {
+                "name": name,
+                "node_id": f"field-{index}",
+                "id": str(100 + index),
+                "data_type": "single_select" if index < 4 else "text",
+                "options": [{"name": {"raw": "1"}, "id": "option-1"}] if name == "Bucket" else [],
+            }
+            for index, name in enumerate(names, start=1)
+        ]
+
+    inventory.gh_json = fake_gh_json
+    inventory.gh_paginated_arrays = fake_gh_paginated_arrays
+    try:
+        project_id, fields = inventory.fetch_project_fields(5, owner="berkeleynerd")
+    finally:
+        inventory.gh_json = original_gh_json
+        inventory.gh_paginated_arrays = original_gh_paginated_arrays
+
+    if project_id != "PVT_kwDOA":
+        return False, f"unexpected project id {project_id!r}"
+    if "--paginate" not in captured.get("argv", []):
+        return False, f"fetch_project_fields did not request pagination: {captured.get('argv')!r}"
+    if sorted(fields) != [
+        "Bucket",
+        "Difficulty",
+        "Features Used",
+        "Porting Status",
+        "Rosetta Category",
+        "Rosetta URL",
+        "Sub-bucket",
+    ]:
+        return False, f"unexpected field map keys {sorted(fields)!r}"
     return True, ""
 
 
@@ -383,9 +443,11 @@ def run_review_sample_case() -> tuple[bool, str]:
             )
 
     sample = inventory.build_review_sample(records)
-    expected_sample_count = sum(inventory.REVIEW_SAMPLE_QUOTAS.values())
-    if len(sample) != expected_sample_count:
-        return False, f"expected {expected_sample_count} review-sample records, got {len(sample)}"
+    if len(sample) != sum(inventory.REVIEW_SAMPLE_QUOTAS.values()):
+        return False, (
+            "review sample count diverged from REVIEW_SAMPLE_QUOTAS: "
+            f"{len(sample)} != {sum(inventory.REVIEW_SAMPLE_QUOTAS.values())}"
+        )
 
     counts = inventory.bucket_summary(sample)
     for bucket_key, expected in inventory.REVIEW_SAMPLE_QUOTAS.items():
@@ -416,6 +478,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("sample consistency", run_sample_consistency_case),
         ("gh pagination errors", run_gh_paginated_arrays_case),
         ("plan sync parent issue", run_plan_sync_parent_issue_case),
+        ("fetch project fields", run_fetch_project_fields_case),
         ("review placeholder", run_review_placeholder_case),
         ("review sample", run_review_sample_case),
     ]
