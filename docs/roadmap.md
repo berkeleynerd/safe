@@ -3416,7 +3416,7 @@ with optional emitter heuristics kept fail-closed.
 ### Dependency
 
 Follows PR11.22h.2. PR11.23j follows PR11.23i. PR12.1 follows
-PR11.23j. PR11.23 follows PR11.23i and may proceed independently of
+PR11.23k. PR11.23 follows PR11.23i and may proceed independently of
 PR11.23j because diagnostic mapping rewrites proof output rather than
 changing emitter analysis heuristics.
 
