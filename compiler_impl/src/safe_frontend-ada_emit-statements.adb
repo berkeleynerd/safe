@@ -361,7 +361,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
    end Unwrapped_Call_Actual;
 
    function Is_Observer_Attribute_Actual
-     (Actual : CM.Expr_Access) return Boolean
+     (Unit     : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
+      Actual   : CM.Expr_Access) return Boolean
    is
       Unwrapped : constant CM.Expr_Access := Unwrapped_Call_Actual (Actual);
       Selector  : constant String :=
@@ -369,15 +371,44 @@ package body Safe_Frontend.Ada_Emit.Statements is
          then FT.Lowercase (FT.To_String (Unwrapped.Selector))
          else "");
    begin
-      return
-        Unwrapped /= null
-        and then Unwrapped.Kind = CM.Expr_Select
-        and then Selector in "length" | "capacity"
-        and then Root_Name (Unwrapped.Prefix)'Length > 0;
+      if Unwrapped = null
+        or else Unwrapped.Kind /= CM.Expr_Select
+        or else Unwrapped.Prefix = null
+        or else Selector not in "length" | "capacity"
+        or else Root_Name (Unwrapped.Prefix)'Length = 0
+        or else not Has_Text (Unwrapped.Prefix.Type_Name)
+      then
+         return False;
+      end if;
+
+      declare
+         Prefix_Info : GM.Type_Descriptor := (others => <>);
+      begin
+         if not Type_Info_From_Name
+           (Unit,
+            Document,
+            FT.To_String (Unwrapped.Prefix.Type_Name),
+            Prefix_Info)
+         then
+            return False;
+         end if;
+
+         declare
+            Prefix_Kind : constant String :=
+              FT.Lowercase (FT.To_String (Prefix_Info.Kind));
+         begin
+            return
+              (Selector = "length" and then Prefix_Kind in "string" | "array")
+              or else
+              (Selector = "capacity"
+               and then Is_Growable_Array_Type (Unit, Document, Prefix_Info));
+         end;
+      end;
    end Is_Observer_Attribute_Actual;
 
    function Classify_Call_Actual
      (Unit      : CM.Resolved_Unit;
+      Document  : GM.Mir_Document;
       Call_Expr : CM.Expr_Access;
       Actual    : CM.Expr_Access) return Call_Actual_Effect
    is
@@ -401,7 +432,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       is
       begin
          if Params.Is_Empty or else Param_Index > Params.Last_Index then
-            return Call_Actual_Observes;
+            return Call_Actual_Unknown;
          end if;
 
          if Mode_Writes_Actual (FT.To_String (Params (Param_Index).Mode)) then
@@ -416,7 +447,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       is
       begin
          if Params.Is_Empty or else Param_Index > Params.Last_Index then
-            return Call_Actual_Observes;
+            return Call_Actual_Unknown;
          end if;
 
          if Mode_Writes_Actual (FT.To_String (Params (Param_Index).Mode)) then
@@ -429,7 +460,9 @@ package body Safe_Frontend.Ada_Emit.Statements is
       Param_Index : constant Natural := Call_Actual_Index;
       Known_Callee_Found : Boolean := False;
    begin
-      if Actual_Root'Length = 0 or else Is_Observer_Attribute_Actual (Actual) then
+      if Actual_Root'Length = 0
+        or else Is_Observer_Attribute_Actual (Unit, Document, Actual)
+      then
          return Call_Actual_Observes;
       end if;
 
@@ -516,6 +549,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
    procedure Invalidate_Mutated_Call_Actual_Lengths
      (State : in out Emit_State;
       Unit  : CM.Resolved_Unit;
+      Document : GM.Mir_Document;
       Expr  : CM.Expr_Access)
    is
       procedure Visit (Item : CM.Expr_Access);
@@ -560,7 +594,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
             when CM.Expr_Call =>
                Visit (Item.Callee);
                for Arg of Item.Args loop
-                  case Classify_Call_Actual (Unit, Item, Arg) is
+                  case Classify_Call_Actual (Unit, Document, Item, Arg) is
                      when Call_Actual_Observes =>
                         null;
                      when Call_Actual_Mutates | Call_Actual_Unknown =>
@@ -4003,6 +4037,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Invalidate_Mutated_Call_Actual_Lengths
                     (State,
                      Unit,
+                     Document,
                      Item.Decl.Initializer);
                   Append_Line (Buffer, "begin", Depth);
                   Render_Required_Statement_Suite
@@ -4094,6 +4129,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Invalidate_Mutated_Call_Actual_Lengths
                     (State,
                      Unit,
+                     Document,
                      Item.Destructure.Initializer);
                   Append_Line (Buffer, "begin", Depth);
                   Render_Required_Statement_Suite
@@ -4117,8 +4153,10 @@ package body Safe_Frontend.Ada_Emit.Statements is
                end if;
                Append_Assignment
                  (Buffer, Unit, Document, State, Item.all, Index, Depth, In_Loop);
-               Invalidate_Mutated_Call_Actual_Lengths (State, Unit, Item.Target);
-               Invalidate_Mutated_Call_Actual_Lengths (State, Unit, Item.Value);
+               Invalidate_Mutated_Call_Actual_Lengths
+                 (State, Unit, Document, Item.Target);
+               Invalidate_Mutated_Call_Actual_Lengths
+                 (State, Unit, Document, Item.Value);
                if In_Loop then
                   Append_Integer_Loop_Invariant
                     (Buffer, Unit, Document, State, Item.Target, Depth);
@@ -4165,7 +4203,8 @@ package body Safe_Frontend.Ada_Emit.Statements is
                   Emit_Call_Statement
                     (Buffer, Unit, Document, Item.Call, Index, State, Depth);
                end if;
-               Invalidate_Mutated_Call_Actual_Lengths (State, Unit, Item.Call);
+               Invalidate_Mutated_Call_Actual_Lengths
+                 (State, Unit, Document, Item.Call);
             when CM.Stmt_Return =>
                if Item.Value /= null and then Has_Active_Cleanup_Items (State) then
                   Append_Return_With_Cleanup
@@ -4876,13 +4915,19 @@ package body Safe_Frontend.Ada_Emit.Statements is
                         Name      : String) return Boolean
                      is
                      begin
+                        --  Callers pass Expr_Call nodes here. Unknown or
+                        --  mismatched callee classifications are treated as
+                        --  mutating so static facts are invalidated
+                        --  conservatively.
                         if Call_Expr = null or else Name'Length = 0 then
                            return False;
                         end if;
 
                         for Actual of Call_Expr.Args loop
                            if Root_Name (Unwrapped_Call_Actual (Actual)) = Name then
-                              case Classify_Call_Actual (Unit, Call_Expr, Actual) is
+                              case Classify_Call_Actual
+                                (Unit, Document, Call_Expr, Actual)
+                              is
                                  when Call_Actual_Observes =>
                                     null;
                                  when Call_Actual_Mutates | Call_Actual_Unknown =>
