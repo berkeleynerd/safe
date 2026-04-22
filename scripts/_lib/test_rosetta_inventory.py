@@ -5,6 +5,8 @@ from __future__ import annotations
 import contextlib
 import io
 import subprocess
+import tempfile
+from pathlib import Path
 
 import rosetta_inventory as inventory
 
@@ -525,6 +527,81 @@ def run_request_json_decode_case() -> tuple[bool, str]:
         inventory.urlopen = original_urlopen
 
 
+def run_load_cached_tasks_invalid_json_case() -> tuple[bool, str]:
+    original_cache_root = inventory.CACHE_ROOT
+    original_cache_file = inventory.CACHE_FILE
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir)
+            cache_file = cache_root / "programming_tasks_v1.json"
+            inventory.CACHE_ROOT = cache_root
+            inventory.CACHE_FILE = cache_file
+            cache_file.write_text("{not valid json", encoding="utf-8")
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                cached = inventory.load_cached_tasks()
+    finally:
+        inventory.CACHE_ROOT = original_cache_root
+        inventory.CACHE_FILE = original_cache_file
+
+    if cached is not None:
+        return False, f"load_cached_tasks should ignore invalid cache payloads, got {cached!r}"
+    warning = stderr.getvalue()
+    if "ignoring invalid rosetta cache" not in warning:
+        return False, f"load_cached_tasks did not emit the invalid-cache warning: {warning!r}"
+    return True, ""
+
+
+def run_save_cached_tasks_atomic_case() -> tuple[bool, str]:
+    original_cache_root = inventory.CACHE_ROOT
+    original_cache_file = inventory.CACHE_FILE
+    original_replace = inventory.Path.replace
+    replace_calls: list[tuple[str, str]] = []
+
+    def recording_replace(self: Path, target: Path) -> Path:
+        replace_calls.append((self.name, Path(target).name))
+        return original_replace(self, target)
+
+    inventory.Path.replace = recording_replace
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir)
+            cache_file = cache_root / "programming_tasks_v1.json"
+            inventory.CACHE_ROOT = cache_root
+            inventory.CACHE_FILE = cache_file
+            inventory.save_cached_tasks(
+                1,
+                [
+                    inventory.RawTask(
+                        pageid=1,
+                        title="Factorial",
+                        url=inventory.title_to_url("Factorial"),
+                        extract="Compute n!",
+                    )
+                ],
+                "2026-04-22T00:00:00Z",
+            )
+            leftovers = sorted(path.name for path in cache_root.glob("programming_tasks_v1.json.tmp-*"))
+            payload = inventory.json.loads(cache_file.read_text(encoding="utf-8"))
+    finally:
+        inventory.Path.replace = original_replace
+        inventory.CACHE_ROOT = original_cache_root
+        inventory.CACHE_FILE = original_cache_file
+
+    if not replace_calls:
+        return False, "save_cached_tasks did not replace the cache file from a temp path"
+    temp_name, target_name = replace_calls[0]
+    if not temp_name.startswith("programming_tasks_v1.json.tmp-") or target_name != "programming_tasks_v1.json":
+        return False, f"save_cached_tasks used an unexpected replace path: {replace_calls!r}"
+    if leftovers:
+        return False, f"save_cached_tasks left temp files behind: {leftovers!r}"
+    if payload.get("category_size") != 1 or payload.get("fetched_at") != "2026-04-22T00:00:00Z":
+        return False, f"save_cached_tasks wrote unexpected payload metadata: {payload!r}"
+    if payload.get("tasks", [{}])[0].get("title") != "Factorial":
+        return False, f"save_cached_tasks wrote unexpected task payload: {payload!r}"
+    return True, ""
+
+
 def run_literal_keyword_case() -> tuple[bool, str]:
     keyword = inventory.literal_keyword("fixed length records", "fixed length records")
     if not keyword.regex.search("fixed   length\trecords"):
@@ -870,6 +947,8 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("fetch project items", run_fetch_project_items_case),
         ("fetch live task count", run_fetch_live_task_count_case),
         ("request json decode", run_request_json_decode_case),
+        ("invalid cache load", run_load_cached_tasks_invalid_json_case),
+        ("atomic cache save", run_save_cached_tasks_atomic_case),
         ("literal keyword", run_literal_keyword_case),
         ("text value raw", run_text_value_raw_case),
         ("delta comment", run_delta_comment_case),

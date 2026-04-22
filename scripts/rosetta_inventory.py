@@ -721,7 +721,8 @@ def load_cached_tasks() -> tuple[int, list[RawTask], str] | None:
     try:
         payload = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"invalid rosetta cache {CACHE_FILE}: {exc}") from exc
+        print(f"rosetta_inventory: warning: ignoring invalid rosetta cache {CACHE_FILE}: {exc}", file=sys.stderr)
+        return None
     if payload.get("schema_version") != CACHE_SCHEMA_VERSION:
         return None
     tasks = [
@@ -754,7 +755,14 @@ def save_cached_tasks(category_size: int, tasks: list[RawTask], fetched_at: str)
             for task in tasks
         ],
     }
-    CACHE_FILE.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    serialized = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    temp_file = CACHE_ROOT / f"{CACHE_FILE.name}.tmp-{time.time_ns()}"
+    try:
+        temp_file.write_text(serialized, encoding="utf-8")
+        temp_file.replace(CACHE_FILE)
+    finally:
+        if temp_file.exists():
+            temp_file.unlink()
 
 
 def load_or_fetch_tasks(*, refresh: bool, throttle_seconds: float) -> tuple[int, list[RawTask], str]:
