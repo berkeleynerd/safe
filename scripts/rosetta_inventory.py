@@ -34,10 +34,12 @@ HTTP_THROTTLE_SECONDS = 1.0
 GRAPHQL_BATCH_SIZE = 20
 CATEGORY_MEMBER_BATCH_SIZE = 500
 EXTRACT_BATCH_SIZE = 20
+GITHUB_API_VERSION = "2022-11-28"
 BODY_URL_RE = re.compile(r"^\*\*Rosetta URL:\*\*\s+(\S+)\s*$", re.MULTILINE)
 WHITESPACE_RE = re.compile(r"\s+")
 RELATED_TASKS_RE = re.compile(r"\bRelated tasks?\b", re.IGNORECASE)
 INLINE_URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+COMMENT_MARKER_RE = re.compile(r"<!--\s*([A-Za-z0-9:_-]+)\s*-->")
 
 
 @dataclass(frozen=True)
@@ -865,6 +867,16 @@ def gh_graphql(query: str, variables: dict[str, str | int | None] | None = None)
     return payload
 
 
+def text_value_raw(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        raw = value.get("raw")
+        if isinstance(raw, str):
+            return raw
+    raise RuntimeError(f"unexpected text payload shape: {value!r}")
+
+
 def fetch_project_fields(project_number: int, *, owner: str) -> tuple[str, dict[str, ProjectField]]:
     payload = gh_json(["gh", "project", "view", str(project_number), "--owner", owner, "--format", "json"])
     project_id = payload["id"]
@@ -877,12 +889,12 @@ def fetch_project_fields(project_number: int, *, owner: str) -> tuple[str, dict[
             "-H",
             "Accept: application/vnd.github+json",
             "-H",
-            "X-GitHub-Api-Version: 2026-03-10",
+            f"X-GitHub-Api-Version: {GITHUB_API_VERSION}",
         ]
     )
     fields: dict[str, ProjectField] = {}
     for field in fields_payload:
-        option_ids = {option["name"]["raw"]: option["id"] for option in field.get("options", [])}
+        option_ids = {text_value_raw(option["name"]): option["id"] for option in field.get("options", [])}
         fields[field["name"]] = ProjectField(
             name=field["name"],
             field_id=field["node_id"],
@@ -917,7 +929,7 @@ def fetch_project_items(project_number: int, *, owner: str, field_map: dict[str,
             "-H",
             "Accept: application/vnd.github+json",
             "-H",
-            "X-GitHub-Api-Version: 2026-03-10",
+            f"X-GitHub-Api-Version: {GITHUB_API_VERSION}",
         ]
     )
     items: list[ProjectItem] = []
@@ -935,9 +947,9 @@ def fetch_project_items(project_number: int, *, owner: str, field_map: dict[str,
             if value is None:
                 continue
             if field_value["data_type"] == "single_select":
-                field_values[field_name] = value["name"]["raw"]
+                field_values[field_name] = text_value_raw(value["name"])
             elif field_value["data_type"] == "text":
-                field_values[field_name] = value["raw"]
+                field_values[field_name] = text_value_raw(value)
         items.append(
             ProjectItem(
                 item_id=item["node_id"],
@@ -1204,9 +1216,19 @@ def load_issue_comments(repo: str, issue_number: int) -> list[str]:
     return [comment["body"] for comment in payload.get("comments", [])]
 
 
+def comment_marker(body: str) -> str | None:
+    match = COMMENT_MARKER_RE.search(body)
+    if match is None:
+        return None
+    return match.group(1)
+
+
 def ensure_issue_comment(repo: str, issue_number: int, body: str, *, dry_run: bool) -> None:
     existing = load_issue_comments(repo, issue_number)
+    marker = comment_marker(body)
     if body in existing:
+        return
+    if marker is not None and any(comment_marker(existing_body) == marker for existing_body in existing):
         return
     if dry_run:
         print(f"would comment on issue #{issue_number}:\n{body}\n")
@@ -1276,17 +1298,20 @@ def evenly_spaced_records(records: list[InventoryRecord], count: int) -> list[In
             selected.append(records[target])
             continue
 
+        found_index: int | None = None
         for distance in range(1, len(records)):
             lower = target - distance
             if lower >= 0 and lower not in used_indices:
-                used_indices.add(lower)
-                selected.append(records[lower])
+                found_index = lower
                 break
             upper = target + distance
             if upper < len(records) and upper not in used_indices:
-                used_indices.add(upper)
-                selected.append(records[upper])
+                found_index = upper
                 break
+        if found_index is None:
+            raise RuntimeError("evenly_spaced_records could not find a unique record for the requested quota")
+        used_indices.add(found_index)
+        selected.append(records[found_index])
     return selected
 
 

@@ -379,6 +379,8 @@ def run_fetch_project_fields_case() -> tuple[bool, str]:
         return False, f"unexpected project id {project_id!r}"
     if "--paginate" not in captured.get("argv", []):
         return False, f"fetch_project_fields did not request pagination: {captured.get('argv')!r}"
+    if f"X-GitHub-Api-Version: {inventory.GITHUB_API_VERSION}" not in captured.get("argv", []):
+        return False, f"fetch_project_fields did not use the stable API version: {captured.get('argv')!r}"
     if sorted(fields) != [
         "Bucket",
         "Difficulty",
@@ -389,6 +391,98 @@ def run_fetch_project_fields_case() -> tuple[bool, str]:
         "Sub-bucket",
     ]:
         return False, f"unexpected field map keys {sorted(fields)!r}"
+    return True, ""
+
+
+def run_fetch_project_items_case() -> tuple[bool, str]:
+    original_gh_paginated_arrays = inventory.gh_paginated_arrays
+    captured: dict[str, list[str]] = {}
+
+    field_map = {
+        "Bucket": inventory.ProjectField("Bucket", "field-bucket", 101, "single_select", {"1": "option-1"}),
+        "Porting Status": inventory.ProjectField("Porting Status", "field-porting", 102, "single_select", {"ported": "option-2"}),
+        "Rosetta URL": inventory.ProjectField("Rosetta URL", "field-url", 103, "text", {}),
+        "Features Used": inventory.ProjectField("Features Used", "field-features", 104, "text", {}),
+    }
+
+    def fake_gh_paginated_arrays(argv: list[str]) -> list[dict[str, object]]:
+        captured["argv"] = list(argv)
+        return [
+            {
+                "node_id": "PVTI_test",
+                "content_type": "DraftIssue",
+                "content": {"node_id": "DI_test", "title": "Factorial", "body": "body"},
+                "fields": [
+                    {"name": "Bucket", "data_type": "single_select", "value": {"name": {"raw": "1"}}},
+                    {"name": "Porting Status", "data_type": "single_select", "value": {"name": "ported"}},
+                    {"name": "Rosetta URL", "data_type": "text", "value": {"raw": "https://rosettacode.org/wiki/Factorial"}},
+                    {"name": "Features Used", "data_type": "text", "value": "functions, loops"},
+                ],
+            }
+        ]
+
+    inventory.gh_paginated_arrays = fake_gh_paginated_arrays
+    try:
+        items = inventory.fetch_project_items(5, owner="berkeleynerd", field_map=field_map)
+    finally:
+        inventory.gh_paginated_arrays = original_gh_paginated_arrays
+
+    if "--paginate" not in captured.get("argv", []):
+        return False, f"fetch_project_items did not request pagination: {captured.get('argv')!r}"
+    if f"X-GitHub-Api-Version: {inventory.GITHUB_API_VERSION}" not in captured.get("argv", []):
+        return False, f"fetch_project_items did not use the stable API version: {captured.get('argv')!r}"
+    if len(items) != 1:
+        return False, f"expected one parsed project item, got {items!r}"
+    item = items[0]
+    if item.field_values != {
+        "Bucket": "1",
+        "Porting Status": "ported",
+        "Rosetta URL": "https://rosettacode.org/wiki/Factorial",
+        "Features Used": "functions, loops",
+    }:
+        return False, f"unexpected parsed field values {item.field_values!r}"
+    return True, ""
+
+
+def run_text_value_raw_case() -> tuple[bool, str]:
+    if inventory.text_value_raw("plain") != "plain":
+        return False, "text_value_raw did not accept plain strings"
+    if inventory.text_value_raw({"raw": "rich"}) != "rich":
+        return False, "text_value_raw did not extract rich-text payloads"
+    try:
+        inventory.text_value_raw({"html": "missing raw"})
+    except RuntimeError:
+        return True, ""
+    return False, "text_value_raw accepted an invalid payload shape"
+
+
+def run_issue_comment_marker_case() -> tuple[bool, str]:
+    original_load_issue_comments = inventory.load_issue_comments
+    original_run_capture = inventory.run_capture
+    called = {"value": False}
+
+    def fake_load_issue_comments(repo: str, issue_number: int) -> list[str]:
+        return [inventory.build_delta_comment(category_size=10, task_count=9, fetched_at="2026-04-21T00:00:00Z")]
+
+    def fake_run_capture(argv: list[str]) -> subprocess.CompletedProcess[str]:
+        called["value"] = True
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    inventory.load_issue_comments = fake_load_issue_comments
+    inventory.run_capture = fake_run_capture
+    try:
+        inventory.ensure_issue_comment(
+            "berkeleynerd/safe",
+            347,
+            inventory.build_delta_comment(category_size=10, task_count=9, fetched_at="2026-04-22T00:00:00Z"),
+            dry_run=False,
+        )
+    finally:
+        inventory.load_issue_comments = original_load_issue_comments
+        inventory.run_capture = original_run_capture
+
+    if called["value"]:
+        return False, "ensure_issue_comment posted a duplicate marker-matched comment"
     return True, ""
 
 
@@ -479,6 +573,9 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("gh pagination errors", run_gh_paginated_arrays_case),
         ("plan sync parent issue", run_plan_sync_parent_issue_case),
         ("fetch project fields", run_fetch_project_fields_case),
+        ("fetch project items", run_fetch_project_items_case),
+        ("text value raw", run_text_value_raw_case),
+        ("issue comment marker", run_issue_comment_marker_case),
         ("review placeholder", run_review_placeholder_case),
         ("review sample", run_review_sample_case),
     ]
