@@ -369,7 +369,12 @@ RULES = (
             "unknown method call",
             literal_keyword("polymorphism", "polymorphism", skip_title_prefixes=("parametric polymorphism",)),
         ),
-        body_keywords=("monkeypatching", "dynamic dispatch mechanism", "inheritance hierarchy", "based upon inheritance"),
+        body_keywords=(
+            "monkeypatching",
+            "dynamic dispatch mechanism",
+            literal_keyword("inheritance hierarchy", "inheritance hierarchy", skip_title_prefixes=("parametric polymorphism",)),
+            literal_keyword("based upon inheritance", "based upon inheritance", skip_title_prefixes=("parametric polymorphism",)),
+        ),
     ),
     make_rule("3", "3a", title_keywords=("regex", "regular expression", "regular expressions"), feature_hints=("strings",)),
     make_rule(
@@ -512,6 +517,10 @@ def classify_task(title: str, extract: str) -> tuple[str, str, str, tuple[str, .
                 features = infer_features(title, extract, seed=rule.feature_hints)
                 return rule.bucket, rule.subbucket, f"keyword:{keyword.label}", features
         for keyword in rule.body_keywords:
+            if any(title_haystack.startswith(prefix) for prefix in keyword.skip_title_prefixes):
+                continue
+            if any(title_haystack.endswith(suffix) for suffix in keyword.skip_title_suffixes):
+                continue
             if keyword.regex.search(body_haystack):
                 features = infer_features(title, extract, seed=rule.feature_hints)
                 return rule.bucket, rule.subbucket, f"keyword:{keyword.label}", features
@@ -827,7 +836,12 @@ def validate_sample_consistency(records: Iterable[InventoryRecord]) -> None:
             )
     if missing:
         detail = "\n".join(f" - {entry}" for entry in missing)
-        raise RuntimeError(f"ported sample consistency check failed:\n{detail}")
+        raise RuntimeError(
+            "ported sample consistency check failed:\n"
+            f"{detail}\n"
+            "If a future aliased Rosetta sample is intentionally outside Bucket 1/(none), "
+            "update validate_sample_consistency() to reflect that expanded contract."
+        )
 
 
 def build_args(argv: list[str]) -> argparse.Namespace:
@@ -873,38 +887,13 @@ def gh_json(argv: list[str]) -> dict[str, Any]:
         raise RuntimeError(f"{' '.join(argv)} returned invalid JSON: {exc}") from exc
 
 
-def gh_paginated_arrays(argv: list[str]) -> list[Any]:
-    completed = run_capture(argv)
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or completed.stdout.strip() or f"exit code {completed.returncode}"
-        raise RuntimeError(f"{' '.join(argv)} failed: {detail}")
-
-    decoder = json.JSONDecoder()
-    payload = completed.stdout
-    index = 0
-    values: list[Any] = []
-    while index < len(payload):
-        while index < len(payload) and payload[index].isspace():
-            index += 1
-        if index >= len(payload):
-            break
-        try:
-            value, end = decoder.raw_decode(payload, index)
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(f"{' '.join(argv)} returned invalid JSON: {exc}") from exc
-        if not isinstance(value, list):
-            raise RuntimeError(f"{' '.join(argv)} returned a non-array page")
-        values.extend(value)
-        index = end
-    return values
-
-
 def gh_graphql(query: str, variables: dict[str, str | int | None] | None = None) -> dict[str, Any]:
     argv = ["gh", "api", "graphql", "-f", f"query={query}"]
     for name, value in (variables or {}).items():
         if value is None:
             continue
-        argv.extend(["-F", f"{name}={value}"])
+        flag = "-F" if isinstance(value, int) else "-f"
+        argv.extend([flag, f"{name}={value}"])
     payload = gh_json(argv)
     if payload.get("errors"):
         raise RuntimeError(f"graphql request failed: {json.dumps(payload['errors'], indent=2)}")
@@ -1069,7 +1058,11 @@ def plan_sync(
             creates.append(record)
             continue
         if item.content_type != "DraftIssue" or item.draft_issue_id is None:
-            raise RuntimeError(f"existing item for {url} is not a draft issue and cannot be updated safely")
+            raise RuntimeError(
+                f"existing Project 5 item for {url} is not a draft issue and cannot be updated safely "
+                f"(item_id={item.item_id!r}, content_type={item.content_type!r}, title={item.title!r}); "
+                "remove or relocate the non-draft item from Project 5 and re-run"
+            )
 
         desired_body = build_item_body(record)
         desired_fields = desired_field_values(record)

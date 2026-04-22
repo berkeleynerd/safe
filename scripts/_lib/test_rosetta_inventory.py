@@ -131,7 +131,7 @@ def run_classification_case() -> tuple[bool, str]:
         ),
         (
             "Parametric polymorphism",
-            "Define a type declaration that is generic over another type.",
+            "Define a type declaration that is generic over another type, not one based upon inheritance.",
             ("1", "(none)", "default"),
         ),
         (
@@ -322,23 +322,33 @@ def run_sample_consistency_case() -> tuple[bool, str]:
     return False, "ported sample consistency accepted a non-ported aliased sample"
 
 
-def run_gh_paginated_arrays_case() -> tuple[bool, str]:
+def run_gh_graphql_case() -> tuple[bool, str]:
     original_run_capture = inventory.run_capture
+    captured: dict[str, list[str]] = {}
 
     def fake_run_capture(argv: list[str]) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess(argv, 0, stdout="[] not-json", stderr="")
+        captured["argv"] = list(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout="{}", stderr="")
 
     inventory.run_capture = fake_run_capture
     try:
-        try:
-            inventory.gh_paginated_arrays(["gh", "api", "/example"])
-        except RuntimeError as exc:
-            if "returned invalid JSON" not in str(exc):
-                return False, f"unexpected JSON decode error text: {exc}"
-            return True, ""
-        return False, "gh_paginated_arrays accepted malformed JSON"
+        inventory.gh_graphql(
+            "query($id: ID!, $count: Int!) { node(id: $id) { id } }",
+            {"id": "PVTI_test", "count": 7, "ignored": None},
+        )
     finally:
         inventory.run_capture = original_run_capture
+
+    argv = captured.get("argv")
+    if argv is None:
+        return False, "gh_graphql did not invoke run_capture"
+    if "-f" not in argv or "id=PVTI_test" not in argv:
+        return False, f"gh_graphql did not pass string variables with -f: {argv!r}"
+    if "-F" not in argv or "count=7" not in argv:
+        return False, f"gh_graphql did not pass int variables with -F: {argv!r}"
+    if any(part.startswith("ignored=") for part in argv):
+        return False, f"gh_graphql should skip None-valued variables: {argv!r}"
+    return True, ""
 
 
 def run_plan_sync_parent_issue_case() -> tuple[bool, str]:
@@ -785,7 +795,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("sample mapping errors", run_sample_mapping_error_case),
         ("title helpers", run_title_helpers_case),
         ("sample consistency", run_sample_consistency_case),
-        ("gh pagination errors", run_gh_paginated_arrays_case),
+        ("gh graphql flags", run_gh_graphql_case),
         ("plan sync parent issue", run_plan_sync_parent_issue_case),
         ("fetch project fields", run_fetch_project_fields_case),
         ("fetch project items", run_fetch_project_items_case),
