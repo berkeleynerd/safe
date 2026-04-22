@@ -46,6 +46,8 @@ COMMENT_MARKER_RE = re.compile(r"<!--\s*([A-Za-z0-9:_-]+)\s*-->")
 class Keyword:
     label: str
     regex: re.Pattern[str]
+    skip_title_prefixes: tuple[str, ...] = ()
+    skip_title_suffixes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -107,6 +109,12 @@ class ProjectItem:
         if value := self.field_values.get("Rosetta URL"):
             return value
         return parse_rosetta_url_from_body(self.body)
+
+
+@dataclass(frozen=True)
+class IssueComment:
+    comment_id: str
+    body: str
 
 
 @dataclass(frozen=True)
@@ -241,29 +249,46 @@ FEATURE_KEYWORDS = (
 )
 
 
-def literal_keyword(label: str, literal: str) -> Keyword:
+def literal_keyword(
+    label: str,
+    literal: str,
+    *,
+    skip_title_prefixes: Iterable[str] = (),
+    skip_title_suffixes: Iterable[str] = (),
+) -> Keyword:
     escaped = re.escape(literal)
     escaped = escaped.replace(r"\ ", r"\s+")
     if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _/\-.:+]*", literal):
         pattern = rf"\b{escaped}\b"
     else:
         pattern = escaped
-    return Keyword(label=label, regex=re.compile(pattern, re.IGNORECASE))
+    return Keyword(
+        label=label,
+        regex=re.compile(pattern, re.IGNORECASE),
+        skip_title_prefixes=tuple(prefix.lower() for prefix in skip_title_prefixes),
+        skip_title_suffixes=tuple(suffix.lower() for suffix in skip_title_suffixes),
+    )
+
+
+def coerce_keyword(keyword: str | Keyword) -> Keyword:
+    if isinstance(keyword, Keyword):
+        return keyword
+    return literal_keyword(keyword, keyword)
 
 
 def make_rule(
     bucket: str,
     subbucket: str,
     *,
-    title_keywords: Iterable[str] = (),
-    body_keywords: Iterable[str] = (),
+    title_keywords: Iterable[str | Keyword] = (),
+    body_keywords: Iterable[str | Keyword] = (),
     feature_hints: Iterable[str] = (),
 ) -> Rule:
     return Rule(
         bucket=bucket,
         subbucket=subbucket,
-        title_keywords=tuple(literal_keyword(keyword, keyword) for keyword in title_keywords),
-        body_keywords=tuple(literal_keyword(keyword, keyword) for keyword in body_keywords),
+        title_keywords=tuple(coerce_keyword(keyword) for keyword in title_keywords),
+        body_keywords=tuple(coerce_keyword(keyword) for keyword in body_keywords),
         feature_hints=tuple(feature_hints),
     )
 
@@ -300,7 +325,7 @@ RULES = (
             "raster",
             "vector graphics",
             "graphics",
-            "animation",
+            literal_keyword("animation", "animation", skip_title_suffixes=("/text",)),
             "particle fountain",
         ),
         body_keywords=(
@@ -336,7 +361,13 @@ RULES = (
     make_rule(
         "4",
         "(none)",
-        title_keywords=("class instance", "classes", "inheritance", "unknown method call", "polymorphism"),
+        title_keywords=(
+            "class instance",
+            "classes",
+            "inheritance",
+            "unknown method call",
+            literal_keyword("polymorphism", "polymorphism", skip_title_prefixes=("parametric polymorphism",)),
+        ),
         body_keywords=("monkeypatching", "dynamic dispatch mechanism", "inheritance hierarchy", "based upon inheritance"),
     ),
     make_rule("3", "3a", title_keywords=("regex", "regular expression", "regular expressions"), feature_hints=("strings",)),
@@ -472,9 +503,9 @@ def classify_task(title: str, extract: str) -> tuple[str, str, str, tuple[str, .
     body_haystack = classification_extract(extract).lower()
     for rule in RULES:
         for keyword in rule.title_keywords:
-            if keyword.label == "animation" and title_haystack.endswith("/text"):
+            if any(title_haystack.startswith(prefix) for prefix in keyword.skip_title_prefixes):
                 continue
-            if keyword.label == "polymorphism" and title_haystack.startswith("parametric polymorphism"):
+            if any(title_haystack.endswith(suffix) for suffix in keyword.skip_title_suffixes):
                 continue
             if keyword.regex.search(title_haystack):
                 features = infer_features(title, extract, seed=rule.feature_hints)
@@ -920,15 +951,13 @@ def fetch_project_fields(project_number: int, *, owner: str) -> tuple[str, dict[
     return project_id, fields
 
 
-def fetch_project_items(project_number: int, *, owner: str, field_map: dict[str, ProjectField]) -> list[ProjectItem]:
-    requested_field_ids = sorted({field.rest_id for field in field_map.values()})
-    query = ",".join(str(field_id) for field_id in requested_field_ids)
+def fetch_project_items(project_number: int, *, owner: str) -> list[ProjectItem]:
     payload = gh_paginated_arrays(
         [
             "gh",
             "api",
             "--paginate",
-            f"/users/{owner}/projectsV2/{project_number}/items?per_page=100&fields={query}",
+            f"/users/{owner}/projectsV2/{project_number}/items?per_page=100",
             "-H",
             "Accept: application/vnd.github+json",
             "-H",
@@ -1189,7 +1218,8 @@ def sync_project(
     dry_run: bool,
 ) -> tuple[int, int]:
     if dry_run:
-        return len(plan.creates), len(plan.draft_updates) + len(plan.field_updates)
+        created_field_updates = sum(len(desired_field_values(record)) for record in plan.creates)
+        return len(plan.creates), created_field_updates + len(plan.draft_updates) + len(plan.field_updates)
 
     created_count = 0
     mutated_count = 0
@@ -1203,6 +1233,7 @@ def sync_project(
             for field_name, value in desired_field_values(record).items():
                 new_field_updates.append(FieldUpdate(item_id=item.item_id, field_name=field_name, value=value))
         apply_field_updates(project_id, field_map, new_field_updates)
+        mutated_count += len(new_field_updates)
 
     if plan.draft_updates:
         apply_draft_updates(list(plan.draft_updates))
@@ -1214,9 +1245,12 @@ def sync_project(
     return created_count, mutated_count
 
 
-def load_issue_comments(repo: str, issue_number: int) -> list[str]:
+def load_issue_comments(repo: str, issue_number: int) -> list[IssueComment]:
     payload = gh_json(["gh", "issue", "view", str(issue_number), "--repo", repo, "--json", "comments"])
-    return [comment["body"] for comment in payload.get("comments", [])]
+    comments: list[IssueComment] = []
+    for comment in payload.get("comments", []):
+        comments.append(IssueComment(comment_id=comment["id"], body=comment["body"]))
+    return comments
 
 
 def comment_marker(body: str) -> str | None:
@@ -1226,20 +1260,47 @@ def comment_marker(body: str) -> str | None:
     return match.group(1)
 
 
-def ensure_issue_comment(repo: str, issue_number: int, body: str, *, dry_run: bool) -> None:
-    existing = load_issue_comments(repo, issue_number)
-    marker = comment_marker(body)
-    if body in existing:
-        return
-    if marker is not None and any(comment_marker(existing_body) == marker for existing_body in existing):
-        return
-    if dry_run:
-        print(f"would comment on issue #{issue_number}:\n{body}\n")
-        return
+def update_issue_comment(comment_id: str, body: str) -> None:
+    gh_graphql(
+        """
+        mutation($id: ID!, $body: String!) {
+          updateIssueComment(input: {id: $id, body: $body}) {
+            issueComment {
+              id
+            }
+          }
+        }
+        """,
+        {"id": comment_id, "body": body},
+    )
+
+
+def post_issue_comment(repo: str, issue_number: int, body: str) -> None:
     completed = run_capture(["gh", "issue", "comment", str(issue_number), "--repo", repo, "--body", body])
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or f"exit code {completed.returncode}"
         raise RuntimeError(f"failed to comment on issue #{issue_number}: {detail}")
+
+
+def ensure_issue_comment(repo: str, issue_number: int, body: str, *, dry_run: bool) -> None:
+    existing = load_issue_comments(repo, issue_number)
+    marker = comment_marker(body)
+    for comment in existing:
+        if comment.body == body:
+            return
+    if marker is not None:
+        for comment in existing:
+            if comment_marker(comment.body) != marker:
+                continue
+            if dry_run:
+                print(f"would update issue comment {comment.comment_id} on issue #{issue_number}:\n{body}\n")
+                return
+            update_issue_comment(comment.comment_id, body)
+            return
+    if dry_run:
+        print(f"would comment on issue #{issue_number}:\n{body}\n")
+        return
+    post_issue_comment(repo, issue_number, body)
 
 
 def build_delta_comment(category_size: int, task_count: int, fetched_at: str) -> str:
@@ -1455,7 +1516,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         project_id, field_map = fetch_project_fields(args.project_number, owner=args.owner)
-        existing_items = fetch_project_items(args.project_number, owner=args.owner, field_map=field_map)
+        existing_items = fetch_project_items(args.project_number, owner=args.owner)
     except RuntimeError as exc:
         print(f"rosetta_inventory: ERROR: {exc}", file=sys.stderr)
         return 1

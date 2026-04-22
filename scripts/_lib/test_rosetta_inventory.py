@@ -420,13 +420,6 @@ def run_fetch_project_items_case() -> tuple[bool, str]:
     original_gh_paginated_arrays = inventory.gh_paginated_arrays
     captured: dict[str, list[str]] = {}
 
-    field_map = {
-        "Bucket": inventory.ProjectField("Bucket", "field-bucket", 101, "single_select", {"1": "option-1"}),
-        "Porting Status": inventory.ProjectField("Porting Status", "field-porting", 102, "single_select", {"ported": "option-2"}),
-        "Rosetta URL": inventory.ProjectField("Rosetta URL", "field-url", 103, "text", {}),
-        "Features Used": inventory.ProjectField("Features Used", "field-features", 104, "text", {}),
-    }
-
     def fake_gh_paginated_arrays(argv: list[str]) -> list[dict[str, object]]:
         captured["argv"] = list(argv)
         return [
@@ -445,7 +438,7 @@ def run_fetch_project_items_case() -> tuple[bool, str]:
 
     inventory.gh_paginated_arrays = fake_gh_paginated_arrays
     try:
-        items = inventory.fetch_project_items(5, owner="berkeleynerd", field_map=field_map)
+        items = inventory.fetch_project_items(5, owner="berkeleynerd")
     finally:
         inventory.gh_paginated_arrays = original_gh_paginated_arrays
 
@@ -453,6 +446,8 @@ def run_fetch_project_items_case() -> tuple[bool, str]:
         return False, f"fetch_project_items did not request pagination: {captured.get('argv')!r}"
     if f"X-GitHub-Api-Version: {inventory.GITHUB_API_VERSION}" not in captured.get("argv", []):
         return False, f"fetch_project_items did not use the stable API version: {captured.get('argv')!r}"
+    if any("fields=" in arg for arg in captured.get("argv", [])):
+        return False, f"fetch_project_items still requested dead fields filtering: {captured.get('argv')!r}"
     if len(items) != 1:
         return False, f"expected one parsed project item, got {items!r}"
     item = items[0]
@@ -480,18 +475,28 @@ def run_text_value_raw_case() -> tuple[bool, str]:
 
 def run_issue_comment_marker_case() -> tuple[bool, str]:
     original_load_issue_comments = inventory.load_issue_comments
-    original_run_capture = inventory.run_capture
-    called = {"value": False}
+    original_post_issue_comment = inventory.post_issue_comment
+    original_update_issue_comment = inventory.update_issue_comment
+    posted = {"value": False}
+    updated: list[tuple[str, str]] = []
 
-    def fake_load_issue_comments(repo: str, issue_number: int) -> list[str]:
-        return [inventory.build_delta_comment(category_size=10, task_count=9, fetched_at="2026-04-21T00:00:00Z")]
+    def fake_load_issue_comments(repo: str, issue_number: int) -> list[inventory.IssueComment]:
+        return [
+            inventory.IssueComment(
+                comment_id="IC_existing",
+                body=inventory.build_delta_comment(category_size=10, task_count=9, fetched_at="2026-04-21T00:00:00Z"),
+            )
+        ]
 
-    def fake_run_capture(argv: list[str]) -> subprocess.CompletedProcess[str]:
-        called["value"] = True
-        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+    def fake_post_issue_comment(repo: str, issue_number: int, body: str) -> None:
+        posted["value"] = True
+
+    def fake_update_issue_comment(comment_id: str, body: str) -> None:
+        updated.append((comment_id, body))
 
     inventory.load_issue_comments = fake_load_issue_comments
-    inventory.run_capture = fake_run_capture
+    inventory.post_issue_comment = fake_post_issue_comment
+    inventory.update_issue_comment = fake_update_issue_comment
     try:
         inventory.ensure_issue_comment(
             "berkeleynerd/safe",
@@ -501,10 +506,84 @@ def run_issue_comment_marker_case() -> tuple[bool, str]:
         )
     finally:
         inventory.load_issue_comments = original_load_issue_comments
-        inventory.run_capture = original_run_capture
+        inventory.post_issue_comment = original_post_issue_comment
+        inventory.update_issue_comment = original_update_issue_comment
 
-    if called["value"]:
-        return False, "ensure_issue_comment posted a duplicate marker-matched comment"
+    if posted["value"]:
+        return False, "ensure_issue_comment posted a new comment instead of updating the marker-matched comment"
+    if updated != [
+        (
+            "IC_existing",
+            inventory.build_delta_comment(category_size=10, task_count=9, fetched_at="2026-04-22T00:00:00Z"),
+        )
+    ]:
+        return False, f"ensure_issue_comment did not update the marker-matched comment in place: {updated!r}"
+    return True, ""
+
+
+def run_sync_project_count_case() -> tuple[bool, str]:
+    record = make_record("Factorial")
+    plan = inventory.SyncPlan(
+        creates=(record,),
+        draft_updates=(),
+        field_updates=(),
+        unchanged=0,
+        missing=(),
+    )
+    expected_field_updates = len(inventory.desired_field_values(record))
+
+    dry_created, dry_mutated = inventory.sync_project(
+        "project-id",
+        {},
+        plan,
+        {record.url: record},
+        dry_run=True,
+    )
+    if (dry_created, dry_mutated) != (1, expected_field_updates):
+        return False, f"dry-run sync counts were {(dry_created, dry_mutated)!r}, expected {(1, expected_field_updates)!r}"
+
+    original_create_project_items = inventory.create_project_items
+    original_apply_field_updates = inventory.apply_field_updates
+    field_update_batches: list[list[inventory.FieldUpdate]] = []
+
+    def fake_create_project_items(project_id: str, records: list[inventory.InventoryRecord]) -> dict[str, inventory.ProjectItem]:
+        created_record = records[0]
+        return {
+            created_record.url: inventory.ProjectItem(
+                item_id="PVTI_created",
+                content_type="DraftIssue",
+                title=created_record.title,
+                body=inventory.build_item_body(created_record),
+                field_values={},
+                draft_issue_id="DI_created",
+            )
+        }
+
+    def fake_apply_field_updates(
+        project_id: str,
+        field_map: dict[str, inventory.ProjectField],
+        field_updates: list[inventory.FieldUpdate],
+    ) -> None:
+        field_update_batches.append(list(field_updates))
+
+    inventory.create_project_items = fake_create_project_items
+    inventory.apply_field_updates = fake_apply_field_updates
+    try:
+        created, mutated = inventory.sync_project(
+            "project-id",
+            {},
+            plan,
+            {record.url: record},
+            dry_run=False,
+        )
+    finally:
+        inventory.create_project_items = original_create_project_items
+        inventory.apply_field_updates = original_apply_field_updates
+
+    if created != 1 or mutated != expected_field_updates:
+        return False, f"sync counts were {(created, mutated)!r}, expected {(1, expected_field_updates)!r}"
+    if len(field_update_batches) != 1 or len(field_update_batches[0]) != expected_field_updates:
+        return False, f"created item field updates were not applied as expected: {field_update_batches!r}"
     return True, ""
 
 
@@ -617,6 +696,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("fetch project items", run_fetch_project_items_case),
         ("text value raw", run_text_value_raw_case),
         ("issue comment marker", run_issue_comment_marker_case),
+        ("sync project counts", run_sync_project_count_case),
         ("review placeholder", run_review_placeholder_case),
         ("review sample", run_review_sample_case),
     ]
