@@ -154,8 +154,17 @@ jobs:
             if gh label create \
               --repo "$GITHUB_REPOSITORY" \
               "$name" \
-              --color "$color" \
-              --force >/dev/null 2>&1
+              --color "$color" >/dev/null 2>&1
+            then
+              return 0
+            fi
+
+            if gh label list \
+              --repo "$GITHUB_REPOSITORY" \
+              --limit 200 \
+              --json name \
+              --jq '.[].name' \
+              | grep -Fxq "$name"
             then
               return 0
             fi
@@ -201,7 +210,8 @@ jobs:
             if gh issue list \
               --repo "$GITHUB_REPOSITORY" \
               --state open \
-              --limit 1000 \
+              --search "\"${title}\" in:title" \
+              --limit 1 \
               --json title \
               --jq '.[].title' \
               | grep -Fxq "$title"
@@ -240,11 +250,14 @@ jobs:
               'worth investigation.' \
               > "${body_file}"
 
-            gh issue create \
+            if ! gh issue create \
               --repo "$GITHUB_REPOSITORY" \
               --title "$title" \
               "${label_args[@]}" \
               --body-file "${body_file}"
+            then
+              echo "warning: failed to create alarm issue for ${job_name}" >&2
+            fi
 
             rm -f "${body_file}"
           done
