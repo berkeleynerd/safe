@@ -243,12 +243,34 @@ def run_sample_mapping_case() -> tuple[bool, str]:
         )
         for title in sorted(set(inventory.PORTED_SAMPLE_TITLE_ALIASES.values()))
     ]
-    ported_urls, warnings = inventory.resolve_ported_sample_urls(records)
+    try:
+        ported_urls, warnings = inventory.resolve_ported_sample_urls(records)
+    except RuntimeError as exc:
+        return False, str(exc)
     expected_count = len(inventory.PORTED_SAMPLE_TITLE_ALIASES)
     if len(ported_urls) != expected_count:
         return False, f"expected {expected_count} ported sample URLs, got {len(ported_urls)}"
     if len(warnings) != len(inventory.LOCAL_ONLY_SAMPLE_PATHS):
         return False, f"expected {len(inventory.LOCAL_ONLY_SAMPLE_PATHS)} local-only warnings, got {len(warnings)}"
+    return True, ""
+
+
+def run_sample_mapping_error_case() -> tuple[bool, str]:
+    original_resolve_ported_sample_urls = inventory.resolve_ported_sample_urls
+
+    def fake_resolve_ported_sample_urls(_records: list[inventory.InventoryRecord]) -> tuple[set[str], list[str]]:
+        raise RuntimeError("sample mapping exploded")
+
+    inventory.resolve_ported_sample_urls = fake_resolve_ported_sample_urls
+    try:
+        ok, detail = run_sample_mapping_case()
+    finally:
+        inventory.resolve_ported_sample_urls = original_resolve_ported_sample_urls
+
+    if ok:
+        return False, "sample mapping case unexpectedly succeeded after a resolve_ported_sample_urls failure"
+    if detail != "sample mapping exploded":
+        return False, f"unexpected sample mapping error detail {detail!r}"
     return True, ""
 
 
@@ -535,6 +557,22 @@ def run_review_sample_case() -> tuple[bool, str]:
                     porting_status="not-started",
                 )
             )
+    for index in range(3):
+        title = f"Sample 4-4e-{index:02d}"
+        records.append(
+            inventory.InventoryRecord(
+                title=title,
+                url=inventory.title_to_url(title),
+                extract="",
+                bucket="4",
+                subbucket="4e",
+                matched_rule="default",
+                difficulty="moderate",
+                rosetta_category=inventory.title_to_rosetta_category(title),
+                features=("functions",),
+                porting_status="not-started",
+            )
+        )
 
     sample = inventory.build_review_sample(records)
     if len(sample) != sum(inventory.REVIEW_SAMPLE_QUOTAS.values()):
@@ -558,6 +596,8 @@ def run_review_sample_case() -> tuple[bool, str]:
         return False, "review sample markdown is missing expected bucket sections"
     if "result: `confirmed`" not in markdown:
         return False, "review sample markdown is missing expected sections or anchor confirmation markers"
+    if "Review sample omissions:" not in markdown or "`4/4e` omitted from the deterministic 50-task sample by design" not in markdown:
+        return False, "review sample markdown is missing the expected omitted-bucket note"
     return True, ""
 
 
@@ -568,6 +608,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("classification", run_classification_case),
         ("body round-trip", run_body_roundtrip_case),
         ("sample mapping", run_sample_mapping_case),
+        ("sample mapping errors", run_sample_mapping_error_case),
         ("title helpers", run_title_helpers_case),
         ("sample consistency", run_sample_consistency_case),
         ("gh pagination errors", run_gh_paginated_arrays_case),

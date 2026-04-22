@@ -150,6 +150,9 @@ REVIEW_SAMPLE_QUOTAS: dict[tuple[str, str], int] = {
     ("4", "4c"): 3,
     ("4", "4d"): 1,
 }
+# The deterministic review sample stays fixed at 50 tasks. Bucket 4e is
+# intentionally excluded because platform-specific tasks are already out of
+# scope through v1.0 and do not inform the current porting burn-down.
 
 REVIEW_SAMPLE_ANCHOR_TITLES = (
     "Hello world/Text",
@@ -1360,6 +1363,15 @@ def build_review_sample(records: Iterable[InventoryRecord]) -> list[InventoryRec
     return selected
 
 
+def review_sample_omissions(records: Iterable[InventoryRecord]) -> dict[tuple[str, str], int]:
+    counts = bucket_summary(records)
+    return {
+        bucket_key: count
+        for bucket_key, count in sorted(counts.items())
+        if count and bucket_key not in REVIEW_SAMPLE_QUOTAS
+    }
+
+
 def review_result_placeholder(record: InventoryRecord) -> str:
     return "confirmed" if record.title in REVIEW_SAMPLE_ANCHOR_TITLE_SET else "pending-review"
 
@@ -1379,7 +1391,8 @@ def review_rationale(record: InventoryRecord) -> str:
 
 def build_review_sample_markdown(records: Iterable[InventoryRecord]) -> str:
     sections: list[str] = []
-    sample = build_review_sample(records)
+    all_records = list(records)
+    sample = build_review_sample(all_records)
     grouped: dict[tuple[str, str], list[InventoryRecord]] = {}
     for record in sample:
         grouped.setdefault((record.bucket, record.subbucket), []).append(record)
@@ -1392,6 +1405,14 @@ def build_review_sample_markdown(records: Iterable[InventoryRecord]) -> str:
         for record in bucket_records:
             sections.append(
                 f"- `{record.title}` — `{record.bucket}/{record.subbucket}` — {review_rationale(record)} — result: `{review_result_placeholder(record)}`"
+            )
+    omitted = review_sample_omissions(all_records)
+    if omitted:
+        sections.append("")
+        sections.append("Review sample omissions:")
+        for (bucket, subbucket), count in omitted.items():
+            sections.append(
+                f"- `{bucket}/{subbucket}` omitted from the deterministic 50-task sample by design ({count} inventory record(s) present)."
             )
     return "\n".join(sections)
 
