@@ -8,6 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _lib import proof_eval
 from _lib.proof_eval import (
     allow_clean_nonzero_gnatprove_exit,
     first_message as proof_eval_first_message,
@@ -167,6 +168,116 @@ def run_proof_eval_clean_nonzero_case() -> tuple[bool, str]:
     return True, ""
 
 
+def run_proof_eval_check_mode_success_case() -> tuple[bool, str]:
+    toolchain = proof_eval.ProofToolchain(
+        safec=SAFE_CLI,
+        alr="alr",
+        gnatprove="gnatprove",
+        env={},
+    )
+    calls: list[list[str]] = []
+    original_run_command = proof_eval.run_command
+    original_parse_summary = proof_eval.parse_gnatprove_summary
+    try:
+        def fake_run_command(
+            argv: list[str],
+            *,
+            cwd: Path,
+            env: dict[str, str] | None = None,
+            timeout: int | None = None,
+        ) -> subprocess.CompletedProcess[str]:
+            calls.append(argv)
+            return subprocess.CompletedProcess(argv, 0, "", "")
+
+        def unexpected_parse_summary(_summary_path: Path) -> object:
+            raise AssertionError("check mode should not parse GNATprove summaries")
+
+        proof_eval.run_command = fake_run_command
+        proof_eval.parse_gnatprove_summary = unexpected_parse_summary
+        passed, detail = proof_eval.run_gnatprove_project(
+            project_dir=REPO_ROOT,
+            project_file="demo.gpr",
+            toolchain=toolchain,
+            proof_mode="check",
+        )
+    except AssertionError as exc:
+        return False, str(exc)
+    finally:
+        proof_eval.run_command = original_run_command
+        proof_eval.parse_gnatprove_summary = original_parse_summary
+
+    if not passed or detail:
+        return False, f"expected check mode success, got passed={passed} detail={detail!r}"
+    expected_argv = ["alr", "exec", "--", "gnatprove", "-P", "demo.gpr", *proof_eval.CHECK_SWITCHES]
+    if calls != [expected_argv]:
+        return False, f"unexpected check-mode invocation {calls!r}"
+    return True, ""
+
+
+def run_proof_eval_check_mode_failure_case() -> tuple[bool, str]:
+    toolchain = proof_eval.ProofToolchain(
+        safec=SAFE_CLI,
+        alr="alr",
+        gnatprove="gnatprove",
+        env={},
+    )
+    original_run_command = proof_eval.run_command
+    original_parse_summary = proof_eval.parse_gnatprove_summary
+    try:
+        def fake_run_command(
+            argv: list[str],
+            *,
+            cwd: Path,
+            env: dict[str, str] | None = None,
+            timeout: int | None = None,
+        ) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(argv, 1, "", "gnatprove: legality failed\n")
+
+        def unexpected_parse_summary(_summary_path: Path) -> object:
+            raise AssertionError("check mode should not parse GNATprove summaries")
+
+        proof_eval.run_command = fake_run_command
+        proof_eval.parse_gnatprove_summary = unexpected_parse_summary
+        passed, detail = proof_eval.run_gnatprove_project(
+            project_dir=REPO_ROOT,
+            project_file="demo.gpr",
+            toolchain=toolchain,
+            proof_mode="check",
+        )
+    except AssertionError as exc:
+        return False, str(exc)
+    finally:
+        proof_eval.run_command = original_run_command
+        proof_eval.parse_gnatprove_summary = original_parse_summary
+
+    if passed:
+        return False, "check mode unexpectedly succeeded"
+    if detail != "check failed: gnatprove: legality failed":
+        return False, f"unexpected check-mode failure detail {detail!r}"
+    return True, ""
+
+
+def run_proof_eval_invalid_mode_case() -> tuple[bool, str]:
+    toolchain = proof_eval.ProofToolchain(
+        safec=SAFE_CLI,
+        alr="alr",
+        gnatprove="gnatprove",
+        env={},
+    )
+    try:
+        proof_eval.run_gnatprove_project(
+            project_dir=REPO_ROOT,
+            project_file="demo.gpr",
+            toolchain=toolchain,
+            proof_mode="bogus",
+        )
+    except ValueError as exc:
+        if str(exc) != "unsupported proof mode: bogus":
+            return False, f"unexpected invalid-mode error {exc!r}"
+        return True, ""
+    return False, "invalid proof mode unexpectedly succeeded"
+
+
 
 def run_internal_proof_checks() -> RunCounts:
     passed = 0
@@ -174,6 +285,9 @@ def run_internal_proof_checks() -> RunCounts:
     passed += record_result(failures, "proof-inventory-coverage", run_proof_inventory_coverage_case())
     passed += record_result(failures, "proof-eval-message-priority", run_proof_eval_message_priority_case())
     passed += record_result(failures, "proof-eval-clean-nonzero", run_proof_eval_clean_nonzero_case())
+    passed += record_result(failures, "proof-eval-check-mode-success", run_proof_eval_check_mode_success_case())
+    passed += record_result(failures, "proof-eval-check-mode-failure", run_proof_eval_check_mode_failure_case())
+    passed += record_result(failures, "proof-eval-invalid-mode", run_proof_eval_invalid_mode_case())
     return passed, 0, failures
 
 
