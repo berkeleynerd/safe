@@ -126,6 +126,18 @@ and reply on the PR, but it is not allowed to check out or execute PR code. If
 an `@claude` request needs code changes or command execution, handle it through
 a local agent run or a normal PR update instead of the comment workflow.
 
+The interactive workflow keeps the triggering `@claude ...` comment as the user
+request. Static guardrails belong in the Claude CLI system prompt layer, not in
+the action `prompt:` field.
+
+The workflow `--allowedTools` entries intentionally narrow access to specific
+`gh pr ...` subcommands, but those wildcards do not sanitize shell arguments by
+themselves. Behavioral prompt/system-prompt guardrails remain load-bearing.
+
+The trusted inline-comment MCP capability used by the security workflow comes
+from the pinned `anthropics/claude-code-action` bundle and should be re-audited
+whenever that action SHA changes.
+
 Preferred publishing flow:
 
 ```bash
