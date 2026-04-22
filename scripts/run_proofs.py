@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Run the live all-proved-only Safe proof workflow."""
+"""Run the Safe proof workflow in full prove or fast check mode."""
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import tempfile
@@ -160,11 +161,13 @@ def run_companion_project(
     project_dir: Path,
     project_file: str,
     toolchain: ProofToolchain,
+    proof_mode: str,
 ) -> tuple[bool, str]:
     return run_gnatprove_project(
         project_dir=project_dir,
         project_file=project_file,
         toolchain=toolchain,
+        proof_mode=proof_mode,
     )
 
 
@@ -173,10 +176,11 @@ def print_summary(
     passed: int,
     failures: list[tuple[str, str]],
     title: str | None = None,
+    passed_label: str = "proved",
     trailing_blank_line: bool = False,
 ) -> None:
     prefix = f"{title}: " if title is not None else ""
-    print(f"{prefix}{passed} proved, {len(failures)} failed")
+    print(f"{prefix}{passed} {passed_label}, {len(failures)} failed")
     if failures:
         print("Failures:")
         for label, detail in failures:
@@ -194,20 +198,23 @@ def run_fixture_group(
     fixtures: list[str],
     temp_root: Path,
     toolchain: ProofToolchain,
+    proof_mode: str,
     prove_switches: list[str] | None = None,
     command_timeout: int | None = None,
 ) -> tuple[int, list[tuple[str, str]]]:
     passed = 0
     failures: list[tuple[str, str]] = []
 
+    action = "checking" if proof_mode == "check" else "proving"
     for fixture_rel in fixtures:
-        print_progress(f"proving {fixture_rel}")
+        print_progress(f"{action} {fixture_rel}")
         source = REPO_ROOT / fixture_rel
         result = run_source_proof(
             toolchain=toolchain,
             source=source,
             proof_root=temp_root / source.stem,
             run_check=False,
+            proof_mode=proof_mode,
             prove_switches=prove_switches,
             command_timeout=command_timeout,
         )
@@ -219,7 +226,23 @@ def run_fixture_group(
     return passed, failures
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--mode",
+        choices=("prove", "check"),
+        default="prove",
+        help="Run full proof (default) or fast legality-only gnatprove check.",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
+    proof_mode = args.mode
+    passed_label = "checked" if proof_mode == "check" else "proved"
+    companion_action = "checking" if proof_mode == "check" else "proving"
+
     try:
         validate_manifests()
         toolchain = prepare_proof_toolchain(env=os.environ.copy())
@@ -292,11 +315,12 @@ def main() -> int:
 
     for project_rel, project_file in COMPANION_PROJECTS:
         project_dir = REPO_ROOT / project_rel
-        print_progress(f"proving {project_rel}/{project_file}")
+        print_progress(f"{companion_action} {project_rel}/{project_file}")
         ok, detail = run_companion_project(
             project_dir=project_dir,
             project_file=project_file,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         if ok:
             companion_passed += 1
@@ -309,136 +333,163 @@ def main() -> int:
             fixtures=PR11_8A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_b_passed, checkpoint_b_failures = run_fixture_group(
             fixtures=PR11_8B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_e_passed, checkpoint_e_failures = run_fixture_group(
             fixtures=PR11_8E_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_f_passed, checkpoint_f_failures = run_fixture_group(
             fixtures=PR11_8F_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_g1_passed, checkpoint_g1_failures = run_fixture_group(
             fixtures=PR11_8G1_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_g2_passed, checkpoint_g2_failures = run_fixture_group(
             fixtures=PR11_8G2_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_i_passed, checkpoint_i_failures = run_fixture_group(
             fixtures=PR11_8I_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_i1_passed, checkpoint_i1_failures = run_fixture_group(
             fixtures=PR11_8I1_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_k_passed, checkpoint_k_failures = run_fixture_group(
             fixtures=PR11_8K_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_10a_passed, checkpoint_10a_failures = run_fixture_group(
             fixtures=PR11_10A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_10b_passed, checkpoint_10b_failures = run_fixture_group(
             fixtures=PR11_10B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_10c_passed, checkpoint_10c_failures = run_fixture_group(
             fixtures=PR11_10C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_11a_passed, checkpoint_11a_failures = run_fixture_group(
             fixtures=PR11_11A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_11b_passed, checkpoint_11b_failures = run_fixture_group(
             fixtures=PR11_11B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_11c_passed, checkpoint_11c_failures = run_fixture_group(
             fixtures=PR11_11C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_12a_passed, checkpoint_12a_failures = run_fixture_group(
             fixtures=PR11_12A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_12b_passed, checkpoint_12b_failures = run_fixture_group(
             fixtures=PR11_12B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_12c_passed, checkpoint_12c_failures = run_fixture_group(
             fixtures=PR11_12C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_12d_passed, checkpoint_12d_failures = run_fixture_group(
             fixtures=PR11_12D_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_12e_passed, checkpoint_12e_failures = run_fixture_group(
             fixtures=PR11_12E_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_12f_passed, checkpoint_12f_failures = run_fixture_group(
             fixtures=PR11_12F_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_13a_passed, checkpoint_13a_failures = run_fixture_group(
             fixtures=PR11_13A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_13b_passed, checkpoint_13b_failures = run_fixture_group(
             fixtures=PR11_13B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_13c_passed, checkpoint_13c_failures = run_fixture_group(
             fixtures=PR11_13C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_16_passed, checkpoint_16_failures = run_fixture_group(
             fixtures=PR11_16_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         checkpoint_23_expansion_passed, checkpoint_23_expansion_failures = run_fixture_group(
             fixtures=PR11_23_PROOF_EXPANSION_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
         regression_passed, regression_failures = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
+            proof_mode=proof_mode,
         )
 
     checkpoint_10d_passed = (
@@ -537,189 +588,220 @@ def main() -> int:
         passed=companion_passed,
         failures=companion_failures,
         title="Companion baselines",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_a_passed,
         failures=checkpoint_a_failures,
         title="PR11.8a checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_b_passed,
         failures=checkpoint_b_failures,
         title="PR11.8b checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_e_passed,
         failures=checkpoint_e_failures,
         title="PR11.8e checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_f_passed,
         failures=checkpoint_f_failures,
         title="PR11.8f checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_g1_passed,
         failures=checkpoint_g1_failures,
         title="PR11.8g.1 checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_g2_passed,
         failures=checkpoint_g2_failures,
         title="PR11.8g.2 checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_i_passed,
         failures=checkpoint_i_failures,
         title="PR11.8i checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_i1_passed,
         failures=checkpoint_i1_failures,
         title="PR11.8i.1 checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_k_passed,
         failures=checkpoint_k_failures,
         title="PR11.8k checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_10a_passed,
         failures=checkpoint_10a_failures,
         title="PR11.10a checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_10b_passed,
         failures=checkpoint_10b_failures,
         title="PR11.10b checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_10c_passed,
         failures=checkpoint_10c_failures,
         title="PR11.10c checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_10d_passed,
         failures=checkpoint_10d_failures,
         title="PR11.10d checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_11a_passed,
         failures=checkpoint_11a_failures,
         title="PR11.11a checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_11b_passed,
         failures=checkpoint_11b_failures,
         title="PR11.11b checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_11c_passed,
         failures=checkpoint_11c_failures,
         title="PR11.11c checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12a_passed,
         failures=checkpoint_12a_failures,
         title="PR11.12a checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12b_passed,
         failures=checkpoint_12b_failures,
         title="PR11.12b checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12c_passed,
         failures=checkpoint_12c_failures,
         title="PR11.12c checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12d_passed,
         failures=checkpoint_12d_failures,
         title="PR11.12d checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12e_passed,
         failures=checkpoint_12e_failures,
         title="PR11.12e checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12f_passed,
         failures=checkpoint_12f_failures,
         title="PR11.12f checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_12_passed,
         failures=checkpoint_12_failures,
         title="PR11.12 checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_13a_passed,
         failures=checkpoint_13a_failures,
         title="PR11.13a checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_13b_passed,
         failures=checkpoint_13b_failures,
         title="PR11.13b checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_13c_passed,
         failures=checkpoint_13c_failures,
         title="PR11.13c checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_13_passed,
         failures=checkpoint_13_failures,
         title="PR11.13 checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_16_passed,
         failures=checkpoint_16_failures,
         title="PR11.16 checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=checkpoint_23_expansion_passed,
         failures=checkpoint_23_expansion_failures,
         title="PR11.23 proof-expansion checkpoint",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
     print_summary(
         passed=regression_passed,
         failures=regression_failures,
         title="Emitted proof regressions",
+        passed_label=passed_label,
         trailing_blank_line=True,
     )
-    print_summary(passed=total_passed, failures=total_failures)
+    print_summary(passed=total_passed, failures=total_failures, passed_label=passed_label)
     return 0 if not total_failures else 1
 
 

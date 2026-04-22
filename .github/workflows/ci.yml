@@ -1,13 +1,19 @@
 name: CI
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+  push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
 
 env:
   PYTHONHASHSEED: "0"
@@ -17,20 +23,28 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      - name: PR fast-lane placeholder
+        if: github.event_name == 'pull_request'
+        run: 'echo "PR fast lane: full Test sweep is deferred to the merge queue."'
+      - if: github.event_name != 'pull_request'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - if: github.event_name != 'pull_request'
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.12"
-      - uses: ./.github/actions/setup-alire
-      - run: python3 scripts/run_tests.py
-      - run: python3 scripts/run_samples.py
+      - if: github.event_name != 'pull_request'
+        uses: ./.github/actions/setup-alire
+      - if: github.event_name != 'pull_request'
+        run: python3 scripts/run_tests.py
+      - if: github.event_name != 'pull_request'
+        run: python3 scripts/run_samples.py
 
   prove:
     name: Prove
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -38,19 +52,29 @@ jobs:
         with:
           python-version: "3.12"
       - uses: ./.github/actions/setup-alire
-      - run: python3 scripts/run_proofs.py
+      - if: github.event_name == 'pull_request'
+        run: python3 scripts/run_proofs.py --mode=check
+      - if: github.event_name != 'pull_request'
+        run: python3 scripts/run_proofs.py
 
   embedded:
     name: Embedded
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      - name: PR fast-lane placeholder
+        if: github.event_name == 'pull_request'
+        run: 'echo "PR fast lane: full Embedded sweep is deferred to the merge queue."'
+      - if: github.event_name != 'pull_request'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - if: github.event_name != 'pull_request'
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.12"
-      - uses: ./.github/actions/setup-alire
-      - name: Install host gprbuild
+      - if: github.event_name != 'pull_request'
+        uses: ./.github/actions/setup-alire
+      - if: github.event_name != 'pull_request'
+        name: Install host gprbuild
         shell: bash
         run: |
           set -euo pipefail
@@ -62,7 +86,8 @@ jobs:
             exit 1
           fi
           echo "${host_gprbuild_root}/bin" >> "${GITHUB_PATH}"
-      - name: Install ARM cross toolchain
+      - if: github.event_name != 'pull_request'
+        name: Install ARM cross toolchain
         shell: bash
         run: |
           set -euo pipefail
@@ -74,7 +99,8 @@ jobs:
             exit 1
           fi
           echo "${arm_toolchain_root}/bin" >> "${GITHUB_PATH}"
-      - name: Install Renode portable
+      - if: github.event_name != 'pull_request'
+        name: Install Renode portable
         shell: bash
         run: |
           set -euo pipefail
@@ -87,4 +113,160 @@ jobs:
           printf '%s  %s\n' "${renode_sha256}" "${archive}" | sha256sum -c -
           tar xf "${archive}" -C "${renode_root}" --strip-components=1
           echo "${renode_root}" >> "${GITHUB_PATH}"
-      - run: python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency
+      - if: github.event_name != 'pull_request'
+        run: python3 scripts/run_embedded_smoke.py --target stm32f4 --suite concurrency
+
+  main-ci-alarm:
+    name: Main-CI-Alarm
+    if: >
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+    needs: [test, prove, embedded]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: File deduplicated alarm issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          TEST_RESULT: ${{ needs.test.result }}
+          PROVE_RESULT: ${{ needs.prove.result }}
+          EMBEDDED_RESULT: ${{ needs.embedded.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          declare -a failed_jobs=()
+
+          if [[ "$TEST_RESULT" == "failure" || "$TEST_RESULT" == "cancelled" ]]; then
+            failed_jobs+=("Test")
+          fi
+          if [[ "$PROVE_RESULT" == "failure" || "$PROVE_RESULT" == "cancelled" ]]; then
+            failed_jobs+=("Prove")
+          fi
+          if [[ "$EMBEDDED_RESULT" == "failure" || "$EMBEDDED_RESULT" == "cancelled" ]]; then
+            failed_jobs+=("Embedded")
+          fi
+
+          if [[ ${#failed_jobs[@]} -eq 0 ]]; then
+            echo "No failing main CI jobs."
+            exit 0
+          fi
+
+          ensure_label() {
+            local name="$1"
+            local color="$2"
+
+            if gh label create \
+              --repo "$GITHUB_REPOSITORY" \
+              "$name" \
+              --color "$color" >/dev/null 2>&1
+            then
+              return 0
+            fi
+
+            if gh label view \
+              --repo "$GITHUB_REPOSITORY" \
+              "$name" >/dev/null 2>&1
+            then
+              return 0
+            fi
+
+            echo "warning: failed to ensure label '$name'; continuing without it" >&2
+            return 1
+          }
+
+          has_available_label() {
+            local wanted="$1"
+            local label
+
+            for label in "${available_labels[@]}"; do
+              if [[ "$label" == "$wanted" ]]; then
+                return 0
+              fi
+            done
+
+            return 1
+          }
+
+          declare -a available_labels=()
+          for spec in \
+            "bug:d73a4a" \
+            "infrastructure:5319e7" \
+            "compile:0052cc" \
+            "proof-surface-boundary:0e8a16"
+          do
+            label_name="${spec%%:*}"
+            label_color="${spec#*:}"
+            if ensure_label "$label_name" "$label_color"; then
+              available_labels+=("$label_name")
+            fi
+          done
+
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          for job_name in "${failed_jobs[@]}"; do
+            title="Main CI regression: ${job_name}"
+
+            # Only dedupe against open issues. If a prior regression was fixed
+            # and closed, a later recurrence should open a fresh issue.
+            if gh issue list \
+              --repo "$GITHUB_REPOSITORY" \
+              --state open \
+              --search "\"${title}\" in:title" \
+              --limit 50 \
+              --json title \
+              --jq '.[].title' \
+              | grep -Fxq "$title"
+            then
+              echo "Open alarm already exists for ${job_name}."
+              continue
+            fi
+
+            label_args=()
+            if has_available_label bug; then
+              label_args+=(--label bug)
+            fi
+            if has_available_label infrastructure; then
+              label_args+=(--label infrastructure)
+            fi
+            if [[ "$job_name" == "Prove" ]]; then
+              if has_available_label proof-surface-boundary; then
+                label_args+=(--label proof-surface-boundary)
+              fi
+            elif [[ "$job_name" == "Test" ]]; then
+              if has_available_label compile; then
+                label_args+=(--label compile)
+              fi
+            fi
+
+            body_file="$(mktemp)"
+            printf '%s\n' \
+              'Post-merge CI failed on `main`.' \
+              '' \
+              "- Job: \`${job_name}\`" \
+              "- Commit: \`${GITHUB_SHA}\`" \
+              "- Run: ${run_url}" \
+              '' \
+              'This job already passed the merge-queue gate for the merge candidate. A failure' \
+              'here indicates merge-queue escape, infrastructure drift, or a race/inconsistency' \
+              'worth investigation.' \
+              > "${body_file}"
+
+            if ! gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$title" \
+              "${label_args[@]}" \
+              --body-file "${body_file}"
+            then
+              echo "warning: failed to create alarm issue for ${job_name}" >&2
+            fi
+
+            rm -f "${body_file}"
+          done

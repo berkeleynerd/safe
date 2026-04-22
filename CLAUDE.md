@@ -42,6 +42,32 @@ python3 scripts/snapshot_emitted_ada.py --check
 - Supported: local Linux and Ubuntu-based CI
 - Unsupported: macOS and Windows
 
+## CI Structure
+
+- `.github/workflows/ci.yml` runs on PR events, merge-queue candidates, manual
+  `workflow_dispatch`, and pushes to `main`.
+- PR events are intentionally fast:
+  - `Prove` runs `python3 scripts/run_proofs.py --mode=check`
+  - `Test` and `Embedded` report deferred fast-lane status and do not run the
+    full sweep on PR pushes
+- Full repo CI runs on merge-queue candidates, manual `workflow_dispatch`, and
+  pushes to `main`.
+- The merge queue is the only full pre-merge repo gate. `Test`, `Prove`, and
+  `Embedded` must all pass there before code lands; a failure kicks the queued
+  PR back out without merging.
+- After merge, `main` reruns the same full `Test`, `Prove`, and `Embedded`
+  lanes.
+- If a post-merge `main` CI lane fails, CI opens one deduplicated alarm issue
+  per failing job so recurring regressions stay visible.
+- Claude review, security, and deep-audit PR workflows are separate from
+  `ci.yml` and continue to run on PR events.
+- The contributor pre-commit hook is the primary author-side gate. It should
+  run the full local verification path before a branch is pushed.
+- Skipping the pre-commit hook with `--no-verify` does not avoid validation; it
+  only delays failure feedback from local push time to merge-queue time.
+- Merge queue protection on `main` is load-bearing. Direct merges to `main`
+  should remain blocked by branch protection.
+
 ## Guidance
 
 - The repo-local wrapper CLI in `scripts/safe_cli.py` supports:
