@@ -40,9 +40,20 @@ def main() -> int:
         )
         return 1
 
-    ensure_hook_executable(PRE_PUSH_HOOK)
+    try:
+        ensure_hook_executable(PRE_PUSH_HOOK)
+    except OSError as exc:
+        print(
+            f"install_git_hooks: unable to mark tracked hook executable at {PRE_PUSH_HOOK}: {exc}",
+            file=sys.stderr,
+        )
+        return 1
 
-    current = run_git("config", "--get", "core.hooksPath")
+    try:
+        current = run_git("config", "--get", "core.hooksPath")
+    except OSError as exc:
+        print(f"install_git_hooks: unable to run git config: {exc}", file=sys.stderr)
+        return 1
     if current.returncode not in (0, 1):
         message = current.stderr.strip() or current.stdout.strip() or "git config failed"
         print(f"install_git_hooks: {message}", file=sys.stderr)
@@ -58,7 +69,11 @@ def main() -> int:
         print("install_git_hooks: core.hooksPath already set to .githooks")
         return 0
 
-    configured = run_git("config", "core.hooksPath", TRACKED_HOOKS_PATH)
+    try:
+        configured = run_git("config", "core.hooksPath", TRACKED_HOOKS_PATH)
+    except OSError as exc:
+        print(f"install_git_hooks: unable to set core.hooksPath: {exc}", file=sys.stderr)
+        return 1
     if configured.returncode != 0:
         message = configured.stderr.strip() or configured.stdout.strip() or "git config failed"
         print(f"install_git_hooks: {message}", file=sys.stderr)

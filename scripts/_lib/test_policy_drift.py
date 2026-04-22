@@ -35,8 +35,13 @@ CLAUDE_CI_STRUCTURE_SNIPPETS = [
 ]
 
 
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
+def read_text_case(path: Path, *, label: str) -> tuple[str | None, str | None]:
+    if not path.exists():
+        return None, f"missing {label} at {path}"
+    try:
+        return path.read_text(encoding="utf-8"), None
+    except OSError as exc:
+        return None, f"unable to read {label} at {path}: {exc}"
 
 
 def extract_ci_job_block(text: str, *, job_name: str) -> str | None:
@@ -74,9 +79,15 @@ def extract_markdown_section(text: str, *, heading: str) -> str | None:
 def run_tracked_hook_policy_case() -> tuple[bool, str]:
     if not HOOK_PATH.exists():
         return False, f"missing tracked hook at {HOOK_PATH}"
-    if (HOOK_PATH.stat().st_mode & 0o111) == 0:
-        return False, f"tracked pre-push hook at {HOOK_PATH} is not executable"
-    hook_text = read_text(HOOK_PATH)
+    try:
+        if (HOOK_PATH.stat().st_mode & 0o111) == 0:
+            return False, f"tracked pre-push hook at {HOOK_PATH} is not executable"
+    except OSError as exc:
+        return False, f"unable to stat tracked pre-push hook at {HOOK_PATH}: {exc}"
+    hook_text, error = read_text_case(HOOK_PATH, label="tracked hook")
+    if error is not None:
+        return False, error
+    assert hook_text is not None
     for expected in HOOK_COMMANDS:
         if expected not in hook_text:
             return False, f"tracked pre-push hook missing {expected!r}"
@@ -86,9 +97,10 @@ def run_tracked_hook_policy_case() -> tuple[bool, str]:
 
 
 def run_hook_installer_policy_case() -> tuple[bool, str]:
-    if not INSTALLER_PATH.exists():
-        return False, f"missing hook installer at {INSTALLER_PATH}"
-    installer_text = read_text(INSTALLER_PATH)
+    installer_text, error = read_text_case(INSTALLER_PATH, label="hook installer")
+    if error is not None:
+        return False, error
+    assert installer_text is not None
     for expected in INSTALLER_SNIPPETS:
         if expected not in installer_text:
             return False, f"hook installer missing {expected!r}"
@@ -96,13 +108,17 @@ def run_hook_installer_policy_case() -> tuple[bool, str]:
 
 
 def run_ci_prove_policy_case() -> tuple[bool, str]:
-    workflow_text = read_text(CI_WORKFLOW_PATH)
+    workflow_text, error = read_text_case(CI_WORKFLOW_PATH, label="CI workflow")
+    if error is not None:
+        return False, error
+    assert workflow_text is not None
     prove_block = extract_ci_job_block(workflow_text, job_name="prove")
     if prove_block is None:
         return False, "missing prove job block in ci.yml"
     # This intentionally uses block text matching rather than a YAML parser to
     # keep the repo-local policy check dependency-free. Comments can fool it if
-    # the workflow grows substantially more complex.
+    # the workflow grows substantially more complex. Keep the two prove `run:`
+    # entries on single lines unless this matcher is updated accordingly.
     for expected in (
         "run: python3 scripts/run_proofs.py --mode=check",
         "run: python3 scripts/run_proofs.py --level=2",
@@ -113,7 +129,10 @@ def run_ci_prove_policy_case() -> tuple[bool, str]:
 
 
 def run_claude_ci_structure_policy_case() -> tuple[bool, str]:
-    claude_text = read_text(CLAUDE_MD_PATH)
+    claude_text, error = read_text_case(CLAUDE_MD_PATH, label="CLAUDE.md")
+    if error is not None:
+        return False, error
+    assert claude_text is not None
     ci_structure = extract_markdown_section(claude_text, heading="CI Structure")
     if ci_structure is None:
         return False, "missing CI Structure section in CLAUDE.md"

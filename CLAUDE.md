@@ -76,8 +76,9 @@ python3 scripts/snapshot_emitted_ada.py --check
 - That local proof pass is intentionally lighter than the merge gate: the
   tracked pre-push hook uses `scripts/run_proofs.py --level=1`, while the
   merge-queue / `main` gate uses `scripts/run_proofs.py --level=2`.
-- Skipping the pre-push hook with `--no-verify` does not avoid validation; it
-  only delays failure feedback from local push time to merge-queue time.
+- Skipping the pre-push hook with `--no-verify` or `SAFE_PRE_PUSH_SKIP=1` does
+  not avoid validation; it only delays failure feedback from local push time to
+  merge-queue time.
 - Merge queue protection on `main` is load-bearing. Direct merges to `main`
   should remain blocked by branch protection.
 
