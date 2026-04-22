@@ -732,6 +732,35 @@ def run_plan_sync_duplicate_case() -> tuple[bool, str]:
     return False, "plan_sync accepted duplicate project items for the same Rosetta URL"
 
 
+def run_plan_sync_duplicate_desired_case() -> tuple[bool, str]:
+    duplicate_url = inventory.title_to_url("Factorial")
+    records = [
+        make_record("Factorial"),
+        inventory.InventoryRecord(
+            title="Factorial alternate",
+            url=duplicate_url,
+            extract="",
+            bucket="1",
+            subbucket="(none)",
+            matched_rule="default",
+            difficulty="trivial",
+            rosetta_category=inventory.title_to_rosetta_category("Factorial alternate"),
+            features=("functions",),
+            porting_status="not-started",
+        ),
+    ]
+    try:
+        inventory.plan_sync(records, [], parent_issue=347)
+    except RuntimeError as exc:
+        detail = str(exc)
+        if "duplicate desired record for Rosetta URL" not in detail:
+            return False, f"duplicate-desired error text was too vague: {detail!r}"
+        if "existing title='Factorial'" not in detail or "new title='Factorial alternate'" not in detail:
+            return False, f"duplicate-desired error omitted the conflicting titles: {detail!r}"
+        return True, ""
+    return False, "plan_sync accepted duplicate desired records for the same Rosetta URL"
+
+
 def run_build_args_case() -> tuple[bool, str]:
     args = inventory.build_args(["--limit", "3"])
     if args.limit != 3:
@@ -955,6 +984,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("issue comment marker", run_issue_comment_marker_case),
         ("missing items comment", run_missing_items_comment_case),
         ("plan sync duplicates", run_plan_sync_duplicate_case),
+        ("plan sync duplicate desired", run_plan_sync_duplicate_desired_case),
         ("sync project counts", run_sync_project_count_case),
         ("review placeholder", run_review_placeholder_case),
         ("review sample", run_review_sample_case),

@@ -1039,7 +1039,15 @@ def plan_sync(
     *,
     parent_issue: int,
 ) -> SyncPlan:
-    desired_by_url = {record.url: record for record in records}
+    desired_by_url: dict[str, InventoryRecord] = {}
+    for record in records:
+        existing_record = desired_by_url.get(record.url)
+        if existing_record is not None:
+            raise RuntimeError(
+                f"duplicate desired record for Rosetta URL {record.url} "
+                f"(existing title={existing_record.title!r}, new title={record.title!r})"
+            )
+        desired_by_url[record.url] = record
     rosetta_items: dict[str, ProjectItem] = {}
     missing: list[ProjectItem] = []
     creates: list[InventoryRecord] = []
