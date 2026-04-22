@@ -258,6 +258,8 @@ def literal_keyword(
     skip_title_suffixes: Iterable[str] = (),
 ) -> Keyword:
     escaped = re.escape(literal)
+    # `re.escape("a b")` has produced both `"a\\ b"` and `"a b"` across
+    # Python builds. Normalize either spelling before widening spaces to `\s+`.
     escaped = escaped.replace(r"\ ", " ")
     escaped = escaped.replace(" ", r"\s+")
     if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _/\-.:+]*", literal):
@@ -622,7 +624,10 @@ def fetch_live_task_count(*, throttle_seconds: float, last_request_at: list[floa
         throttle_seconds=throttle_seconds,
         last_request_at=last_request_at,
     )
-    return int(payload["query"]["pages"][0]["categoryinfo"]["size"])
+    try:
+        return int(payload["query"]["pages"][0]["categoryinfo"]["size"])
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        raise RuntimeError(f"unexpected categoryinfo response from Rosetta API: {exc}") from exc
 
 
 def fetch_raw_tasks(*, throttle_seconds: float) -> tuple[int, list[RawTask], str]:
@@ -914,8 +919,10 @@ def text_value_raw(value: Any) -> str:
 
 
 def project_item_field_value(item: dict[str, Any], field_name: str) -> str | None:
-    for key in (field_name, field_name[:1].lower() + field_name[1:]):
-        value = item.get(key)
+    target = re.sub(r"[^a-z0-9]+", "", field_name.casefold())
+    for key, value in item.items():
+        if re.sub(r"[^a-z0-9]+", "", key.casefold()) != target:
+            continue
         if isinstance(value, str) and value:
             return value
     return None

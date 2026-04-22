@@ -429,9 +429,10 @@ def run_fetch_project_items_case() -> tuple[bool, str]:
                 {
                     "id": "PVTI_test",
                     "bucket": "1",
-                    "porting Status": "ported",
-                    "rosetta URL": "https://rosettacode.org/wiki/Factorial",
-                    "features Used": "functions, loops",
+                    "subBucket": "(none)",
+                    "portingStatus": "ported",
+                    "rosettaUrl": "https://rosettacode.org/wiki/Factorial",
+                    "featuresUsed": "functions, loops",
                     "content": {"id": "DI_test", "type": "DraftIssue", "title": "Factorial", "body": "body"},
                 }
             ]
@@ -452,12 +453,37 @@ def run_fetch_project_items_case() -> tuple[bool, str]:
     item = items[0]
     if item.field_values != {
         "Bucket": "1",
+        "Sub-bucket": "(none)",
         "Porting Status": "ported",
         "Rosetta URL": "https://rosettacode.org/wiki/Factorial",
         "Features Used": "functions, loops",
     }:
         return False, f"unexpected parsed field values {item.field_values!r}"
     return True, ""
+
+
+def run_fetch_live_task_count_case() -> tuple[bool, str]:
+    original_request_json = inventory.request_json
+
+    def fake_request_json(
+        params: dict[str, str],
+        *,
+        throttle_seconds: float,
+        last_request_at: list[float],
+    ) -> dict[str, object]:
+        return {"query": {"pages": [{}]}}
+
+    inventory.request_json = fake_request_json
+    try:
+        try:
+            inventory.fetch_live_task_count(throttle_seconds=0.0, last_request_at=[0.0])
+        except RuntimeError as exc:
+            if "unexpected categoryinfo response" not in str(exc):
+                return False, f"unexpected error text from fetch_live_task_count: {exc}"
+            return True, ""
+        return False, "fetch_live_task_count accepted a malformed categoryinfo payload"
+    finally:
+        inventory.request_json = original_request_json
 
 
 def run_literal_keyword_case() -> tuple[bool, str]:
@@ -727,6 +753,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("plan sync parent issue", run_plan_sync_parent_issue_case),
         ("fetch project fields", run_fetch_project_fields_case),
         ("fetch project items", run_fetch_project_items_case),
+        ("fetch live task count", run_fetch_live_task_count_case),
         ("literal keyword", run_literal_keyword_case),
         ("text value raw", run_text_value_raw_case),
         ("issue comment marker", run_issue_comment_marker_case),
