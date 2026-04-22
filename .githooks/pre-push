@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${SAFE_PRE_PUSH_SKIP:-0}" = "1" ]; then
+  echo "[pre-push] skipped via SAFE_PRE_PUSH_SKIP=1"
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "[pre-push] running Safe fixture suite"
+python3 scripts/run_tests.py
+
+echo "[pre-push] running Safe sample sweep"
+python3 scripts/run_samples.py
+
+echo "[pre-push] running Safe proof workflow (level 1)"
+python3 scripts/run_proofs.py --level=1
+
+echo "[pre-push] checking emitted Ada snapshot stability"
+python3 scripts/snapshot_emitted_ada.py --check

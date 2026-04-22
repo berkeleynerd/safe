@@ -14,6 +14,7 @@ from _lib import (
     test_emitted_shape,
     test_fixtures,
     test_interfaces,
+    test_policy_drift,
     test_proof_cli,
     test_proof_diagnostics,
     test_rosetta_inventory,
@@ -27,12 +28,6 @@ from _lib.test_harness import (
 
 
 def main() -> int:
-    try:
-        safec = build_compiler()
-    except (FileNotFoundError, RuntimeError) as exc:
-        print(f"run_tests: ERROR: {exc}", file=sys.stderr)
-        return 1
-
     passed = 0
     skipped = 0
     failures: list[Failure] = []
@@ -43,6 +38,17 @@ def main() -> int:
         passed += section_passed
         skipped += section_skipped
         failures.extend(section_failures)
+
+    add_counts(test_policy_drift.run_policy_drift_checks())
+    if failures:
+        print_summary(passed=passed, skipped=skipped, failures=failures)
+        return 1
+
+    try:
+        safec = build_compiler()
+    except (FileNotFoundError, RuntimeError) as exc:
+        print(f"run_tests: ERROR: {exc}", file=sys.stderr)
+        return 1
 
     add_counts(test_fixtures.run_basic_fixture_checks(safec))
     add_counts(test_proof_cli.run_internal_proof_checks())
