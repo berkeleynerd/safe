@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch, classify, and sync Rosetta Code programming tasks into Project 5."""
+"""Fetch, classify, and sync Rosetta Code programming tasks into a target project."""
 
 from __future__ import annotations
 
@@ -489,11 +489,6 @@ def classification_extract(extract: str) -> str:
     return normalize_space(without_urls)
 
 
-def slugify(text: str) -> str:
-    lowered = text.lower().replace("&", " and ")
-    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", lowered)).strip("_")
-
-
 def title_to_url(title: str) -> str:
     return "https://rosettacode.org/wiki/" + quote(title.replace(" ", "_"), safe="/()")
 
@@ -810,7 +805,7 @@ def resolve_ported_sample_urls(records: Iterable[InventoryRecord]) -> tuple[set[
             raise RuntimeError(f"rosetta sample mapping missing for {rel}")
         aliased_title = PORTED_SAMPLE_TITLE_ALIASES.get(rel)
         if aliased_title is None:
-            warnings.append(f"local-only sample not imported into Project 5: {rel}")
+            warnings.append(f"local-only sample not imported into the target project: {rel}")
             continue
         record = records_by_title.get(aliased_title)
         if record is None:
@@ -844,14 +839,21 @@ def validate_sample_consistency(records: Iterable[InventoryRecord]) -> None:
         )
 
 
+def nonnegative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be >= 0")
+    return parsed
+
+
 def build_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--owner", default=DEFAULT_OWNER)
     parser.add_argument("--project-number", type=int, default=DEFAULT_PROJECT_NUMBER)
     parser.add_argument("--parent-issue", type=int, default=DEFAULT_PARENT_ISSUE_NUMBER)
     parser.add_argument("--refresh", action="store_true", help="refresh the Rosetta cache from the live wiki")
-    parser.add_argument("--dry-run", action="store_true", help="print the sync plan without mutating Project 5")
-    parser.add_argument("--limit", type=int, default=0, help="limit the number of tasks after fetch and sort")
+    parser.add_argument("--dry-run", action="store_true", help="print the sync plan without mutating the target project")
+    parser.add_argument("--limit", type=nonnegative_int, default=0, help="limit the number of tasks after fetch and sort (0 = no limit)")
     parser.add_argument(
         "--throttle-seconds",
         type=float,
@@ -1046,7 +1048,7 @@ def plan_sync(
         if url in rosetta_items:
             existing_item = rosetta_items[url]
             raise RuntimeError(
-                f"duplicate Project 5 item for Rosetta URL {url} "
+                f"duplicate project item for Rosetta URL {url} "
                 f"(existing item_id={existing_item.item_id!r}, new item_id={item.item_id!r}); "
                 "manually delete one duplicate item from the project and re-run; "
                 "additional duplicates for this URL may still exist"
@@ -1060,9 +1062,9 @@ def plan_sync(
             continue
         if item.content_type != "DraftIssue" or item.draft_issue_id is None:
             raise RuntimeError(
-                f"existing Project 5 item for {url} is not a draft issue and cannot be updated safely "
+                f"existing project item for {url} is not a draft issue and cannot be updated safely "
                 f"(item_id={item.item_id!r}, content_type={item.content_type!r}, title={item.title!r}); "
-                "remove or relocate the non-draft item from Project 5 and re-run"
+                "remove or relocate the non-draft item from the target project and re-run"
             )
 
         desired_body = build_item_body(record)
@@ -1357,7 +1359,7 @@ def build_missing_items_comment(items: Iterable[ProjectItem], fetched_at: str) -
     missing = list(items)
     lines = [
         "<!-- rosetta-inventory:missing-items -->",
-        f"`scripts/rosetta_inventory.py` found {len(missing)} Project 5 item(s) whose `Rosetta URL` no longer appears in the live `{ROSETTA_CATEGORY}` listing as of `{fetched_at}`.",
+        f"`scripts/rosetta_inventory.py` found {len(missing)} project item(s) whose `Rosetta URL` no longer appears in the live `{ROSETTA_CATEGORY}` listing as of `{fetched_at}`.",
         "",
     ]
     for item in missing[:50]:

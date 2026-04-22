@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import subprocess
 
 import rosetta_inventory as inventory
@@ -281,8 +283,6 @@ def run_title_helpers_case() -> tuple[bool, str]:
     category = inventory.title_to_rosetta_category("Sorting algorithms/Bubble sort")
     if category != "Sorting algorithms":
         return False, f"unexpected title-derived category {category!r}"
-    if inventory.slugify("Greatest common divisor") != "greatest_common_divisor":
-        return False, "slugify did not normalize spacing"
     trimmed = inventory.classification_extract(
         "Task Display the string Hello world! on a text console. Related tasks Hello world/Web server"
     )
@@ -612,7 +612,7 @@ def run_missing_items_comment_case() -> tuple[bool, str]:
         for index in range(51)
     ]
     comment = inventory.build_missing_items_comment(items, "2026-04-22T00:00:00Z")
-    if "found 51 Project 5 item(s)" not in comment:
+    if "found 51 project item(s)" not in comment:
         return False, f"missing-items comment omitted the total count: {comment!r}"
     if "- Missing 049 — https://rosettacode.org/wiki/Missing_049" not in comment:
         return False, "missing-items comment did not include the 50th listed item"
@@ -652,7 +652,19 @@ def run_plan_sync_duplicate_case() -> tuple[bool, str]:
         if "additional duplicates for this URL may still exist" not in detail:
             return False, f"duplicate-item error omitted the additional-duplicates note: {detail!r}"
         return True, ""
-    return False, "plan_sync accepted duplicate Project 5 items for the same Rosetta URL"
+    return False, "plan_sync accepted duplicate project items for the same Rosetta URL"
+
+
+def run_build_args_case() -> tuple[bool, str]:
+    args = inventory.build_args(["--limit", "3"])
+    if args.limit != 3:
+        return False, f"build_args did not preserve a positive --limit: {args.limit!r}"
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            inventory.build_args(["--limit", "-1"])
+    except SystemExit:
+        return True, ""
+    return False, "build_args accepted a negative --limit"
 
 
 def run_sync_project_count_case() -> tuple[bool, str]:
@@ -850,6 +862,7 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("sample mapping", run_sample_mapping_case),
         ("sample mapping errors", run_sample_mapping_error_case),
         ("title helpers", run_title_helpers_case),
+        ("build args", run_build_args_case),
         ("sample consistency", run_sample_consistency_case),
         ("gh graphql flags", run_gh_graphql_case),
         ("plan sync parent issue", run_plan_sync_parent_issue_case),
