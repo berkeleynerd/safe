@@ -599,6 +599,62 @@ def run_issue_comment_marker_case() -> tuple[bool, str]:
     return True, ""
 
 
+def run_missing_items_comment_case() -> tuple[bool, str]:
+    items = [
+        inventory.ProjectItem(
+            item_id=f"PVTI_{index:03d}",
+            content_type="DraftIssue",
+            title=f"Missing {index:03d}",
+            body=f"**Rosetta URL:** https://rosettacode.org/wiki/Missing_{index:03d}\n",
+            field_values={"Rosetta URL": f"https://rosettacode.org/wiki/Missing_{index:03d}"},
+            draft_issue_id=f"DI_{index:03d}",
+        )
+        for index in range(51)
+    ]
+    comment = inventory.build_missing_items_comment(items, "2026-04-22T00:00:00Z")
+    if "found 51 Project 5 item(s)" not in comment:
+        return False, f"missing-items comment omitted the total count: {comment!r}"
+    if "- Missing 049 — https://rosettacode.org/wiki/Missing_049" not in comment:
+        return False, "missing-items comment did not include the 50th listed item"
+    if "- Missing 050 — https://rosettacode.org/wiki/Missing_050" in comment:
+        return False, "missing-items comment should cap the explicit list at 50 entries"
+    if "- ... and 1 more" not in comment:
+        return False, "missing-items comment did not emit the truncation summary"
+    return True, ""
+
+
+def run_plan_sync_duplicate_case() -> tuple[bool, str]:
+    duplicate_url = inventory.title_to_url("Factorial")
+    items = [
+        inventory.ProjectItem(
+            item_id="PVTI_first",
+            content_type="DraftIssue",
+            title="Factorial",
+            body=f"**Rosetta URL:** {duplicate_url}\n",
+            field_values={"Rosetta URL": duplicate_url},
+            draft_issue_id="DI_first",
+        ),
+        inventory.ProjectItem(
+            item_id="PVTI_second",
+            content_type="DraftIssue",
+            title="Factorial copy",
+            body=f"**Rosetta URL:** {duplicate_url}\n",
+            field_values={"Rosetta URL": duplicate_url},
+            draft_issue_id="DI_second",
+        ),
+    ]
+    try:
+        inventory.plan_sync([make_record("Factorial")], items, parent_issue=347)
+    except RuntimeError as exc:
+        detail = str(exc)
+        if "existing item_id='PVTI_first'" not in detail or "new item_id='PVTI_second'" not in detail:
+            return False, f"duplicate-item error omitted the conflicting item ids: {detail!r}"
+        if "additional duplicates for this URL may still exist" not in detail:
+            return False, f"duplicate-item error omitted the additional-duplicates note: {detail!r}"
+        return True, ""
+    return False, "plan_sync accepted duplicate Project 5 items for the same Rosetta URL"
+
+
 def run_sync_project_count_case() -> tuple[bool, str]:
     record = make_record("Factorial")
     plan = inventory.SyncPlan(
@@ -805,6 +861,8 @@ def run_rosetta_inventory_checks() -> RunCounts:
         ("text value raw", run_text_value_raw_case),
         ("delta comment", run_delta_comment_case),
         ("issue comment marker", run_issue_comment_marker_case),
+        ("missing items comment", run_missing_items_comment_case),
+        ("plan sync duplicates", run_plan_sync_duplicate_case),
         ("sync project counts", run_sync_project_count_case),
         ("review placeholder", run_review_placeholder_case),
         ("review sample", run_review_sample_case),

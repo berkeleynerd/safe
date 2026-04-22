@@ -1048,7 +1048,8 @@ def plan_sync(
             raise RuntimeError(
                 f"duplicate Project 5 item for Rosetta URL {url} "
                 f"(existing item_id={existing_item.item_id!r}, new item_id={item.item_id!r}); "
-                "manually delete one duplicate item from the project and re-run"
+                "manually delete one duplicate item from the project and re-run; "
+                "additional duplicates for this URL may still exist"
             )
         rosetta_items[url] = item
 
