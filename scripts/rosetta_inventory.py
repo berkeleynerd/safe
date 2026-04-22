@@ -1286,7 +1286,9 @@ def ensure_issue_comment(repo: str, issue_number: int, body: str, *, dry_run: bo
     existing = load_issue_comments(repo, issue_number)
     marker = comment_marker(body)
     for comment in existing:
-        if comment.body == body:
+        if marker is None and comment.body == body:
+            return
+        if marker is not None and comment_marker(comment.body) == marker and comment.body == body:
             return
     if marker is not None:
         for comment in existing:
@@ -1421,6 +1423,9 @@ def build_review_sample(records: Iterable[InventoryRecord]) -> list[InventoryRec
 
     if len(selected) != sum(REVIEW_SAMPLE_QUOTAS.values()):
         raise RuntimeError(f"review sample expected {sum(REVIEW_SAMPLE_QUOTAS.values())} records, got {len(selected)}")
+    missing_anchors = REVIEW_SAMPLE_ANCHOR_TITLE_SET - seen_titles
+    if missing_anchors:
+        raise RuntimeError(f"review sample is missing anchor(s): {sorted(missing_anchors)!r}")
     return selected
 
 
@@ -1508,7 +1513,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.review_sample:
         try:
-            print(build_review_sample_markdown(records))
+            print(build_review_sample_markdown(full_records))
         except RuntimeError as exc:
             print(f"rosetta_inventory: ERROR: {exc}", file=sys.stderr)
             return 1

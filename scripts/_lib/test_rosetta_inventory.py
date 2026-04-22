@@ -677,6 +677,27 @@ def run_review_sample_case() -> tuple[bool, str]:
         return False, "review sample markdown is missing expected sections or anchor confirmation markers"
     if "Review sample omissions:" not in markdown or "`4/4e` omitted from the deterministic 50-task sample by design" not in markdown:
         return False, "review sample markdown is missing the expected omitted-bucket note"
+
+    bitmap_index = next(index for index, record in enumerate(records) if record.title == "Bitmap")
+    records[bitmap_index] = inventory.InventoryRecord(
+        title="Bitmap",
+        url=inventory.title_to_url("Bitmap"),
+        extract="",
+        bucket="4",
+        subbucket="4e",
+        matched_rule="default",
+        difficulty="moderate",
+        rosetta_category=inventory.title_to_rosetta_category("Bitmap"),
+        features=("functions",),
+        porting_status="not-started",
+    )
+    try:
+        inventory.build_review_sample(records)
+    except RuntimeError as exc:
+        if "missing anchor(s)" not in str(exc):
+            return False, f"review sample anchor guard raised the wrong error: {exc}"
+    else:
+        return False, "review sample accepted an anchor reclassified into an unquoted bucket"
     return True, ""
 
 
