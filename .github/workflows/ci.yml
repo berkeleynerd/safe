@@ -231,7 +231,7 @@ jobs:
               if has_available_label proof-surface-boundary; then
                 label_args+=(--label proof-surface-boundary)
               fi
-            else
+            elif [[ "$job_name" == "Test" ]]; then
               if has_available_label compile; then
                 label_args+=(--label compile)
               fi
