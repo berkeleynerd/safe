@@ -111,7 +111,7 @@ The repository has three Claude review workflows:
   for latent surrounding-code issues, not normal PR review.
 
 When a PR should trigger the guarded Claude review/security workflows, the PR
-head branch must live in `berkeleynerd/safe`. Fork PRs do not satisfy the
+head branch must live in `Pretty-Good-Apps/safe`. Fork PRs do not satisfy the
 same-repo guard and should not be used as the primary review path.
 
 Preferred publishing flow:
@@ -120,7 +120,9 @@ Preferred publishing flow:
 git push upstream HEAD:refs/heads/<branch-name>
 ```
 
-Then open the PR from `berkeleynerd:<branch-name>` to `main`. If development
+Then open the PR from `Pretty-Good-Apps:<branch-name>` to `main`. Open it as a
+ready-for-review PR, not draft, unless a specific task explicitly calls for a
+draft. Request `berkeleynerd` as a reviewer on every review PR. If development
 started on a fork branch, mirror the branch to `upstream` before opening the
 review PR.
 
