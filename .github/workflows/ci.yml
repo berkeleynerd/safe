@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 env:
@@ -132,13 +132,13 @@ jobs:
 
           declare -a failed_jobs=()
 
-          if [[ "$TEST_RESULT" == "failure" ]]; then
+          if [[ "$TEST_RESULT" == "failure" || "$TEST_RESULT" == "cancelled" ]]; then
             failed_jobs+=("Test")
           fi
-          if [[ "$PROVE_RESULT" == "failure" ]]; then
+          if [[ "$PROVE_RESULT" == "failure" || "$PROVE_RESULT" == "cancelled" ]]; then
             failed_jobs+=("Prove")
           fi
-          if [[ "$EMBEDDED_RESULT" == "failure" ]]; then
+          if [[ "$EMBEDDED_RESULT" == "failure" || "$EMBEDDED_RESULT" == "cancelled" ]]; then
             failed_jobs+=("Embedded")
           fi
 
