@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the live all-proved-only Safe proof workflow."""
+"""Run the Safe proof workflow in full prove or fast check mode."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ import tempfile
 from pathlib import Path
 
 from _lib.proof_eval import (
-    CHECK_SWITCHES,
     ProofToolchain,
     prepare_proof_toolchain,
     run_gnatprove_project,
@@ -241,7 +240,6 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     proof_mode = args.mode
-    prove_switches = None if proof_mode == "prove" else CHECK_SWITCHES
     passed_label = "checked" if proof_mode == "check" else "proved"
     companion_action = "checking" if proof_mode == "check" else "proving"
 
@@ -336,189 +334,162 @@ def main() -> int:
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_b_passed, checkpoint_b_failures = run_fixture_group(
             fixtures=PR11_8B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_e_passed, checkpoint_e_failures = run_fixture_group(
             fixtures=PR11_8E_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_f_passed, checkpoint_f_failures = run_fixture_group(
             fixtures=PR11_8F_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_g1_passed, checkpoint_g1_failures = run_fixture_group(
             fixtures=PR11_8G1_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_g2_passed, checkpoint_g2_failures = run_fixture_group(
             fixtures=PR11_8G2_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_i_passed, checkpoint_i_failures = run_fixture_group(
             fixtures=PR11_8I_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_i1_passed, checkpoint_i1_failures = run_fixture_group(
             fixtures=PR11_8I1_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_k_passed, checkpoint_k_failures = run_fixture_group(
             fixtures=PR11_8K_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_10a_passed, checkpoint_10a_failures = run_fixture_group(
             fixtures=PR11_10A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_10b_passed, checkpoint_10b_failures = run_fixture_group(
             fixtures=PR11_10B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_10c_passed, checkpoint_10c_failures = run_fixture_group(
             fixtures=PR11_10C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_11a_passed, checkpoint_11a_failures = run_fixture_group(
             fixtures=PR11_11A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_11b_passed, checkpoint_11b_failures = run_fixture_group(
             fixtures=PR11_11B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_11c_passed, checkpoint_11c_failures = run_fixture_group(
             fixtures=PR11_11C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_12a_passed, checkpoint_12a_failures = run_fixture_group(
             fixtures=PR11_12A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_12b_passed, checkpoint_12b_failures = run_fixture_group(
             fixtures=PR11_12B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_12c_passed, checkpoint_12c_failures = run_fixture_group(
             fixtures=PR11_12C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_12d_passed, checkpoint_12d_failures = run_fixture_group(
             fixtures=PR11_12D_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_12e_passed, checkpoint_12e_failures = run_fixture_group(
             fixtures=PR11_12E_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_12f_passed, checkpoint_12f_failures = run_fixture_group(
             fixtures=PR11_12F_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_13a_passed, checkpoint_13a_failures = run_fixture_group(
             fixtures=PR11_13A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_13b_passed, checkpoint_13b_failures = run_fixture_group(
             fixtures=PR11_13B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_13c_passed, checkpoint_13c_failures = run_fixture_group(
             fixtures=PR11_13C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_16_passed, checkpoint_16_failures = run_fixture_group(
             fixtures=PR11_16_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         checkpoint_23_expansion_passed, checkpoint_23_expansion_failures = run_fixture_group(
             fixtures=PR11_23_PROOF_EXPANSION_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
         regression_passed, regression_failures = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
-            prove_switches=prove_switches,
         )
 
     checkpoint_10d_passed = (

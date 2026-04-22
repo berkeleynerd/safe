@@ -911,7 +911,9 @@ def run_source_proof(
         justified = int(total_row["justified"]["count"])
         unproved = int(total_row["unproved"]["count"])
         if justified != 0 or unproved != 0:
-            result.detail = f"{mode} summary has justified={justified}, unproved={unproved}"
+            result.detail = (
+                f"{detail_name} summary has justified={justified}, unproved={unproved}"
+            )
             return result
 
     result.passed = True
