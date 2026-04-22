@@ -251,7 +251,7 @@ def run_sample_mapping_case() -> tuple[bool, str]:
         ported_urls, warnings = inventory.resolve_ported_sample_urls(records)
     except RuntimeError as exc:
         return False, str(exc)
-    expected_count = len(inventory.PORTED_SAMPLE_TITLE_ALIASES)
+    expected_count = len(set(inventory.PORTED_SAMPLE_TITLE_ALIASES.values()))
     if len(ported_urls) != expected_count:
         return False, f"expected {expected_count} ported sample URLs, got {len(ported_urls)}"
     if len(warnings) != len(inventory.LOCAL_ONLY_SAMPLE_PATHS):
