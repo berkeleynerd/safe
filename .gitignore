@@ -27,3 +27,6 @@ config/
 # Python
 __pycache__/
 *.pyc
+
+# Rosetta inventory cache
+.cache/rosetta/

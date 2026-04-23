@@ -66,13 +66,20 @@ python3 scripts/snapshot_emitted_ada.py --check
   per failing job so recurring regressions stay visible.
 - Claude review, security, and deep-audit PR workflows are separate from
   `ci.yml` and continue to run on PR events.
-- The contributor pre-commit hook is the primary author-side gate. It should
-  run the full local verification path before a branch is pushed.
-- That local proof pass is intentionally lighter than the merge gate: it uses
-  `scripts/run_proofs.py` at level 1, while the merge-queue / `main` gate is
-  level 2.
-- Skipping the pre-commit hook with `--no-verify` does not avoid validation; it
-  only delays failure feedback from local push time to merge-queue time.
+- Install the tracked hook after cloning with
+  `python3 scripts/install_git_hooks.py`.
+- The contributor pre-push hook is the primary author-side gate. It should run
+  the full local verification path before a branch is pushed:
+  - `python3 scripts/run_tests.py`
+  - `python3 scripts/run_samples.py`
+  - `python3 scripts/run_proofs.py --level=1`
+  - `python3 scripts/snapshot_emitted_ada.py --check`
+- That local proof pass is intentionally lighter than the merge gate: the
+  tracked pre-push hook uses `scripts/run_proofs.py --level=1`, while the
+  merge-queue / `main` gate uses `scripts/run_proofs.py --level=2`.
+- Skipping the pre-push hook with `--no-verify` or `SAFE_PRE_PUSH_SKIP=1` does
+  not avoid validation; it only delays failure feedback from local push time to
+  merge-queue time.
 - Merge queue protection on `main` is load-bearing. Direct merges to `main`
   should remain blocked by branch protection.
 
