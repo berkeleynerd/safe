@@ -116,13 +116,17 @@ def run_ci_prove_policy_case() -> tuple[bool, str]:
     if prove_block is None:
         return False, "missing prove job block in ci.yml"
     # This intentionally uses block text matching rather than a YAML parser to
-    # keep the repo-local policy check dependency-free. Comments can fool it if
-    # the workflow grows substantially more complex.
+    # keep the repo-local policy check dependency-free. Ignore comments so the
+    # load-bearing --no-cache check must match an executable line.
+    noncomment_prove_block = "\n".join(
+        line for line in prove_block.splitlines()
+        if not line.lstrip().startswith("#")
+    )
     for expected in (
         "python3 scripts/run_proofs.py --no-cache --mode=check",
         "python3 scripts/run_proofs.py --no-cache --level=2",
     ):
-        if expected not in prove_block:
+        if expected not in noncomment_prove_block:
             return False, f"prove job block missing {expected!r}"
     return True, ""
 

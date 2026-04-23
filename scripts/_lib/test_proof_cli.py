@@ -933,11 +933,42 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
     source = PROVE_SINGLE_SUCCESS_SOURCE
     fixture = repo_rel(source)
     summary_path = safe_prove_summary_path(source, target_bits=64)
+    cache_call_signatures: list[tuple[Path, tuple[str, ...] | None, int]] = []
+
+    def recording_cached_proof_runner(**kwargs: object) -> proof_eval.ProofRunResult:
+        prove_switches = kwargs.get("prove_switches")
+        normalized_switches = (
+            tuple(prove_switches)
+            if isinstance(prove_switches, list)
+            else None
+        )
+        cache_call_signatures.append(
+            (
+                Path(kwargs["source"]),
+                normalized_switches,
+                int(kwargs.get("target_bits", 64)),
+            )
+        )
+        return fake_cached_proof_runner(**kwargs)
+
+    def require_matching_cache_signatures(
+        left_index: int,
+        right_index: int,
+        *,
+        label: str,
+    ) -> tuple[bool, str]:
+        if len(cache_call_signatures) <= max(left_index, right_index):
+            return False, f"{label} did not record both cache calls"
+        left = cache_call_signatures[left_index]
+        right = cache_call_signatures[right_index]
+        if left != right:
+            return False, f"{label} passed mismatched cache signatures {left!r} != {right!r}"
+        return True, ""
 
     clear_project_artifacts(source)
     safe_prove_returncode, safe_prove_stdout, safe_prove_stderr = run_safe_prove_subset(
         source,
-        fake_cached_source_proof=fake_cached_proof_runner,
+        fake_cached_source_proof=recording_cached_proof_runner,
     )
     if safe_prove_returncode != 0:
         return False, f"initial safe prove failed: {safe_prove_stderr or safe_prove_stdout}"
@@ -949,7 +980,7 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
         ["--level", "1"],
         fixtures=[fixture],
         use_real_toolchain=False,
-        fake_cached_source_proof=fake_cached_proof_runner,
+        fake_cached_source_proof=recording_cached_proof_runner,
     )
     if run_proofs_returncode != 0:
         return False, f"run_proofs after safe prove failed: {run_proofs_stderr or run_proofs_stdout}"
@@ -959,13 +990,20 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
         return False, f"run_proofs did not report cache hit after safe prove {run_proofs_stdout!r}"
     if run_proofs_stderr:
         return False, f"unexpected stderr {run_proofs_stderr!r}"
+    ok, detail = require_matching_cache_signatures(
+        0,
+        1,
+        label="safe prove -> run_proofs",
+    )
+    if not ok:
+        return False, detail
 
     clear_project_artifacts(source)
     run_proofs_returncode, run_proofs_stdout, run_proofs_stderr = run_run_proofs_subset(
         ["--level", "1"],
         fixtures=[fixture],
         use_real_toolchain=False,
-        fake_cached_source_proof=fake_cached_proof_runner,
+        fake_cached_source_proof=recording_cached_proof_runner,
     )
     if run_proofs_returncode != 0:
         return False, f"initial run_proofs failed: {run_proofs_stderr or run_proofs_stdout}"
@@ -975,12 +1013,19 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
 
     safe_prove_cached_returncode, safe_prove_cached_stdout, safe_prove_cached_stderr = run_safe_prove_subset(
         source,
-        fake_cached_source_proof=fake_cached_proof_runner,
+        fake_cached_source_proof=recording_cached_proof_runner,
     )
     if safe_prove_cached_returncode != 0:
         return False, f"safe prove after run_proofs failed: {safe_prove_cached_stderr or safe_prove_cached_stdout}"
     if summary_path.stat().st_mtime_ns != summary_mtime:
         return False, "safe prove did not reuse run_proofs cache"
+    ok, detail = require_matching_cache_signatures(
+        2,
+        3,
+        label="run_proofs -> safe prove",
+    )
+    if not ok:
+        return False, detail
     return True, ""
 
 
