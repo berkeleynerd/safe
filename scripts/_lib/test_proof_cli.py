@@ -937,11 +937,19 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
 
     def recording_cached_proof_runner(**kwargs: object) -> proof_eval.ProofRunResult:
         prove_switches = kwargs.get("prove_switches")
-        normalized_switches = (
-            tuple(prove_switches)
-            if isinstance(prove_switches, list)
-            else None
-        )
+        if prove_switches is None:
+            normalized_switches = None
+        elif isinstance(prove_switches, (str, bytes)):
+            raise AssertionError(
+                f"unexpected prove_switches value for cache signature: {prove_switches!r}"
+            )
+        else:
+            try:
+                normalized_switches = tuple(prove_switches)
+            except TypeError as exc:
+                raise AssertionError(
+                    f"unexpected prove_switches value for cache signature: {prove_switches!r}"
+                ) from exc
         cache_call_signatures.append(
             (
                 Path(kwargs["source"]),
