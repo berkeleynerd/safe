@@ -194,6 +194,7 @@ LOCAL_ONLY_SAMPLE_PATHS = {
     "samples/rosetta/data_structures/growable_sum.safe",
     "samples/rosetta/data_structures/growable_to_fixed.safe",
     "samples/rosetta/data_structures/parse_result.safe",
+    "samples/rosetta/surface_tour.safe",
     "samples/rosetta/text/bounded_prefix.safe",
     "samples/rosetta/text/enum_dispatch.safe",
     "samples/rosetta/text/grade_message.safe",
