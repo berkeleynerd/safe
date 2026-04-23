@@ -279,9 +279,9 @@ def prepare_proof_toolchain(
         cwd=COMPILER_ROOT,
         env=tool_env,
     )
-    gnatprove_version = normalize_version_text(version_completed)
     if version_completed.returncode != 0:
         raise RuntimeError(f"failed to capture gnatprove --version: {first_message(version_completed)}")
+    gnatprove_version = normalize_version_text(version_completed)
     if not gnatprove_version:
         raise RuntimeError("failed to capture gnatprove --version: command produced no output")
     if build_frontend:

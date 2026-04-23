@@ -29,7 +29,6 @@ CLAUDE_CI_STRUCTURE_SNIPPETS = [
     "python3 scripts/install_git_hooks.py",
     "pre-push hook",
     "scripts/run_proofs.py --no-cache --mode=check",
-    "scripts/run_proofs.py --no-cache",
     "scripts/run_proofs.py --cache --level=1",
     "scripts/run_proofs.py --no-cache --level=2",
     "scripts/snapshot_emitted_ada.py --check",
