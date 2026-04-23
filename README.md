@@ -211,7 +211,7 @@ proved, 1 Silver VC justified, and 0 unproved. Its 16 templates account for
 # Run tests
 python3 scripts/run_tests.py
 
-# Run proofs (requires GNATprove)
+# Run proofs (requires GNATprove; reuses unchanged local proof results by default)
 python3 scripts/run_proofs.py
 
 # Check, emit, prove, build, and run samples
@@ -238,6 +238,11 @@ python3 scripts/safe_cli.py deploy --board stm32f4-discovery --simulate tests/em
 # Prototype REPL
 python3 scripts/safe_repl.py
 ```
+
+Local `python3 scripts/run_proofs.py` prove-mode runs now reuse unchanged
+passing emitted-fixture proofs by default. Use `--no-cache` to force a fresh
+local prove pass. CI always runs `scripts/run_proofs.py --no-cache` so merge
+gates stay authoritative.
 
 ---
 

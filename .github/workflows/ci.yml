@@ -2,6 +2,7 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
     types: [checks_requested]
   push:
@@ -53,9 +54,15 @@ jobs:
           python-version: "3.12"
       - uses: ./.github/actions/setup-alire
       - if: github.event_name == 'pull_request'
-        run: python3 scripts/run_proofs.py --mode=check
+        run: |
+          # --no-cache is required: CI's trust model requires fresh proofs
+          # for every merge candidate. Local dev defaults to cached reuse.
+          python3 scripts/run_proofs.py --no-cache --mode=check
       - if: github.event_name != 'pull_request'
-        run: python3 scripts/run_proofs.py --level=2
+        run: |
+          # --no-cache is required: CI's trust model requires fresh proofs
+          # for every merge candidate. Local dev defaults to cached reuse.
+          python3 scripts/run_proofs.py --no-cache --level=2
 
   embedded:
     name: Embedded

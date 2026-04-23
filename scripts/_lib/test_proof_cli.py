@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import argparse
+import contextlib
+import io
 import subprocess
 import shutil
 import sys
 import tempfile
 from pathlib import Path
 
+import run_proofs as run_proofs_script
+import safe_cli as safe_cli_script
+
 from _lib import proof_eval
+from _lib import project_cache
 from _lib.proof_eval import (
     allow_clean_nonzero_gnatprove_exit,
     first_message as proof_eval_first_message,
@@ -23,6 +30,7 @@ from _lib.test_harness import (
     record_result,
     repo_rel,
     run_command,
+    safe_prove_summary_path,
 )
 
 PROVE_SINGLE_SUCCESS_SOURCE = REPO_ROOT / "tests" / "positive" / "emitter_surface_proc.safe"
@@ -32,6 +40,178 @@ PROVE_DIRECTORY_FIXTURES = [
     REPO_ROOT / "tests" / "positive" / "emitter_surface_proc.safe",
     REPO_ROOT / "tests" / "positive" / "constant_range_bound.safe",
 ]
+TEST_GNATPROVE_VERSION = "GNATprove 25.0\ncvc5 1.0"
+RUN_PROOFS_GROUP_ATTRS = (
+    "PR11_8A_CHECKPOINT_FIXTURES",
+    "PR11_8B_CHECKPOINT_FIXTURES",
+    "PR11_8E_CHECKPOINT_FIXTURES",
+    "PR11_8F_CHECKPOINT_FIXTURES",
+    "PR11_8G1_CHECKPOINT_FIXTURES",
+    "PR11_8G2_CHECKPOINT_FIXTURES",
+    "PR11_8I_CHECKPOINT_FIXTURES",
+    "PR11_8I1_CHECKPOINT_FIXTURES",
+    "PR11_8K_CHECKPOINT_FIXTURES",
+    "PR11_10A_CHECKPOINT_FIXTURES",
+    "PR11_10B_CHECKPOINT_FIXTURES",
+    "PR11_10C_CHECKPOINT_FIXTURES",
+    "PR11_11A_CHECKPOINT_FIXTURES",
+    "PR11_11B_CHECKPOINT_FIXTURES",
+    "PR11_11C_CHECKPOINT_FIXTURES",
+    "PR11_12A_CHECKPOINT_FIXTURES",
+    "PR11_12B_CHECKPOINT_FIXTURES",
+    "PR11_12C_CHECKPOINT_FIXTURES",
+    "PR11_12D_CHECKPOINT_FIXTURES",
+    "PR11_12E_CHECKPOINT_FIXTURES",
+    "PR11_12F_CHECKPOINT_FIXTURES",
+    "PR11_13A_CHECKPOINT_FIXTURES",
+    "PR11_13B_CHECKPOINT_FIXTURES",
+    "PR11_13C_CHECKPOINT_FIXTURES",
+    "PR11_16_CHECKPOINT_FIXTURES",
+    "PR11_23_PROOF_EXPANSION_FIXTURES",
+    "EMITTED_PROOF_REGRESSION_FIXTURES",
+)
+
+
+def test_toolchain() -> proof_eval.ProofToolchain:
+    return proof_eval.ProofToolchain(
+        safec=SAFE_CLI,
+        alr="alr",
+        gnatprove="gnatprove",
+        gnatprove_version=TEST_GNATPROVE_VERSION,
+        env={},
+    )
+
+
+def run_run_proofs_subset(
+    argv: list[str],
+    *,
+    fixtures: list[str],
+    use_real_toolchain: bool,
+    fake_source_proof: object | None = None,
+    fake_cached_source_proof: object | None = None,
+) -> tuple[int, str, str]:
+    original_argv = sys.argv[:]
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    originals = {
+        "COMPANION_PROJECTS": run_proofs_script.COMPANION_PROJECTS,
+        "validate_manifests": run_proofs_script.validate_manifests,
+        "prepare_proof_toolchain": run_proofs_script.prepare_proof_toolchain,
+        "run_source_proof": run_proofs_script.run_source_proof,
+        "run_cached_source_proof": run_proofs_script.run_cached_source_proof,
+        "EMITTED_PROOF_FIXTURES": run_proofs_script.EMITTED_PROOF_FIXTURES,
+    }
+    originals.update({name: getattr(run_proofs_script, name) for name in RUN_PROOFS_GROUP_ATTRS})
+
+    try:
+        run_proofs_script.COMPANION_PROJECTS = []
+        run_proofs_script.validate_manifests = lambda: None
+        run_proofs_script.prepare_proof_toolchain = (
+            (lambda env: proof_eval.prepare_proof_toolchain(env=env, build_frontend=False))
+            if use_real_toolchain
+            else (lambda env: test_toolchain())
+        )
+        if fake_source_proof is not None:
+            run_proofs_script.run_source_proof = fake_source_proof
+        if fake_cached_source_proof is not None:
+            run_proofs_script.run_cached_source_proof = fake_cached_source_proof
+        run_proofs_script.EMITTED_PROOF_FIXTURES = tuple(fixtures)
+        for name in RUN_PROOFS_GROUP_ATTRS:
+            setattr(run_proofs_script, name, [])
+        run_proofs_script.PR11_8A_CHECKPOINT_FIXTURES = list(fixtures)
+
+        sys.argv = ["run_proofs.py", *argv]
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            return run_proofs_script.main(), stdout.getvalue(), stderr.getvalue()
+    finally:
+        sys.argv = original_argv
+        for name, value in originals.items():
+            setattr(run_proofs_script, name, value)
+
+
+def successful_summary_row() -> dict[str, dict[str, int | str]]:
+    return {
+        "total": {"count": 1, "detail": ""},
+        "flow": {"count": 0, "detail": ""},
+        "provers": {"count": 1, "detail": ""},
+        "justified": {"count": 0, "detail": ""},
+        "unproved": {"count": 0, "detail": ""},
+    }
+
+
+def fake_cached_proof_runner(**kwargs: object) -> proof_eval.ProofRunResult:
+    source = kwargs["source"]
+    toolchain = kwargs["toolchain"]
+    prove_switches = kwargs.get("prove_switches")
+    target_bits = int(kwargs.get("target_bits", 64))
+    paths, state = project_cache.prepare_project_cache(source, target_bits=target_bits)
+    summary_path = safe_prove_summary_path(source, target_bits=target_bits)
+    fingerprint = repr(
+        {
+            "source": project_cache.source_key(source),
+            "target_bits": target_bits,
+            "prove_switches": prove_switches,
+            "gnatprove_version": toolchain.gnatprove_version,
+        }
+    )
+    cache_entry = state["proofs"].get(project_cache.source_key(source))
+    row = successful_summary_row()
+    result = proof_eval.ProofRunResult(
+        source=source,
+        proof_root=summary_path.parents[2],
+        passed=True,
+        stage="prove",
+        flow_summary=row,
+        prove_summary=row,
+        used_cache=bool(
+            cache_entry
+            and cache_entry.get("fingerprint") == fingerprint
+            and summary_path.exists()
+        ),
+    )
+    if result.used_cache:
+        return result
+
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text("mock gnatprove summary\n", encoding="utf-8")
+    state["proofs"][project_cache.source_key(source)] = {
+        "fingerprint": fingerprint,
+        "passed": True,
+        "flow_summary": row,
+        "prove_summary": row,
+    }
+    project_cache.save_project_state(paths, state)
+    return result
+
+
+def run_safe_prove_subset(
+    source: Path,
+    *,
+    fake_cached_source_proof: object,
+    level: int = 1,
+    target_bits: int = 64,
+) -> tuple[int, str, str]:
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    originals = {
+        "prepare_proof_toolchain": safe_cli_script.prepare_proof_toolchain,
+        "run_cached_source_proof": safe_cli_script.run_cached_source_proof,
+    }
+    args = argparse.Namespace(
+        source=repo_rel(source),
+        verbose=False,
+        level=level,
+        target_bits=target_bits,
+    )
+    try:
+        safe_cli_script.prepare_proof_toolchain = lambda env, build_frontend=False: test_toolchain()
+        safe_cli_script.run_cached_source_proof = fake_cached_source_proof
+        with contextlib.chdir(REPO_ROOT):
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                return safe_cli_script.safe_prove(args), stdout.getvalue(), stderr.getvalue()
+    finally:
+        for name, value in originals.items():
+            setattr(safe_cli_script, name, value)
 
 def run_safe_prove_single_case(source: Path) -> tuple[bool, str]:
     clear_project_artifacts(source)
@@ -169,12 +349,7 @@ def run_proof_eval_clean_nonzero_case() -> tuple[bool, str]:
 
 
 def run_proof_eval_check_mode_success_case() -> tuple[bool, str]:
-    toolchain = proof_eval.ProofToolchain(
-        safec=SAFE_CLI,
-        alr="alr",
-        gnatprove="gnatprove",
-        env={},
-    )
+    toolchain = test_toolchain()
     calls: list[list[str]] = []
     original_run_command = proof_eval.run_command
     original_parse_summary = proof_eval.parse_gnatprove_summary
@@ -215,12 +390,7 @@ def run_proof_eval_check_mode_success_case() -> tuple[bool, str]:
 
 
 def run_proof_eval_check_mode_failure_case() -> tuple[bool, str]:
-    toolchain = proof_eval.ProofToolchain(
-        safec=SAFE_CLI,
-        alr="alr",
-        gnatprove="gnatprove",
-        env={},
-    )
+    toolchain = test_toolchain()
     original_run_command = proof_eval.run_command
     original_parse_summary = proof_eval.parse_gnatprove_summary
     try:
@@ -258,12 +428,7 @@ def run_proof_eval_check_mode_failure_case() -> tuple[bool, str]:
 
 
 def run_proof_eval_invalid_mode_case() -> tuple[bool, str]:
-    toolchain = proof_eval.ProofToolchain(
-        safec=SAFE_CLI,
-        alr="alr",
-        gnatprove="gnatprove",
-        env={},
-    )
+    toolchain = test_toolchain()
     try:
         proof_eval.run_gnatprove_project(
             project_dir=REPO_ROOT,
@@ -279,12 +444,7 @@ def run_proof_eval_invalid_mode_case() -> tuple[bool, str]:
 
 
 def run_proof_eval_check_mode_custom_switches_case() -> tuple[bool, str]:
-    toolchain = proof_eval.ProofToolchain(
-        safec=SAFE_CLI,
-        alr="alr",
-        gnatprove="gnatprove",
-        env={},
-    )
+    toolchain = test_toolchain()
     try:
         proof_eval.run_gnatprove_project(
             project_dir=REPO_ROOT,
@@ -301,12 +461,7 @@ def run_proof_eval_check_mode_custom_switches_case() -> tuple[bool, str]:
 
 
 def run_source_proof_check_mode_custom_switches_case() -> tuple[bool, str]:
-    toolchain = proof_eval.ProofToolchain(
-        safec=SAFE_CLI,
-        alr="alr",
-        gnatprove="gnatprove",
-        env={},
-    )
+    toolchain = test_toolchain()
     with tempfile.TemporaryDirectory(prefix="safe-proof-root-") as proof_root_str:
         try:
             proof_eval.run_source_proof(
@@ -333,12 +488,7 @@ def run_source_proof_check_mode_failure_case() -> tuple[bool, str]:
 
 
 def run_source_proof_check_mode_execution_case(*, returncode: int) -> tuple[bool, str]:
-    toolchain = proof_eval.ProofToolchain(
-        safec=SAFE_CLI,
-        alr="alr",
-        gnatprove="gnatprove",
-        env={},
-    )
+    toolchain = test_toolchain()
     calls: list[list[str]] = []
     original_prepare_proof_root = proof_eval.prepare_proof_root
     original_ensure_interface_dependencies = proof_eval.ensure_interface_dependencies
@@ -469,6 +619,371 @@ def run_source_proof_check_mode_execution_case(*, returncode: int) -> tuple[bool
     return True, ""
 
 
+def run_prepare_proof_toolchain_version_normalization_case() -> tuple[bool, str]:
+    original_find_command = proof_eval.find_command
+    original_require_safec = proof_eval.require_safec
+    original_run_command = proof_eval.run_command
+    try:
+        def fake_find_command(name: str, fallback: Path | None = None) -> str:
+            del fallback
+            return name
+
+        def fake_require_safec() -> Path:
+            return SAFE_CLI
+
+        def fake_run_command(
+            argv: list[str],
+            *,
+            cwd: Path,
+            env: dict[str, str] | None = None,
+            timeout: int | None = None,
+        ) -> subprocess.CompletedProcess[str]:
+            del env, timeout
+            if cwd != proof_eval.COMPILER_ROOT:
+                raise AssertionError(f"unexpected cwd {cwd!r}")
+            if argv != ["alr", "exec", "--", "gnatprove", "--version"]:
+                raise AssertionError(f"unexpected command {argv!r}")
+            return subprocess.CompletedProcess(
+                argv,
+                0,
+                "\r\n GNATprove 25.0 \r\n  cvc5 1.0 \r\n",
+                "\n",
+            )
+
+        proof_eval.find_command = fake_find_command
+        proof_eval.require_safec = fake_require_safec
+        proof_eval.run_command = fake_run_command
+        toolchain = proof_eval.prepare_proof_toolchain(env={}, build_frontend=False)
+    except AssertionError as exc:
+        return False, str(exc)
+    finally:
+        proof_eval.find_command = original_find_command
+        proof_eval.require_safec = original_require_safec
+        proof_eval.run_command = original_run_command
+
+    if toolchain.gnatprove_version != TEST_GNATPROVE_VERSION:
+        return False, f"unexpected normalized version text {toolchain.gnatprove_version!r}"
+    return True, ""
+
+
+def run_prepare_proof_toolchain_version_probe_failure_case() -> tuple[bool, str]:
+    original_find_command = proof_eval.find_command
+    original_require_safec = proof_eval.require_safec
+    original_run_command = proof_eval.run_command
+    try:
+        def fake_find_command(name: str, fallback: Path | None = None) -> str:
+            del fallback
+            return name
+
+        def fake_require_safec() -> Path:
+            return SAFE_CLI
+
+        def fake_run_command(
+            argv: list[str],
+            *,
+            cwd: Path,
+            env: dict[str, str] | None = None,
+            timeout: int | None = None,
+        ) -> subprocess.CompletedProcess[str]:
+            del env, timeout
+            if cwd != proof_eval.COMPILER_ROOT:
+                raise AssertionError(f"unexpected cwd {cwd!r}")
+            if argv != ["alr", "exec", "--", "gnatprove", "--version"]:
+                raise AssertionError(f"unexpected command {argv!r}")
+            return subprocess.CompletedProcess(argv, 1, "", "probe failed\n")
+
+        proof_eval.find_command = fake_find_command
+        proof_eval.require_safec = fake_require_safec
+        proof_eval.run_command = fake_run_command
+        proof_eval.prepare_proof_toolchain(env={}, build_frontend=False)
+    except RuntimeError as exc:
+        if str(exc) != "failed to capture gnatprove --version: probe failed":
+            return False, f"unexpected version-probe error {exc!r}"
+        return True, ""
+    except AssertionError as exc:
+        return False, str(exc)
+    finally:
+        proof_eval.find_command = original_find_command
+        proof_eval.require_safec = original_require_safec
+        proof_eval.run_command = original_run_command
+
+    return False, "prepare_proof_toolchain unexpectedly accepted failed version probe"
+
+
+def run_proof_fingerprint_gnatprove_version_case() -> tuple[bool, str]:
+    with tempfile.TemporaryDirectory(prefix="safe-proof-fingerprint-") as temp_root_str:
+        temp_root = Path(temp_root_str)
+        source = temp_root / "demo.safe"
+        source.write_text("value : integer = 1\n", encoding="utf-8")
+        ada_dir = temp_root / "ada"
+        ada_dir.mkdir()
+        shared_paths = {"root": temp_root, "ada": ada_dir}
+        state = {"units": {}}
+        fingerprint_a = project_cache.proof_fingerprint(
+            source=source,
+            sources=[],
+            state=state,
+            safec_hash="safec-hash",
+            gnatprove_id="gnatprove",
+            gnatprove_version="GNATprove 25.0",
+            flow_switches=proof_eval.FLOW_SWITCHES,
+            prove_switches=proof_eval.prove_switches_for_level(1),
+            project_text="project Build is end Build;\n",
+            shared_paths=shared_paths,
+        )
+        fingerprint_b = project_cache.proof_fingerprint(
+            source=source,
+            sources=[],
+            state=state,
+            safec_hash="safec-hash",
+            gnatprove_id="gnatprove",
+            gnatprove_version="GNATprove 25.1",
+            flow_switches=proof_eval.FLOW_SWITCHES,
+            prove_switches=proof_eval.prove_switches_for_level(1),
+            project_text="project Build is end Build;\n",
+            shared_paths=shared_paths,
+        )
+    if fingerprint_a == fingerprint_b:
+        return False, "proof fingerprint ignored gnatprove_version"
+    return True, ""
+
+
+def run_run_proofs_no_cache_case() -> tuple[bool, str]:
+    fixture = repo_rel(PROVE_SINGLE_SUCCESS_SOURCE)
+    source_calls = 0
+    cached_calls = 0
+
+    def fake_source_proof(**kwargs: object) -> proof_eval.ProofRunResult:
+        nonlocal source_calls
+        source_calls += 1
+        source = kwargs["source"]
+        proof_root = kwargs["proof_root"]
+        return proof_eval.ProofRunResult(
+            source=source,
+            proof_root=proof_root,
+            passed=True,
+            stage="prove",
+        )
+
+    def fake_cached_source_proof(**kwargs: object) -> proof_eval.ProofRunResult:
+        nonlocal cached_calls
+        cached_calls += 1
+        raise AssertionError(f"unexpected cached proof call {kwargs!r}")
+
+    try:
+        returncode, stdout, stderr = run_run_proofs_subset(
+            ["--no-cache"],
+            fixtures=[fixture],
+            use_real_toolchain=False,
+            fake_source_proof=fake_source_proof,
+            fake_cached_source_proof=fake_cached_source_proof,
+        )
+    except AssertionError as exc:
+        return False, str(exc)
+
+    if returncode != 0:
+        return False, f"run_proofs --no-cache failed: {stderr or stdout}"
+    if source_calls != 1 or cached_calls != 0:
+        return False, f"unexpected prove call counts source={source_calls} cached={cached_calls}"
+    if "cache reuse enabled" in stdout:
+        return False, f"unexpected cache banner in stdout {stdout!r}"
+    if "PR11.8a checkpoint: 1 proved, 0 cached, 0 failed" not in stdout:
+        return False, f"unexpected prove summary {stdout!r}"
+    if stderr:
+        return False, f"unexpected stderr {stderr!r}"
+    return True, ""
+
+
+def run_run_proofs_check_mode_ignores_cache_case() -> tuple[bool, str]:
+    fixture = repo_rel(PROVE_SINGLE_SUCCESS_SOURCE)
+    source_calls = 0
+
+    def fake_source_proof(**kwargs: object) -> proof_eval.ProofRunResult:
+        nonlocal source_calls
+        source_calls += 1
+        source = kwargs["source"]
+        proof_root = kwargs["proof_root"]
+        return proof_eval.ProofRunResult(
+            source=source,
+            proof_root=proof_root,
+            passed=True,
+            stage="prove-check",
+        )
+
+    def fake_cached_source_proof(**kwargs: object) -> proof_eval.ProofRunResult:
+        raise AssertionError(f"check mode should not use cached proof path: {kwargs!r}")
+
+    try:
+        cached_run = run_run_proofs_subset(
+            ["--mode=check", "--cache"],
+            fixtures=[fixture],
+            use_real_toolchain=False,
+            fake_source_proof=fake_source_proof,
+            fake_cached_source_proof=fake_cached_source_proof,
+        )
+        uncached_run = run_run_proofs_subset(
+            ["--mode=check", "--no-cache"],
+            fixtures=[fixture],
+            use_real_toolchain=False,
+            fake_source_proof=fake_source_proof,
+            fake_cached_source_proof=fake_cached_source_proof,
+        )
+    except AssertionError as exc:
+        return False, str(exc)
+
+    if cached_run != uncached_run:
+        return False, f"check-mode cache flag changed output {cached_run!r} != {uncached_run!r}"
+    returncode, stdout, stderr = cached_run
+    if returncode != 0:
+        return False, f"check-mode run_proofs failed: {stderr or stdout}"
+    if source_calls != 2:
+        return False, f"expected two uncached check-mode calls, saw {source_calls}"
+    if "cache reuse enabled" in stdout:
+        return False, f"unexpected cache banner in check-mode stdout {stdout!r}"
+    if "PR11.8a checkpoint: 1 checked, 0 failed" not in stdout:
+        return False, f"unexpected check-mode summary {stdout!r}"
+    if stderr:
+        return False, f"unexpected stderr {stderr!r}"
+    return True, ""
+
+
+def run_run_proofs_default_cache_case() -> tuple[bool, str]:
+    source = PROVE_SINGLE_SUCCESS_SOURCE
+    fixture = repo_rel(source)
+    clear_project_artifacts(source)
+    summary_path = safe_prove_summary_path(source, target_bits=64)
+
+    first_returncode, first_stdout, first_stderr = run_run_proofs_subset(
+        ["--level", "1"],
+        fixtures=[fixture],
+        use_real_toolchain=False,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if first_returncode != 0:
+        return False, f"initial run_proofs failed: {first_stderr or first_stdout}"
+    if "[run_proofs] cache reuse enabled (--no-cache to disable)" not in first_stdout:
+        return False, f"missing cache banner in stdout {first_stdout!r}"
+    if "PR11.8a checkpoint: 1 proved, 0 cached, 0 failed" not in first_stdout:
+        return False, f"unexpected first prove summary {first_stdout!r}"
+    if first_stderr:
+        return False, f"unexpected stderr {first_stderr!r}"
+    if not summary_path.exists():
+        return False, f"missing proof summary {summary_path}"
+    summary_mtime = summary_path.stat().st_mtime_ns
+
+    second_returncode, second_stdout, second_stderr = run_run_proofs_subset(
+        ["--level", "1"],
+        fixtures=[fixture],
+        use_real_toolchain=False,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if second_returncode != 0:
+        return False, f"cached run_proofs failed: {second_stderr or second_stdout}"
+    if summary_path.stat().st_mtime_ns != summary_mtime:
+        return False, "cached run_proofs reran GNATprove"
+    if "PR11.8a checkpoint: 0 proved, 1 cached, 0 failed" not in second_stdout:
+        return False, f"unexpected cached prove summary {second_stdout!r}"
+    if second_stderr:
+        return False, f"unexpected stderr {second_stderr!r}"
+    return True, ""
+
+
+def run_run_proofs_explicit_cache_case() -> tuple[bool, str]:
+    source = PROVE_SINGLE_SUCCESS_SOURCE
+    fixture = repo_rel(source)
+    clear_project_artifacts(source)
+    summary_path = safe_prove_summary_path(source, target_bits=64)
+
+    first_returncode, first_stdout, first_stderr = run_run_proofs_subset(
+        ["--cache", "--level", "1"],
+        fixtures=[fixture],
+        use_real_toolchain=False,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if first_returncode != 0:
+        return False, f"explicit-cache run_proofs failed: {first_stderr or first_stdout}"
+    if "[run_proofs] cache reuse enabled (--no-cache to disable)" not in first_stdout:
+        return False, f"missing cache banner in stdout {first_stdout!r}"
+    if "PR11.8a checkpoint: 1 proved, 0 cached, 0 failed" not in first_stdout:
+        return False, f"unexpected first explicit-cache summary {first_stdout!r}"
+    if first_stderr:
+        return False, f"unexpected stderr {first_stderr!r}"
+    if not summary_path.exists():
+        return False, f"missing proof summary {summary_path}"
+    summary_mtime = summary_path.stat().st_mtime_ns
+
+    second_returncode, second_stdout, second_stderr = run_run_proofs_subset(
+        ["--cache", "--level", "1"],
+        fixtures=[fixture],
+        use_real_toolchain=False,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if second_returncode != 0:
+        return False, f"cached explicit-cache run_proofs failed: {second_stderr or second_stdout}"
+    if summary_path.stat().st_mtime_ns != summary_mtime:
+        return False, "explicit-cache run_proofs reran GNATprove"
+    if "PR11.8a checkpoint: 0 proved, 1 cached, 0 failed" not in second_stdout:
+        return False, f"unexpected cached explicit-cache summary {second_stdout!r}"
+    if second_stderr:
+        return False, f"unexpected stderr {second_stderr!r}"
+    return True, ""
+
+
+def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
+    source = PROVE_SINGLE_SUCCESS_SOURCE
+    fixture = repo_rel(source)
+    summary_path = safe_prove_summary_path(source, target_bits=64)
+
+    clear_project_artifacts(source)
+    safe_prove_returncode, safe_prove_stdout, safe_prove_stderr = run_safe_prove_subset(
+        source,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if safe_prove_returncode != 0:
+        return False, f"initial safe prove failed: {safe_prove_stderr or safe_prove_stdout}"
+    if not summary_path.exists():
+        return False, f"safe prove did not create summary {summary_path}"
+    summary_mtime = summary_path.stat().st_mtime_ns
+
+    run_proofs_returncode, run_proofs_stdout, run_proofs_stderr = run_run_proofs_subset(
+        ["--level", "1"],
+        fixtures=[fixture],
+        use_real_toolchain=False,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if run_proofs_returncode != 0:
+        return False, f"run_proofs after safe prove failed: {run_proofs_stderr or run_proofs_stdout}"
+    if summary_path.stat().st_mtime_ns != summary_mtime:
+        return False, "run_proofs did not reuse safe prove cache"
+    if "PR11.8a checkpoint: 0 proved, 1 cached, 0 failed" not in run_proofs_stdout:
+        return False, f"run_proofs did not report cache hit after safe prove {run_proofs_stdout!r}"
+    if run_proofs_stderr:
+        return False, f"unexpected stderr {run_proofs_stderr!r}"
+
+    clear_project_artifacts(source)
+    run_proofs_returncode, run_proofs_stdout, run_proofs_stderr = run_run_proofs_subset(
+        ["--level", "1"],
+        fixtures=[fixture],
+        use_real_toolchain=False,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if run_proofs_returncode != 0:
+        return False, f"initial run_proofs failed: {run_proofs_stderr or run_proofs_stdout}"
+    if not summary_path.exists():
+        return False, f"run_proofs did not create summary {summary_path}"
+    summary_mtime = summary_path.stat().st_mtime_ns
+
+    safe_prove_cached_returncode, safe_prove_cached_stdout, safe_prove_cached_stderr = run_safe_prove_subset(
+        source,
+        fake_cached_source_proof=fake_cached_proof_runner,
+    )
+    if safe_prove_cached_returncode != 0:
+        return False, f"safe prove after run_proofs failed: {safe_prove_cached_stderr or safe_prove_cached_stdout}"
+    if summary_path.stat().st_mtime_ns != summary_mtime:
+        return False, "safe prove did not reuse run_proofs cache"
+    return True, ""
+
+
 
 def run_internal_proof_checks() -> RunCounts:
     passed = 0
@@ -476,6 +991,21 @@ def run_internal_proof_checks() -> RunCounts:
     passed += record_result(failures, "proof-inventory-coverage", run_proof_inventory_coverage_case())
     passed += record_result(failures, "proof-eval-message-priority", run_proof_eval_message_priority_case())
     passed += record_result(failures, "proof-eval-clean-nonzero", run_proof_eval_clean_nonzero_case())
+    passed += record_result(
+        failures,
+        "prepare-proof-toolchain-version-normalization",
+        run_prepare_proof_toolchain_version_normalization_case(),
+    )
+    passed += record_result(
+        failures,
+        "prepare-proof-toolchain-version-probe-failure",
+        run_prepare_proof_toolchain_version_probe_failure_case(),
+    )
+    passed += record_result(
+        failures,
+        "proof-fingerprint-gnatprove-version",
+        run_proof_fingerprint_gnatprove_version_case(),
+    )
     passed += record_result(failures, "proof-eval-check-mode-success", run_proof_eval_check_mode_success_case())
     passed += record_result(failures, "proof-eval-check-mode-failure", run_proof_eval_check_mode_failure_case())
     passed += record_result(failures, "proof-eval-invalid-mode", run_proof_eval_invalid_mode_case())
@@ -499,6 +1029,12 @@ def run_internal_proof_checks() -> RunCounts:
         "source-proof-check-mode-failure",
         run_source_proof_check_mode_failure_case(),
     )
+    passed += record_result(failures, "run_proofs no-cache", run_run_proofs_no_cache_case())
+    passed += record_result(
+        failures,
+        "run_proofs check-mode ignores cache",
+        run_run_proofs_check_mode_ignores_cache_case(),
+    )
     return passed, 0, failures
 
 
@@ -511,6 +1047,13 @@ def run_safe_prove_success_checks() -> RunCounts:
             f"safe prove {repo_rel(source)}",
             run_safe_prove_single_case(source),
         )
+    passed += record_result(failures, "run_proofs default cache", run_run_proofs_default_cache_case())
+    passed += record_result(failures, "run_proofs explicit cache", run_run_proofs_explicit_cache_case())
+    passed += record_result(
+        failures,
+        "cross-tool proof cache consistency",
+        run_cross_tool_cache_consistency_case(),
+    )
     return passed, 0, failures
 
 

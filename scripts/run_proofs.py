@@ -7,12 +7,14 @@ import argparse
 import os
 import sys
 import tempfile
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from _lib.proof_eval import (
     ProofToolchain,
     prepare_proof_toolchain,
     prove_switches_for_level,
+    run_cached_source_proof,
     run_gnatprove_project,
     run_source_proof,
 )
@@ -157,6 +159,23 @@ def validate_manifests() -> None:
             + detail
         )
 
+
+@dataclass
+class GroupResult:
+    proved: int = 0
+    cached: int = 0
+    failures: list[tuple[str, str]] = field(default_factory=list)
+
+
+def combine_results(*results: GroupResult) -> GroupResult:
+    combined = GroupResult()
+    for result in results:
+        combined.proved += result.proved
+        combined.cached += result.cached
+        combined.failures.extend(result.failures)
+    return combined
+
+
 def run_companion_project(
     *,
     project_dir: Path,
@@ -176,17 +195,23 @@ def run_companion_project(
 
 def print_summary(
     *,
-    passed: int,
-    failures: list[tuple[str, str]],
+    result: GroupResult,
     title: str | None = None,
     passed_label: str = "proved",
     trailing_blank_line: bool = False,
+    show_cached: bool = False,
 ) -> None:
     prefix = f"{title}: " if title is not None else ""
-    print(f"{prefix}{passed} {passed_label}, {len(failures)} failed")
-    if failures:
+    if show_cached:
+        print(
+            f"{prefix}{result.proved} {passed_label}, {result.cached} cached, "
+            f"{len(result.failures)} failed"
+        )
+    else:
+        print(f"{prefix}{result.proved} {passed_label}, {len(result.failures)} failed")
+    if result.failures:
         print("Failures:")
-        for label, detail in failures:
+        for label, detail in result.failures:
             print(f" - {label}: {detail}")
     if trailing_blank_line:
         print()
@@ -204,29 +229,41 @@ def run_fixture_group(
     proof_mode: str,
     prove_switches: list[str] | None = None,
     command_timeout: int | None = None,
-) -> tuple[int, list[tuple[str, str]]]:
-    passed = 0
-    failures: list[tuple[str, str]] = []
+    use_cache: bool = True,
+) -> GroupResult:
+    summary = GroupResult()
 
     action = "checking" if proof_mode == "check" else "proving"
     for fixture_rel in fixtures:
         print_progress(f"{action} {fixture_rel}")
         source = REPO_ROOT / fixture_rel
-        result = run_source_proof(
-            toolchain=toolchain,
-            source=source,
-            proof_root=temp_root / source.stem,
-            run_check=False,
-            proof_mode=proof_mode,
-            prove_switches=prove_switches,
-            command_timeout=command_timeout,
-        )
-        if result.passed:
-            passed += 1
+        if proof_mode == "prove" and use_cache:
+            result = run_cached_source_proof(
+                toolchain=toolchain,
+                source=source,
+                run_check=False,
+                prove_switches=prove_switches,
+                command_timeout=command_timeout,
+            )
         else:
-            failures.append((fixture_rel, result.detail))
+            result = run_source_proof(
+                toolchain=toolchain,
+                source=source,
+                proof_root=temp_root / source.stem,
+                run_check=False,
+                proof_mode=proof_mode,
+                prove_switches=prove_switches,
+                command_timeout=command_timeout,
+            )
+        if result.passed:
+            if result.used_cache:
+                summary.cached += 1
+            else:
+                summary.proved += 1
+        else:
+            summary.failures.append((fixture_rel, result.detail))
 
-    return passed, failures
+    return summary
 
 
 def parse_args() -> argparse.Namespace:
@@ -244,6 +281,17 @@ def parse_args() -> argparse.Namespace:
         default=1,
         help="GNATprove level for full prove mode (default: 1). Ignored in check mode.",
     )
+    cache_group = parser.add_mutually_exclusive_group()
+    cache_group.add_argument(
+        "--cache",
+        action="store_true",
+        help="Reuse unchanged passing prove results. Enabled by default in prove mode and ignored in check mode.",
+    )
+    cache_group.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable local proof-result reuse. Ignored in check mode.",
+    )
     return parser.parse_args()
 
 
@@ -253,6 +301,7 @@ def main() -> int:
     prove_switches = None if proof_mode == "check" else prove_switches_for_level(args.level)
     passed_label = "checked" if proof_mode == "check" else "proved"
     companion_action = "checking" if proof_mode == "check" else "proving"
+    use_cache = proof_mode == "prove" and (args.cache or not args.no_cache)
 
     try:
         validate_manifests()
@@ -261,68 +310,10 @@ def main() -> int:
         print(f"run_proofs: ERROR: {exc}", file=sys.stderr)
         return 1
 
-    companion_passed = 0
-    companion_failures: list[tuple[str, str]] = []
-    checkpoint_a_passed = 0
-    checkpoint_a_failures: list[tuple[str, str]] = []
-    checkpoint_b_passed = 0
-    checkpoint_b_failures: list[tuple[str, str]] = []
-    checkpoint_e_passed = 0
-    checkpoint_e_failures: list[tuple[str, str]] = []
-    checkpoint_f_passed = 0
-    checkpoint_f_failures: list[tuple[str, str]] = []
-    checkpoint_g1_passed = 0
-    checkpoint_g1_failures: list[tuple[str, str]] = []
-    checkpoint_g2_passed = 0
-    checkpoint_g2_failures: list[tuple[str, str]] = []
-    checkpoint_i_passed = 0
-    checkpoint_i_failures: list[tuple[str, str]] = []
-    checkpoint_i1_passed = 0
-    checkpoint_i1_failures: list[tuple[str, str]] = []
-    checkpoint_k_passed = 0
-    checkpoint_k_failures: list[tuple[str, str]] = []
-    checkpoint_10a_passed = 0
-    checkpoint_10a_failures: list[tuple[str, str]] = []
-    checkpoint_10b_passed = 0
-    checkpoint_10b_failures: list[tuple[str, str]] = []
-    checkpoint_10c_passed = 0
-    checkpoint_10c_failures: list[tuple[str, str]] = []
-    checkpoint_10d_passed = 0
-    checkpoint_10d_failures: list[tuple[str, str]] = []
-    checkpoint_11a_passed = 0
-    checkpoint_11a_failures: list[tuple[str, str]] = []
-    checkpoint_11b_passed = 0
-    checkpoint_11b_failures: list[tuple[str, str]] = []
-    checkpoint_11c_passed = 0
-    checkpoint_11c_failures: list[tuple[str, str]] = []
-    checkpoint_12a_passed = 0
-    checkpoint_12a_failures: list[tuple[str, str]] = []
-    checkpoint_12b_passed = 0
-    checkpoint_12b_failures: list[tuple[str, str]] = []
-    checkpoint_12c_passed = 0
-    checkpoint_12c_failures: list[tuple[str, str]] = []
-    checkpoint_12d_passed = 0
-    checkpoint_12d_failures: list[tuple[str, str]] = []
-    checkpoint_12e_passed = 0
-    checkpoint_12e_failures: list[tuple[str, str]] = []
-    checkpoint_12f_passed = 0
-    checkpoint_12f_failures: list[tuple[str, str]] = []
-    checkpoint_12_passed = 0
-    checkpoint_12_failures: list[tuple[str, str]] = []
-    checkpoint_13a_passed = 0
-    checkpoint_13a_failures: list[tuple[str, str]] = []
-    checkpoint_13b_passed = 0
-    checkpoint_13b_failures: list[tuple[str, str]] = []
-    checkpoint_13c_passed = 0
-    checkpoint_13c_failures: list[tuple[str, str]] = []
-    checkpoint_13_passed = 0
-    checkpoint_13_failures: list[tuple[str, str]] = []
-    checkpoint_16_passed = 0
-    checkpoint_16_failures: list[tuple[str, str]] = []
-    checkpoint_23_expansion_passed = 0
-    checkpoint_23_expansion_failures: list[tuple[str, str]] = []
-    regression_passed = 0
-    regression_failures: list[tuple[str, str]] = []
+    if use_cache:
+        print_progress("cache reuse enabled (--no-cache to disable)")
+
+    companion_result = GroupResult()
 
     for project_rel, project_file in COMPANION_PROJECTS:
         project_dir = REPO_ROOT / project_rel
@@ -335,513 +326,490 @@ def main() -> int:
             prove_switches=prove_switches,
         )
         if ok:
-            companion_passed += 1
+            companion_result.proved += 1
         else:
-            companion_failures.append((project_rel, detail))
+            companion_result.failures.append((project_rel, detail))
 
     with tempfile.TemporaryDirectory(prefix="safe-proofs-") as temp_root_str:
         temp_root = Path(temp_root_str)
-        checkpoint_a_passed, checkpoint_a_failures = run_fixture_group(
+        checkpoint_a = run_fixture_group(
             fixtures=PR11_8A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_b_passed, checkpoint_b_failures = run_fixture_group(
+        checkpoint_b = run_fixture_group(
             fixtures=PR11_8B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_e_passed, checkpoint_e_failures = run_fixture_group(
+        checkpoint_e = run_fixture_group(
             fixtures=PR11_8E_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_f_passed, checkpoint_f_failures = run_fixture_group(
+        checkpoint_f = run_fixture_group(
             fixtures=PR11_8F_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_g1_passed, checkpoint_g1_failures = run_fixture_group(
+        checkpoint_g1 = run_fixture_group(
             fixtures=PR11_8G1_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_g2_passed, checkpoint_g2_failures = run_fixture_group(
+        checkpoint_g2 = run_fixture_group(
             fixtures=PR11_8G2_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_i_passed, checkpoint_i_failures = run_fixture_group(
+        checkpoint_i = run_fixture_group(
             fixtures=PR11_8I_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_i1_passed, checkpoint_i1_failures = run_fixture_group(
+        checkpoint_i1 = run_fixture_group(
             fixtures=PR11_8I1_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_k_passed, checkpoint_k_failures = run_fixture_group(
+        checkpoint_k = run_fixture_group(
             fixtures=PR11_8K_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_10a_passed, checkpoint_10a_failures = run_fixture_group(
+        checkpoint_10a = run_fixture_group(
             fixtures=PR11_10A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_10b_passed, checkpoint_10b_failures = run_fixture_group(
+        checkpoint_10b = run_fixture_group(
             fixtures=PR11_10B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_10c_passed, checkpoint_10c_failures = run_fixture_group(
+        checkpoint_10c = run_fixture_group(
             fixtures=PR11_10C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_11a_passed, checkpoint_11a_failures = run_fixture_group(
+        checkpoint_11a = run_fixture_group(
             fixtures=PR11_11A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_11b_passed, checkpoint_11b_failures = run_fixture_group(
+        checkpoint_11b = run_fixture_group(
             fixtures=PR11_11B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_11c_passed, checkpoint_11c_failures = run_fixture_group(
+        checkpoint_11c = run_fixture_group(
             fixtures=PR11_11C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_12a_passed, checkpoint_12a_failures = run_fixture_group(
+        checkpoint_12a = run_fixture_group(
             fixtures=PR11_12A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_12b_passed, checkpoint_12b_failures = run_fixture_group(
+        checkpoint_12b = run_fixture_group(
             fixtures=PR11_12B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_12c_passed, checkpoint_12c_failures = run_fixture_group(
+        checkpoint_12c = run_fixture_group(
             fixtures=PR11_12C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_12d_passed, checkpoint_12d_failures = run_fixture_group(
+        checkpoint_12d = run_fixture_group(
             fixtures=PR11_12D_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_12e_passed, checkpoint_12e_failures = run_fixture_group(
+        checkpoint_12e = run_fixture_group(
             fixtures=PR11_12E_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_12f_passed, checkpoint_12f_failures = run_fixture_group(
+        checkpoint_12f = run_fixture_group(
             fixtures=PR11_12F_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_13a_passed, checkpoint_13a_failures = run_fixture_group(
+        checkpoint_13a = run_fixture_group(
             fixtures=PR11_13A_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_13b_passed, checkpoint_13b_failures = run_fixture_group(
+        checkpoint_13b = run_fixture_group(
             fixtures=PR11_13B_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_13c_passed, checkpoint_13c_failures = run_fixture_group(
+        checkpoint_13c = run_fixture_group(
             fixtures=PR11_13C_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_16_passed, checkpoint_16_failures = run_fixture_group(
+        checkpoint_16 = run_fixture_group(
             fixtures=PR11_16_CHECKPOINT_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        checkpoint_23_expansion_passed, checkpoint_23_expansion_failures = run_fixture_group(
+        checkpoint_23_expansion = run_fixture_group(
             fixtures=PR11_23_PROOF_EXPANSION_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
-        regression_passed, regression_failures = run_fixture_group(
+        regression = run_fixture_group(
             fixtures=EMITTED_PROOF_REGRESSION_FIXTURES,
             temp_root=temp_root,
             toolchain=toolchain,
             proof_mode=proof_mode,
             prove_switches=prove_switches,
+            use_cache=use_cache,
         )
 
-    checkpoint_10d_passed = (
-        checkpoint_10a_passed + checkpoint_10b_passed + checkpoint_10c_passed
+    checkpoint_10d = combine_results(checkpoint_10a, checkpoint_10b, checkpoint_10c)
+    checkpoint_12 = combine_results(
+        checkpoint_12a,
+        checkpoint_12b,
+        checkpoint_12c,
+        checkpoint_12d,
+        checkpoint_12e,
+        checkpoint_12f,
     )
-    checkpoint_10d_failures = (
-        checkpoint_10a_failures + checkpoint_10b_failures + checkpoint_10c_failures
+    checkpoint_13 = combine_results(checkpoint_13a, checkpoint_13b, checkpoint_13c)
+    total = combine_results(
+        companion_result,
+        checkpoint_a,
+        checkpoint_b,
+        checkpoint_e,
+        checkpoint_f,
+        checkpoint_g1,
+        checkpoint_g2,
+        checkpoint_i,
+        checkpoint_i1,
+        checkpoint_k,
+        checkpoint_10a,
+        checkpoint_10b,
+        checkpoint_10c,
+        checkpoint_11a,
+        checkpoint_11b,
+        checkpoint_11c,
+        checkpoint_12a,
+        checkpoint_12b,
+        checkpoint_12c,
+        checkpoint_12d,
+        checkpoint_12e,
+        checkpoint_12f,
+        checkpoint_13a,
+        checkpoint_13b,
+        checkpoint_13c,
+        checkpoint_16,
+        checkpoint_23_expansion,
+        regression,
     )
-    checkpoint_12_passed = (
-        checkpoint_12a_passed
-        + checkpoint_12b_passed
-        + checkpoint_12c_passed
-        + checkpoint_12d_passed
-        + checkpoint_12e_passed
-        + checkpoint_12f_passed
-    )
-    checkpoint_12_failures = (
-        checkpoint_12a_failures
-        + checkpoint_12b_failures
-        + checkpoint_12c_failures
-        + checkpoint_12d_failures
-        + checkpoint_12e_failures
-        + checkpoint_12f_failures
-    )
-    checkpoint_13_passed = (
-        checkpoint_13a_passed + checkpoint_13b_passed + checkpoint_13c_passed
-    )
-    checkpoint_13_failures = (
-        checkpoint_13a_failures
-        + checkpoint_13b_failures
-        + checkpoint_13c_failures
-    )
-
-    total_passed = (
-        companion_passed
-        + checkpoint_a_passed
-        + checkpoint_b_passed
-        + checkpoint_e_passed
-        + checkpoint_f_passed
-        + checkpoint_g1_passed
-        + checkpoint_g2_passed
-        + checkpoint_i_passed
-        + checkpoint_i1_passed
-        + checkpoint_k_passed
-        + checkpoint_10a_passed
-        + checkpoint_10b_passed
-        + checkpoint_10c_passed
-        + checkpoint_11a_passed
-        + checkpoint_11b_passed
-        + checkpoint_11c_passed
-        + checkpoint_12a_passed
-        + checkpoint_12b_passed
-        + checkpoint_12c_passed
-        + checkpoint_12d_passed
-        + checkpoint_12e_passed
-        + checkpoint_12f_passed
-        + checkpoint_13a_passed
-        + checkpoint_13b_passed
-        + checkpoint_13c_passed
-        + checkpoint_16_passed
-        + checkpoint_23_expansion_passed
-        + regression_passed
-    )
-    total_failures = (
-        companion_failures
-        + checkpoint_a_failures
-        + checkpoint_b_failures
-        + checkpoint_e_failures
-        + checkpoint_f_failures
-        + checkpoint_g1_failures
-        + checkpoint_g2_failures
-        + checkpoint_i_failures
-        + checkpoint_i1_failures
-        + checkpoint_k_failures
-        + checkpoint_10a_failures
-        + checkpoint_10b_failures
-        + checkpoint_10c_failures
-        + checkpoint_11a_failures
-        + checkpoint_11b_failures
-        + checkpoint_11c_failures
-        + checkpoint_12a_failures
-        + checkpoint_12b_failures
-        + checkpoint_12c_failures
-        + checkpoint_12d_failures
-        + checkpoint_12e_failures
-        + checkpoint_12f_failures
-        + checkpoint_13a_failures
-        + checkpoint_13b_failures
-        + checkpoint_13c_failures
-        + checkpoint_16_failures
-        + checkpoint_23_expansion_failures
-        + regression_failures
-    )
+    show_cached = proof_mode == "prove"
 
     print_summary(
-        passed=companion_passed,
-        failures=companion_failures,
+        result=companion_result,
         title="Companion baselines",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_a_passed,
-        failures=checkpoint_a_failures,
+        result=checkpoint_a,
         title="PR11.8a checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_b_passed,
-        failures=checkpoint_b_failures,
+        result=checkpoint_b,
         title="PR11.8b checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_e_passed,
-        failures=checkpoint_e_failures,
+        result=checkpoint_e,
         title="PR11.8e checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_f_passed,
-        failures=checkpoint_f_failures,
+        result=checkpoint_f,
         title="PR11.8f checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_g1_passed,
-        failures=checkpoint_g1_failures,
+        result=checkpoint_g1,
         title="PR11.8g.1 checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_g2_passed,
-        failures=checkpoint_g2_failures,
+        result=checkpoint_g2,
         title="PR11.8g.2 checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_i_passed,
-        failures=checkpoint_i_failures,
+        result=checkpoint_i,
         title="PR11.8i checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_i1_passed,
-        failures=checkpoint_i1_failures,
+        result=checkpoint_i1,
         title="PR11.8i.1 checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_k_passed,
-        failures=checkpoint_k_failures,
+        result=checkpoint_k,
         title="PR11.8k checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_10a_passed,
-        failures=checkpoint_10a_failures,
+        result=checkpoint_10a,
         title="PR11.10a checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_10b_passed,
-        failures=checkpoint_10b_failures,
+        result=checkpoint_10b,
         title="PR11.10b checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_10c_passed,
-        failures=checkpoint_10c_failures,
+        result=checkpoint_10c,
         title="PR11.10c checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_10d_passed,
-        failures=checkpoint_10d_failures,
+        result=checkpoint_10d,
         title="PR11.10d checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_11a_passed,
-        failures=checkpoint_11a_failures,
+        result=checkpoint_11a,
         title="PR11.11a checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_11b_passed,
-        failures=checkpoint_11b_failures,
+        result=checkpoint_11b,
         title="PR11.11b checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_11c_passed,
-        failures=checkpoint_11c_failures,
+        result=checkpoint_11c,
         title="PR11.11c checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12a_passed,
-        failures=checkpoint_12a_failures,
+        result=checkpoint_12a,
         title="PR11.12a checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12b_passed,
-        failures=checkpoint_12b_failures,
+        result=checkpoint_12b,
         title="PR11.12b checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12c_passed,
-        failures=checkpoint_12c_failures,
+        result=checkpoint_12c,
         title="PR11.12c checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12d_passed,
-        failures=checkpoint_12d_failures,
+        result=checkpoint_12d,
         title="PR11.12d checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12e_passed,
-        failures=checkpoint_12e_failures,
+        result=checkpoint_12e,
         title="PR11.12e checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12f_passed,
-        failures=checkpoint_12f_failures,
+        result=checkpoint_12f,
         title="PR11.12f checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_12_passed,
-        failures=checkpoint_12_failures,
+        result=checkpoint_12,
         title="PR11.12 checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_13a_passed,
-        failures=checkpoint_13a_failures,
+        result=checkpoint_13a,
         title="PR11.13a checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_13b_passed,
-        failures=checkpoint_13b_failures,
+        result=checkpoint_13b,
         title="PR11.13b checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_13c_passed,
-        failures=checkpoint_13c_failures,
+        result=checkpoint_13c,
         title="PR11.13c checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_13_passed,
-        failures=checkpoint_13_failures,
+        result=checkpoint_13,
         title="PR11.13 checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_16_passed,
-        failures=checkpoint_16_failures,
+        result=checkpoint_16,
         title="PR11.16 checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=checkpoint_23_expansion_passed,
-        failures=checkpoint_23_expansion_failures,
+        result=checkpoint_23_expansion,
         title="PR11.23 proof-expansion checkpoint",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
     print_summary(
-        passed=regression_passed,
-        failures=regression_failures,
+        result=regression,
         title="Emitted proof regressions",
         passed_label=passed_label,
         trailing_blank_line=True,
+        show_cached=show_cached,
     )
-    print_summary(passed=total_passed, failures=total_failures, passed_label=passed_label)
-    return 0 if not total_failures else 1
+    print_summary(result=total, passed_label=passed_label, show_cached=show_cached)
+    return 0 if not total.failures else 1
 
 
 if __name__ == "__main__":

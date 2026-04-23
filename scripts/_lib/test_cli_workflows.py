@@ -30,6 +30,8 @@ from _lib.test_harness import (
     safe_prove_summary_path,
 )
 
+LONG_RUNNING_OUTPUT_TIMEOUT_SECONDS = 1.0
+
 BUILD_SUCCESS_CASES = [
     (
         REPO_ROOT / "tests" / "build" / "pr118c2_package_build.safe",
@@ -793,7 +795,7 @@ def run_safe_build_case(
         run = run_command(
             [str(executable)],
             cwd=executable.parent,
-            timeout=0.3 if allow_timeout else None,
+            timeout=LONG_RUNNING_OUTPUT_TIMEOUT_SECONDS if allow_timeout else None,
         )
     except subprocess.TimeoutExpired as exc:
         if not allow_timeout:
@@ -864,7 +866,7 @@ def run_safe_run_case(
         run = run_command(
             [str(executable)],
             cwd=executable.parent,
-            timeout=0.3,
+            timeout=LONG_RUNNING_OUTPUT_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired as exc:
         stdout = exc.stdout or ""

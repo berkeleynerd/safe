@@ -24,7 +24,7 @@ intentionally gone.
 # Run tests
 python3 scripts/run_tests.py
 
-# Run proofs (requires GNATprove)
+# Run proofs (requires GNATprove; reuses unchanged local proof results by default)
 python3 scripts/run_proofs.py
 
 # Check samples
@@ -47,15 +47,16 @@ python3 scripts/snapshot_emitted_ada.py --check
 - `.github/workflows/ci.yml` runs on PR events, merge-queue candidates, manual
   `workflow_dispatch`, and pushes to `main`.
 - PR events are intentionally fast:
-  - `Prove` runs `python3 scripts/run_proofs.py --mode=check`
+  - `Prove` runs `python3 scripts/run_proofs.py --no-cache --mode=check`
   - `Test` and `Embedded` report deferred fast-lane status and do not run the
     full sweep on PR pushes
 - Full repo CI runs on merge-queue candidates, manual `workflow_dispatch`, and
   pushes to `main`.
 - The repo proof runner defaults to GNATprove level 1 for local push-time
-  automation. The CI `Prove` gate runs
-  `python3 scripts/run_proofs.py --level=2` on merge-queue candidates and on
-  `main`.
+  automation and reuses unchanged passing fixture proofs by default. Use
+  `python3 scripts/run_proofs.py --no-cache` to force a fresh local prove pass.
+  The CI `Prove` gate runs `python3 scripts/run_proofs.py --no-cache
+  --level=2` on merge-queue candidates and on `main`.
 - The merge queue is the only full pre-merge repo gate. `Test`, `Prove`, and
   `Embedded` must all pass there before code lands; a failure kicks the queued
   PR back out without merging.
@@ -71,11 +72,13 @@ python3 scripts/snapshot_emitted_ada.py --check
   the full local verification path before a branch is pushed:
   - `python3 scripts/run_tests.py`
   - `python3 scripts/run_samples.py`
-  - `python3 scripts/run_proofs.py --level=1`
+  - `python3 scripts/run_proofs.py --cache --level=1`
   - `python3 scripts/snapshot_emitted_ada.py --check`
-- That local proof pass is intentionally lighter than the merge gate: the
-  tracked pre-push hook uses `scripts/run_proofs.py --level=1`, while the
-  merge-queue / `main` gate uses `scripts/run_proofs.py --level=2`.
+- That local proof pass is intentionally lighter than the merge gate and
+  explicitly accepts proof-cache hits: the tracked pre-push hook uses
+  `scripts/run_proofs.py --cache --level=1`, while the merge-queue / `main`
+  gate uses
+  `scripts/run_proofs.py --no-cache --level=2`.
 - Skipping the pre-push hook with `--no-verify` or `SAFE_PRE_PUSH_SKIP=1` does
   not avoid validation; it only delays failure feedback from local push time to
   merge-queue time.

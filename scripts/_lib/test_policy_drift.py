@@ -15,7 +15,7 @@ CLAUDE_MD_PATH = REPO_ROOT / "CLAUDE.md"
 HOOK_COMMANDS = [
     "python3 scripts/run_tests.py",
     "python3 scripts/run_samples.py",
-    "python3 scripts/run_proofs.py --level=1",
+    "python3 scripts/run_proofs.py --cache --level=1",
     "python3 scripts/snapshot_emitted_ada.py --check",
 ]
 
@@ -28,9 +28,9 @@ INSTALLER_SNIPPETS = [
 CLAUDE_CI_STRUCTURE_SNIPPETS = [
     "python3 scripts/install_git_hooks.py",
     "pre-push hook",
-    "scripts/run_proofs.py --mode=check",
-    "scripts/run_proofs.py --level=1",
-    "scripts/run_proofs.py --level=2",
+    "scripts/run_proofs.py --no-cache --mode=check",
+    "scripts/run_proofs.py --cache --level=1",
+    "scripts/run_proofs.py --no-cache --level=2",
     "scripts/snapshot_emitted_ada.py --check",
 ]
 
@@ -117,11 +117,10 @@ def run_ci_prove_policy_case() -> tuple[bool, str]:
         return False, "missing prove job block in ci.yml"
     # This intentionally uses block text matching rather than a YAML parser to
     # keep the repo-local policy check dependency-free. Comments can fool it if
-    # the workflow grows substantially more complex. Keep the two prove `run:`
-    # entries on single lines unless this matcher is updated accordingly.
+    # the workflow grows substantially more complex.
     for expected in (
-        "run: python3 scripts/run_proofs.py --mode=check",
-        "run: python3 scripts/run_proofs.py --level=2",
+        "python3 scripts/run_proofs.py --no-cache --mode=check",
+        "python3 scripts/run_proofs.py --no-cache --level=2",
     ):
         if expected not in prove_block:
             return False, f"prove job block missing {expected!r}"
