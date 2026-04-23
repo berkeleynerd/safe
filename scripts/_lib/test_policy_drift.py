@@ -15,7 +15,7 @@ CLAUDE_MD_PATH = REPO_ROOT / "CLAUDE.md"
 HOOK_COMMANDS = [
     "python3 scripts/run_tests.py",
     "python3 scripts/run_samples.py",
-    "python3 scripts/run_proofs.py --level=1",
+    "python3 scripts/run_proofs.py --cache --level=1",
     "python3 scripts/snapshot_emitted_ada.py --check",
 ]
 
@@ -30,7 +30,7 @@ CLAUDE_CI_STRUCTURE_SNIPPETS = [
     "pre-push hook",
     "scripts/run_proofs.py --no-cache --mode=check",
     "scripts/run_proofs.py --no-cache",
-    "scripts/run_proofs.py --level=1",
+    "scripts/run_proofs.py --cache --level=1",
     "scripts/run_proofs.py --no-cache --level=2",
     "scripts/snapshot_emitted_ada.py --check",
 ]

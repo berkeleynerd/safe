@@ -15,8 +15,8 @@ python3 scripts/run_tests.py
 echo "[pre-push] running Safe sample sweep"
 python3 scripts/run_samples.py
 
-echo "[pre-push] running Safe proof workflow (level 1)"
-python3 scripts/run_proofs.py --level=1
+echo "[pre-push] running Safe proof workflow (level 1, cached)"
+python3 scripts/run_proofs.py --cache --level=1
 
 echo "[pre-push] checking emitted Ada snapshot stability"
 python3 scripts/snapshot_emitted_ada.py --check
