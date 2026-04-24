@@ -54,10 +54,10 @@ body file.
 -- demo.safe
 package demo
 
-   public subtype index is integer (0 to 15);
-   public type buf is array (index) of integer;
+   public subtype index is integer (0 to 15)
+   public type buf is array (index) of integer
 
-   hidden : integer = 0;  -- not public, not visible to clients
+   hidden : integer = 0  -- not public, not visible to clients
 
    public function sum (b : buf) returns integer
       var total : integer = 0
@@ -78,7 +78,7 @@ Safe also admits executable statements at unit scope after declarations, and a
 single-file executable root may omit `package` entirely:
 
 ```safe
-value : integer = 41;
+value : integer = 41
 
 print (value + 1)
 ```
@@ -156,12 +156,12 @@ Safe uses `private record` (not Ada's package `private` part) to express an opaq
 
 ```safe
 package buffers
-   public subtype buffer_size is integer (1 to 4096);
-   public subtype buffer_index is buffer_size;
+   public subtype buffer_size is integer (1 to 4096)
+   public subtype buffer_index is buffer_size
 
    public type buffer is private record
-      data   : string (4096) = "";
-      length : buffer_size = 1;
+      data   : string (4096) = ""
+      length : buffer_size = 1
 ```
 
 Virtue: clients can name and pass the type, but cannot depend on its representation.
@@ -194,9 +194,9 @@ This matters in aggregates and other target-typed initializers. In Safe, you wou
 
 ```safe
 type payload is record
-   value : integer;
+   value : integer
 
-p : payload = ((value = 42) as payload);
+p : payload = ((value = 42) as payload)
 ```
 
 Virtue: qualification becomes a consistent surface form, and (more importantly) narrowing points become easier to identify and reason about.
@@ -213,9 +213,9 @@ provisional PR11.2 text model.
 Bounded text uses `string (N)`:
 
 ```safe
-name : string (5) = "hello";
-prefix : string (5) = name (1 to 2);
-initial : string (1) = 'h';
+name : string (5) = "hello"
+prefix : string (5) = name (1 to 2)
+initial : string (1) = 'h'
 ```
 
 This is the stack-backed text form. It supports `.length`, indexing, slicing,
@@ -224,13 +224,13 @@ equality, and ordinary assignment.
 Growable arrays use `array of T` and bracket literals:
 
 ```safe
-type int_list is array of integer;
+type int_list is array of integer
 
-values : int_list = [10, 20, 30];
-total : integer = 0;
+values : int_list = [10, 20, 30]
+total : integer = 0
 
 for item of values
-   total = total + item;
+   total = total + item
 ```
 
 The shipped PR11.8d conversion boundary is:
@@ -243,11 +243,11 @@ The shipped PR11.8d conversion boundary is:
 Example:
 
 ```safe
-subtype slot is integer (3 to 4);
-subtype item is integer (0 to 10);
-type pair is array (slot) of item;
+subtype slot is integer (3 to 4)
+subtype item is integer (0 to 10)
+type pair is array (slot) of item
 
-selected : pair = [7, 9];
+selected : pair = [7, 9]
 ```
 
 The shipped PR11.8d.1 follow-up also adds:
@@ -266,8 +266,8 @@ Still deferred beyond the current PR11.8d / PR11.8d.1 surface:
 Safe now has a built-in optional value constructor:
 
 ```safe
-maybe_count : optional integer = none;
-name : optional string = some ("Ada");
+maybe_count : optional integer = none
+name : optional string = some ("Ada")
 ```
 
 The shipped surface is deliberately small:
@@ -289,8 +289,8 @@ Example:
 function describe (name : optional string) returns string (3)
 
    if name.present
-      return "Ada";
-   return "n/a";
+      return "Ada"
+   return "n/a"
 ```
 
 Like the existing `result` discriminant rules, `.value` is legal only when
@@ -316,15 +316,15 @@ Example:
 
 ```safe
 function tail_or_zero returns integer
-   var values : list of integer = [1, 2];
-   last : optional integer = none;
+   var values : list of integer = [1, 2]
+   last : optional integer = none
 
-   append (values, 3);
-   last = pop_last (values);
+   append (values, 3)
+   last = pop_last (values)
    if last.present
-      return last.value;
+      return last.value
    else
-      return 0;
+      return 0
 ```
 
 `array of T` still works. `list of T` is an alias surface over the same
@@ -347,16 +347,16 @@ Example:
 
 ```safe
 function lookup_or_zero returns integer
-   var values : map of (integer, integer);
-   found : optional integer = none;
+   var values : map of (integer, integer)
+   found : optional integer = none
 
-   set (values, 1, 10);
-   set (values, 1, 15);
-   found = get (values, 1);
+   set (values, 1, 10)
+   set (values, 1, 15)
+   found = get (values, 1)
    if found.present
-      return found.value;
+      return found.value
    else
-      return 0;
+      return 0
 ```
 
 `PR11.11a` adds method syntax as sugar over the same first-parameter function
@@ -364,23 +364,23 @@ model. You can declare a receiver explicitly:
 
 ```safe
 type counter is record
-   value : integer;
+   value : integer
 
 function (self : mut counter) bump
-   self.value = self.value + 1;
+   self.value = self.value + 1
 
 function (self : counter) doubled returns integer
-   return self.value * 2;
+   return self.value * 2
 ```
 
 And you can call any visible compatible first-parameter function that way:
 
 ```safe
 function total returns integer
-   item : counter = (value = 20);
+   item : counter = (value = 20)
 
-   item.bump();
-   return item.doubled();
+   item.bump()
+   return item.doubled()
 ```
 
 The same sugar applies to imported public functions and the container builtins,
@@ -393,16 +393,16 @@ contracts. They are not runtime base classes and do not add dynamic dispatch:
 
 ```safe
 type printable is interface
-   function (self : printable) label returns string;
+   function (self : printable) label returns string
 
 type widget is record
-   text : string;
+   text : string
 
 function (self : widget) label returns string
-   return self.text;
+   return self.text
 
 function render (item : printable) returns string
-   return item.label();
+   return item.label()
 ```
 
 In this first interface slice, interface types are admitted only in parameter
@@ -414,17 +414,17 @@ use site to ordinary concrete code before MIR.
 
 ```safe
 type pair of (l, r) is record
-   left : l;
-   right : r;
+   left : l
+   right : r
 
 function identity of t (value : t) returns t
-   return value;
+   return value
 
 function total returns integer
-   values : list of integer = [1, 2, 3];
-   copied : list of integer = identity of list of integer (values);
+   values : list of integer = [1, 2, 3]
+   copied : list of integer = identity of list of integer (values)
 
-   return copied.length;
+   return copied.length
 ```
 
 The current generic surface is intentionally narrow:
@@ -485,8 +485,8 @@ Example sketch (move):
 
 ```safe
 type node is record
-   v : integer;
-   next : node;
+   v : integer
+   next : node
 
 function set_value (target : mut not null node; value : integer)
    target.v = value
@@ -530,10 +530,10 @@ Example sketch:
 
 ```safe
 package pipeline
-   public subtype measurement is integer (0 to 65535);
+   public subtype measurement is integer (0 to 65535)
 
-   channel raw : measurement capacity 16;
-   channel out : measurement capacity 8;
+   channel raw : measurement capacity 16
+   channel out : measurement capacity 8
 
    task producer with priority = 10, sends raw
       ok : boolean = false
@@ -586,14 +586,14 @@ One strong candidate idiom (from upstream GitHub Discussions
 [#12](https://github.com/berkeleynerd/safe/discussions/12)) is a discriminated "result" record:
 
 ```safe
-type error_code is (invalid_input, overflow, not_found);
+type error_code is (invalid_input, overflow, not_found)
 
 type result (ok : boolean = false) is record
    case ok
       when true
-         value : integer;
+         value : integer
       when false
-         error : error_code;
+         error : error_code
 ```
 
 Why this is attractive in a SPARK/Safe world:

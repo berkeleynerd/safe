@@ -95,15 +95,19 @@ The script below writes this package:
 ```safe
 package typed_channel_demo
 
-   subtype message is integer (0 to 1000);
+   subtype message is integer (0 to 1000)
 
-   channel data_ch : message capacity 1;
-   result : message = 0;
+   channel data_ch : message capacity 1
+   result : message = 0
 
    task producer with priority = 10, sends data_ch
+      sent : boolean = false
       loop
-         send data_ch, 41
-         delay 0.05
+         send data_ch, 41, sent
+         if sent
+            delay 0.05
+         else
+            delay 0.01
 
    task consumer with priority = 10, receives data_ch
       loop
@@ -142,16 +146,20 @@ mkdir -p "$OUT_DIR" "$IFACE_DIR" "$ADA_DIR"
 cat > "$SOURCE" <<'SAFE'
 package typed_channel_demo
 
-   subtype message is integer (0 to 1000);
+   subtype message is integer (0 to 1000)
 
-   channel data_ch : message capacity 1;
+   channel data_ch : message capacity 1
 
-   result : message = 0;
+   result : message = 0
 
    task producer with priority = 10, sends data_ch
+      sent : boolean = false
       loop
-         send data_ch, 41
-         delay 0.05
+         send data_ch, 41, sent
+         if sent
+            delay 0.05
+         else
+            delay 0.01
 
    task consumer with priority = 10, receives data_ch
       loop

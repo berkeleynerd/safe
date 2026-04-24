@@ -819,14 +819,12 @@ annotated_expression ::= '(' expression 'as' subtype_mark ')'
 **Example (conforming):**
 
 ```safe
-public subtype reading is integer (0 to 4095);
+public subtype reading is integer (0 to 4095)
 
 public function average (a, b : reading) returns reading
-begin
-    return (a + b) / 2;  -- max (4095+4095)/2 = 4095
+    return (a + b) / 2  -- max (4095+4095)/2 = 4095
                          -- range check at return: provably in 0..4095
                          -- D27 proof: reading.first <= result <= reading.last
-end average;
 ```
 
 ### 2.8.2 Rule 2: Provable Index Safety

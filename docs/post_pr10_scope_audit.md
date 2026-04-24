@@ -43,7 +43,7 @@ deferred beyond `PR10`.
 - `raise` statements
   Source validation: `spec/02-restrictions.md` paragraph 67
 
-## Moved To Language Design or Authoritative Future-Proposal Docs
+## Moved To Language Design or Future-Proposal Docs
 
 - Named loop labels and named exits
   Rationale: already covered by
@@ -52,7 +52,7 @@ deferred beyond `PR10`.
   Rationale: future generics work belongs in
   [`docs/syntax_proposals.md`](syntax_proposals.md)
 - The duplicated Syntax Proposals section from the old draft
-  Rationale: `docs/syntax_proposals.md` is already authoritative
+  Rationale: `docs/syntax_proposals.md` is the proposal ledger
 
 ## Rewritten Retained Items
 

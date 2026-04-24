@@ -90,7 +90,7 @@ unit-scope initialisation and unit-scope statements complete (see §4.7).
 ```
 channel_declaration ::=
     [ 'public' ] 'channel' defining_identifier ':' subtype_mark
-        'capacity' static_expression ';'
+        'capacity' static_expression terminator
 ```
 
 ### Legality Rules
@@ -142,16 +142,16 @@ compilation units are not deallocated).
 
 ```
 send_statement ::=
-    'send' channel_name ',' expression ',' name ';'
+    'send' channel_name ',' expression ',' name terminator
 
 receive_statement ::=
-    'receive' channel_name ',' receive_target ';'
+    'receive' channel_name ',' receive_target terminator
 
 receive_target ::=
     name | defining_identifier ':' subtype_indication
 
 try_receive_statement ::=
-    'try_receive' channel_name ',' receive_target ',' name ';'
+    'try_receive' channel_name ',' receive_target ',' name terminator
 ```
 
 ### Legality Rules
@@ -363,42 +363,44 @@ a language-level sequencing guarantee.
 
 package pipeline
 
-    public subtype measurement is integer (0 to 65535);
+    public subtype measurement is integer (0 to 65535)
 
-    channel raw_data : measurement capacity 16;
-    channel processed : measurement capacity 8;
+    channel raw_data : measurement capacity 16
+    channel processed : measurement capacity 8
 
     task producer with priority = 10
+        ok : boolean = false
 
         loop
-            sample : measurement = read_sensor;
-            send raw_data, sample, ok;
+            sample : measurement = read_sensor
+            send raw_data, sample, ok
             if not ok
-                delay 0.01;
-            delay 0.01;
+                delay 0.01
+            delay 0.01
 
     task consumer with priority = 5
+        ok : boolean = false
 
         loop
-            m : measurement;
-            receive raw_data, m;
-            result : measurement = process (m);
-            send processed, result, ok;
+            m : measurement
+            receive raw_data, m
+            result : measurement = process (m)
+            send processed, result, ok
             -- D27 proof: all types match; no runtime errors
 
-    function read_sensor returns measurement is separate;
+    function read_sensor returns measurement is separate
 
     function process (m : measurement) returns measurement
 
-        return (m + 1) / 2;
+        return (m + 1) / 2
         -- D27 Rule 1: max (65535+1)/2 = 32768
         -- D27 Rule 3(b): literal 2 is static nonzero
         -- D27 proof: result in 0..65535
 
     public function get_result returns measurement
-        r : measurement;
-        receive processed, r;
-        return r;
+        r : measurement
+        receive processed, r
+        return r
 
 ```
 
@@ -411,45 +413,47 @@ package pipeline
 
 package router
 
-    public subtype job_id is integer (1 to 1000);
+    public subtype job_id is integer (1 to 1000)
     public type job is record
-        id   : job_id;
-        data : integer;
+        id   : job_id
+        data : integer
 
     public type result is record
-        id    : job_id;
-        value : integer;
+        id    : job_id
+        value : integer
 
-    channel jobs_a : job capacity 4;
-    channel jobs_b : job capacity 4;
-    public channel results : result capacity 8;
+    channel jobs_a : job capacity 4
+    channel jobs_b : job capacity 4
+    public channel results : result capacity 8
 
     task dispatcher with priority = 8
-        count : job_id = 1;
+        count : job_id = 1
 
         loop
-            j : job = (id = count, data = integer (count) * 10);
+            j : job = (id = count, data = integer (count) * 10)
             -- D27 proof: count * 10 fits within signed 64-bit integer range
-            ok : boolean;
-            send jobs_a, j, ok;
+            ok : boolean
+            send jobs_a, j, ok
             if not ok
-                send jobs_b, j, ok;
-            count = (if count == job_id.last then job_id.first else count + 1);
+                send jobs_b, j, ok
+            count = (if count == job_id.last then job_id.first else count + 1)
 
     task worker_a with priority = 5
+        ok : boolean = false
 
         loop
-            j : job;
-            receive jobs_a, j;
-            send results, (id = j.id, value = j.data + 1), ok;
+            j : job
+            receive jobs_a, j
+            send results, (id = j.id, value = j.data + 1), ok
             -- D27 proof: j.data + 1 is rejected unless it is provably within signed 64-bit integer range
 
     task worker_b with priority = 5
+        ok : boolean = false
 
         loop
-            j : job;
-            receive jobs_b, j;
-            send results, (id = j.id, value = j.data + 2), ok;
+            j : job
+            receive jobs_b, j
+            send results, (id = j.id, value = j.data + 2), ok
 
 ```
 
@@ -462,37 +466,38 @@ package router
 
 package controller
 
-    public type command is (start, stop, reset);
-    public type status  is (running, stopped, error);
+    public type command is (start, stop, reset)
+    public type status  is (running, stopped, error)
 
-    public channel commands : command capacity 4;
-    public channel responses : status capacity 4;
-    channel heartbeats : boolean capacity 1;
+    public channel commands : command capacity 4
+    public channel responses : status capacity 4
+    channel heartbeats : boolean capacity 1
 
-    current_state : status = stopped;  -- owned by control_loop
+    current_state : status = stopped  -- owned by control_loop
 
     task control_loop with priority = 10
+        ok : boolean = false
 
         loop
             select
                 when cmd : command from commands
                     case cmd
                         when start
-                            current_state = running;
-                            send responses, running, ok;
+                            current_state = running
+                            send responses, running, ok
                         when stop
-                            current_state = stopped;
-                            send responses, stopped, ok;
+                            current_state = stopped
+                            send responses, stopped, ok
                         when reset
-                            current_state = stopped;
-                            send responses, stopped, ok;
+                            current_state = stopped
+                            send responses, stopped, ok
                 or
                     delay 5.0
-                        send heartbeats, true, ok;
+                        send heartbeats, true, ok
 
     public function get_status returns status
 
-        return current_state;
+        return current_state
     -- Note: this is callable only from the task that owns current_state
     -- or from non-task context during initialisation.
     -- D27 proof: status is an enumeration; no runtime error possible.

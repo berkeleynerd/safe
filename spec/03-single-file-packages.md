@@ -30,7 +30,7 @@ context_clause ::=
     { with_clause }
 
 with_clause ::=
-    'with' package_name { ',' package_name } ';'
+    'with' package_name { ',' package_name } terminator
 
 package_unit ::=
     'package' defining_identifier
@@ -107,9 +107,8 @@ without `public` are private to the package.
 
 ```
 public type t is private record
-    field1 : type1;
-    field2 : type2;
-end record;
+    field1 : type1
+    field2 : type2
 ```
 
 Clients can declare variables of type `T` (the implementation exports size and alignment) but cannot access fields.
@@ -137,8 +136,8 @@ within subprogram bodies, and to names from `with`'d packages.
 ### 3.2.3 Forward Declarations for Mutual Recursion
 
 13. Forward declarations are permitted for subprograms to enable mutual
-recursion. A forward declaration consists of a subprogram specification
-followed by a semicolon, without a body.
+recursion. A forward declaration is a subprogram declaration (Section 8) that
+bears a logical-line terminator and has no body.
 
 14. The body completing a forward declaration shall appear later in the same
 declarative region. The subprogram specification of the body shall conform to
@@ -212,7 +211,7 @@ compilation unit.
 
 ### 3.2.6 Opaque Types
 
-25. A declaration of the form `public type T is private record ... end record;`
+25. A declaration of the form `public type T is private record ...`
 declares an opaque type. The type name `T` is visible to clients; the record
 structure is not.
 
@@ -336,7 +335,7 @@ excluded (Section 2, §2.1.7). `use type` clauses are retained.
 ### 3.3.3 Opaque Type Visibility
 
 42. For a public opaque type `T` declared as `public type T is private record
-... end record;`:
+...`:
 
    (a) Within the declaring package: the full record structure is visible; fields may be accessed.
 
@@ -473,30 +472,25 @@ end Temperatures;
 
 package buffers
 
-    public subtype buffer_size is integer (1 to 4096);
-    public subtype buffer_index is buffer_size;
+    public subtype buffer_size is integer (1 to 4096)
+    public subtype buffer_index is buffer_size
 
     public type buffer is private record
-        data   : string (4096) = "";
-        length : buffer_size = 1;
+        data   : string (4096) = ""
+        length : buffer_size = 1
 
     public function create (size : buffer_size) returns buffer
-    begin
-        return (data = "", length = size);
+        return (data = "", length = size)
         -- D27 proof: aggregate values in range
-    end create;
 
     public function get (b : buffer; i : buffer_index) returns string
-    begin
-        return b.data(i);
+        return b.data(i)
         -- D27 proof: i is buffer_index, same as array index type (Rule 2)
-    end get;
 
     public function length (b : buffer) returns buffer_size
         return b.length
     -- D27 proof: b.length is buffer_size by declaration
 
-end buffers;
 ```
 
 ### 3.6.3 Example: Inter-Package Dependency
@@ -526,27 +520,24 @@ end Units;
 ```safe
 -- navigation.safe
 
-with units;
+with units
 
 package navigation
 
-    public subtype heading is integer (0 to 359);
+    public subtype heading is integer (0 to 359)
 
-    current_speed : units.metres_per_second = 0.0;
-    current_heading : heading = 0;
+    current_speed : units.metres_per_second = 0.0
+    current_heading : heading = 0
 
     public procedure update (d : units.metres; t : units.seconds;
                              h : heading)
-    begin
-        current_speed = units.speed(d, t);
-        current_heading = h;
-    end update;
+        current_speed = units.speed(d, t)
+        current_heading = h
 
     public function get_speed returns units.metres_per_second
         return current_speed
     -- D27 proof: return type matches declaration type
 
-end navigation;
 ```
 
 ### 3.6.4 Example: Interleaved Declarations, Dot Notation, Type Annotation
@@ -558,45 +549,45 @@ end navigation;
 
 package sensors
 
-    public subtype reading is integer (0 to 4095);
-    public subtype channel_id is integer (0 to 7);
-    public subtype channel_count is integer (1 to 8);
+    public subtype reading is integer (0 to 4095)
+    public subtype channel_id is integer (0 to 7)
+    public subtype channel_count is integer (1 to 8)
 
     type calibration is private record
-        scale  : float = 1.0;
-        bias   : integer = 0;
+        scale  : float = 1.0
+        bias   : integer = 0
 
     cal_table : array (channel_id) of calibration =
-        (others = (scale = 1.0, bias = 0));
+        (others = (scale = 1.0, bias = 0))
 
-    initialized : boolean = false;
+    initialized : boolean = false
 
     public function is_initialized returns boolean
 
-        return initialized;
+        return initialized
 
     public procedure initialize
-        default_cal : constant calibration = (scale = 1.0, bias = 0);
+        default_cal : constant calibration = (scale = 1.0, bias = 0)
         -- Interleaved declaration near the top of the body
         for i in channel_id.first .. channel_id.last loop
             -- Dot notation for attributes: channel_id.first, channel_id.last
-            cal_table (i) = default_cal;
-        initialized = true;
+            cal_table (i) = default_cal
+        initialized = true
 
     public function average (a, b : reading) returns reading
 
-        return (a + b) / 2;
+        return (a + b) / 2
         -- D27 Rule 1: max (4095+4095)/2 = 4095
         -- D27 Rule 3(b): literal 2 is a static nonzero expression
         -- D27 proof: result in 0..4095
 
     public function scale (r : reading; divisor : channel_count) returns integer
 
-        return integer (r) / divisor;
+        return integer (r) / divisor
         -- D27 Rule 3(a): Channel_Count range 1..8 excludes zero
         -- D27 proof: division is safe
 
-    function read_adc (channel : channel_id) returns reading is separate;
+    function read_adc (channel : channel_id) returns reading is separate
 
 ```
 

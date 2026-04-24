@@ -1,6 +1,10 @@
-This document is the canonical running ledger of proposed Safe syntax changes.
-It records future-facing design directions only; inclusion here does not
-imply an implementation commitment or rollout schedule.
+# Syntax Proposals
+
+> **Historical document.** This file preserves the semantic content of grammar proposals as they were discussed; some code snippet notation has been normalized to current Safe logical-line style. The proposed features and semantics may predate or diverge from what actually shipped. For the authoritative current grammar, see `spec/08-syntax-summary.md`. For shipped/landed status, see `docs/roadmap.md`.
+
+This document preserves the running ledger of proposed Safe syntax changes as
+they were discussed. Inclusion here does not imply current status, an
+implementation commitment, or a rollout schedule.
 
 # Whitespace-Significant Blocks
 

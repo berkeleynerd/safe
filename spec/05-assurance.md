@@ -277,8 +277,8 @@ end T_B;
 
 package averaging
 
-    public subtype sample is integer (0 to 10000);
-    public subtype sample_count is integer (1 to 100);
+    public subtype sample is integer (0 to 10000)
+    public subtype sample_count is integer (1 to 100)
     -- sample_count excludes zero: valid divisor (Rule 3a)
 
     public function average_two (a, b : sample) returns sample
@@ -294,7 +294,6 @@ package averaging
         -- Narrowing at return: range check to sample
         -- D27 proof: implementation verifies sum / count in 0..10000
 
-end averaging;
 ```
 
 ### 5.6.2 Example: Array Indexing — Silver-Provable via Provable Index Safety
