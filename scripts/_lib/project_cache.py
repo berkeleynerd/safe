@@ -15,8 +15,7 @@ from .pr111_language_eval import executable_name, safe_build_main_text
 from .proof_diagnostics import mirror_with_clauses_into_emitted_unit_files
 
 CACHE_VERSION = 2
-PROOF_RESULT_CACHE_VERSION = 3
-PROOF_FINGERPRINT_VERSION = 2
+PROOF_RESULT_CACHE_VERSION = 4
 STDLIB_ADA_DIR = REPO_ROOT / "compiler_impl" / "stdlib" / "ada"
 WITH_CLAUSE_RE = re.compile(r"^with\s+(.+);$", re.IGNORECASE)
 SAFE_UNIT_NAME_RE = re.compile(r"^[a-z0-9_]+$")
@@ -249,10 +248,13 @@ def load_proof_result_cache(*, target_bits: int = 64) -> dict:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             payload = None
-    if payload is None or payload.get("version") != PROOF_RESULT_CACHE_VERSION:
+    if not isinstance(payload, dict):
+        payload = None
+    if payload is None:
         payload = default_proof_result_cache()
     payload.setdefault("version", PROOF_RESULT_CACHE_VERSION)
-    payload.setdefault("proofs", {})
+    if not isinstance(payload.get("proofs"), dict):
+        payload["proofs"] = {}
     return payload
 
 
@@ -268,17 +270,14 @@ def save_proof_result_cache(cache: dict, *, target_bits: int = 64) -> None:
 def cached_proof_result(
     *,
     source: Path,
-    fingerprint: str,
+    source_hash: str,
     target_bits: int = 64,
 ) -> dict | None:
     cache = load_proof_result_cache(target_bits=target_bits)
-    source_entries = cache["proofs"].get(source_key(source))
-    if not isinstance(source_entries, dict):
+    entry = cache["proofs"].get(source_key(source))
+    if not isinstance(entry, dict):
         return None
-    entry = source_entries.get(fingerprint)
-    if entry is None and source_entries.get("fingerprint") == fingerprint:
-        entry = source_entries
-    if entry and entry.get("fingerprint") == fingerprint and entry.get("passed") is True:
+    if entry.get("source_hash") == source_hash and entry.get("passed") is True:
         return entry
     return None
 
@@ -286,18 +285,14 @@ def cached_proof_result(
 def record_cached_proof_result(
     *,
     source: Path,
-    fingerprint: str,
+    source_hash: str,
     flow_summary: dict | None,
     prove_summary: dict | None,
     target_bits: int = 64,
 ) -> None:
     cache = load_proof_result_cache(target_bits=target_bits)
-    source_entries = cache["proofs"].setdefault(source_key(source), {})
-    if not isinstance(source_entries, dict) or "fingerprint" in source_entries:
-        source_entries = {}
-        cache["proofs"][source_key(source)] = source_entries
-    source_entries[fingerprint] = {
-        "fingerprint": fingerprint,
+    cache["proofs"][source_key(source)] = {
+        "source_hash": source_hash,
         "passed": True,
         "flow_summary": flow_summary,
         "prove_summary": prove_summary,
@@ -559,17 +554,6 @@ def stdlib_support_hashes() -> dict[str, str]:
     return hashes
 
 
-def proof_source_entries(sources: list[Path]) -> list[dict[str, object]]:
-    return [
-        {
-            "source": source_key(source),
-            "source_hash": sha256_file(source),
-            "direct_dependencies": leading_with_dependencies(source),
-        }
-        for source in sources
-    ]
-
-
 def safe_build_paths(source: Path, *, target_bits: int = 64) -> dict[str, Path]:
     root = source.parent / "obj" / source.stem / f"target-{target_bits}"
     return {
@@ -806,37 +790,6 @@ def build_fingerprint(
                 "stdlib_support": stdlib_support_hashes(),
                 "main_text": main_text,
                 "project_text": project_text,
-            },
-            sort_keys=True,
-        )
-    )
-
-
-def proof_fingerprint(
-    *,
-    source: Path,
-    sources: list[Path],
-    safec_hash: str,
-    gnatprove_id: str,
-    gnatprove_version: str,
-    flow_switches: list[str],
-    prove_switches: list[str],
-    target_bits: int = 64,
-) -> str:
-    return sha256_text(
-        json.dumps(
-            {
-                "kind": "prove",
-                "version": PROOF_FINGERPRINT_VERSION,
-                "source": source_key(source),
-                "target_bits": target_bits,
-                "safec_hash": safec_hash,
-                "gnatprove_id": gnatprove_id,
-                "gnatprove_version": gnatprove_version,
-                "flow_switches": flow_switches,
-                "prove_switches": prove_switches,
-                "sources": proof_source_entries(sources),
-                "stdlib_support": stdlib_support_hashes(),
             },
             sort_keys=True,
         )

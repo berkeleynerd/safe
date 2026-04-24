@@ -748,6 +748,10 @@ package body Safe_Frontend.Ada_Emit is
                when CM.Stmt_Unknown =>
                   return True;
                when CM.Stmt_Try_Send =>
+                  --  Legacy try_send syntax is rejected in
+                  --  safe_frontend-check_resolve.adb with the rename
+                  --  diagnostic covered by neg_try_send_legacy.safe.  If
+                  --  try_send is reintroduced, handle it like Try_Receive.
                   Raise_Internal ("unreachable: try_send rejected by resolver");
             end case;
          end if;

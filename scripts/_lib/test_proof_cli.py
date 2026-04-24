@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import json
 import subprocess
 import shutil
 import sys
@@ -722,31 +723,84 @@ def run_prepare_proof_toolchain_version_probe_failure_case() -> tuple[bool, str]
     return False, "prepare_proof_toolchain unexpectedly accepted failed version probe"
 
 
-def run_proof_fingerprint_gnatprove_version_case() -> tuple[bool, str]:
-    with tempfile.TemporaryDirectory(prefix="safe-proof-fingerprint-") as temp_root_str:
+def run_proof_result_cache_uses_source_hash_case() -> tuple[bool, str]:
+    target_bits = 777
+    path = project_cache.proof_result_cache_path(target_bits=target_bits)
+    previous = path.read_bytes() if path.exists() else None
+    try:
+        path.unlink(missing_ok=True)
+        with tempfile.TemporaryDirectory(prefix="safe-proof-source-cache-") as temp_root_str:
+            temp_root = Path(temp_root_str)
+            source = temp_root / "demo.safe"
+            source.write_text("value : integer = 1\n", encoding="utf-8")
+            source_hash = proof_eval.sha256_file(source)
+            row = successful_summary_row()
+            project_cache.record_cached_proof_result(
+                source=source,
+                source_hash=source_hash,
+                flow_summary=row,
+                prove_summary=row,
+                target_bits=target_bits,
+            )
+            cached = project_cache.cached_proof_result(
+                source=source,
+                source_hash=source_hash,
+                target_bits=target_bits,
+            )
+            if cached is None:
+                return False, "source-hash cache entry was not reused"
+
+            source.write_text("value : integer = 2\n", encoding="utf-8")
+            changed_hash = proof_eval.sha256_file(source)
+            cached = project_cache.cached_proof_result(
+                source=source,
+                source_hash=changed_hash,
+                target_bits=target_bits,
+            )
+            if cached is not None:
+                return False, "source-hash cache entry survived a root source edit"
+    finally:
+        if previous is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(previous)
+    return True, ""
+
+
+def run_proof_result_cache_ignores_version_case() -> tuple[bool, str]:
+    with tempfile.TemporaryDirectory(prefix="safe-proof-version-cache-") as temp_root_str:
         temp_root = Path(temp_root_str)
         source = temp_root / "demo.safe"
         source.write_text("value : integer = 1\n", encoding="utf-8")
-        fingerprint_a = project_cache.proof_fingerprint(
-            source=source,
-            sources=[source],
-            safec_hash="safec-hash",
-            gnatprove_id="gnatprove",
-            gnatprove_version="GNATprove 25.0",
-            flow_switches=proof_eval.FLOW_SWITCHES,
-            prove_switches=proof_eval.prove_switches_for_level(1),
-        )
-        fingerprint_b = project_cache.proof_fingerprint(
-            source=source,
-            sources=[source],
-            safec_hash="safec-hash",
-            gnatprove_id="gnatprove",
-            gnatprove_version="GNATprove 25.1",
-            flow_switches=proof_eval.FLOW_SWITCHES,
-            prove_switches=proof_eval.prove_switches_for_level(1),
-        )
-    if fingerprint_a == fingerprint_b:
-        return False, "proof fingerprint ignored gnatprove_version"
+        source_hash = proof_eval.sha256_file(source)
+        row = successful_summary_row()
+        cache = project_cache.default_proof_result_cache()
+        cache["version"] = -1
+        cache["proofs"][project_cache.source_key(source)] = {
+            "source_hash": source_hash,
+            "passed": True,
+            "flow_summary": row,
+            "prove_summary": row,
+        }
+        target_bits = 778
+        path = project_cache.proof_result_cache_path(target_bits=target_bits)
+        previous = path.read_bytes() if path.exists() else None
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache), encoding="utf-8")
+            cached = project_cache.cached_proof_result(
+                source=source,
+                source_hash=source_hash,
+                target_bits=target_bits,
+            )
+        finally:
+            if previous is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(previous)
+    if cached is None:
+        return False, "proof-result cache version invalidated a source-hash hit"
     return True, ""
 
 
@@ -770,25 +824,34 @@ def run_emitted_unit_name_rejects_unsafe_package_case() -> tuple[bool, str]:
     return False, "unsafe package_name unexpectedly accepted"
 
 
+def run_proof_result_cache_rejects_non_object_case() -> tuple[bool, str]:
+    path = project_cache.proof_result_cache_path(target_bits=64)
+    previous = path.read_bytes() if path.exists() else None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("[]\n", encoding="utf-8")
+        cache = project_cache.load_proof_result_cache(target_bits=64)
+    finally:
+        if previous is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.write_bytes(previous)
+
+    if cache != project_cache.default_proof_result_cache():
+        return False, f"unexpected cache fallback payload {cache!r}"
+    return True, ""
+
+
 def run_cached_proof_hit_skips_emit_case() -> tuple[bool, str]:
     source = PROVE_SINGLE_SUCCESS_SOURCE
     toolchain = test_toolchain()
-    sources = project_cache.resolve_project_sources(source)
-    fingerprint = project_cache.proof_fingerprint(
-        source=source,
-        sources=sources,
-        safec_hash=proof_eval.sha256_file(toolchain.safec),
-        gnatprove_id=proof_eval.tool_identity(toolchain.gnatprove),
-        gnatprove_version=toolchain.gnatprove_version,
-        flow_switches=proof_eval.FLOW_SWITCHES,
-        prove_switches=proof_eval.prove_switches_for_level(1),
-    )
+    source_hash = proof_eval.sha256_file(source)
     row = successful_summary_row()
     with preserved_cached_proof_entry(source):
         project_cache.drop_cached_proof_result(source=source, target_bits=64)
         project_cache.record_cached_proof_result(
             source=source,
-            fingerprint=fingerprint,
+            source_hash=source_hash,
             flow_summary=row,
             prove_summary=row,
             target_bits=64,
@@ -1120,13 +1183,23 @@ def run_internal_proof_checks() -> RunCounts:
     )
     passed += record_result(
         failures,
-        "proof-fingerprint-gnatprove-version",
-        run_proof_fingerprint_gnatprove_version_case(),
+        "proof-result-cache-source-hash",
+        run_proof_result_cache_uses_source_hash_case(),
+    )
+    passed += record_result(
+        failures,
+        "proof-result-cache-ignores-version",
+        run_proof_result_cache_ignores_version_case(),
     )
     passed += record_result(
         failures,
         "emitted-unit-name-rejects-unsafe-package",
         run_emitted_unit_name_rejects_unsafe_package_case(),
+    )
+    passed += record_result(
+        failures,
+        "proof-result-cache-rejects-non-object",
+        run_proof_result_cache_rejects_non_object_case(),
     )
     passed += record_result(
         failures,

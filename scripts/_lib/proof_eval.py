@@ -27,7 +27,6 @@ from .project_cache import (
     emitted_unit_name_from_interface,
     ensure_project_emitted,
     ensure_safe_prove_root,
-    proof_fingerprint,
     prepare_safe_prove_ada_inputs,
     record_cached_proof_result,
     resolve_project_sources,
@@ -613,13 +612,6 @@ def run_gnatprove_project(
     return True, ""
 
 
-def tool_identity(value: str) -> str:
-    candidate = Path(value)
-    if candidate.is_absolute() and candidate.exists():
-        return sha256_file(candidate)
-    return value
-
-
 def compile_cached_proof_project(
     project_paths: dict[str, Path],
     *,
@@ -660,26 +652,10 @@ def run_cached_source_proof(
         target_bits=target_bits,
     )
 
-    safec_hash = sha256_file(toolchain.safec)
-    try:
-        sources = resolve_project_sources(source)
-    except RuntimeError as exc:
-        result.detail = str(exc)
-        return result
-
-    fingerprint = proof_fingerprint(
-        source=source,
-        sources=sources,
-        safec_hash=safec_hash,
-        gnatprove_id=tool_identity(toolchain.gnatprove),
-        gnatprove_version=toolchain.gnatprove_version,
-        flow_switches=FLOW_SWITCHES,
-        prove_switches=PROVE_SWITCHES if prove_switches is None else prove_switches,
-        target_bits=target_bits,
-    )
+    source_hash = sha256_file(source)
     cached = cached_proof_result(
         source=source,
-        fingerprint=fingerprint,
+        source_hash=source_hash,
         target_bits=target_bits,
     )
     if cached:
@@ -691,6 +667,7 @@ def run_cached_source_proof(
         result.used_cache = True
         return result
 
+    safec_hash = sha256_file(toolchain.safec)
     try:
         shared_paths, state, sources = ensure_project_emitted(
             safec=toolchain.safec,
@@ -707,36 +684,6 @@ def run_cached_source_proof(
         result.detail = exc.detail
         if exc.output and exc.stage not in result.stage_output:
             result.stage_output[exc.stage] = exc.output
-        return result
-
-    cached = cached_proof_result(
-        source=source,
-        fingerprint=fingerprint,
-        target_bits=target_bits,
-    )
-    legacy_cached = state["proofs"].get(source_key(source)) if cached is None else None
-    if (
-        legacy_cached
-        and legacy_cached.get("fingerprint") == fingerprint
-        and legacy_cached.get("passed") is True
-    ):
-        record_cached_proof_result(
-            source=source,
-            fingerprint=fingerprint,
-            flow_summary=legacy_cached.get("flow_summary"),
-            prove_summary=legacy_cached.get("prove_summary"),
-            target_bits=target_bits,
-        )
-        cached = legacy_cached
-        state["proofs"].pop(source_key(source), None)
-        save_project_state(shared_paths, state)
-    if cached:
-        result.stage = "prove"
-        result.passed = True
-        result.flow_summary = cached.get("flow_summary")
-        result.prove_summary = cached.get("prove_summary")
-        result.detail = ""
-        result.used_cache = True
         return result
 
     project_paths = ensure_safe_prove_root(source, target_bits=target_bits)
@@ -831,7 +778,7 @@ def run_cached_source_proof(
     save_project_state(shared_paths, state)
     record_cached_proof_result(
         source=source,
-        fingerprint=fingerprint,
+        source_hash=source_hash,
         flow_summary=result.flow_summary,
         prove_summary=result.prove_summary,
         target_bits=target_bits,
