@@ -302,9 +302,9 @@ known_discriminant_part ::=
 discriminant_specification ::=
     defining_identifier_list ':' subtype_mark [ '=' default_expression ]
 
-Known discriminant parts use comma-separated discriminant specifications;
-their separators are not among the structural semicolon cases retained by
-Safe.
+Known discriminant parts use comma-separated discriminant specifications.
+This differs from Ada's semicolon-separated discriminant syntax; discriminant
+separators are not among the structural semicolon cases retained by Safe.
 
 variant_part ::=
     'case' discriminant_direct_name
@@ -475,8 +475,10 @@ function_call ::=
 actual_parameter_part ::=
     '(' [ positional_parameter_association_list | named_parameter_association_list ] ')'
 
-Empty parentheses are valid for zero-argument calls; a bare call name remains
-valid where the surrounding context resolves it as a call.
+Empty parentheses are valid for zero-argument calls. A bare name uses the
+`function_call` alternative without an `actual_parameter_part`; name resolution
+decides whether it denotes a zero-argument call rather than an object or other
+named entity.
 
 positional_parameter_association_list ::=
     expression { ',' expression }
