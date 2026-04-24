@@ -94,24 +94,6 @@ python3 scripts/snapshot_emitted_ada.py --check
   - `safe deploy [--target stm32f4] --board stm32f4-discovery [--simulate] <file.safe>`
 - `safe build`, `safe run`, and `safe prove` share the per-project
   incremental cache under `.safe-build/`.
-
-### Call-Site Argument Style
-
-Named call arguments are grammatically optional for declared value-argument
-call sites. The convention is:
-
-- Use named arguments for calls where two or more parameters share a type; this
-  prevents silent argument swaps.
-- Use named arguments for calls with three or more parameters total.
-- Use named arguments for any boolean-flag parameter, such as
-  `create(retry = true)` over `create(true)`.
-- Positional arguments are fine for single-argument calls and calls where all
-  parameter types are distinct and ordering is obvious.
-
-This is style guidance inside the grammar-allowed call surface. Grammar-level
-positional-only restrictions, such as compiler built-ins and generic type
-actuals, are documented in `spec/08-syntax-summary.md`.
-
 - Shared emitted Ada support lives in `compiler_impl/stdlib/ada`, with
   `compiler_impl/stdlib/safe_stdlib.gpr` retained for manual integration.
 - The current proof inventory and checkpoint ownership live in
@@ -133,6 +115,23 @@ actuals, are documented in `spec/08-syntax-summary.md`.
   `python3 scripts/snapshot_emitted_ada.py --check`. If emitted Ada changes
   intentionally, regenerate `tests/emitted_ada_snapshot.json` with
   `python3 scripts/snapshot_emitted_ada.py`.
+
+### Call-Site Argument Style
+
+Named call arguments are grammatically optional for declared value-argument
+call sites. The convention is:
+
+- Use named arguments for calls where two or more parameters share a type; this
+  prevents silent argument swaps.
+- Use named arguments for calls with three or more parameters total.
+- Use named arguments for any boolean-flag parameter, such as
+  `create(retry = true)` over `create(true)`.
+- Positional arguments are fine for single-argument calls and calls where all
+  parameter types are distinct and ordering is obvious.
+
+This is style guidance inside the grammar-allowed call surface. Grammar-level
+positional-only restrictions, such as compiler built-ins and generic type
+actuals, are documented in `spec/08-syntax-summary.md`.
 
 ## Review Process
 

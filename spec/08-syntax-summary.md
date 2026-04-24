@@ -491,9 +491,10 @@ named_parameter_association ::=
 
 Named value arguments are admitted for declared, imported, and generic
 function calls and for sum constructors. Positional and named value arguments
-cannot be mixed in one call. Compiler built-ins and generic type actuals remain
-positional-only. Sum constructor payload field names are part of the public
-source contract once named constructor calls exist.
+cannot be mixed in one function call or sum constructor. This mixing rule does
+not apply to pragma argument associations in §8.13. Compiler built-ins and
+generic type actuals remain positional-only. Sum constructor payload field names
+are part of the public source contract once named constructor calls exist.
 
 expression ::=
     relation { logical_operator relation }
