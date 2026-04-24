@@ -144,7 +144,6 @@ def fake_cached_proof_runner(**kwargs: object) -> proof_eval.ProofRunResult:
     toolchain = kwargs["toolchain"]
     prove_switches = kwargs.get("prove_switches")
     target_bits = int(kwargs.get("target_bits", 64))
-    paths, state = project_cache.prepare_project_cache(source, target_bits=target_bits)
     summary_path = safe_prove_summary_path(source, target_bits=target_bits)
     fingerprint = repr(
         {
@@ -154,7 +153,11 @@ def fake_cached_proof_runner(**kwargs: object) -> proof_eval.ProofRunResult:
             "gnatprove_version": toolchain.gnatprove_version,
         }
     )
-    cache_entry = state["proofs"].get(project_cache.source_key(source))
+    cache_entry = project_cache.cached_proof_result(
+        source=source,
+        fingerprint=fingerprint,
+        target_bits=target_bits,
+    )
     row = successful_summary_row()
     result = proof_eval.ProofRunResult(
         source=source,
@@ -163,24 +166,20 @@ def fake_cached_proof_runner(**kwargs: object) -> proof_eval.ProofRunResult:
         stage="prove",
         flow_summary=row,
         prove_summary=row,
-        used_cache=bool(
-            cache_entry
-            and cache_entry.get("fingerprint") == fingerprint
-            and summary_path.exists()
-        ),
+        used_cache=cache_entry is not None,
     )
     if result.used_cache:
         return result
 
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text("mock gnatprove summary\n", encoding="utf-8")
-    state["proofs"][project_cache.source_key(source)] = {
-        "fingerprint": fingerprint,
-        "passed": True,
-        "flow_summary": row,
-        "prove_summary": row,
-    }
-    project_cache.save_project_state(paths, state)
+    project_cache.record_cached_proof_result(
+        source=source,
+        fingerprint=fingerprint,
+        flow_summary=row,
+        prove_summary=row,
+        target_bits=target_bits,
+    )
     return result
 
 
@@ -715,36 +714,74 @@ def run_proof_fingerprint_gnatprove_version_case() -> tuple[bool, str]:
         temp_root = Path(temp_root_str)
         source = temp_root / "demo.safe"
         source.write_text("value : integer = 1\n", encoding="utf-8")
-        ada_dir = temp_root / "ada"
-        ada_dir.mkdir()
-        shared_paths = {"root": temp_root, "ada": ada_dir}
-        state = {"units": {}}
         fingerprint_a = project_cache.proof_fingerprint(
             source=source,
-            sources=[],
-            state=state,
+            sources=[source],
             safec_hash="safec-hash",
             gnatprove_id="gnatprove",
             gnatprove_version="GNATprove 25.0",
             flow_switches=proof_eval.FLOW_SWITCHES,
             prove_switches=proof_eval.prove_switches_for_level(1),
-            project_text="project Build is end Build;\n",
-            shared_paths=shared_paths,
         )
         fingerprint_b = project_cache.proof_fingerprint(
             source=source,
-            sources=[],
-            state=state,
+            sources=[source],
             safec_hash="safec-hash",
             gnatprove_id="gnatprove",
             gnatprove_version="GNATprove 25.1",
             flow_switches=proof_eval.FLOW_SWITCHES,
             prove_switches=proof_eval.prove_switches_for_level(1),
-            project_text="project Build is end Build;\n",
-            shared_paths=shared_paths,
         )
     if fingerprint_a == fingerprint_b:
         return False, "proof fingerprint ignored gnatprove_version"
+    return True, ""
+
+
+def run_cached_proof_hit_skips_emit_case() -> tuple[bool, str]:
+    source = PROVE_SINGLE_SUCCESS_SOURCE
+    toolchain = test_toolchain()
+    sources = project_cache.resolve_project_sources(source)
+    fingerprint = project_cache.proof_fingerprint(
+        source=source,
+        sources=sources,
+        safec_hash=proof_eval.sha256_file(toolchain.safec),
+        gnatprove_id=proof_eval.tool_identity(toolchain.gnatprove),
+        gnatprove_version=toolchain.gnatprove_version,
+        flow_switches=proof_eval.FLOW_SWITCHES,
+        prove_switches=proof_eval.prove_switches_for_level(1),
+    )
+    row = successful_summary_row()
+    project_cache.drop_cached_proof_result(source=source, target_bits=64)
+    project_cache.record_cached_proof_result(
+        source=source,
+        fingerprint=fingerprint,
+        flow_summary=row,
+        prove_summary=row,
+        target_bits=64,
+    )
+
+    original_ensure_project_emitted = proof_eval.ensure_project_emitted
+    try:
+        def unexpected_emit(**_kwargs: object) -> object:
+            raise AssertionError("cache hit should not emit the project")
+
+        proof_eval.ensure_project_emitted = unexpected_emit
+        result = proof_eval.run_cached_source_proof(
+            toolchain=toolchain,
+            source=source,
+            run_check=True,
+            prove_switches=proof_eval.prove_switches_for_level(1),
+        )
+    except AssertionError as exc:
+        return False, str(exc)
+    finally:
+        proof_eval.ensure_project_emitted = original_ensure_project_emitted
+        project_cache.drop_cached_proof_result(source=source, target_bits=64)
+
+    if not result.passed or not result.used_cache:
+        return False, f"expected cached proof hit, got passed={result.passed} used_cache={result.used_cache}"
+    if result.flow_summary != row or result.prove_summary != row:
+        return False, "cached proof summaries were not replayed"
     return True, ""
 
 
@@ -851,6 +888,7 @@ def run_run_proofs_default_cache_case() -> tuple[bool, str]:
     source = PROVE_SINGLE_SUCCESS_SOURCE
     fixture = repo_rel(source)
     clear_project_artifacts(source)
+    project_cache.drop_cached_proof_result(source=source, target_bits=64)
     summary_path = safe_prove_summary_path(source, target_bits=64)
 
     first_returncode, first_stdout, first_stderr = run_run_proofs_subset(
@@ -892,6 +930,7 @@ def run_run_proofs_explicit_cache_case() -> tuple[bool, str]:
     source = PROVE_SINGLE_SUCCESS_SOURCE
     fixture = repo_rel(source)
     clear_project_artifacts(source)
+    project_cache.drop_cached_proof_result(source=source, target_bits=64)
     summary_path = safe_prove_summary_path(source, target_bits=64)
 
     first_returncode, first_stdout, first_stderr = run_run_proofs_subset(
@@ -971,6 +1010,7 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
         return True, ""
 
     clear_project_artifacts(source)
+    project_cache.drop_cached_proof_result(source=source, target_bits=64)
     safe_prove_returncode, safe_prove_stdout, safe_prove_stderr = run_safe_prove_subset(
         source,
         fake_cached_source_proof=recording_cached_proof_runner,
@@ -1001,6 +1041,7 @@ def run_cross_tool_cache_consistency_case() -> tuple[bool, str]:
 
     cache_call_signatures.clear()
     clear_project_artifacts(source)
+    project_cache.drop_cached_proof_result(source=source, target_bits=64)
     run_proofs_returncode, run_proofs_stdout, run_proofs_stderr = run_run_proofs_subset(
         ["--level", "1"],
         fixtures=[fixture],
@@ -1048,6 +1089,11 @@ def run_internal_proof_checks() -> RunCounts:
         failures,
         "proof-fingerprint-gnatprove-version",
         run_proof_fingerprint_gnatprove_version_case(),
+    )
+    passed += record_result(
+        failures,
+        "cached-proof-hit-skips-emit",
+        run_cached_proof_hit_skips_emit_case(),
     )
     passed += record_result(failures, "proof-eval-check-mode-success", run_proof_eval_check_mode_success_case())
     passed += record_result(failures, "proof-eval-check-mode-failure", run_proof_eval_check_mode_failure_case())

@@ -15,6 +15,8 @@ from .pr111_language_eval import executable_name, safe_build_main_text
 from .proof_diagnostics import mirror_with_clauses_into_emitted_unit_files
 
 CACHE_VERSION = 2
+PROOF_RESULT_CACHE_VERSION = 2
+PROOF_FINGERPRINT_VERSION = 2
 STDLIB_ADA_DIR = REPO_ROOT / "compiler_impl" / "stdlib" / "ada"
 WITH_CLAUSE_RE = re.compile(r"^with\s+(.+);$", re.IGNORECASE)
 
@@ -225,6 +227,78 @@ def project_cache_paths(source: Path, *, target_bits: int = 64) -> dict[str, Pat
 
 def reset_project_cache(source: Path) -> None:
     shutil.rmtree(project_cache_root(source), ignore_errors=True)
+
+
+def proof_result_cache_path(*, target_bits: int = 64) -> Path:
+    return REPO_ROOT / ".cache" / "safe-proofs" / f"target-{target_bits}.json"
+
+
+def default_proof_result_cache() -> dict:
+    return {
+        "version": PROOF_RESULT_CACHE_VERSION,
+        "proofs": {},
+    }
+
+
+def load_proof_result_cache(*, target_bits: int = 64) -> dict:
+    path = proof_result_cache_path(target_bits=target_bits)
+    payload: dict | None = None
+    if path.exists():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            payload = None
+    if payload is None or payload.get("version") != PROOF_RESULT_CACHE_VERSION:
+        payload = default_proof_result_cache()
+    payload.setdefault("version", PROOF_RESULT_CACHE_VERSION)
+    payload.setdefault("proofs", {})
+    return payload
+
+
+def save_proof_result_cache(cache: dict, *, target_bits: int = 64) -> None:
+    path = proof_result_cache_path(target_bits=target_bits)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cache["version"] = PROOF_RESULT_CACHE_VERSION
+    temp_path = path.with_name(f"{path.name}.tmp")
+    temp_path.write_text(json.dumps(cache, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temp_path.replace(path)
+
+
+def cached_proof_result(
+    *,
+    source: Path,
+    fingerprint: str,
+    target_bits: int = 64,
+) -> dict | None:
+    cache = load_proof_result_cache(target_bits=target_bits)
+    entry = cache["proofs"].get(source_key(source))
+    if entry and entry.get("fingerprint") == fingerprint and entry.get("passed") is True:
+        return entry
+    return None
+
+
+def record_cached_proof_result(
+    *,
+    source: Path,
+    fingerprint: str,
+    flow_summary: dict | None,
+    prove_summary: dict | None,
+    target_bits: int = 64,
+) -> None:
+    cache = load_proof_result_cache(target_bits=target_bits)
+    cache["proofs"][source_key(source)] = {
+        "fingerprint": fingerprint,
+        "passed": True,
+        "flow_summary": flow_summary,
+        "prove_summary": prove_summary,
+    }
+    save_proof_result_cache(cache, target_bits=target_bits)
+
+
+def drop_cached_proof_result(*, source: Path, target_bits: int = 64) -> None:
+    cache = load_proof_result_cache(target_bits=target_bits)
+    if cache["proofs"].pop(source_key(source), None) is not None:
+        save_proof_result_cache(cache, target_bits=target_bits)
 
 
 def prepare_project_cache(source: Path, *, target_bits: int = 64) -> tuple[dict[str, Path], dict]:
@@ -467,6 +541,25 @@ def shared_support_hashes(paths: dict[str, Path], sources: list[Path]) -> dict[s
     return hashes
 
 
+def stdlib_support_hashes() -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for path in sorted(STDLIB_ADA_DIR.glob("*")):
+        if path.is_file():
+            hashes[str(path.relative_to(STDLIB_ADA_DIR))] = sha256_file(path)
+    return hashes
+
+
+def proof_source_entries(sources: list[Path]) -> list[dict[str, object]]:
+    return [
+        {
+            "source": source_key(source),
+            "source_hash": sha256_file(source),
+            "direct_dependencies": leading_with_dependencies(source),
+        }
+        for source in sources
+    ]
+
+
 def safe_build_paths(source: Path, *, target_bits: int = 64) -> dict[str, Path]:
     root = source.parent / "obj" / source.stem / f"target-{target_bits}"
     return {
@@ -491,6 +584,7 @@ def safe_prove_paths(source: Path, *, target_bits: int = 64) -> dict[str, Path]:
     return {
         "root": root,
         "obj": root / "obj",
+        "ada": root / "ada",
         "gpr": root / "build.gpr",
         "summary": root / "obj" / "gnatprove" / "gnatprove.out",
     }
@@ -501,6 +595,7 @@ def ensure_safe_prove_root(source: Path, *, target_bits: int = 64) -> dict[str, 
     shutil.rmtree(paths["root"], ignore_errors=True)
     paths["root"].mkdir(parents=True, exist_ok=True)
     paths["obj"].mkdir(parents=True, exist_ok=True)
+    paths["ada"].mkdir(parents=True, exist_ok=True)
     return paths
 
 
@@ -512,6 +607,7 @@ def reset_cached_source_proof(
     target_bits: int = 64,
 ) -> None:
     state["proofs"].pop(source_key(source), None)
+    drop_cached_proof_result(source=source, target_bits=target_bits)
     shutil.rmtree(safe_prove_paths(source, target_bits=target_bits)["root"], ignore_errors=True)
     save_project_state(paths, state)
 
@@ -633,6 +729,46 @@ def write_safe_prove_project(paths: dict[str, Path], *, ada_dir: Path) -> str:
     return project_text
 
 
+def emitted_unit_name_from_interface(paths: dict[str, Path], source: Path) -> str:
+    safei_path = paths["iface"] / f"{source.stem.lower()}.safei.json"
+    payload = json.loads(safei_path.read_text(encoding="utf-8"))
+    return str(payload.get("package_name") or source.stem).lower()
+
+
+def proof_ada_artifact_names(paths: dict[str, Path], source: Path) -> list[str]:
+    unit_name = emitted_unit_name_from_interface(paths, source)
+    candidates = [
+        f"{unit_name}.ads",
+        f"{unit_name}.adb",
+        f"{unit_name}_line_map.json",
+    ]
+    return [name for name in candidates if (paths["ada"] / name).exists()]
+
+
+def prepare_safe_prove_ada_inputs(
+    project_paths: dict[str, Path],
+    *,
+    shared_paths: dict[str, Path],
+    sources: list[Path],
+) -> Path:
+    proof_ada_dir = project_paths["ada"]
+    shutil.rmtree(proof_ada_dir, ignore_errors=True)
+    proof_ada_dir.mkdir(parents=True, exist_ok=True)
+
+    copied: set[str] = set()
+    for source in sources:
+        for name in proof_ada_artifact_names(shared_paths, source):
+            if name in copied:
+                continue
+            shutil.copy2(shared_paths["ada"] / name, proof_ada_dir / name)
+            copied.add(name)
+
+    gnat_adc = shared_paths["ada"] / "gnat.adc"
+    if gnat_adc.exists():
+        shutil.copy2(gnat_adc, proof_ada_dir / gnat_adc.name)
+    return proof_ada_dir
+
+
 def build_fingerprint(
     *,
     source: Path,
@@ -654,6 +790,7 @@ def build_fingerprint(
                 "safec_hash": safec_hash,
                 "units": [unit_emit_signature(state, item) for item in sources],
                 "shared_support": shared_support_hashes(shared_paths, sources),
+                "stdlib_support": stdlib_support_hashes(),
                 "main_text": main_text,
                 "project_text": project_text,
             },
@@ -666,21 +803,18 @@ def proof_fingerprint(
     *,
     source: Path,
     sources: list[Path],
-    state: dict,
     safec_hash: str,
     gnatprove_id: str,
     gnatprove_version: str,
     flow_switches: list[str],
     prove_switches: list[str],
-    project_text: str,
-    shared_paths: dict[str, Path],
     target_bits: int = 64,
 ) -> str:
     return sha256_text(
         json.dumps(
             {
                 "kind": "prove",
-                "version": CACHE_VERSION,
+                "version": PROOF_FINGERPRINT_VERSION,
                 "source": source_key(source),
                 "target_bits": target_bits,
                 "safec_hash": safec_hash,
@@ -688,9 +822,8 @@ def proof_fingerprint(
                 "gnatprove_version": gnatprove_version,
                 "flow_switches": flow_switches,
                 "prove_switches": prove_switches,
-                "units": [unit_emit_signature(state, item) for item in sources],
-                "shared_support": shared_support_hashes(shared_paths, sources),
-                "project_text": project_text,
+                "sources": proof_source_entries(sources),
+                "stdlib_support": stdlib_support_hashes(),
             },
             sort_keys=True,
         )

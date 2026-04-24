@@ -21,11 +21,16 @@ from .proof_diagnostics import (
 from .project_cache import (
     STDLIB_ADA_DIR,
     ProjectEmitError,
+    cached_proof_result,
+    drop_cached_proof_result,
     emitted_primary_unit_for_source,
+    emitted_unit_name_from_interface,
     ensure_project_emitted,
     ensure_safe_prove_root,
     proof_fingerprint,
-    proof_project_text,
+    prepare_safe_prove_ada_inputs,
+    record_cached_proof_result,
+    resolve_project_sources,
     safe_prove_paths,
     save_project_state,
     source_key,
@@ -621,6 +626,7 @@ def compile_cached_proof_project(
     ada_dir: Path,
     source: Path,
     toolchain: ProofToolchain,
+    unit_name: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     argv = [
         toolchain.alr,
@@ -630,7 +636,7 @@ def compile_cached_proof_project(
         "-c",
         "-P",
         str(project_paths["gpr"]),
-        emitted_primary_unit_for_source(ada_dir, source) + ".adb",
+        (unit_name or emitted_primary_unit_for_source(ada_dir, source)) + ".adb",
     ]
     if (ada_dir / "gnat.adc").exists():
         argv.extend(["-cargs", f"-gnatec={ada_dir / 'gnat.adc'}"])
@@ -654,8 +660,38 @@ def run_cached_source_proof(
         target_bits=target_bits,
     )
 
+    safec_hash = sha256_file(toolchain.safec)
     try:
-        safec_hash = sha256_file(toolchain.safec)
+        sources = resolve_project_sources(source)
+    except RuntimeError as exc:
+        result.detail = str(exc)
+        return result
+
+    fingerprint = proof_fingerprint(
+        source=source,
+        sources=sources,
+        safec_hash=safec_hash,
+        gnatprove_id=tool_identity(toolchain.gnatprove),
+        gnatprove_version=toolchain.gnatprove_version,
+        flow_switches=FLOW_SWITCHES,
+        prove_switches=PROVE_SWITCHES if prove_switches is None else prove_switches,
+        target_bits=target_bits,
+    )
+    cached = cached_proof_result(
+        source=source,
+        fingerprint=fingerprint,
+        target_bits=target_bits,
+    )
+    if cached:
+        result.stage = "prove"
+        result.passed = True
+        result.flow_summary = cached.get("flow_summary")
+        result.prove_summary = cached.get("prove_summary")
+        result.detail = ""
+        result.used_cache = True
+        return result
+
+    try:
         shared_paths, state, sources = ensure_project_emitted(
             safec=toolchain.safec,
             safec_hash=safec_hash,
@@ -673,49 +709,51 @@ def run_cached_source_proof(
             result.stage_output[exc.stage] = exc.output
         return result
 
-    project_text = proof_project_text(
-        ada_dir=shared_paths["ada"],
-        has_gnat_adc=(shared_paths["ada"] / "gnat.adc").exists(),
-    )
-    fingerprint = proof_fingerprint(
+    cached = cached_proof_result(
         source=source,
-        sources=sources,
-        state=state,
-        safec_hash=safec_hash,
-        gnatprove_id=tool_identity(toolchain.gnatprove),
-        gnatprove_version=toolchain.gnatprove_version,
-        flow_switches=FLOW_SWITCHES,
-        prove_switches=PROVE_SWITCHES if prove_switches is None else prove_switches,
-        project_text=project_text,
-        shared_paths=shared_paths,
+        fingerprint=fingerprint,
         target_bits=target_bits,
     )
-    cached = state["proofs"].get(source_key(source))
-    cached_project_paths = safe_prove_paths(source, target_bits=target_bits)
-    cached_artifacts_present = (
-        cached_project_paths["root"].exists() and cached_project_paths["summary"].exists()
-    )
-    if cached and cached.get("fingerprint") == fingerprint and cached.get("passed"):
-        if cached_artifacts_present:
-            result.stage = "prove"
-            result.passed = True
-            result.flow_summary = cached.get("flow_summary")
-            result.prove_summary = cached.get("prove_summary")
-            result.detail = ""
-            result.used_cache = True
-            return result
+    legacy_cached = state["proofs"].get(source_key(source)) if cached is None else None
+    if (
+        legacy_cached
+        and legacy_cached.get("fingerprint") == fingerprint
+        and legacy_cached.get("passed") is True
+    ):
+        record_cached_proof_result(
+            source=source,
+            fingerprint=fingerprint,
+            flow_summary=legacy_cached.get("flow_summary"),
+            prove_summary=legacy_cached.get("prove_summary"),
+            target_bits=target_bits,
+        )
+        cached = legacy_cached
         state["proofs"].pop(source_key(source), None)
         save_project_state(shared_paths, state)
+    if cached:
+        result.stage = "prove"
+        result.passed = True
+        result.flow_summary = cached.get("flow_summary")
+        result.prove_summary = cached.get("prove_summary")
+        result.detail = ""
+        result.used_cache = True
+        return result
 
     project_paths = ensure_safe_prove_root(source, target_bits=target_bits)
-    write_safe_prove_project(project_paths, ada_dir=shared_paths["ada"])
-    line_maps = load_all_line_maps(shared_paths["ada"])
+    proof_ada_dir = prepare_safe_prove_ada_inputs(
+        project_paths,
+        shared_paths=shared_paths,
+        sources=sources,
+    )
+    write_safe_prove_project(project_paths, ada_dir=proof_ada_dir)
+    line_maps = load_all_line_maps(proof_ada_dir)
 
     compile_completed = compile_cached_proof_project(
         project_paths,
-        ada_dir=shared_paths["ada"],
+        ada_dir=proof_ada_dir,
         source=source,
         toolchain=toolchain,
+        unit_name=emitted_unit_name_from_interface(shared_paths, source),
     )
     result.stage = "compile"
     result.stage_output["compile"] = format_completed_output(compile_completed)
@@ -723,9 +761,10 @@ def run_cached_source_proof(
         result.detail = f"compile failed: {first_message(compile_completed)}"
         state["proofs"].pop(source_key(source), None)
         save_project_state(shared_paths, state)
+        drop_cached_proof_result(source=source, target_bits=target_bits)
         return result
 
-    adc_path = shared_paths["ada"] / "gnat.adc"
+    adc_path = proof_ada_dir / "gnat.adc"
     summary_path = project_paths["summary"]
     for mode, switches in (
         ("flow", FLOW_SWITCHES),
@@ -750,7 +789,7 @@ def run_cached_source_proof(
             result,
             mode,
             completed,
-            ada_dir=shared_paths["ada"],
+            ada_dir=proof_ada_dir,
             line_maps=line_maps,
         )
         try:
@@ -763,6 +802,7 @@ def run_cached_source_proof(
             )
             state["proofs"].pop(source_key(source), None)
             save_project_state(shared_paths, state)
+            drop_cached_proof_result(source=source, target_bits=target_bits)
             return result
 
         total_row = rows["Total"]
@@ -770,6 +810,7 @@ def run_cached_source_proof(
             result.detail = f"{mode} failed: {first_message(completed)}"
             state["proofs"].pop(source_key(source), None)
             save_project_state(shared_paths, state)
+            drop_cached_proof_result(source=source, target_bits=target_bits)
             return result
         if mode == "flow":
             result.flow_summary = total_row
@@ -781,17 +822,20 @@ def run_cached_source_proof(
             result.detail = f"{mode} summary has justified={justified}, unproved={unproved}"
             state["proofs"].pop(source_key(source), None)
             save_project_state(shared_paths, state)
+            drop_cached_proof_result(source=source, target_bits=target_bits)
             return result
 
     result.passed = True
     result.detail = ""
-    state["proofs"][source_key(source)] = {
-        "fingerprint": fingerprint,
-        "passed": True,
-        "flow_summary": result.flow_summary,
-        "prove_summary": result.prove_summary,
-    }
+    state["proofs"].pop(source_key(source), None)
     save_project_state(shared_paths, state)
+    record_cached_proof_result(
+        source=source,
+        fingerprint=fingerprint,
+        flow_summary=result.flow_summary,
+        prove_summary=result.prove_summary,
+        target_bits=target_bits,
+    )
     return result
 
 def run_source_proof(

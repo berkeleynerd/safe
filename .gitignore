@@ -28,5 +28,6 @@ config/
 __pycache__/
 *.pyc
 
-# Rosetta inventory cache
+# Local command caches
 .cache/rosetta/
+.cache/safe-proofs/
