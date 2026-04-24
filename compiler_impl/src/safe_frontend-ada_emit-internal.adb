@@ -160,6 +160,8 @@ package body Safe_Frontend.Ada_Emit.Internal is
             return FT.To_String (Expr.Name);
          when CM.Expr_Select | CM.Expr_Resolved_Index =>
             return Root_Name (Expr.Prefix);
+         when CM.Expr_Annotated =>
+            return Root_Name (Expr.Inner);
          when others =>
             return "";
       end case;

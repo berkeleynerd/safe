@@ -601,12 +601,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                end loop;
 
             when CM.Expr_Conversion
-               | CM.Expr_Annotated
-               | CM.Expr_Unary
-               | CM.Expr_Some
-               | CM.Expr_Try =>
+               | CM.Expr_Annotated =>
                Visit (Item.Inner);
                Visit (Item.Target);
+
+            when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
+               Visit (Item.Inner);
 
             when CM.Expr_Binary =>
                Visit (Item.Left);
@@ -669,13 +669,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
             end loop;
             return False;
          when CM.Expr_Conversion
-            | CM.Expr_Annotated
-            | CM.Expr_Unary
-            | CM.Expr_Some
-            | CM.Expr_Try =>
+            | CM.Expr_Annotated =>
             return
               Expr_Uses_Name (Expr.Inner, Name)
               or else Expr_Uses_Name (Expr.Target, Name);
+         when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
+            return Expr_Uses_Name (Expr.Inner, Name);
          when CM.Expr_Binary =>
             return
               Expr_Uses_Name (Expr.Left, Name)
@@ -3076,7 +3075,7 @@ package body Safe_Frontend.Ada_Emit.Statements is
       end;
 
       case Expr.Kind is
-         when CM.Expr_Call =>
+         when CM.Expr_Call | CM.Expr_Apply =>
             Collect_Shared_Condition_Snapshots
               (Unit, Document, Expr.Callee, Statement_Index, Rendered);
             for Arg of Expr.Args loop
@@ -3127,7 +3126,6 @@ package body Safe_Frontend.Ada_Emit.Statements is
             | CM.Expr_Enum_Literal
             | CM.Expr_Null
             | CM.Expr_Ident
-            | CM.Expr_Apply
             | CM.Expr_None
             | CM.Expr_Subtype_Indication =>
             null;
@@ -5275,12 +5273,12 @@ package body Safe_Frontend.Ada_Emit.Statements is
                               end loop;
 
                            when CM.Expr_Conversion
-                              | CM.Expr_Annotated
-                              | CM.Expr_Unary
-                              | CM.Expr_Some
-                              | CM.Expr_Try =>
+                              | CM.Expr_Annotated =>
                               Add_From (Expr.Inner);
                               Add_From (Expr.Target);
+
+                           when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
+                              Add_From (Expr.Inner);
 
                            when CM.Expr_Binary =>
                               Add_From (Expr.Left);

@@ -745,8 +745,10 @@ package body Safe_Frontend.Ada_Emit is
                   if Expr_Uses_Public_Shared_Helper (Item.Condition) then
                      return True;
                   end if;
-               when CM.Stmt_Unknown | CM.Stmt_Try_Send =>
+               when CM.Stmt_Unknown =>
                   return True;
+               when CM.Stmt_Try_Send =>
+                  Raise_Internal ("unreachable: try_send rejected by resolver");
             end case;
          end if;
       end loop;
@@ -957,7 +959,10 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             exception
                when others =>
-                  null;
+                  Raise_Internal
+                    ("synthetic dependency resolution failed for '"
+                     & Name_Text
+                     & "'");
             end;
          end if;
          if Found then
@@ -1019,7 +1024,10 @@ package body Safe_Frontend.Ada_Emit is
                return Info_Has_Unemitted_Growable_Dependency (Resolved_Info, Seen);
             exception
                when others =>
-                  return False;
+                  Raise_Internal
+                    ("growable dependency check failed for '"
+                     & Name_Text
+                     & "'");
             end;
          end Name_Has_Unemitted_Growable_Dependency;
 

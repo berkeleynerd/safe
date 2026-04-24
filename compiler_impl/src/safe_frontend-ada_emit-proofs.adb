@@ -543,7 +543,7 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                for Arg of Expr.Args loop
                   Collect_Shared_From_Expr (Arg, Reads, Writes);
                end loop;
-            when CM.Expr_Call =>
+            when CM.Expr_Call | CM.Expr_Apply =>
                if Expr.Callee /= null then
                   declare
                      Wrapper_Name  : FT.UString := FT.To_UString ("");
@@ -600,12 +600,11 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                   Collect_Shared_From_Expr (Arg, Reads, Writes);
                end loop;
             when CM.Expr_Conversion
-               | CM.Expr_Annotated
-               | CM.Expr_Unary
-               | CM.Expr_Some
-               | CM.Expr_Try =>
+               | CM.Expr_Annotated =>
                Collect_Shared_From_Expr (Expr.Inner, Reads, Writes);
                Collect_Shared_From_Expr (Expr.Target, Reads, Writes);
+            when CM.Expr_Unary | CM.Expr_Some | CM.Expr_Try =>
+               Collect_Shared_From_Expr (Expr.Inner, Reads, Writes);
             when CM.Expr_Binary =>
                Collect_Shared_From_Expr (Expr.Left, Reads, Writes);
                Collect_Shared_From_Expr (Expr.Right, Reads, Writes);
@@ -626,7 +625,6 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                | CM.Expr_Bool
                | CM.Expr_Enum_Literal
                | CM.Expr_Null
-               | CM.Expr_Apply
                | CM.Expr_None
                | CM.Expr_Subtype_Indication =>
                null;
@@ -2780,7 +2778,27 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                   end if;
                when CM.Expr_Select =>
                   return Variant_From_Expr (Expr.Prefix);
-               when CM.Expr_Apply | CM.Expr_Resolved_Index =>
+               when CM.Expr_Apply =>
+                  declare
+                     Callee_Result : constant String := Variant_From_Expr (Expr.Callee);
+                  begin
+                     if Callee_Result'Length > 0 then
+                        return Callee_Result;
+                     end if;
+                  end;
+
+                  if not Expr.Args.Is_Empty then
+                     for Arg of Expr.Args loop
+                        declare
+                           Arg_Result : constant String := Variant_From_Expr (Arg);
+                        begin
+                           if Arg_Result'Length > 0 then
+                              return Arg_Result;
+                           end if;
+                        end;
+                     end loop;
+                  end if;
+               when CM.Expr_Resolved_Index =>
                   if not Expr.Args.Is_Empty then
                      for Arg of Expr.Args loop
                         declare

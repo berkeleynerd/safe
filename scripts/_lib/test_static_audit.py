@@ -381,6 +381,8 @@ def _find_case_block(entry: AuditedCase) -> tuple[int, list[str]]:
         inline_lines: list[str] = []
         for line in body_lines[start_index:]:
             inline_lines.append(line)
+            # Inline audited case blocks are currently single-expression arms.
+            # Revisit this terminator if inline arms grow nested statement calls.
             if "));" in line or ");" in line:
                 break
         return case_line, inline_lines
