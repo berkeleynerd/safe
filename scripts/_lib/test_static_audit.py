@@ -519,7 +519,16 @@ def run_static_audit_checks() -> RunCounts:
             f"static-audit:{entry.label}",
             run_static_audit_case(entry),
         )
-    for path in _parser_resolver_audit_paths():
+    paths = _parser_resolver_audit_paths()
+    if len(paths) < 2:
+        failures.append(
+            (
+                "static-audit:parser-resolver-when-others-ok",
+                "expected at least 2 scoped parser/resolver sources, "
+                f"found {len(paths)}",
+            )
+        )
+    for path in paths:
         passed += record_result(
             failures,
             f"static-audit:parser-resolver-when-others-ok:{path.relative_to(REPO_ROOT)}",
