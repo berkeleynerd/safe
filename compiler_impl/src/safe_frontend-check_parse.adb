@@ -577,11 +577,17 @@ package body Safe_Frontend.Check_Parse is
                         for Nested of Arm.Delay_Data.Statements loop
                            Validate_Unit_Statement (Nested);
                         end loop;
-                     when others =>
+                     when CM.Select_Arm_Unknown =>
                         null;
                   end case;
                end loop;
-            when others =>
+            when CM.Stmt_Unknown
+               | CM.Stmt_Assign
+               | CM.Stmt_Call
+               | CM.Stmt_Exit
+               | CM.Stmt_Send
+               | CM.Stmt_Try_Send
+               | CM.Stmt_Delay =>
                null;
          end case;
       end Validate_Unit_Statement;
@@ -784,7 +790,7 @@ package body Safe_Frontend.Check_Parse is
                Result := Result & FT.To_UString ("_") & Item;
             end loop;
             return Result;
-         when others =>
+         when CM.Type_Spec_Unknown | CM.Type_Spec_Access_Def =>
             return FT.To_UString ("");
       end case;
    end Type_Spec_Internal_Name;
@@ -969,6 +975,7 @@ package body Safe_Frontend.Check_Parse is
          when 64 =>
             return FT.To_UString ("__binary_64");
          when others =>
+            --  when-others-ok: Bit_Width is a user-provided numeric value outside the admitted binary widths.
             Raise_Diag
               (CM.Source_Frontend_Error
                  (Path    => Path_String (State),

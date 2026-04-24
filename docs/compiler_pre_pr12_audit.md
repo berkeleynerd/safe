@@ -335,7 +335,38 @@ Findings:
 
 ## Phase 1B - When-Others Exhaustiveness
 
-Enforcement default: likely yes.
+Enforcement default: yes for scoped parser/resolver unblockers; likely yes for
+the remaining full sweep after false-positive review.
+
+Scoped parser/resolver unblocker:
+
+- Status: complete for the PR12.1 grammar-overhaul dependency surface; full
+  Phase 1B remains open.
+- Scope: production parser/resolver Ada sources matching
+  `compiler_impl/src/safe_frontend-check_(parse|resolve)*.adb`. The sweep
+  excludes `compiler_impl/tests/`, emitter, MIR, driver, JSON, and stdlib
+  sources.
+- Baseline at this pass: 50 scoped `when others =>` sites
+  (`safe_frontend-check_parse.adb`: 4, `safe_frontend-check_resolve.adb`: 46).
+- Outcome: 42 enum-dispatch sites converted to explicit arms; 8 retained
+  catch-alls remain for open numeric domains or cleanup/re-raise paths.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked parser/resolver `when others =>` in the scoped files.
+- Retained catch-alls must be multiline and begin the branch with
+  `--  when-others-ok: <specific rationale>`.
+- Full remaining compiler source baseline after this unblocker: 101
+  `when others =>` sites outside the completed parser/resolver conversions.
+
+PR12.1 overlap evidence:
+
+- Expression-kind walkers and classifiers in the resolver no longer silently
+  absorb new call/argument AST shapes; `Expr_Apply`, `Expr_Call`, and every
+  terminal expression kind are named explicitly where they are relevant.
+- Statement, select-arm, and match-arm validators in the parser/resolver now
+  name `Stmt_Unknown`, `Select_Arm_Unknown`, and `Match_Arm_Unknown`
+  explicitly instead of hiding future grammar additions behind catch-all arms.
+- Any future named-argument representation added for #362 must update the
+  parser/resolver dispatch arms intentionally or fail compilation/static audit.
 
 Findings:
 

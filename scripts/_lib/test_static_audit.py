@@ -337,6 +337,7 @@ SILENT_DEFAULT_RE = re.compile(
     r"(\bnull\s*;|\breturn\s+False\s*;|\breturn\s+0\s*;|Empty_Vector)",
     re.IGNORECASE,
 )
+WHEN_OTHERS_OK_MARKER = "when-others-ok:"
 
 
 def _strip_comment(line: str) -> str:
@@ -441,6 +442,75 @@ def run_static_audit_case(entry: AuditedCase) -> tuple[bool, str]:
     return True, ""
 
 
+def _parser_resolver_audit_paths() -> tuple[Path, ...]:
+    prefixes = ("safe_frontend-check_parse", "safe_frontend-check_resolve")
+    return tuple(
+        sorted(
+            path
+            for path in SRC.glob("safe_frontend-check_*.adb")
+            if path.name.startswith(prefixes)
+        )
+    )
+
+
+def _first_nonblank_line_after(lines: list[str], index: int) -> tuple[int, str] | None:
+    for marker_index in range(index + 1, len(lines)):
+        if lines[marker_index].strip():
+            return marker_index, lines[marker_index]
+    return None
+
+
+def _comment_payload(line: str) -> str | None:
+    stripped = line.strip()
+    if not stripped.startswith("--"):
+        return None
+    return stripped[2:].lstrip()
+
+
+def run_parser_resolver_when_others_marker_case(path: Path) -> tuple[bool, str]:
+    """Require retained catch-alls to use a next-line rationale marker.
+
+    Expected form:
+        when others =>
+           --  when-others-ok: <rationale>
+    The marker must appear on the following nonblank line; inline arrow-line
+    markers are stripped as Ada comments before validation.
+    """
+    failures: list[str] = []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    rel = path.relative_to(REPO_ROOT)
+
+    for index, line in enumerate(lines):
+        code = _strip_comment(line)
+        if not WHEN_OTHERS_RE.search(code):
+            continue
+
+        after_arrow = code.split("=>", 1)[1].strip()
+        line_no = index + 1
+        if after_arrow:
+            failures.append(
+                f"{rel}:{line_no}: retained `when others` must be multiline "
+                f"and start with {WHEN_OTHERS_OK_MARKER!r}"
+            )
+            continue
+
+        marker_line = _first_nonblank_line_after(lines, index)
+        marker_payload = (
+            _comment_payload(marker_line[1]) if marker_line is not None else None
+        )
+        if marker_payload is None or not marker_payload.startswith(
+            WHEN_OTHERS_OK_MARKER
+        ):
+            failures.append(
+                f"{rel}:{line_no}: retained `when others` lacks "
+                f"{WHEN_OTHERS_OK_MARKER!r} rationale marker"
+            )
+
+    if failures:
+        return False, "\n".join(failures)
+    return True, ""
+
+
 def run_static_audit_checks() -> RunCounts:
     passed = 0
     failures = []
@@ -449,6 +519,23 @@ def run_static_audit_checks() -> RunCounts:
             failures,
             f"static-audit:{entry.label}",
             run_static_audit_case(entry),
+        )
+    paths = _parser_resolver_audit_paths()
+    if len(paths) < 2:
+        passed += record_result(
+            failures,
+            "static-audit:parser-resolver-when-others-ok",
+            (
+                False,
+                "expected at least 2 scoped parser/resolver sources, "
+                f"found {len(paths)}",
+            ),
+        )
+    for path in paths:
+        passed += record_result(
+            failures,
+            f"static-audit:parser-resolver-when-others-ok:{path.relative_to(REPO_ROOT)}",
+            run_parser_resolver_when_others_marker_case(path),
         )
     return passed, 0, failures
 

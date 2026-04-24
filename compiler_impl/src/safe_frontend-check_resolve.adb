@@ -350,7 +350,7 @@ package body Safe_Frontend.Check_Resolve is
             return "access";
          when CM.Type_Decl_Incomplete =>
             return "incomplete";
-         when others =>
+         when CM.Type_Decl_Unknown =>
             return "type";
       end case;
    end Type_Decl_Kind_Label;
@@ -2058,7 +2058,7 @@ package body Safe_Frontend.Check_Resolve is
                  Operation    => Operation,
                  Span         => Span,
                  Type_Name    => Type_Name);
-         when others =>
+         when Shared_Object_None =>
             return Shared_Wrapper_Call_Expr ("", Operation, Span, Type_Name);
       end case;
    end Shared_Call_Expr;
@@ -2132,7 +2132,27 @@ package body Safe_Frontend.Check_Resolve is
                Current := Current.Prefix;
             when CM.Expr_Conversion =>
                Current := Current.Inner;
-            when others =>
+            when CM.Expr_Unknown
+               | CM.Expr_Int
+               | CM.Expr_Real
+               | CM.Expr_String
+               | CM.Expr_Bool
+               | CM.Expr_Enum_Literal
+               | CM.Expr_Null
+               | CM.Expr_Ident
+               | CM.Expr_Apply
+               | CM.Expr_Call
+               | CM.Expr_Allocator
+               | CM.Expr_Aggregate
+               | CM.Expr_Array_Literal
+               | CM.Expr_Tuple
+               | CM.Expr_Annotated
+               | CM.Expr_Some
+               | CM.Expr_None
+               | CM.Expr_Try
+               | CM.Expr_Unary
+               | CM.Expr_Binary
+               | CM.Expr_Subtype_Indication =>
                Current := null;
          end case;
       end loop;
@@ -2386,7 +2406,15 @@ package body Safe_Frontend.Check_Resolve is
             for Item of Expr.Elements loop
                Reject_Bare_Shared_Object_Expr (Item, Type_Env, Path);
             end loop;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
             null;
       end case;
    end Reject_Bare_Shared_Object_Expr;
@@ -4011,7 +4039,20 @@ package body Safe_Frontend.Check_Resolve is
             return UString_Value (Expr.Operator) & Expr_Text (Expr.Inner);
          when CM.Expr_Binary =>
             return Expr_Text (Expr.Left) & " " & UString_Value (Expr.Operator) & " " & Expr_Text (Expr.Right);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Null
+            | CM.Expr_Apply
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Conversion
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Annotated
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
             null;
       end case;
 
@@ -4196,7 +4237,24 @@ package body Safe_Frontend.Check_Resolve is
                end if;
                return False;
             end;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Null
+            | CM.Expr_Apply
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Conversion
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Annotated
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return False;
       end case;
    end Try_Static_Value;
@@ -4226,7 +4284,19 @@ package body Safe_Frontend.Check_Resolve is
             return Expr.Inner /= null
               and then UString_Value (Expr.Operator) in "+" | "-"
               and then Expr.Inner.Kind = CM.Expr_Int;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Real
+            | CM.Expr_Null
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return False;
       end case;
    end Is_Static_Case_Choice;
@@ -4248,7 +4318,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Kind := GM.Scalar_Value_Enum;
             Result.Text := Value.Text;
             Result.Type_Name := Value.Type_Name;
-         when others =>
+         when CM.Static_Value_None =>
             null;
       end case;
       return Result;
@@ -4796,7 +4866,8 @@ package body Safe_Frontend.Check_Resolve is
                                    (if Constraint.Value.Bool_Value then "true" else "false"),
                                 when GM.Scalar_Value_Character =>
                                    UString_Value (Constraint.Value.Text),
-                                when others =>
+                                when GM.Scalar_Value_None
+                                   | GM.Scalar_Value_Enum =>
                                    "value")));
                end loop;
                Result.Kind := FT.To_UString ("subtype");
@@ -4859,6 +4930,7 @@ package body Safe_Frontend.Check_Resolve is
                   when 64 =>
                      return BT.Binary_Type (64);
                   when others =>
+                     --  when-others-ok: Width is a user-provided numeric value outside the admitted binary widths.
                      Raise_Diag
                        (CM.Source_Frontend_Error
                           (Path    => Path,
@@ -5027,7 +5099,7 @@ package body Safe_Frontend.Check_Resolve is
               FT.To_UString
                 (Classify_Access_Role (Spec.Anonymous, Spec.Is_Constant, Spec.Is_All));
             return Result;
-         when others =>
+         when CM.Type_Spec_Unknown =>
             Raise_Diag
               (CM.Source_Frontend_Error
                  (Path    => Path,
@@ -5508,7 +5580,10 @@ package body Safe_Frontend.Check_Resolve is
                   return Right_Type;
                end if;
             end;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Apply
+            | CM.Expr_Subtype_Indication =>
             null;
       end case;
       return Default_Integer;
@@ -5635,7 +5710,17 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Expr_Binary =>
             Recurse (Expr.Left);
             Recurse (Expr.Right);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_Apply
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
             null;
       end case;
    end Validate_Print_Call_Context;
@@ -7451,7 +7536,17 @@ package body Safe_Frontend.Check_Resolve is
          when CM.Expr_Try =>
             Result := new CM.Expr_Node'(Expr.all);
             Result.Inner := Normalize_Expr (Expr.Inner, Var_Types, Functions, Type_Env, Const_Env, Path);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Conversion
+            | CM.Expr_Call
+            | CM.Expr_Subtype_Indication =>
             Result := new CM.Expr_Node'(Expr.all);
       end case;
 
@@ -7569,7 +7664,27 @@ package body Safe_Frontend.Check_Resolve is
                return Set_Type (Result, Expr_Type (Result, Var_Types, Functions, Type_Env));
             end if;
             return Expr;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_Select
+            | CM.Expr_Apply
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Conversion
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Annotated
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Unary
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return Expr;
       end case;
    end Contextualize_Expr_To_Target_Type;
@@ -7613,7 +7728,16 @@ package body Safe_Frontend.Check_Resolve is
             end loop;
          when CM.Expr_Some =>
             Reject_Uncontextualized_None (Expr.Inner, Path);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
             null;
       end case;
    end Reject_Uncontextualized_None;
@@ -8092,7 +8216,21 @@ package body Safe_Frontend.Check_Resolve is
                   end if;
                end if;
             end;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
+            null;
+         when CM.Expr_Apply =>
+            --  Normalize_Expr resolves applies to calls, indexes, or conversions before
+            --  this post-normalization boundary check; residual applies have no PR11.2
+            --  boundary work here.
             null;
       end case;
    end Validate_Pr112_Expr_Boundaries;
@@ -8134,7 +8272,19 @@ package body Safe_Frontend.Check_Resolve is
             for Item of Expr.Elements loop
                Reject_Non_Executable_Try (Item, Path);
             end loop;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
+            null;
+         when CM.Expr_Try =>
+            --  Rejected by the pre-case guard above; no child traversal remains.
             null;
       end case;
    end Reject_Non_Executable_Try;
@@ -8172,6 +8322,7 @@ package body Safe_Frontend.Check_Resolve is
          when 64 =>
             return 18_446_744_073_709_551_616;
          when others =>
+            --  when-others-ok: Bit_Width is an open numeric input outside the admitted binary widths.
             return 0;
       end case;
    end Binary_Modulus;
@@ -8355,7 +8506,26 @@ package body Safe_Frontend.Check_Resolve is
             end if;
             return False;
 
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_Select
+            | CM.Expr_Apply
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Subtype_Indication =>
             return False;
       end case;
    end Try_Static_Integerish_Value;
@@ -8802,7 +8972,20 @@ package body Safe_Frontend.Check_Resolve is
                Validate_Static_Binary_Boundaries
                  (Item, Var_Types, Functions, Type_Env, Const_Env, Path);
             end loop;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_Apply
+            | CM.Expr_Array_Literal
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Subtype_Indication =>
             null;
       end case;
    end Validate_Static_Binary_Boundaries;
@@ -9390,7 +9573,27 @@ package body Safe_Frontend.Check_Resolve is
             return Is_Read_Only_Imported_Target (Expr.Prefix, Imported_Objects);
          when CM.Expr_Conversion =>
             return Is_Read_Only_Imported_Target (Expr.Inner, Imported_Objects);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_Apply
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Annotated
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Unary
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return False;
       end case;
    end Is_Read_Only_Imported_Target;
@@ -9420,7 +9623,26 @@ package body Safe_Frontend.Check_Resolve is
             return Is_Local_Constant_Target (Expr.Prefix, Local_Constants);
          when CM.Expr_Conversion =>
             return Is_Local_Constant_Target (Expr.Inner, Local_Constants);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Apply
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Annotated
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Unary
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return False;
       end case;
    end Is_Local_Constant_Target;
@@ -11476,7 +11698,18 @@ package body Safe_Frontend.Check_Resolve is
                Result.Expr.Elements.Append (Child.Expr);
             end loop;
 
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Ident
+            | CM.Expr_Allocator
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Subtype_Indication =>
             Result.Expr := new CM.Expr_Node'(Expr.all);
       end case;
 
@@ -13665,7 +13898,7 @@ package body Safe_Frontend.Check_Resolve is
                            when CM.Match_Arm_Fail =>
                               Fail_Arm := Arm;
                               Fail_Count := Fail_Count + 1;
-                           when others =>
+                           when CM.Match_Arm_Unknown | CM.Match_Arm_Variant =>
                               Raise_Diag
                                 (CM.Source_Frontend_Error
                                    (Path    => Path,
@@ -14269,7 +14502,7 @@ package body Safe_Frontend.Check_Resolve is
                                 Local_Constants,
                                 Local_Static_Constants,
                                 Exact_Length_Facts);
-                        when others =>
+                        when CM.Select_Arm_Unknown =>
                            null;
                      end case;
                      Result.Arms.Append (New_Arm);
@@ -14291,7 +14524,7 @@ package body Safe_Frontend.Check_Resolve is
                end if;
             end;
 
-         when others =>
+         when CM.Stmt_Unknown =>
             null;
       end case;
 
@@ -15074,7 +15307,7 @@ package body Safe_Frontend.Check_Resolve is
             Result.Access_Role :=
               FT.To_UString
                 (Classify_Access_Role (False, Decl.Access_Type.Is_Constant, Decl.Access_Type.Is_All));
-         when others =>
+         when CM.Type_Decl_Unknown =>
             Raise_Diag
               (CM.Unsupported_Source_Construct
                  (Path    => Path,
@@ -15222,6 +15455,7 @@ package body Safe_Frontend.Check_Resolve is
       return Result;
    exception
       when others =>
+         --  when-others-ok: cleanup/re-raise restores the generic instantiation stack after any exception.
          if not Current_Generic_Type_Instantiation_Stack.Is_Empty
            and then Current_Generic_Type_Instantiation_Stack
              (Current_Generic_Type_Instantiation_Stack.Last_Index)
@@ -15461,7 +15695,18 @@ package body Safe_Frontend.Check_Resolve is
                      Validate_Expr (Arg);
                   end loop;
                end if;
-            when others =>
+            when CM.Expr_Unknown
+               | CM.Expr_Int
+               | CM.Expr_Real
+               | CM.Expr_String
+               | CM.Expr_Bool
+               | CM.Expr_Enum_Literal
+               | CM.Expr_Null
+               | CM.Expr_Ident
+               | CM.Expr_Some
+               | CM.Expr_None
+               | CM.Expr_Try
+               | CM.Expr_Subtype_Indication =>
                null;
          end case;
       end Validate_Expr;
@@ -15527,7 +15772,7 @@ package body Safe_Frontend.Check_Resolve is
                            when CM.Select_Arm_Delay =>
                               Validate_Expr (Arm.Delay_Data.Duration_Expr);
                               Validate_Statement_List (Arm.Delay_Data.Statements);
-                           when others =>
+                           when CM.Select_Arm_Unknown =>
                               null;
                         end case;
                      end loop;
@@ -15536,7 +15781,7 @@ package body Safe_Frontend.Check_Resolve is
                      for Arm of Stmt.Match_Arms loop
                         Validate_Statement_List (Arm.Statements);
                      end loop;
-                  when others =>
+                  when CM.Stmt_Unknown | CM.Stmt_Exit =>
                      null;
                end case;
             end if;
@@ -15645,11 +15890,24 @@ package body Safe_Frontend.Check_Resolve is
                      when CM.Select_Arm_Delay =>
                         Validate_Task_Nontermination
                           (Arm.Delay_Data.Statements, Path, Task_Name, Loop_Depth);
-                     when others =>
+                     when CM.Select_Arm_Unknown =>
                         null;
                   end case;
                end loop;
-            when others =>
+            when CM.Stmt_Unknown
+               | CM.Stmt_Object_Decl
+               | CM.Stmt_Destructure_Decl
+               | CM.Stmt_Assign
+               | CM.Stmt_Call
+               | CM.Stmt_Receive
+               | CM.Stmt_Try_Receive
+               | CM.Stmt_Send
+               | CM.Stmt_Try_Send
+               | CM.Stmt_Delay =>
+               null;
+            when CM.Stmt_Match =>
+               --  Task bodies are normalized before this pass; match arms desugar
+               --  to if/case branches checked above.
                null;
          end case;
       end loop;
@@ -15670,7 +15928,7 @@ package body Safe_Frontend.Check_Resolve is
             return False;
          when CM.Item_Channel =>
             return Item.Chan_Data.Is_Public;
-         when others =>
+         when CM.Item_Unknown =>
             return False;
       end case;
    end Item_Is_Public;
@@ -15722,11 +15980,20 @@ package body Safe_Frontend.Check_Resolve is
                         Validate_Unit_Statements (Arm.Channel_Data.Statements, Path);
                      when CM.Select_Arm_Delay =>
                         Validate_Unit_Statements (Arm.Delay_Data.Statements, Path);
-                     when others =>
+                     when CM.Select_Arm_Unknown =>
                         null;
                   end case;
                end loop;
-            when others =>
+            when CM.Stmt_Unknown
+               | CM.Stmt_Assign
+               | CM.Stmt_Call
+               | CM.Stmt_Exit
+               | CM.Stmt_Send
+               | CM.Stmt_Try_Send
+               | CM.Stmt_Delay =>
+               null;
+            when CM.Stmt_Match =>
+               --  Unit-scope recursion for match arms is validated in check_parse.
                null;
          end case;
       end loop;
@@ -15948,7 +16215,7 @@ package body Safe_Frontend.Check_Resolve is
                               Other.Subp_Data.Span,
                               Shared_Root,
                               Wrapper_Name);
-                        when others =>
+                        when CM.Item_Unknown =>
                            null;
                      end case;
                   end loop;
@@ -16011,7 +16278,7 @@ package body Safe_Frontend.Check_Resolve is
                        (Deps,
                         Flatten_Name (Spec.Target_Name));
                   end if;
-               when others =>
+               when CM.Type_Spec_Unknown | CM.Type_Spec_Binary =>
                   null;
             end case;
          end Collect_Type_Spec_Dependencies;
@@ -16061,7 +16328,13 @@ package body Safe_Frontend.Check_Resolve is
                   end if;
                when CM.Type_Decl_Nominal =>
                   Collect_Type_Spec_Dependencies (Decl.Parent_Type, Deps);
-               when others =>
+               when CM.Type_Decl_Unknown
+                  | CM.Type_Decl_Incomplete
+                  | CM.Type_Decl_Interface
+                  | CM.Type_Decl_Integer
+                  | CM.Type_Decl_Binary
+                  | CM.Type_Decl_Float
+                  | CM.Type_Decl_Enumeration =>
                   null;
             end case;
          end Collect_Type_Decl_Dependencies;
@@ -16580,7 +16853,7 @@ package body Safe_Frontend.Check_Resolve is
                                 when CM.Item_Subprogram => Item.Subp_Data.Span,
                                 when CM.Item_Task => Item.Task_Data.Span,
                                 when CM.Item_Channel => Item.Chan_Data.Span,
-                                when others => FT.Null_Span),
+                                when CM.Item_Unknown => FT.Null_Span),
                   Message => "packageless entry files must not contain public declarations"));
          end if;
 
@@ -16956,7 +17229,7 @@ package body Safe_Frontend.Check_Resolve is
                      Put_Function (Current_Generic_Function_Env, UString_Value (Info.Name), Info);
                   end;
                end if;
-            when others =>
+            when CM.Item_Unknown =>
                null;
          end case;
       end loop;
@@ -17142,6 +17415,7 @@ package body Safe_Frontend.Check_Resolve is
                   Current_Select_In_Subprogram_Body := Previous_Select_Context;
                exception
                   when others =>
+                     --  when-others-ok: cleanup/re-raise restores subprogram select-context state after any exception.
                      Current_Select_In_Subprogram_Body := Previous_Select_Context;
                      raise;
                end;
@@ -17281,6 +17555,7 @@ package body Safe_Frontend.Check_Resolve is
                   Current_In_Task_Body := Previous_Task_Context;
                exception
                   when others =>
+                     --  when-others-ok: cleanup/re-raise restores task-body context state after any exception.
                      Current_In_Task_Body := Previous_Task_Context;
                      raise;
                end;
@@ -17427,6 +17702,7 @@ package body Safe_Frontend.Check_Resolve is
                         Current_Select_In_Subprogram_Body := Previous_Select_Context;
                      exception
                         when others =>
+                           --  when-others-ok: cleanup/re-raise restores generic subprogram select-context state after any exception.
                            Current_Select_In_Subprogram_Body := Previous_Select_Context;
                            raise;
                      end;
@@ -17588,6 +17864,7 @@ package body Safe_Frontend.Check_Resolve is
                      Current_Select_In_Subprogram_Body := Previous_Select_Context;
                   exception
                      when others =>
+                        --  when-others-ok: cleanup/re-raise restores interface subprogram select-context state after any exception.
                         Current_Select_In_Subprogram_Body := Previous_Select_Context;
                         raise;
                   end;
