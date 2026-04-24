@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_observe_requires_access.safe:14:20: error: removed source spelling `.all` is not allowed in postfix selectors
   |
-  | 14 |       return owner.all.rate;
+  | 14 |       return owner.all.rate
   |    |                    ^~~
   |
 ------------------------------------------------------------------------

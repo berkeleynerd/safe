@@ -8,20 +8,20 @@ package pr1110b_list_basics
 
    function starts_with_one (values : list of integer) returns boolean
       for item of values
-         return item == 1;
+         return item == 1
 
-      return false;
+      return false
 
    function seeded_items returns list of integer
-      var items : list of integer = [1, 2, 3];
+      var items : list of integer = [1, 2, 3]
 
-      append (items, 4);
-      return items;
+      append (items, 4)
+      return items
 
    function trimmed_total returns integer
-      var items : list of integer = seeded_items;
-      last : constant optional integer = pop_last (items);
+      var items : list of integer = seeded_items
+      last : constant optional integer = pop_last (items)
       if last.present and then last.value == 4 and then starts_with_one (items) and then items.length == 3 and then items (2 to 3).length == 2 and then items (3) == 3
-         return items.length;
+         return items.length
       else
-         return 0;
+         return 0

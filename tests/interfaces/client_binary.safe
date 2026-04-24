@@ -1,6 +1,6 @@
-with provider_binary;
+with provider_binary
 
 package client_binary
 
-   value : provider_binary.byte = provider_binary.identity (provider_binary.byte (255));
+   value : provider_binary.byte = provider_binary.identity (provider_binary.byte (255))
 

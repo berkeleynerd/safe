@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr222_shared_mutating_function.safe:11:4: error: result-returning functions cannot mutate package state or access shared/channel state
   |
-  | 11 |    ledger.total = 2;
+  | 11 |    ledger.total = 2
   |    |    ^~~~~~~~~~~~
   |
   note: SPARK functions cannot combine return values with global mutation or volatile shared access

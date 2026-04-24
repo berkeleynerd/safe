@@ -5,9 +5,9 @@
 package neg_while_variant_length_bound
 
    function shrink_text returns integer
-      var text : string = "abcdef";
+      var text : string = "abcdef"
 
       while text.length > 2
-         text = "";
+         text = ""
 
-      return text.length;
+      return text.length

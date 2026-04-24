@@ -8,17 +8,17 @@
 
 package dynamic_index_test
 
-   subtype idx is integer (1 to 50);
-   type table is array (idx) of integer;
+   subtype idx is integer (1 to 50)
+   type table is array (idx) of integer
 
    --  Compute_Index: returns some value; the compiler cannot determine range.
    function compute_index (seed : integer) returns integer
 
-      return seed * 7 + 3;
+      return seed * 7 + 3
 
    --  Lookup_Dynamic: uses the result of Compute_Index as array index.
    --  The result of Compute_Index is not provably in 1..50.
    function lookup_dynamic (t : table; seed : integer) returns integer
 
-      return t (idx (compute_index (seed)));  -- ERROR: not provably in 1..50
+      return t (idx (compute_index (seed)))  -- ERROR: not provably in 1..50
 

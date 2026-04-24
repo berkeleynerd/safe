@@ -5,13 +5,13 @@
 
 package try_send_success_not_boolean_test
 
-   subtype item is integer (0 to 10);
+   subtype item is integer (0 to 10)
 
-   channel data_ch : item capacity 1;
+   channel data_ch : item capacity 1
 
    task worker
-      value   : item = 0;
-      success : integer = 0;
+      value   : item = 0
+      success : integer = 0
 
       loop
-         send data_ch, value, success;
+         send data_ch, value, success

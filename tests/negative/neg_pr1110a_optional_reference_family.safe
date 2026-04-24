@@ -7,7 +7,7 @@
 package neg_pr1110a_optional_reference_family
 
    type handle is record
-      value : integer;
-      link  : handle;
+      value : integer
+      link  : handle
 
-   current : optional handle;
+   current : optional handle

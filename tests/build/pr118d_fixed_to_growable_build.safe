@@ -1,28 +1,28 @@
 package pr118d_fixed_to_growable_build
 
-   subtype slot is integer (5 to 7);
-   subtype item is integer (0 to 10);
-   type fixed_three is array (slot) of item;
-   type grow_list is array of item;
+   subtype slot is integer (5 to 7)
+   subtype item is integer (0 to 10)
+   type fixed_three is array (slot) of item
+   type grow_list is array of item
 
    function sum_edges (values : grow_list) returns integer
-      return values (1) + values (3);
+      return values (1) + values (3)
 
    function widen (values : fixed_three) returns grow_list
-      return values;
+      return values
 
-   fixed_values : fixed_three = (4, 5, 6);
-   widened : grow_list = fixed_values;
-   copied : grow_list = [];
-   returned : grow_list = [];
-   subtype total is integer (0 to 40);
-   result : total = 0;
+   fixed_values : fixed_three = (4, 5, 6)
+   widened : grow_list = fixed_values
+   copied : grow_list = []
+   returned : grow_list = []
+   subtype total is integer (0 to 40)
+   result : total = 0
 
-   copied = fixed_values;
-   returned = widen (fixed_values);
-   result = sum_edges (fixed_values);
-   result = result + copied (2);
-   result = result + returned (3);
-   result = result + widened (1);
+   copied = fixed_values
+   returned = widen (fixed_values)
+   result = sum_edges (fixed_values)
+   result = result + copied (2)
+   result = result + returned (3)
+   result = result + widened (1)
 
    print (result)

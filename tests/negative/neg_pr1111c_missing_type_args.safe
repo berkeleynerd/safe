@@ -1,8 +1,8 @@
 package neg_pr1111c_missing_type_args
 
    function identity of t (value : t) returns t
-      return value;
+      return value
 
    function total returns integer
-      return identity (1);
+      return identity (1)
 

@@ -121,9 +121,11 @@ package body Safe_Frontend.Lexer is
       Index  : Natural := 1;
       Line   : Positive := 1;
       Column : Positive := 1;
+      Logical_Line : Positive := 1;
       Indents : Natural_Vectors.Vector;
       At_Line_Start : Boolean := True;
-      Paren_Depth   : Natural := 0;
+      Bracket_Depth : Natural := 0;
+      Continuation_Line : Boolean := False;
 
       procedure Advance is
       begin
@@ -147,6 +149,68 @@ package body Safe_Frontend.Lexer is
          return Character'Val (0);
       end Peek;
 
+      function Is_Horizontal_Whitespace (Ch : Character) return Boolean is
+      begin
+         return Ch = ' '
+           or else Ch = Ada.Characters.Latin_1.HT
+           or else Ch = Ada.Characters.Latin_1.CR;
+      end Is_Horizontal_Whitespace;
+
+      procedure Consume_Newline (Suppress_Terminator : Boolean) is
+      begin
+         Advance;
+         if not Suppress_Terminator then
+            Logical_Line := Logical_Line + 1;
+         end if;
+      end Consume_Newline;
+
+      function Backslash_Is_Continuation return Boolean is
+         Probe : Natural := Index + 1;
+      begin
+         while Probe <= Text'Length loop
+            if Text (Probe) = ' '
+              or else Text (Probe) = Ada.Characters.Latin_1.HT
+              or else Text (Probe) = Ada.Characters.Latin_1.CR
+            then
+               Probe := Probe + 1;
+            elsif Text (Probe) = '-'
+              and then Probe + 1 <= Text'Length
+              and then Text (Probe + 1) = '-'
+            then
+               Probe := Probe + 2;
+               while Probe <= Text'Length
+                 and then Text (Probe) /= Ada.Characters.Latin_1.LF
+               loop
+                  Probe := Probe + 1;
+               end loop;
+            else
+               return Text (Probe) = Ada.Characters.Latin_1.LF;
+            end if;
+         end loop;
+         return True;
+      end Backslash_Is_Continuation;
+
+      procedure Consume_Backslash_Continuation is
+      begin
+         Advance;
+         loop
+            exit when Index > Text'Length;
+            if Is_Horizontal_Whitespace (Peek) then
+               Advance;
+            elsif Peek = '-' and then Peek (1) = '-' then
+               while Index <= Text'Length and then Peek /= Ada.Characters.Latin_1.LF loop
+                  Advance;
+               end loop;
+            else
+               exit;
+            end if;
+         end loop;
+         if Peek = Ada.Characters.Latin_1.LF then
+            Advance;
+            Continuation_Line := True;
+         end if;
+      end Consume_Backslash_Continuation;
+
       procedure Append_Token
         (Kind         : Token_Kind;
          Lexeme       : String;
@@ -157,9 +221,10 @@ package body Safe_Frontend.Lexer is
       is
       begin
          Tokens.Append
-           ((Kind   => Kind,
-             Lexeme => FT.To_UString (Lexeme),
-             Span   => Make_Span (Start_Line, Start_Column, End_Line, End_Column)));
+           ((Kind         => Kind,
+             Lexeme       => FT.To_UString (Lexeme),
+             Span         => Make_Span (Start_Line, Start_Column, End_Line, End_Column),
+             Logical_Line => Logical_Line));
       end Append_Token;
 
       procedure Append_Structural_Token
@@ -298,15 +363,21 @@ package body Safe_Frontend.Lexer is
          end if;
 
          if Peek = Ada.Characters.Latin_1.LF then
-            Advance;
+            Consume_Newline (Suppress_Terminator => Bracket_Depth /= 0 or else Continuation_Line);
             return;
          elsif Peek = '-' and then Peek (1) = '-' then
             while Index <= Text'Length and then Peek /= Ada.Characters.Latin_1.LF loop
                Advance;
             end loop;
             if Peek = Ada.Characters.Latin_1.LF then
-               Advance;
+               Consume_Newline (Suppress_Terminator => Bracket_Depth /= 0 or else Continuation_Line);
             end if;
+            return;
+         end if;
+
+         if Continuation_Line then
+            Continuation_Line := False;
+            At_Line_Start := False;
             return;
          end if;
 
@@ -318,7 +389,7 @@ package body Safe_Frontend.Lexer is
                "tabs are not allowed in indentation");
          end if;
 
-         if Paren_Depth /= 0 then
+         if Bracket_Depth /= 0 then
             At_Line_Start := False;
             return;
          end if;
@@ -371,11 +442,13 @@ package body Safe_Frontend.Lexer is
          elsif Peek = ' ' or else Peek = Ada.Characters.Latin_1.HT or else Peek = Ada.Characters.Latin_1.CR then
             Advance;
          elsif Peek = Ada.Characters.Latin_1.LF then
-            Advance;
+            Consume_Newline (Suppress_Terminator => Bracket_Depth /= 0 or else Continuation_Line);
          elsif Peek = '-' and then Peek (1) = '-' then
             while Index <= Text'Length and then Peek /= Ada.Characters.Latin_1.LF loop
                Advance;
             end loop;
+         elsif Peek = '\' and then Backslash_Is_Continuation then
+            Consume_Backslash_Continuation;
          elsif Is_Identifier_Start (Peek) then
             declare
                Start_Line   : constant Positive := Line;
@@ -526,11 +599,11 @@ package body Safe_Frontend.Lexer is
                      Single : constant String := (1 => Peek);
                   begin
                      Advance;
-                     if Single = "(" then
-                        Paren_Depth := Paren_Depth + 1;
-                     elsif Single = ")" and then Paren_Depth > 0 then
-                        Paren_Depth := Paren_Depth - 1;
-                     end if;
+                        if Single in "(" | "[" | "{" then
+                           Bracket_Depth := Bracket_Depth + 1;
+                        elsif Single in ")" | "]" | "}" and then Bracket_Depth > 0 then
+                           Bracket_Depth := Bracket_Depth - 1;
+                        end if;
                      Append_Token
                        (Symbol,
                         Single,
@@ -549,10 +622,11 @@ package body Safe_Frontend.Lexer is
          Token_Line    => Line,
          Token_Column  => 1);
 
-      Tokens.Append
-        ((Kind   => End_Of_File,
-          Lexeme => FT.To_UString ("<eof>"),
-          Span   => Make_Span (Line, Column, Line, Column)));
+         Tokens.Append
+           ((Kind         => End_Of_File,
+             Lexeme       => FT.To_UString ("<eof>"),
+             Span         => Make_Span (Line, Column, Line, Column),
+             Logical_Line => Logical_Line));
       return Tokens;
    end Lex;
 
@@ -577,9 +651,11 @@ package body Safe_Frontend.Lexer is
                      & Safe_Frontend.Json.Quote (Kind_Name (Item.Kind))
                      & ",""lexeme"":"
                      & Safe_Frontend.Json.Quote (Item.Lexeme)
-                     & ",""span"":"
-                     & Safe_Frontend.Json.Span_Object (Item.Span)
-                     & "}");
+                        & ",""span"":"
+                        & Safe_Frontend.Json.Span_Object (Item.Span)
+                        & ",""logical_line"":"
+                        & FT.Image (Item.Logical_Line)
+                        & "}");
                end if;
             end;
          end loop;

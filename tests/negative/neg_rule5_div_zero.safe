@@ -8,7 +8,7 @@
 
 package fp_div_zero_test
 
-   type measurement is digits 6 range -1000.0 to 1000.0;
+   type measurement is digits 6 range -1000.0 to 1000.0
 
    --  Normalize: divides Value by Scale without checking Scale != 0.0.
    --  If Scale is 0.0, the result is +/- infinity (IEEE 754).
@@ -16,6 +16,6 @@ package fp_div_zero_test
    function normalize (value : measurement;
                        scale : measurement) returns measurement
 
-      return measurement (long_float (value) / long_float (scale));
+      return measurement (long_float (value) / long_float (scale))
       -- ERROR: Scale may be 0.0, yielding infinity
 

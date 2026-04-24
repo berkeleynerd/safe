@@ -1,6 +1,6 @@
-with provider_bad_return_flag;
+with provider_bad_return_flag
 
 package client_bad_return_flag
 
    function call
-      provider_bad_return_flag.ping ();
+      provider_bad_return_flag.ping ()

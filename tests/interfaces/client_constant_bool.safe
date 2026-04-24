@@ -1,7 +1,7 @@
-with provider_constant_bool;
+with provider_constant_bool
 
 package client_constant_bool
 
    type result (active : boolean = provider_constant_bool.default_active) is record
-      value : integer;
+      value : integer
 

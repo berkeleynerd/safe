@@ -1,41 +1,41 @@
 package pr1112c_shared_string_build
 
    type nested_state is record
-      label : string;
-      maybe : optional string;
+      label : string
+      maybe : optional string
 
    type settings is record
-      text   : string;
-      nested : nested_state;
+      text   : string
+      nested : nested_state
 
    function make_nested (label_text : string; maybe_text : string) returns nested_state
-      value : nested_state;
+      value : nested_state
 
-      value.label = label_text;
-      value.maybe = some (maybe_text);
-      return value;
+      value.label = label_text
+      value.maybe = some (maybe_text)
+      return value
 
-   shared cfg : settings = (text = "hello", nested = make_nested ("Ada", "left"));
-   updated : settings = (text = "world", nested = make_nested ("Bob", "right"));
-   snap : settings;
+   shared cfg : settings = (text = "hello", nested = make_nested ("Ada", "left"))
+   updated : settings = (text = "world", nested = make_nested ("Bob", "right"))
+   snap : settings
 
    function apply_updates
-      cfg.text = "start";
-      cfg.nested.label = "inner";
+      cfg.text = "start"
+      cfg.nested.label = "inner"
 
    function apply_replacement
-      cfg = updated;
+      cfg = updated
 
-   apply_updates ();
-   snap = cfg;
-   print (snap.text);
-   print (snap.nested.label);
+   apply_updates ()
+   snap = cfg
+   print (snap.text)
+   print (snap.nested.label)
 
-   apply_replacement ();
-   snap = cfg;
-   print (snap.text);
-   print (snap.nested.label);
+   apply_replacement ()
+   snap = cfg
+   print (snap.text)
+   print (snap.nested.label)
    if snap.nested.maybe.present
-      print (snap.nested.maybe.value);
+      print (snap.nested.maybe.value)
    else
-      print ("none");
+      print ("none")

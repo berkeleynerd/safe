@@ -1,5 +1,5 @@
-with provider_missing_unit_kind;
+with provider_missing_unit_kind
 
 package client_missing_unit_kind
 
-   provider_missing_unit_kind.ping ();
+   provider_missing_unit_kind.ping ()

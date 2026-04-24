@@ -7,9 +7,9 @@ package neg_pr114_legacy_elsif
    function classify (value : integer) returns integer
 
       if value > 0
-         return 1;
+         return 1
       elsif value < 0 then
-         return -1;
+         return -1
       else
-         return 0;
+         return 0
 

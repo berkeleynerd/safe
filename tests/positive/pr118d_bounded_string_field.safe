@@ -5,5 +5,5 @@
 package pr118d_bounded_string_field
 
    type person is record
-      name : string (5);
+      name : string (5)
 

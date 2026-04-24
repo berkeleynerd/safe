@@ -3,13 +3,13 @@ package pr1110a_optional_string_build
    function greeting (flag : boolean) returns optional string
 
       if flag
-         return some ("Ada");
+         return some ("Ada")
       else
-         return none;
+         return none
 
-   text : optional string = greeting (true);
+   text : optional string = greeting (true)
 
    if text.present
-      print (text.value);
+      print (text.value)
    else
-      print ("missing");
+      print ("missing")

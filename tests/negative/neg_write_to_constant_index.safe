@@ -4,19 +4,19 @@
 
 package neg_write_to_constant_index
 
-   subtype index is integer (1 to 3);
-   type buffer is array (index) of integer;
+   subtype index is integer (1 to 3)
+   type buffer is array (index) of integer
 
    function make_buffer returns buffer
-      result : buffer;
+      result : buffer
 
       for i in index
-         result (i) = integer (i);
+         result (i) = integer (i)
 
-      return result;
+      return result
 
    function run
-      data : constant buffer = make_buffer;
+      data : constant buffer = make_buffer
 
-      data (1) = 0;
+      data (1) = 0
 

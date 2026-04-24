@@ -5,4 +5,4 @@
 package neg_pr118d_string_discriminant
 
    type payload (tag : string) is record
-      value : integer;
+      value : integer

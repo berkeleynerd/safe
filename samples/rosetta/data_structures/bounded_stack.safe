@@ -1,11 +1,11 @@
-subtype slot is integer (1 to 8);
-subtype depth is integer (0 to 8);
-subtype item is integer (0 to 255);
-type storage is array (slot) of item;
+subtype slot is integer (1 to 8)
+subtype depth is integer (0 to 8)
+subtype item is integer (0 to 255)
+type storage is array (slot) of item
 
 type stack is record
-   data : storage;
-   size : depth;
+   data : storage
+   size : depth
 
 function reset (s : mut stack)
 

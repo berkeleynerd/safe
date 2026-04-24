@@ -5,10 +5,10 @@
 package neg_while_variant_mutable_bound
 
    function countdown returns integer
-      var lower_bound : integer = 1;
-      var index : integer = 3;
+      var lower_bound : integer = 1
+      var index : integer = 3
 
       while index >= lower_bound
-         index = index - 1;
+         index = index - 1
 
       return index

@@ -1,11 +1,11 @@
 package provider_transitive_global
 
-   global_value : boolean = false;
+   global_value : boolean = false
 
    function touch_internal
 
-      global_value = not global_value;
+      global_value = not global_value
 
    public function touch
 
-      touch_internal;
+      touch_internal

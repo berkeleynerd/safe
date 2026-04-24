@@ -8,16 +8,16 @@ package neg_pr1110a_optional_mutated
    function parse (input : integer) returns optional integer
 
       if input > 0
-         return some (input);
+         return some (input)
       else
-         return none;
+         return none
 
    function unsafe_after_mutation (first : integer;
                                    second : integer) returns integer
-      value : optional integer = parse (first);
+      value : optional integer = parse (first)
 
       if value.present
-         value = parse (second);
-         return value.value;
+         value = parse (second)
+         return value.value
       else
-         return 0;
+         return 0

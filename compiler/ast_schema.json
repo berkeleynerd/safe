@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Safe Language AST Schema",
   "description": "JSON schema mapping BNF productions from spec/08-syntax-summary.md to AST node types. FINAL -- all draft notes resolved.",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "frozen_commit": "468cf72332724b04b7c193b4d2a3b02f1584125d",
   "meta": {
     "note": "Each node definition maps a BNF production to a PascalCase AST node type. Fields specify name, type, and whether the field is optional. source_section references the spec section defining the production. clause_ids (where present) reference normative clauses from clauses/clauses.yaml that the node directly implements.",
@@ -739,7 +739,7 @@
       "production": "parameter_association",
       "source_section": "8.6",
       "fields": [
-        { "name": "formal_name", "type": "Option<Identifier>", "optional": true, "note": "Named association selector; absent for positional" },
+        { "name": "formal_name", "type": "Option<Identifier>", "optional": true, "note": "Named association selector from source; absent for positional associations. Resolver consumers must normalize named value arguments to positional declaration order before MIR, Ada emission, and proof paths." },
         { "name": "actual", "type": "NodeRef<Expression>", "optional": false },
         { "name": "span", "type": "Span", "optional": false }
       ]

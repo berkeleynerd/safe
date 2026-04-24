@@ -5,6 +5,6 @@
 
 package neg_pr1110b_append_constant
 
-   values : constant list of integer = [1, 2];
+   values : constant list of integer = [1, 2]
 
-   append (values, 3);
+   append (values, 3)

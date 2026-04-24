@@ -1,11 +1,11 @@
 package neg_pr118d_reverse_for_of
 
-   type int_list is array of integer;
+   type int_list is array of integer
 
-   values : int_list = [1, 2, 3];
-   total : integer = 0;
+   values : int_list = [1, 2, 3]
+   total : integer = 0
 
    for reverse item of values
-      total = total + item;
+      total = total + item
 
    print (total)

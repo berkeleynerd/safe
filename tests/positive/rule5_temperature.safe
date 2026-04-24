@@ -9,8 +9,8 @@
 
 package temperature_conv
 
-   type celsius is digits 6 range -273.15 to 1000.0;
-   type fahrenheit is digits 6 range -459.67 to 1832.0;
+   type celsius is digits 6 range -273.15 to 1000.0
+   type fahrenheit is digits 6 range -459.67 to 1832.0
 
    --  To_Fahrenheit: C * 9.0/5.0 + 32.0
    --  Input range: -273.15 .. 1000.0
@@ -20,11 +20,11 @@ package temperature_conv
    function to_fahrenheit (c : celsius) returns fahrenheit
 
       --  Narrowing point (return): result is finite and in Fahrenheit range.
-      return fahrenheit (long_float (c) * 9.0 / 5.0 + 32.0);
+      return fahrenheit (long_float (c) * 9.0 / 5.0 + 32.0)
 
    --  To_Celsius: (F - 32.0) * 5.0 / 9.0
    --  9.0 is a nonzero literal, so no division by zero.
    function to_celsius (f : fahrenheit) returns celsius
 
-      return celsius ((long_float (f) - 32.0) * 5.0 / 9.0);
+      return celsius ((long_float (f) - 32.0) * 5.0 / 9.0)
 

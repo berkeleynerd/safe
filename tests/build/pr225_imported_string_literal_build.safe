@@ -1,6 +1,6 @@
-with pr225_maker;
+with pr225_maker
 
 package pr225_imported_string_literal_build
 
-   item : pr225_maker.box = pr225_maker.make ("Ada");
+   item : pr225_maker.box = pr225_maker.make ("Ada")
    print (item.text)

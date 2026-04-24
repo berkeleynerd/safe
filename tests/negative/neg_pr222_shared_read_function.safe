@@ -3,11 +3,11 @@
 -- Expected: REJECT
 
 type state is record
-   total : integer;
+   total : integer
 
-shared ledger : state = (total = 1);
+shared ledger : state = (total = 1)
 
 function peek returns integer
-   return ledger.total;
+   return ledger.total
 
 print (peek ())

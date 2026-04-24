@@ -1,4 +1,4 @@
 package pr118c_binary_conversion_wrap
 
-   wrapped : binary (8) = binary (8) (300);
+   wrapped : binary (8) = binary (8) (300)
 

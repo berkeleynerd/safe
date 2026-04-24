@@ -1,7 +1,7 @@
-with provider_constant_int;
+with provider_constant_int
 
 package client_constant_capacity
 
-   subtype message is integer (0 to 10);
-   channel data_ch : message capacity provider_constant_int.max_count;
+   subtype message is integer (0 to 10)
+   channel data_ch : message capacity provider_constant_int.max_count
 

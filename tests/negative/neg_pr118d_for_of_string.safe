@@ -5,11 +5,11 @@
 package neg_pr118d_for_of_string
 
    function make_value returns string
-      return "Ada";
+      return "Ada"
 
-   total : integer = 0;
+   total : integer = 0
 
    for item of make_value ()
-      total = total + item.length;
+      total = total + item.length
 
    print (total)

@@ -1,8 +1,8 @@
-with provider_transitive_shared;
+with provider_transitive_shared
 
 package client_transitive_shared_ok
 
    task worker with priority = 9
 
       loop
-         provider_transitive_shared.touch;
+         provider_transitive_shared.touch

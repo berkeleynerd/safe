@@ -1,6 +1,6 @@
 package neg_pr1111a_append_expr
 
    function total returns integer
-      values : list of integer = [1, 2];
+      values : list of integer = [1, 2]
 
-      return values.append (3);
+      return values.append (3)

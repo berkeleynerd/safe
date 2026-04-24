@@ -1,0 +1,6 @@
+package neg_pr362_removable_semicolon
+-- migrate: skip
+
+   function broken returns integer
+      value : integer = 1;
+      return value

@@ -7,4 +7,4 @@ package neg_pr1110a_none_without_context
 
    function bad returns integer
 
-      return none;
+      return none

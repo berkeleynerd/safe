@@ -1,15 +1,15 @@
 package neg_pr1111b_missing_member
 
    type printable is interface
-      function (self : printable) label returns string;
+      function (self : printable) label returns string
 
    type widget is record
-      value : integer;
+      value : integer
 
    function render (item : printable) returns string
-      return item.label();
+      return item.label()
 
    function total returns integer
-      item : widget = (value = 1);
+      item : widget = (value = 1)
 
-      return render (item).length;
+      return render (item).length

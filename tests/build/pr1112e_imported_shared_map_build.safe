@@ -1,29 +1,29 @@
-with pr1112e_provider_shared_map;
+with pr1112e_provider_shared_map
 
 package pr1112e_imported_shared_map_build
 
-   found : optional integer;
-   removed : optional integer;
+   found : optional integer
+   removed : optional integer
 
    function unwrap (item : optional integer) returns integer
       if item.present
-         return item.value;
+         return item.value
       else
-         return -1;
+         return -1
 
    function bool_to_int (flag : boolean) returns integer
       if flag
-         return 1;
+         return 1
       else
-         return 0;
+         return 0
 
-   set (pr1112e_provider_shared_map.cache, "one", 1);
-   pr1112e_provider_shared_map.cache.set ("two", 2);
-   print (pr1112e_provider_shared_map.cache.length);
+   set (pr1112e_provider_shared_map.cache, "one", 1)
+   pr1112e_provider_shared_map.cache.set ("two", 2)
+   print (pr1112e_provider_shared_map.cache.length)
 
-   found = pr1112e_provider_shared_map.cache.get ("two");
-   print (unwrap (found));
+   found = pr1112e_provider_shared_map.cache.get ("two")
+   print (unwrap (found))
 
-   removed = pr1112e_provider_shared_map.cache.remove ("one");
-   print (unwrap (removed));
-   print (bool_to_int (pr1112e_provider_shared_map.cache.contains ("one")));
+   removed = pr1112e_provider_shared_map.cache.remove ("one")
+   print (unwrap (removed))
+   print (bool_to_int (pr1112e_provider_shared_map.cache.contains ("one")))

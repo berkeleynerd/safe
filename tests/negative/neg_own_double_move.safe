@@ -5,13 +5,13 @@
 package double_move_test
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function double_move
-      source  : not null payload = (value = 42, next = null);
-      target1 : payload = null;
-      target2 : payload = null;
+      source  : not null payload = (value = 42, next = null)
+      target1 : payload = null
+      target2 : payload = null
 
-      target1 = source;
-      target2 = source;  -- ERROR: Source has already been moved
+      target1 = source
+      target2 = source  -- ERROR: Source has already been moved

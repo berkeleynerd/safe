@@ -8,22 +8,22 @@
 
 package safe_divide
 
-   subtype positive_divisor is integer (1 to 1000);
-   subtype result_value is integer (-10_000 to 10_000);
+   subtype positive_divisor is integer (1 to 1000)
+   subtype result_value is integer (-10_000 to 10_000)
 
    --  Safe_Div: the divisor type excludes zero by its range 1..1000.
    function safe_div (dividend : result_value;
                       divisor  : positive_divisor) returns result_value
 
       --  Divisor is of type Positive_Divisor (1..1000), provably nonzero.
-      return dividend / result_value (divisor);
+      return dividend / result_value (divisor)
 
    --  Guarded_Div: uses a runtime check to ensure nonzero.
    function guarded_div (a, b : result_value) returns result_value
 
       if b != 0
          --  B is provably nonzero by the guard.
-         return a / b;
+         return a / b
       else
-         return 0;
+         return 0
 

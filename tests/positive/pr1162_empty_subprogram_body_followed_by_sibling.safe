@@ -7,4 +7,4 @@ package pr1162_empty_subprogram_body_followed_by_sibling
    function skip
 
    function value returns integer
-      return 1;
+      return 1

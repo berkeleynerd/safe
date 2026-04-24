@@ -1,13 +1,13 @@
 package neg_pr1111b_interface_free_call
 
    type printable is interface
-      function (self : printable) label returns string;
+      function (self : printable) label returns string
 
    type widget is record
-      text : string;
+      text : string
 
    function (self : widget) label returns string
-      return self.text;
+      return self.text
 
    function render (item : printable) returns string
-      return label (item);
+      return label (item)

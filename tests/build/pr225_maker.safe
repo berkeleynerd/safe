@@ -1,7 +1,7 @@
 package pr225_maker
 
    public type box is record
-      text : string;
+      text : string
 
    public function make (text : string) returns box
-      return (text = text);
+      return (text = text)

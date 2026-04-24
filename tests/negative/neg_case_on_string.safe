@@ -5,15 +5,15 @@
 package neg_case_on_string
 
    function lookup returns string
-      return "Ada";
+      return "Ada"
 
-   name : string = "Ada";
-   code : integer = 0;
+   name : string = "Ada"
+   code : integer = 0
 
    case name
       when lookup ()
-         code = 1;
+         code = 1
       when others
-         code = 0;
+         code = 0
 
    print (code)

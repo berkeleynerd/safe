@@ -9,7 +9,7 @@ package pr09_emitter_discriminant
    type result (ok : boolean = false) is record
       case ok
          when true
-            value : integer;
+            value : integer
          when false
-            error_code : integer;
+            error_code : integer
 

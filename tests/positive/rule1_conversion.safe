@@ -8,35 +8,35 @@
 
 package safe_conversion
 
-   subtype wide_value is integer (-1_000_000 to 1_000_000);
-   subtype narrow_value is integer (-1000 to 1000);
-   subtype positive_value is integer (1 to 500);
+   subtype wide_value is integer (-1_000_000 to 1_000_000)
+   subtype narrow_value is integer (-1000 to 1000)
+   subtype positive_value is integer (1 to 500)
 
    --  Clamp_And_Convert: takes a wide value, clamps it to [-1000..1000],
    --  then converts to Narrow_Value. The clamp guarantees the narrowing
    --  check succeeds.
    function clamp_and_convert (v : wide_value) returns narrow_value
-      clamped : wide_value;
+      clamped : wide_value
 
       if v < -1000
-         clamped = -1000;
+         clamped = -1000
       else if v > 1000
-         clamped = 1000;
+         clamped = 1000
       else
-         clamped = v;
+         clamped = v
 
       --  Narrowing point (conversion): Clamped is in -1000..1000.
-      return narrow_value (clamped);
+      return narrow_value (clamped)
 
    --  Absolute_To_Positive: converts absolute value when known nonzero.
    function absolute_to_positive (v : narrow_value) returns positive_value
 
       if v > 0 and then v <= 500
          --  Narrowing point (conversion): V is in 1..500.
-         return positive_value (v);
+         return positive_value (v)
       else if v < 0 and then v >= -500
          --  Narrowing point (conversion): -V is in 1..500.
-         return positive_value (-v);
+         return positive_value (-v)
       else
-         return 1;
+         return 1
 

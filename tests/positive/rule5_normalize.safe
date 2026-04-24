@@ -9,16 +9,16 @@
 
 package vector_normalize
 
-   type sample is digits 6 range -1000.0 to 1000.0;
-   type ratio is digits 6 range -1.0 to 1.0;
+   type sample is digits 6 range -1000.0 to 1000.0
+   type ratio is digits 6 range -1.0 to 1.0
 
    --  Normalize: divide by a fixed nonzero bound.
    --  Input range: -1000.0 .. 1000.0
    --  Division by 1000.0 is safe and yields a result in -1.0 .. 1.0.
    --  No NaN or infinity can arise from bounded finite inputs.
    function normalize (value : sample) returns ratio
-      result : long_float;
+      result : long_float
 
-      result = long_float (value) / 1000.0;
-      return ratio (result);
+      result = long_float (value) / 1000.0
+      return ratio (result)
 

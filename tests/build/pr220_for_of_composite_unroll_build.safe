@@ -1,12 +1,12 @@
 package pr220_for_of_composite_unroll_build
 
    type label_box is record
-      text : string;
+      text : string
 
-   seed : label_box = (text = "Ada");
-   values : list of label_box = [seed];
+   seed : label_box = (text = "Ada")
+   values : list of label_box = [seed]
 
    for item of values
-      print (item.text);
+      print (item.text)
 
-   print (seed.text);
+   print (seed.text)

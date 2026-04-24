@@ -1,8 +1,8 @@
 package neg_pr1112a_shared_wrapper_collision
 
    type settings is record
-      value : integer;
+      value : integer
 
-   shared cfg : settings = (value = 1);
+   shared cfg : settings = (value = 1)
 
-   safe_shared_cfg : integer = 0;
+   safe_shared_cfg : integer = 0

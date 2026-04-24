@@ -6,12 +6,12 @@
 package neg_pr331_mixed_shared_initializer_bad_function
 
    type state is record
-      total : integer;
+      total : integer
 
-   shared audit : state = (total = 1);
-   audit_snapshot : state = audit;
+   shared audit : state = (total = 1)
+   audit_snapshot : state = audit
 
    function bad returns integer
-      return audit.total;
+      return audit.total
 
    print (bad ())

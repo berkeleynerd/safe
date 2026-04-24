@@ -8,12 +8,12 @@
 
 package return_fail
 
-   subtype small is integer (0 to 100);
+   subtype small is integer (0 to 100)
 
    --  Double: doubles a value and returns it as Small.
    --  If V = 60, then V * 2 = 120 which exceeds 100.
    --  The compiler cannot prove the result fits in 0..100.
    function double (v : small) returns small
 
-      return v * 2;  -- ERROR: V * 2 may exceed 100
+      return v * 2  -- ERROR: V * 2 may exceed 100
 

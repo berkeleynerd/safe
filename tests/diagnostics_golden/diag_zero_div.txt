@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule3_zero_div.safe:13:16: error: divisor not provably nonzero
   |
-  | 13 |       return a / b;  -- ERROR: B may be zero
+  | 13 |       return a / b  -- ERROR: B may be zero
   |    |                  ^
   |
   note: right operand 'b' has type value (range -100 .. 100),

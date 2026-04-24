@@ -1,15 +1,15 @@
 package pr118k_try_arg_order_build
 
-   subtype small is integer (0 to 1);
+   subtype small is integer (0 to 1)
 
    function fail_first returns (result, small)
 
-      zero : small = 0;
+      zero : small = 0
       return (fail ("first"), zero)
 
    function fail_second returns (result, small)
 
-      zero : small = 0;
+      zero : small = 0
       return (fail ("second"), zero)
 
    function pack (left : small; right : small) returns integer
@@ -22,7 +22,7 @@ package pr118k_try_arg_order_build
 
    function terminal returns integer
 
-      current : (result, integer) = total ();
+      current : (result, integer) = total ()
       match current
          when ok (value)
             return value

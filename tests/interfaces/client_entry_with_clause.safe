@@ -1,4 +1,4 @@
-with provider_types;
+with provider_types
 
-value : provider_types.count = provider_types.next (41);
+value : provider_types.count = provider_types.next (41)
 print (value)

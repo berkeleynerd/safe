@@ -6253,14 +6253,168 @@ package body Safe_Frontend.Check_Resolve is
       end;
    end Name_Expr_From_String;
 
-   function Is_Method_Builtin_Name (Name : String) return Boolean is
-   begin
-      --  Callers must pass a pre-canonicalized builtin name here; keep the
-      --  guard explicit so future call sites do not silently widen the helper
-      --  contract.
-      return Name = Canonical_Name (Name)
-        and then Builtin_Method_Kind_For_Canonical_Name (Name) /= Builtin_None;
-   end Is_Method_Builtin_Name;
+      function Is_Method_Builtin_Name (Name : String) return Boolean is
+      begin
+         --  Callers must pass a pre-canonicalized builtin name here; keep the
+         --  guard explicit so future call sites do not silently widen the helper
+         --  contract.
+         return Name = Canonical_Name (Name)
+           and then Builtin_Method_Kind_For_Canonical_Name (Name) /= Builtin_None;
+      end Is_Method_Builtin_Name;
+
+      function Has_Named_Args (Expr : CM.Expr_Access) return Boolean is
+      begin
+         if Expr = null or else Expr.Arg_Names.Is_Empty then
+            return False;
+         end if;
+         for Name of Expr.Arg_Names loop
+            if UString_Value (Name)'Length > 0 then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Has_Named_Args;
+
+      function Arg_Name_For_Offset
+        (Expr   : CM.Expr_Access;
+         Offset : Natural) return String is
+      begin
+         if Expr = null
+           or else Expr.Arg_Names.Is_Empty
+           or else Offset >= Natural (Expr.Arg_Names.Length)
+         then
+            return "";
+         end if;
+         return UString_Value (Expr.Arg_Names (Expr.Arg_Names.First_Index + Offset));
+      end Arg_Name_For_Offset;
+
+      procedure Bind_Arguments_To_Params
+        (Expr               : CM.Expr_Access;
+         Params             : CM.Symbol_Vectors.Vector;
+         First_Param_Offset : Natural;
+         Callee_Name        : String;
+         Path               : String;
+         Bound              : out CM.Expr_Access_Vectors.Vector;
+         Success            : out Boolean;
+         Report             : Boolean := True)
+      is
+         Param_Total : constant Natural := Natural (Params.Length);
+         Param_Count : constant Natural :=
+           (if First_Param_Offset > Param_Total then 0 else Param_Total - First_Param_Offset);
+         Actual_Count : constant Natural :=
+           (if Expr = null then 0 else Natural (Expr.Args.Length));
+         Seen : String_Index_Maps.Map;
+
+         function Count_Image (Value : Natural) return String is
+         begin
+            return Ada.Strings.Fixed.Trim (Natural'Image (Value), Ada.Strings.Both);
+         end Count_Image;
+
+         procedure Fail (Span : FT.Source_Span; Message : String) is
+         begin
+            Success := False;
+            if Report then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path    => Path,
+                     Span    => Span,
+                     Message => Message));
+            end if;
+         end Fail;
+      begin
+         Bound.Clear;
+         Success := True;
+
+         if not Has_Named_Args (Expr) then
+            if Expr /= null then
+               Bound := Expr.Args;
+            end if;
+            return;
+         end if;
+
+         if Actual_Count /= Param_Count then
+            Fail
+              ((if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+               "call to `" & Callee_Name & "` expects "
+               & Count_Image (Param_Count)
+               & " argument"
+               & (if Param_Count = 1 then "" else "s"));
+            return;
+         end if;
+
+         if Param_Count > 0 then
+            for Offset in 0 .. Param_Count - 1 loop
+               Bound.Append (null);
+            end loop;
+         end if;
+
+         if Actual_Count > 0 then
+            for Offset in 0 .. Actual_Count - 1 loop
+               declare
+                  Name        : constant String := Arg_Name_For_Offset (Expr, Offset);
+                  Canonical   : constant String := Canonical_Name (Name);
+                  Matched     : Boolean := False;
+                  Match_Offset : Natural := 0;
+                  Arg         : constant CM.Expr_Access := Expr.Args (Expr.Args.First_Index + Offset);
+               begin
+                  if Name'Length = 0 then
+                     Fail
+                       ((if Arg = null then Expr.Span else Arg.Span),
+                        "named and positional arguments cannot be mixed in one call");
+                     return;
+                  end if;
+
+                  if Param_Count > 0 then
+                     for Param_Offset in 0 .. Param_Count - 1 loop
+                        declare
+                           Param : constant CM.Symbol :=
+                             Params (Params.First_Index + First_Param_Offset + Param_Offset);
+                        begin
+                           if Canonical_Name (UString_Value (Param.Name)) = Canonical then
+                              Matched := True;
+                              Match_Offset := Param_Offset;
+                              exit;
+                           end if;
+                        end;
+                     end loop;
+                  end if;
+
+                  if not Matched then
+                     Fail
+                       ((if Arg = null then Expr.Span else Arg.Span),
+                        "unknown parameter `" & Name & "` for call to `" & Callee_Name & "`");
+                     return;
+                  elsif Seen.Contains (Canonical) then
+                     Fail
+                       ((if Arg = null then Expr.Span else Arg.Span),
+                        "duplicate parameter `" & Name & "` for call to `" & Callee_Name & "`");
+                     return;
+                  end if;
+
+                  Seen.Insert (Canonical, Match_Offset + 1);
+                  Bound.Replace_Element (Bound.First_Index + Match_Offset, Arg);
+               end;
+            end loop;
+         end if;
+
+         if Param_Count > 0 then
+            for Offset in 0 .. Param_Count - 1 loop
+               if Bound (Bound.First_Index + Offset) = null then
+                  declare
+                     Param : constant CM.Symbol :=
+                       Params (Params.First_Index + First_Param_Offset + Offset);
+                  begin
+                     Fail
+                       ((if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+                        "missing required parameter `"
+                        & UString_Value (Param.Name)
+                        & "` for call to `" & Callee_Name & "`");
+                     return;
+                  end;
+               end if;
+            end loop;
+         end if;
+      end Bind_Arguments_To_Params;
 
    function Function_Method_Call_Compatible
      (Info         : Function_Info;
@@ -6523,14 +6677,16 @@ package body Safe_Frontend.Check_Resolve is
               or else Expr.Callee.Kind /= CM.Expr_Select
          then ""
          else FT.Lowercase (UString_Value (Expr.Callee.Selector)));
-      Match_Count   : Natural := 0;
-      Match_Names   : String_Vectors.Vector;
-      Selected_Name : FT.UString := FT.To_UString ("");
-      Builtin_Visible : constant Boolean :=
+      Match_Count       : Natural := 0;
+      Match_Names       : String_Vectors.Vector;
+      Selected_Name     : FT.UString := FT.To_UString ("");
+      Selected_Info     : Function_Info;
+      Has_Selected_Info : Boolean := False;
+      Builtin_Visible   : constant Boolean :=
         Is_Method_Builtin_Name (Method_Name)
-        and then not Has_Function (Functions, Method_Name)
-        and then not Has_Type (Var_Types, Method_Name)
-        and then not Has_Type (Type_Env, Method_Name);
+         and then not Has_Function (Functions, Method_Name)
+         and then not Has_Type (Var_Types, Method_Name)
+         and then not Has_Type (Type_Env, Method_Name);
       Result : CM.Expr_Access;
    begin
       if Method_Name = "" then
@@ -6539,19 +6695,38 @@ package body Safe_Frontend.Check_Resolve is
 
       Receiver_Arg := Expr.Callee.Prefix;
 
-      if Has_Function (Functions, Method_Name)
-        and then Function_Method_Call_Compatible
-          (Get_Function (Functions, Method_Name),
-           Receiver_Arg,
-           Expr.Args,
-           Var_Types,
-           Functions,
-           Type_Env,
-           Const_Env)
-      then
-         Match_Count := Match_Count + 1;
-         Append_Unique_String (Match_Names, Method_Name);
-         Selected_Name := FT.To_UString (Method_Name);
+      if Has_Function (Functions, Method_Name) then
+         declare
+            Info       : constant Function_Info := Get_Function (Functions, Method_Name);
+            Bound_Args : CM.Expr_Access_Vectors.Vector;
+            Bound_Ok   : Boolean := False;
+         begin
+            Bind_Arguments_To_Params
+              (Expr,
+               Info.Params,
+               1,
+               Method_Name,
+               "",
+               Bound_Args,
+               Bound_Ok,
+               Report => False);
+            if Bound_Ok
+              and then Function_Method_Call_Compatible
+                (Info,
+                 Receiver_Arg,
+                 Bound_Args,
+                 Var_Types,
+                 Functions,
+                 Type_Env,
+                 Const_Env)
+            then
+               Match_Count := Match_Count + 1;
+               Append_Unique_String (Match_Names, Method_Name);
+               Selected_Name := FT.To_UString (Method_Name);
+               Selected_Info := Info;
+               Has_Selected_Info := True;
+            end if;
+         end;
       end if;
 
       for Cursor in Functions.Iterate loop
@@ -6560,20 +6735,40 @@ package body Safe_Frontend.Check_Resolve is
          begin
             if Candidate_Name /= Method_Name
               and then Method_Target_Tail_Name (Candidate_Name) = Method_Name
-              and then Function_Method_Call_Compatible
-                (Function_Maps.Element (Cursor),
-                 Receiver_Arg,
-                 Expr.Args,
-                 Var_Types,
-                 Functions,
-                 Type_Env,
-                 Const_Env)
             then
-               Match_Count := Match_Count + 1;
-               Append_Unique_String (Match_Names, Candidate_Name);
-               if UString_Value (Selected_Name)'Length = 0 then
-                  Selected_Name := FT.To_UString (Candidate_Name);
-               end if;
+               declare
+                  Info       : constant Function_Info := Function_Maps.Element (Cursor);
+                  Bound_Args : CM.Expr_Access_Vectors.Vector;
+                  Bound_Ok   : Boolean := False;
+               begin
+                  Bind_Arguments_To_Params
+                    (Expr,
+                     Info.Params,
+                     1,
+                     Candidate_Name,
+                     "",
+                     Bound_Args,
+                     Bound_Ok,
+                     Report => False);
+                  if Bound_Ok
+                    and then Function_Method_Call_Compatible
+                      (Info,
+                       Receiver_Arg,
+                       Bound_Args,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Const_Env)
+                  then
+                     Match_Count := Match_Count + 1;
+                     Append_Unique_String (Match_Names, Candidate_Name);
+                     if UString_Value (Selected_Name)'Length = 0 then
+                        Selected_Name := FT.To_UString (Candidate_Name);
+                        Selected_Info := Info;
+                        Has_Selected_Info := True;
+                     end if;
+                  end if;
+               end;
             end if;
          end;
       end loop;
@@ -6585,27 +6780,52 @@ package body Safe_Frontend.Check_Resolve is
             Template : constant Generic_Function_Template_Info :=
               Generic_Function_Template_Maps.Element (Cursor);
          begin
-            if (Candidate_Name = Method_Name
-                 or else Method_Target_Tail_Name (Candidate_Name) = Method_Name)
-              and then Function_Method_Call_Compatible
-                (Template.Info,
-                 Receiver_Arg,
-                 Expr.Args,
-                 Var_Types,
-                 Functions,
-                 Type_Env,
-                 Const_Env)
+            if Candidate_Name = Method_Name
+              or else Method_Target_Tail_Name (Candidate_Name) = Method_Name
             then
-               Match_Count := Match_Count + 1;
-               Append_Unique_String (Match_Names, Candidate_Name);
-               if UString_Value (Selected_Name)'Length = 0 then
-                  Selected_Name := FT.To_UString (Candidate_Name);
-               end if;
+               declare
+                  Bound_Args : CM.Expr_Access_Vectors.Vector;
+                  Bound_Ok   : Boolean := False;
+               begin
+                  Bind_Arguments_To_Params
+                    (Expr,
+                     Template.Info.Params,
+                     1,
+                     Candidate_Name,
+                     "",
+                     Bound_Args,
+                     Bound_Ok,
+                     Report => False);
+                  if Bound_Ok
+                    and then Function_Method_Call_Compatible
+                      (Template.Info,
+                       Receiver_Arg,
+                       Bound_Args,
+                       Var_Types,
+                       Functions,
+                       Type_Env,
+                       Const_Env)
+                  then
+                     Match_Count := Match_Count + 1;
+                     Append_Unique_String (Match_Names, Candidate_Name);
+                     if UString_Value (Selected_Name)'Length = 0 then
+                        Selected_Name := FT.To_UString (Candidate_Name);
+                        Selected_Info := Template.Info;
+                        Has_Selected_Info := True;
+                     end if;
+                  end if;
+               end;
             end if;
          end;
       end loop;
 
-      if Builtin_Visible
+      if Builtin_Visible and then Has_Named_Args (Expr) then
+         Raise_Diag
+           (CM.Source_Frontend_Error
+              (Path    => "",
+               Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+               Message => "built-in method `" & Method_Name & "` does not accept named arguments"));
+      elsif Builtin_Visible
         and then Builtin_Method_Call_Compatible
           (Method_Name,
            Receiver_Arg,
@@ -6641,10 +6861,31 @@ package body Safe_Frontend.Check_Resolve is
       Result.Callee := Name_Expr_From_String (UString_Value (Selected_Name), Expr.Callee.Span);
       Result.Callee.Generic_Args := Expr.Callee.Generic_Args;
       Result.Args.Clear;
+      Result.Arg_Names.Clear;
       Result.Args.Append (Receiver_Arg);
-      for Arg of Expr.Args loop
-         Result.Args.Append (Arg);
-      end loop;
+      if Has_Named_Args (Expr) and then Has_Selected_Info then
+         declare
+            Bound_Args : CM.Expr_Access_Vectors.Vector;
+            Bound_Ok   : Boolean := False;
+         begin
+            Bind_Arguments_To_Params
+              (Expr,
+               Selected_Info.Params,
+               1,
+               UString_Value (Selected_Name),
+               "",
+               Bound_Args,
+               Bound_Ok);
+            pragma Assert (Bound_Ok);
+            for Arg of Bound_Args loop
+               Result.Args.Append (Arg);
+            end loop;
+         end;
+      else
+         for Arg of Expr.Args loop
+            Result.Args.Append (Arg);
+         end loop;
+      end if;
       return Result;
    end Rewrite_Method_Apply;
 
@@ -6804,6 +7045,13 @@ package body Safe_Frontend.Check_Resolve is
                   Result.Args := Expr.Args;
                end if;
             end if;
+         end if;
+         if Has_Named_Args (Expr) and then Result.Kind /= CM.Expr_Call then
+            Raise_Diag
+              (CM.Source_Frontend_Error
+                 (Path    => Path,
+                  Span    => (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span),
+                  Message => "named arguments are only supported for value calls and sum constructors"));
          end if;
          return Result;
       end;
@@ -7054,6 +7302,7 @@ package body Safe_Frontend.Check_Resolve is
                   Result.Prefix :=
                     Normalize_Expr (Resolved.Prefix, Var_Types, Functions, Type_Env, Const_Env, Path);
                   Result.Args.Clear;
+                  Result.Arg_Names.Clear;
                   for Item of Resolved.Args loop
                      Result.Args.Append
                        (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
@@ -7066,21 +7315,55 @@ package body Safe_Frontend.Check_Resolve is
                         declare
                            Constructor : constant Sum_Constructor_Info :=
                              Get_Sum_Constructor (Callee_Name);
-                           Constructor_Args : CM.Expr_Access_Vectors.Vector;
-                           Normalized_Arg : CM.Expr_Access;
-                           Expected_Type : GM.Type_Descriptor;
-                           Expected_Count : constant Natural :=
+                           Constructor_Params      : CM.Symbol_Vectors.Vector;
+                           Constructor_Source_Args : CM.Expr_Access_Vectors.Vector;
+                           Constructor_Args        : CM.Expr_Access_Vectors.Vector;
+                           Normalized_Arg          : CM.Expr_Access;
+                           Expected_Type           : GM.Type_Descriptor;
+                           Expected_Count          : constant Natural :=
                              Natural (Constructor.Fields.Length);
-                           Actual_Count : constant Natural :=
-                             Natural (Resolved.Args.Length);
+                           Actual_Count            : Natural := 0;
                         begin
+                           if Has_Named_Args (Resolved) then
+                              if not Constructor.Fields.Is_Empty then
+                                 for Field of Constructor.Fields loop
+                                    Constructor_Params.Append
+                                      ((Name      => Field.Source_Name,
+                                        Kind      => FT.To_UString ("param"),
+                                        Mode      => FT.To_UString ("borrow"),
+                                        Span      => Resolved.Span,
+                                        Type_Info => Resolve_Type
+                                          (UString_Value (Field.Type_Name),
+                                           Type_Env,
+                                           Path,
+                                           Resolved.Span)));
+                                 end loop;
+                              end if;
+                              declare
+                                 Bound_Ok : Boolean := False;
+                              begin
+                                 Bind_Arguments_To_Params
+                                   (Resolved,
+                                    Constructor_Params,
+                                    0,
+                                    Callee_Name,
+                                    Path,
+                                    Constructor_Source_Args,
+                                    Bound_Ok);
+                                 pragma Assert (Bound_Ok);
+                              end;
+                           else
+                              Constructor_Source_Args := Resolved.Args;
+                           end if;
+                           Actual_Count := Natural (Constructor_Source_Args.Length);
+
                            if Expected_Count = 0 and then Actual_Count = 0 then
                               Raise_Diag
-                                (CM.Unsupported_Source_Construct
-                                   (Path    => Path,
-                                    Span    => (if Resolved.Has_Call_Span then Resolved.Call_Span else Resolved.Span),
-                                    Message =>
-                                      "zero-payload sum variants use the bare variant name in PR11.13a"));
+                                 (CM.Unsupported_Source_Construct
+                                    (Path    => Path,
+                                     Span    => (if Resolved.Has_Call_Span then Resolved.Call_Span else Resolved.Span),
+                                     Message =>
+                                       "zero-payload sum variants use the bare variant name in PR11.13a"));
                            end if;
 
                            if Actual_Count /= Expected_Count then
@@ -7106,13 +7389,13 @@ package body Safe_Frontend.Check_Resolve is
                                      (UString_Value (Constructor.Fields (Index).Type_Name),
                                       Type_Env,
                                       Path,
-                                      Resolved.Args
-                                        (Resolved.Args.First_Index
+                                      Constructor_Source_Args
+                                        (Constructor_Source_Args.First_Index
                                          + (Index - Constructor.Fields.First_Index)).Span);
                                  Normalized_Arg :=
                                    Normalize_Expr
-                                     (Resolved.Args
-                                        (Resolved.Args.First_Index
+                                     (Constructor_Source_Args
+                                        (Constructor_Source_Args.First_Index
                                          + (Index - Constructor.Fields.First_Index)),
                                       Var_Types,
                                       Functions,
@@ -7166,17 +7449,88 @@ package body Safe_Frontend.Check_Resolve is
                         Result.Callee :=
                           Normalize_Expr (Resolved.Callee, Var_Types, Functions, Type_Env, Const_Env, Path);
                         Result.Args.Clear;
-                        for Item of Resolved.Args loop
-                           Result.Args.Append
-                             (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
-                        end loop;
+                        Result.Arg_Names.Clear;
                         declare
-                           Shared_Rewrite : constant CM.Expr_Access :=
-                             Rewrite_Shared_Container_Expr_Call (Resolved);
+                           Initial_Builtin_Kind : constant Builtin_Method_Kind :=
+                             Builtin_Method_Kind_For_Call
+                               (Resolved,
+                                Var_Types,
+                                Functions,
+                                Type_Env);
+                           Call_Args : CM.Expr_Access_Vectors.Vector := Resolved.Args;
                         begin
-                           if Shared_Rewrite /= null then
-                              return Shared_Rewrite;
+                           if Has_Named_Args (Resolved)
+                             and then Initial_Builtin_Kind /= Builtin_None
+                           then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path,
+                                    Span    => (if Resolved.Has_Call_Span then Resolved.Call_Span else Resolved.Span),
+                                    Message =>
+                                      "built-in call `"
+                                      & Builtin_Method_Name (Initial_Builtin_Kind)
+                                      & "` does not accept named arguments"));
+                           elsif Has_Named_Args (Resolved) then
+                              declare
+                                 Bound_Ok : Boolean := False;
+                              begin
+                                 if Has_Function (Functions, Callee_Name) then
+                                    Bind_Arguments_To_Params
+                                      (Resolved,
+                                       Get_Function (Functions, Callee_Name).Params,
+                                       0,
+                                       Callee_Name,
+                                       Path,
+                                       Call_Args,
+                                       Bound_Ok);
+                                    pragma Assert (Bound_Ok);
+                                 elsif Current_Generic_Function_Templates.Contains
+                                   (Canonical_Name (Callee_Name))
+                                 then
+                                    Bind_Arguments_To_Params
+                                      (Resolved,
+                                       Current_Generic_Function_Templates.Element
+                                         (Canonical_Name (Callee_Name)).Info.Params,
+                                       0,
+                                       Callee_Name,
+                                       Path,
+                                       Call_Args,
+                                       Bound_Ok);
+                                    pragma Assert (Bound_Ok);
+                                 elsif Current_Interface_Templates.Contains
+                                   (Canonical_Name (Callee_Name))
+                                 then
+                                    Bind_Arguments_To_Params
+                                      (Resolved,
+                                       Current_Interface_Templates.Element
+                                         (Canonical_Name (Callee_Name)).Info.Params,
+                                       0,
+                                       Callee_Name,
+                                       Path,
+                                       Call_Args,
+                                       Bound_Ok);
+                                    pragma Assert (Bound_Ok);
+                                 end if;
+                              end;
                            end if;
+
+                           declare
+                              Shared_Input   : constant CM.Expr_Access :=
+                                new CM.Expr_Node'(Resolved.all);
+                              Shared_Rewrite : CM.Expr_Access;
+                           begin
+                              Shared_Input.Args := Call_Args;
+                              Shared_Input.Arg_Names.Clear;
+                              Shared_Rewrite := Rewrite_Shared_Container_Expr_Call (Shared_Input);
+                              if Shared_Rewrite /= null then
+                                 return Shared_Rewrite;
+                              end if;
+                           end;
+
+                           for Item of Call_Args loop
+                              Result.Args.Append
+                                (Normalize_Expr (Item, Var_Types, Functions, Type_Env, Const_Env, Path));
+                           end loop;
                         end;
                         Validate_Mut_Call_Arguments (Result, Functions, Path);
                         declare

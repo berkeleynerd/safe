@@ -1,6 +1,6 @@
 package pr1113b_sum_match_build
 
-   type shape is circle (radius : integer) or rectangle (width : integer; height : integer) or label (text : string) or idle;
+   type shape is circle (radius : integer) or rectangle (width : integer; height : integer) or label (text : string) or idle
 
    function score (value : shape) returns integer
 
@@ -37,7 +37,7 @@ package pr1113b_sum_match_build
                return 12
             return width
 
-   ok : boolean = score (label ("hi")) == 10 and then score (circle (5)) == 5 and then score (idle) == 0 and then direct () == 12;
+   ok : boolean = score (label ("hi")) == 10 and then score (circle (5)) == 5 and then score (idle) == 0 and then direct () == 12
 
    if ok
       print (1)

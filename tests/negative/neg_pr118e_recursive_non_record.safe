@@ -5,4 +5,4 @@
 
 package neg_pr118e_recursive_non_record
 
-   type node_list is array of node_list;
+   type node_list is array of node_list

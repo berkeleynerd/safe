@@ -8,30 +8,30 @@
 
 package result_guarded_access
 
-   subtype error_code is integer (0 to 255);
+   subtype error_code is integer (0 to 255)
 
    type parse_result (ok : boolean = false) is record
       case ok
          when true
-            value : integer;
+            value : integer
          when false
-            error : error_code;
+            error : error_code
 
    function try_parse (input : integer) returns parse_result
 
       if input >= 0
-         return (ok = true, value = input);
+         return (ok = true, value = input)
       else
-         return (ok = false, error = 1);
+         return (ok = false, error = 1)
 
    --  Get_Or_Default: guarded access to variant fields.
    --  The branch on R.OK establishes the discriminant in each arm.
    function get_or_default (input : integer;
                             default : integer) returns integer
-      r : parse_result = try_parse (input);
+      r : parse_result = try_parse (input)
 
       if r.ok
-         return r.value;   -- legal: R.OK = True established
+         return r.value   -- legal: R.OK = True established
       else
-         return default;
+         return default
 

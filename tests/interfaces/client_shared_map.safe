@@ -1,22 +1,22 @@
-with provider_shared_map;
+with provider_shared_map
 
 package client_shared_map
 
    function exercise
-      found : optional integer;
-      removed : optional integer;
-      ok : boolean = false;
+      found : optional integer
+      removed : optional integer
+      ok : boolean = false
 
-      set (provider_shared_map.cache, "one", 1);
-      provider_shared_map.cache.set ("two", 2);
-      found = provider_shared_map.cache.get ("two");
-      removed = provider_shared_map.cache.remove ("one");
+      set (provider_shared_map.cache, "one", 1)
+      provider_shared_map.cache.set ("two", 2)
+      found = provider_shared_map.cache.get ("two")
+      removed = provider_shared_map.cache.remove ("one")
 
       if found.present
          if removed.present
             if found.value == 2
                if removed.value == 1
                   if not provider_shared_map.cache.contains ("one")
-                     ok = true;
+                     ok = true
 
-      print (ok);
+      print (ok)

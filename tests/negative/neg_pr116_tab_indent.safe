@@ -1,3 +1,4 @@
+-- migrate: skip
 package neg_pr116_tab_indent
 
 	function broken returns integer

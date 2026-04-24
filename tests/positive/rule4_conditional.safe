@@ -4,23 +4,23 @@
 
 package safe_conditional
 
-   subtype config_value is integer (0 to 1000);
+   subtype config_value is integer (0 to 1000)
 
    type config_box is record
-      value : config_value;
-      next : config_box;
+      value : config_value
+      next : config_box
 
    function max_of_two (a, b : config_box) returns config_value
 
       if a != null and then b != null
          if a.value >= b.value
-            return a.value;
+            return a.value
          else
-            return b.value;
+            return b.value
 
       else if a != null
-         return a.value;
+         return a.value
       else if b != null
-         return b.value;
+         return b.value
       else
-         return 0;
+         return 0

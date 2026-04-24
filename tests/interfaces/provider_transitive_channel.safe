@@ -1,19 +1,19 @@
 package provider_transitive_channel
 
-   public subtype message is integer (0 to 10);
-   public channel data_ch : message capacity 4;
+   public subtype message is integer (0 to 10)
+   public channel data_ch : message capacity 4
 
    task worker with priority = 12
 
       loop
-         var item : message = 0;
-         receive data_ch, item;
+         var item : message = 0
+         receive data_ch, item
 
    function push_internal
-      sent : boolean = false;
+      sent : boolean = false
 
-      send data_ch, 1, sent;
+      send data_ch, 1, sent
 
    public function push
 
-      push_internal;
+      push_internal

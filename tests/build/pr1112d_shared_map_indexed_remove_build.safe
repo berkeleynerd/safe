@@ -1,20 +1,20 @@
 package pr1112d_shared_map_indexed_remove_build
 
-   shared cache : map of (string, integer);
-   removed : list of optional integer = [some (-1)];
+   shared cache : map of (string, integer)
+   removed : list of optional integer = [some (-1)]
 
    function seeded returns map of (string, integer)
-      var values : map of (string, integer);
+      var values : map of (string, integer)
 
-      set (values, "one", 1);
-      return values;
+      set (values, "one", 1)
+      return values
 
    function unwrap (item : optional integer) returns integer
       if item.present
-         return item.value;
+         return item.value
       else
-         return -1;
+         return -1
 
-   cache = seeded ();
-   removed (1) = cache.remove ("one");
-   print (unwrap (removed (1)));
+   cache = seeded ()
+   removed (1) = cache.remove ("one")
+   print (unwrap (removed (1)))

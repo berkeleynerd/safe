@@ -8,4 +8,4 @@ package neg_pr1110a_some_null
 
    function bad returns optional integer
 
-      return some (null);
+      return some (null)

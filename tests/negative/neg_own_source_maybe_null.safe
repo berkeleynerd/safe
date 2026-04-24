@@ -5,11 +5,11 @@
 package move_source_maybe_null_test
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function bad_move
-      source : payload = null;
-      target : payload = null;
+      source : payload = null
+      target : payload = null
 
-      target = source;  -- ERROR: source is not provably non-null
+      target = source  -- ERROR: source is not provably non-null

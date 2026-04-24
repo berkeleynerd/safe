@@ -4,6 +4,6 @@
 
 package pr118d_bounded_string_array_component
 
-   subtype slot is integer (1 to 4);
-   type name_table is array (slot) of string (5);
+   subtype slot is integer (1 to 4)
+   type name_table is array (slot) of string (5)
 

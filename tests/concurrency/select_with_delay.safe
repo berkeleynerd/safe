@@ -8,14 +8,14 @@
 
 package select_with_delay
 
-   subtype message is integer (0 to 100);
+   subtype message is integer (0 to 100)
 
-   channel msg_ch : message capacity 1;
+   channel msg_ch : message capacity 1
 
    task producer with priority = 10
 
       loop
-         delay 0.01;
+         delay 0.01
 
    task poller with priority = 10
 
@@ -23,11 +23,11 @@ package select_with_delay
          select
             when item : message from msg_ch
                if item > 0
-                  delay 0.001;
+                  delay 0.001
                else
-                  delay 0.001;
+                  delay 0.001
 
          or
             delay 0.05
-               delay 0.001;
+               delay 0.001
 

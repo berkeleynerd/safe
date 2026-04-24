@@ -4,17 +4,17 @@
 
 package pr113_discriminant_constraints
 
-   default_kind : constant integer = 1;
-   default_count : constant integer = 2;
+   default_kind : constant integer = 1
+   default_count : constant integer = 2
 
    type packet (active : boolean = true, kind : integer = 1, count : integer = 0) is
       record
-         value : integer;
+         value : integer
 
-   defaulted : packet;
-   positional : packet (true, 1, 1);
-   named : packet (active = true, kind = default_kind, count = default_count);
+   defaulted : packet
+   positional : packet (true, 1, 1)
+   named : packet (active = true, kind = default_kind, count = default_count)
 
    function take (item : packet (active = true, kind = default_kind, count = default_count))
       returns packet (active = true, kind = default_kind, count = default_count)
-      return item;
+      return item

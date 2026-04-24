@@ -1,4 +1,4 @@
 package pr118d_bounded_string_index_build
 
-   name : string (5) = "hello";
+   name : string (5) = "hello"
    print (name (1))

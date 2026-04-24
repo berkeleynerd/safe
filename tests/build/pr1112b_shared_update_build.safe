@@ -1,24 +1,24 @@
 package pr1112b_shared_update_build
 
-   subtype counter is integer (0 to 20);
+   subtype counter is integer (0 to 20)
 
    type nested_state is record
-      depth : counter;
+      depth : counter
 
    type settings is record
-      count  : counter;
-      nested : nested_state;
+      count  : counter
+      nested : nested_state
 
-   shared cfg : settings = (count = 1, nested = (depth = 2));
-   next : settings = (count = 4, nested = (depth = 3));
-   snap : settings;
+   shared cfg : settings = (count = 1, nested = (depth = 2))
+   next : settings = (count = 4, nested = (depth = 3))
+   snap : settings
 
    function apply_updates
-      cfg = next;
-      cfg.nested.depth = 7;
+      cfg = next
+      cfg.nested.depth = 7
 
-   apply_updates ();
-   snap = cfg;
+   apply_updates ()
+   snap = cfg
 
-   print (snap.count);
-   print (snap.nested.depth);
+   print (snap.count)
+   print (snap.nested.depth)

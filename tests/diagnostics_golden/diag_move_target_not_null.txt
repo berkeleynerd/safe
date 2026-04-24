@@ -5,8 +5,8 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_target_not_null.safe:15:7: error: move target 'target' is not provably null
   |
-  | 15 |       target = source;  -- ERROR: target is not provably null
-  |    |       ^~~~~~~~~~~~~~~~
+  | 15 |       target = source  -- ERROR: target is not provably null
+  |    |       ^~~~~~~~~~~~~~~
   |
   note: static analysis determined state 'NonNull' for the move target.
   note: rule: Safe §2.3.2 (target of move must be provably null)

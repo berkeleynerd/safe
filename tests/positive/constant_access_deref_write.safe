@@ -7,10 +7,10 @@
 package constant_access_deref_write
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function read_through_constant returns integer
-      ptr : constant not null payload = (value = 1, next = null);
+      ptr : constant not null payload = (value = 1, next = null)
 
-      return ptr.value;
+      return ptr.value

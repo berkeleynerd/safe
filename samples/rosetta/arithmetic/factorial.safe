@@ -1,7 +1,7 @@
-subtype count is integer (0 to 7);
-subtype value is integer (1 to 5_040);
-type value_table is array (count) of value;
+subtype count is integer (0 to 7)
+subtype value is integer (1 to 5_040)
+type value_table is array (count) of value
 
-values : value_table = (1, 1, 2, 6, 24, 120, 720, 5_040);
+values : value_table = (1, 1, 2, 6, 24, 120, 720, 5_040)
 
 print (values (5))

@@ -7,7 +7,7 @@
 package neg_pr1110b_list_reference_family
 
    type handle is record
-      value : integer;
-      link  : handle;
+      value : integer
+      link  : handle
 
-   items : list of handle = [];
+   items : list of handle = []

@@ -1,6 +1,6 @@
 package neg_pr1113a_sum_select
 
-   type shape is circle (radius : integer) or idle;
+   type shape is circle (radius : integer) or idle
 
-   current : shape = circle (1);
-   radius : integer = current.radius;
+   current : shape = circle (1)
+   radius : integer = current.radius

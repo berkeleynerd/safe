@@ -3,9 +3,9 @@ package neg_pr118k_try_user_result
    type result (ok : boolean = false) is record
       case ok
          when true
-            value : integer;
+            value : integer
          when false
-            error_code : integer;
+            error_code : integer
 
    function carrier returns (result, integer)
 

@@ -5,8 +5,8 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr222_global_mutating_function.safe:8:4: error: result-returning functions cannot mutate package state or access shared/channel state
   |
-  | 8 |    counter = 2;
-  |   |    ^~~~~~~~~~~~
+  | 8 |    counter = 2
+  |   |    ^~~~~~~~~~~
   |
   note: SPARK functions cannot combine return values with global mutation or volatile shared access
   note: move the shared/channel access into a procedure and pass local snapshots to pure functions

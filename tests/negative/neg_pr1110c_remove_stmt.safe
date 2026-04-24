@@ -6,6 +6,6 @@
 
 package neg_pr1110c_remove_stmt
 
-   var values : map of (integer, integer);
+   var values : map of (integer, integer)
 
-   remove (values, 1);
+   remove (values, 1)

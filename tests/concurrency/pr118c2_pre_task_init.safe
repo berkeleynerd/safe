@@ -1,8 +1,8 @@
 package pr118c2_pre_task_init
 
-   subtype counter is integer (0 to 41);
-   subtype send_state is integer (0 to 1);
-   channel start_ch : counter capacity 1;
+   subtype counter is integer (0 to 41)
+   subtype send_state is integer (0 to 1)
+   channel start_ch : counter capacity 1
 
    function seed_start (status : mut send_state)
       sent : boolean = false
@@ -14,11 +14,11 @@ package pr118c2_pre_task_init
       else
          status = previous_status
 
-   initial_status : send_state = 0;
-   seed_marker : counter = 0;
+   initial_status : send_state = 0
+   seed_marker : counter = 0
 
    task worker with priority = 10, sends start_ch, receives start_ch
-      sent : boolean = false;
+      sent : boolean = false
       loop
          receive start_ch, start : counter
          print (start)

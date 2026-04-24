@@ -5,4 +5,4 @@
 package pr118d_string_out_param
 
    function set_name returns string
-      return "hello";
+      return "hello"

@@ -1,14 +1,14 @@
 package provider_enum
 
-   public type color is (red, green, blue);
-   public default_color : constant color = red;
+   public type color is (red, green, blue)
+   public default_color : constant color = red
 
    public function next (value : color) returns color
 
       case value
          when red
-            return green;
+            return green
          when green
-            return blue;
+            return blue
          when others
-            return red;
+            return red

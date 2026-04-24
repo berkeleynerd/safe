@@ -1,8 +1,8 @@
 package neg_pr118c1_print_unsupported_type
 
-   type byte is binary (8);
+   type byte is binary (8)
 
-   value : byte = byte (1);
+   value : byte = byte (1)
 
    function log
       print (value)

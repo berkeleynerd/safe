@@ -7,12 +7,12 @@
 
 package expression_div_test
 
-   subtype value is integer (-100 to 100);
+   subtype value is integer (-100 to 100)
 
    --  Compute: divides by X^2 - Y^2 which is zero when |X| = |Y|.
    function compute (n : value; x, y : value) returns integer
-      denom : integer;
+      denom : integer
 
-      denom = integer (x) * integer (x) - integer (y) * integer (y);
-      return integer (n) / denom;  -- ERROR: Denom may be zero
+      denom = integer (x) * integer (x) - integer (y) * integer (y)
+      return integer (n) / denom  -- ERROR: Denom may be zero
 

@@ -1,14 +1,14 @@
 package neg_pr119a_select_in_subprogram
 
-   subtype message is integer (0 to 10);
+   subtype message is integer (0 to 10)
 
-   channel msg_ch : message capacity 1;
+   channel msg_ch : message capacity 1
 
    function build returns integer
 
       select
          when item : message from msg_ch
-            return item;
+            return item
 
-      return 0;
+      return 0
 

@@ -1,21 +1,21 @@
 package pr119a_select_delay_receive
 
-   subtype message is integer (0 to 10);
+   subtype message is integer (0 to 10)
 
-   channel msg_ch : message capacity 1;
-   result : integer = 0;
-   sent : boolean = false;
+   channel msg_ch : message capacity 1
+   result : integer = 0
+   sent : boolean = false
 
-   send msg_ch, 7, sent;
+   send msg_ch, 7, sent
 
    if sent
       select
          when item : message from msg_ch
-            result = item;
+            result = item
       or
          delay 0.05
-            result = 9;
+            result = 9
    else
-      result = 8;
+      result = 8
 
    print (result)

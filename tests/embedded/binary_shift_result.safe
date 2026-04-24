@@ -4,7 +4,7 @@
 
 package binary_shift_result
 
-   type byte is binary (8);
+   type byte is binary (8)
 
-   shifted : byte = byte (128) >> 2;
-   result : integer (0 to 255) = integer (shifted);
+   shifted : byte = byte (128) >> 2
+   result : integer (0 to 255) = integer (shifted)

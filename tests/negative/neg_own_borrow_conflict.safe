@@ -5,13 +5,13 @@
 package borrow_conflict_test
 
    type data is record
-      value : integer;
-      next : data;
+      value : integer
+      next : data
 
    function touch (left : mut data; right : data)
-      return;
+      return
 
    function modify_both
-      owner : not null data = (value = 10, next = null);
+      owner : not null data = (value = 10, next = null)
 
-      touch (owner, owner);  -- ERROR: same-root alias in one call
+      touch (owner, owner)  -- ERROR: same-root alias in one call

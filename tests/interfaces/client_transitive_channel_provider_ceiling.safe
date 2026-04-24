@@ -1,9 +1,9 @@
-with provider_transitive_channel;
+with provider_transitive_channel
 
 package client_transitive_channel_provider_ceiling
 
    task caller with priority = 8
 
       loop
-         provider_transitive_channel.push;
+         provider_transitive_channel.push
 

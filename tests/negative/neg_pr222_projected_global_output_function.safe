@@ -2,13 +2,13 @@
 -- Description: Result-returning functions must not mutate package globals through mut actuals.
 -- Expected: REJECT
 
-counter : integer = 0;
+counter : integer = 0
 
 function set_value (item : mut integer)
-   item = 3;
+   item = 3
 
 function bump returns integer
-   set_value (counter);
-   return counter;
+   set_value (counter)
+   return counter
 
 print (bump ())

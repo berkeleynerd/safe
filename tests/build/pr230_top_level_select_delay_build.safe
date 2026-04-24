@@ -4,19 +4,19 @@
 
 package pr230_top_level_select_delay_build
 
-   channel msg_ch : integer capacity 1;
-   sent : boolean = false;
-   value : integer = 0;
+   channel msg_ch : integer capacity 1
+   sent : boolean = false
+   value : integer = 0
 
-   send msg_ch, 1, sent;
+   send msg_ch, 1, sent
 
    if sent
       select
          when item : integer from msg_ch
             if item == 1
-               value = 1;
+               value = 1
       or
          delay 0.01
-            value = 2;
+            value = 2
 
    print (value)

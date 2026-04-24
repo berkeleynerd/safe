@@ -3,4 +3,4 @@ package neg_pr116_legacy_begin
    function broken returns integer
 
       begin
-         return 1;
+         return 1

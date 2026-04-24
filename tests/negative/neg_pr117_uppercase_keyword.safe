@@ -1,6 +1,7 @@
 -- Test: neg_pr117_uppercase_keyword
 -- Description: Keywords must use the lowercase Safe surface.
 -- Expected: REJECT source_frontend_error
+-- migrate: skip
 
 Package neg_pr117_uppercase_keyword
 

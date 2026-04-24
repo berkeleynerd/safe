@@ -3,20 +3,20 @@
 -- Expected: BUILD_SUCCESS
 
 type state is record
-   total : integer;
-   ready : boolean;
+   total : integer
+   ready : boolean
 
-shared ledger : state = (total = 0, ready = false);
-count : integer = 0;
-limit : integer = 1;
-value : integer = 0;
+shared ledger : state = (total = 0, ready = false)
+count : integer = 0
+limit : integer = 1
+value : integer = 0
 
-ledger.total = 1;
-ledger.ready = true;
+ledger.total = 1
+ledger.ready = true
 
 while count < limit
-   count = limit;
-   exit when ledger.total == 1;
+   count = limit
+   exit when ledger.total == 1
 
-value = 17;
+value = 17
 print (value)

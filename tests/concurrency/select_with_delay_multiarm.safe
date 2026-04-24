@@ -10,47 +10,47 @@
 
 package select_with_delay_multiarm
 
-   subtype message is integer (1 to 10);
-   subtype counter is integer (0 to 100);
+   subtype message is integer (1 to 10)
+   subtype counter is integer (0 to 100)
 
-   channel high_ch : message capacity 2;
-   channel low_ch  : message capacity 2;
+   channel high_ch : message capacity 2
+   channel low_ch  : message capacity 2
 
    task producer with priority = 10
-      high_sent : boolean = false;
-      low_sent  : boolean = false;
+      high_sent : boolean = false
+      low_sent  : boolean = false
 
       loop
-         send high_ch, 1, high_sent;
-         send low_ch, 2, low_sent;
+         send high_ch, 1, high_sent
+         send low_ch, 2, low_sent
          if high_sent and low_sent
-            delay 0.01;
+            delay 0.01
          else
-            delay 0.001;
+            delay 0.001
 
    task poller with priority = 10
-      seen : counter = 0;
+      seen : counter = 0
 
       loop
          select
             when high_item : message from high_ch
                if seen <= 90
-                  seen = seen + counter (high_item);
+                  seen = seen + counter (high_item)
                else
-                  seen = 0;
+                  seen = 0
 
          or
             when low_item : message from low_ch
                if seen <= 90
-                  seen = seen + counter (low_item);
+                  seen = seen + counter (low_item)
                else
-                  seen = 0;
+                  seen = 0
 
          or
             delay 0.05
-               seen = 0;
+               seen = 0
 
          if seen > 95
-            seen = 0;
+            seen = 0
          else
-            delay 0.001;
+            delay 0.001

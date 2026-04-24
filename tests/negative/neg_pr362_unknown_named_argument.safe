@@ -1,0 +1,9 @@
+package neg_pr362_unknown_named_argument
+
+   subtype small_value is integer (0 to 10)
+
+   function combine (left : small_value; right : small_value) returns integer
+      return left + right
+
+   function broken returns integer
+      return combine (left = 1, extra = 2)

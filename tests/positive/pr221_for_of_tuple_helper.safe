@@ -5,14 +5,14 @@
 package pr221_for_of_tuple_helper
 
    function count_pair returns integer
-      var values : list of (string, string) = [("alpha", "one")];
+      var values : list of (string, string) = [("alpha", "one")]
 
       for item of values
-         first : string = item.1;
-         second : string = item.2;
+         first : string = item.1
+         second : string = item.2
          if first == "alpha" and then second == "one"
-            return 1;
+            return 1
 
-      return 0;
+      return 0
 
-   result : integer = count_pair ();
+   result : integer = count_pair ()

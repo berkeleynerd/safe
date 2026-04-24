@@ -1,10 +1,10 @@
 package neg_pr1113b_match_unknown_variant
 
-   type shape is circle (radius : integer) or idle;
+   type shape is circle (radius : integer) or idle
 
    function value returns integer
 
-      current : shape = idle;
+      current : shape = idle
       match current
          when circle (radius)
             return radius

@@ -1,8 +1,8 @@
-with pr1113c_provider_shape;
+with pr1113c_provider_shape
 
 package pr1113c_imported_sum_build
 
-   value : pr1113c_provider_shape.shape = pr1113c_provider_shape.circle (5);
+   value : pr1113c_provider_shape.shape = pr1113c_provider_shape.circle (5)
 
    function score (item : pr1113c_provider_shape.shape) returns integer
 
@@ -20,8 +20,8 @@ package pr1113c_imported_sum_build
          when idle
             return 1
 
-   print (score (value));
+   print (score (value))
 
-   value = pr1113c_provider_shape.idle;
+   value = pr1113c_provider_shape.idle
 
-   print (idle_score (value));
+   print (idle_score (value))

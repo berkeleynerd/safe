@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule5_overflow.safe:19:14: error: floating expression is not provably within target range
   |
-  | 19 |       return small_float (long_float (a) * long_float (b));
+  | 19 |       return small_float (long_float (a) * long_float (b))
   |    |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   |
 ------------------------------------------------------------------------

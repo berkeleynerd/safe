@@ -1,5 +1,5 @@
 package neg_pr118c2_unit_scoped_receive
 
-   channel inbox : integer capacity 1;
+   channel inbox : integer capacity 1
 
    receive inbox, item : integer

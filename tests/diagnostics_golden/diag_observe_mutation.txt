@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_observe_mutate.safe:12:7: error: observer 'observer' provides read-only access
   |
-  | 12 |       observer.rate = 200;  -- ERROR: mutation through observer
+  | 12 |       observer.rate = 200  -- ERROR: mutation through observer
   |    |       ^~~~~~~~
   |
   note: writes and moves through an active observer are not permitted.

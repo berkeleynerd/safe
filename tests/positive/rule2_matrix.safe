@@ -8,32 +8,32 @@
 
 package safe_matrix
 
-   subtype row_index is integer (1 to 4);
-   subtype col_index is integer (1 to 4);
-   subtype cell is integer (-1_000_000 to 1_000_000);
-   subtype trace_total is integer (-4_000_000 to 4_000_000);
-   type matrix_4x4 is array (row_index, col_index) of cell;
+   subtype row_index is integer (1 to 4)
+   subtype col_index is integer (1 to 4)
+   subtype cell is integer (-1_000_000 to 1_000_000)
+   subtype trace_total is integer (-4_000_000 to 4_000_000)
+   type matrix_4x4 is array (row_index, col_index) of cell
 
    --  Trace: sum of diagonal elements. Both Row and Col indices
    --  range from 1 to 4, so diagonal access M(I, I) is always
    --  within bounds.
    function trace (m : matrix_4x4) returns trace_total
-      sum : trace_total = 0;
+      sum : trace_total = 0
 
       for i in row_index
          --  I is Row_Index (1..4), also valid as Col_Index (1..4).
-         sum = sum + trace_total (m (i, col_index (i)));
+         sum = sum + trace_total (m (i, col_index (i)))
 
-      return sum;
+      return sum
 
    --  Transpose: swap rows and columns in-place.
    function transpose (m : mut matrix_4x4)
-      temp : cell;
+      temp : cell
 
       for i in row_index
          for j in col_index
             if col_index (i) < j
                --  Both indices are of their respective types.
-               temp = m (i, j);
-               m (i, j) = m (row_index (j), col_index (i));
-               m (row_index (j), col_index (i)) = temp;
+               temp = m (i, j)
+               m (i, j) = m (row_index (j), col_index (i))
+               m (row_index (j), col_index (i)) = temp

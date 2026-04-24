@@ -5,16 +5,16 @@
 package pr227_public_shared_snapshot_order_build
 
    type state is record
-      total : integer;
-      note  : string (5);
+      total : integer
+      note  : string (5)
 
-   public shared ledger : state = (total = 1, note = "stand");
-   snapshot : state = ledger;
-   constant_snapshot : constant state = ledger;
-   value : integer = 0;
+   public shared ledger : state = (total = 1, note = "stand")
+   snapshot : state = ledger
+   constant_snapshot : constant state = ledger
+   value : integer = 0
 
    if snapshot.total == 1 and then snapshot.note == "stand"
       if constant_snapshot.total == 1 and then constant_snapshot.note == "stand"
-         value = 17;
+         value = 17
 
    print (value)

@@ -5,4 +5,4 @@
 
 package neg_pr1110c_map_bad_key
 
-   var values : map of (list of integer, integer);
+   var values : map of (list of integer, integer)

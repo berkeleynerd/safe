@@ -1,7 +1,7 @@
 package pr115_compound_terminators
 
-   subtype count is integer (0 to 10);
-   subtype tiny_count is integer (1 to 2);
+   subtype count is integer (0 to 10)
+   subtype tiny_count is integer (1 to 2)
 
    function adjust (input : count) returns count
 

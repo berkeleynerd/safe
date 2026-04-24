@@ -1,26 +1,26 @@
 package pr118i_enum_build
 
-   type color is (red, green, blue);
-   type weights is array (color) of integer;
-   subtype total_score is integer (0 to 100);
+   type color is (red, green, blue)
+   type weights is array (color) of integer
+   subtype total_score is integer (0 to 100)
 
-   weights_by_color : weights = (10, 20, 30);
-   current : color = green;
-   total : total_score = 0;
+   weights_by_color : weights = (10, 20, 30)
+   current : color = green
+   total : total_score = 0
 
    case current
       when red
-         total = weights_by_color (red);
+         total = weights_by_color (red)
       when green
-         total = weights_by_color (green);
+         total = weights_by_color (green)
       when others
-         total = weights_by_color (blue);
+         total = weights_by_color (blue)
 
    if color.first < current
-      total = total + 1;
+      total = total + 1
 
    if current < color.last
-      total = total + 2;
+      total = total + 2
 
-   print (current);
+   print (current)
    print (total)

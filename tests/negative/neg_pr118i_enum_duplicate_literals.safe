@@ -1,3 +1,3 @@
 package neg_pr118i_enum_duplicate_literals
 
-   type color is (red, red);
+   type color is (red, red)

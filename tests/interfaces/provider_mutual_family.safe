@@ -1,20 +1,20 @@
 package provider_mutual_family
 
-   public subtype value_t is integer (0 to 100);
+   public subtype value_t is integer (0 to 100)
 
-   public type expr;
-   public type stmt;
+   public type expr
+   public type stmt
 
    public type expr is record
-      value : value_t;
-      next_stmt : stmt;
+      value : value_t
+      next_stmt : stmt
 
    public type stmt is record
-      value : value_t;
-      next_expr : expr;
+      value : value_t
+      next_expr : expr
 
    public function bump_expr (item : mut not null expr)
-      item.value = item.value + 1;
+      item.value = item.value + 1
 
    public function read_expr (item : not null expr) returns value_t
-      return item.value;
+      return item.value

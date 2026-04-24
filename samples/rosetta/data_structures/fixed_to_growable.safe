@@ -1,9 +1,9 @@
-subtype slot is integer (5 to 7);
-subtype item is integer (0 to 10);
-type fixed_three is array (slot) of item;
-type grow_list is array of item;
+subtype slot is integer (5 to 7)
+subtype item is integer (0 to 10)
+type fixed_three is array (slot) of item
+type grow_list is array of item
 
-fixed_values : fixed_three = (4, 5, 6);
-widened : grow_list = fixed_values;
+fixed_values : fixed_three = (4, 5, 6)
+widened : grow_list = fixed_values
 
 print (widened (1) + widened (3))

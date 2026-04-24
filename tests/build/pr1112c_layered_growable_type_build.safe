@@ -1,17 +1,17 @@
 package pr1112c_layered_growable_type_build
 
    type inner is record
-      values : list of integer;
+      values : list of integer
 
    type outer is record
-      child : inner;
+      child : inner
 
    function make_inner returns inner
-      var values : list of integer = [1, 2];
+      var values : list of integer = [1, 2]
 
-      append (values, 3);
-      return (values = values);
+      append (values, 3)
+      return (values = values)
 
-   item : outer = (child = make_inner ());
+   item : outer = (child = make_inner ())
 
-   print (item.child.values.length);
+   print (item.child.values.length)

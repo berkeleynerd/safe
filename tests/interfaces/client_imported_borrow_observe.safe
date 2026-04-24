@@ -1,11 +1,11 @@
-with provider_imported_call_ownership;
+with provider_imported_call_ownership
 
 package client_imported_borrow_observe
 
    function run
-      owner : not null provider_imported_call_ownership.payload = (value = 5, link = null);
-      seen  : provider_imported_call_ownership.payload_value;
+      owner : not null provider_imported_call_ownership.payload = (value = 5, link = null)
+      seen  : provider_imported_call_ownership.payload_value
 
-      provider_imported_call_ownership.bump (owner);
-      seen = provider_imported_call_ownership.read_value (owner);
-      owner.value = seen;
+      provider_imported_call_ownership.bump (owner)
+      seen = provider_imported_call_ownership.read_value (owner)
+      owner.value = seen

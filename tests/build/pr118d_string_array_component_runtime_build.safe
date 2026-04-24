@@ -1,8 +1,8 @@
 package pr118d_string_array_component_runtime_build
 
-   subtype slot is integer (1 to 2);
-   type name_table is array (slot) of string;
+   subtype slot is integer (1 to 2)
+   type name_table is array (slot) of string
 
-   names : name_table = ("Ada", "Bob");
+   names : name_table = ("Ada", "Bob")
 
    print (names (2))

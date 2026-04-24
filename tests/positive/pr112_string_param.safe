@@ -6,8 +6,8 @@ package pr112_string_param
 
    function echo (name : string) returns string
 
-      return name;
+      return name
 
    function greeting returns string
 
-      return echo ("hello");
+      return echo ("hello")

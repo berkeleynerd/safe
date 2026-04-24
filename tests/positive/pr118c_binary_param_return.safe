@@ -1,4 +1,4 @@
 package pr118c_binary_param_return
 
    function bump (value : binary (8)) returns binary (8)
-      return value + binary (8) (1);
+      return value + binary (8) (1)

@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_lifetime.safe:12:14: error: returned observe value cannot outlive lender 'ref'
   |
-  | 12 |       return ref;  -- ERROR: borrowed value outlives lender
+  | 12 |       return ref  -- ERROR: borrowed value outlives lender
   |    |              ^~~
   |
   note: borrowed and observed values must remain within the lender lifetime.

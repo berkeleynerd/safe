@@ -5,6 +5,6 @@
 
 package neg_pr1110c_map_value_mismatch
 
-   var values : map of (integer, integer);
+   var values : map of (integer, integer)
 
-   set (values, 1, "Ada");
+   set (values, 1, "Ada")

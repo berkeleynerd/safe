@@ -360,19 +360,33 @@ package body Safe_Frontend.Check_Emit is
    function Subtype_Mark_Node (Spec : CM.Type_Spec) return String;
 
    function Parameter_Associations
-     (Args : CM.Expr_Access_Vectors.Vector;
-      Span : FT.Source_Span) return String
+     (Args      : CM.Expr_Access_Vectors.Vector;
+      Arg_Names : FT.UString_Vectors.Vector;
+      Span      : FT.Source_Span) return String
    is
       Assocs : String_Vectors.Vector;
    begin
       if not Args.Is_Empty then
-         for Item of Args loop
-            Assocs.Append
-              ("{""node_type"":""ParameterAssociation"",""formal_name"":null,""actual"":"
-               & Expression_Node (Item)
-               & ",""span"":"
-               & JS.Span_Object (Item.Span)
-               & "}");
+         for Index in Args.First_Index .. Args.Last_Index loop
+            declare
+               Item        : constant CM.Expr_Access := Args (Index);
+               Name_Offset : constant Natural := Natural (Index - Args.First_Index);
+               Formal_Name : constant String :=
+                 (if Arg_Names.Is_Empty
+                    or else Name_Offset >= Natural (Arg_Names.Length)
+                    or else FT.To_String (Arg_Names (Arg_Names.First_Index + Name_Offset)) = ""
+                  then "null"
+                  else JS.Quote (FT.To_String (Arg_Names (Arg_Names.First_Index + Name_Offset))));
+            begin
+               Assocs.Append
+                 ("{""node_type"":""ParameterAssociation"",""formal_name"":"
+                  & Formal_Name
+                  & ",""actual"":"
+                  & Expression_Node (Item)
+                & ",""span"":"
+                & JS.Span_Object (Item.Span)
+                & "}");
+            end;
          end loop;
       end if;
       return
@@ -447,8 +461,9 @@ package body Safe_Frontend.Check_Emit is
               & ",""parameters"":"
               & (if Expr.Args.Is_Empty then "null"
                  else Parameter_Associations
-                   (Expr.Args,
-                    (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span)))
+                    (Expr.Args,
+                     Expr.Arg_Names,
+                     (if Expr.Has_Call_Span then Expr.Call_Span else Expr.Span)))
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
@@ -1885,6 +1900,9 @@ package body Safe_Frontend.Check_Emit is
                Args : constant CM.Expr_Access_Vectors.Vector :=
                  (if Call_Expr /= null and then Call_Expr.Kind = CM.Expr_Call then Call_Expr.Args
                   else CM.Expr_Access_Vectors.Empty_Vector);
+               Arg_Names : constant FT.UString_Vectors.Vector :=
+                 (if Call_Expr /= null and then Call_Expr.Kind = CM.Expr_Call then Call_Expr.Arg_Names
+                  else FT.UString_Vectors.Empty_Vector);
             begin
                return
                  "{""node_type"":""ProcedureCallStatement"",""name"":"
@@ -1892,8 +1910,9 @@ package body Safe_Frontend.Check_Emit is
                  & ",""parameters"":"
                  & (if Args.Is_Empty then "null"
                     else Parameter_Associations
-                      (Args,
-                       (if Call_Expr /= null and then Call_Expr.Has_Call_Span
+                       (Args,
+                        Arg_Names,
+                        (if Call_Expr /= null and then Call_Expr.Has_Call_Span
                         then Call_Expr.Call_Span
                         else Parsed.Span)))
                  & ",""span"":"

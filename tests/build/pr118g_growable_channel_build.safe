@@ -1,11 +1,11 @@
 package pr118g_growable_channel_build
 
-   type values is array of integer;
+   type values is array of integer
 
-   channel data_ch : values capacity 1;
-   source : values = [1, 2];
-   received : values;
-   sent : boolean = false;
+   channel data_ch : values capacity 1
+   source : values = [1, 2]
+   received : values
+   sent : boolean = false
 
    send data_ch, source, sent
    if sent

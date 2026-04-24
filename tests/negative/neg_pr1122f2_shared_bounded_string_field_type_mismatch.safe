@@ -6,9 +6,9 @@
 package neg_pr1122f2_shared_bounded_string_field_type_mismatch
 
    type settings is record
-      label : string (5);
+      label : string (5)
 
-   shared cfg : settings = (label = "hello");
+   shared cfg : settings = (label = "hello")
 
    function update
-      cfg.label = 1;
+      cfg.label = 1

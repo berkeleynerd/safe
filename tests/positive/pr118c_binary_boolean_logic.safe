@@ -1,6 +1,6 @@
 package pr118c_binary_boolean_logic
 
-   both : boolean = true and false;
-   either : boolean = true or false;
-   diff : boolean = true xor false;
+   both : boolean = true and false
+   either : boolean = true or false
+   diff : boolean = true xor false
 

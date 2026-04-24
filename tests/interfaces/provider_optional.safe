@@ -3,13 +3,13 @@ package provider_optional
    public function maybe_count (flag : boolean) returns optional integer
 
       if flag
-         return some (42);
+         return some (42)
       else
-         return none;
+         return none
 
    public function unwrap_or_zero (value : optional integer) returns integer
 
       if value.present
-         return value.value;
+         return value.value
       else
-         return 0;
+         return 0

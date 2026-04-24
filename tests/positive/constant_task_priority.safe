@@ -4,7 +4,7 @@
 
 package constant_task_priority
 
-   worker_priority : constant integer = 5;
+   worker_priority : constant integer = 5
 
    task worker with priority = worker_priority
 

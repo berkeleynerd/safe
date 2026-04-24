@@ -2,5 +2,5 @@ package neg_pr1162_removed_goto
 
    function build returns integer
 
-      goto done;
-      return 0;
+      goto done
+      return 0

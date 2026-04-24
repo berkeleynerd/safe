@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule5_div_zero.safe:19:46: error: floating divisor is not provably nonzero
   |
-  | 19 |       return measurement (long_float (value) / long_float (scale));
+  | 19 |       return measurement (long_float (value) / long_float (scale))
   |    |                                                ^~~~~~~~~~~~~~~~~~
   |
   note: division by a value that may be 0.0 can produce infinity or NaN.

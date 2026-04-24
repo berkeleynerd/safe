@@ -6,16 +6,16 @@
 package inout_move_test
 
    type payload is record
-      value : integer;
+      value : integer
 
-   type payload_ptr is access payload;
+   type payload_ptr is access payload
 
    function consume (ref : in out payload_ptr)
-      return;
+      return
 
    function use_inout
-      owner : payload_ptr = new ((value = 5) as payload);
+      owner : payload_ptr = new ((value = 5) as payload)
 
-      consume (owner);
-      consume (owner);  -- ERROR: Owner was already moved by the first call
+      consume (owner)
+      consume (owner)  -- ERROR: Owner was already moved by the first call
 

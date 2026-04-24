@@ -5,18 +5,18 @@
 package neg_try_send_compound_else_use
 
    type payload is record
-      value : integer;
+      value : integer
 
-   type payload_ptr is access payload;
+   type payload_ptr is access payload
 
-   channel data_ch : payload_ptr capacity 1;
+   channel data_ch : payload_ptr capacity 1
 
    function run
-      source  : payload_ptr = new ((value = 1) as payload);
-      success : boolean = false;
-      ready   : boolean = false;
+      source  : payload_ptr = new ((value = 1) as payload)
+      success : boolean = false
+      ready   : boolean = false
 
-      send data_ch, source, success;
+      send data_ch, source, success
       if success and then ready
       else
-         send data_ch, source, success;
+         send data_ch, source, success

@@ -1,12 +1,12 @@
 package pr118g_record_string_channel_build
 
    type packet is record
-      text : string;
+      text : string
 
-   source : packet;
-   received : packet;
-   channel data_ch : packet capacity 1;
-   sent : boolean = false;
+   source : packet
+   received : packet
+   channel data_ch : packet capacity 1
+   sent : boolean = false
 
    source.text = "Ada"
    send data_ch, source, sent

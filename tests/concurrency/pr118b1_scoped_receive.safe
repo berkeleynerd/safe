@@ -4,12 +4,12 @@
 
 package pr118b1_scoped_receive
 
-   subtype message is integer (0 to 10);
+   subtype message is integer (0 to 10)
 
-   channel data_ch : message capacity 1;
+   channel data_ch : message capacity 1
 
    task producer with priority = 10, sends data_ch
-      sent : boolean = false;
+      sent : boolean = false
 
       loop
          send data_ch, 4, sent
@@ -17,7 +17,7 @@ package pr118b1_scoped_receive
             delay 0.01
 
    task consumer with priority = 10, receives data_ch
-      result : message = 0;
+      result : message = 0
 
       loop
          receive data_ch, item : message

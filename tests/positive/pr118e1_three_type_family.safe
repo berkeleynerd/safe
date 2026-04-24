@@ -4,15 +4,15 @@
 
 package pr118e1_three_type_family
 
-   type alpha;
-   type beta;
-   type gamma;
+   type alpha
+   type beta
+   type gamma
 
    type alpha is record
-      next_beta : beta;
+      next_beta : beta
 
    type beta is record
-      next_gamma : gamma;
+      next_gamma : gamma
 
    type gamma is record
-      next_alpha : alpha;
+      next_alpha : alpha

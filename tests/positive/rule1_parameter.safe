@@ -8,9 +8,9 @@
 
 package safe_parameters
 
-   subtype percentage is integer (0 to 100);
-   subtype angle is integer (0 to 359);
-   subtype wide_int is integer (-10_000 to 10_000);
+   subtype percentage is integer (0 to 100)
+   subtype angle is integer (0 to 359)
+   subtype wide_int is integer (-10_000 to 10_000)
 
    --  Apply_Percentage: accepts a percentage value. Caller must
    --  ensure the actual parameter is in 0..100.
@@ -18,18 +18,18 @@ package safe_parameters
 
       --  Wide arithmetic: Base * P is at most 10_000 * 100 = 1_000_000,
       --  well within 64-bit range. Division by 100 narrows back.
-      return wide_int ((wide_int (base) * wide_int (p)) / 100);
+      return wide_int ((wide_int (base) * wide_int (p)) / 100)
 
    --  Compute_Scaled: demonstrates safe parameter passing by
    --  first validating, then calling Apply_Percentage.
    function compute_scaled (raw : wide_int) returns wide_int
-      output : wide_int = apply_percentage (0, 5000);
+      output : wide_int = apply_percentage (0, 5000)
 
       --  Clamp Raw to 0..100 before passing as Percentage.
       if raw > 100
-         output = apply_percentage (100, 5000);
+         output = apply_percentage (100, 5000)
       else if raw >= 0
          --  Narrowing point (parameter): Raw is in 0..100.
-         output = apply_percentage (percentage (raw), 5000);
+         output = apply_percentage (percentage (raw), 5000)
 
-      return output;
+      return output

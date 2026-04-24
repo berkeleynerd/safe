@@ -1,11 +1,11 @@
 package neg_pr118i_case_dynamic_choice
 
-   x : integer = 1;
-   y : integer = 2;
-   value : integer = 0;
+   x : integer = 1
+   y : integer = 2
+   value : integer = 0
 
    case x
       when y
-         value = 1;
+         value = 1
       when others
-         value = 2;
+         value = 2

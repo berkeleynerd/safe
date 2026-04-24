@@ -1,7 +1,7 @@
 package pr118c_binary_named_type
 
-   type byte is binary (8);
+   type byte is binary (8)
 
-   zero : byte = byte (0);
-   full : byte = byte (255);
+   zero : byte = byte (0)
+   full : byte = byte (255)
 

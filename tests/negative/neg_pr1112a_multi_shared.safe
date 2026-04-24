@@ -1,6 +1,6 @@
 package neg_pr1112a_multi_shared
 
    type settings is record
-      value : integer;
+      value : integer
 
-   shared left, right : settings = (value = 1);
+   shared left, right : settings = (value = 1)

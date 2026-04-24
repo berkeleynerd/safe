@@ -8,37 +8,37 @@
 package pr1110c_map_basics
 
    function singleton returns map of (integer, integer)
-      var values : map of (integer, integer);
+      var values : map of (integer, integer)
 
-      set (values, 1, 15);
-      return values;
+      set (values, 1, 15)
+      return values
 
    function entries_ok returns boolean
-      var values : map of (integer, integer) = singleton;
-      var saw_first : boolean = false;
+      var values : map of (integer, integer) = singleton
+      var saw_first : boolean = false
 
       for item of values
          if item.1 == 1 and then item.2 == 15
-            saw_first = true;
+            saw_first = true
 
-      return saw_first;
+      return saw_first
 
    function default_is_empty returns boolean
-      var values : map of (integer, integer);
+      var values : map of (integer, integer)
 
-      return values.length == 0;
+      return values.length == 0
 
    function operations_ok returns boolean
-      var values : map of (integer, integer) = singleton;
-      var found : optional integer;
-      var missing : optional integer;
+      var values : map of (integer, integer) = singleton
+      var found : optional integer
+      var missing : optional integer
 
-      found = get (values, 1);
-      missing = get (values, 2);
+      found = get (values, 1)
+      missing = get (values, 2)
       if not default_is_empty
-         return false;
+         return false
       if missing.present
-         return false;
+         return false
       if not found.present
-         return false;
-      return values.length == 1 and then found.value == 15 and then contains (values, 1) and then not contains (values, 2) and then entries_ok;
+         return false
+      return values.length == 1 and then found.value == 15 and then contains (values, 1) and then not contains (values, 2) and then entries_ok

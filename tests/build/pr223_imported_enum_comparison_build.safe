@@ -1,8 +1,8 @@
-with pr223_provider_enum;
+with pr223_provider_enum
 
 package pr223_imported_enum_comparison_build
 
-   flag : boolean = pr223_provider_enum.checkpoint.last == pr223_provider_enum.gamma;
+   flag : boolean = pr223_provider_enum.checkpoint.last == pr223_provider_enum.gamma
 
    if flag
       print (1)

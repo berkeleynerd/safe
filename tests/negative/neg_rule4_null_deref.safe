@@ -5,10 +5,10 @@
 package null_deref_test
 
    type value_box is record
-      value : integer;
-      next : value_box;
+      value : integer
+      next : value_box
 
    function read_unsafe returns integer
-      p : value_box = null;
+      p : value_box = null
 
-      return p.value;  -- ERROR: P may be null
+      return p.value  -- ERROR: P may be null

@@ -8,8 +8,8 @@ package neg_case_string_choice
 
       case opcode
          when "reset"
-            return "bad";
+            return "bad"
 
          when others
-            return "ok";
+            return "ok"
 

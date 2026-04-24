@@ -5,13 +5,13 @@
 package safe_factory
 
    type sensor_data is record
-      id    : integer;
-      value : integer;
-      next  : sensor_data;
+      id    : integer
+      value : integer
+      next  : sensor_data
 
    function create_sensor (id : integer;
                            initial_value : integer) returns not null sensor_data
-      return (id = id, value = initial_value, next = null);
+      return (id = id, value = initial_value, next = null)
 
    function read_sensor (s : not null sensor_data) returns integer
-      return s.value;
+      return s.value

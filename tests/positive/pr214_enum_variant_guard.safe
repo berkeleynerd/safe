@@ -4,30 +4,30 @@
 
 package pr214_enum_variant_guard
 
-   type waypoint is (alpha, bravo, gamma);
+   type waypoint is (alpha, bravo, gamma)
 
    type packet (stop : waypoint = alpha) is
       record
          case stop
             when alpha
-               alpha_bonus : integer;
+               alpha_bonus : integer
             when bravo
-               bravo_bonus : integer;
+               bravo_bonus : integer
             when gamma
-               gamma_bonus : integer;
+               gamma_bonus : integer
 
    function read_bravo (p : packet) returns integer
 
       if p.stop == bravo
-         return p.bravo_bonus;
+         return p.bravo_bonus
 
-      return 0;
+      return 0
 
    function read_gamma_with_case (p : packet) returns integer
 
       case p.stop
          when gamma
-            return p.gamma_bonus;
+            return p.gamma_bonus
 
          when others
-            return 0;
+            return 0

@@ -7,9 +7,9 @@
 
 package freed_test
 
-   subtype data is integer (0 to 100);
+   subtype data is integer (0 to 100)
 
    function borrow_from_local returns not null access data
-      local : data = 42;
-      return local.access;  -- ERROR: observe value cannot outlive local lender
+      local : data = 42
+      return local.access  -- ERROR: observe value cannot outlive local lender
 

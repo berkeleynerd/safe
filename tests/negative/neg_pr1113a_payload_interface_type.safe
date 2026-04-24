@@ -1,6 +1,6 @@
 package neg_pr1113a_payload_interface_type
 
    type printable is interface
-      function (self : printable) render returns string;
+      function (self : printable) render returns string
 
-   type shape is wrapped (value : printable) or idle;
+   type shape is wrapped (value : printable) or idle

@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule5_uninitialized.safe:19:14: error: floating expression is not provably initialized at narrowing
   |
-  | 19 |       return bounded (x);  -- ERROR: X is uninitialized, may be NaN/infinity
+  | 19 |       return bounded (x)  -- ERROR: X is uninitialized, may be NaN/infinity
   |    |              ^~~~~~~~~~~
   |
 ------------------------------------------------------------------------

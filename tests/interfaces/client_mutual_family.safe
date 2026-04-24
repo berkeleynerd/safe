@@ -1,11 +1,11 @@
-with provider_mutual_family;
+with provider_mutual_family
 
 package client_mutual_family
 
    function run
-      owner : not null provider_mutual_family.expr = (value = 5, next_stmt = null);
-      seen  : provider_mutual_family.value_t;
+      owner : not null provider_mutual_family.expr = (value = 5, next_stmt = null)
+      seen  : provider_mutual_family.value_t
 
-      provider_mutual_family.bump_expr (owner);
-      seen = provider_mutual_family.read_expr (owner);
-      owner.value = seen;
+      provider_mutual_family.bump_expr (owner)
+      seen = provider_mutual_family.read_expr (owner)
+      owner.value = seen

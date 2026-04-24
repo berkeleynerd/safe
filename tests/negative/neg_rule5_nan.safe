@@ -9,13 +9,13 @@
 
 package nan_test
 
-   type temp is digits 6 range -100.0 to 100.0;
+   type temp is digits 6 range -100.0 to 100.0
 
    --  Produce_NaN: 0.0 / 0.0 is NaN. Assigning to Temp is a narrowing
    --  point where NaN is not allowed.
    function produce_nan returns temp
-      x : long_float = 0.0;
-      y : long_float = 0.0;
+      x : long_float = 0.0
+      y : long_float = 0.0
 
-      return temp (x / y);  -- ERROR: 0.0/0.0 = NaN, cannot narrow
+      return temp (x / y)  -- ERROR: 0.0/0.0 = NaN, cannot narrow
 

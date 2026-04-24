@@ -8,5 +8,5 @@ package task_return_test
    task worker
 
       loop
-         return;
+         return
 

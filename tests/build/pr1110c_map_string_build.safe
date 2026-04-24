@@ -1,40 +1,40 @@
 package pr1110c_map_string_build
 
    function seeded returns map of (string, string)
-      var values : map of (string, string);
+      var values : map of (string, string)
 
-      set (values, "ada", "Ada");
-      set (values, "bob", "Bob");
-      return values;
+      set (values, "ada", "Ada")
+      set (values, "bob", "Bob")
+      return values
 
    function lookup_text returns string
-      var found : optional string;
+      var found : optional string
 
       if found.present
-         return "none";
-      found = get (seeded, "bob");
+         return "none"
+      found = get (seeded, "bob")
       if found.present
-         return found.value;
+         return found.value
       else
-         return "none";
+         return "none"
 
    function removed_text returns string
-      var values : map of (string, string) = seeded;
-      var removed : optional string;
+      var values : map of (string, string) = seeded
+      var removed : optional string
 
       if removed.present
-         return "none";
-      removed = remove (values, "ada");
+         return "none"
+      removed = remove (values, "ada")
       if removed.present
          if values.length == 1
             if contains (values, "ada")
-               return "none";
+               return "none"
             else
-               return removed.value;
+               return removed.value
          else
-            return "none";
+            return "none"
       else
-         return "none";
+         return "none"
 
-   print (lookup_text);
-   print (removed_text);
+   print (lookup_text)
+   print (removed_text)

@@ -1,40 +1,40 @@
 package pr1110c_map_list_build
 
    function seeded returns map of (string, list of integer)
-      var values : map of (string, list of integer);
-      nums : list of integer = [1, 2, 3];
+      var values : map of (string, list of integer)
+      nums : list of integer = [1, 2, 3]
 
-      set (values, "Ada", nums);
-      return values;
+      set (values, "Ada", nums)
+      return values
 
    function stored_length returns integer
-      var found : optional list of integer;
+      var found : optional list of integer
 
       if found.present
-         return 0;
-      found = get (seeded, "Ada");
+         return 0
+      found = get (seeded, "Ada")
       if found.present
-         return found.value.length;
+         return found.value.length
       else
-         return 0;
+         return 0
 
    function removed_length returns integer
-      var values : map of (string, list of integer) = seeded;
-      var removed : optional list of integer;
+      var values : map of (string, list of integer) = seeded
+      var removed : optional list of integer
 
       if removed.present
-         return 0;
-      removed = remove (values, "Ada");
+         return 0
+      removed = remove (values, "Ada")
       if removed.present
          if values.length == 0
             if contains (values, "Ada")
-               return 0;
+               return 0
             else
-               return removed.value.length;
+               return removed.value.length
          else
-            return 0;
+            return 0
       else
-         return 0;
+         return 0
 
-   print (stored_length);
-   print (removed_length);
+   print (stored_length)
+   print (removed_length)

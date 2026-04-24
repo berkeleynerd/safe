@@ -6,10 +6,10 @@
 
 package constant_shadow_mutable
 
-   value : constant integer = 1;
+   value : constant integer = 1
 
    function update_local
 
-      var value : integer = 0;
-      value = 2;
+      var value : integer = 0
+      value = 2
 

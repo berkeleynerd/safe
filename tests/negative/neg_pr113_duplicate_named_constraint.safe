@@ -1,7 +1,7 @@
 package neg_pr113_duplicate_named_constraint
    type packet (kind : character = 'A', count : integer = 0) is
       record
-         value : integer;
+         value : integer
 
-   p : packet (kind = 'A', kind = 'B') = (value = 1);
+   p : packet (kind = 'A', kind = 'B') = (value = 1)
 

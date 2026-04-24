@@ -5,14 +5,14 @@
 package use_after_move_test
 
    type item is record
-      id    : integer;
-      count : integer;
-      next  : item;
+      id    : integer
+      count : integer
+      next  : item
 
    function read_after_move
-      source : not null item = (id = 1, count = 10, next = null);
-      target : item = null;
-      v      : integer;
+      source : not null item = (id = 1, count = 10, next = null)
+      target : item = null
+      v      : integer
 
-      target = source;
-      v = source.count;  -- ERROR: dereference of moved variable
+      target = source
+      v = source.count  -- ERROR: dereference of moved variable

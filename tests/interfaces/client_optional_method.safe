@@ -1,8 +1,8 @@
-with provider_optional;
+with provider_optional
 
 package client_optional_method
 
    function total returns integer
-      value : optional integer = provider_optional.maybe_count (true);
+      value : optional integer = provider_optional.maybe_count (true)
 
-      return value.unwrap_or_zero ();
+      return value.unwrap_or_zero ()

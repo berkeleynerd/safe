@@ -6,20 +6,20 @@
 
 package ownership_borrow
 
-   subtype data_x is integer (0 to 100);
-   subtype data_y is integer (0 to 500);
+   subtype data_x is integer (0 to 100)
+   subtype data_y is integer (0 to 500)
 
    type data is record
-      x : data_x;
-      y : data_y;
-      next : data;
+      x : data_x
+      y : data_y
+      next : data
 
    function modify_via_borrow (ref : mut data)
-      ref.x = 11;
-      ref.y = 40;
+      ref.x = 11
+      ref.y = 40
 
    function use_borrow
-      owner : not null data = (x = 10, y = 20, next = null);
+      owner : not null data = (x = 10, y = 20, next = null)
 
-      modify_via_borrow (owner);
-      owner.x = 16;
+      modify_via_borrow (owner)
+      owner.x = 16

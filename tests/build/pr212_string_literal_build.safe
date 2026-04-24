@@ -1,26 +1,26 @@
 package pr212_string_literal_build
 
-   subtype slot is integer (1 to 2);
-   type name_table is array (slot) of string (5);
+   subtype slot is integer (1 to 2)
+   type name_table is array (slot) of string (5)
 
    function same_digit (digit : string) returns boolean
-      return digit == "7";
+      return digit == "7"
 
    function same_name (name : string (5)) returns boolean
-      return name == "alpha";
+      return name == "alpha"
 
-   names : name_table;
-   score : integer = 0;
+   names : name_table
+   score : integer = 0
 
-   names (1) = "alpha";
+   names (1) = "alpha"
 
    if same_digit ("7")
-      score = score + 1;
+      score = score + 1
 
    if same_name ("alpha")
-      score = score + 10;
+      score = score + 10
 
    if names (1) == "alpha"
-      score = score + 100;
+      score = score + 100
 
    print (score)

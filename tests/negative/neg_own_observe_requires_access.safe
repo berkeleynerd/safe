@@ -5,10 +5,10 @@
 package observe_requires_access_test
 
    type config is record
-      rate : integer;
-      next : config;
+      rate : integer
+      next : config
 
    function bad_observe
-      owner : not null config = (rate = 100, next = null);
+      owner : not null config = (rate = 100, next = null)
 
-      return owner.all.rate;
+      return owner.all.rate

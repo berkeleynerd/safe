@@ -1,6 +1,6 @@
-name : string (5) = "hello";
-prefix : string (5) = name (1 to 2);
-initial : string (1) = 'h';
+name : string (5) = "hello"
+prefix : string (5) = name (1 to 2)
+initial : string (1) = 'h'
 
 if prefix == "he" and initial == "h"
    print ("ok")

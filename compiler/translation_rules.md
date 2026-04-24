@@ -75,6 +75,10 @@ The following table maps each Safe construct to its Ada/SPARK emission pattern. 
 | Forward declaration | Subprogram spec in `.ads` | SAFE@468cf72:spec/03-single-file-packages.md#3.2.3.p11 | AST: `SubprogramDeclaration`. Body in `.adb` |
 | `is separate` (subunit stub) | `is separate;` | SAFE@468cf72:spec/08-syntax-summary.md#8.9 | AST: `SubunitStub`. Direct pass-through |
 
+### 1.1 Named Value Arguments
+
+`ParameterAssociation.formal_name` is populated for named value-argument source forms. The resolver binds those associations to the callee declaration and rewrites arguments into positional declaration order before MIR construction, Ada emission, and proof generation. Built-in calls and generic type actuals remain positional-only.
+
 ---
 
 ## 2. Dot-to-Tick Notation

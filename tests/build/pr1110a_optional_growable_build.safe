@@ -3,13 +3,13 @@ package pr1110a_optional_growable_build
    function numbers (flag : boolean) returns optional array of integer
 
       if flag
-         return some ([1, 2, 3]);
+         return some ([1, 2, 3])
       else
-         return none;
+         return none
 
-   values : optional array of integer = numbers (true);
+   values : optional array of integer = numbers (true)
 
    if values.present
-      print (values.value.length);
+      print (values.value.length)
    else
-      print (0);
+      print (0)

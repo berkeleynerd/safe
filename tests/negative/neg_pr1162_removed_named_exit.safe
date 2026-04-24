@@ -3,5 +3,5 @@ package neg_pr1162_removed_named_exit
    function build returns integer
 
       loop
-         exit outer;
-      return 0;
+         exit outer
+      return 0

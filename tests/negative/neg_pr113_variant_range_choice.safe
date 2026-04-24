@@ -3,5 +3,5 @@ package neg_pr113_variant_range_choice
       record
          case count
             when 0 to 3
-               value : integer;
+               value : integer
 

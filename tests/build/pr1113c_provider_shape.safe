@@ -1,6 +1,6 @@
 package pr1113c_provider_shape
 
-   public type shape is circle (radius : integer) or idle;
+   public type shape is circle (radius : integer) or idle
 
    function score (value : shape) returns integer
 
@@ -10,5 +10,5 @@ package pr1113c_provider_shape
          when idle
             return 0
 
-   print (score (circle (3)));
-   print (score (idle));
+   print (score (circle (3)))
+   print (score (idle))

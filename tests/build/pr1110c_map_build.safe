@@ -1,53 +1,53 @@
 package pr1110c_map_build
 
    function seeded returns map of (integer, integer)
-      var values : map of (integer, integer);
+      var values : map of (integer, integer)
 
-      set (values, 1, 10);
-      set (values, 2, 20);
-      set (values, 1, 15);
-      return values;
+      set (values, 1, 10)
+      set (values, 2, 20)
+      set (values, 1, 15)
+      return values
 
    function updated_value returns integer
-      var found : optional integer;
+      var found : optional integer
 
-      found = get (seeded, 1);
+      found = get (seeded, 1)
       if found.present
-         return found.value;
+         return found.value
       else
-         return 0;
+         return 0
 
    function removed_value returns integer
-      var values : map of (integer, integer) = seeded;
-      var removed : optional integer;
+      var values : map of (integer, integer) = seeded
+      var removed : optional integer
 
-      removed = remove (values, 2);
+      removed = remove (values, 2)
       if removed.present and then values.length == 1 and then not contains (values, 2)
-         return removed.value;
+         return removed.value
       else
-         return 0;
+         return 0
 
    function remaining_length returns integer
-      var values : map of (integer, integer) = seeded;
-      var removed : optional integer;
+      var values : map of (integer, integer) = seeded
+      var removed : optional integer
 
-      removed = remove (values, 2);
+      removed = remove (values, 2)
       if removed.present and then not contains (values, 2)
-         return values.length;
+         return values.length
       else
-         return 0;
+         return 0
 
    function missing_length returns integer
-      var values : map of (integer, integer) = seeded;
-      var removed : optional integer;
+      var values : map of (integer, integer) = seeded
+      var removed : optional integer
 
-      removed = remove (values, 3);
+      removed = remove (values, 3)
       if removed.present
-         return 0;
+         return 0
       else
-         return values.length;
+         return values.length
 
-   print (updated_value);
-   print (removed_value);
-   print (remaining_length);
-   print (missing_length);
+   print (updated_value)
+   print (removed_value)
+   print (remaining_length)
+   print (missing_length)

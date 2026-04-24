@@ -5,7 +5,7 @@
 package channel_package_not_withd_test
 
    task sender
-      sent : boolean = false;
+      sent : boolean = false
 
       loop
-         send missing_package.data_ch, 1, sent;
+         send missing_package.data_ch, 1, sent

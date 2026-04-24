@@ -7,15 +7,15 @@ package pr113_tuple_destructure
    function lookup (flag : boolean) returns (boolean, integer)
 
       if flag
-         return (true, 7);
+         return (true, 7)
 
-      return (false, 0);
+      return (false, 0)
 
    function read_second returns integer
-      direct : (boolean, integer) = lookup (false);
+      direct : (boolean, integer) = lookup (false)
 
-      (found, value) : (boolean, integer) = lookup (true);
+      (found, value) : (boolean, integer) = lookup (true)
       if found
-         return value;
+         return value
 
-      return direct.2;
+      return direct.2

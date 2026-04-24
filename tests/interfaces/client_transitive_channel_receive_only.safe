@@ -1,10 +1,10 @@
-with provider_transitive_channel;
+with provider_transitive_channel
 
 package client_transitive_channel_receive_only
 
-   subtype marker is integer (0 to 1);
+   subtype marker is integer (0 to 1)
 
-   channel other_ch : marker capacity 1;
+   channel other_ch : marker capacity 1
 
    task caller with priority = 8, receives other_ch
 

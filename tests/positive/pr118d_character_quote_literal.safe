@@ -4,5 +4,5 @@
 
 package pr118d_character_quote_literal
 
-   quote : string = '"';
-   same  : boolean = quote == '"';
+   quote : string = '"'
+   same  : boolean = quote == '"'

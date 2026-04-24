@@ -1,6 +1,6 @@
 package neg_pr1113a_constructor_name_collision
 
    function circle returns integer
-      return 1;
+      return 1
 
-   type shape is circle (radius : integer) or idle;
+   type shape is circle (radius : integer) or idle

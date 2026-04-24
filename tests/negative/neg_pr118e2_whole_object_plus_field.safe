@@ -4,16 +4,16 @@
 
 package neg_pr118e2_whole_object_plus_field
 
-   subtype count is integer (0 to 20);
+   subtype count is integer (0 to 20)
 
    type node is record
-      value : count;
-      next  : node;
+      value : count
+      next  : node
 
    function touch (left : mut node; right : node)
-      return;
+      return
 
    function run
-      owner : not null node = (value = 1, next = (value = 2, next = null));
+      owner : not null node = (value = 1, next = (value = 2, next = null))
 
-      touch (owner, owner.next);  -- ERROR: whole-object and descendant overlap
+      touch (owner, owner.next)  -- ERROR: whole-object and descendant overlap

@@ -1,12 +1,12 @@
 package pr118d_nested_growable_array_literal_build
 
-   type row is array of integer;
-   type matrix is array of row;
+   type row is array of integer
+   type matrix is array of row
 
-   values : matrix = [[10, 20], [30, 40]];
-   total : integer = 0;
+   values : matrix = [[10, 20], [30, 40]]
+   total : integer = 0
 
    for current of values
-      total = total + current.length;
+      total = total + current.length
 
    print (total)

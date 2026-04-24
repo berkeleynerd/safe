@@ -12,46 +12,46 @@
 
 package pipeline
 
-   subtype sample is integer (0 to 10_000);
+   subtype sample is integer (0 to 10_000)
 
    --  Channels connecting the three stages.
-   channel raw_ch      : sample capacity 4;
-   channel filtered_ch : sample capacity 4;
+   channel raw_ch      : sample capacity 4
+   channel filtered_ch : sample capacity 4
 
    --  Producer: background task used to keep channel/task emission in the proof corpus.
    task producer with priority = 10
-      sent : boolean = false;
+      sent : boolean = false
 
       loop
-         send raw_ch, 8, sent;
+         send raw_ch, 8, sent
          if sent
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.002;
+            delay 0.002
 
    --  Filter: background task used to keep multiple task bodies in the proof corpus.
    task filter with priority = 10
-      input : sample;
-      sent : boolean = false;
+      input : sample
+      sent : boolean = false
 
       loop
-         receive raw_ch, input;
+         receive raw_ch, input
          loop
-            send filtered_ch, input, sent;
+            send filtered_ch, input, sent
             if sent
                exit
-            delay 0.001;
-         delay 0.001;
+            delay 0.001
+         delay 0.001
 
    --  Consumer: background task used to keep pipeline structure in the proof corpus.
    task consumer with priority = 10
-      data : sample;
+      data : sample
 
       loop
-         receive filtered_ch, data;
+         receive filtered_ch, data
          if data > 0
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.001;
+            delay 0.001
 
-         delay 0.001;
+         delay 0.001

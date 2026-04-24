@@ -1,9 +1,9 @@
 package neg_pr1116_nominal_cross_family_arith
 
-   type user_id is new integer (0 to 1000);
-   type group_id is new integer (0 to 1000);
+   type user_id is new integer (0 to 1000)
+   type group_id is new integer (0 to 1000)
 
-   user : user_id = 42;
-   group : group_id = group_id (user);
+   user : user_id = 42
+   group : group_id = group_id (user)
 
-   bad : user_id = user + group;
+   bad : user_id = user + group

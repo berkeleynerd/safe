@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_result_mutated.safe:37:17: error: access to variant field 'value' requires established discriminant 'ok'
   |
-  | 37 |          return r.value;          -- REJECTED: R.OK no longer established
+  | 37 |          return r.value          -- REJECTED: R.OK no longer established
   |    |                 ^~~~~~~
   |
   note: the discriminant fact for 'r' was invalidated by assignment or an out/in out call.

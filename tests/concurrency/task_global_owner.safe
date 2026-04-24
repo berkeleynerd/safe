@@ -6,7 +6,7 @@
 
 package task_global_owner
 
-   subtype counter is integer (0 to 100);
+   subtype counter is integer (0 to 100)
 
    function bump (value : counter) returns counter
 
@@ -16,7 +16,7 @@ package task_global_owner
          return 0
 
    task worker
-      local_count : counter = 0;
+      local_count : counter = 0
 
       loop
-         local_count = bump (local_count);
+         local_count = bump (local_count)

@@ -5,8 +5,8 @@
 
 package channel_indefinite_test
 
-   subtype index is integer (1 to 8);
-   type buffer is array (index range <>) of integer;
+   subtype index is integer (1 to 8)
+   type buffer is array (index range <>) of integer
 
-   channel data_ch : buffer capacity 1;
+   channel data_ch : buffer capacity 1
 

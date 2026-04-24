@@ -1,6 +1,6 @@
 package pr118c_binary_shift
 
-   type byte is binary (8);
+   type byte is binary (8)
 
-   shifted : byte = byte (128) >> 2;
+   shifted : byte = byte (128) >> 2
 

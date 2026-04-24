@@ -1,16 +1,16 @@
 package provider_shared_ceiling
 
    public type settings is record
-      count : integer;
+      count : integer
 
-   public shared cfg : settings;
+   public shared cfg : settings
 
    task worker with priority = 12
-      done : boolean = false;
+      done : boolean = false
 
       loop
          if not done
-            cfg.count = 1;
-            done = true;
+            cfg.count = 1
+            done = true
          else
-            delay 0.01;
+            delay 0.01

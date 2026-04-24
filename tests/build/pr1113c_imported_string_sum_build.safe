@@ -1,8 +1,8 @@
-with pr1113c_provider_message;
+with pr1113c_provider_message
 
 package pr1113c_imported_string_sum_build
 
-   value : pr1113c_provider_message.message = pr1113c_provider_message.text ("Ada");
+   value : pr1113c_provider_message.message = pr1113c_provider_message.text ("Ada")
 
    function render (item : pr1113c_provider_message.message) returns string
 
@@ -12,4 +12,4 @@ package pr1113c_imported_string_sum_build
          when idle
             return "idle"
 
-   print (render (value));
+   print (render (value))

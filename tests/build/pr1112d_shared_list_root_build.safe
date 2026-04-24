@@ -1,32 +1,32 @@
 package pr1112d_shared_list_root_build
 
-   shared values : list of integer;
-   snapshot : list of integer;
-   replacement : list of integer = [8, 9];
-   last : optional integer;
+   shared values : list of integer
+   snapshot : list of integer
+   replacement : list of integer = [8, 9]
+   last : optional integer
 
    function seed returns list of integer
-      var initial : list of integer = [1, 2];
+      var initial : list of integer = [1, 2]
 
-      return initial;
+      return initial
 
    function unwrap (item : optional integer) returns integer
       if item.present
-         return item.value;
+         return item.value
       else
-         return -1;
+         return -1
 
-   values = seed ();
-   append (values, 3);
-   values.append (4);
+   values = seed ()
+   append (values, 3)
+   values.append (4)
 
-   print (values.length);
-   last = values.pop_last ();
-   print (unwrap (last));
+   print (values.length)
+   last = values.pop_last ()
+   print (unwrap (last))
 
-   snapshot = values;
-   print (snapshot.length);
+   snapshot = values
+   print (snapshot.length)
 
-   values = replacement;
-   snapshot = values;
-   print (snapshot (2));
+   values = replacement
+   snapshot = values
+   print (snapshot (2))

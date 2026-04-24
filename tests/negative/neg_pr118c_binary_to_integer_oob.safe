@@ -1,5 +1,5 @@
 package neg_pr118c_binary_to_integer_oob
 
    function bad returns integer
-      return integer (binary (64) (9223372036854775808));
+      return integer (binary (64) (9223372036854775808))
 

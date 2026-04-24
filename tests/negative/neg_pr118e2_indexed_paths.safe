@@ -5,21 +5,21 @@
 
 package neg_pr118e2_indexed_paths
 
-   subtype count is integer (0 to 20);
-   subtype slot is integer (1 to 2);
+   subtype count is integer (0 to 20)
+   subtype slot is integer (1 to 2)
 
    type node is record
-      value : count;
-      next  : node;
+      value : count
+      next  : node
 
-   type row is array (slot) of node;
+   type row is array (slot) of node
 
    function touch (left : mut node; right : node)
-      return;
+      return
 
    function run
-      owner : row = ((value = 1, next = null), (value = 2, next = null));
-      left_index : slot = 1;
-      right_index : slot = 2;
+      owner : row = ((value = 1, next = null), (value = 2, next = null))
+      left_index : slot = 1
+      right_index : slot = 2
 
-      touch (owner (left_index), owner (right_index));
+      touch (owner (left_index), owner (right_index))

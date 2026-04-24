@@ -12,45 +12,45 @@
 
 package channel_pipeline_compute
 
-   subtype sample is integer (0 to 100);
-   subtype running_total is integer (0 to 1000);
+   subtype sample is integer (0 to 100)
+   subtype running_total is integer (0 to 1000)
 
-   channel raw_ch      : sample capacity 2;
-   channel filtered_ch : sample capacity 2;
+   channel raw_ch      : sample capacity 2
+   channel filtered_ch : sample capacity 2
 
    task producer with priority = 10
-      seed : sample = 8;
-      sent : boolean = false;
+      seed : sample = 8
+      sent : boolean = false
 
       loop
-         send raw_ch, seed, sent;
+         send raw_ch, seed, sent
          if sent
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.002;
+            delay 0.002
 
    task filter with priority = 10
-      input  : sample;
-      output : sample;
-      sent   : boolean = false;
+      input  : sample
+      output : sample
+      sent   : boolean = false
 
       loop
-         receive raw_ch, input;
-         output = input / 2 + 1;
+         receive raw_ch, input
+         output = input / 2 + 1
          loop
-            send filtered_ch, output, sent;
+            send filtered_ch, output, sent
             if sent
                exit
-            delay 0.001;
+            delay 0.001
 
    task consumer with priority = 10
-      data     : sample;
-      adjusted : running_total;
+      data     : sample
+      adjusted : running_total
 
       loop
-         receive filtered_ch, data;
-         adjusted = running_total (running_total (data) + 1);
+         receive filtered_ch, data
+         adjusted = running_total (running_total (data) + 1)
          if running_total (adjusted) > running_total (50)
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.002;
+            delay 0.002

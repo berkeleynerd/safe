@@ -5,8 +5,8 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_double_move.safe:17:7: error: use of moved value 'source'
   |
-  | 17 |       target2 = source;  -- ERROR: Source has already been moved
-  |    |       ^~~~~~~~~~~~~~~~~
+  | 17 |       target2 = source  -- ERROR: Source has already been moved
+  |    |       ^~~~~~~~~~~~~~~~
   |
   note: the source was already moved earlier on this path.
   note: rule: Safe §2.3.2 (move semantics)

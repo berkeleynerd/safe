@@ -8,14 +8,14 @@
 package uninitialized_test
 
    type rec is record
-      x : integer;
+      x : integer
 
-   type rec_ptr is access rec;
+   type rec_ptr is access rec
 
    --  Read_Uninitialized: declares P (default null), then dereferences.
    function read_uninitialized returns integer
-      p : rec_ptr;
+      p : rec_ptr
 
       --  P is null (default for access types).
-      return p.all.x;  -- ERROR: P is null (uninitialized = null)
+      return p.all.x  -- ERROR: P is null (uninitialized = null)
 

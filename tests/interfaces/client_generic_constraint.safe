@@ -1,12 +1,12 @@
-with provider_printable;
+with provider_printable
 
 package client_generic_constraint
 
    function render of t with t: provider_printable.printable (item : t) returns string
-      return item.label();
+      return item.label()
 
    function total returns integer
-      item : provider_printable.widget = (text = "Bob");
-      text : string = render of provider_printable.widget (item);
+      item : provider_printable.widget = (text = "Bob")
+      text : string = render of provider_printable.widget (item)
 
-      return text.length;
+      return text.length

@@ -4,15 +4,15 @@
 
 package pr1162_empty_select_delay_arm
 
-   subtype message is integer (0 to 10);
+   subtype message is integer (0 to 10)
 
-   channel msg_ch : message capacity 1;
+   channel msg_ch : message capacity 1
 
    task poller
 
       loop
          select
             when item : message from msg_ch
-               delay 0.001;
+               delay 0.001
          or
             delay 0.05

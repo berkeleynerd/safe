@@ -1,21 +1,21 @@
 package pr1111b_interface_local
 
    type printable is interface
-      function (self : printable) label returns string;
+      function (self : printable) label returns string
 
    type widget is record
-      text : string;
+      text : string
 
    function (self : widget) label returns string
-      return self.text;
+      return self.text
 
    function render (item : printable) returns string
-      return item.label();
+      return item.label()
 
    function total returns integer
-      item : widget = (text = "Ada");
+      item : widget = (text = "Ada")
 
       if render (item) == "Ada"
-         return 1;
+         return 1
       else
-         return 0;
+         return 0

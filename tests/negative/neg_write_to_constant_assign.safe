@@ -5,7 +5,7 @@
 package neg_write_to_constant_assign
 
    function run
-      limit : constant integer = 1;
+      limit : constant integer = 1
 
-      limit = 2;
+      limit = 2
 

@@ -1,5 +1,5 @@
-with provider_sum_shape;
+with provider_sum_shape
 
 package client_sum_shape_bare_constructor
 
-   current : provider_sum_shape.shape = circle (4);
+   current : provider_sum_shape.shape = circle (4)

@@ -5,10 +5,10 @@
 package ownership_early_return
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function read_and_exit returns integer
-      outer : not null payload = (value = 7, next = null);
-      inner : not null payload = (value = 9, next = null);
-      return outer.value;
+      outer : not null payload = (value = 7, next = null)
+      inner : not null payload = (value = 9, next = null)
+      return outer.value

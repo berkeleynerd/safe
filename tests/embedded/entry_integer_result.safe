@@ -2,7 +2,7 @@
 -- Description: Packageless entry units elaborate top-level statements before execution.
 -- Expected embedded result: 42
 
-subtype answer is integer (0 to 42);
+subtype answer is integer (0 to 42)
 
-result : answer = 40;
+result : answer = 40
 result = result + 2

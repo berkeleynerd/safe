@@ -5,13 +5,13 @@
 package ownership_inout
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function consume (ref : mut payload)
-      ref.value = 6;
+      ref.value = 6
 
    function use_inout
-      owner : not null payload = (value = 5, next = null);
+      owner : not null payload = (value = 5, next = null)
 
-      consume (owner);
+      consume (owner)

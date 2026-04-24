@@ -4,11 +4,11 @@
 
 package neg_pr118b1_select_contract
 
-   subtype message is integer (0 to 10);
+   subtype message is integer (0 to 10)
 
-   channel high_ch : message capacity 1;
-   channel low_ch : message capacity 1;
-   last_value : message = 0;
+   channel high_ch : message capacity 1
+   channel low_ch : message capacity 1
+   last_value : message = 0
 
    task worker with priority = 10, receives low_ch
 

@@ -1,12 +1,12 @@
 package pr118d_growable_field_runtime_build
 
-   type int_list is array of integer;
+   type int_list is array of integer
 
    type payload is record
-      values : int_list;
+      values : int_list
 
-   data : payload;
+   data : payload
 
-   data.values = [10, 20];
+   data.values = [10, 20]
 
    print (data.values (2))

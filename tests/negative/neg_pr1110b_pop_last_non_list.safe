@@ -5,5 +5,5 @@
 
 package neg_pr1110b_pop_last_non_list
 
-   value : integer = 4;
-   last : optional integer = pop_last (value);
+   value : integer = 4
+   last : optional integer = pop_last (value)

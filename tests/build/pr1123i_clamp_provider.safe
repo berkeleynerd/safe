@@ -2,7 +2,7 @@ package pr1123i_clamp_provider
 
    public function clamp (value : integer; lo : integer; hi : integer) returns integer
       if value < lo
-         return lo;
+         return lo
       else if value > hi
-         return hi;
+         return hi
       return value

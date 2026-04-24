@@ -4,15 +4,15 @@
 
 package delay_scope_result
 
-   subtype message is integer (0 to 10);
-   subtype total_count is integer (0 to 2);
-   public subtype result_value is total_count;
+   subtype message is integer (0 to 10)
+   subtype total_count is integer (0 to 2)
+   public subtype result_value is total_count
 
-   channel data_ch : message capacity 1;
-   public channel result_ch : result_value capacity 1;
+   channel data_ch : message capacity 1
+   public channel result_ch : result_value capacity 1
 
    task worker with priority = 10, sends result_ch
-      sent : boolean = false;
+      sent : boolean = false
       loop
          select
             when item : message from data_ch
@@ -24,8 +24,8 @@ package delay_scope_result
                delay 0.05
          or
             delay 0.01
-               temp : integer = 1;
-               temp = temp + 1;
+               temp : integer = 1
+               temp = temp + 1
                loop
                   send result_ch, total_count (temp), sent
                   if sent

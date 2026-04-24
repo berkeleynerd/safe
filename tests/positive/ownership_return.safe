@@ -5,13 +5,13 @@
 package ownership_return
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function build returns not null payload
-      source : not null payload = (value = 42, next = null);
+      source : not null payload = (value = 42, next = null)
 
-      return source;
+      return source
 
    function use_return
-      target : not null payload = build ();
+      target : not null payload = build ()

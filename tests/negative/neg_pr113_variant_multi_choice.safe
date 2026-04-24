@@ -3,5 +3,5 @@ package neg_pr113_variant_multi_choice
       record
          case kind
             when 'A', 'B'
-               value : integer;
+               value : integer
 

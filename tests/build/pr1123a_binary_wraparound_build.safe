@@ -1,8 +1,8 @@
 package pr1123a_binary_wraparound_build
 
    function wraparound_ok returns integer
-      var counter : binary (8) = binary (8) (250);
-      var step : binary (8) = binary (8) (10);
+      var counter : binary (8) = binary (8) (250)
+      var step : binary (8) = binary (8) (10)
 
       counter = counter + step
 

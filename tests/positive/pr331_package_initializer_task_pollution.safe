@@ -4,9 +4,9 @@
 
 package pr331_package_initializer_task_pollution
 
-   seed : integer = 1;
-   snapshot : integer = seed;
+   seed : integer = 1
+   snapshot : integer = seed
 
    task worker
       loop
-         delay 0.01;
+         delay 0.01

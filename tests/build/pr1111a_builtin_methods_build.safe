@@ -1,63 +1,63 @@
 package pr1111a_builtin_methods_build
 
    function last_value returns integer
-      var values : list of integer = [10, 20];
-      var last : optional integer;
+      var values : list of integer = [10, 20]
+      var last : optional integer
 
-      values.append (30);
-      last = values.pop_last ();
+      values.append (30)
+      last = values.pop_last ()
       if last.present and then values.length == 2
-         return last.value;
+         return last.value
       else
-         return 0;
+         return 0
 
    function updated_value returns integer
-      var scores : map of (integer, integer);
-      found : optional integer;
+      var scores : map of (integer, integer)
+      found : optional integer
 
-      scores.set (1, 5);
-      scores.set (1, 15);
-      scores.set (2, 20);
-      found = scores.get (1);
+      scores.set (1, 5)
+      scores.set (1, 15)
+      scores.set (2, 20)
+      found = scores.get (1)
       if found.present
-         return found.value;
+         return found.value
       else
-         return 0;
+         return 0
 
    function removed_value returns integer
-      var scores : map of (integer, integer);
-      removed : optional integer;
+      var scores : map of (integer, integer)
+      removed : optional integer
 
-      scores.set (1, 15);
-      scores.set (2, 20);
-      removed = scores.remove (2);
+      scores.set (1, 15)
+      scores.set (2, 20)
+      removed = scores.remove (2)
       if removed.present and then scores.length == 1 and then not scores.contains (2)
-         return removed.value;
+         return removed.value
       else
-         return 0;
+         return 0
 
    function remaining_length returns integer
-      var values : list of integer = [10, 20];
-      var removed : optional integer;
+      var values : list of integer = [10, 20]
+      var removed : optional integer
 
-      values.append (30);
-      removed = values.pop_last ();
+      values.append (30)
+      removed = values.pop_last ()
       if removed.present
-         return values.length;
+         return values.length
       else
-         return 0;
+         return 0
 
    function contains_flag returns integer
-      var scores : map of (integer, integer);
+      var scores : map of (integer, integer)
 
-      scores.set (1, 15);
+      scores.set (1, 15)
       if scores.contains (1)
-         return 1;
+         return 1
       else
-         return 0;
+         return 0
 
-   print (last_value);
-   print (updated_value);
-   print (removed_value);
-   print (remaining_length);
-   print (contains_flag);
+   print (last_value)
+   print (updated_value)
+   print (removed_value)
+   print (remaining_length)
+   print (contains_flag)

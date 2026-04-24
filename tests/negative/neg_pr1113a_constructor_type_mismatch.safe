@@ -1,5 +1,5 @@
 package neg_pr1113a_constructor_type_mismatch
 
-   type shape is circle (radius : integer) or idle;
+   type shape is circle (radius : integer) or idle
 
-   current : shape = circle ("bad");
+   current : shape = circle ("bad")

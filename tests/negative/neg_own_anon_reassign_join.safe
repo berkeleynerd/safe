@@ -5,7 +5,7 @@
 package anonymous_reassign_join_test
 
    type data is record
-      value : integer;
+      value : integer
 
    function build returns data
-      return new ((value = 1) as data);
+      return new ((value = 1) as data)

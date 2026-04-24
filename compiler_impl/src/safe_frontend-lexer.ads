@@ -19,9 +19,10 @@ package Safe_Frontend.Lexer is
       End_Of_File);
 
    type Token is record
-      Kind   : Token_Kind := End_Of_File;
-      Lexeme : FT.UString := FT.To_UString ("");
-      Span   : FT.Source_Span := FT.Null_Span;
+      Kind         : Token_Kind := End_Of_File;
+      Lexeme       : FT.UString := FT.To_UString ("");
+      Span         : FT.Source_Span := FT.Null_Span;
+      Logical_Line : Positive := 1;
    end record;
 
    package Token_Vectors is new Ada.Containers.Indefinite_Vectors

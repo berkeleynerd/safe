@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr118c1_print_bare_identifier.safe:3:22: error: `print` is a statement, not an expression
   |
-  | 3 |    value : integer = print;
+  | 3 |    value : integer = print
   |   |                      ^~~~~
   |
 ------------------------------------------------------------------------

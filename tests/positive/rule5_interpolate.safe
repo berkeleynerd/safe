@@ -8,8 +8,8 @@
 
 package safe_interpolate
 
-   type param is digits 6 range 0.0 to 1.0;
-   type value is digits 6 range -1000.0 to 1000.0;
+   type param is digits 6 range 0.0 to 1.0
+   type value is digits 6 range -1000.0 to 1000.0
 
    --  Lerp: linear interpolation A + T * (B - A).
    --  T in 0.0..1.0, A and B in -1000..1000.
@@ -19,12 +19,12 @@ package safe_interpolate
    --  but since T in [0,1], result is in [min(A,B)..max(A,B)].
    --  Result is finite and within Value range.
    function lerp (a, b : value; t : param) returns value
-      result : long_float;
+      result : long_float
 
       result = (
          long_float (a)
          + long_float (t) * (long_float (b) - long_float (a))
-      );
+      )
       --  Narrowing point (return): result is in -1000..1000 (bounded).
-      return value (result);
+      return value (result)
 

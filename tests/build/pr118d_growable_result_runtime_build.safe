@@ -1,11 +1,11 @@
 package pr118d_growable_result_runtime_build
 
-   type int_list is array of integer;
+   type int_list is array of integer
 
    function prefix returns int_list
-      values : int_list = [1, 2];
-      return values;
+      values : int_list = [1, 2]
+      return values
 
-   values : int_list = prefix ();
+   values : int_list = prefix ()
 
    print (values.length)

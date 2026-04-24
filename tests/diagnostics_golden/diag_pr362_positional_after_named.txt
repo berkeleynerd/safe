@@ -1,0 +1,11 @@
+Diagnostics Golden: PR362 Positional After Named Argument
+Source: tests/negative/neg_pr362_positional_after_named.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr362_positional_after_named.safe:9:34: error: named and positional arguments cannot be mixed in one call
+  |
+  | 9 |       return combine (1, right = 2)
+  |   |                                  ^
+  |
+------------------------------------------------------------------------

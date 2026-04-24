@@ -4,20 +4,20 @@
 
 package pr118e2_disjoint_mut_borrow_fields
 
-   subtype count is integer (0 to 20);
+   subtype count is integer (0 to 20)
 
    type cell is record
-      value : count;
+      value : count
 
    type pair is record
-      left  : cell;
-      right : cell;
+      left  : cell
+      right : cell
 
    function bump_left_if_right_present (left : mut cell; right : cell)
       if right.value > 0
-         left.value = 8;
+         left.value = 8
 
    function run
-      owner : pair = (left = (value = 4), right = (value = 7));
+      owner : pair = (left = (value = 4), right = (value = 7))
 
-      bump_left_if_right_present (owner.left, owner.right);
+      bump_left_if_right_present (owner.left, owner.right)

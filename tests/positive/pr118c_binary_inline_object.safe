@@ -1,5 +1,5 @@
 package pr118c_binary_inline_object
 
-   value : binary (8) = binary (8) (255);
-   mask : binary (8) = binary (8) (15);
+   value : binary (8) = binary (8) (255)
+   mask : binary (8) = binary (8) (15)
 

@@ -4,25 +4,25 @@
 
 package pr118i_enum_basics
 
-   type color is (red, green, blue);
+   type color is (red, green, blue)
 
-   first_color : color = color.first;
-   last_color : color = color.last;
-   current : color = green;
-   score : integer = 0;
+   first_color : color = color.first
+   last_color : color = color.last
+   current : color = green
+   score : integer = 0
 
    if first_color < current
-      score = score + 1;
+      score = score + 1
 
    if current < last_color
-      score = score + 10;
+      score = score + 10
 
    case current
       when red
-         score = score + 100;
+         score = score + 100
       when green
-         score = score + 1_000;
+         score = score + 1_000
       when others
-         score = score + 10_000;
+         score = score + 10_000
 
    print (current)

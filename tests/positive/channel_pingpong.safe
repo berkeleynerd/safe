@@ -11,41 +11,41 @@
 
 package ping_pong
 
-   subtype message is integer (0 to 1000);
+   subtype message is integer (0 to 1000)
 
    --  Two channels, each with capacity 1 (bounded FIFO).
-   channel ping_ch : message capacity 1;
-   channel pong_ch : message capacity 1;
+   channel ping_ch : message capacity 1
+   channel pong_ch : message capacity 1
 
    --  Ping_Task: background task used to keep task emission in the proof corpus.
    task ping_task with priority = 10
-      reply : message;
-      sent  : boolean = false;
+      reply : message
+      sent  : boolean = false
 
       loop
          loop
-            send ping_ch, 7, sent;
+            send ping_ch, 7, sent
             if sent
                exit
-            delay 0.001;
-         receive pong_ch, reply;
+            delay 0.001
+         receive pong_ch, reply
          if reply > 0
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.001;
+            delay 0.001
 
-         delay 0.001;
+         delay 0.001
 
    --  Pong_Task: background task used to keep multiple task bodies in the proof corpus.
    task pong_task with priority = 10
-      received : message;
-      sent     : boolean = false;
+      received : message
+      sent     : boolean = false
 
       loop
-         receive ping_ch, received;
+         receive ping_ch, received
          loop
-            send pong_ch, received, sent;
+            send pong_ch, received, sent
             if sent
                exit
-            delay 0.001;
-         delay 0.001;
+            delay 0.001
+         delay 0.001

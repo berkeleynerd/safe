@@ -2,4 +2,4 @@ package neg_pr1162_removed_null_statement
 
    function consume
 
-      null;
+      null

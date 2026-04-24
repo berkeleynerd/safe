@@ -1,3 +1,3 @@
 package neg_pr1113a_duplicate_payload_field
 
-   type shape is circle (radius : integer; radius : integer) or idle;
+   type shape is circle (radius : integer; radius : integer) or idle

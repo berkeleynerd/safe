@@ -1,30 +1,30 @@
 package pr1112d_shared_growable_root_build
 
-   shared data : array of integer;
-   snapshot : array of integer;
-   replacement : array of integer = [9, 10];
-   last : optional integer;
+   shared data : array of integer
+   snapshot : array of integer
+   replacement : array of integer = [9, 10]
+   last : optional integer
 
    function seed returns array of integer
-      var initial : array of integer = [5];
+      var initial : array of integer = [5]
 
-      return initial;
+      return initial
 
    function unwrap (item : optional integer) returns integer
       if item.present
-         return item.value;
+         return item.value
       else
-         return -1;
+         return -1
 
-   data = seed ();
-   append (data, 6);
-   data.append (7);
+   data = seed ()
+   append (data, 6)
+   data.append (7)
 
-   print (data.length);
-   last = data.pop_last ();
-   print (unwrap (last));
+   print (data.length)
+   last = data.pop_last ()
+   print (unwrap (last))
 
-   data = replacement;
-   snapshot = data;
-   print (snapshot.length);
-   print (snapshot (1));
+   data = replacement
+   snapshot = data
+   print (snapshot.length)
+   print (snapshot (1))

@@ -1,36 +1,36 @@
 package pr1110b_list_build
 
    function seeded_values returns list of integer
-      var values : list of integer = [10, 20];
+      var values : list of integer = [10, 20]
 
-      append (values, 30);
-      append (values, 40);
-      return values;
+      append (values, 30)
+      append (values, 40)
+      return values
 
    function popped_value returns integer
-      var values : list of integer = seeded_values;
-      last : constant optional integer = pop_last (values);
+      var values : list of integer = seeded_values
+      last : constant optional integer = pop_last (values)
       if last.present and then values.length == 3
-         return last.value;
+         return last.value
       else
-         return 0;
+         return 0
 
    function remaining_length returns integer
-      var values : list of integer = seeded_values;
-      last : constant optional integer = pop_last (values);
+      var values : list of integer = seeded_values
+      last : constant optional integer = pop_last (values)
       if last.present
-         return values.length;
+         return values.length
       else
-         return 0;
+         return 0
 
    function remaining_tail returns integer
-      var values : list of integer = seeded_values;
-      last : constant optional integer = pop_last (values);
+      var values : list of integer = seeded_values
+      last : constant optional integer = pop_last (values)
       if last.present and then values.length == 3
-         return values (3);
+         return values (3)
       else
-         return 0;
+         return 0
 
-   print (popped_value);
-   print (remaining_length);
-   print (remaining_tail);
+   print (popped_value)
+   print (remaining_length)
+   print (remaining_tail)

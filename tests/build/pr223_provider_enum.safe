@@ -1,3 +1,3 @@
 package pr223_provider_enum
 
-   public type checkpoint is (alpha, bravo, gamma);
+   public type checkpoint is (alpha, bravo, gamma)

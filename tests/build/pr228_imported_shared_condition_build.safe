@@ -2,18 +2,18 @@
 -- Description: Imported public shared field reads in conditions must snapshot before proof-visible comparison.
 -- Expected: BUILD_SUCCESS
 
-with pr228_provider_shared_condition;
+with pr228_provider_shared_condition
 
 package pr228_imported_shared_condition_build
 
-   public shared cfg : pr228_provider_shared_condition.state = (total = 2, ready = true);
+   public shared cfg : pr228_provider_shared_condition.state = (total = 2, ready = true)
 
-   value : integer = 0;
+   value : integer = 0
 
-   pr228_provider_shared_condition.cfg.total = 8;
-   pr228_provider_shared_condition.cfg.ready = true;
+   pr228_provider_shared_condition.cfg.total = 8
+   pr228_provider_shared_condition.cfg.ready = true
 
    if cfg.total == 2 and then pr228_provider_shared_condition.cfg.total == 8 and then pr228_provider_shared_condition.cfg.ready
-      value = 17;
+      value = 17
 
    print (value)

@@ -1,6 +1,6 @@
 package neg_pr1116_nominal_implicit_integer
 
-   type user_id is new integer (0 to 1000);
+   type user_id is new integer (0 to 1000)
 
-   raw : integer = 42;
-   value : user_id = raw;
+   raw : integer = 42
+   value : user_id = raw

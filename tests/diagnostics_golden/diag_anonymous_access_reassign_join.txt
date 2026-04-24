@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_anon_reassign_join.safe:11:14: error: removed source construct `new` is not allowed
   |
-  | 11 |       return new ((value = 1) as data);
+  | 11 |       return new ((value = 1) as data)
   |    |              ^~~
   |
   note: PR11.8e removes explicit allocation from the source surface

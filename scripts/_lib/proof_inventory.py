@@ -397,6 +397,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/pr1122f1_multi_decl_object.safe",
     "tests/positive/pr331_shared_initializer_alone.safe",
     "tests/positive/pr331_package_initializer_task_pollution.safe",
+    "tests/positive/pr362_named_arguments.safe",
     "tests/interfaces/provider_transitive_global.safe",
     "tests/build/pr212_string_literal_build.safe",
     "tests/build/pr223_provider_enum.safe",

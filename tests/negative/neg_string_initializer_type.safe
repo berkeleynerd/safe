@@ -4,5 +4,5 @@
 
 package neg_string_initializer_type
 
-   name : constant string = 1;
+   name : constant string = 1
 

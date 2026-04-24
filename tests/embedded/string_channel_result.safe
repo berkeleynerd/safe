@@ -4,12 +4,12 @@
 
 package string_channel_result
 
-   channel text_ch : string capacity 1;
-   subtype result_value is integer;
-   public result : result_value = 0;
-   source : string = "Ada";
-   received : string;
-   sent : boolean = false;
+   channel text_ch : string capacity 1
+   subtype result_value is integer
+   public result : result_value = 0
+   source : string = "Ada"
+   received : string
+   sent : boolean = false
 
    send text_ch, source, sent
    if sent

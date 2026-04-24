@@ -1,6 +1,6 @@
-subtype seed_value is integer (1 to 16);
-subtype step_count is integer (0 to 64);
-subtype pass_limit is integer (1 to 64);
+subtype seed_value is integer (1 to 16)
+subtype step_count is integer (0 to 64)
+subtype pass_limit is integer (1 to 64)
 
 function steps (seed : seed_value) returns step_count
 

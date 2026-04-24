@@ -1,6 +1,6 @@
 package pr118d_bounded_string_array_component_build
 
-   subtype slot is integer (1 to 2);
-   type name_table is array (slot) of string (5);
+   subtype slot is integer (1 to 2)
+   type name_table is array (slot) of string (5)
 
    print (42)

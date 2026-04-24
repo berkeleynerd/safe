@@ -1,5 +1,5 @@
 package neg_pr113_float_discriminant
    type packet (weight : float = 1.0) is
       record
-         value : integer;
+         value : integer
 

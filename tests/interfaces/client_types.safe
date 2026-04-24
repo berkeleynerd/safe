@@ -1,10 +1,10 @@
-with provider_types;
+with provider_types
 
 package client_types
 
    function read_next returns provider_types.count
-      value   : provider_types.small_count = 1;
-      result  : provider_types.count = 0;
+      value   : provider_types.small_count = 1
+      result  : provider_types.count = 0
 
-      result = provider_types.next (value);
-      return result;
+      result = provider_types.next (value)
+      return result

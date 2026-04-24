@@ -1,9 +1,9 @@
 package neg_pr1112c_shared_field_mutating_method
 
    type settings is record
-      items : list of integer;
+      items : list of integer
 
-   shared cfg : settings;
+   shared cfg : settings
 
    function update
-      append (cfg.items, 1);
+      append (cfg.items, 1)

@@ -1,15 +1,15 @@
 package pr1122e3_mutual_global_aspect
 
-   counter : integer = 4;
+   counter : integer = 4
 
    function first (remaining : integer) returns integer
       if remaining == 0
-         return counter;
+         return counter
       else
-         return second (remaining - 1);
+         return second (remaining - 1)
 
    function second (remaining : integer) returns integer
       if remaining == 0
-         return 0;
+         return 0
       else
-         return first (remaining - 1);
+         return first (remaining - 1)

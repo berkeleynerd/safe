@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule1_overflow.safe:18:14: error: intermediate overflow in integer expression
   |
-  | 18 |       return a * b;  -- ERROR: intermediate may exceed 64-bit range
+  | 18 |       return a * b  -- ERROR: intermediate may exceed 64-bit range
   |    |              ^~~~~
   |
   note: static range analysis determines that the subexpression (a * b)

@@ -1,6 +1,6 @@
-with provider_map;
+with provider_map
 
 package client_map
 
    function total returns integer
-      return provider_map.lookup (provider_map.seeded, 2);
+      return provider_map.lookup (provider_map.seeded, 2)

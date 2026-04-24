@@ -4,10 +4,10 @@
 
 package statement_label_assignment_test
 
-   subtype counter is integer (0 to 10);
+   subtype counter is integer (0 to 10)
 
    function main
-      value : counter = 0;
+      value : counter = 0
 
-      label_1: value = 1;
+      label_1: value = 1
 

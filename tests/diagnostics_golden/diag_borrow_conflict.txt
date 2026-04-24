@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_borrow_conflict.safe:17:14: error: mutable borrow actual 'owner' aliases another actual in the same call
   |
-  | 17 |       touch (owner, owner);  -- ERROR: same-root alias in one call
+  | 17 |       touch (owner, owner)  -- ERROR: same-root alias in one call
   |    |              ^~~~~
   |
   note: same-root `mut` calls allow only statically disjoint record-field or singleton-index paths; overlapping or unsupported paths remain rejected.

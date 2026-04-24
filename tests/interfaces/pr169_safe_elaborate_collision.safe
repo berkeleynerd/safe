@@ -1,5 +1,5 @@
 package pr169_safe_elaborate_collision
 
-   safe_elaborate : integer = 41;
+   safe_elaborate : integer = 41
 
    print (safe_elaborate)

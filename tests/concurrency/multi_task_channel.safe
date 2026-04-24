@@ -10,53 +10,53 @@
 
 package multi_task_channel
 
-   subtype event_code is integer (0 to 10_000);
-   subtype event_count is integer (0 to 1_000);
+   subtype event_code is integer (0 to 10_000)
+   subtype event_count is integer (0 to 1_000)
 
-   channel event_ch : event_code capacity 8;
+   channel event_ch : event_code capacity 8
 
    --  Producer_A: sends low-range event codes.
    task producer_a with priority = 10
-      seq : event_code = 0;
-      sent : boolean = false;
+      seq : event_code = 0
+      sent : boolean = false
 
       loop
-         send event_ch, seq, sent;
+         send event_ch, seq, sent
          if sent
             if seq < 4_999
-               seq = seq + 1;
+               seq = seq + 1
             else
-               seq = 0;
+               seq = 0
 
    --  Producer_B: sends high-range event codes.
    task producer_b with priority = 10
-      seq : event_code = 5_000;
-      sent : boolean = false;
+      seq : event_code = 5_000
+      sent : boolean = false
 
       loop
-         send event_ch, seq, sent;
+         send event_ch, seq, sent
          if sent
             if seq < 10_000
-               seq = seq + 1;
+               seq = seq + 1
             else
-               seq = 5_000;
+               seq = 5_000
 
    --  Consumer: receives events from both producers.
    --  Channel atomicity guarantees each code is received intact.
    task consumer with priority = 10
-      e       : event_code;
-      count_a : event_count = 0;
-      count_b : event_count = 0;
+      e       : event_code
+      count_a : event_count = 0
+      count_b : event_count = 0
 
       loop
-         receive event_ch, e;
+         receive event_ch, e
          if e < 5_000
             if count_a < 1_000
-               count_a = count_a + 1;
+               count_a = count_a + 1
             else
-               count_a = 0;
+               count_a = 0
          else
             if count_b < 1_000
-               count_b = count_b + 1;
+               count_b = count_b + 1
             else
-               count_b = 0;
+               count_b = 0

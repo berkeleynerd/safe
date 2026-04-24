@@ -1,4 +1,4 @@
 package neg_pr118_removed_natural
 
-   x : natural = 0;
+   x : natural = 0
 

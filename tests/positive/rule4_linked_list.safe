@@ -5,25 +5,25 @@
 package safe_linked_list
 
    type node is record
-      value : integer;
-      next  : node;
+      value : integer
+      next  : node
 
    function last_value (head : node) returns integer
 
       if head == null
-         return 0;
+         return 0
       else if head.next == null
-         return head.value;
+         return head.value
       else
-         return last_value (head.next);
+         return last_value (head.next)
 
    function has_tail (head : node) returns boolean
 
       if head == null
-         return false;
+         return false
       else if head.next == null
-         return false;
+         return false
       else if head.next.next == null
-         return true;
+         return true
       else
-         return has_tail (head.next);
+         return has_tail (head.next)

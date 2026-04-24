@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule4_null_deref.safe:14:14: error: dereference of possibly null reference
   |
-  | 14 |       return p.value;  -- ERROR: P may be null
+  | 14 |       return p.value  -- ERROR: P may be null
   |    |              ^~~~~~~
   |
   note: p is of type value_box, which is a nullable reference.

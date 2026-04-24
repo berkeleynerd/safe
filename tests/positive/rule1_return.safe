@@ -8,8 +8,8 @@
 
 package safe_return
 
-   subtype bounded is integer (-500 to 500);
-   subtype small is integer (-10 to 10);
+   subtype bounded is integer (-500 to 500)
+   subtype small is integer (-10 to 10)
 
    --  Signum: returns -1, 0, or 1 depending on sign.
    --  Every return path yields a value in -10..10.
@@ -17,18 +17,18 @@ package safe_return
 
       if v > 0
          --  Narrowing point (return): 1 is in -10..10.
-         return 1;
+         return 1
       else if v < 0
          --  Narrowing point (return): -1 is in -10..10.
-         return -1;
+         return -1
       else
          --  Narrowing point (return): 0 is in -10..10.
-         return 0;
+         return 0
 
    --  Bounded_Add: adds two Small values. The sum of two values
    --  each in -10..10 is in -20..20, which fits in Bounded.
    function bounded_add (a, b : small) returns bounded
 
       --  Narrowing point (return): A + B is in -20..20, within -500..500.
-      return bounded (a) + bounded (b);
+      return bounded (a) + bounded (b)
 

@@ -1,6 +1,6 @@
 package pr1123j_unknown_call_invalidates_length
 
-   subtype factor is integer (0 to 6);
+   subtype factor is integer (0 to 6)
 
    function show_lengths returns integer
       var ys : list of factor = [4, 5, 6]

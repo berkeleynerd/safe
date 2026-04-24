@@ -1,7 +1,7 @@
 package neg_pr1112d_shared_root_iter
 
-   shared values : list of integer;
+   shared values : list of integer
 
    function iterate
       for item of values
-         print (item);
+         print (item)

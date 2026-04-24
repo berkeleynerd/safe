@@ -4,5 +4,5 @@
 
 package pr118d_string_mutable_object
 
-   name : string = "hello";
+   name : string = "hello"
 

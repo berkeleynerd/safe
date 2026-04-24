@@ -1,5 +1,5 @@
 package neg_pr1113a_zero_payload_call
 
-   type state is idle or reading (count : integer);
+   type state is idle or reading (count : integer)
 
-   current : state = idle ();
+   current : state = idle ()

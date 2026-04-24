@@ -710,13 +710,13 @@ DEPLOY_REJECT_ARGV_CASES = [
 REPL_CASES = [
     (
         "repl-prints",
-        "value : integer = 41;\nprint (value + 1)\n",
+        "value : integer = 41\nprint (value + 1)\n",
         "42\n",
         None,
     ),
     (
         "repl-rejects-bad-line",
-        "value : integer = 41;\nprint (missing_name)\nprint (value + 1)\n",
+        "value : integer = 41\nprint (missing_name)\nprint (value + 1)\n",
         "42\n",
         "missing_name",
     ),
@@ -902,17 +902,17 @@ def run_safe_run_reject_case(source: Path, expected_message: str) -> tuple[bool,
 def run_safe_run_mutated_iterable_case() -> tuple[bool, str]:
     source_text = """package mutated_iterable_runtime
 
-   plain : string = "Ada";
-   total : integer = 0;
+   plain : string = "Ada"
+   total : integer = 0
 
    function rewrite (value : mut string)
-      value = "Bob";
+      value = "Bob"
 
-   rewrite (plain);
+   rewrite (plain)
 
    for ch of plain
       if ch == "B" or ch == "o" or ch == "b"
-         total = total + 1;
+         total = total + 1
 
    print (total)
 """
@@ -939,12 +939,12 @@ def run_safe_run_mutated_iterable_case() -> tuple[bool, str]:
 def run_safe_build_incremental_case() -> tuple[bool, str]:
     provider_text = """package provider_answer
 
-   public subtype count is integer (0 to 100);
+   public subtype count is integer (0 to 100)
 """
-    client_text = """with provider_answer;
+    client_text = """with provider_answer
 
-subtype answer_count is provider_answer.count;
-value : answer_count = 42;
+subtype answer_count is provider_answer.count
+value : answer_count = 42
 print (value)
 """
     updated_provider_text = provider_text.replace("100", "50")
@@ -1015,14 +1015,14 @@ print (value)
 def run_safe_prove_incremental_case() -> tuple[bool, str]:
     provider_text = """package provider_constant
 
-   public subtype count is integer (0 to 10);
-   public max_count : constant count = 4;
+   public subtype count is integer (0 to 10)
+   public max_count : constant count = 4
 """
-    client_text = """with provider_constant;
+    client_text = """with provider_constant
 
 package client_constant
 
-   subtype index is integer (0 to provider_constant.max_count);
+   subtype index is integer (0 to provider_constant.max_count)
 """
     updated_provider_text = provider_text.replace("4", "5")
 
@@ -1065,7 +1065,7 @@ package client_constant
         if summary_path.exists():
             return False, "dependency change reran GNATprove despite unchanged root source"
 
-        client.write_text(client_text + "   subtype second_index is integer (0 to provider_constant.max_count);\n", encoding="utf-8")
+        client.write_text(client_text + "   subtype second_index is integer (0 to provider_constant.max_count)\n", encoding="utf-8")
         prove_root_updated = run_command([sys.executable, str(SAFE_CLI), "prove", client.name], cwd=temp_root)
         if prove_root_updated.returncode != 0:
             return False, f"root-source-invalidated prove failed: {first_message(prove_root_updated)}"
@@ -1076,7 +1076,7 @@ package client_constant
 
 
 def run_target_bits_check_case(safec: Path) -> tuple[bool, str]:
-    source_text = """subtype over is integer (0 to 2147483648);
+    source_text = """subtype over is integer (0 to 2147483648)
 """
 
     with tempfile.TemporaryDirectory(prefix="safe-target-bits-check-") as temp_root_str:
@@ -1101,7 +1101,7 @@ def run_target_bits_check_case(safec: Path) -> tuple[bool, str]:
     return True, ""
 
 def run_safe_build_target_bits_case() -> tuple[bool, str]:
-    source_text = """value : integer = 7;
+    source_text = """value : integer = 7
 print (value)
 """
 
@@ -1135,8 +1135,8 @@ print (value)
 def run_safe_prove_target_bits_case() -> tuple[bool, str]:
     source_text = """package target_bits_prove
 
-   subtype count is integer (0 to 2147483647);
-   value : constant count = 2147483647;
+   subtype count is integer (0 to 2147483647)
+   value : constant count = 2147483647
 """
 
     with tempfile.TemporaryDirectory(prefix="safe-prove-target-bits-") as temp_root_str:

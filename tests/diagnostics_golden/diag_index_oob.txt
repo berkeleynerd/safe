@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_rule2_oob.safe:15:14: error: index expression not provably within array bounds
   |
-  | 15 |       return arr (slot (idx));  -- ERROR: Idx may not be in 0..7
+  | 15 |       return arr (slot (idx))  -- ERROR: Idx may not be in 0..7
   |    |              ^~~~~~~~~~~~~~~~
   |
   note: array 'arr' has index range slot (0 .. 7).

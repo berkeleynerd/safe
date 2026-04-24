@@ -4,24 +4,24 @@
 
 package pr233_bounded_index_counted_loop
 
-   subtype tally is integer (0 to 10);
-   subtype slot is integer (1 to 3);
+   subtype tally is integer (0 to 10)
+   subtype slot is integer (1 to 3)
 
-   type fixed_window is array (slot) of tally;
+   type fixed_window is array (slot) of tally
 
    function locate (values : fixed_window; target : tally) returns boolean
-      lo : integer = 1;
-      hi : integer = 3;
+      lo : integer = 1
+      hi : integer = 3
 
       while lo <= hi
          if values (slot (lo)) == target
-            return true;
+            return true
          else if lo == hi
-            return false;
+            return false
 
-         lo = lo + 1;
+         lo = lo + 1
 
-      return false;
+      return false
 
-   items : fixed_window = (1, 2, 3);
-   found : boolean = locate (items, 2);
+   items : fixed_window = (1, 2, 3)
+   found : boolean = locate (items, 2)

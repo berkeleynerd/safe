@@ -1,8 +1,8 @@
-with provider_enum;
+with provider_enum
 
 package client_enum
 
-   current : provider_enum.color = provider_enum.default_color;
-   next_value : provider_enum.color = provider_enum.next (current);
+   current : provider_enum.color = provider_enum.default_color
+   next_value : provider_enum.color = provider_enum.next (current)
 
    print (next_value)

@@ -5,8 +5,8 @@
 package lifetime_test
 
    type value_box is record
-      value : integer;
-      next : value_box;
+      value : integer
+      next : value_box
 
    function leak_borrow (ref : value_box) returns value_box
-      return ref;  -- ERROR: borrowed value outlives lender
+      return ref  -- ERROR: borrowed value outlives lender

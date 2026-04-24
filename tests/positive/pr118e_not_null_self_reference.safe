@@ -5,4 +5,4 @@
 package pr118e_not_null_self_reference
 
    type node is record
-      next : not null node;
+      next : not null node

@@ -2,6 +2,6 @@ package pr1111c_provider_collision_right
 
    public function marker of t (value : t; same : t) returns integer
       if value == same
-         return 2;
+         return 2
       else
-         return 0;
+         return 0

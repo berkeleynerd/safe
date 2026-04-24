@@ -8,18 +8,18 @@
 
 package low_pass_filter
 
-   type signal is digits 6 range -100.0 to 100.0;
-   type alpha_range is digits 6 range 0.01 to 0.99;
+   type signal is digits 6 range -100.0 to 100.0
+   type alpha_range is digits 6 range 0.01 to 0.99
 
    type filter_state is record
-      output : signal;
-      alpha  : alpha_range;
+      output : signal
+      alpha  : alpha_range
 
    --  Init_Filter: create a filter with initial output and coefficient.
    function init_filter (initial : signal;
                          coeff   : alpha_range) returns filter_state
 
-      return ((output = initial, alpha = coeff) as filter_state);
+      return ((output = initial, alpha = coeff) as filter_state)
 
    --  Update: output = Alpha * input + (1 - Alpha) * previous_output.
    --  Alpha in 0.01..0.99, input in -100..100, output in -100..100.
@@ -27,13 +27,13 @@ package low_pass_filter
    --  No NaN or infinity possible with bounded finite inputs.
    function update (state : mut filter_state;
                     input : signal)
-      a : long_float;
-      result : long_float;
+      a : long_float
+      result : long_float
 
-      a = long_float (state.alpha);
+      a = long_float (state.alpha)
       result = (
          a * long_float (input)
          + (1.0 - a) * long_float (state.output)
-      );
+      )
       --  Narrowing point (assignment): Result is in -100..100, finite.
-      state.output = signal (result);
+      state.output = signal (result)

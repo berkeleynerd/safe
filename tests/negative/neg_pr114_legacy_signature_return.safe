@@ -6,5 +6,5 @@ package neg_pr114_legacy_signature_return
 
    function identity (value : integer) return integer
 
-      return value;
+      return value
 

@@ -10,22 +10,22 @@
 
 package sensor_average
 
-   subtype reading is integer (0 to 1000);
-   subtype sensor_count is integer (1 to 10);
-   subtype reading_sum is integer (0 to 10_000);
-   type readings is array (sensor_count) of reading;
+   subtype reading is integer (0 to 1000)
+   subtype sensor_count is integer (1 to 10)
+   subtype reading_sum is integer (0 to 10_000)
+   type readings is array (sensor_count) of reading
 
    --  Average: compute mean of sensor readings.
    --  Sum of 10 values each in 0..1000 is at most 10_000,
    --  well within 64-bit signed range. Division by 10 yields
    --  a result in 0..1000, fitting Reading.
    function average (data : readings) returns reading
-      sum : reading_sum = 0;
+      sum : reading_sum = 0
 
       for i in sensor_count
          --  Sum ranges from 0 to I * 1000.
          --  The accumulator is explicitly bounded to 0..10_000.
-         sum = sum + reading_sum (data (i));
+         sum = sum + reading_sum (data (i))
 
       --  Narrowing point (return): Sum / 10 is in 0..1000.
-      return reading (sum / 10);
+      return reading (sum / 10)

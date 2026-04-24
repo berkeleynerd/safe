@@ -1,6 +1,7 @@
 -- Test: neg_pr117_uppercase_identifier
 -- Description: Safe source spellings must be lowercase.
 -- Expected: REJECT source_frontend_error
+-- migrate: skip
 
 package neg_pr117_uppercase_identifier
 

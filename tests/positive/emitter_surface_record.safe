@@ -6,16 +6,16 @@
 
 package emitter_surface_record
 
-   subtype counter is integer (0 to 10);
+   subtype counter is integer (0 to 10)
 
    type pair is record
-      left  : counter;
-      right : counter;
+      left  : counter
+      right : counter
 
-   seed : counter = 3;
+   seed : counter = 3
 
    function current returns counter
-      value : counter = seed;
+      value : counter = seed
 
-      return value;
+      return value
 

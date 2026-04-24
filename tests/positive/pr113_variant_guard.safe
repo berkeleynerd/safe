@@ -8,22 +8,22 @@ package pr113_variant_guard
       record
          case kind
             when 0
-               alpha : integer;
+               alpha : integer
             when others
-               beta : integer;
+               beta : integer
 
    function read_alpha (p : packet) returns integer
 
       if p.kind == 0
-         return p.alpha;
+         return p.alpha
 
-      return 0;
+      return 0
 
    function read_alpha_with_case (p : packet) returns integer
 
       case p.kind
          when 0
-            return p.alpha;
+            return p.alpha
 
          when others
-            return 0;
+            return 0

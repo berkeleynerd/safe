@@ -4,34 +4,34 @@
 
 package safe_linked_list_sum
 
-   subtype visit_count is integer (0 to 3);
-   subtype node_value is integer (0 to 100);
-   subtype total_value is integer (0 to 300);
+   subtype visit_count is integer (0 to 3)
+   subtype node_value is integer (0 to 100)
+   subtype total_value is integer (0 to 300)
 
    type node is record
-      value : node_value;
-      next  : node;
+      value : node_value
+      next  : node
 
    function visit (current : node;
                    count : visit_count;
                    total : total_value) returns total_value
-      next_count : visit_count;
-      next_total : total_value;
-      rest       : total_value;
+      next_count : visit_count
+      next_total : total_value
+      rest       : total_value
 
       if current == null or else count == 3
-         return total;
+         return total
 
-      next_count = count + 1;
-      next_total = total + total_value (current.value);
+      next_count = count + 1
+      next_total = total + total_value (current.value)
       if next_count == 3
-         return next_total;
+         return next_total
 
-      rest = visit (current.next, next_count, next_total);
-      return rest;
+      rest = visit (current.next, next_count, next_total)
+      return rest
 
    function summarize_prefix (head : node) returns total_value
-      result : total_value = 0;
+      result : total_value = 0
 
-      result = visit (head, 0, 0);
-      return result;
+      result = visit (head, 0, 0)
+      return result

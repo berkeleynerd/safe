@@ -4,23 +4,23 @@
 
 package pr118e2_disjoint_mut_fields
 
-   subtype count is integer (0 to 20);
-   subtype total is integer (0 to 40);
+   subtype count is integer (0 to 20)
+   subtype total is integer (0 to 40)
 
    type cell is record
-      value : count;
+      value : count
 
    type pair is record
-      left  : cell;
-      right : cell;
+      left  : cell
+      right : cell
 
    function bump_both (left : mut cell; right : mut cell)
-      left.value = left.value + 1;
-      right.value = right.value + 1;
+      left.value = left.value + 1
+      right.value = right.value + 1
 
    function run
-      owner : pair = (left = (value = 3), right = (value = 5));
-      sum : total = 0;
+      owner : pair = (left = (value = 3), right = (value = 5))
+      sum : total = 0
 
-      bump_both (owner.left, owner.right);
-      sum = owner.left.value + owner.right.value;
+      bump_both (owner.left, owner.right)
+      sum = owner.left.value + owner.right.value

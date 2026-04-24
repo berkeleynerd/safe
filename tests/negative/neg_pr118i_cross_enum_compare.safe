@@ -1,6 +1,6 @@
 package neg_pr118i_cross_enum_compare
 
-   type color is (red, green, blue);
-   type size is (small, medium, large);
+   type color is (red, green, blue)
+   type size is (small, medium, large)
 
-   same : boolean = red == small;
+   same : boolean = red == small

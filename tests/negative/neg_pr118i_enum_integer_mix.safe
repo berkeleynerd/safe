@@ -1,5 +1,5 @@
 package neg_pr118i_enum_integer_mix
 
-   type color is (red, green, blue);
+   type color is (red, green, blue)
 
-   same : boolean = red == 1;
+   same : boolean = red == 1

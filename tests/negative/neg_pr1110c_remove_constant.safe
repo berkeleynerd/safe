@@ -5,5 +5,5 @@
 
 package neg_pr1110c_remove_constant
 
-   values : constant map of (integer, integer);
-   prior : optional integer = remove (values, 1);
+   values : constant map of (integer, integer)
+   prior : optional integer = remove (values, 1)

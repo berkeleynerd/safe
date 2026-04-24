@@ -1,4 +1,4 @@
 package neg_pr1111b_interface_member_no_receiver
 
    type printable is interface
-      function label returns string;
+      function label returns string

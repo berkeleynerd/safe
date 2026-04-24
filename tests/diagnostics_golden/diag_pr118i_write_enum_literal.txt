@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr118i_write_enum_literal.safe:5:4: error: assignment target rooted in enum literal `red` is not writable
   |
-  | 5 |    red = green;
+  | 5 |    red = green
   |   |    ^~~
   |
 ------------------------------------------------------------------------

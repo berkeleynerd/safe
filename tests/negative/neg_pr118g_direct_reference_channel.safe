@@ -5,6 +5,6 @@
 package neg_pr118g_direct_reference_channel
 
    type node is record
-      next : node;
+      next : node
 
-   channel updates : node capacity 1;
+   channel updates : node capacity 1

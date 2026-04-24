@@ -1,14 +1,14 @@
 package provider_transitive_shared
 
    public type settings is record
-      count : integer;
+      count : integer
 
-   public shared cfg : settings;
+   public shared cfg : settings
 
    function touch_internal
 
-      cfg.count = 1;
+      cfg.count = 1
 
    public function touch
 
-      touch_internal;
+      touch_internal

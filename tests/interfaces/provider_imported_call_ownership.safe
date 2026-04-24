@@ -1,18 +1,18 @@
 package provider_imported_call_ownership
 
-   public subtype payload_value is integer (0 to 100);
+   public subtype payload_value is integer (0 to 100)
 
    public type payload is record
-      value : payload_value;
-      link  : payload;
+      value : payload_value
+      link  : payload
 
    public function bump (ref : mut payload)
 
-      ref.value = 6;
+      ref.value = 6
 
    public function read_value (ref : payload) returns payload_value
 
-      return ref.value;
+      return ref.value
 
    public function consume (ref : mut payload)
-      ref.value = ref.value;
+      ref.value = ref.value

@@ -6,5 +6,5 @@ package neg_string_index
 
    function first_letter (name : in string) returns character
 
-      return name (1);
+      return name (1)
 

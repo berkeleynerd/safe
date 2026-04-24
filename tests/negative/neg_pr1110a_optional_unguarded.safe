@@ -8,11 +8,11 @@ package neg_pr1110a_optional_unguarded
    function parse (input : integer) returns optional integer
 
       if input > 0
-         return some (input);
+         return some (input)
       else
-         return none;
+         return none
 
    function unsafe_access (input : integer) returns integer
-      value : optional integer = parse (input);
+      value : optional integer = parse (input)
 
-      return value.value;
+      return value.value

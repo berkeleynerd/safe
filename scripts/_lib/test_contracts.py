@@ -70,7 +70,7 @@ OUTPUT_CONTRACT_REJECT_CASES = [
 def run_target_bits_emit_contract_case(safec: Path) -> tuple[bool, str]:
     source_text = """package target_bits_emit
 
-   public max_value : constant integer = 2147483647;
+   public max_value : constant integer = 2147483647
 """
 
     with tempfile.TemporaryDirectory(prefix="safe-target-bits-emit-") as temp_root_str:

@@ -1,12 +1,12 @@
 package neg_pr118d_fixed_array_shape_mismatch
 
-   subtype left_slot is integer (1 to 3);
-   subtype right_slot is integer (5 to 7);
+   subtype left_slot is integer (1 to 3)
+   subtype right_slot is integer (5 to 7)
 
-   type left_window is array (left_slot) of integer;
-   type right_window is array (right_slot) of integer;
+   type left_window is array (left_slot) of integer
+   type right_window is array (right_slot) of integer
 
-   source : left_window = (10, 20, 30);
-   target : right_window = source;
+   source : left_window = (10, 20, 30)
+   target : right_window = source
 
    print (target (5))

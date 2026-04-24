@@ -3,8 +3,8 @@ package neg_pr1112a_shared_discriminated
    type packet (ok : boolean = false) is record
       case ok
          when true
-            value : integer;
+            value : integer
          when false
-            error : integer;
+            error : integer
 
-   shared cfg : packet = (ok = true, value = 1);
+   shared cfg : packet = (ok = true, value = 1)

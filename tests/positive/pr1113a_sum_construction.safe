@@ -1,22 +1,22 @@
 package pr1113a_sum_construction
 
-   type shape is circle (radius : integer) or label (text : string) or idle;
+   type shape is circle (radius : integer) or label (text : string) or idle
 
    function keep (value : shape) returns shape
-      return value;
+      return value
 
    function same (left : shape; right : shape) returns boolean
-      return left == right;
+      return left == right
 
-   current : shape = circle (5);
-   named : shape = label ("ok");
-   empty : shape = idle;
-   copied : shape = keep (current);
+   current : shape = circle (5)
+   named : shape = label ("ok")
+   empty : shape = idle
+   copied : shape = keep (current)
 
    if same (copied, circle (5))
       if same (named, label ("ok")) and then same (empty, idle)
-         print (1);
+         print (1)
       else
-         print (0);
+         print (0)
    else
-      print (0);
+      print (0)

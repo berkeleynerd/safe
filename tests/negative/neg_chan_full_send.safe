@@ -9,13 +9,13 @@
 
 package full_send_test
 
-   subtype msg is integer (0 to 255);
+   subtype msg is integer (0 to 255)
 
-   channel ch : msg capacity 1;
+   channel ch : msg capacity 1
 
    --  Sender_Task: legacy blocking send syntax.
    task sender_task
 
       loop
-         send ch, 1;
-         send ch, 2;
+         send ch, 1
+         send ch, 2

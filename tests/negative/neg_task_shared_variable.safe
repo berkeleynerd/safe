@@ -4,16 +4,16 @@
 
 package neg_task_shared_variable
 
-   subtype counter is integer (0 to 100);
+   subtype counter is integer (0 to 100)
 
-   global_count : counter = 0;
+   global_count : counter = 0
 
    task a
 
       loop
-         global_count = global_count + 1;
+         global_count = global_count + 1
 
    task b
 
       loop
-         global_count = global_count + 1;
+         global_count = global_count + 1

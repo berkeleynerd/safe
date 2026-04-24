@@ -5,4 +5,4 @@
 package pr116_bare_return
 
    function exit_early
-      return;
+      return

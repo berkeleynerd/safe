@@ -1,3 +1,4 @@
+-- migrate: skip
 package neg_pr116_bad_indent_step
 
   function broken returns integer

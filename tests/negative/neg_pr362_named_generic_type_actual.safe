@@ -1,0 +1,7 @@
+package neg_pr362_named_generic_type_actual
+
+   function identity of t (value : t) returns t
+      return value
+
+   function broken returns integer
+      return identity of (t = integer) (1)

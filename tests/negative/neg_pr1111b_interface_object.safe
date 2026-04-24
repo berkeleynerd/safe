@@ -1,6 +1,6 @@
 package neg_pr1111b_interface_object
 
    type printable is interface
-      function (self : printable) label returns string;
+      function (self : printable) label returns string
 
-   item : printable;
+   item : printable

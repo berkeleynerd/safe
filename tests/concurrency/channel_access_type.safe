@@ -5,40 +5,40 @@
 
 package channel_access_type
 
-   subtype payload_value is integer (0 to 1);
+   subtype payload_value is integer (0 to 1)
 
    type payload is record
-      value : payload_value;
+      value : payload_value
 
-   type payload_ptr is access payload;
+   type payload_ptr is access payload
 
-   channel data_ch : payload_ptr capacity 1;
+   channel data_ch : payload_ptr capacity 1
 
    task sender with priority = 10
-      toggle : boolean = false;
-      sent : boolean = false;
+      toggle : boolean = false
+      sent : boolean = false
 
       loop
-         var item : payload_ptr;
+         var item : payload_ptr
          if toggle
-            item = new ((value = 1) as payload);
+            item = new ((value = 1) as payload)
          else
-            item = new ((value = 0) as payload);
+            item = new ((value = 0) as payload)
 
-         send data_ch, item, sent;
+         send data_ch, item, sent
          if item == null
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.002;
+            delay 0.002
 
-         toggle = not toggle;
+         toggle = not toggle
 
    task receiver with priority = 10
 
       loop
-         var item : payload_ptr;
-         receive data_ch, item;
+         var item : payload_ptr
+         receive data_ch, item
          if item != null and then item.all.value == 0
-            delay 0.001;
+            delay 0.001
          else
-            delay 0.002;
+            delay 0.002

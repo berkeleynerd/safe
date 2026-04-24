@@ -7,34 +7,34 @@
 package try_send_ownership
 
    type payload is record
-      id    : integer;
-      value : integer;
+      id    : integer
+      value : integer
 
-   type payload_ptr is access payload;
+   type payload_ptr is access payload
 
-   channel data_ch : payload_ptr capacity 2;
+   channel data_ch : payload_ptr capacity 2
 
    task sender
-      p       : payload_ptr;
-      success : boolean;
-      counter : integer = 0;
+      p       : payload_ptr
+      success : boolean
+      counter : integer = 0
 
       loop
-         p = new ((id = counter, value = counter * 10) as payload);
-         send data_ch, p, success;
+         p = new ((id = counter, value = counter * 10) as payload)
+         send data_ch, p, success
          if success
          else
-            p.all.value = p.all.value + 1;
-            send data_ch, p, success;
+            p.all.value = p.all.value + 1
+            send data_ch, p, success
 
-         counter = counter + 1;
+         counter = counter + 1
          if counter > 1_000_000
-            counter = 0;
+            counter = 0
 
    task receiver
 
       loop
-         item : payload_ptr;
-         receive data_ch, item;
+         item : payload_ptr
+         receive data_ch, item
          if item != null
-            item.all.value = 0;
+            item.all.value = 0

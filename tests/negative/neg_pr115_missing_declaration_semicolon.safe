@@ -1,7 +1,6 @@
 package neg_pr115_missing_declaration_semicolon
 
-   value : integer = 0
+   value : integer = 0 other : integer = 1
 
    function broken returns integer
-      return value;
-
+      return value

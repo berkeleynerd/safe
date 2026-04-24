@@ -1,0 +1,7 @@
+package neg_pr362_named_builtin
+
+   function broken returns integer
+      values : list of integer = [1, 2]
+
+      values.append (key = 3)
+      return 0

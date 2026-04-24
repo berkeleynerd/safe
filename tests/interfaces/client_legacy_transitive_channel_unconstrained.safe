@@ -1,4 +1,4 @@
-with provider_transitive_channel;
+with provider_transitive_channel
 
 package client_legacy_transitive_channel_unconstrained
 

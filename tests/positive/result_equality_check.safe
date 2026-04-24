@@ -7,13 +7,13 @@
 
 package result_equality_check
 
-   subtype status is integer (0 to 255);
+   subtype status is integer (0 to 255)
 
    function is_ok (s : status) returns boolean
 
-      return s == 0;
+      return s == 0
 
    function is_error (s : status) returns boolean
 
-      return s != 0;
+      return s != 0
 

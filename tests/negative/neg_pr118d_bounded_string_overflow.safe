@@ -4,4 +4,4 @@
 
 package neg_pr118d_bounded_string_overflow
 
-   value : string (3) = "hello";
+   value : string (3) = "hello"

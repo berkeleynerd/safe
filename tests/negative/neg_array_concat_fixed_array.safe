@@ -1,7 +1,7 @@
 package neg_array_concat_fixed_array
 
-   subtype slot is integer (1 to 2);
-   type window is array (slot) of integer;
+   subtype slot is integer (1 to 2)
+   type window is array (slot) of integer
 
    function bad_concat returns integer
       var left : window = (1, 2)

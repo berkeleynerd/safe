@@ -1,13 +1,13 @@
-with provider_select_channel;
+with provider_select_channel
 
 package client_select_channel
 
-   subtype message is provider_select_channel.message;
+   subtype message is provider_select_channel.message
 
    task worker
 
       loop
          select
             when item : message from provider_select_channel.data_ch
-               delay 0.001;
+               delay 0.001
 

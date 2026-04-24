@@ -7,12 +7,12 @@
 package ownership_move
 
    type payload is record
-      value : integer;
-      next : payload;
+      value : integer
+      next : payload
 
    function transfer
-      source : not null payload = (value = 42, next = null);
-      target : payload = null;
+      source : not null payload = (value = 42, next = null)
+      target : payload = null
 
-      target = source;
-      target.value = 100;
+      target = source
+      target.value = 100

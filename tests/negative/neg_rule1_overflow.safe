@@ -8,12 +8,12 @@
 
 package overflow_test
 
-   subtype big is integer (0 to 9_999_999_999_999_999);
+   subtype big is integer (0 to 9_999_999_999_999_999)
 
    --  Multiply: the product of two Big values can exceed 64-bit signed range.
    --  9_999_999_999_999_999 * 9_999_999_999_999_999 exceeds 2^63 - 1.
    --  A conforming implementation shall reject this expression.
    function multiply (a, b : big) returns big
 
-      return a * b;  -- ERROR: intermediate may exceed 64-bit range
+      return a * b  -- ERROR: intermediate may exceed 64-bit range
 

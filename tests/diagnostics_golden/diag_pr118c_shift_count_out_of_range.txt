@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr118c_shift_count_out_of_range.safe:4:14: error: unsupported numeric expression binary
   |
-  | 4 |       return binary (8) (1) >> 8;
+  | 4 |       return binary (8) (1) >> 8
   |   |              ^~~~~~~~~~~~~~~~~~~
   |
 ------------------------------------------------------------------------

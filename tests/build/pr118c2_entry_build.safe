@@ -1,2 +1,2 @@
-value : integer (0 to 42) = 41;
+value : integer (0 to 42) = 41
 print (value + 1)

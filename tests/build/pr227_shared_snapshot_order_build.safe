@@ -3,22 +3,22 @@
 -- Expected: BUILD_SUCCESS
 
 type state is record
-   total : integer;
-   ready : boolean;
-   note  : string (5);
+   total : integer
+   ready : boolean
+   note  : string (5)
 
-shared ledger : state = (total = 1, ready = false, note = "stand");
-snapshot : state = ledger;
-constant_snapshot : constant state = ledger;
-value : integer = 0;
+shared ledger : state = (total = 1, ready = false, note = "stand")
+snapshot : state = ledger
+constant_snapshot : constant state = ledger
+value : integer = 0
 
-ledger.total = 8;
-ledger.ready = true;
-ledger.note = "again";
+ledger.total = 8
+ledger.ready = true
+ledger.note = "again"
 
 if snapshot.total == 1 and then snapshot.note == "stand"
    if constant_snapshot.total == 1 and then constant_snapshot.note == "stand"
       if ledger.total == 8 and then ledger.ready and then ledger.note == "again"
-         value = 17;
+         value = 17
 
 print (value)

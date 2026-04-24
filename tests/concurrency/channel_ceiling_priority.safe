@@ -6,45 +6,45 @@
 
 package channel_ceiling_priority
 
-   subtype message is integer (0 to 1_000);
-   subtype send_state is integer (0 to 1);
+   subtype message is integer (0 to 1_000)
+   subtype send_state is integer (0 to 1)
 
-   channel data_ch : message capacity 2;
+   channel data_ch : message capacity 2
 
    function push (value : message; status : mut send_state)
-      sent : boolean = false;
-      previous_status : send_state = status;
+      sent : boolean = false
+      previous_status : send_state = status
 
-      send data_ch, value, sent;
+      send data_ch, value, sent
       if sent
-         status = 1;
+         status = 1
       else
-         status = previous_status;
+         status = previous_status
 
    task fast with priority = 20
-      next : message = 0;
-      status : send_state = 0;
+      next : message = 0
+      status : send_state = 0
 
       loop
-         status = 0;
-         push (next, status);
+         status = 0
+         push (next, status)
          if status == 0
-            delay 0.001;
+            delay 0.001
          if next < 1_000
-            next = next + 1;
+            next = next + 1
          else
-            next = 0;
+            next = 0
 
    task slow with priority = 10
-      next : message = 100;
-      status : send_state = 0;
+      next : message = 100
+      status : send_state = 0
 
       loop
-         status = 0;
-         push (next, status);
+         status = 0
+         push (next, status)
          if status == 0
-            delay 0.001;
+            delay 0.001
          if next < 1_000
-            next = next + 1;
+            next = next + 1
          else
-            next = 100;
+            next = 100

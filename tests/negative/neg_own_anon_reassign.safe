@@ -5,6 +5,6 @@
 package anonymous_reassign_test
 
    type data is record
-      value : integer;
+      value : integer
 
-   type data_ptr is access data;
+   type data_ptr is access data

@@ -3,6 +3,6 @@ package neg_pr1162_removed_declare_expression
    function build returns integer
 
       return declare
-         temp : integer = 1;
+         temp : integer = 1
       begin
-         temp;
+         temp

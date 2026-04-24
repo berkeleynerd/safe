@@ -1,2 +1,2 @@
-message : constant string = "hello";
+message : constant string = "hello"
 print (message)

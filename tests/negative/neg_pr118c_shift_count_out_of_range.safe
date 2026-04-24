@@ -1,5 +1,5 @@
 package neg_pr118c_shift_count_out_of_range
 
    function bad returns binary (8)
-      return binary (8) (1) >> 8;
+      return binary (8) (1) >> 8
 

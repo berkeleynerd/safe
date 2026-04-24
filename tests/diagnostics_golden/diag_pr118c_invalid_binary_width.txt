@@ -5,8 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr118c_invalid_binary_width.safe:3:28: error: binary width must be one of 8, 16, 32, or 64
   |
-  | 3 |    type nibble is binary (4);
+  | 3 |    type nibble is binary (4)
   |   |                            ^
   |
 ------------------------------------------------------------------------
-

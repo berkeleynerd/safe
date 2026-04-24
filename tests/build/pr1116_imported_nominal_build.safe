@@ -1,20 +1,20 @@
-with pr1116_provider_nominal;
+with pr1116_provider_nominal
 
 package pr1116_imported_nominal_build
 
-   type local_user_id is new pr1116_provider_nominal.user_id (0 to 500);
+   type local_user_id is new pr1116_provider_nominal.user_id (0 to 500)
 
    function local_next (input : pr1116_provider_nominal.small_user_id) returns local_user_id
 
-      advanced : pr1116_provider_nominal.user_id = input + 1;
+      advanced : pr1116_provider_nominal.user_id = input + 1
       return local_user_id (advanced)
 
-   value : pr1116_provider_nominal.user_id = 41;
-   small : pr1116_provider_nominal.small_user_id = 5;
-   local : local_user_id = local_next (small);
+   value : pr1116_provider_nominal.user_id = 41
+   small : pr1116_provider_nominal.small_user_id = 5
+   local : local_user_id = local_next (small)
 
-   print (integer (value));
+   print (integer (value))
 
-   value = pr1116_provider_nominal.next (small);
-   print (integer (value));
-   print (integer (local));
+   value = pr1116_provider_nominal.next (small)
+   print (integer (value))
+   print (integer (local))

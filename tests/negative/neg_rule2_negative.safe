@@ -7,8 +7,8 @@
 
 package negative_index_test
 
-   subtype nat_index is integer (0 to 15);
-   type buffer is array (nat_index) of integer;
+   subtype nat_index is integer (0 to 15)
+   type buffer is array (nat_index) of integer
 
    --  Access_Offset: accesses Arr(Base - Offset).
    --  If Base = 0 and Offset = 1, then Base - Offset = -1, which
@@ -17,5 +17,5 @@ package negative_index_test
                            base : nat_index;
                            offset : integer) returns integer
 
-      return arr (nat_index (integer (base) - offset));  -- ERROR: may be negative
+      return arr (nat_index (integer (base) - offset))  -- ERROR: may be negative
 

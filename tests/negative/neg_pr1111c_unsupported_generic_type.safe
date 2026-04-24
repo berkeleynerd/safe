@@ -1,4 +1,4 @@
 package neg_pr1111c_unsupported_generic_type
 
-   type box of t is integer;
+   type box of t is integer
 

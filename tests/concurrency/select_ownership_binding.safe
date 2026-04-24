@@ -6,26 +6,26 @@
 package select_ownership_binding
 
    type payload is record
-      value : integer;
+      value : integer
 
-   type payload_ptr is access payload;
+   type payload_ptr is access payload
 
-   channel data_ch : payload_ptr capacity 1;
+   channel data_ch : payload_ptr capacity 1
 
    task sender
-      counter : integer = 0;
-      sent : boolean = false;
+      counter : integer = 0
+      sent : boolean = false
 
       loop
-         item : payload_ptr = new ((value = counter) as payload);
-         send data_ch, item, sent;
-         counter = counter + 1;
+         item : payload_ptr = new ((value = counter) as payload)
+         send data_ch, item, sent
+         counter = counter + 1
 
    task receiver
 
       loop
          select
             when item : payload_ptr from data_ch
-               item.all.value = item.all.value + 1;
+               item.all.value = item.all.value + 1
          or
             delay 1.0

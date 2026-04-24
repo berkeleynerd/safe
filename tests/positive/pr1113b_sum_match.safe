@@ -1,6 +1,6 @@
 package pr1113b_sum_match
 
-   type shape is circle (radius : integer) or rectangle (width : integer; height : integer) or label (text : string) or idle;
+   type shape is circle (radius : integer) or rectangle (width : integer; height : integer) or label (text : string) or idle
 
    function describe (value : shape) returns integer
 
@@ -37,6 +37,6 @@ package pr1113b_sum_match
          when idle
             return 0
 
-   current : shape = rectangle (2, 3);
-   score : integer = describe (current);
-   other : integer = direct ();
+   current : shape = rectangle (2, 3)
+   score : integer = describe (current)
+   other : integer = direct ()

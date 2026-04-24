@@ -1,6 +1,6 @@
 package pr118c2_package_build
 
-   subtype counter is integer (0 to 42);
-   value : counter = 41;
+   subtype counter is integer (0 to 42)
+   value : counter = 41
 
    print (value + 1)

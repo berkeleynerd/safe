@@ -5,11 +5,11 @@
 package neg_write_to_constant_field
 
    type pair is record
-      left  : integer;
-      right : integer;
+      left  : integer
+      right : integer
 
    function run
-      value : constant pair = ((left = 1, right = 2) as pair);
+      value : constant pair = ((left = 1, right = 2) as pair)
 
-      value.left = 3;
+      value.left = 3
 

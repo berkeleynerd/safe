@@ -8,5 +8,5 @@ package task_outer_exit_test
    task worker
 
       loop
-         exit;
+         exit
 

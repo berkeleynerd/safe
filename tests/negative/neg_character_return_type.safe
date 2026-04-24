@@ -6,5 +6,5 @@ package neg_character_return_type
 
    function broken returns character
 
-      return 999;
+      return 999
 

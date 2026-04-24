@@ -1,13 +1,13 @@
 package neg_pr1111a_mut_receiver_constant
 
    type counter is record
-      value : integer;
+      value : integer
 
    function (self : mut counter) bump
-      self.value = self.value + 1;
+      self.value = self.value + 1
 
    function total returns integer
-      c : constant counter = (value = 0);
+      c : constant counter = (value = 0)
 
-      c.bump ();
-      return 0;
+      c.bump ()
+      return 0

@@ -4,11 +4,11 @@
 
 package pr118e1_not_null_mutual_family
 
-   type left_node;
-   type right_node;
+   type left_node
+   type right_node
 
    type left_node is record
-      peer : not null right_node;
+      peer : not null right_node
 
    type right_node is record
-      peer : not null left_node;
+      peer : not null left_node

@@ -1,6 +1,6 @@
 package neg_pr1116_nominal_to_integer
 
-   type user_id is new integer (0 to 1000);
+   type user_id is new integer (0 to 1000)
 
-   value : user_id = 42;
-   raw : integer = value;
+   value : user_id = 42
+   raw : integer = value

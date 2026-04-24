@@ -1,5 +1,5 @@
-with provider_bad_zero_sum;
+with provider_bad_zero_sum
 
 package client_bad_zero_sum
 
-   item : provider_bad_zero_sum.state;
+   item : provider_bad_zero_sum.state

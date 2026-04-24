@@ -1,9 +1,9 @@
 package pr118d_bounded_string_tick_build
 
-   initial : string (1) = 'h';
-   score : integer = initial.length;
+   initial : string (1) = 'h'
+   score : integer = initial.length
 
    if score == 1
-      score = 42;
+      score = 42
 
    print (score)

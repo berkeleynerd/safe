@@ -1,9 +1,9 @@
-with provider_list;
+with provider_list
 
 package client_list
 
    function total returns integer
-      values : list of integer = [1, 2];
-      appended : list of integer = provider_list.append_one (values, 3);
+      values : list of integer = [1, 2]
+      appended : list of integer = provider_list.append_one (values, 3)
 
-      return provider_list.last_or_zero (appended);
+      return provider_list.last_or_zero (appended)

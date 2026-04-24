@@ -4,19 +4,19 @@
 
 package neg_pr118d1_growable_to_fixed_outside_guard
 
-   subtype pair_index is integer (1 to 2);
-   type pair is array (pair_index) of integer;
-   type int_list is array of integer;
+   subtype pair_index is integer (1 to 2)
+   type pair is array (pair_index) of integer
+   type int_list is array of integer
 
    function bad_value returns integer
 
-      values : int_list = [10, 20];
+      values : int_list = [10, 20]
 
       if values.length == 2
-         print (1);
+         print (1)
 
-      fixed : pair = values;
+      fixed : pair = values
 
-      return fixed (1);
+      return fixed (1)
 
    print (bad_value ())

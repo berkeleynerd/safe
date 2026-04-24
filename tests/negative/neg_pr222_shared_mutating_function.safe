@@ -3,12 +3,12 @@
 -- Expected: REJECT
 
 type state is record
-   total : integer;
+   total : integer
 
-shared ledger : state = (total = 1);
+shared ledger : state = (total = 1)
 
 function bump returns integer
-   ledger.total = 2;
-   return 2;
+   ledger.total = 2
+   return 2
 
 print (bump ())

@@ -1,36 +1,36 @@
 package pr1110b_list_growable_build
 
    function seeded_values returns list of array of integer
-      var values : list of array of integer = [[1, 2, 3]];
-      next : array of integer = [8, 9];
+      var values : list of array of integer = [[1, 2, 3]]
+      next : array of integer = [8, 9]
 
-      append (values, next);
-      return values;
+      append (values, next)
+      return values
 
    function popped_length returns integer
-      var values : list of array of integer = seeded_values;
-      last : constant optional array of integer = pop_last (values);
+      var values : list of array of integer = seeded_values
+      last : constant optional array of integer = pop_last (values)
       if last.present and then values.length == 1
-         return last.value.length;
+         return last.value.length
       else
-         return 0;
+         return 0
 
    function popped_head returns integer
-      var values : list of array of integer = seeded_values;
-      last : constant optional array of integer = pop_last (values);
+      var values : list of array of integer = seeded_values
+      last : constant optional array of integer = pop_last (values)
       if last.present and then values.length == 1 and then last.value.length > 0
-         return last.value (1);
+         return last.value (1)
       else
-         return 0;
+         return 0
 
    function remaining_length returns integer
-      var values : list of array of integer = seeded_values;
-      last : constant optional array of integer = pop_last (values);
+      var values : list of array of integer = seeded_values
+      last : constant optional array of integer = pop_last (values)
       if last.present
-         return values.length;
+         return values.length
       else
-         return 0;
+         return 0
 
-   print (popped_length);
-   print (popped_head);
-   print (remaining_length);
+   print (popped_length)
+   print (popped_head)
+   print (remaining_length)

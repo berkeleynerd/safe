@@ -5,11 +5,11 @@
 
 package return_move_test
 
-   subtype payload is integer (0 to 100);
-   type payload_ptr is access payload;
+   subtype payload is integer (0 to 100)
+   type payload_ptr is access payload
 
    function build returns payload_ptr
-      source : payload_ptr = null;
+      source : payload_ptr = null
 
-      return source;  -- ERROR: return move source not provably non-null
+      return source  -- ERROR: return move source not provably non-null
 

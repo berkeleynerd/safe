@@ -1,14 +1,14 @@
 package pr1122f2_shared_bounded_string_field_build
 
    type settings is record
-      label : string (5);
+      label : string (5)
 
-   shared cfg : settings = (label = "hello");
-   snap : settings;
+   shared cfg : settings = (label = "hello")
+   snap : settings
 
    function update
-      cfg.label = "world";
+      cfg.label = "world"
 
-   update ();
-   snap = cfg;
-   print (snap.label);
+   update ()
+   snap = cfg
+   print (snap.label)

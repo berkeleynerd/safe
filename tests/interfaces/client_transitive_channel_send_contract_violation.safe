@@ -1,10 +1,10 @@
-with provider_transitive_channel;
+with provider_transitive_channel
 
 package client_transitive_channel_send_contract_violation
 
-   subtype marker is integer (0 to 1);
+   subtype marker is integer (0 to 1)
 
-   channel other_ch : marker capacity 1;
+   channel other_ch : marker capacity 1
 
    task caller with priority = 8, sends other_ch
 

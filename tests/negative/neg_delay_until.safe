@@ -8,5 +8,5 @@ package delay_until_test
    task worker
 
       loop
-         delay until 1.0;
+         delay until 1.0
 

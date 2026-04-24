@@ -1,13 +1,13 @@
-with provider_shared_ceiling;
+with provider_shared_ceiling
 
 package client_shared_provider_ceiling
 
    task caller with priority = 8
-      done : boolean = false;
+      done : boolean = false
 
       loop
          if not done
-            provider_shared_ceiling.cfg.count = 2;
-            done = true;
+            provider_shared_ceiling.cfg.count = 2
+            done = true
          else
-            delay 0.01;
+            delay 0.01

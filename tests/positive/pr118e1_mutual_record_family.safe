@@ -5,13 +5,13 @@
 
 package pr118e1_mutual_record_family
 
-   type expr;
-   type stmt;
+   type expr
+   type stmt
 
    type expr is record
-      tag : integer;
-      next_stmt : stmt;
+      tag : integer
+      next_stmt : stmt
 
    type stmt is record
-      tag : integer;
-      next_expr : expr;
+      tag : integer
+      next_expr : expr

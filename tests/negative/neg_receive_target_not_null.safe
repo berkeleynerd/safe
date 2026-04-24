@@ -5,14 +5,14 @@
 package neg_receive_target_not_null
 
    type payload is record
-      value : integer;
+      value : integer
 
-   type payload_ptr is access payload;
+   type payload_ptr is access payload
 
-   channel data_ch : payload_ptr capacity 1;
+   channel data_ch : payload_ptr capacity 1
 
    function run
-      target : payload_ptr = new ((value = 2) as payload);
+      target : payload_ptr = new ((value = 2) as payload)
 
-      receive data_ch, target;
+      receive data_ch, target
 

@@ -9,20 +9,20 @@ package pr1110a_optional_guarded
    function parse (input : integer) returns optional integer
 
       if input > 0
-         return some (input);
+         return some (input)
       else
-         return none;
+         return none
 
    function get_or_zero (input : integer) returns integer
-      value : optional integer = parse (input);
+      value : optional integer = parse (input)
 
       if value.present
-         return value.value;
+         return value.value
       else
-         return 0;
+         return 0
 
    function default_is_absent returns boolean
-      value : optional integer;
-      fallback : optional integer = (none as optional integer);
+      value : optional integer
+      fallback : optional integer = (none as optional integer)
 
-      return (not value.present) and then (not fallback.present);
+      return (not value.present) and then (not fallback.present)

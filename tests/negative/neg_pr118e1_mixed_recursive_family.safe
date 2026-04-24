@@ -5,9 +5,9 @@
 
 package neg_pr118e1_mixed_recursive_family
 
-   type node;
+   type node
 
-   type node_list is array of node;
+   type node_list is array of node
 
    type node is record
-      items : node_list;
+      items : node_list

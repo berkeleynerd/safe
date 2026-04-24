@@ -1,21 +1,21 @@
-with provider_shared_list;
+with provider_shared_list
 
 package client_shared_list
 
    function exercise
-      snapshot : list of integer;
-      last : optional integer;
-      ok : boolean = false;
+      snapshot : list of integer
+      last : optional integer
+      ok : boolean = false
 
-      snapshot = provider_shared_list.values;
-      append (provider_shared_list.values, 3);
-      last = provider_shared_list.values.pop_last ();
-      provider_shared_list.values = [8, 9];
+      snapshot = provider_shared_list.values
+      append (provider_shared_list.values, 3)
+      last = provider_shared_list.values.pop_last ()
+      provider_shared_list.values = [8, 9]
 
       if last.present
          if snapshot.length == 2
             if last.value == 3
                if provider_shared_list.values.length == 2
-                  ok = true;
+                  ok = true
 
-      print (ok);
+      print (ok)

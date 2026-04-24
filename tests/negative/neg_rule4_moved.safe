@@ -8,17 +8,17 @@
 package moved_deref_test
 
    type data is record
-      value : integer;
+      value : integer
 
-   type data_ptr is access data;
+   type data_ptr is access data
 
    --  Use_After_Move: dereferences Source after it has been moved to Target.
    function use_after_move
-      source : data_ptr = new ((value = 42) as data);
-      target : data_ptr = null;
-      v      : integer;
+      source : data_ptr = new ((value = 42) as data)
+      target : data_ptr = null
+      v      : integer
 
-      target = source;
+      target = source
       --  Source is now null (moved).
-      v = source.all.value;  -- ERROR: Source has been moved (is null)
+      v = source.all.value  -- ERROR: Source has been moved (is null)
 

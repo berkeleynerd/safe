@@ -7,8 +7,8 @@
 
 package safe_remainder
 
-   subtype signed_value is integer (-10_000 to 10_000);
-   subtype positive_mod is integer (1 to 100);
+   subtype signed_value is integer (-10_000 to 10_000)
+   subtype positive_mod is integer (1 to 100)
 
    --  Compute_Remainder: remainder with a positive modulus.
    --  The divisor is of type Positive_Mod (1..100), provably nonzero.
@@ -16,11 +16,11 @@ package safe_remainder
                                m : positive_mod) returns signed_value
 
       --  M is provably nonzero (range 1..100).
-      return v rem signed_value (m);
+      return v rem signed_value (m)
 
    --  Is_Even: checks whether a value is even using rem 2.
    --  The literal 2 is provably nonzero.
    function is_even (v : signed_value) returns boolean
 
-      return (v rem 2) == 0;
+      return (v rem 2) == 0
 

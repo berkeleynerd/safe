@@ -1,7 +1,7 @@
 package pr118d_empty_growable_array_literal_build
 
-   type int_list is array of integer;
+   type int_list is array of integer
 
-   values : int_list = [];
+   values : int_list = []
 
    print (values.length)

@@ -7,9 +7,9 @@
 package neg_pr118e_reference_channel
 
    type node is record
-      next : node;
+      next : node
 
    type envelope is record
-      data : node;
+      data : node
 
-   channel data_ch : envelope capacity 1;
+   channel data_ch : envelope capacity 1

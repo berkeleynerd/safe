@@ -1,8 +1,8 @@
-with provider_channel;
+with provider_channel
 
 package client_imported_channel_elab_try_receive
 
-   item : provider_channel.message = 0;
-   got  : boolean = false;
+   item : provider_channel.message = 0
+   got  : boolean = false
 
-   try_receive provider_channel.data_ch, item, got;
+   try_receive provider_channel.data_ch, item, got

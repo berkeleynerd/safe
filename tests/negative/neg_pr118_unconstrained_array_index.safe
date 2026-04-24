@@ -1,4 +1,4 @@
 package neg_pr118_unconstrained_array_index
 
-   type values is array (integer) of integer;
+   type values is array (integer) of integer
 

@@ -9,12 +9,12 @@
 
 package narrow_fail
 
-   subtype wide is integer (-1_000_000 to 1_000_000);
-   subtype narrow is integer (-100 to 100);
+   subtype wide is integer (-1_000_000 to 1_000_000)
+   subtype narrow is integer (-100 to 100)
 
    --  Unsafe_Assign: assigns a Wide value directly to a Narrow variable.
    --  The compiler cannot prove that V is in -100..100.
    function unsafe_assign (v : wide; result : out narrow)
 
-      result = narrow (v);  -- ERROR: V may not be in -100..100
+      result = narrow (v)  -- ERROR: V may not be in -100..100
 

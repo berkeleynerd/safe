@@ -6,6 +6,6 @@
 
 package neg_pr1110c_set_non_map
 
-   var count : integer = 0;
+   var count : integer = 0
 
-   set (count, 1, 2);
+   set (count, 1, 2)

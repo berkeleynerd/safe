@@ -1,0 +1,38 @@
+package pr362_named_arguments
+
+   subtype small_value is integer (0 to 100)
+
+   type shape is circle (radius : small_value) or label (text : string)
+
+   type counter is record
+      value : small_value
+
+   function combine (left : small_value; right : small_value) returns integer
+      return left * 10 + right
+
+   function identity of t (value : t) returns t
+      return value
+
+   function (self : counter) plus (step : small_value) returns integer
+      return self.value + step
+
+   function keep_shape (value : shape) returns shape
+      return value
+
+   function same (left : shape; right : shape) returns boolean
+      return left == right
+
+   function total returns integer
+      item : counter = (value = 40)
+      positional_receiver : integer = item.plus (step = 2)
+      direct : integer = combine (right = 2, left = 4)
+      generic_value : integer = identity of integer (value = direct)
+      named_shape : shape = keep_shape (value = circle (radius = small_value (7)))
+
+      if positional_receiver == 42 and then generic_value == 42
+         if same (named_shape, circle (radius = small_value (7)))
+            return 1
+         else
+            return 0
+      else
+         return 0

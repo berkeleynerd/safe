@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_anon_reassign.safe:10:21: error: removed source construct `access_type_definition` is not allowed
   |
-  | 10 |    type data_ptr is access data;
+  | 10 |    type data_ptr is access data
   |    |                     ^~~~~~
   |
   note: PR11.8e infers references from recursive record types; named access types are removed

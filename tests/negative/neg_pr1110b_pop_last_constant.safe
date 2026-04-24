@@ -6,8 +6,8 @@
 package neg_pr1110b_pop_last_constant
 
    function bad_pop returns integer
-      values : constant list of integer = [1, 2];
+      values : constant list of integer = [1, 2]
       if pop_last (values).present
-         return 1;
+         return 1
       else
-         return 0;
+         return 0

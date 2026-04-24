@@ -8,35 +8,35 @@
 
 package select_priority
 
-   subtype command is integer (0 to 10);
-   subtype round_index is integer (1 to 2);
+   subtype command is integer (0 to 10)
+   subtype round_index is integer (1 to 2)
 
-   channel high_ch : command capacity 2;
-   channel low_ch  : command capacity 2;
+   channel high_ch : command capacity 2
+   channel low_ch  : command capacity 2
 
    task chooser with priority = 10
-      saw_high : boolean = false;
-      saw_low  : boolean = false;
-      sent     : boolean = false;
-      high_sent : boolean = false;
-      low_sent  : boolean = false;
+      saw_high : boolean = false
+      saw_low  : boolean = false
+      sent     : boolean = false
+      high_sent : boolean = false
+      low_sent  : boolean = false
 
       loop
          if not sent
             for round in round_index
-               send high_ch, command (round * 2 - 1), high_sent;
-               send low_ch, command (round * 2), low_sent;
+               send high_ch, command (round * 2 - 1), high_sent
+               send low_ch, command (round * 2), low_sent
 
                if high_sent and low_sent
                   select
                      when high_item : command from high_ch
                         if high_item >= 0
-                           saw_high = true;
+                           saw_high = true
                   or
                      when low_item : command from low_ch
                         if low_item >= 0
-                           saw_low = true;
+                           saw_low = true
 
-            sent = saw_high and saw_low;
+            sent = saw_high and saw_low
 
          delay 1.0

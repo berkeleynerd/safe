@@ -1,9 +1,9 @@
 package neg_pr1112d_shared_root_mut_actual
 
    function grow (items : mut list of integer)
-      append (items, 1);
+      append (items, 1)
 
-   shared values : list of integer;
+   shared values : list of integer
 
    function update
-      grow (values);
+      grow (values)

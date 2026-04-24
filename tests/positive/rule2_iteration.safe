@@ -7,29 +7,29 @@
 
 package safe_iteration
 
-   subtype slot is integer (0 to 15);
-   subtype value is integer (0 to 1000);
-   type register_bank is array (slot) of value;
+   subtype slot is integer (0 to 15)
+   subtype value is integer (0 to 1000)
+   type register_bank is array (slot) of value
 
    --  Find_Max: iterates over all slots to find the maximum value.
    --  The loop variable I has type Slot (0..15), matching the
    --  array index bounds exactly.
    function find_max (bank : register_bank) returns value
-      max_val : value = bank (0);
+      max_val : value = bank (0)
 
       for i in slot
          --  I is of type Slot (0..15), same as array index. In bounds.
          if bank (i) > max_val
-            max_val = bank (i);
+            max_val = bank (i)
 
-      return max_val;
+      return max_val
 
    --  Zero_All: sets every element to zero.
    function zero_all (bank : register_bank) returns register_bank
-      cleared : register_bank = bank;
+      cleared : register_bank = bank
 
       for i in slot
          if cleared (i) != 0
-            cleared (i) = 0;
+            cleared (i) = 0
 
-      return cleared;
+      return cleared

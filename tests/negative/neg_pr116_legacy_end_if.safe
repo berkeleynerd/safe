@@ -3,6 +3,6 @@ package neg_pr116_legacy_end_if
    function broken returns integer
 
       if true
-         return 1;
+         return 1
 
       end if

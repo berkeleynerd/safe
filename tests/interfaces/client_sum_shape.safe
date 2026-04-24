@@ -1,8 +1,8 @@
-with provider_sum_shape;
+with provider_sum_shape
 
 package client_sum_shape
 
-   current : provider_sum_shape.shape = provider_sum_shape.circle (4);
+   current : provider_sum_shape.shape = provider_sum_shape.circle (4)
 
    function score (value : provider_sum_shape.shape) returns integer
 
@@ -12,4 +12,4 @@ package client_sum_shape
          when idle
             return 0
 
-   result : integer = score (current);
+   result : integer = score (current)

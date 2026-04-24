@@ -9,32 +9,32 @@
 
 package exclusive_variable
 
-   subtype counter is integer (0 to 1_000_000);
+   subtype counter is integer (0 to 1_000_000)
 
-   channel sync_ch : counter capacity 1;
+   channel sync_ch : counter capacity 1
 
    --  Task_A: owns Counter_A exclusively. Sends result via channel.
    task task_a with priority = 10
-      counter_a : counter = 0;
-      sent : boolean = false;
+      counter_a : counter = 0
+      sent : boolean = false
 
       loop
          if counter_a < 999
-            counter_a = counter_a + 1;
+            counter_a = counter_a + 1
          else
-            counter_a = 1_000;
-            send sync_ch, counter_a, sent;
+            counter_a = 1_000
+            send sync_ch, counter_a, sent
             if sent
-               counter_a = 0;
+               counter_a = 0
 
    --  Task_B: owns Counter_B exclusively. Receives via channel.
    task task_b with priority = 10
-      received     : counter;
-      task_b_total : counter = 0;
+      received     : counter
+      task_b_total : counter = 0
 
       loop
-         receive sync_ch, received;
+         receive sync_ch, received
          if task_b_total <= 1_000_000 - received
-            task_b_total = task_b_total + received;
+            task_b_total = task_b_total + received
          else
-            task_b_total = 0;
+            task_b_total = 0

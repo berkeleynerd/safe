@@ -6,10 +6,10 @@
 package neg_channel_access_component
 
    type payload is record
-      value : integer;
+      value : integer
 
    type envelope is record
-      item : access payload;
+      item : access payload
 
-   channel data_ch : envelope capacity 1;
+   channel data_ch : envelope capacity 1
 

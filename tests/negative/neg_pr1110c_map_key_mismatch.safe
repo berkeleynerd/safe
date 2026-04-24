@@ -5,5 +5,5 @@
 
 package neg_pr1110c_map_key_mismatch
 
-   var values : map of (integer, integer);
-   found : optional integer = get (values, "Ada");
+   var values : map of (integer, integer)
+   found : optional integer = get (values, "Ada")

@@ -6,6 +6,6 @@
 
 package neg_pr1110b_pop_last_stmt
 
-   values : list of integer = [1, 2];
+   values : list of integer = [1, 2]
 
-   pop_last (values);
+   pop_last (values)

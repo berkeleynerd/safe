@@ -1,0 +1,11 @@
+Diagnostics Golden: PR362 Named Built-In Argument
+Source: tests/negative/neg_pr362_named_builtin.safe
+
+Expected diagnostic output:
+------------------------------------------------------------------------
+neg_pr362_named_builtin.safe:6:21: error: built-in method `append` does not accept named arguments
+  |
+  | 6 |       values.append (key = 3)
+  |   |                     ^~~~~~~~~
+  |
+------------------------------------------------------------------------

@@ -6,20 +6,20 @@
 package ownership_observe
 
    type config is record
-      rate  : integer;
-      limit : integer;
-      next  : config;
+      rate  : integer
+      limit : integer
+      next  : config
 
    function read_rate (ref : config) returns integer
-      return ref.rate;
+      return ref.rate
 
    function read_limit (ref : config) returns integer
-      return ref.limit;
+      return ref.limit
 
    function use_observe
-      owner : not null config = (rate = 100, limit = 500, next = null);
-      r     : integer;
-      l     : integer;
+      owner : not null config = (rate = 100, limit = 500, next = null)
+      r     : integer
+      l     : integer
 
-      r = read_rate (owner);
-      l = read_limit (owner);
+      r = read_rate (owner)
+      l = read_limit (owner)

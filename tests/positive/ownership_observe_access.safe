@@ -5,14 +5,14 @@
 package ownership_observe_access
 
    type config is record
-      rate : integer;
-      next : config;
+      rate : integer
+      next : config
 
    function read_with_observer (observer : config) returns integer
-      return observer.rate;
+      return observer.rate
 
    function read_with_local_observer
-      owner : not null config = (rate = 100, next = null);
-      rate  : integer;
+      owner : not null config = (rate = 100, next = null)
+      rate  : integer
 
-      rate = read_with_observer (owner);
+      rate = read_with_observer (owner)

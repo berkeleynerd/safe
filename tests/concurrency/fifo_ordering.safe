@@ -10,38 +10,38 @@
 
 package fifo_ordering
 
-   subtype sequence_number is integer (0 to 999);
+   subtype sequence_number is integer (0 to 999)
 
-   channel seq_ch : sequence_number capacity 8;
+   channel seq_ch : sequence_number capacity 8
 
    --  Producer: sends 0, 1, 2, ..., 999, 0, 1, ... in order.
    task producer with priority = 10
-      n : sequence_number = 0;
-      sent : boolean = false;
+      n : sequence_number = 0
+      sent : boolean = false
 
       loop
-         send seq_ch, n, sent;
+         send seq_ch, n, sent
          if sent
             if n < 999
-               n = n + 1;
+               n = n + 1
             else
-               n = 0;
+               n = 0
 
    --  Consumer: receives values and verifies ordering.
    --  Each received value should equal the expected next sequence number.
    task consumer with priority = 10
-      received      : sequence_number;
-      expected_next : sequence_number = 0;
-      last_verified : sequence_number = 0;
+      received      : sequence_number
+      expected_next : sequence_number = 0
+      last_verified : sequence_number = 0
 
       loop
-         receive seq_ch, received;
+         receive seq_ch, received
          if received == expected_next
-            last_verified = received;
+            last_verified = received
          else
-            last_verified = expected_next;
+            last_verified = expected_next
 
          if expected_next < 999
-            expected_next = expected_next + 1;
+            expected_next = expected_next + 1
          else
-            expected_next = 0;
+            expected_next = 0

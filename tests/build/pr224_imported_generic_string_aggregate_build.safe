@@ -1,9 +1,9 @@
-with pr224_provider_printable;
+with pr224_provider_printable
 
 package pr224_imported_generic_string_aggregate_build
 
    function render of t with t: pr224_provider_printable.printable (item : t) returns string
-      return item.label ();
+      return item.label ()
 
-   text : string = render of pr224_provider_printable.widget ((text = "demo"));
+   text : string = render of pr224_provider_printable.widget ((text = "demo"))
    print (text)

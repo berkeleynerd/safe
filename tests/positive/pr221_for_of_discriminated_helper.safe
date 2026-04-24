@@ -5,18 +5,18 @@
 package pr221_for_of_discriminated_helper
 
    type payload (active : boolean = true) is record
-      text : string;
+      text : string
 
    function count_active returns integer
-      seed : payload = (active = true, text = "Ada");
-      var values : list of payload = [seed];
+      seed : payload = (active = true, text = "Ada")
+      var values : list of payload = [seed]
 
       for item of values
          if item.active
-            text : string = item.text;
+            text : string = item.text
             if text == "Ada"
-               return 1;
+               return 1
 
-      return 0;
+      return 0
 
-   result : integer = count_active ();
+   result : integer = count_active ()

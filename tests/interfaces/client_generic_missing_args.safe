@@ -1,9 +1,9 @@
-with provider_generic;
+with provider_generic
 
 package client_generic_missing_args
 
    function total returns integer
-      values : list of integer = [1, 2];
+      values : list of integer = [1, 2]
 
-      return provider_generic.identity (values).length;
+      return provider_generic.identity (values).length
 

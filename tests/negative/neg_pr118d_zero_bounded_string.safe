@@ -4,5 +4,5 @@
 
 package neg_pr118d_zero_bounded_string
 
-   value : string (0) = "";
+   value : string (0) = ""
 

@@ -1,3 +1,3 @@
 package neg_pr118c1_print_bare_identifier
 
-   value : integer = print;
+   value : integer = print

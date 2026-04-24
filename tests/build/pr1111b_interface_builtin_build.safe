@@ -1,23 +1,23 @@
 package pr1111b_interface_builtin_build
 
    type appendable is interface
-      function (self : mut appendable) append (value : integer);
+      function (self : mut appendable) append (value : integer)
 
    function extend_twice (values : mut appendable)
-      values.append (10);
-      values.append (20);
+      values.append (10)
+      values.append (20)
 
    function popped_value returns integer
-      var numbers : list of integer;
-      var last_value : optional integer;
+      var numbers : list of integer
+      var last_value : optional integer
 
-      extend_twice (numbers);
-      last_value = numbers.pop_last();
+      extend_twice (numbers)
+      last_value = numbers.pop_last()
 
-      print (numbers.length);
+      print (numbers.length)
       if last_value.present
-         return last_value.value;
+         return last_value.value
       else
-         return 0;
+         return 0
 
-   print (popped_value);
+   print (popped_value)

@@ -1,22 +1,22 @@
 package pr1122f2_shared_optional_string_none_build
 
    type nested_state is record
-      maybe : optional string;
+      maybe : optional string
 
    type settings is record
-      maybe  : optional string;
-      nested : nested_state;
+      maybe  : optional string
+      nested : nested_state
 
-   shared cfg : settings = (maybe = some ("hello"), nested = (maybe = some ("inner")));
-   snap : settings;
+   shared cfg : settings = (maybe = some ("hello"), nested = (maybe = some ("inner")))
+   snap : settings
 
    function clear_fields
-      cfg.maybe = none;
-      cfg.nested.maybe = none;
+      cfg.maybe = none
+      cfg.nested.maybe = none
 
-   clear_fields ();
-   snap = cfg;
+   clear_fields ()
+   snap = cfg
    if not snap.maybe.present and then not snap.nested.maybe.present
-      print ("cleared");
+      print ("cleared")
    else
-      print ("bad");
+      print ("bad")

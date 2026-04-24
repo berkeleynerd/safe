@@ -4,5 +4,5 @@
 
 package neg_pr114_legacy_range_dots
 
-   type small is range 0 .. 10;
+   type small is range 0 .. 10
 

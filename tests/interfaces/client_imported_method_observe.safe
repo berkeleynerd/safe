@@ -1,11 +1,11 @@
-with provider_imported_call_ownership;
+with provider_imported_call_ownership
 
 package client_imported_method_observe
 
    function total returns provider_imported_call_ownership.payload_value
-      owner : not null provider_imported_call_ownership.payload = (value = 5, link = null);
-      seen  : provider_imported_call_ownership.payload_value = 0;
+      owner : not null provider_imported_call_ownership.payload = (value = 5, link = null)
+      seen  : provider_imported_call_ownership.payload_value = 0
 
-      owner.bump ();
-      seen = owner.read_value ();
-      return seen;
+      owner.bump ()
+      seen = owner.read_value ()
+      return seen

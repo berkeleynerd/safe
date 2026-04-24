@@ -6,17 +6,17 @@ package pr112_case_scrutinee_once
 
    function read_opcode returns integer
 
-      return 2;
+      return 2
 
    function label returns string
 
       case read_opcode ()
          when 1
-            return "one";
+            return "one"
 
          when 2
-            return "two";
+            return "two"
 
          when others
-            return "other";
+            return "other"
 

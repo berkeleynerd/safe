@@ -1,5 +1,5 @@
-type opcode is binary (8);
-code : opcode = opcode (1);
+type opcode is binary (8)
+code : opcode = opcode (1)
 
 function render (op : opcode) returns string
 

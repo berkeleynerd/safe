@@ -35,9 +35,12 @@ package body Safe_Frontend.Check_Parse is
          Span := State.Tokens (State.Tokens.Last_Index).Span;
       end if;
       return
-        (Kind   => FL.End_Of_File,
-         Lexeme => FT.To_UString ("<eof>"),
-         Span   => Span);
+        (Kind         => FL.End_Of_File,
+         Lexeme       => FT.To_UString ("<eof>"),
+         Span         => Span,
+         Logical_Line =>
+           (if State.Tokens.Is_Empty then 1
+            else State.Tokens (State.Tokens.Last_Index).Logical_Line));
    end Eof_Token;
 
    function Current (State : Parser_State) return FL.Token is
@@ -74,6 +77,13 @@ package body Safe_Frontend.Check_Parse is
    begin
       return Before.End_Pos.Line < After.Start_Pos.Line;
    end Starts_On_Later_Line;
+
+   function Starts_On_Later_Logical_Line
+     (Before : FL.Token;
+      After  : FL.Token) return Boolean is
+   begin
+      return Before.Logical_Line < After.Logical_Line;
+   end Starts_On_Later_Logical_Line;
 
    function Current_Lower (State : Parser_State) return String is
    begin
@@ -135,19 +145,54 @@ package body Safe_Frontend.Check_Parse is
 
    procedure Require
      (State  : in out Parser_State;
-      Lexeme : String) is
+      Lexeme : String)
+   is
       Ignore : FL.Token;
    begin
       Ignore := Expect (State, Lexeme);
    end Require;
 
-   function Expect_Statement_Terminator
+   procedure Raise_Unexpected_Newline (State : Parser_State) is
+   begin
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path       => Path_String (State),
+            Span       => Current (State).Span,
+            Message    => "unexpected newline; use `\` or enclose in brackets",
+            Suggestion => "Continue the expression with `\` or wrap it in `()`, `[]`, or `{}`."));
+   end Raise_Unexpected_Newline;
+
+   procedure Reject_Removable_Semicolon (State : Parser_State) is
+   begin
+      Raise_Diag
+        (CM.Source_Frontend_Error
+           (Path       => Path_String (State),
+            Span       => Current (State).Span,
+            Message    => "semicolon only valid before another statement on same line",
+            Suggestion => "Remove the trailing semicolon."));
+   end Reject_Removable_Semicolon;
+
+   function Current_Is_Removable_Semicolon (State : Parser_State) return Boolean is
+      Token : constant FL.Token := Current (State);
+      After : constant FL.Token := Next (State);
+   begin
+      return FT.To_String (Token.Lexeme) = ";"
+        and then
+          (After.Kind in FL.Dedent | FL.End_Of_File
+           or else Starts_On_Later_Logical_Line (Token, After));
+   end Current_Is_Removable_Semicolon;
+
+   function Expect_Terminator
      (State : in out Parser_State) return FT.Source_Span
    is
       Token : constant FL.Token := Current (State);
       Last  : constant FL.Token := Previous (State);
    begin
-      if Match (State, ";") then
+      if FT.To_String (Token.Lexeme) = ";" then
+         if Current_Is_Removable_Semicolon (State) then
+            Reject_Removable_Semicolon (State);
+         end if;
+         Advance (State);
          return Token.Span;
       end if;
 
@@ -157,7 +202,7 @@ package body Safe_Frontend.Check_Parse is
 
       if Token.Kind /= FL.End_Of_File
         and then Last.Kind /= FL.End_Of_File
-        and then Starts_On_Later_Line (Last.Span, Token.Span)
+        and then Starts_On_Later_Logical_Line (Last, Token)
       then
          return Last.Span;
       end if;
@@ -166,9 +211,40 @@ package body Safe_Frontend.Check_Parse is
         (CM.Source_Frontend_Error
            (Path    => Path_String (State),
             Span    => Token.Span,
-            Message => "expected `;`",
+            Message => "expected statement terminator",
             Note    => "saw `" & FT.To_String (Token.Lexeme) & "`"));
       return Token.Span;
+   end Expect_Terminator;
+
+   function Match_Terminator
+     (State : in out Parser_State;
+      Span  : out FT.Source_Span) return Boolean
+   is
+      Token : constant FL.Token := Current (State);
+      Last  : constant FL.Token := Previous (State);
+   begin
+      if FT.To_String (Token.Lexeme) = ";" then
+         Span := Expect_Terminator (State);
+         return True;
+      elsif Token.Kind = FL.Dedent or else Token.Kind = FL.End_Of_File then
+         Span := Last.Span;
+         return True;
+      elsif Token.Kind /= FL.End_Of_File
+        and then Last.Kind /= FL.End_Of_File
+        and then Starts_On_Later_Logical_Line (Last, Token)
+      then
+         Span := Last.Span;
+         return True;
+      end if;
+      Span := FT.Null_Span;
+      return False;
+   end Match_Terminator;
+
+   function Expect_Statement_Terminator
+     (State : in out Parser_State) return FT.Source_Span
+   is
+   begin
+      return Expect_Terminator (State);
    end Expect_Statement_Terminator;
 
    function Match_Indent (State : in out Parser_State) return Boolean is
@@ -884,12 +960,21 @@ package body Safe_Frontend.Check_Parse is
       Require (State, "of");
       if Match (State, "(") then
          loop
+            if Current (State).Kind in FL.Identifier | FL.Keyword
+              and then FT.To_String (Next (State).Lexeme) = "="
+            then
+               Raise_Diag
+                 (CM.Source_Frontend_Error
+                    (Path       => Path_String (State),
+                     Span       => Current (State).Span,
+                     Message    => "named generic type arguments are not supported; use positional type arguments"));
+            end if;
             Result.Append
               (new CM.Type_Spec'
                  (Parse_Type_Spec_Internal
-                    (State,
-                     Allow_Access_Def => Allow_Access_Def,
-                     Allow_Constraints => Allow_Constraints)));
+                     (State,
+                      Allow_Access_Def => Allow_Access_Def,
+                      Allow_Constraints => Allow_Constraints)));
             exit when not Match (State, ",");
          end loop;
          Require (State, ")");
@@ -1249,7 +1334,7 @@ package body Safe_Frontend.Check_Parse is
       Unconstrained : Boolean := False;
       Index_Name    : CM.Expr_Access;
       Item          : CM.Array_Index;
-      Semi          : FL.Token;
+      Semi          : FT.Source_Span;
    begin
       Require (State, "array");
       Require (State, "(");
@@ -1273,11 +1358,11 @@ package body Safe_Frontend.Check_Parse is
       Require (State, ")");
       Require (State, "of");
       Result.Component_Type := Parse_Object_Type (State);
-      Semi := Expect (State, ";");
+      Semi := Expect_Terminator (State);
       Result.Kind :=
         (if Unconstrained then CM.Type_Decl_Unconstrained_Array
          else CM.Type_Decl_Constrained_Array);
-      Result.Span := CM.Join (Start.Span, Semi.Span);
+      Result.Span := CM.Join (Start.Span, Semi);
       return Result;
    end Parse_Array_Type;
 
@@ -1286,14 +1371,14 @@ package body Safe_Frontend.Check_Parse is
       Start : FL.Token) return CM.Type_Decl
    is
       Result : CM.Type_Decl;
-      Semi   : FL.Token;
+      Semi   : FT.Source_Span;
    begin
       Require (State, "array");
       Require (State, "of");
       Result.Component_Type := Parse_Object_Type (State);
-      Semi := Expect (State, ";");
+      Semi := Expect_Terminator (State);
       Result.Kind := CM.Type_Decl_Growable_Array;
-      Result.Span := CM.Join (Start.Span, Semi.Span);
+      Result.Span := CM.Join (Start.Span, Semi);
       return Result;
    end Parse_Growable_Array_Type;
 
@@ -1324,11 +1409,11 @@ package body Safe_Frontend.Check_Parse is
 
       declare
          Close_Paren : constant FL.Token := Expect (State, ")");
-         Semi        : constant FL.Token := Expect (State, ";");
+         Semi        : constant FT.Source_Span := Expect_Terminator (State);
          pragma Unreferenced (Close_Paren);
       begin
          Result.Kind := CM.Type_Decl_Enumeration;
-         Result.Span := CM.Join (Start.Span, Semi.Span);
+         Result.Span := CM.Join (Start.Span, Semi);
       end;
       return Result;
    end Parse_Enumeration_Type;
@@ -1339,7 +1424,7 @@ package body Safe_Frontend.Check_Parse is
       First : constant FL.Token := Expect_Identifier (State);
       Names : FT.UString_Vectors.Vector;
       Decl  : CM.Component_Decl;
-      Semi  : FL.Token;
+      Semi  : FT.Source_Span;
    begin
       Names.Append (First.Lexeme);
       while Match (State, ",") loop
@@ -1348,8 +1433,8 @@ package body Safe_Frontend.Check_Parse is
       Require (State, ":");
       Decl.Names := Names;
       Decl.Field_Type := Parse_Object_Type (State);
-      Semi := Expect (State, ";");
-      Decl.Span := CM.Join (First.Span, Semi.Span);
+      Semi := Expect_Terminator (State);
+      Decl.Span := CM.Join (First.Span, Semi);
       return Decl;
    end Parse_Component_Decl;
 
@@ -1430,7 +1515,7 @@ package body Safe_Frontend.Check_Parse is
       end loop;
 
       Result.Kind := CM.Type_Decl_Sum;
-      Result.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+      Result.Span := CM.Join (Start.Span, Expect_Terminator (State));
       return Result;
    end Parse_Sum_Type;
 
@@ -1624,6 +1709,7 @@ package body Safe_Frontend.Check_Parse is
       Result         : CM.Package_Item;
       Item           : CM.Type_Decl;
       Has_Type_Suite : Boolean := False;
+      Close          : FT.Source_Span := Name.Span;
    begin
       Item.Is_Public := Is_Public;
       Item.Name := Name.Lexeme;
@@ -1640,7 +1726,7 @@ package body Safe_Frontend.Check_Parse is
          end if;
       end if;
 
-      if Match (State, ";") then
+      if Match_Terminator (State, Close) then
          Item.Kind := CM.Type_Decl_Incomplete;
          Item.Span := CM.Join (Start.Span, Name.Span);
       else
@@ -1654,14 +1740,14 @@ package body Safe_Frontend.Check_Parse is
             Require_Range_Keyword (State);
             Item.High_Expr := Parse_Expression (State);
             Item.Kind := CM.Type_Decl_Integer;
-            Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+            Item.Span := CM.Join (Start.Span, Expect_Terminator (State));
          elsif Current_Lower (State) = "binary" then
             declare
                Binary_Spec : constant CM.Type_Spec := Parse_Binary_Type_Spec (State);
             begin
                Item.Binary_Width_Expr := Binary_Spec.Binary_Width_Expr;
                Item.Kind := CM.Type_Decl_Binary;
-               Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+               Item.Span := CM.Join (Start.Span, Expect_Terminator (State));
             end;
          elsif Current_Lower (State) = "digits" then
             Advance (State);
@@ -1671,12 +1757,12 @@ package body Safe_Frontend.Check_Parse is
             Require_Range_Keyword (State);
             Item.High_Expr := Parse_Expression (State);
             Item.Kind := CM.Type_Decl_Float;
-            Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+            Item.Span := CM.Join (Start.Span, Expect_Terminator (State));
          elsif Current_Lower (State) = "new" then
             Advance (State);
             Item.Parent_Type := Parse_Object_Type (State);
             Item.Kind := CM.Type_Decl_Nominal;
-            Item.Span := CM.Join (Start.Span, Expect (State, ";").Span);
+            Item.Span := CM.Join (Start.Span, Expect_Terminator (State));
          elsif FT.To_String (Current (State).Lexeme) = "(" then
             Item := Parse_Enumeration_Type (State, Start);
             Item.Is_Public := Is_Public;
@@ -1742,9 +1828,9 @@ package body Safe_Frontend.Check_Parse is
                                  Message => "duplicate interface member `" & FT.To_String (Member.Name) & "`"));
                         end if;
                      end loop;
-                     Require (State, ";");
+                     Close := Expect_Terminator (State);
                      Item.Interface_Members.Append (Member);
-                     Last_Span := Member.Span;
+                     Last_Span := Close;
                   end;
                end loop;
                Require_Dedent
@@ -1796,7 +1882,7 @@ package body Safe_Frontend.Check_Parse is
    is
       Start  : constant FL.Token := Expect (State, "subtype");
       Name   : constant FL.Token := Expect_Identifier (State);
-      Semi   : FL.Token;
+      Semi   : FT.Source_Span;
       Result : CM.Package_Item;
    begin
       Result.Kind := CM.Item_Subtype_Decl;
@@ -1804,8 +1890,8 @@ package body Safe_Frontend.Check_Parse is
       Result.Sub_Data.Name := Name.Lexeme;
       Require (State, "is");
       Result.Sub_Data.Subtype_Mark := Parse_Subtype_Indication (State);
-      Semi := Expect (State, ";");
-      Result.Sub_Data.Span := CM.Join (Start.Span, Semi.Span);
+      Semi := Expect_Terminator (State);
+      Result.Sub_Data.Span := CM.Join (Start.Span, Semi);
       return Result;
    end Parse_Subtype_Declaration;
 
@@ -1948,7 +2034,7 @@ package body Safe_Frontend.Check_Parse is
    is
       First  : constant FL.Token := Expect_Identifier (State);
       Result : CM.Object_Decl;
-      Semi   : FL.Token;
+      Semi   : FT.Source_Span;
    begin
       Result.Is_Public := Is_Public;
       Result.Names.Append (First.Lexeme);
@@ -1959,8 +2045,8 @@ package body Safe_Frontend.Check_Parse is
       if not Result.Is_Constant and then not Result.Has_Initializer then
          Result.Has_Implicit_Default_Init := True;
       end if;
-      Semi := Expect (State, ";");
-      Result.Span := CM.Join (First.Span, Semi.Span);
+      Semi := Expect_Terminator (State);
+      Result.Span := CM.Join (First.Span, Semi);
       return Result;
    end Parse_Object_Declaration;
 
@@ -1971,7 +2057,7 @@ package body Safe_Frontend.Check_Parse is
       Start  : constant FL.Token := Expect (State, "shared");
       First  : constant FL.Token := Expect_Identifier (State);
       Result : CM.Object_Decl;
-      Semi   : FL.Token;
+      Semi   : FT.Source_Span;
    begin
       Result.Is_Public := Is_Public;
       Result.Is_Shared := True;
@@ -1983,8 +2069,8 @@ package body Safe_Frontend.Check_Parse is
       if not Result.Is_Constant and then not Result.Has_Initializer then
          Result.Has_Implicit_Default_Init := True;
       end if;
-      Semi := Expect (State, ";");
-      Result.Span := CM.Join (Start.Span, Semi.Span);
+      Semi := Expect_Terminator (State);
+      Result.Span := CM.Join (Start.Span, Semi);
       return Result;
    end Parse_Shared_Object_Declaration;
 
@@ -2241,8 +2327,9 @@ package body Safe_Frontend.Check_Parse is
          return Result;
       elsif Current (State).Lexeme /= FT.To_UString (";")
         and then (State.Return_Value_Allowed
-                  or else Current (State).Kind = FL.End_Of_File
-                  or else not Starts_On_Later_Line (Start.Span, Current (State).Span))
+                  or else
+                    (Current (State).Kind not in FL.Dedent | FL.End_Of_File
+                     and then not Starts_On_Later_Line (Start.Span, Current (State).Span)))
       then
          Result.Value := Parse_Expression (State);
       end if;
@@ -3235,6 +3322,9 @@ package body Safe_Frontend.Check_Parse is
             Lower : constant String := Current_Lower (State);
          begin
             exit when Lower not in "*" | "/" | "mod" | "rem";
+            if Starts_On_Later_Logical_Line (Previous (State), Current (State)) then
+               Raise_Unexpected_Newline (State);
+            end if;
             Op := Current (State).Lexeme;
             Advance (State);
             Right := Parse_Factor (State);
@@ -3280,6 +3370,9 @@ package body Safe_Frontend.Check_Parse is
             Lower : constant String := FT.To_String (Current (State).Lexeme);
          begin
             exit when Lower not in "+" | "-" | "&";
+            if Starts_On_Later_Logical_Line (Previous (State), Current (State)) then
+               Raise_Unexpected_Newline (State);
+            end if;
             declare
                Op : constant FT.UString := Current (State).Lexeme;
             begin
@@ -3307,6 +3400,9 @@ package body Safe_Frontend.Check_Parse is
       Next_Result : CM.Expr_Access;
    begin
       while FT.To_String (Current (State).Lexeme) in "<<" | ">>" loop
+         if Starts_On_Later_Logical_Line (Previous (State), Current (State)) then
+            Raise_Unexpected_Newline (State);
+         end if;
          declare
             Op : constant FT.UString := Current (State).Lexeme;
          begin
@@ -3333,6 +3429,9 @@ package body Safe_Frontend.Check_Parse is
       Next_Result : CM.Expr_Access;
    begin
       if Lower in "==" | "!=" | "<" | "<=" | ">" | ">=" then
+         if Starts_On_Later_Logical_Line (Previous (State), Current (State)) then
+            Raise_Unexpected_Newline (State);
+         end if;
          Advance (State);
          Right := Parse_Shift_Expr (State);
          Next_Result := New_Expr;
@@ -3389,7 +3488,16 @@ package body Safe_Frontend.Check_Parse is
       Chain_Operator : FT.UString := FT.To_UString ("");
       Operator_Span  : FT.Source_Span := FT.Null_Span;
    begin
-      while Match_Logical_Operator (State, Operator, Operator_Span) loop
+      loop
+         declare
+            Lower : constant String := Current_Lower (State);
+         begin
+            exit when Lower not in "and" | "or" | "xor";
+            if Starts_On_Later_Logical_Line (Previous (State), Current (State)) then
+               Raise_Unexpected_Newline (State);
+            end if;
+         end;
+         exit when not Match_Logical_Operator (State, Operator, Operator_Span);
          if Chain_Operator = FT.To_UString ("") then
             Chain_Operator := Operator;
          elsif Operator /= Chain_Operator then
@@ -3444,18 +3552,27 @@ package body Safe_Frontend.Check_Parse is
    function Parse_Name_Expression
      (State : in out Parser_State) return CM.Expr_Access
    is
-      Base   : constant FL.Token := Expect_Identifier (State);
-      Result : CM.Expr_Access := New_Expr;
+      Base        : constant FL.Token := Expect_Identifier (State);
+      Result      : CM.Expr_Access := New_Expr;
       Next_Result : CM.Expr_Access;
-      Open_Tok : FL.Token;
-      Close_Tok : FL.Token;
-      Selector : FL.Token;
+      Open_Tok    : FL.Token;
+      Close_Tok   : FL.Token;
+      Selector    : FL.Token;
    begin
       Result.Kind := CM.Expr_Ident;
       Result.Name := Base.Lexeme;
       Result.Span := Base.Span;
 
       loop
+         if Starts_On_Later_Logical_Line (Previous (State), Current (State)) then
+            if FT.To_String (Current (State).Lexeme) = "(" then
+               exit;
+            elsif FT.To_String (Current (State).Lexeme) = "."
+              or else Current_Lower (State) = "of"
+            then
+               Raise_Unexpected_Newline (State);
+            end if;
+         end if;
          if Match (State, ".") then
             if Current (State).Kind in FL.Identifier | FL.Keyword | FL.Integer_Literal then
                Selector := Current (State);
@@ -3494,28 +3611,61 @@ package body Safe_Frontend.Check_Parse is
             end if;
             Result.Generic_Args :=
               Parse_Generic_Args
-                (State,
-                 Allow_Access_Def => False,
-                 Allow_Constraints => False);
+                 (State,
+                  Allow_Access_Def => False,
+                  Allow_Constraints => False);
          elsif FT.To_String (Current (State).Lexeme) = "(" then
             Open_Tok := Expect (State, "(");
             Next_Result := New_Expr;
             Next_Result.Kind := CM.Expr_Apply;
             Next_Result.Callee := Result;
             if FT.To_String (Current (State).Lexeme) /= ")" then
-               loop
-                  declare
-                     Item : constant CM.Expr_Access := Parse_Expression (State);
-                  begin
-                     Next_Result.Args.Append (Item);
-                     if Current_Lower (State) = "to" then
-                        Require_Range_Keyword (State);
-                        Next_Result.Args.Append (Parse_Expression (State));
-                        exit;
-                     end if;
-                  end;
-                  exit when not Match (State, ",");
-               end loop;
+               declare
+                  Saw_Named      : Boolean := False;
+                  Saw_Positional : Boolean := False;
+               begin
+                  loop
+                     declare
+                        Arg_Name : FT.UString := FT.To_UString ("");
+                        Item     : CM.Expr_Access;
+                     begin
+                        if Current (State).Kind in FL.Identifier | FL.Keyword
+                          and then FT.To_String (Next (State).Lexeme) = "="
+                        then
+                           Saw_Named := True;
+                           Arg_Name := Current (State).Lexeme;
+                           Advance (State);
+                           Require (State, "=");
+                        else
+                           Saw_Positional := True;
+                        end if;
+                        if Saw_Named and then Saw_Positional then
+                           Raise_Diag
+                             (CM.Source_Frontend_Error
+                                (Path    => Path_String (State),
+                                 Span    => Current (State).Span,
+                                 Message => "named and positional arguments cannot be mixed in one call"));
+                        end if;
+                        Item := Parse_Expression (State);
+                        Next_Result.Args.Append (Item);
+                        Next_Result.Arg_Names.Append (Arg_Name);
+                        if Current_Lower (State) = "to" then
+                           if Saw_Named then
+                              Raise_Diag
+                                (CM.Source_Frontend_Error
+                                   (Path    => Path_String (State),
+                                    Span    => Current (State).Span,
+                                    Message => "range arguments cannot be named"));
+                           end if;
+                           Require_Range_Keyword (State);
+                           Next_Result.Args.Append (Parse_Expression (State));
+                           Next_Result.Arg_Names.Append (FT.To_UString (""));
+                           exit;
+                        end if;
+                     end;
+                     exit when not Match (State, ",");
+                  end loop;
+               end;
             end if;
             Close_Tok := Expect (State, ")");
             Next_Result.Has_Call_Span := True;
@@ -3752,7 +3902,7 @@ package body Safe_Frontend.Check_Parse is
    is
       Result : CM.Package_Item;
       Start  : constant FT.Source_Span := Current (State).Span;
-      Semi   : FL.Token;
+      Semi   : FT.Source_Span;
    begin
       Result.Kind := CM.Item_Channel;
       Result.Chan_Data.Is_Public := Is_Public;
@@ -3762,8 +3912,8 @@ package body Safe_Frontend.Check_Parse is
       Result.Chan_Data.Element_Type := Parse_Subtype_Indication (State);
       Require (State, "capacity");
       Result.Chan_Data.Capacity := Parse_Expression (State);
-      Semi := Expect (State, ";");
-      Result.Chan_Data.Span := CM.Join (Start, Semi.Span);
+      Semi := Expect_Terminator (State);
+      Result.Chan_Data.Span := CM.Join (Start, Semi);
       return Result;
    end Parse_Channel_Declaration;
 
@@ -3818,7 +3968,7 @@ package body Safe_Frontend.Check_Parse is
       State        : Parser_State := (Input => Input, Tokens => Tokens, others => <>);
       Result       : CM.Parsed_Unit;
       Start_Token  : FL.Token;
-      Ends         : FL.Token;
+      Ends         : FT.Source_Span;
       Package_Name : CM.Expr_Access;
       Clause       : CM.With_Clause;
       Unit_Start   : FT.Source_Span := FT.Null_Span;
@@ -3833,8 +3983,8 @@ package body Safe_Frontend.Check_Parse is
             Clause.Names.Append (FT.To_UString (Name_To_String (Package_Name)));
             exit when not Match (State, ",");
          end loop;
-         Ends := Expect (State, ";");
-         Clause.Span := CM.Join (Start_Token.Span, Ends.Span);
+         Ends := Expect_Terminator (State);
+         Clause.Span := CM.Join (Start_Token.Span, Ends);
          Result.Withs.Append (Clause);
       end loop;
 

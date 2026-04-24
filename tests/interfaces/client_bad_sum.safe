@@ -1,5 +1,5 @@
-with provider_bad_sum;
+with provider_bad_sum
 
 package client_bad_sum
 
-   item : provider_bad_sum.shape;
+   item : provider_bad_sum.shape

@@ -1,4 +1,4 @@
 package neg_pr118c_shift_on_integer
 
-   value : integer = 1 << 1;
+   value : integer = 1 << 1
 

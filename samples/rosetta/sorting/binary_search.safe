@@ -1,6 +1,6 @@
-subtype index is integer (1 to 256);
-subtype element is integer (0 to 10_000);
-type sorted_array is array (index) of element;
+subtype index is integer (1 to 256)
+subtype element is integer (0 to 10_000)
+type sorted_array is array (index) of element
 
 function search (arr : sorted_array;
                  key : element) returns (boolean, integer)

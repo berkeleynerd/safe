@@ -28,7 +28,7 @@ VSCODE_DIR = REPO_ROOT / "editors" / "vscode"
 VSCODE_INSTALL_LOCAL = VSCODE_DIR / "install-local.sh"
 VSCODE_README = VSCODE_DIR / "README.md"
 VSCODE_PACKAGE_JSON = VSCODE_DIR / "package.json"
-LOCAL_WITH_RE = re.compile(r"^\s*with\s+([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)\s*;\s*$")
+LOCAL_WITH_RE = re.compile(r"^\s*with\s+([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)\s*;?\s*$")
 
 EMITTED_GNATPROVE_WARNING_RE = re.compile(
     r"pragma\s+Warnings\s*\(\s*GNATprove\b.*?\);",

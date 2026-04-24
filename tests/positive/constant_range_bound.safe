@@ -4,7 +4,7 @@
 
 package constant_range_bound
 
-   max_count : constant integer = 4;
+   max_count : constant integer = 4
 
-   subtype index is integer (0 to max_count);
+   subtype index is integer (0 to max_count)
 

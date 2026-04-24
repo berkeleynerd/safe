@@ -195,6 +195,14 @@ DIAGNOSTIC_GOLDEN_CASES = [
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr118c_mixed_logical_operators.txt",
     ),
     (
+        REPO_ROOT / "tests" / "negative" / "neg_pr362_positional_after_named.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr362_positional_after_named.txt",
+    ),
+    (
+        REPO_ROOT / "tests" / "negative" / "neg_pr362_named_builtin.safe",
+        REPO_ROOT / "tests" / "diagnostics_golden" / "diag_pr362_named_builtin.txt",
+    ),
+    (
         REPO_ROOT / "tests" / "negative" / "neg_string_concat_type_mismatch.safe",
         REPO_ROOT / "tests" / "diagnostics_golden" / "diag_string_concat_type_mismatch.txt",
     ),

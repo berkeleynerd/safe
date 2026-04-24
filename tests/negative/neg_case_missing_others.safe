@@ -8,5 +8,5 @@ package neg_case_missing_others
 
       case value
          when 1
-            return 1;
+            return 1
 

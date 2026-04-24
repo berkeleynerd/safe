@@ -8,9 +8,9 @@
 
 package safe_lookup
 
-   subtype sensor_id is integer (1 to 8);
-   subtype calibration is integer (-100 to 100);
-   type cal_table is array (sensor_id) of calibration;
+   subtype sensor_id is integer (1 to 8)
+   subtype calibration is integer (-100 to 100)
+   type cal_table is array (sensor_id) of calibration
 
    --  Lookup: retrieves calibration value for a given sensor.
    --  The index type Sensor_Id is 1..8, matching the array bounds.
@@ -18,7 +18,7 @@ package safe_lookup
 
       --  Index Id is of type Sensor_Id (1..8), which matches the
       --  array index range exactly. Provably within bounds.
-      return table (id);
+      return table (id)
 
    --  Lookup_With_Default: safe lookup with a clamped index.
    function lookup_with_default (table : cal_table;
@@ -26,7 +26,7 @@ package safe_lookup
 
       if raw_id >= 1 and then raw_id <= 8
          --  Index Raw_Id is proven in 1..8 by the guard.
-         return table (sensor_id (raw_id));
+         return table (sensor_id (raw_id))
       else
-         return 0;
+         return 0
 

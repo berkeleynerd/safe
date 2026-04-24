@@ -82,6 +82,7 @@ package Safe_Frontend.Check_Model is
       Value            : Expr_Access := null;
       Target           : Expr_Access := null;
       Args             : Expr_Access_Vectors.Vector;
+      Arg_Names        : FT.UString_Vectors.Vector;
       Fields           : Aggregate_Field_Vectors.Vector;
       Elements         : Expr_Access_Vectors.Vector;
       Generic_Args     : Type_Spec_Access_Vectors.Vector;

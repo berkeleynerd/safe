@@ -1,20 +1,20 @@
 package pr213_map_entry_build
 
    function total_lengths returns integer
-      var values : map of (string, string);
-      var total : integer = 0;
+      var values : map of (string, string)
+      var total : integer = 0
 
-      set (values, "alpha", "one");
-      set (values, "beta", "two");
+      set (values, "alpha", "one")
+      set (values, "beta", "two")
 
       for item of values
-         var key_text : string = item.1;
-         var value_text : string = item.2;
+         var key_text : string = item.1
+         var value_text : string = item.2
          if key_text == "alpha" and then value_text == "one"
-            total = total + 1;
+            total = total + 1
          else if key_text == "beta" and then value_text == "two"
-            total = total + 10;
+            total = total + 10
 
-      return total;
+      return total
 
-   print (total_lengths);
+   print (total_lengths)

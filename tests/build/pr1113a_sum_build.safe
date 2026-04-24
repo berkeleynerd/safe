@@ -1,12 +1,12 @@
 package pr1113a_sum_build
 
-   type state is idle or reading (count : integer) or done (value : integer);
+   type state is idle or reading (count : integer) or done (value : integer)
 
-   first : state = idle;
-   second : state = reading (3);
-   third : state = done (5);
+   first : state = idle
+   second : state = reading (3)
+   third : state = done (5)
 
    if first == idle and then second == reading (3) and then third == done (5)
-      print (1);
+      print (1)
    else
-      print (0);
+      print (0)

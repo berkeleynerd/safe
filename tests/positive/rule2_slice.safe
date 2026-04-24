@@ -8,9 +8,9 @@
 
 package safe_slice
 
-   subtype index is integer (1 to 100);
-   subtype element is integer (0 to 255);
-   type buffer is array (index) of element;
+   subtype index is integer (1 to 100)
+   subtype element is integer (0 to 255)
+   type buffer is array (index) of element
 
    --  Last_In_Subrange: walks the selected subrange and retains the last seen element.
    --  Both First and Last are of type Index (1..100), so
@@ -18,13 +18,13 @@ package safe_slice
    function last_in_subrange (buf : buffer;
                               first : index;
                               last  : index) returns element
-      current : element = 0;
+      current : element = 0
 
       if first <= last
          for i in first to last
             --  I is in First..Last, both of type Index (1..100).
             --  Provably within Buffer's bounds.
-            current = buf (i);
+            current = buf (i)
 
-      return current;
+      return current
 

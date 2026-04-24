@@ -5,8 +5,8 @@
 package observe_mutate_test
 
    type config is record
-      rate : integer;
-      next : config;
+      rate : integer
+      next : config
 
    function mutate_through_observer (observer : config)
-      observer.rate = 200;  -- ERROR: mutation through observer
+      observer.rate = 200  -- ERROR: mutation through observer

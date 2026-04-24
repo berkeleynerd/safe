@@ -6,6 +6,6 @@
 
 package neg_pr1110b_append_type_mismatch
 
-   values : list of integer = [1, 2];
+   values : list of integer = [1, 2]
 
-   append (values, "Ada");
+   append (values, "Ada")

@@ -1,6 +1,6 @@
 package neg_pr1116_nominal_typed_integer_comparison
 
-   type user_id is new integer (0 to 1000);
+   type user_id is new integer (0 to 1000)
 
    function greater_than_raw (id : user_id; raw : integer) returns boolean
 

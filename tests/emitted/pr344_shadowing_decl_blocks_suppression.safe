@@ -1,6 +1,6 @@
 package pr344_shadowing_decl_blocks_suppression
 
-   subtype tally is integer (0 to 10);
+   subtype tally is integer (0 to 10)
 
    function compute_total (use_shadow : boolean) returns integer
       var total : tally = 0

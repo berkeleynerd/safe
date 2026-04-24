@@ -1,94 +1,94 @@
 package pr1123b_while_variant_patterns_build
 
    function drain_length_guard returns integer
-      var text : string = "abc";
+      var text : string = "abc"
 
       while text.length > 0
-         text = "";
+         text = ""
 
-      return text.length;
+      return text.length
 
    function drain_bounded_length_guard returns integer
-      var text : string (3) = "abc";
+      var text : string (3) = "abc"
 
       while text.length > 0
-         text = "";
+         text = ""
 
-      return text.length;
+      return text.length
 
    function drain_length_inclusive_guard returns integer
-      var text : string = "abc";
+      var text : string = "abc"
 
       while text.length >= 1
-         text = "";
+         text = ""
 
-      return text.length;
+      return text.length
 
    function countdown_strict returns integer
-      var remaining : integer = 3;
+      var remaining : integer = 3
 
       while remaining > 0
-         remaining = remaining - 1;
+         remaining = remaining - 1
 
-      return remaining;
+      return remaining
 
    function countdown_inclusive_literal returns integer
-      var remaining : integer = 3;
+      var remaining : integer = 3
 
       while remaining >= 1
-         remaining = remaining - 1;
+         remaining = remaining - 1
 
-      return remaining;
+      return remaining
 
    function countdown_inclusive_bound returns integer
-      lower_bound : constant integer = 1;
-      var index : integer = 3;
+      lower_bound : constant integer = 1
+      var index : integer = 3
 
       while index >= lower_bound
-         index = index - 1;
+         index = index - 1
 
-      return index;
+      return index
 
    function countdown_strict_bound returns integer
-      lower_bound : constant integer = 0;
-      var index : integer = 3;
+      lower_bound : constant integer = 0
+      var index : integer = 3
 
       while index > lower_bound
-         index = index - 1;
+         index = index - 1
 
-      return index;
+      return index
 
    function countdown_strict_literal_bound returns integer
-      var remaining : integer = 8;
+      var remaining : integer = 8
 
       while remaining > 5
-         remaining = remaining - 1;
+         remaining = remaining - 1
 
-      return remaining - 5;
+      return remaining - 5
 
    function mirror_int_countdown returns integer
-      var remaining : integer = 3;
+      var remaining : integer = 3
 
       while 0 < remaining
-         remaining = remaining - 1;
+         remaining = remaining - 1
 
-      return remaining;
+      return remaining
 
    function mirror_length_guard returns integer
-      var text : string = "abc";
+      var text : string = "abc"
 
       while 1 <= text.length
-         text = "";
+         text = ""
 
-      return text.length;
+      return text.length
 
-   print (drain_length_guard);
-   print (drain_bounded_length_guard);
-   print (drain_length_inclusive_guard);
-   print (countdown_strict);
-   print (countdown_inclusive_literal);
-   print (countdown_inclusive_bound);
-   print (countdown_strict_bound);
-   print (countdown_strict_literal_bound);
-   print (mirror_int_countdown);
+   print (drain_length_guard)
+   print (drain_bounded_length_guard)
+   print (drain_length_inclusive_guard)
+   print (countdown_strict)
+   print (countdown_inclusive_literal)
+   print (countdown_inclusive_bound)
+   print (countdown_strict_bound)
+   print (countdown_strict_literal_bound)
+   print (mirror_int_countdown)
    print (mirror_length_guard)

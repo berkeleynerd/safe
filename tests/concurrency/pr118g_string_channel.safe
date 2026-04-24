@@ -4,12 +4,12 @@
 
 package pr118g_string_channel
 
-   channel text_ch : string capacity 1;
-   seed : string = "Ada";
-   initial_sent : boolean = false;
+   channel text_ch : string capacity 1
+   seed : string = "Ada"
+   initial_sent : boolean = false
 
    task worker with priority = 10, sends text_ch, receives text_ch
-      sent : boolean = false;
+      sent : boolean = false
       loop
          receive text_ch, value : string
          loop

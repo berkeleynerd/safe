@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_pr118c_binary_to_integer_oob.safe:4:14: error: explicit conversion is not provably within target range
   |
-  | 4 |       return integer (binary (64) (9223372036854775808));
+  | 4 |       return integer (binary (64) (9223372036854775808))
   |   |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   |
   note: target type 'integer' has range [-9_223_372_036_854_775_808 .. 9_223_372_036_854_775_807]

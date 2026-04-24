@@ -5,7 +5,7 @@ Expected diagnostic output:
 ------------------------------------------------------------------------
 neg_own_use_after_move.safe:18:11: error: dereference of moved reference
   |
-  | 18 |       v = source.count;  -- ERROR: dereference of moved variable
+  | 18 |       v = source.count  -- ERROR: dereference of moved variable
   |    |           ^~~~~~~~~~~~
   |
   note: the reference value was moved before this dereference.

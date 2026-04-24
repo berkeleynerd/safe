@@ -1,9 +1,9 @@
 package pr118g_tuple_string_channel_build
 
-   channel pair_ch : (boolean, string) capacity 1;
-   source : (boolean, string);
-   received : (boolean, string);
-   sent : boolean = false;
+   channel pair_ch : (boolean, string) capacity 1
+   source : (boolean, string)
+   received : (boolean, string)
+   sent : boolean = false
 
    source.1 = true
    source.2 = "Ada"

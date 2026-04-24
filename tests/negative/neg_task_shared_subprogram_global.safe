@@ -5,24 +5,24 @@
 
 package neg_task_shared_subprogram_global
 
-   subtype counter is integer (0 to 100);
+   subtype counter is integer (0 to 100)
 
-   global_count : counter = 0;
+   global_count : counter = 0
 
    function helper
 
-      global_count = global_count + 1;
+      global_count = global_count + 1
 
    function wrapper
 
-      helper;
+      helper
 
    task a
 
       loop
-         helper;
+         helper
 
    task b
 
       loop
-         wrapper;
+         wrapper

@@ -1,14 +1,14 @@
 package neg_pr1111c_reference_actual
 
    type node is record
-      next : node;
+      next : node
 
    type wrapper is record
-      item : node;
+      item : node
 
    type box of t is record
-      value : t;
+      value : t
 
    function total returns integer
-      var item : box of wrapper;
-      return 0;
+      var item : box of wrapper
+      return 0

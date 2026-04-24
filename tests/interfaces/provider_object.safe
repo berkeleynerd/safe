@@ -1,5 +1,5 @@
 package provider_object
 
-   public subtype count is integer (0 to 10);
-   public seed : count = 3;
+   public subtype count is integer (0 to 10)
+   public seed : count = 3
 

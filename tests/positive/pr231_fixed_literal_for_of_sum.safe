@@ -4,24 +4,24 @@
 
 package pr231_fixed_literal_for_of_sum
 
-   subtype tally is integer (0 to 20);
-   subtype slot is integer (1 to 3);
+   subtype tally is integer (0 to 20)
+   subtype slot is integer (1 to 3)
 
-   type fixed_window is array (slot) of tally;
+   type fixed_window is array (slot) of tally
 
    function collection_bonus returns tally
-      fixed : fixed_window = (2, 4, 6);
-      copy : fixed_window = fixed;
-      total : tally = 0;
+      fixed : fixed_window = (2, 4, 6)
+      copy : fixed_window = fixed
+      total : tally = 0
 
       for item of copy
-         total = total + item;
+         total = total + item
 
       if total == 12
-         return 1;
+         return 1
 
       -- The fixed literal always sums to 12; Safe functions still require a
       -- fallback return after a conditional branch.
-      return 0;
+      return 0
 
-   result : tally = collection_bonus ();
+   result : tally = collection_bonus ()

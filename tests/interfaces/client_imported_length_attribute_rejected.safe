@@ -1,9 +1,9 @@
-with provider_string_object;
+with provider_string_object
 
 package client_imported_length_attribute_rejected
 
    task worker
-      observed : integer = 0;
+      observed : integer = 0
 
       loop
-         observed = provider_string_object.label.length;
+         observed = provider_string_object.label.length
