@@ -340,10 +340,11 @@ the remaining full sweep after false-positive review.
 
 Per-slice conventions:
 
-- Files producing serialized output artifacts, including Ada source, JSON
-  outputs, line maps, and interface manifests, require explicit pre/post
-  artifact diff; analyzer, driver, and utility slices rely on the standard gate
-  plus `snapshot_emitted_ada.py --check`.
+- Any pass whose direct or downstream output lands in a serialized artifact
+  captured by the standard manifests, including Ada source, MIR JSON,
+  AST/typed/interface JSON, and line maps, requires explicit pre/post artifact
+  diff; analyzer, driver, and utility slices rely on the standard gate plus
+  `snapshot_emitted_ada.py --check`.
 - JSON serializer slices record each converted fallback variant and its emitted
   output shape; Ada emitter slices record the helper-category behavior
   invariants they preserve.
@@ -494,9 +495,31 @@ MIR writer slice:
   switches to an unaudited-only progress metric.
 - Pre/post MIR JSON artifact manifest comparison is required for this slice
   because it emits serialized MIR output.
-- This closes the current emit/serialization slice family; remaining planned
-  Phase 1B slices are analyzer, driver, or utility class unless a new serialized
-  output producer is added to the audit list.
+- This closes the current direct emit/serialization writer family. Downstream
+  passes whose output feeds captured artifacts still use artifact-diff
+  verification when audited.
+
+Check lower slice:
+
+- Status: complete for `compiler_impl/src/safe_frontend-check_lower.adb`;
+  full Phase 1B remains open.
+- Starting baseline at this pass: 5 raw `when others =>` hits in
+  `safe_frontend-check_lower.adb`; 38 raw sites compiler-wide under
+  `compiler_impl/src/`.
+- Outcome: 5 closed-enum dispatch sites converted to explicit arms; 0 retained
+  catch-alls remain in this file.
+- Preserved lowering behavior: unsupported expression kinds still map to
+  `GM.Expr_Unknown` or receive no extra MIR fields; unknown/return terminators
+  still have no reachable successor edges; non-stable case scrutinees still
+  return `False`; unknown/match statements still return the current block id.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked syntactic `when others =>` arm in check lowering.
+- Raw compiler-wide baseline after this slice: 33 `when others =>` sites under
+  `compiler_impl/src/`. This is a raw syntactic count; retained marked sites and
+  generated-source string hits still count until the full Phase 1B closeout
+  switches to an unaudited-only progress metric.
+- Pre/post MIR JSON artifact manifest comparison is required for this slice
+  because lowering output feeds serialized MIR.
 
 PR12.1 overlap evidence:
 

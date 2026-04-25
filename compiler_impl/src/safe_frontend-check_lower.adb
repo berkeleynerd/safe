@@ -329,7 +329,12 @@ package body Safe_Frontend.Check_Lower is
             return GM.Expr_Unary;
          when CM.Expr_Binary =>
             return GM.Expr_Binary;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Apply
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Subtype_Indication =>
             return GM.Expr_Unknown;
       end case;
    end Mir_Kind;
@@ -418,7 +423,12 @@ package body Safe_Frontend.Check_Lower is
             Result.Right := Lower_Expr (Expr.Right, Var_Types, Type_Env);
          when CM.Expr_Subtype_Indication =>
             Result.Name := Expr.Name;
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Null
+            | CM.Expr_Apply
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try =>
             null;
       end case;
 
@@ -648,7 +658,7 @@ package body Safe_Frontend.Check_Lower is
                         end if;
                      end loop;
                   end if;
-               when others =>
+               when GM.Terminator_Unknown | GM.Terminator_Return =>
                   null;
             end case;
          end;
@@ -1081,7 +1091,26 @@ package body Safe_Frontend.Check_Lower is
             return True;
          when CM.Expr_Conversion | CM.Expr_Annotated =>
             return Is_Stable_Case_Scrutinee (Expr.Inner);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Apply
+            | CM.Expr_Resolved_Index
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Unary
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return False;
       end case;
    end Is_Stable_Case_Scrutinee;
@@ -2566,7 +2595,7 @@ package body Safe_Frontend.Check_Lower is
                return Empty_Block_Id;
             end;
 
-         when others =>
+         when CM.Stmt_Unknown | CM.Stmt_Match =>
             return Current_Id;
       end case;
    end Lower_Statement;
