@@ -357,6 +357,24 @@ Scoped parser/resolver unblocker:
 - Full remaining compiler source baseline after this unblocker: 101
   `when others =>` sites outside the completed parser/resolver conversions.
 
+MIR analyzer slice:
+
+- Status: complete for `compiler_impl/src/safe_frontend-mir_analyze.adb`;
+  full Phase 1B remains open.
+- Starting baseline at this pass: 19 raw `when others =>` sites in
+  `safe_frontend-mir_analyze.adb`; 101 raw sites compiler-wide under
+  `compiler_impl/src/`.
+- Outcome: 15 closed-enum dispatch sites converted to explicit arms; 4
+  retained catch-alls remain for exception-wrapping or best-effort probe paths.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked `when others =>` in the MIR analyzer.
+- Retained catch-alls must be multiline and begin the branch with
+  `--  when-others-ok: <specific rationale>`.
+- Raw compiler-wide baseline after this slice: 86 `when others =>` sites under
+  `compiler_impl/src/`. This is a raw syntactic count; retained marked sites
+  still count until the full Phase 1B closeout switches to an unaudited-only
+  progress metric.
+
 PR12.1 overlap evidence:
 
 - Expression-kind walkers and classifiers in the resolver no longer silently

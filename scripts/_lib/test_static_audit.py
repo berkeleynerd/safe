@@ -339,6 +339,21 @@ SILENT_DEFAULT_RE = re.compile(
 )
 WHEN_OTHERS_OK_MARKER = "when-others-ok:"
 
+PARSER_RESOLVER_WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = tuple(
+    sorted(
+        path
+        for path in SRC.glob("safe_frontend-check_*.adb")
+        if path.name.startswith(
+            ("safe_frontend-check_parse", "safe_frontend-check_resolve")
+        )
+    )
+)
+
+WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = (
+    *PARSER_RESOLVER_WHEN_OTHERS_MARKER_AUDIT_PATHS,
+    SRC / "safe_frontend-mir_analyze.adb",
+)
+
 
 def _strip_comment(line: str) -> str:
     return line.split("--", 1)[0]
@@ -442,17 +457,6 @@ def run_static_audit_case(entry: AuditedCase) -> tuple[bool, str]:
     return True, ""
 
 
-def _parser_resolver_audit_paths() -> tuple[Path, ...]:
-    prefixes = ("safe_frontend-check_parse", "safe_frontend-check_resolve")
-    return tuple(
-        sorted(
-            path
-            for path in SRC.glob("safe_frontend-check_*.adb")
-            if path.name.startswith(prefixes)
-        )
-    )
-
-
 def _first_nonblank_line_after(lines: list[str], index: int) -> tuple[int, str] | None:
     for marker_index in range(index + 1, len(lines)):
         if lines[marker_index].strip():
@@ -467,7 +471,7 @@ def _comment_payload(line: str) -> str | None:
     return stripped[2:].lstrip()
 
 
-def run_parser_resolver_when_others_marker_case(path: Path) -> tuple[bool, str]:
+def run_when_others_marker_case(path: Path) -> tuple[bool, str]:
     """Require retained catch-alls to use a next-line rationale marker.
 
     Expected form:
@@ -520,22 +524,28 @@ def run_static_audit_checks() -> RunCounts:
             f"static-audit:{entry.label}",
             run_static_audit_case(entry),
         )
-    paths = _parser_resolver_audit_paths()
-    if len(paths) < 2:
+    if len(PARSER_RESOLVER_WHEN_OTHERS_MARKER_AUDIT_PATHS) < 2:
         passed += record_result(
             failures,
-            "static-audit:parser-resolver-when-others-ok",
+            "static-audit:when-others-ok",
             (
                 False,
                 "expected at least 2 scoped parser/resolver sources, "
-                f"found {len(paths)}",
+                f"found {len(PARSER_RESOLVER_WHEN_OTHERS_MARKER_AUDIT_PATHS)}",
             ),
         )
-    for path in paths:
+    for path in WHEN_OTHERS_MARKER_AUDIT_PATHS:
+        if not path.exists():
+            passed += record_result(
+                failures,
+                f"static-audit:when-others-ok:{path.relative_to(REPO_ROOT)}",
+                (False, f"missing audited marker path: {path.relative_to(REPO_ROOT)}"),
+            )
+            continue
         passed += record_result(
             failures,
-            f"static-audit:parser-resolver-when-others-ok:{path.relative_to(REPO_ROOT)}",
-            run_parser_resolver_when_others_marker_case(path),
+            f"static-audit:when-others-ok:{path.relative_to(REPO_ROOT)}",
+            run_when_others_marker_case(path),
         )
     return passed, 0, failures
 

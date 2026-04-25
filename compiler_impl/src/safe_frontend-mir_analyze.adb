@@ -1225,6 +1225,7 @@ package body Safe_Frontend.Mir_Analyze is
       return Real_Value'Value (Normalized);
    exception
       when others =>
+         --  when-others-ok: invalid literal parser exceptions are re-raised with normalized text.
          raise Constraint_Error with "invalid real text: " & Normalized;
    end Parse_Real;
 
@@ -1450,7 +1451,13 @@ package body Safe_Frontend.Mir_Analyze is
             return "call";
          when GM.Expr_Null =>
             return "null";
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated =>
             return GM.Image (Expr.Kind);
       end case;
    end Source_Text_For_Expr;
@@ -1483,7 +1490,21 @@ package body Safe_Frontend.Mir_Analyze is
             return Root_Name (Expr.Prefix);
          when GM.Expr_Conversion =>
             return Root_Name (Expr.Inner);
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Int
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Bool
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Call
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated
+            | GM.Expr_Unary
+            | GM.Expr_Binary =>
             return "";
       end case;
    end Root_Name;
@@ -1601,7 +1622,21 @@ package body Safe_Frontend.Mir_Analyze is
                end;
             end if;
             return Result;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Int
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Bool
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Call
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated
+            | GM.Expr_Unary
+            | GM.Expr_Binary =>
             Result.Root := FT.To_UString (Root_Name (Expr));
             return Result;
       end case;
@@ -1765,7 +1800,15 @@ package body Safe_Frontend.Mir_Analyze is
             end if;
          when GM.Expr_Bool =>
             return Resolve_Type ("boolean", Type_Env);
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Int
+            | GM.Expr_String
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Aggregate
+            | GM.Expr_Annotated
+            | GM.Expr_Unary
+            | GM.Expr_Binary =>
             null;
       end case;
 
@@ -1787,6 +1830,7 @@ package body Safe_Frontend.Mir_Analyze is
       return True;
    exception
       when others =>
+         --  when-others-ok: constant probe intentionally treats any evaluation failure as unknown.
          return False;
    end Has_Constant_Value;
 
@@ -1827,7 +1871,20 @@ package body Safe_Frontend.Mir_Analyze is
                   return Wide_Integer (Type_Info.High);
                end if;
             end if;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Ident
+            | GM.Expr_Resolved_Index
+            | GM.Expr_Call
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated
+            | GM.Expr_Binary =>
             null;
       end case;
       if Expr.Kind = GM.Expr_Ident and then Current.Ranges.Contains (UString_Value (Expr.Name)) then
@@ -1886,7 +1943,20 @@ package body Safe_Frontend.Mir_Analyze is
                   end if;
                end;
             end if;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_String
+            | GM.Expr_Bool
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Select
+            | GM.Expr_Resolved_Index
+            | GM.Expr_Call
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated
+            | GM.Expr_Binary =>
             null;
       end case;
       raise Constraint_Error with "no real constant";
@@ -1904,6 +1974,7 @@ package body Safe_Frontend.Mir_Analyze is
       return True;
    exception
       when others =>
+         --  when-others-ok: real constant probe intentionally treats any evaluation failure as unknown.
          return False;
    end Has_Real_Constant;
 
@@ -2193,6 +2264,7 @@ package body Safe_Frontend.Mir_Analyze is
       return Result;
    exception
       when others =>
+         --  when-others-ok: diagnostic suggestions are best-effort and must not mask primary errors.
          return Result;
    end Index_Suggestions;
 
@@ -2613,7 +2685,17 @@ package body Safe_Frontend.Mir_Analyze is
                end if;
             end if;
             return (State => Access_MaybeNull, others => <>);
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Int
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Bool
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Resolved_Index
+            | GM.Expr_Array_Literal
+            | GM.Expr_Annotated
+            | GM.Expr_Unary
+            | GM.Expr_Binary =>
             Info := Expr_Type (Expr, Var_Types, Type_Env, Functions);
             if Lower (UString_Value (Info.Kind)) = "access"
               and then Info.Not_Null
@@ -3284,7 +3366,14 @@ package body Safe_Frontend.Mir_Analyze is
                   May_Be_Infinite => False,
                   Excludes_Zero   => False);
             end if;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_String
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple =>
             null;
       end case;
 
@@ -3981,7 +4070,10 @@ package body Safe_Frontend.Mir_Analyze is
             then
                return (Low => 0, High => 1, Excludes_Zero => False);
             end if;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Array_Literal =>
             null;
       end case;
 
@@ -4275,7 +4367,7 @@ package body Safe_Frontend.Mir_Analyze is
             return
               UString_Value (Left.Text) = UString_Value (Right.Text)
               and then UString_Value (Left.Type_Name) = UString_Value (Right.Type_Name);
-         when others =>
+         when GM.Scalar_Value_None =>
             return False;
       end case;
    end Scalar_Value_Equal;
@@ -4312,7 +4404,22 @@ package body Safe_Frontend.Mir_Analyze is
             Value.Text := Inner.Name;
             Value.Type_Name := Inner.Type_Name;
             return True;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Null
+            | GM.Expr_Ident
+            | GM.Expr_Select
+            | GM.Expr_Resolved_Index
+            | GM.Expr_Conversion
+            | GM.Expr_Call
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated
+            | GM.Expr_Unary
+            | GM.Expr_Binary =>
             return False;
       end case;
    end Expr_Scalar_Value;
@@ -4945,7 +5052,21 @@ package body Safe_Frontend.Mir_Analyze is
             return Is_Constant_Target (Expr.Prefix, Local_Meta);
          when GM.Expr_Conversion =>
             return Is_Constant_Target (Expr.Inner, Local_Meta);
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Int
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Bool
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Call
+            | GM.Expr_Allocator
+            | GM.Expr_Aggregate
+            | GM.Expr_Array_Literal
+            | GM.Expr_Tuple
+            | GM.Expr_Annotated
+            | GM.Expr_Unary
+            | GM.Expr_Binary =>
             return False;
       end case;
    end Is_Constant_Target;
@@ -5706,7 +5827,15 @@ package body Safe_Frontend.Mir_Analyze is
                   end if;
                end loop;
             end if;
-         when others =>
+         when GM.Expr_Unknown
+            | GM.Expr_Int
+            | GM.Expr_Real
+            | GM.Expr_String
+            | GM.Expr_Bool
+            | GM.Expr_Enum_Literal
+            | GM.Expr_Null
+            | GM.Expr_Ident
+            | GM.Expr_Array_Literal =>
             null;
       end case;
 
@@ -6122,7 +6251,7 @@ package body Safe_Frontend.Mir_Analyze is
             if Has_Text (Diag.Reason) then
                Append_Diagnostic (Diagnostics, With_Path (Diag, Path_String), Sequence);
             end if;
-         when others =>
+         when GM.Op_Unknown =>
             null;
       end case;
    end Transfer_Mir_Op;
@@ -6405,7 +6534,7 @@ package body Safe_Frontend.Mir_Analyze is
                         end;
                      end loop;
                   end if;
-               when others =>
+               when GM.Terminator_Unknown =>
                   null;
             end case;
          end;
