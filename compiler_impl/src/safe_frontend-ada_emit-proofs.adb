@@ -1336,7 +1336,28 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                      Add_Length_Precondition (Expr.Prefix, High_Value);
                   end if;
                end if;
-            when others =>
+            when CM.Expr_Unknown
+               | CM.Expr_Int
+               | CM.Expr_Real
+               | CM.Expr_String
+               | CM.Expr_Bool
+               | CM.Expr_Enum_Literal
+               | CM.Expr_Null
+               | CM.Expr_Ident
+               | CM.Expr_Apply
+               | CM.Expr_Conversion
+               | CM.Expr_Call
+               | CM.Expr_Allocator
+               | CM.Expr_Aggregate
+               | CM.Expr_Array_Literal
+               | CM.Expr_Tuple
+               | CM.Expr_Annotated
+               | CM.Expr_Some
+               | CM.Expr_None
+               | CM.Expr_Try
+               | CM.Expr_Unary
+               | CM.Expr_Binary
+               | CM.Expr_Subtype_Indication =>
                null;
          end case;
 
@@ -1595,7 +1616,18 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                   | CM.Stmt_Loop
                   | CM.Stmt_Select =>
                   Unsupported := True;
-               when others =>
+               when CM.Stmt_Unknown
+                  | CM.Stmt_Object_Decl
+                  | CM.Stmt_Destructure_Decl
+                  | CM.Stmt_Call
+                  | CM.Stmt_Return
+                  | CM.Stmt_Exit
+                  | CM.Stmt_Send
+                  | CM.Stmt_Receive
+                  | CM.Stmt_Try_Send
+                  | CM.Stmt_Try_Receive
+                  | CM.Stmt_Match
+                  | CM.Stmt_Delay =>
                   null;
             end case;
          end if;
@@ -1917,7 +1949,26 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                   return Is_Safe_Condition (Expr.Left)
                     and then Is_Safe_Condition (Expr.Right);
                end if;
-            when others =>
+            when CM.Expr_Unknown
+               | CM.Expr_Real
+               | CM.Expr_String
+               | CM.Expr_Bool
+               | CM.Expr_Enum_Literal
+               | CM.Expr_Null
+               | CM.Expr_Select
+               | CM.Expr_Apply
+               | CM.Expr_Resolved_Index
+               | CM.Expr_Conversion
+               | CM.Expr_Call
+               | CM.Expr_Allocator
+               | CM.Expr_Aggregate
+               | CM.Expr_Array_Literal
+               | CM.Expr_Tuple
+               | CM.Expr_Annotated
+               | CM.Expr_Some
+               | CM.Expr_None
+               | CM.Expr_Try
+               | CM.Expr_Subtype_Indication =>
                null;
          end case;
 
@@ -1948,7 +1999,26 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                   return Is_Safe_Return (Expr.Left)
                     and then Is_Safe_Return (Expr.Right);
                end if;
-            when others =>
+            when CM.Expr_Unknown
+               | CM.Expr_Real
+               | CM.Expr_String
+               | CM.Expr_Bool
+               | CM.Expr_Enum_Literal
+               | CM.Expr_Null
+               | CM.Expr_Select
+               | CM.Expr_Apply
+               | CM.Expr_Resolved_Index
+               | CM.Expr_Conversion
+               | CM.Expr_Call
+               | CM.Expr_Allocator
+               | CM.Expr_Aggregate
+               | CM.Expr_Array_Literal
+               | CM.Expr_Tuple
+               | CM.Expr_Annotated
+               | CM.Expr_Some
+               | CM.Expr_None
+               | CM.Expr_Try
+               | CM.Expr_Subtype_Indication =>
                null;
          end case;
 
@@ -2620,7 +2690,23 @@ package body Safe_Frontend.Ada_Emit.Proofs is
                            & ";",
                            3);
                      end;
-                  when others =>
+                  when CM.Stmt_Unknown
+                     | CM.Stmt_Object_Decl
+                     | CM.Stmt_Destructure_Decl
+                     | CM.Stmt_Call
+                     | CM.Stmt_Return
+                     | CM.Stmt_Case
+                     | CM.Stmt_While
+                     | CM.Stmt_For
+                     | CM.Stmt_Loop
+                     | CM.Stmt_Exit
+                     | CM.Stmt_Send
+                     | CM.Stmt_Receive
+                     | CM.Stmt_Try_Send
+                     | CM.Stmt_Try_Receive
+                     | CM.Stmt_Match
+                     | CM.Stmt_Select
+                     | CM.Stmt_Delay =>
                      return False;
                end case;
             end;

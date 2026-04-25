@@ -521,6 +521,36 @@ Check lower slice:
 - Pre/post MIR JSON artifact manifest comparison is required for this slice
   because lowering output feeds serialized MIR.
 
+Ada emit proofs slice:
+
+- Status: complete for
+  `compiler_impl/src/safe_frontend-ada_emit-proofs.adb`; full Phase 1B remains
+  open.
+- Starting baseline at this pass: 5 raw `when others =>` hits in
+  `safe_frontend-ada_emit-proofs.adb`; 33 raw sites compiler-wide under
+  `compiler_impl/src/`.
+- Outcome: 5 closed-enum dispatch sites converted to explicit arms; 0 retained
+  catch-alls remain in this file.
+- Preserved proof-emitter behavior: proof precondition expression collection
+  still ignores non-index/select expressions before recursive descent; alias
+  postcondition collection still ignores non-assignment, non-control-flow
+  statements; safe-condition and safe-return predicates retain their symmetric
+  accepted expression kinds and default-false behavior; structural accumulator
+  rendering still rejects statement kinds outside assignment and simple `if`.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked syntactic `when others =>` arm in the Ada proof
+  emitter.
+- Raw compiler-wide baseline after this slice: 28 `when others =>` sites under
+  `compiler_impl/src/`. This is a raw syntactic count; retained marked sites and
+  generated-source string hits still count until the full Phase 1B closeout
+  switches to an unaudited-only progress metric.
+- Pre/post emitted-Ada artifact manifest comparison is required for this slice
+  because the proof emitter contributes generated Ada assertions and helper
+  logic.
+- Remaining Phase 1B tail classes are retained audited parser/resolver/MIR
+  analyzer sites, driver cleanup handlers, JSON/parser helpers, and small
+  Ada-emitter utility files.
+
 PR12.1 overlap evidence:
 
 - Expression-kind walkers and classifiers in the resolver no longer silently
