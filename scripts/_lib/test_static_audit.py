@@ -352,6 +352,7 @@ PARSER_RESOLVER_WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = tuple(
 WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = (
     *PARSER_RESOLVER_WHEN_OTHERS_MARKER_AUDIT_PATHS,
     SRC / "safe_frontend-ada_emit-expressions.adb",
+    SRC / "safe_frontend-check_emit.adb",
     SRC / "safe_frontend-mir_analyze.adb",
 )
 

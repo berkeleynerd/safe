@@ -391,9 +391,28 @@ Ada emit expressions slice:
   `compiler_impl/src/`. This is a raw syntactic count; retained marked sites
   still count until the full Phase 1B closeout switches to an unaudited-only
   progress metric.
-- Emitted-Ada manifest comparison is required for this and future emitter or
-  codegen-adjacent Phase 1B slices; analyzer, driver, and utility slices rely
-  on the standard gate plus `snapshot_emitted_ada.py --check`.
+- Files producing serialized output artifacts, including Ada source, JSON
+  outputs, line maps, and interface manifests, require explicit pre/post
+  artifact diff; analyzer, driver, and utility slices rely on the standard
+  gate plus `snapshot_emitted_ada.py --check`.
+
+Check emit slice:
+
+- Status: complete for `compiler_impl/src/safe_frontend-check_emit.adb`;
+  full Phase 1B remains open.
+- Starting baseline at this pass: 11 raw `when others =>` sites in
+  `safe_frontend-check_emit.adb`; 73 raw sites compiler-wide under
+  `compiler_impl/src/`.
+- Outcome: 11 closed-enum dispatch sites converted to explicit arms; 0
+  retained catch-alls remain in this file.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked `when others =>` in the check JSON emitter.
+- Raw compiler-wide baseline after this slice: 62 `when others =>` sites under
+  `compiler_impl/src/`. This is a raw syntactic count; retained marked sites
+  still count until the full Phase 1B closeout switches to an unaudited-only
+  progress metric.
+- Pre/post JSON artifact manifest comparison is required for this slice because
+  it emits serialized AST, typed, and interface contract artifacts.
 
 PR12.1 overlap evidence:
 

@@ -490,7 +490,12 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
-         when others =>
+         when CM.Expr_Unknown | CM.Expr_Int | CM.Expr_Real | CM.Expr_String
+            | CM.Expr_Bool | CM.Expr_Enum_Literal | CM.Expr_Null
+            | CM.Expr_Allocator | CM.Expr_Aggregate | CM.Expr_Array_Literal
+            | CM.Expr_Tuple | CM.Expr_Annotated | CM.Expr_Some
+            | CM.Expr_None | CM.Expr_Try | CM.Expr_Unary | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return Name_From_String (CM.Flatten_Name (Expr), Expr.Span);
       end case;
    end Name_Node;
@@ -1386,7 +1391,8 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Expr.Span)
               & "}";
-         when others =>
+         when CM.Expr_Unknown | CM.Expr_Unary | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return
               "{""node_type"":""Primary"",""kind"":""ParenExpr"",""value"":"
               & Expression_Node (Expr)
@@ -1690,7 +1696,7 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Decl.Span)
               & "}";
-         when others =>
+         when CM.Type_Decl_Unknown =>
             return
               "{""node_type"":""TypeDeclaration"",""is_public"":"
               & JS.Bool_Literal (Decl.Is_Public)
@@ -1847,7 +1853,7 @@ package body Safe_Frontend.Check_Emit is
               & "},""span"":"
               & JS.Span_Object (Parsed.Span)
               & "}";
-         when others =>
+         when CM.Select_Arm_Unknown =>
             return
               "{""node_type"":""SelectArm"",""kind"":""Channel"",""arm"":null,""span"":"
               & JS.Span_Object (Parsed.Span)
@@ -2193,7 +2199,7 @@ package body Safe_Frontend.Check_Emit is
                         then
                            return Resolved_Expr.Else_Stmts;
                         end if;
-                     when others =>
+                     when CM.Match_Arm_Unknown =>
                         null;
                   end case;
 
@@ -2212,7 +2218,7 @@ package body Safe_Frontend.Check_Emit is
                               when CM.Match_Arm_Ok => "ok",
                               when CM.Match_Arm_Fail => "fail",
                               when CM.Match_Arm_Variant => "variant",
-                              when others => "unknown");
+                              when CM.Match_Arm_Unknown => "unknown");
                      begin
                         Arms.Append
                           ("{""node_type"":""MatchArm"",""kind"":"""
@@ -2265,7 +2271,7 @@ package body Safe_Frontend.Check_Emit is
                  & JS.Span_Object (Parsed.Span)
                  & "}";
             end;
-         when others =>
+         when CM.Stmt_Unknown =>
             raise Program_Error with "unsupported statement kind during AST emission";
       end case;
    end Statement_Node;
@@ -2592,7 +2598,7 @@ package body Safe_Frontend.Check_Emit is
               & ",""span"":"
               & JS.Span_Object (Item.Chan_Data.Span)
               & "}";
-         when others =>
+         when CM.Item_Unknown =>
             return
               "{""node_type"":""PackageItem"",""kind"":""BasicDeclaration"",""item"":"
               & Declaration_Node (Item.Obj_Data)
@@ -2663,7 +2669,7 @@ package body Safe_Frontend.Check_Emit is
                         & "}");
                   end;
                end if;
-            when others =>
+            when CM.Item_Unknown | CM.Item_Task | CM.Item_Channel =>
                null;
          end case;
       end loop;
@@ -3201,7 +3207,7 @@ package body Safe_Frontend.Check_Emit is
                            Fields.Append
                              ("""static_value_type"":"
                               & JS.Quote (Info.Static_Info.Type_Name));
-                        when others =>
+                        when CM.Static_Value_None | CM.Static_Value_Character =>
                            null;
                      end case;
                      Fields.Append ("""span"":" & JS.Span_Object (Item.Obj_Data.Span));
@@ -3618,7 +3624,7 @@ package body Safe_Frontend.Check_Emit is
                     & ",""value"":"
                     & JS.Quote (Value.Text)
                     & "}";
-               when others =>
+               when GM.Scalar_Value_None =>
                   return "null";
             end case;
          end Scalar_Value_Json;
