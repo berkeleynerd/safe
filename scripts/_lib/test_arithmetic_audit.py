@@ -6,20 +6,11 @@ import json
 import subprocess
 import sys
 
-from _lib.test_harness import REPO_ROOT, RunCounts, record_result
+from _lib.test_harness import REPO_ROOT, RunCounts, first_message, record_result
 
 
 AUDIT_SCRIPT = REPO_ROOT / "scripts" / "audit_arithmetic.py"
 BASELINE_PATH = REPO_ROOT / "audit" / "phase1c_arithmetic_baseline.json"
-
-
-def first_message(completed: subprocess.CompletedProcess[str]) -> str:
-    for stream in (completed.stderr, completed.stdout):
-        for line in stream.splitlines():
-            stripped = line.strip()
-            if stripped:
-                return stripped
-    return f"exit code {completed.returncode}"
 
 
 def run_summary_case() -> tuple[bool, str]:
@@ -51,6 +42,8 @@ def run_json_case() -> tuple[bool, str]:
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError as exc:
         return False, f"invalid scanner JSON: {exc}"
+    if not isinstance(payload, dict):
+        return False, "scanner JSON top-level value is not an object"
     entries = payload.get("entries")
     if not isinstance(entries, list):
         return False, "scanner JSON missing entries list"
@@ -70,6 +63,8 @@ def run_baseline_case() -> tuple[bool, str]:
         payload = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return False, f"invalid baseline JSON: {exc}"
+    if not isinstance(payload, dict):
+        return False, "baseline top-level value is not an object"
     entries = payload.get("entries")
     if not isinstance(entries, list):
         return False, "baseline missing entries list"

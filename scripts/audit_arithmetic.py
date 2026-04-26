@@ -144,6 +144,8 @@ def existing_classifications() -> dict[str, dict[str, object]]:
         payload = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
+    if not isinstance(payload, dict):
+        return {}
     entries = payload.get("entries", [])
     if not isinstance(entries, list):
         return {}
@@ -157,22 +159,38 @@ def existing_classifications() -> dict[str, dict[str, object]]:
 def scan() -> dict[str, object]:
     prior = existing_classifications()
     entries: dict[str, dict[str, object]] = {}
-    for pattern in PATTERNS:
-        pattern_paths: set[Path] = set()
-        for root in pattern.roots:
-            pattern_paths.update(iter_sources(root))
-        for path in sorted(pattern_paths):
+    root_sources: dict[Path, tuple[Path, ...]] = {}
+    source_lines: dict[Path, list[tuple[int, str, set[int], str]]] = {}
+
+    def sources_for(roots: tuple[Path, ...]) -> list[Path]:
+        paths: set[Path] = set()
+        for root in roots:
+            if root not in root_sources:
+                root_sources[root] = tuple(iter_sources(root))
+            paths.update(root_sources[root])
+        return sorted(paths)
+
+    def lines_for(path: Path) -> list[tuple[int, str, set[int], str]]:
+        if path not in source_lines:
             try:
                 lines = path.read_text(encoding="utf-8").splitlines()
             except UnicodeDecodeError:
-                continue
-            for line_number, raw_line in enumerate(lines, start=1):
-                code_line, string_offsets = strip_comment_and_find_strings(raw_line)
+                source_lines[path] = []
+            else:
+                processed: list[tuple[int, str, set[int], str]] = []
+                for line_number, raw_line in enumerate(lines, start=1):
+                    code_line, string_offsets = strip_comment_and_find_strings(raw_line)
+                    norm = normalized_line(code_line)
+                    if norm:
+                        processed.append((line_number, code_line, string_offsets, norm))
+                source_lines[path] = processed
+        return source_lines[path]
+
+    for pattern in PATTERNS:
+        for path in sources_for(pattern.roots):
+            for line_number, code_line, string_offsets, norm in lines_for(path):
                 for match in pattern.regex.finditer(code_line):
                     if match.start() in string_offsets:
-                        continue
-                    norm = normalized_line(code_line)
-                    if not norm:
                         continue
                     fingerprint = fingerprint_for(pattern.category, path, pattern.name, norm)
                     prior_entry = prior.get(fingerprint, {})
