@@ -2032,7 +2032,7 @@
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c6a29542ad6f4a53",
             "follow_up": "",
             "line": 2309,
@@ -2043,11 +2043,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "79def3c3f0e8ea5e",
             "follow_up": "",
             "line": 2439,
@@ -2058,11 +2058,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "5f64ae61d8834dc8",
             "follow_up": "",
             "line": 2442,
@@ -2073,11 +2073,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9d9605289edf2efc",
             "follow_up": "",
             "line": 2512,
@@ -2088,11 +2088,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "8a98b2159b535af4",
             "follow_up": "",
             "line": 2600,
@@ -2103,11 +2103,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "8d1d103aa4aec369",
             "follow_up": "",
             "line": 2614,
@@ -2119,11 +2119,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "edcb8f549d2199bf",
             "follow_up": "",
             "line": 1399,
@@ -2134,11 +2134,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-proofs.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "4c01e352b2475f59",
             "follow_up": "",
             "line": 1843,
@@ -2149,11 +2149,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-proofs.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "e057f9c883d1e747",
             "follow_up": "",
             "line": 1844,
@@ -2164,11 +2164,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-proofs.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "0f89375a82ac8489",
             "follow_up": "",
             "line": 1905,
@@ -2179,11 +2179,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-proofs.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "cbda12c0b1d5a815",
             "follow_up": "",
             "line": 3533,
@@ -2194,11 +2194,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-proofs.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "4e2700e2b07d2088",
             "follow_up": "",
             "line": 1935,
@@ -2209,11 +2209,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9bb31b1714a2560e",
             "follow_up": "",
             "line": 2048,
@@ -2224,11 +2224,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "0383cd2e1100c54f",
             "follow_up": "",
             "line": 3837,
@@ -2239,11 +2239,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "2506d15560b9fd1c",
             "follow_up": "",
             "line": 4311,
@@ -2254,11 +2254,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "78b4184bf42047a0",
             "follow_up": "",
             "line": 5670,
@@ -2269,11 +2269,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "5b566bc26adaefba",
             "follow_up": "",
             "line": 5728,
@@ -2284,11 +2284,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "245d2e612ae6e9a1",
             "follow_up": "",
             "line": 6403,
@@ -2299,11 +2299,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "70e5236b9c2220b7",
             "follow_up": "",
             "line": 7056,
@@ -2314,11 +2314,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d2d6444d91c8d1fd",
             "follow_up": "",
             "line": 7759,
@@ -2329,11 +2329,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "97e3295eb98a0bcd",
             "follow_up": "",
             "line": 9285,
@@ -2347,11 +2347,11 @@
             "multiplicity": 4,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "355f1c690940553c",
             "follow_up": "",
             "line": 9402,
@@ -2362,11 +2362,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "95a4294d5eb84f2b",
             "follow_up": "",
             "line": 9543,
@@ -2377,11 +2377,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "55f8f4b6bc0cefaf",
             "follow_up": "",
             "line": 9772,
@@ -2392,11 +2392,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "a8c63cbc84426ef1",
             "follow_up": "",
             "line": 9903,
@@ -2407,11 +2407,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "e12dfd79d7c2f23a",
             "follow_up": "",
             "line": 9948,
@@ -2422,11 +2422,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "76df24eff0d1a2d4",
             "follow_up": "",
             "line": 10047,
@@ -2438,11 +2438,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "b1d9e928002c2068",
             "follow_up": "",
             "line": 10627,
@@ -2454,11 +2454,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d320b34888ab66ed",
             "follow_up": "",
             "line": 1008,
@@ -2469,11 +2469,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "366c4ae61f58e79b",
             "follow_up": "",
             "line": 1036,
@@ -2484,11 +2484,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c2c018659b7f3190",
             "follow_up": "",
             "line": 1050,
@@ -2499,11 +2499,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d3896e50dd09eea8",
             "follow_up": "",
             "line": 1147,
@@ -2514,11 +2514,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d1be7f798c574db0",
             "follow_up": "",
             "line": 1310,
@@ -2529,11 +2529,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "b0743340a56d6f65",
             "follow_up": "",
             "line": 1576,
@@ -2544,11 +2544,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-ada_emit.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "beb7301e6442338f",
             "follow_up": "",
             "line": 6,
@@ -2559,11 +2559,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-builtin_types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c284278560cd5c01",
             "follow_up": "",
             "line": 9,
@@ -2574,11 +2574,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-builtin_types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "daddc95f91a1a50d",
             "follow_up": "",
             "line": 53,
@@ -2589,11 +2589,11 @@
             "multiplicity": 3,
             "path": "compiler_impl/src/safe_frontend-builtin_types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "749130fc96c1d793",
             "follow_up": "",
             "line": 54,
@@ -2604,11 +2604,11 @@
             "multiplicity": 3,
             "path": "compiler_impl/src/safe_frontend-builtin_types.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "54f55ed9dd784cb7",
             "follow_up": "",
             "line": 6,
@@ -2619,11 +2619,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-builtin_types.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "7fd1a5be1c0dd1c4",
             "follow_up": "",
             "line": 7,
@@ -2634,11 +2634,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-builtin_types.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "4893765699b9d139",
             "follow_up": "",
             "line": 9,
@@ -2649,11 +2649,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-builtin_types.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9e188aa00e89047a",
             "follow_up": "",
             "line": 10,
@@ -2664,11 +2664,11 @@
             "multiplicity": 3,
             "path": "compiler_impl/src/safe_frontend-builtin_types.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Builtin integer contract: Target_Bits_Type and Integer_Type(Target_Bits) define the accepted 32/64 widths and construct the corresponding builtin integer range."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "a6825ee7ed9b76a1",
             "follow_up": "",
             "line": 3960,
@@ -2680,11 +2680,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_emit.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Typed/check artifact propagation: target_bits is emitted as serialized metadata; this line does not construct integer bounds."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "25bc7bfbb1edfb2f",
             "follow_up": "",
             "line": 15,
@@ -2695,11 +2695,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_lower.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Lowering propagation: Unit.Target_Bits seeds MIR builtin integer construction and is copied onto the MIR document; no host-width arithmetic is introduced here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "13d78250e252dc16",
             "follow_up": "",
             "line": 78,
@@ -2710,11 +2710,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_lower.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Lowering propagation: Unit.Target_Bits seeds MIR builtin integer construction and is copied onto the MIR document; no host-width arithmetic is introduced here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "fd67534ed7a8f22e",
             "follow_up": "",
             "line": 3040,
@@ -2725,11 +2725,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_lower.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Lowering propagation: Unit.Target_Bits seeds MIR builtin integer construction and is copied onto the MIR document; no host-width arithmetic is introduced here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "1dafeceac6358b4b",
             "follow_up": "",
             "line": 3053,
@@ -2740,11 +2740,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_lower.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Lowering propagation: Unit.Target_Bits seeds MIR builtin integer construction and is copied onto the MIR document; no host-width arithmetic is introduced here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "88ef814d6643ef46",
             "follow_up": "",
             "line": 647,
@@ -2755,11 +2755,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_model.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Model metadata field: Target_Bits records the selected target width for downstream artifact propagation; bounds are interpreted by the producing/consuming passes."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "e8747d1cf3d11ced",
             "follow_up": "",
             "line": 205,
@@ -2770,11 +2770,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "fe1afa04a33a825f",
             "follow_up": "",
             "line": 569,
@@ -2785,11 +2785,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f73f2096339b9067",
             "follow_up": "",
             "line": 639,
@@ -2800,11 +2800,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "664ff9e6332e53da",
             "follow_up": "",
             "line": 16311,
@@ -2815,11 +2815,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "6fcbf1b8e9640dcc",
             "follow_up": "",
             "line": 16314,
@@ -2830,11 +2830,11 @@
             "multiplicity": 4,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c4f81edf9173457b",
             "follow_up": "",
             "line": 16862,
@@ -2845,11 +2845,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "76793bada4a41f40",
             "follow_up": "",
             "line": 16871,
@@ -2860,11 +2860,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "7b9e2a51745341f6",
             "follow_up": "",
             "line": 16873,
@@ -2875,11 +2875,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9fe2904c2dd6e4d9",
             "follow_up": "",
             "line": 17059,
@@ -2890,11 +2890,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "8fd219acdd87f055",
             "follow_up": "",
             "line": 17090,
@@ -2905,11 +2905,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "231649ae98e6a67f",
             "follow_up": "",
             "line": 11,
@@ -2920,11 +2920,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-check_resolve.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Resolver propagation: Target_Bits is normalized, used to build the builtin integer descriptor, checked against imported interfaces, and stored on the resolved unit."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9e2935677cc92c12",
             "follow_up": "",
             "line": 502,
@@ -2938,11 +2938,11 @@
             "multiplicity": 4,
             "path": "compiler_impl/src/safe_frontend-driver.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Driver boundary propagation: Target_Bits is passed through the source pipeline into resolver/check/emit stages; no target-width bounds are constructed here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f7845b1c7f86da57",
             "follow_up": "",
             "line": 523,
@@ -2953,11 +2953,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-driver.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Driver boundary propagation: Target_Bits is passed through the source pipeline into resolver/check/emit stages; no target-width bounds are constructed here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "719823d4ac299d29",
             "follow_up": "",
             "line": 634,
@@ -2968,11 +2968,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-driver.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Driver boundary propagation: Target_Bits is passed through the source pipeline into resolver/check/emit stages; no target-width bounds are constructed here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "cb94a26e4a5c0c8a",
             "follow_up": "",
             "line": 672,
@@ -2983,11 +2983,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-driver.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Driver boundary propagation: Target_Bits is passed through the source pipeline into resolver/check/emit stages; no target-width bounds are constructed here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f6381ea21eb063cf",
             "follow_up": "",
             "line": 749,
@@ -2998,11 +2998,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-driver.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Driver boundary propagation: Target_Bits is passed through the source pipeline into resolver/check/emit stages; no target-width bounds are constructed here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "51b4dc5912343935",
             "follow_up": "",
             "line": 14,
@@ -3015,11 +3015,11 @@
             "multiplicity": 3,
             "path": "compiler_impl/src/safe_frontend-driver.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Driver boundary propagation: Target_Bits is passed through the source pipeline into resolver/check/emit stages; no target-width bounds are constructed here."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "eb0527764bb98641",
             "follow_up": "",
             "line": 1227,
@@ -3030,11 +3030,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-interfaces.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Interface artifact propagation: target_bits is read/written as interface metadata so imports can reject target-width mismatches."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f7faad0bc7265550",
             "follow_up": "",
             "line": 48,
@@ -3045,11 +3045,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-interfaces.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Interface artifact propagation: target_bits is read/written as interface metadata so imports can reject target-width mismatches."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "167f535a706d9382",
             "follow_up": "",
             "line": 241,
@@ -3060,11 +3060,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR analysis propagation: Document.Target_Bits is passed into builtin integer construction for the analysis type environment."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "87faf3498bd0b31b",
             "follow_up": "",
             "line": 829,
@@ -3075,11 +3075,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR analysis propagation: Document.Target_Bits is passed into builtin integer construction for the analysis type environment."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "8eb61f33f01e8d62",
             "follow_up": "",
             "line": 831,
@@ -3090,11 +3090,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR analysis propagation: Document.Target_Bits is passed into builtin integer construction for the analysis type environment."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "0a069309eadf85e0",
             "follow_up": "",
             "line": 3431,
@@ -3105,11 +3105,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "177e284006c50f3f",
             "follow_up": "",
             "line": 3446,
@@ -3120,11 +3120,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "1ffc4fd2abb9ac62",
             "follow_up": "",
             "line": 4115,
@@ -3135,11 +3135,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "db29e061249fbcc9",
             "follow_up": "",
             "line": 4606,
@@ -3150,11 +3150,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c61b4d54f29833b4",
             "follow_up": "",
             "line": 5329,
@@ -3165,11 +3165,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "171e8f43c15c87d9",
             "follow_up": "",
             "line": 5493,
@@ -3180,11 +3180,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f2d257ee26c6de14",
             "follow_up": "",
             "line": 5888,
@@ -3195,11 +3195,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "bc126ccf18016c05",
             "follow_up": "",
             "line": 6066,
@@ -3210,11 +3210,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Integer-family predicate only: Is_Integer_Type inspects resolved descriptors that already carry target-width bounds; this hit does not choose a target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d59582c4d30384ea",
             "follow_up": "",
             "line": 6264,
@@ -3225,11 +3225,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR analysis propagation: Document.Target_Bits is passed into builtin integer construction for the analysis type environment."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d09df7caf577ba21",
             "follow_up": "",
             "line": 1427,
@@ -3241,11 +3241,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_json.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR artifact propagation: target_bits is parsed from serialized metadata; validation and analysis consume the recorded width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c95e08b0d4a05b93",
             "follow_up": "",
             "line": 461,
@@ -3256,11 +3256,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_model.ads",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "Model metadata field: Target_Bits records the selected target width for downstream artifact propagation; bounds are interpreted by the producing/consuming passes."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f55360f14a39a718",
             "follow_up": "",
             "line": 158,
@@ -3271,11 +3271,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_validate.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR artifact validation: target_bits is checked as metadata before analysis; this is the intended contract guard, not a host-width arithmetic path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "32a6c21e533ac121",
             "follow_up": "",
             "line": 163,
@@ -3286,11 +3286,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_validate.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR artifact validation: target_bits is checked as metadata before analysis; this is the intended contract guard, not a host-width arithmetic path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "947beb749deffb41",
             "follow_up": "",
             "line": 831,
@@ -3301,11 +3301,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_validate.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR artifact validation: target_bits is checked as metadata before analysis; this is the intended contract guard, not a host-width arithmetic path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "034e9e8310639bd0",
             "follow_up": "",
             "line": 832,
@@ -3316,11 +3316,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_write.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "MIR artifact propagation: Document.Target_Bits is serialized as metadata; MIR integer bounds come from the descriptors already built for that target width."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "e3b4346378809791",
             "follow_up": "",
             "line": 46,
@@ -3331,11 +3331,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safec.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "CLI target-bits propagation: --target-bits is parsed as 32 or 64 and forwarded to the ast/check/emit driver calls; existing CLI target-bits tests cover this path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "7f7bb23c422edc8d",
             "follow_up": "",
             "line": 57,
@@ -3347,11 +3347,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safec.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "CLI target-bits propagation: --target-bits is parsed as 32 or 64 and forwarded to the ast/check/emit driver calls; existing CLI target-bits tests cover this path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "18a6124376c1e019",
             "follow_up": "",
             "line": 80,
@@ -3362,11 +3362,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safec.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "CLI target-bits propagation: --target-bits is parsed as 32 or 64 and forwarded to the ast/check/emit driver calls; existing CLI target-bits tests cover this path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "e04d8e4d42ee3c43",
             "follow_up": "",
             "line": 177,
@@ -3379,11 +3379,11 @@
             "multiplicity": 3,
             "path": "compiler_impl/src/safec.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "CLI target-bits propagation: --target-bits is parsed as 32 or 64 and forwarded to the ast/check/emit driver calls; existing CLI target-bits tests cover this path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "7b1e3c4f309561cc",
             "follow_up": "",
             "line": 190,
@@ -3396,11 +3396,11 @@
             "multiplicity": 6,
             "path": "compiler_impl/src/safec.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "CLI target-bits propagation: --target-bits is parsed as 32 or 64 and forwarded to the ast/check/emit driver calls; existing CLI target-bits tests cover this path."
         },
         {
             "category": "target-bits",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "442463f82005106f",
             "follow_up": "",
             "line": 200,
@@ -3413,7 +3413,7 @@
             "multiplicity": 6,
             "path": "compiler_impl/src/safec.adb",
             "pattern": "target-bits-propagation",
-            "rationale": ""
+            "rationale": "CLI target-bits propagation: --target-bits is parsed as 32 or 64 and forwarded to the ast/check/emit driver calls; existing CLI target-bits tests cover this path."
         }
     ],
     "generated_by": "python3 scripts/audit_arithmetic.py --json",
