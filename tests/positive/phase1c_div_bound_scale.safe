@@ -1,0 +1,9 @@
+package phase1c_div_bound_scale
+
+   subtype tiny is integer (0 to 1)
+
+   function scale (sum, count : tiny) returns integer
+      if count > 0 and then sum <= count * 9223372036854775807
+         return integer (sum) * 2 / count
+
+      return 0

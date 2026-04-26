@@ -286,6 +286,9 @@ package body Safe_Frontend.Mir_Analyze is
      (Value : Interval) return String;
    function Interval_Excludes_Zero
      (Value : Interval) return Boolean;
+   function Try_Int64_Product
+     (Left, Right : Wide_Integer;
+      Product     : out Wide_Integer) return Boolean;
    function Interval_Display
      (Value : Interval;
       Info  : GM.Type_Descriptor) return String;
@@ -1194,6 +1197,24 @@ package body Safe_Frontend.Mir_Analyze is
    begin
       return Value.Excludes_Zero or else Value.Low > 0 or else Value.High < 0;
    end Interval_Excludes_Zero;
+
+   function Try_Int64_Product
+     (Left, Right : Wide_Integer;
+      Product     : out Wide_Integer) return Boolean
+   is
+   begin
+      if Left < INT64_LOW
+        or else Left > INT64_HIGH
+        or else Right < INT64_LOW
+        or else Right > INT64_HIGH
+      then
+         Product := 0;
+         return False;
+      end if;
+
+      Product := Left * Right;
+      return Product >= INT64_LOW and then Product <= INT64_HIGH;
+   end Try_Int64_Product;
 
    function Interval_Display
      (Value : Interval;
@@ -3627,7 +3648,9 @@ package body Safe_Frontend.Mir_Analyze is
 
    function Numerator_Factor
      (Expr : GM.Expr_Access;
-      Name : out FT.UString) return Wide_Integer is
+      Name : out FT.UString) return Wide_Integer
+   is
+      Product : Wide_Integer := 0;
    begin
       Name := FT.To_UString ("");
       if Expr = null then
@@ -3643,7 +3666,10 @@ package body Safe_Frontend.Mir_Analyze is
                Factor : constant Wide_Integer := Numerator_Factor (Expr.Left.Inner, Name);
             begin
                if Expr.Right /= null and then Expr.Right.Kind = GM.Expr_Int then
-                  return Factor * Wide_Integer (Expr.Right.Int_Value);
+                  if Try_Int64_Product (Factor, Wide_Integer (Expr.Right.Int_Value), Product) then
+                     return Product;
+                  end if;
+                  return 0;
                end if;
                return Factor;
             end;
@@ -3680,9 +3706,12 @@ package body Safe_Frontend.Mir_Analyze is
       Denominator_Name : FT.UString := FT.To_UString ("");
       Factor           : Wide_Integer;
       Bound            : Wide_Integer;
+      Scaled_Bound     : Wide_Integer := 0;
       Values           : array (1 .. 8) of Wide_Integer;
       Value_Count      : Natural := 0;
       Needs_Wide_Result : Boolean := False;
+      Has_Scaled_Bound : Boolean := False;
+      Sampled          : Interval := (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
 
       procedure Add_Quotient
         (Numerator : Wide_Integer;
@@ -3713,6 +3742,31 @@ package body Safe_Frontend.Mir_Analyze is
          Add_Quotient (Left.Low, Divisor);
          Add_Quotient (Left.High, Divisor);
       end Add_Divisor;
+
+      procedure Refine_With_Div_Bound (Value : in out Interval) is
+      begin
+         if not Has_Scaled_Bound or else Right.Low <= 0 then
+            return;
+         end if;
+
+         declare
+            --  Div_Bounds stores one-sided facts of the form Numerator <=
+            --  Denominator * K. With a positive denominator, that gives an
+            --  upper bound on the quotient. It gives a lower bound only from
+            --  the independent fact that the numerator is nonnegative.
+            Bound_Low : constant Wide_Integer :=
+              (if Left.Low >= 0 then 0 else Value.Low);
+            New_Low   : constant Wide_Integer := Wide_Integer'Max (Value.Low, Bound_Low);
+            New_High  : constant Wide_Integer := Wide_Integer'Min (Value.High, Scaled_Bound);
+         begin
+            if New_Low <= New_High then
+               Value :=
+                 (Low           => New_Low,
+                  High          => New_High,
+                  Excludes_Zero => Value.Excludes_Zero or else New_Low > 0 or else New_High < 0);
+            end if;
+         end;
+      end Refine_With_Div_Bound;
    begin
       Factor := Numerator_Factor (Expr.Left, Numerator_Name);
       Denominator_Name := FT.To_UString (Denominator_Var (Expr.Right));
@@ -3722,13 +3776,10 @@ package body Safe_Frontend.Mir_Analyze is
          begin
             if Current.Div_Bounds.Contains (Key) then
                Bound := Current.Div_Bounds.Element (Key);
-               declare
-                  Max_Value : constant Wide_Integer := Bound * Factor;
-                  Low_Value : constant Wide_Integer :=
-                    (if Left.Low >= 0 and then Right.Low > 0 then 0 else -Max_Value);
-               begin
-                  return (Low => Low_Value, High => Max_Value, Excludes_Zero => False);
-               end;
+               Has_Scaled_Bound :=
+                 Bound > 0
+                 and then Factor > 0
+                 and then Try_Int64_Product (Bound, Factor, Scaled_Bound);
             end if;
          end;
       end if;
@@ -3752,19 +3803,22 @@ package body Safe_Frontend.Mir_Analyze is
       end if;
 
       if Needs_Wide_Result or else Value_Count = 0 then
-         return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
+         Sampled := (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
+      else
+         declare
+            Low_Value  : Wide_Integer := Values (1);
+            High_Value : Wide_Integer := Values (1);
+         begin
+            for Index in 2 .. Value_Count loop
+               Low_Value := Wide_Integer'Min (Low_Value, Values (Index));
+               High_Value := Wide_Integer'Max (High_Value, Values (Index));
+            end loop;
+            Sampled := (Low => Low_Value, High => High_Value, Excludes_Zero => False);
+         end;
       end if;
 
-      declare
-         Low_Value  : Wide_Integer := Values (1);
-         High_Value : Wide_Integer := Values (1);
-      begin
-         for Index in 2 .. Value_Count loop
-            Low_Value := Wide_Integer'Min (Low_Value, Values (Index));
-            High_Value := Wide_Integer'Max (High_Value, Values (Index));
-         end loop;
-         return (Low => Low_Value, High => High_Value, Excludes_Zero => False);
-      end;
+      Refine_With_Div_Bound (Sampled);
+      return Sampled;
    end Division_Interval;
 
    function Overflow_Checked

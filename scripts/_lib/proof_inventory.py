@@ -400,6 +400,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/positive/pr331_package_initializer_task_pollution.safe",
     "tests/positive/pr362_named_arguments.safe",
     "tests/positive/pr376_match_arm_type_walk.safe",
+    "tests/positive/phase1c_div_bound_scale.safe",
     "tests/interfaces/provider_transitive_global.safe",
     "tests/build/pr212_string_literal_build.safe",
     "tests/build/pr223_provider_enum.safe",

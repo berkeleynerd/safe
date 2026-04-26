@@ -1,0 +1,16 @@
+-- Test: neg_phase1c_div_bound_mixed_sign
+-- Description: One-sided division bounds must not imply a symmetric lower bound.
+--   The guard proves only Sum / Count <= 1 when Count is positive. Sum can
+--   still be negative enough to fall below the Narrow result subtype.
+-- Expected: REJECT narrowing_check_failure
+
+package neg_phase1c_div_bound_mixed_sign
+
+   subtype signed_tiny is integer (-10 to 10)
+   subtype narrow is integer (-1 to 1)
+
+   function scale (sum, count : signed_tiny) returns narrow
+      if count > 0 and then sum <= count * 1
+         return integer (sum) / integer (count)
+
+      return 0
