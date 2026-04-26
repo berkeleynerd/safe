@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from _lib import (
+    test_arithmetic_audit,
     test_cli_workflows,
     test_contracts,
     test_embedded_listing,
@@ -53,6 +54,7 @@ def main() -> int:
 
     add_counts(test_fixtures.run_basic_fixture_checks(safec))
     add_counts(test_static_audit.run_static_audit_checks())
+    add_counts(test_arithmetic_audit.run_arithmetic_audit_checks())
     add_counts(test_proof_cli.run_internal_proof_checks())
     add_counts(test_proof_diagnostics.run_proof_diagnostic_checks())
     add_counts(test_rosetta_inventory.run_rosetta_inventory_checks())

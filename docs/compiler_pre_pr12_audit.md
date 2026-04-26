@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1B - when-others exhaustiveness.
+Next action: Phase 1C - wide integer arithmetic safety triage.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -703,11 +703,71 @@ None yet.
 
 ## Phase 1C - Wide Integer Arithmetic Safety
 
-Enforcement default: likely yes or deferred depending on false-positive rate.
+Enforcement default: reporting first. Promote individual checks only after
+baseline calibration.
+
+Reporting baseline:
+
+- Script: `scripts/audit_arithmetic.py`.
+- Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
+- Current baseline entries: 223 candidate hits.
+
+Commands:
+
+```bash
+python3 scripts/audit_arithmetic.py
+python3 scripts/audit_arithmetic.py --json
+python3 scripts/audit_arithmetic.py --summary
+```
+
+Baseline counts:
+
+| Category | Entries | Initial classification |
+| --- | ---: | --- |
+| `emitted-wide` | 19 | `candidate` |
+| `host-wide-arithmetic` | 1 | `candidate` |
+| `model-domain` | 60 | `candidate` |
+| `overflow-check-path` | 43 | `candidate` |
+| `stdlib-length` | 9 | `candidate` |
+| `target-bits` | 91 | `candidate` |
+
+Scanner notes:
+
+- The scanner is line-oriented and strips Ada `--` comments outside string
+  literals, then ignores matches whose start offset is inside a same-line string
+  literal. Multi-line generated-string edge cases may still need triage.
+- Baseline fingerprints are derived from category, path, pattern name, and the
+  normalized source line. Line numbers are display-only; duplicate identical
+  lines are represented with multiplicity.
+- `scripts/run_tests.py` runs the scanner in summary mode as a reporting-only
+  section. It fails only if the scanner crashes, emits invalid JSON, or the
+  baseline cannot be read.
+
+Promotion criteria:
+
+- A false positive is a scanner hit reviewed and classified as
+  `accepted-with-rationale` in the machine baseline.
+- A check category may become blocking only after either:
+  - it produces no hits outside the baseline over at least three PR or
+    merge-queue runs, or
+  - every current hit is classified and the gate fails only newly unclassified
+    hits.
+- Phase 1C is complete when no `candidate`, `needs-repro`, or
+  `confirmed-defect` entries remain in the baseline.
+
+Follow-up work queue:
+
+| Proposed PR | Category | Files | Evidence | Acceptance test |
+| --- | --- | --- | --- | --- |
+| Phase 1C target-bits propagation triage | `target-bits` | `safec.adb`, `safe_frontend-driver.adb`, resolver/check/emit paths | 91 baseline entries, with top clusters in statement emission, MIR analysis, resolver, CLI parsing, and proof emission | Classify each target-bits hit as accepted or confirmed; add minimized `--target-bits 32` fixture for any confirmed defect |
+| Phase 1C MIR interval arithmetic triage | `overflow-check-path`, `host-wide-arithmetic`, `model-domain` | `safe_frontend-mir_analyze.adb` | 43 overflow-check-path entries, 27 model-domain entries, and the single host-wide arithmetic hit | Confirm endpoint arithmetic around `INT64_LOW`, `INT64_HIGH`, division, modulo, and multiplication; fix confirmed defects in one cluster per PR |
+| Phase 1C lowering/domain triage | `model-domain` | `safe_frontend-check_lower.adb` | 6 model-domain entries around lowered literal and static-loop bounds | Confirm lowering preserves source integer text/range semantics without hidden clamping defects |
+| Phase 1C emitted-wide triage | `emitted-wide`, `target-bits` | `safe_frontend-ada_emit*.adb`, `safe_frontend-ada_emit*.ads` | 19 emitted-wide entries and target-bits clusters in emitter paths | Behavior-changing fixes follow Phase 1B artifact manifest conventions: pre/post emitted Ada with `compiler_hash` normalized |
+| Phase 1C stdlib length-contract triage | `stdlib-length` | `compiler_impl/stdlib/ada/safe_array*_rt.ads`, `safe_string_rt.ads` | 9 stdlib length entries using `Long_Long_Integer` | Classify length/concat contracts as accepted or promote contract drift to a follow-up issue |
 
 Findings:
 
-None yet.
+None confirmed yet. The current baseline is an untriaged candidate inventory.
 
 ## Phase 1D - GNATprove Trust Boundaries
 
