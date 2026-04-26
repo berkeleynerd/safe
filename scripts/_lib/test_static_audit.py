@@ -475,6 +475,28 @@ def _others_segments(block_lines: list[str]) -> list[str]:
     return segments
 
 
+def _case_arm_segment(block_lines: list[str], arm_re: re.Pattern[str]) -> str:
+    for index, line in enumerate(block_lines):
+        if not arm_re.search(_strip_comment(line)):
+            continue
+
+        parts = [_strip_comment(line)]
+        depth = 0
+        for next_line in block_lines[index + 1 :]:
+            code = _strip_comment(next_line)
+            if depth == 0 and (WHEN_RE.search(code) or END_CASE_RE.search(code)):
+                break
+
+            parts.append(code)
+            if CASE_START_RE.search(code):
+                depth += 1
+            if END_CASE_RE.search(code) and depth > 0:
+                depth -= 1
+        return "\n".join(parts)
+
+    return ""
+
+
 def run_static_audit_case(entry: AuditedCase) -> tuple[bool, str]:
     try:
         case_line, block_lines = _find_case_block(entry)
@@ -605,18 +627,7 @@ def run_check_emit_unknown_type_guard() -> tuple[bool, str]:
         return False, str(exc)
 
     arm_re = re.compile(r"^\s*when\s+CM\.Type_Decl_Unknown\s*=>", re.IGNORECASE)
-    segment = ""
-    for index, line in enumerate(block_lines):
-        if not arm_re.search(_strip_comment(line)):
-            continue
-        parts = [_strip_comment(line)]
-        for next_line in block_lines[index + 1 :]:
-            code = _strip_comment(next_line)
-            if WHEN_RE.search(code) or END_CASE_RE.search(code):
-                break
-            parts.append(code)
-        segment = "\n".join(parts)
-        break
+    segment = _case_arm_segment(block_lines, arm_re)
 
     if not segment:
         return False, "missing Type_Decl_Unknown arm in Type_Definition_Node"
@@ -640,23 +651,16 @@ def run_match_arm_traversal_case(entry: AuditedCase) -> tuple[bool, str]:
         return False, str(exc)
 
     arm_re = re.compile(r"^\s*when\s+CM\.Stmt_Match\s*=>", re.IGNORECASE)
-    segment = ""
-    for index, line in enumerate(block_lines):
-        if not arm_re.search(_strip_comment(line)):
-            continue
-        parts = [_strip_comment(line)]
-        for next_line in block_lines[index + 1 :]:
-            code = _strip_comment(next_line)
-            if WHEN_RE.search(code) or END_CASE_RE.search(code):
-                break
-            parts.append(code)
-        segment = "\n".join(parts)
-        break
+    segment = _case_arm_segment(block_lines, arm_re)
 
     if not segment:
         return False, f"{entry.label} lacks explicit Stmt_Match traversal arm"
-    if "Item.Match_Arms" not in segment or "Arm.Statements" not in segment:
-        return False, f"{entry.label} Stmt_Match arm must traverse Item.Match_Arms statements"
+    required = ["Item.Match_Arms", "Arm.Statements"]
+    if entry.label == "ada-emit-types.find-local-synthetic-type.match-arms":
+        required.append("Check_Expr (Item.Match_Expr)")
+    missing = [item for item in required if item not in segment]
+    if missing:
+        return False, f"{entry.label} Stmt_Match arm missing: {', '.join(missing)}"
     return True, ""
 
 
