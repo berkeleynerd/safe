@@ -1,0 +1,21 @@
+package proof_expansion_result_postcondition_build
+
+   subtype numerator is integer (0 to 100)
+   subtype divisor_candidate is integer (-10 to 10)
+   subtype expected_quotient is integer (1 to 50)
+
+   function checked_divide (a : numerator; b : divisor_candidate) returns (result, integer)
+      if b == 0
+         return (fail ("division by zero"), 0)
+      return (ok (), a / b)
+
+   function caller returns integer
+      (status, quotient_value) : (result, integer) = checked_divide (100, 4)
+
+      if status.ok
+         value : expected_quotient = quotient_value
+         return 100 / value
+
+      return 0
+
+   print (caller ())

@@ -1885,13 +1885,16 @@ package body Safe_Frontend.Ada_Emit.Proofs is
       function Is_Param_Name (Name : String) return Boolean;
       function Is_Safe_Condition (Expr : CM.Expr_Access) return Boolean;
       function Is_Safe_Return (Expr : CM.Expr_Access) return Boolean;
+      function Is_Safe_Result_Payload (Expr : CM.Expr_Access) return Boolean;
       function Render_Post_Expr (Expr : CM.Expr_Access) return String;
       function Safe_Condition_Image (Expr : CM.Expr_Access) return String;
       function Safe_Return_Image (Expr : CM.Expr_Access) return String;
+      function Safe_Result_Payload_Image (Expr : CM.Expr_Access) return String;
       function Return_Statement_Image (Stmt : CM.Statement_Access) return String;
       function Single_Return_Image
         (Statements : CM.Statement_Access_Vectors.Vector) return String;
       function Result_Equality (Expr_Image : String) return String;
+      function Render_Result_Tuple_Postcondition return String;
 
       function Is_Integer_Non_Boolean_Type (Info : GM.Type_Descriptor) return Boolean is
          Base : constant GM.Type_Descriptor := Base_Type (Unit, Document, Info);
@@ -2025,6 +2028,56 @@ package body Safe_Frontend.Ada_Emit.Proofs is
          return False;
       end Is_Safe_Return;
 
+      function Is_Safe_Result_Payload (Expr : CM.Expr_Access) return Boolean is
+         Operator : constant String :=
+           (if Expr = null then "" else FT.To_String (Expr.Operator));
+      begin
+         if Expr = null then
+            return False;
+         end if;
+
+         case Expr.Kind is
+            when CM.Expr_Int =>
+               return True;
+            when CM.Expr_Ident =>
+               if Is_Param_Name (FT.To_String (Expr.Name)) then
+                  return True;
+               end if;
+            when CM.Expr_Unary =>
+               if Operator in "+" | "-" then
+                  return Is_Safe_Result_Payload (Expr.Inner);
+               end if;
+            when CM.Expr_Binary =>
+               if Operator in "+" | "-" | "*" | "/" | "mod" | "rem" then
+                  return Is_Safe_Result_Payload (Expr.Left)
+                    and then Is_Safe_Result_Payload (Expr.Right);
+               end if;
+            when CM.Expr_Unknown
+               | CM.Expr_Real
+               | CM.Expr_String
+               | CM.Expr_Bool
+               | CM.Expr_Enum_Literal
+               | CM.Expr_Null
+               | CM.Expr_Select
+               | CM.Expr_Apply
+               | CM.Expr_Resolved_Index
+               | CM.Expr_Conversion
+               | CM.Expr_Call
+               | CM.Expr_Allocator
+               | CM.Expr_Aggregate
+               | CM.Expr_Array_Literal
+               | CM.Expr_Tuple
+               | CM.Expr_Annotated
+               | CM.Expr_Some
+               | CM.Expr_None
+               | CM.Expr_Try
+               | CM.Expr_Subtype_Indication =>
+               null;
+         end case;
+
+         return False;
+      end Is_Safe_Result_Payload;
+
       function Render_Post_Expr (Expr : CM.Expr_Access) return String is
          Local_State : Emit_State := State;
       begin
@@ -2048,6 +2101,15 @@ package body Safe_Frontend.Ada_Emit.Proofs is
 
          return "";
       end Safe_Return_Image;
+
+      function Safe_Result_Payload_Image (Expr : CM.Expr_Access) return String is
+      begin
+         if Is_Safe_Result_Payload (Expr) then
+            return Render_Post_Expr (Expr);
+         end if;
+
+         return "";
+      end Safe_Result_Payload_Image;
 
       function Return_Statement_Image (Stmt : CM.Statement_Access) return String is
       begin
@@ -2080,10 +2142,206 @@ package body Safe_Frontend.Ada_Emit.Proofs is
          return Function_Name & "'Result = " & Expr_Image;
       end Result_Equality;
 
+      type Result_Tuple_Return_Kind is
+        (Result_Tuple_Return_Unsupported,
+         Result_Tuple_Return_Ok,
+         Result_Tuple_Return_Fail);
+
+      function Result_Tuple_Return_Callee (Expr : CM.Expr_Access) return String is
+      begin
+         if Expr = null or else Expr.Kind /= CM.Expr_Call or else Expr.Callee = null then
+            return "";
+         end if;
+
+         return FT.Lowercase (CM.Flatten_Name (Expr.Callee));
+      end Result_Tuple_Return_Callee;
+
+      function Classify_Result_Tuple_Return
+        (Expr          : CM.Expr_Access;
+         Payload_Image : out SU.Unbounded_String) return Result_Tuple_Return_Kind
+      is
+      begin
+         Payload_Image := SU.Null_Unbounded_String;
+
+         if Expr = null
+           or else Expr.Kind /= CM.Expr_Tuple
+           or else Natural (Expr.Elements.Length) /= 2
+         then
+            return Result_Tuple_Return_Unsupported;
+         end if;
+
+         declare
+            First_Index : constant Positive := Expr.Elements.First_Index;
+            Callee_Name : constant String :=
+              Result_Tuple_Return_Callee (Expr.Elements (First_Index));
+         begin
+            if Callee_Name = "fail" then
+               return Result_Tuple_Return_Fail;
+            elsif Callee_Name = "ok" then
+               declare
+                  Image : constant String :=
+                    Safe_Result_Payload_Image (Expr.Elements (First_Index + 1));
+               begin
+                  if Image'Length = 0 then
+                     return Result_Tuple_Return_Unsupported;
+                  end if;
+
+                  Payload_Image := SU.To_Unbounded_String (Image);
+                  return Result_Tuple_Return_Ok;
+               end;
+            end if;
+         end;
+
+         return Result_Tuple_Return_Unsupported;
+      end Classify_Result_Tuple_Return;
+
+      function Collect_Result_Tuple_Returns
+        (Statements : CM.Statement_Access_Vectors.Vector;
+         Ok_Image   : in out SU.Unbounded_String;
+         Ok_Count   : in out Natural) return Boolean
+      is
+      begin
+         for Stmt of Statements loop
+            if Stmt = null then
+               return False;
+            end if;
+
+            case Stmt.Kind is
+               when CM.Stmt_Return =>
+                  declare
+                     Payload_Image : SU.Unbounded_String;
+                     Kind          : constant Result_Tuple_Return_Kind :=
+                       Classify_Result_Tuple_Return (Stmt.Value, Payload_Image);
+                  begin
+                     case Kind is
+                        when Result_Tuple_Return_Ok =>
+                           Ok_Count := Ok_Count + 1;
+                           if Ok_Count /= 1 then
+                              return False;
+                           end if;
+                           Ok_Image := Payload_Image;
+                        when Result_Tuple_Return_Fail =>
+                           null;
+                        when Result_Tuple_Return_Unsupported =>
+                           return False;
+                     end case;
+                  end;
+               when CM.Stmt_If =>
+                  if not Stmt.Elsifs.Is_Empty
+                    or else not Collect_Result_Tuple_Returns
+                      (Stmt.Then_Stmts, Ok_Image, Ok_Count)
+                    or else
+                      (Stmt.Has_Else
+                       and then not Collect_Result_Tuple_Returns
+                         (Stmt.Else_Stmts, Ok_Image, Ok_Count))
+                  then
+                     return False;
+                  end if;
+               when CM.Stmt_Unknown
+                  | CM.Stmt_Object_Decl
+                  | CM.Stmt_Destructure_Decl
+                  | CM.Stmt_Assign
+                  | CM.Stmt_Call
+                  | CM.Stmt_Case
+                  | CM.Stmt_Match
+                  | CM.Stmt_While
+                  | CM.Stmt_For
+                  | CM.Stmt_Loop
+                  | CM.Stmt_Exit
+                  | CM.Stmt_Send
+                  | CM.Stmt_Receive
+                  | CM.Stmt_Try_Send
+                  | CM.Stmt_Try_Receive
+                  | CM.Stmt_Select
+                  | CM.Stmt_Delay =>
+                  return False;
+            end case;
+         end loop;
+
+         return True;
+      end Collect_Result_Tuple_Returns;
+
+      function Is_Result_Integer_Tuple_Return_Type return Boolean is
+         Base : constant GM.Type_Descriptor :=
+           Base_Type (Unit, Document, Subprogram.Return_Type);
+      begin
+         if not Is_Tuple_Type (Base)
+           or else Natural (Base.Tuple_Element_Types.Length) /= 2
+         then
+            return False;
+         end if;
+
+         declare
+            First_Index : constant Positive := Base.Tuple_Element_Types.First_Index;
+            Result_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name
+                (Unit, Document, FT.To_String (Base.Tuple_Element_Types (First_Index)));
+            Payload_Info : constant GM.Type_Descriptor :=
+              Resolve_Type_Name
+                (Unit,
+                 Document,
+                 FT.To_String (Base.Tuple_Element_Types (First_Index + 1)));
+         begin
+            return
+              Is_Result_Builtin (Base_Type (Unit, Document, Result_Info))
+              and then Is_Integer_Non_Boolean_Type (Payload_Info);
+         end;
+      end Is_Result_Integer_Tuple_Return_Type;
+
+      function Render_Result_Tuple_Postcondition return String is
+         Ok_Count : Natural := 0;
+         Ok_Image : SU.Unbounded_String;
+      begin
+         if Function_Name'Length = 0
+           or else not Subprogram.Has_Return_Type
+           or else not Subprogram.Declarations.Is_Empty
+           or else not Is_Result_Integer_Tuple_Return_Type
+           or else Subprogram.Statements.Is_Empty
+         then
+            return "";
+         end if;
+
+         for Param of Subprogram.Params loop
+            if not Is_Read_Only_Integer_Param (Param) then
+               return "";
+            end if;
+         end loop;
+
+         if not Collect_Result_Tuple_Returns (Subprogram.Statements, Ok_Image, Ok_Count)
+           or else Ok_Count /= 1
+           or else SU.Length (Ok_Image) = 0
+         then
+            return "";
+         end if;
+
+         --  Use an if-expression so failed results do not evaluate payload terms
+         --  that may only be safe on the success path, such as division.
+         return
+           "(if "
+           & Function_Name
+           & "'Result."
+           & Tuple_Field_Name (1)
+           & ".Ok then "
+           & Function_Name
+           & "'Result."
+           & Tuple_Field_Name (2)
+           & " = "
+           & SU.To_String (Ok_Image)
+           & " else True)";
+      end Render_Result_Tuple_Postcondition;
+
       If_Stmt    : CM.Statement_Access := null;
       Else_Image : SU.Unbounded_String;
       Result     : SU.Unbounded_String;
    begin
+      declare
+         Result_Tuple_Image : constant String := Render_Result_Tuple_Postcondition;
+      begin
+         if Result_Tuple_Image'Length > 0 then
+            return Result_Tuple_Image;
+         end if;
+      end;
+
       if Function_Name'Length = 0
         or else not Subprogram.Has_Return_Type
         or else Subprogram.Params.Is_Empty

@@ -474,6 +474,15 @@ EMITTED_REQUIRED_SHAPE_CASES = [
             "function second(remaining : in Long_Long_Integer) return Long_Long_Integer with Global => (Input => counter);",
         ],
     ),
+    (
+        "result-tuple-success-postcondition",
+        REPO_ROOT / "tests" / "build" / "proof_expansion_result_postcondition_build.safe",
+        [
+            "checked_divide'Result.F1.Ok",
+            "checked_divide'Result.F2 = (a / b)",
+            "else True",
+        ],
+    ),
 ]
 
 SAFEI_REQUIRED_SHAPE_CASES = [

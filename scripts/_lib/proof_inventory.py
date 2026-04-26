@@ -381,6 +381,7 @@ PR11_23_PROOF_EXPANSION_FIXTURES = [
     "tests/build/pr1123h_shared_call_argument_snapshot_build.safe",
     "tests/build/pr1123i_clamp_provider.safe",
     "tests/build/pr1123i_exported_postconditions_build.safe",
+    "tests/build/proof_expansion_result_postcondition_build.safe",
 ]
 
 

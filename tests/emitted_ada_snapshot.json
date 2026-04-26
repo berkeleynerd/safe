@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "b2fcee4dcddf89a409936c6543a8caad8ddc39894097748adc906c48b0cc4940",
+  "compiler_hash": "91a7a97bb1046b87eff965643f63c457ca949de2dd0e16c2546bdca75831ec37",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -533,8 +533,8 @@
     },
     "tests/build/pr118k_try_build.safe": {
       "pr118k_try_build.adb": "fc249bfe19cbb3e906b6894450f3664014744867a4df5db4cc0e78287e45c91a",
-      "pr118k_try_build.ads": "2f317f292f0a469f883aba0fd2462d3934359133bfb9616c2effd2e4a58b3773",
-      "pr118k_try_build_line_map.json": "a4a901d28fcbb07c8ef0fef06d704de996f72f3a6943cdd9e71103ccbd7a4aac"
+      "pr118k_try_build.ads": "537d16ecc8dc2e877ce48050718c9639d9de42215f661e74000dad170b1e71fe",
+      "pr118k_try_build_line_map.json": "f1386aa2d1b62fb4855f6bddab2186fad98dcff488d76c19ce6b626f750990ff"
     },
     "tests/build/pr119d_send_single_eval_build.safe": {
       "pr119d_send_single_eval_build.adb": "0062f2fce5cf2be402f479c9cb1d5163e6509832327e9839f502de2cb978521b",
@@ -656,8 +656,8 @@
     },
     "tests/build/pr331_shared_initializer_effect_pollution_build.safe": {
       "pr331_shared_initializer_effect_pollution_build.adb": "9806b3358ae595cc7d710729d99f6dfdd28f1605c4a62f3fdd5b0950bf59d171",
-      "pr331_shared_initializer_effect_pollution_build.ads": "59d9bf66766a1b875d78cccffb255cbe66445373710699c1fa98eba86385138e",
-      "pr331_shared_initializer_effect_pollution_build_line_map.json": "3f83fb95e405e2772e8e97eae2aef8079fdd2d6adbd2640407901360ce317c2c"
+      "pr331_shared_initializer_effect_pollution_build.ads": "afe466400ad13cd0604e6c317ab3a242b6a66fecc9420a48882a484e74a50a56",
+      "pr331_shared_initializer_effect_pollution_build_line_map.json": "2fbfbcf1bb5d7b7c203d58f0b467a1eb16f65b5ea67c1414bbafbd9616cf842c"
     },
     "tests/build/pr344_explicit_local_overwrite_build.safe": {
       "pr344_explicit_local_overwrite_build.adb": "f5e5fbf787e661332305871699da1bf193275e49b21192161596ee08495592a0",
@@ -668,6 +668,11 @@
       "pr344_implicit_local_overwrite_build.adb": "ed5ef8f1e34c55fec3b9045797205eff748a63f1e9c58efe808010102c17e129",
       "pr344_implicit_local_overwrite_build.ads": "9996802340c573a9d630e917c1f57e2d77ca3acff672d38f5b1f51a78f42ad00",
       "pr344_implicit_local_overwrite_build_line_map.json": "2848d57b83e00bf4b7f6e2308393ef7601d395029a0814510328c686e3e2ad70"
+    },
+    "tests/build/proof_expansion_result_postcondition_build.safe": {
+      "proof_expansion_result_postcondition_build.adb": "98dad02fa09ec42bf024acc5d904032ca23d5eb8e9b64b2940bc2f895019cf1c",
+      "proof_expansion_result_postcondition_build.ads": "3b61d33b83d176d32b9c24bba0a73dde30736c5e19ae7ef1b6d58c9f3389aa9a",
+      "proof_expansion_result_postcondition_build_line_map.json": "2eeef315285f58fc12b3a71399fbf655e4ce8394110ced7968e2ca5acca20915"
     },
     "tests/concurrency/channel_ceiling_priority.safe": {
       "channel_ceiling_priority.adb": "a0cff49798793d14f174408b1467817e72c09e65cdbfa1174c61150bb96ed5ef",
