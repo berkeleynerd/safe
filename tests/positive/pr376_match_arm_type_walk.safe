@@ -1,0 +1,15 @@
+package pr376_match_arm_type_walk
+
+   type outcome is hit (value : string) or miss
+
+   function run (item : outcome) returns integer
+
+      match item
+         when hit (value)
+            pair : (string, string) = (value, "x")
+            first : string = pair.1
+            return first.length
+         when miss
+            return 0
+
+   print (run (hit ("abc")))

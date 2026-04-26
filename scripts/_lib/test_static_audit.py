@@ -23,6 +23,7 @@ class AuditedCase:
     allow_silent_others: bool = False
     reason: str = ""
     inline_case: bool = False
+    extra_required: tuple[str, ...] = ()
 
 
 SRC = REPO_ROOT / "compiler_impl" / "src"
@@ -370,6 +371,32 @@ WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = (
     SRC / "safe_frontend-mir_write.adb",
 )
 
+ADA_EMIT_TYPES_MATCH_ARM_TRAVERSAL_CASES: tuple[AuditedCase, ...] = (
+    AuditedCase(
+        "ada-emit-types.lookup-local-object-type.match-arms",
+        SRC / "safe_frontend-ada_emit-types.adb",
+        "function Lookup_Local_Object_Type",
+        "end Lookup_Local_Object_Type;",
+        "Item.Kind",
+    ),
+    AuditedCase(
+        "ada-emit-types.find-local-synthetic-type.match-arms",
+        SRC / "safe_frontend-ada_emit-types.adb",
+        "function Find_Local_Synthetic_Type",
+        "end Find_Local_Synthetic_Type;",
+        "Item.Kind",
+        extra_required=("Check_Expr (Item.Match_Expr)",),
+    ),
+    AuditedCase(
+        "ada-emit-types.collect-synthetic-types.match-arms",
+        SRC / "safe_frontend-ada_emit-types.adb",
+        "procedure Add_From_Statements",
+        "end Add_From_Statements;",
+        "Item.Kind",
+        extra_required=("Add_From_Expr (Item.Match_Expr)",),
+    ),
+)
+
 
 def _strip_comment(line: str) -> str:
     return line.split("--", 1)[0]
@@ -449,6 +476,28 @@ def _others_segments(block_lines: list[str]) -> list[str]:
             parts.append(code)
         segments.append("\n".join(parts))
     return segments
+
+
+def _case_arm_segment(block_lines: list[str], arm_re: re.Pattern[str]) -> str:
+    for index, line in enumerate(block_lines):
+        if not arm_re.search(_strip_comment(line)):
+            continue
+
+        parts = [_strip_comment(line)]
+        depth = 0
+        for next_line in block_lines[index + 1 :]:
+            code = _strip_comment(next_line)
+            if depth == 0 and (WHEN_RE.search(code) or END_CASE_RE.search(code)):
+                break
+
+            parts.append(code)
+            if CASE_START_RE.search(code):
+                depth += 1
+            if END_CASE_RE.search(code) and depth > 0:
+                depth -= 1
+        return "\n".join(parts)
+
+    return ""
 
 
 def run_static_audit_case(entry: AuditedCase) -> tuple[bool, str]:
@@ -581,18 +630,7 @@ def run_check_emit_unknown_type_guard() -> tuple[bool, str]:
         return False, str(exc)
 
     arm_re = re.compile(r"^\s*when\s+CM\.Type_Decl_Unknown\s*=>", re.IGNORECASE)
-    segment = ""
-    for index, line in enumerate(block_lines):
-        if not arm_re.search(_strip_comment(line)):
-            continue
-        parts = [_strip_comment(line)]
-        for next_line in block_lines[index + 1 :]:
-            code = _strip_comment(next_line)
-            if WHEN_RE.search(code) or END_CASE_RE.search(code):
-                break
-            parts.append(code)
-        segment = "\n".join(parts)
-        break
+    segment = _case_arm_segment(block_lines, arm_re)
 
     if not segment:
         return False, "missing Type_Decl_Unknown arm in Type_Definition_Node"
@@ -606,6 +644,24 @@ def run_check_emit_unknown_type_guard() -> tuple[bool, str]:
     if found:
         return False, "Type_Decl_Unknown arm still fabricates JSON from: " + ", ".join(found)
 
+    return True, ""
+
+
+def run_match_arm_traversal_case(entry: AuditedCase) -> tuple[bool, str]:
+    try:
+        _case_line, block_lines = _find_case_block(entry)
+    except ValueError as exc:
+        return False, str(exc)
+
+    arm_re = re.compile(r"^\s*when\s+CM\.Stmt_Match\s*=>", re.IGNORECASE)
+    segment = _case_arm_segment(block_lines, arm_re)
+
+    if not segment:
+        return False, f"{entry.label} lacks explicit Stmt_Match traversal arm"
+    required = ["Item.Match_Arms", "Arm.Statements", *entry.extra_required]
+    missing = [item for item in required if item not in segment]
+    if missing:
+        return False, f"{entry.label} Stmt_Match arm missing: {', '.join(missing)}"
     return True, ""
 
 
@@ -638,6 +694,12 @@ def run_static_audit_checks() -> RunCounts:
         "static-audit:check-emit-unknown-type",
         run_check_emit_unknown_type_guard(),
     )
+    for entry in ADA_EMIT_TYPES_MATCH_ARM_TRAVERSAL_CASES:
+        passed += record_result(
+            failures,
+            f"static-audit:{entry.label}",
+            run_match_arm_traversal_case(entry),
+        )
     for path in WHEN_OTHERS_MARKER_AUDIT_PATHS:
         if not path.exists():
             passed += record_result(

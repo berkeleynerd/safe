@@ -657,6 +657,13 @@ package body Safe_Frontend.Ada_Emit.Types is
                            end case;
                         end loop;
                         return False;
+                     when CM.Stmt_Match =>
+                        for Arm of Item.Match_Arms loop
+                           if Lookup_In_Statements (Arm.Statements) then
+                              return True;
+                           end if;
+                        end loop;
+                        return False;
                      when CM.Stmt_Unknown
                         | CM.Stmt_Destructure_Decl
                         | CM.Stmt_Assign
@@ -667,7 +674,6 @@ package body Safe_Frontend.Ada_Emit.Types is
                         | CM.Stmt_Receive
                         | CM.Stmt_Try_Send
                         | CM.Stmt_Try_Receive
-                        | CM.Stmt_Match
                         | CM.Stmt_Delay =>
                         return False;
                   end case;
@@ -1694,6 +1700,12 @@ package body Safe_Frontend.Ada_Emit.Types is
                                  null;
                            end case;
                         end loop;
+                     when CM.Stmt_Match =>
+                        Check_Expr (Item.Match_Expr);
+                        for Arm of Item.Match_Arms loop
+                           exit when Found;
+                           Check_Statements (Arm.Statements);
+                        end loop;
                      when CM.Stmt_Unknown
                         | CM.Stmt_Assign
                         | CM.Stmt_Call
@@ -1703,7 +1715,6 @@ package body Safe_Frontend.Ada_Emit.Types is
                         | CM.Stmt_Receive
                         | CM.Stmt_Try_Send
                         | CM.Stmt_Try_Receive
-                        | CM.Stmt_Match
                         | CM.Stmt_Delay =>
                         Check_Expr (Item.Target);
                         Check_Expr (Item.Value);
@@ -2534,6 +2545,7 @@ package body Safe_Frontend.Ada_Emit.Types is
       Processed : FT.UString_Vectors.Vector;
 
       procedure Add_From_Info (Info : GM.Type_Descriptor);
+      procedure Add_From_Expr (Expr : CM.Expr_Access);
       procedure Add_From_Statements (Statements : CM.Statement_Access_Vectors.Vector);
 
       function Synthetic_Optional_Type
@@ -2656,6 +2668,34 @@ package body Safe_Frontend.Ada_Emit.Types is
          end if;
       end Add_From_Info;
 
+      procedure Add_From_Expr (Expr : CM.Expr_Access) is
+      begin
+         if Expr = null then
+            return;
+         end if;
+
+         if Has_Text (Expr.Type_Name) then
+            Add_From_Name (FT.To_String (Expr.Type_Name));
+         end if;
+
+         Add_From_Expr (Expr.Prefix);
+         Add_From_Expr (Expr.Callee);
+         Add_From_Expr (Expr.Inner);
+         Add_From_Expr (Expr.Left);
+         Add_From_Expr (Expr.Right);
+         Add_From_Expr (Expr.Value);
+         Add_From_Expr (Expr.Target);
+         for Item of Expr.Args loop
+            Add_From_Expr (Item);
+         end loop;
+         for Item of Expr.Elements loop
+            Add_From_Expr (Item);
+         end loop;
+         for Field of Expr.Fields loop
+            Add_From_Expr (Field.Expr);
+         end loop;
+      end Add_From_Expr;
+
       procedure Add_From_Decls (Decls : CM.Resolved_Object_Decl_Vectors.Vector) is
       begin
          for Decl of Decls loop
@@ -2714,6 +2754,11 @@ package body Safe_Frontend.Ada_Emit.Types is
                               null;
                         end case;
                      end loop;
+                  when CM.Stmt_Match =>
+                     Add_From_Expr (Item.Match_Expr);
+                     for Arm of Item.Match_Arms loop
+                        Add_From_Statements (Arm.Statements);
+                     end loop;
                   when CM.Stmt_Unknown
                      | CM.Stmt_Assign
                      | CM.Stmt_Call
@@ -2723,7 +2768,6 @@ package body Safe_Frontend.Ada_Emit.Types is
                      | CM.Stmt_Receive
                      | CM.Stmt_Try_Send
                      | CM.Stmt_Try_Receive
-                     | CM.Stmt_Match
                      | CM.Stmt_Delay =>
                      null;
                end case;
