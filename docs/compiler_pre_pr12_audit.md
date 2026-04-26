@@ -710,7 +710,7 @@ Reporting baseline:
 
 - Script: `scripts/audit_arithmetic.py`.
 - Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
-- Current baseline entries: 226 hits: 132 candidates and 94 accepted
+- Current baseline entries: 228 hits: 132 candidates and 96 accepted
   target-bits propagation hits.
 
 Commands:
@@ -730,7 +730,7 @@ Baseline counts:
 | `model-domain` | 60 | `candidate` |
 | `overflow-check-path` | 43 | `candidate` |
 | `stdlib-length` | 9 | `candidate` |
-| `target-bits` | 94 | `accepted-with-rationale` |
+| `target-bits` | 96 | `accepted-with-rationale` |
 
 Scanner notes:
 
@@ -739,9 +739,11 @@ Scanner notes:
   literal. Multi-line generated-string edge cases may still need triage.
 - Baseline fingerprints are derived from category, path, pattern name, and the
   normalized source line. Line numbers are display-only; entries are grouped by
-  fingerprint, and `multiplicity` records the number of scanner matches that
-  contributed to that grouped entry, including multiple matches from one line or
-  multiple source lines that share the same normalized text.
+  fingerprint, and `multiplicity` records the number of scanner matches, not
+  source lines, that contributed to that grouped entry. One source line can
+  contribute multiple matches when more than one alternation branch matches it,
+  and multiple source lines can share one fingerprint when their normalized text
+  is identical.
 - The original target-bits scanner required `Integer_Type\s*\(`, which missed
   parameterless Ada calls such as `BT.Integer_Type`. The
   `bt-integer-type-parameterless` pattern catches those default calls without
@@ -761,9 +763,11 @@ Target-bits classification rules:
 - Builtin integer construction hits are accepted when they route through
   `BT.Integer_Type (Target_Bits)`, `BT.Integer_Type (Document.Target_Bits)`, or
   `BT.Is_Valid_Target_Bits`; those are the central 32/64-bit target-width
-  contract points. Parameterless `BT.Integer_Type` calls default to 64-bit; the
-  scanner keeps tracking them as a regression guard and they should not appear
-  in the current baseline.
+  contract points. Explicit `BT.Integer_Type (64)` is accepted only for legacy
+  `long_long_integer` emitter fallback paths whose source-level use is rejected
+  upstream and whose Ada width must remain `Long_Long_Integer`. Parameterless
+  `BT.Integer_Type` calls default to 64-bit; the scanner keeps tracking them as
+  a regression guard and they should not appear in the current baseline.
 - `Is_Integer_Type` and `Is_Wide_Integer_Type` hits are accepted when they only
   inspect resolved descriptors that already carry target-width bounds.
 - Artifact writers/readers are accepted when the hit is the `target_bits`
@@ -801,14 +805,15 @@ Follow-up work queue:
 
 Findings:
 
-- The 94 target-bits baseline entries are classified as
+- The 96 target-bits baseline entries are classified as
   `accepted-with-rationale`. They are target-width propagation, artifact
   metadata, builtin integer construction, or integer-family predicate checks.
 - No target-bits `needs-repro` or `confirmed-defect` entries remain.
 - The target-bits default-constructor fix threaded `Document.Target_Bits` through
-  4 emitter fallback source lines. Those source lines are represented as 3
-  baseline fingerprints because two identical `safe_frontend-ada_emit-types.adb`
-  lines share one normalized source text and are tracked through `multiplicity`.
+  4 emitter fallback source lines. The `integer` paths now use
+  `Document.Target_Bits`; the legacy `long_long_integer` fallbacks use explicit
+  `64` to preserve their Ada `Long_Long_Integer` width without relying on the
+  default constructor.
 
 ## Phase 1D - GNATprove Trust Boundaries
 

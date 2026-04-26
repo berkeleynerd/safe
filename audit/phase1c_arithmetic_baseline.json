@@ -2479,7 +2479,7 @@
             "line": 459,
             "line_numbers": [
                 459,
-                814
+                817
             ],
             "line_text": "Type_Info := BT.Integer_Type (Document.Target_Bits);",
             "multiplicity": 4,
@@ -2490,11 +2490,26 @@
         {
             "category": "target-bits",
             "classification": "accepted-with-rationale",
+            "fingerprint": "97ea7bb943e9c453",
+            "follow_up": "",
+            "line": 462,
+            "line_numbers": [
+                462
+            ],
+            "line_text": "Type_Info := BT.Integer_Type (64);",
+            "multiplicity": 1,
+            "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
+            "pattern": "target-bits-propagation",
+            "rationale": "Legacy long_long_integer fallback preserves its 64-bit Ada width explicitly; source-level uses are rejected upstream, and this avoids the default integer constructor."
+        },
+        {
+            "category": "target-bits",
+            "classification": "accepted-with-rationale",
             "fingerprint": "d320b34888ab66ed",
             "follow_up": "",
-            "line": 1008,
+            "line": 1011,
             "line_numbers": [
-                1008
+                1011
             ],
             "line_text": "return Is_Integer_Type (Unit, Document, Lookup_Type (Unit, Document, Name));",
             "multiplicity": 1,
@@ -2507,9 +2522,9 @@
             "classification": "accepted-with-rationale",
             "fingerprint": "366c4ae61f58e79b",
             "follow_up": "",
-            "line": 1036,
+            "line": 1039,
             "line_numbers": [
-                1036
+                1039
             ],
             "line_text": "return Is_Integer_Type (Unit, Document, Info)",
             "multiplicity": 1,
@@ -2522,9 +2537,9 @@
             "classification": "accepted-with-rationale",
             "fingerprint": "c2c018659b7f3190",
             "follow_up": "",
-            "line": 1050,
+            "line": 1053,
             "line_numbers": [
-                1050
+                1053
             ],
             "line_text": "return Is_Wide_Integer_Type (Unit, Document, Lookup_Type (Unit, Document, Name));",
             "multiplicity": 1,
@@ -2537,9 +2552,9 @@
             "classification": "accepted-with-rationale",
             "fingerprint": "d3896e50dd09eea8",
             "follow_up": "",
-            "line": 1147,
+            "line": 1150,
             "line_numbers": [
-                1147
+                1150
             ],
             "line_text": "(Is_Integer_Type (Unit, Document, Field_Info)",
             "multiplicity": 1,
@@ -2552,15 +2567,30 @@
             "classification": "accepted-with-rationale",
             "fingerprint": "0f3e76727593f84e",
             "follow_up": "",
-            "line": 1857,
+            "line": 1860,
             "line_numbers": [
-                1857
+                1860
             ],
             "line_text": "return BT.Integer_Type (Document.Target_Bits);",
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
             "pattern": "target-bits-propagation",
             "rationale": "Emitter builtin integer construction threads the selected document target width explicitly; the retained scanner hit is the target-width contract point, not a default-width fallback."
+        },
+        {
+            "category": "target-bits",
+            "classification": "accepted-with-rationale",
+            "fingerprint": "dbb007b14deca346",
+            "follow_up": "",
+            "line": 1862,
+            "line_numbers": [
+                1862
+            ],
+            "line_text": "return BT.Integer_Type (64);",
+            "multiplicity": 1,
+            "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
+            "pattern": "target-bits-propagation",
+            "rationale": "Legacy long_long_integer fallback preserves its 64-bit Ada width explicitly; source-level uses are rejected upstream, and this avoids the default integer constructor."
         },
         {
             "category": "target-bits",
