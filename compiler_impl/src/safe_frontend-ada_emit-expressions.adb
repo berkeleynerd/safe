@@ -94,7 +94,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       elsif FT.Lowercase (FT.To_String (Expr.Type_Name)) = "boolean" then
          return BT.Boolean_Type;
       elsif FT.Lowercase (FT.To_String (Expr.Type_Name)) = "integer" then
-         return BT.Integer_Type;
+         return BT.Integer_Type (Document.Target_Bits);
       else
          return Synthetic_Bounded_String_Type (FT.To_String (Expr.Type_Name), Found_Synthetic);
       end if;

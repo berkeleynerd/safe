@@ -456,7 +456,7 @@ package body Safe_Frontend.Ada_Emit.Types is
          Type_Info := Lookup_Type (Unit, Document, Name);
          return True;
       elsif Lower_Name = "integer" or else Lower_Name = "long_long_integer" then
-         Type_Info := BT.Integer_Type;
+         Type_Info := BT.Integer_Type (Document.Target_Bits);
          return True;
       elsif Lower_Name = "boolean" then
          Type_Info := BT.Boolean_Type;
@@ -811,7 +811,7 @@ package body Safe_Frontend.Ada_Emit.Types is
             Type_Info := BT.Boolean_Type;
             return True;
          when CM.Expr_Int =>
-            Type_Info := BT.Integer_Type;
+            Type_Info := BT.Integer_Type (Document.Target_Bits);
             return True;
          when CM.Expr_Ident =>
             return
@@ -1854,7 +1854,7 @@ package body Safe_Frontend.Ada_Emit.Types is
       elsif Lower_Name = "boolean" then
          return BT.Boolean_Type;
       elsif Is_Builtin_Integer_Name (Lower_Name) then
-         return BT.Integer_Type;
+         return BT.Integer_Type (Document.Target_Bits);
       elsif Is_Builtin_Float_Name (Lower_Name) then
          return
            (if Lower_Name = "long_float"

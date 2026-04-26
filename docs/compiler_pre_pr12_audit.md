@@ -710,8 +710,8 @@ Reporting baseline:
 
 - Script: `scripts/audit_arithmetic.py`.
 - Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
-- Current baseline entries: 226 hits: 132 candidates, 91 accepted
-  target-bits propagation hits, and 3 target-bits entries that need repro.
+- Current baseline entries: 226 hits: 132 candidates and 94 accepted
+  target-bits propagation hits.
 
 Commands:
 
@@ -730,7 +730,7 @@ Baseline counts:
 | `model-domain` | 60 | `candidate` |
 | `overflow-check-path` | 43 | `candidate` |
 | `stdlib-length` | 9 | `candidate` |
-| `target-bits` | 94 | 91 `accepted-with-rationale`; 3 `needs-repro` |
+| `target-bits` | 94 | `accepted-with-rationale` |
 
 Scanner notes:
 
@@ -740,7 +740,8 @@ Scanner notes:
 - Baseline fingerprints are derived from category, path, pattern name, and the
   normalized source line. Line numbers are display-only; entries are grouped by
   fingerprint, and `multiplicity` records the number of scanner matches that
-  contributed to that grouped entry, including multiple matches from one line.
+  contributed to that grouped entry, including multiple matches from one line or
+  multiple source lines that share the same normalized text.
 - The original target-bits scanner required `Integer_Type\s*\(`, which missed
   parameterless Ada calls such as `BT.Integer_Type`. The
   `bt-integer-type-parameterless` pattern catches those default calls without
@@ -758,10 +759,11 @@ Target-bits classification rules:
   accepted when they only parse, normalize, validate, store, serialize, or
   forward the selected target width.
 - Builtin integer construction hits are accepted when they route through
-  `BT.Integer_Type (Target_Bits)` or `BT.Is_Valid_Target_Bits`; those are the
-  central 32/64-bit target-width contract points. Parameterless
-  `BT.Integer_Type` calls default to 64-bit and stay `needs-repro` until a
-  targeted 32-bit repro or artifact proof supports acceptance or a fix.
+  `BT.Integer_Type (Target_Bits)`, `BT.Integer_Type (Document.Target_Bits)`, or
+  `BT.Is_Valid_Target_Bits`; those are the central 32/64-bit target-width
+  contract points. Parameterless `BT.Integer_Type` calls default to 64-bit; the
+  scanner keeps tracking them as a regression guard and they should not appear
+  in the current baseline.
 - `Is_Integer_Type` and `Is_Wide_Integer_Type` hits are accepted when they only
   inspect resolved descriptors that already carry target-width bounds.
 - Artifact writers/readers are accepted when the hit is the `target_bits`
@@ -771,6 +773,10 @@ Target-bits classification rules:
   during triage; surface substantial new clusters and plan them separately.
 - Triage PRs are classification-only. Even tiny confirmed defects move into the
   follow-up queue instead of being fixed in the same PR.
+- Phase 1C defect-fix PRs follow the scan/triage/fix cycle: a scan-extension PR
+  adds coverage and surfaces hits, triage classifies them, then a fix PR
+  resolves the entries while leaving scanner coverage in place as a regression
+  guard.
 
 Promotion criteria:
 
@@ -788,7 +794,6 @@ Follow-up work queue:
 
 | Proposed PR | Category | Files | Evidence | Acceptance test |
 | --- | --- | --- | --- | --- |
-| Phase 1C target-bits default-constructor repro/fix | `target-bits` | `safe_frontend-ada_emit-expressions.adb:97`, `safe_frontend-ada_emit-types.adb:459`, `safe_frontend-ada_emit-types.adb:814`, `safe_frontend-ada_emit-types.adb:1857` | Scanner coverage now records parameterless `BT.Integer_Type` defaults as 3 grouped baseline entries covering 4 source matches. These paths default to 64-bit unless proved unreachable or fixed to use the selected target width. | Add a minimized `--target-bits 32` emitter/proof repro or emitted-artifact proof; then reclassify as accepted or fix the fallback. |
 | Phase 1C MIR interval arithmetic triage | `overflow-check-path`, `host-wide-arithmetic`, `model-domain` | `safe_frontend-mir_analyze.adb` | 43 overflow-check-path entries, 27 model-domain entries, and the single host-wide arithmetic hit | Confirm endpoint arithmetic around `INT64_LOW`, `INT64_HIGH`, division, modulo, and multiplication; fix confirmed defects in one cluster per PR |
 | Phase 1C lowering/domain triage | `model-domain` | `safe_frontend-check_lower.adb` | 6 model-domain entries around lowered literal and static-loop bounds | Confirm lowering preserves source integer text/range semantics without hidden clamping defects |
 | Phase 1C emitted-wide triage | `emitted-wide` | `safe_frontend-ada_emit*.adb`, `safe_frontend-ada_emit*.ads` | 19 emitted-wide entries in emitter paths; target-bits emitter baseline hits are already classified | Behavior-changing fixes follow Phase 1B artifact manifest conventions: pre/post emitted Ada with `compiler_hash` normalized |
@@ -796,14 +801,14 @@ Follow-up work queue:
 
 Findings:
 
-- The 91 target-bits baseline entries are classified as
+- The 94 target-bits baseline entries are classified as
   `accepted-with-rationale`. They are target-width propagation, artifact
   metadata, builtin integer construction, or integer-family predicate checks.
-- No confirmed target-bits defect was found in the current baseline entries.
-- Target-bits triage surfaced a scanner coverage follow-up for parameterless
-  `BT.Integer_Type` calls in emitter helpers. The scanner now tracks those as 3
-  `needs-repro` entries covering 4 source matches because two identical
-  `safe_frontend-ada_emit-types.adb` lines share one fingerprint.
+- No target-bits `needs-repro` or `confirmed-defect` entries remain.
+- The target-bits default-constructor fix threaded `Document.Target_Bits` through
+  4 emitter fallback source lines. Those source lines are represented as 3
+  baseline fingerprints because two identical `safe_frontend-ada_emit-types.adb`
+  lines share one normalized source text and are tracked through `multiplicity`.
 
 ## Phase 1D - GNATprove Trust Boundaries
 
