@@ -59,6 +59,11 @@ PATTERNS: tuple[Pattern, ...] = (
         ),
     ),
     Pattern(
+        "target-bits",
+        "bt-integer-type-parameterless",
+        re.compile(r"BT\.Integer_Type\b(?!\s*\()", re.IGNORECASE),
+    ),
+    Pattern(
         "host-wide-arithmetic",
         "host-wide-expression",
         re.compile(

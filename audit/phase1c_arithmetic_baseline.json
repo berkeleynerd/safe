@@ -2032,6 +2032,21 @@
         },
         {
             "category": "target-bits",
+            "classification": "needs-repro",
+            "fingerprint": "e10c53ae71ffc5e1",
+            "follow_up": "Add a minimized --target-bits 32 emitter/proof repro or emitted-artifact proof; then reclassify as accepted-with-rationale or fix the fallback to use the selected target width.",
+            "line": 97,
+            "line_numbers": [
+                97
+            ],
+            "line_text": "return BT.Integer_Type;",
+            "multiplicity": 1,
+            "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
+            "pattern": "bt-integer-type-parameterless",
+            "rationale": "Parameterless BT.Integer_Type defaults to 64-bit. Expr_Type_Info uses this fallback for explicit integer type text in the Ada expression emitter; add a targeted --target-bits 32 repro or artifact proof before accepting or fixing."
+        },
+        {
+            "category": "target-bits",
             "classification": "accepted-with-rationale",
             "fingerprint": "c6a29542ad6f4a53",
             "follow_up": "",
@@ -2458,6 +2473,22 @@
         },
         {
             "category": "target-bits",
+            "classification": "needs-repro",
+            "fingerprint": "9bcf541b77673c03",
+            "follow_up": "Add a minimized --target-bits 32 emitter/proof repro or emitted-artifact proof; then reclassify as accepted-with-rationale or fix the fallback to use the selected target width.",
+            "line": 459,
+            "line_numbers": [
+                459,
+                814
+            ],
+            "line_text": "Type_Info := BT.Integer_Type;",
+            "multiplicity": 2,
+            "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
+            "pattern": "bt-integer-type-parameterless",
+            "rationale": "Parameterless BT.Integer_Type defaults to 64-bit. Type_Info_From_Name and Resolve_Print_Type use this fallback for integer names/literals in the Ada type emitter; add a targeted --target-bits 32 repro or artifact proof before accepting or fixing."
+        },
+        {
+            "category": "target-bits",
             "classification": "accepted-with-rationale",
             "fingerprint": "d320b34888ab66ed",
             "follow_up": "",
@@ -2515,6 +2546,21 @@
             "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
             "pattern": "target-bits-propagation",
             "rationale": "Emitter/proof integer-family predicate only: the check branches on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit."
+        },
+        {
+            "category": "target-bits",
+            "classification": "needs-repro",
+            "fingerprint": "291843d322192885",
+            "follow_up": "Add a minimized --target-bits 32 emitter/proof repro or emitted-artifact proof; then reclassify as accepted-with-rationale or fix the fallback to use the selected target width.",
+            "line": 1857,
+            "line_numbers": [
+                1857
+            ],
+            "line_text": "return BT.Integer_Type;",
+            "multiplicity": 1,
+            "path": "compiler_impl/src/safe_frontend-ada_emit-types.adb",
+            "pattern": "bt-integer-type-parameterless",
+            "rationale": "Parameterless BT.Integer_Type defaults to 64-bit. Resolve_Type_Name uses this fallback for builtin integer names in the Ada type emitter; add a targeted --target-bits 32 repro or artifact proof before accepting or fixing."
         },
         {
             "category": "target-bits",
