@@ -1162,7 +1162,7 @@ package body Safe_Frontend.Mir_Json is
                Result.Delay_Data.Target := FT.To_UString (Get (Value, "target"));
             end if;
             Result.Delay_Data.Span := Parse_Span (Field_Or_Null (Value, "span"));
-         when others =>
+         when GM.Select_Arm_Unknown =>
             null;
       end case;
       Result.Span := Parse_Span (Field_Or_Null (Value, "span"));

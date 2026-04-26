@@ -490,7 +490,7 @@ package body Safe_Frontend.Mir_Validate is
             Require
               (Contains (Valid_Block_Ids, Text (Value.Delay_Data.Target)),
                Where & ": invalid target");
-         when others =>
+         when GM.Select_Arm_Unknown =>
             Require (False, Where & ": unsupported select arm kind");
       end case;
    end Validate_Select_Arm;

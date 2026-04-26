@@ -586,6 +586,40 @@ Driver marker slice:
   parser/resolver/MIR analyzer sites are accounting noise rather than new
   implementation work.
 
+JSON/MIR helper slice:
+
+- Status: complete for `compiler_impl/src/safe_frontend-json.adb`,
+  `compiler_impl/src/safe_frontend-mir_json.adb`, and
+  `compiler_impl/src/safe_frontend-mir_validate.adb`; full Phase 1B remains
+  open.
+- Starting baseline at this pass: 3 target-file syntactic catch-alls; 31
+  syntactic bare-or-named catch-alls compiler-wide under `compiler_impl/src/`;
+  28 raw historical `when others =>` hits under `compiler_impl/src/`.
+- Outcome: 1 retained JSON character-default arm annotated with a
+  `when-others-ok:` rationale marker; 2 closed-enum MIR select-arm dispatches
+  converted to explicit `Select_Arm_Unknown` arms.
+- Preserved helper behavior: JSON escaping still preserves non-special
+  characters verbatim; MIR JSON loading still leaves unknown select-arm kinds
+  as `Select_Arm_Unknown`; MIR validation still rejects unknown select-arm
+  kinds with the existing unsupported-kind diagnostic text.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked syntactic `when others =>` arm in these files.
+  `safe_frontend-mir_json.adb` and `safe_frontend-mir_validate.adb` have zero
+  retained markers and are included as future-regression guards.
+- Raw historical baseline after this slice: 26 `when others =>` hits under
+  `compiler_impl/src/`. The syntactic bare-or-named count is 29, and the
+  operational bare-or-named unaudited count is 3.
+- No artifact manifest diff is required for this slice: `json.adb` provides
+  JSON escaping primitives, `mir_json.adb` loads MIR JSON via `Load_File`, and
+  `mir_validate.adb` validates loaded MIR. Serialized writers live in
+  `mir_write.adb`, `check_emit.adb`, and `ada_emit-*`.
+- Hybrid Phase 1B slices, mixing marker retention with conversion, are allowed
+  when the file set is small and each per-file action is unambiguous from the
+  site shape. Larger or ambiguous sets should split into marker-only and
+  conversion-only PRs.
+- Phase 1B is complete when the operational unaudited count reaches 0;
+  retained marked sites remain as documented residual syntax.
+
 PR12.1 overlap evidence:
 
 - Expression-kind walkers and classifiers in the resolver no longer silently

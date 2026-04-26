@@ -28,6 +28,7 @@ package body Safe_Frontend.Json is
                US.Append (Result, Backslash);
                US.Append (Result, 't');
             when others =>
+               --  when-others-ok: preserve non-special JSON characters verbatim
                US.Append (Result, Ch);
          end case;
       end loop;

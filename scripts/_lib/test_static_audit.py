@@ -361,7 +361,10 @@ WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = (
     SRC / "safe_frontend-check_emit.adb",
     SRC / "safe_frontend-check_lower.adb",
     SRC / "safe_frontend-driver.adb",
+    SRC / "safe_frontend-json.adb",
     SRC / "safe_frontend-mir_analyze.adb",
+    SRC / "safe_frontend-mir_json.adb",
+    SRC / "safe_frontend-mir_validate.adb",
     SRC / "safe_frontend-mir_write.adb",
 )
 
