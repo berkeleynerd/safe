@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "88ffbef2023e6e5fa4826a02b9af6a785dd899e0b2d666a4040db88c80dd887b",
+  "compiler_hash": "b2fcee4dcddf89a409936c6543a8caad8ddc39894097748adc906c48b0cc4940",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -208,14 +208,14 @@
       "pr1113a_sum_build_line_map.json": "b9a180a2e6b1897582562f9aab30073599a48ad085e16530efe0507601dbaa3d"
     },
     "tests/build/pr1113b_sum_match_build.safe": {
-      "pr1113b_sum_match_build.adb": "29a21cd7f1406c29162c9bb45d886d884e86d3fec32355693a31810261a1e6af",
+      "pr1113b_sum_match_build.adb": "7b420fd09ffe26d76a644aacd497cecf5e862cb7026011ecbf214d6d14ac315c",
       "pr1113b_sum_match_build.ads": "e998dea2108aceee7c6eaad0b2a7555b16eb7503979386569efafc55bdf964cc",
-      "pr1113b_sum_match_build_line_map.json": "c6be5fe6013a06edbab94979fd1374092febaecd37863dab52c5f0261cbe4841"
+      "pr1113b_sum_match_build_line_map.json": "8024d6d025b8b19dd16eac2f90e1c047d441a70f155e0d466883cdfccb4fc3ba"
     },
     "tests/build/pr1113c_imported_overlap_build.safe": {
-      "pr1113c_imported_overlap_build.adb": "bf804bf837ba9065413d0c252e85bcc3b742a89b59d4d913006e371aae4ed6ab",
+      "pr1113c_imported_overlap_build.adb": "60887fe7b1ad7bc8c04804a230b1549d36435e1dd57249f6b1bee4886fb07331",
       "pr1113c_imported_overlap_build.ads": "322376dc8b36abfc6c3f1bbca6b1612e7f3062ba70b896f7acea88b1206fc88f",
-      "pr1113c_imported_overlap_build_line_map.json": "945ac235d1f0b33ae51bf6a4d1141bc4f5c5150f50205b6c3b37a034827599b0",
+      "pr1113c_imported_overlap_build_line_map.json": "d5324ec099aaaead1c36b1d4cd49b0fe25ac190f4fe274755832c652f0766ad0",
       "pr1113c_provider_device.adb": "4204c9bc8f1e31e9e2142c9e2c024fb33769ad21e12fd1cfe9fb49e4c297d012",
       "pr1113c_provider_device.ads": "c92ffeceeac7cf40eab844e685d1eb636b3207df6e62ea5b88b4c5b44bee558e",
       "pr1113c_provider_device_line_map.json": "0ef428456599c4f1dc08271357115adbd1a9d46f375efd61675e9356193e82a1",
@@ -224,20 +224,20 @@
       "pr1113c_provider_job_line_map.json": "4f55d9e21cb50f466e6d9da5a244d2c0b7a89d426744040fab37b4bdb49387a7"
     },
     "tests/build/pr1113c_imported_string_sum_build.safe": {
-      "pr1113c_imported_string_sum_build.adb": "83616b95ef8023f67e042fd0646c2e6e271a13ce43c3a47497a6feaa14736d6e",
+      "pr1113c_imported_string_sum_build.adb": "b124cac15bbab41df20415d4722c92299f367d11d35592d72f5a65823e361772",
       "pr1113c_imported_string_sum_build.ads": "ddef9e9ff612d189ccc1164df5f9f87f5def2626996a841ed78d1d2bb2733f8f",
-      "pr1113c_imported_string_sum_build_line_map.json": "d60d7397f16c3938017160ad0a92a281625f3069d2ffe134687b89b3dfc63d8c",
+      "pr1113c_imported_string_sum_build_line_map.json": "03765e054d7e8bab158995d5351c85a24a3c5daf9b764e40b633e376ac323894",
       "pr1113c_provider_message.adb": "97e27fcff307bf6d73d143b1f8220eab4a9ee2f33491903a2df5d0508e8d1e32",
       "pr1113c_provider_message.ads": "1ebea64e3d925b90b25e3202b0837a55f1acc83ff29e7a80a0caaa442176b712",
       "pr1113c_provider_message_line_map.json": "6865f259a938a4ee7f3f488f2574008005eb8b6d3135c67c2168dd4b5edc933a"
     },
     "tests/build/pr1113c_imported_sum_build.safe": {
-      "pr1113c_imported_sum_build.adb": "adef8e1dedb76e47aa680d5530a918b211d32afc837f573a1bee187ea6339bd5",
+      "pr1113c_imported_sum_build.adb": "5775f382a929c255eb73a0e8403df6fcbb729658e0d813efccf6595b7877dc49",
       "pr1113c_imported_sum_build.ads": "ae5d6e0fd2c3de7dd0971deffb53e64a50003ce862bca9e337eef42320b0110c",
-      "pr1113c_imported_sum_build_line_map.json": "8383e5fda518f7c9ede6c30965a8842951fbc3566029421cf463cf8e60994701",
-      "pr1113c_provider_shape.adb": "83ef88fba1ae11431693ea79cc50300e3350333c389363d100c9a4e638e78ebb",
+      "pr1113c_imported_sum_build_line_map.json": "c44e49f47b276b3bcbe90f3ba95d1e1a678aec7806be7f4e9d3ed69d8e91f129",
+      "pr1113c_provider_shape.adb": "13de02744a5d508e6663b4cbbf8ec5d452c5e762efeca64ee8833106b0abb5e5",
       "pr1113c_provider_shape.ads": "f3ea25a661986facf4b00994703e2e28528b504d53c259eca393713ddaf08e5f",
-      "pr1113c_provider_shape_line_map.json": "4c4eced45cdd62dc559bb00aabf574f2b489814a2eb125af3696c5a57bec104f"
+      "pr1113c_provider_shape_line_map.json": "7524811cae9e7ca457e2f718ab7da0cc3b2b5d4e8a7f176999feeeb7788d801f"
     },
     "tests/build/pr1113c_provider_device.safe": {
       "pr1113c_provider_device.adb": "4204c9bc8f1e31e9e2142c9e2c024fb33769ad21e12fd1cfe9fb49e4c297d012",
@@ -255,9 +255,9 @@
       "pr1113c_provider_message_line_map.json": "6865f259a938a4ee7f3f488f2574008005eb8b6d3135c67c2168dd4b5edc933a"
     },
     "tests/build/pr1113c_provider_shape.safe": {
-      "pr1113c_provider_shape.adb": "83ef88fba1ae11431693ea79cc50300e3350333c389363d100c9a4e638e78ebb",
+      "pr1113c_provider_shape.adb": "13de02744a5d508e6663b4cbbf8ec5d452c5e762efeca64ee8833106b0abb5e5",
       "pr1113c_provider_shape.ads": "f3ea25a661986facf4b00994703e2e28528b504d53c259eca393713ddaf08e5f",
-      "pr1113c_provider_shape_line_map.json": "4c4eced45cdd62dc559bb00aabf574f2b489814a2eb125af3696c5a57bec104f"
+      "pr1113c_provider_shape_line_map.json": "7524811cae9e7ca457e2f718ab7da0cc3b2b5d4e8a7f176999feeeb7788d801f"
     },
     "tests/build/pr1116_imported_nominal_build.safe": {
       "pr1116_imported_nominal_build.adb": "81217ce887fcae5892e8c3d45850560d8151f5dc83180de0296b2e95c05fe433",
@@ -945,9 +945,9 @@
       "pr1113a_sum_construction_line_map.json": "d125302af1a9ab07e0db2c9b54cee5ff5cf4802b57ce9a7e7dde986676916bff"
     },
     "tests/positive/pr1113b_sum_match.safe": {
-      "pr1113b_sum_match.adb": "343e559a6af0e368a04fa8e50ec21bdf337f5b780de619e44115783c1331c96e",
+      "pr1113b_sum_match.adb": "5cc8b40f99b53757c41718e511d061b87717ff9ea56baa5b4415f003dff412e1",
       "pr1113b_sum_match.ads": "af5231495b2bf634b72ebf2a4d124c901ccc1b1ff82cedbb82992c9a8d251ca6",
-      "pr1113b_sum_match_line_map.json": "06ce2c28443c918bbec8709b44729aae30336c4bc4ed98993cc92430a150aba8"
+      "pr1113b_sum_match_line_map.json": "5d84b34b24e6a926ffa9ce8e0ec4be983da03201faed64e37809a65788c9308a"
     },
     "tests/positive/pr1116_nominal_integer.safe": {
       "pr1116_nominal_integer.adb": "fa5bd92e0e036b2eedca1c727ef5e1734cee1fc47efb7182ba948f79979fa670",
@@ -1277,9 +1277,9 @@
       "pr362_named_arguments_line_map.json": "5e1b01a26f5f7eaa7e75c1c4ec16d7bf0e0896361fa66b4848176389422dd765"
     },
     "tests/positive/pr376_match_arm_type_walk.safe": {
-      "pr376_match_arm_type_walk.adb": "3322c8970571c80f7e06ecdc0dd14358b077925dadc72597d41408ae86b7ad9e",
+      "pr376_match_arm_type_walk.adb": "ffbc02bd2086d112db364ba2c85bcaac52a7684fe317f50e7393f1bc8eb25703",
       "pr376_match_arm_type_walk.ads": "cffa5ce511a4aaab421a5807111959653a782c6b9dfb136bb1e6223a50bbf57f",
-      "pr376_match_arm_type_walk_line_map.json": "2f2fbfaa46f2a6c7cfa4ea4385987b0f3b68de1b8a39a3a871781353b9b5be6f"
+      "pr376_match_arm_type_walk_line_map.json": "a7c347012f2df586f27a68c7a7f03e4f85a603587cc273a781ee2362ced04021"
     },
     "tests/positive/result_equality_check.safe": {
       "result_equality_check.adb": "70c3bf493506a2a3275e90b9788679a55a1b90ca8f97a00e3984ca219c02d45a",

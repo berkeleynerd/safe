@@ -14373,27 +14373,6 @@ package body Safe_Frontend.Check_Resolve is
                      Seen_Variants : String_Index_Maps.Map;
                      Arm_Index     : Natural := 0;
 
-                     function Build_Sum_Arm_Condition
-                       (Constructor : Sum_Constructor_Info;
-                        Span        : FT.Source_Span) return CM.Expr_Access
-                     is
-                     begin
-                        return
-                          Binary_Expr
-                            (Selector_Expr
-                               (Match_Value,
-                                Disc_Name,
-                                Span,
-                                UString_Value (Tag_Type_Name)),
-                             "==",
-                             Enum_Literal_Expr
-                               (Constructor.Tag_Literal_Name,
-                                Tag_Type_Name,
-                                Span),
-                             Span,
-                             "boolean");
-                     end Build_Sum_Arm_Condition;
-
                      function Normalize_Sum_Arm_Statements
                        (Arm         : CM.Match_Arm;
                         Constructor : Sum_Constructor_Info;
@@ -14638,73 +14617,46 @@ package body Safe_Frontend.Check_Resolve is
 
                            Branch_Statements := Normalize_Sum_Arm_Statements (Arm, Constructor);
 
-                           if Total_Arms = 1 then
-                              Result.Kind := CM.Stmt_If;
-                              Result.Condition := Bool_Expr (True, Arm.Span);
+                           declare
+                              Case_Arm : CM.Case_Arm;
+                           begin
+                              if Arm_Index = 1 then
+                                 Result.Kind := CM.Stmt_Case;
+                                 Result.Condition := null;
+                                 Result.Then_Stmts.Clear;
+                                 Result.Elsifs.Clear;
+                                 Result.Has_Else := False;
+                                 Result.Else_Stmts.Clear;
+                                 Result.Case_Arms.Clear;
+                                 Result.Case_Expr :=
+                                   Selector_Expr
+                                     (Match_Value,
+                                      Disc_Name,
+                                      Stmt.Match_Expr.Span,
+                                      UString_Value (Tag_Type_Name));
+                              end if;
+
+                              Case_Arm.Is_Others := False;
+                              Case_Arm.Choice :=
+                                Enum_Literal_Expr
+                                  (Constructor.Tag_Literal_Name,
+                                   Tag_Type_Name,
+                                   Arm.Span);
                               if Constructor.Fields.Is_Empty then
-                                 Result.Then_Stmts := Branch_Statements;
+                                 Case_Arm.Statements := Branch_Statements;
                               else
-                                 Result.Then_Stmts :=
+                                 Case_Arm.Statements :=
                                    Build_Sum_Arm_Statements
                                      (Arm,
                                       Constructor,
-                                      "Safe_Match_Only_" &
+                                      "Safe_Match_Arm_" &
                                       Ada.Strings.Fixed.Trim
                                         (Natural'Image (Arm_Index),
                                          Ada.Strings.Both));
                               end if;
-                           elsif Arm_Index = 1 then
-                              Result.Kind := CM.Stmt_If;
-                              Result.Condition := Build_Sum_Arm_Condition (Constructor, Arm.Span);
-                              if Constructor.Fields.Is_Empty then
-                                 Result.Then_Stmts := Branch_Statements;
-                              else
-                                 Result.Then_Stmts :=
-                                   Build_Sum_Arm_Statements
-                                     (Arm,
-                                      Constructor,
-                                      "Safe_Match_Then_" &
-                                      Ada.Strings.Fixed.Trim
-                                        (Natural'Image (Arm_Index),
-                                         Ada.Strings.Both));
-                              end if;
-                           elsif Arm_Index = Total_Arms then
-                              if Constructor.Fields.Is_Empty then
-                                 Result.Has_Else := True;
-                                 Result.Else_Stmts := Branch_Statements;
-                              else
-                                 Result.Has_Else := True;
-                                 Result.Else_Stmts :=
-                                   Build_Sum_Arm_Statements
-                                     (Arm,
-                                      Constructor,
-                                      "Safe_Match_Final_" &
-                                      Ada.Strings.Fixed.Trim
-                                        (Natural'Image (Arm_Index),
-                                         Ada.Strings.Both));
-                              end if;
-                           else
-                              declare
-                                 Elsif_Part : CM.Elsif_Part;
-                              begin
-                                 Elsif_Part.Condition :=
-                                   Build_Sum_Arm_Condition (Constructor, Arm.Span);
-                                 if Constructor.Fields.Is_Empty then
-                                    Elsif_Part.Statements := Branch_Statements;
-                                 else
-                                    Elsif_Part.Statements :=
-                                      Build_Sum_Arm_Statements
-                                        (Arm,
-                                         Constructor,
-                                         "Safe_Match_Elsif_" &
-                                         Ada.Strings.Fixed.Trim
-                                           (Natural'Image (Arm_Index),
-                                            Ada.Strings.Both));
-                                 end if;
-                                 Elsif_Part.Span := Arm.Span;
-                                 Result.Elsifs.Append (Elsif_Part);
-                              end;
-                           end if;
+                              Case_Arm.Span := Arm.Span;
+                              Result.Case_Arms.Append (Case_Arm);
+                           end;
                         end;
                      end loop;
 

@@ -2160,32 +2160,48 @@ package body Safe_Frontend.Check_Emit is
                   Position : Positive) return CM.Statement_Access_Vectors.Vector
                is
                begin
-                  if Resolved_Expr = null or else Resolved_Expr.Kind /= CM.Stmt_If then
+                  if Resolved_Expr = null then
                      return Arm.Statements;
                   end if;
 
-                  case Arm.Kind is
-                     when CM.Match_Arm_Ok =>
-                        return Resolved_Expr.Then_Stmts;
-                     when CM.Match_Arm_Fail =>
-                        if Resolved_Expr.Has_Else then
-                           return Resolved_Expr.Else_Stmts;
-                        end if;
-                     when CM.Match_Arm_Variant =>
-                        if Position = 1 then
+                  if Resolved_Expr.Kind = CM.Stmt_If then
+                     case Arm.Kind is
+                        when CM.Match_Arm_Ok =>
                            return Resolved_Expr.Then_Stmts;
-                        elsif Position <= 1 + Natural (Resolved_Expr.Elsifs.Length) then
-                           return
-                             Resolved_Expr.Elsifs
-                               (Positive (Position - 1)).Statements;
-                        elsif Resolved_Expr.Has_Else
-                          and then Position = Natural (Parsed.Match_Arms.Length)
-                        then
-                           return Resolved_Expr.Else_Stmts;
-                        end if;
-                     when CM.Match_Arm_Unknown =>
-                        null;
-                  end case;
+                        when CM.Match_Arm_Fail =>
+                           if Resolved_Expr.Has_Else then
+                              return Resolved_Expr.Else_Stmts;
+                           end if;
+                        when CM.Match_Arm_Variant =>
+                           if Position = 1 then
+                              return Resolved_Expr.Then_Stmts;
+                           elsif Position <= 1 + Natural (Resolved_Expr.Elsifs.Length) then
+                              return
+                                Resolved_Expr.Elsifs
+                                  (Positive (Position - 1)).Statements;
+                           elsif Resolved_Expr.Has_Else
+                             and then Position = Natural (Parsed.Match_Arms.Length)
+                           then
+                              return Resolved_Expr.Else_Stmts;
+                           end if;
+                        when CM.Match_Arm_Unknown =>
+                           null;
+                     end case;
+                  elsif Resolved_Expr.Kind = CM.Stmt_Case
+                    and then Arm.Kind = CM.Match_Arm_Variant
+                  then
+                     pragma Assert
+                       (Position <= Natural (Resolved_Expr.Case_Arms.Length));
+                     declare
+                        Case_Index : constant Positive :=
+                          Positive
+                            (Natural (Resolved_Expr.Case_Arms.First_Index)
+                             + Natural (Position)
+                             - 1);
+                     begin
+                        return Resolved_Expr.Case_Arms (Case_Index).Statements;
+                     end;
+                  end if;
 
                   return Arm.Statements;
                end Resolved_Match_Statements;

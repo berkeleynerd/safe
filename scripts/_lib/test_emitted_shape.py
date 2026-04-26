@@ -68,6 +68,18 @@ EMITTED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "build" / "pr118d1_string_case_build.safe",
         ["case word is", "case mark is"],
     ),
+    # Target the previous proof-hostile sum match lowering specifically.
+    # Other incorrect sum match lowerings need separate shape guards.
+    (
+        "sum-match-no-discriminant-if-chain",
+        REPO_ROOT / "tests" / "build" / "pr1113b_sum_match_build.safe",
+        [
+            "if (value.Safe_sum_tag =",
+            "elsif (value.Safe_sum_tag =",
+            "if (Safe_Match_Tmp_1.Safe_sum_tag =",
+            "elsif (Safe_Match_Tmp_1.Safe_sum_tag =",
+        ],
+    ),
     (
         "print-no-local-io-suppressions",
         REPO_ROOT / "tests" / "positive" / "pr118c1_print.safe",
@@ -256,6 +268,18 @@ EMITTED_REQUIRED_SHAPE_CASES = [
         REPO_ROOT / "tests" / "build" / "pr1123j_known_mutating_call_length_build.safe",
         [
             "IO.Put_Line (Ada.Strings.Fixed.Trim (Long_Long_Integer'Image (Long_Long_Integer (Long_Long_Integer (Safe_growable_array_factor_RT.Length (ys)))), Ada.Strings.Both));",
+        ],
+    ),
+    (
+        "sum-match-discriminant-case-lowering",
+        REPO_ROOT / "tests" / "build" / "pr1113b_sum_match_build.safe",
+        [
+            "case value.Safe_sum_tag is",
+            "case Safe_Match_Tmp_1.Safe_sum_tag is",
+            "when Safe_sum_variant_shape_label =>",
+            "when Safe_sum_variant_shape_circle =>",
+            "when Safe_sum_variant_shape_idle =>",
+            "when Safe_sum_variant_shape_rectangle =>",
         ],
     ),
     (
