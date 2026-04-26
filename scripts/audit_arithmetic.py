@@ -91,9 +91,13 @@ def repo_rel(path: Path) -> str:
 
 
 def iter_sources(root: Path) -> Iterable[Path]:
+    if not root.exists():
+        return
     if root.is_file():
         if root.suffix.lower() in {".adb", ".ads"}:
             yield root
+        return
+    if not root.is_dir():
         return
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix.lower() in {".adb", ".ads"}:
