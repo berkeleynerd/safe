@@ -469,8 +469,8 @@
             ],
             "line_text": "INT64_LOW : constant Long_Long_Integer := -(2 ** 63);",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_lower preserves resolved target integer bounds for typed/static loop ranges; INT64 sentinels are fallback source-integer literals for otherwise unbounded internal lowered ranges, not hidden target-width selection.",
             "follow_up": ""
         },
         {
@@ -484,8 +484,8 @@
             ],
             "line_text": "INT64_HIGH : constant Long_Long_Integer := (2 ** 63) - 1;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_lower preserves resolved target integer bounds for typed/static loop ranges; INT64 sentinels are fallback source-integer literals for otherwise unbounded internal lowered ranges, not hidden target-width selection.",
             "follow_up": ""
         },
         {
@@ -499,8 +499,8 @@
             ],
             "line_text": "Text => FT.To_UString (Trimmed ((if Loop_Type.Has_Low then Loop_Type.Low else INT64_LOW))),",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_lower preserves resolved target integer bounds for typed/static loop ranges; INT64 sentinels are fallback source-integer literals for otherwise unbounded internal lowered ranges, not hidden target-width selection.",
             "follow_up": ""
         },
         {
@@ -514,8 +514,8 @@
             ],
             "line_text": "Int_Value => CM.Wide_Integer ((if Loop_Type.Has_Low then Loop_Type.Low else INT64_LOW)),",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_lower preserves resolved target integer bounds for typed/static loop ranges; INT64 sentinels are fallback source-integer literals for otherwise unbounded internal lowered ranges, not hidden target-width selection.",
             "follow_up": ""
         },
         {
@@ -529,8 +529,8 @@
             ],
             "line_text": "Text => FT.To_UString (Trimmed ((if Loop_Type.Has_High then Loop_Type.High else INT64_HIGH))),",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_lower preserves resolved target integer bounds for typed/static loop ranges; INT64 sentinels are fallback source-integer literals for otherwise unbounded internal lowered ranges, not hidden target-width selection.",
             "follow_up": ""
         },
         {
@@ -544,8 +544,8 @@
             ],
             "line_text": "Int_Value => CM.Wide_Integer ((if Loop_Type.Has_High then Loop_Type.High else INT64_HIGH)),",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_lower preserves resolved target integer bounds for typed/static loop ranges; INT64 sentinels are fallback source-integer literals for otherwise unbounded internal lowered ranges, not hidden target-width selection.",
             "follow_up": ""
         },
         {
@@ -559,8 +559,8 @@
             ],
             "line_text": "subtype Wide_Integer is Long_Long_Long_Integer;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_model.ads uses Wide_Integer as the compiler check-model integer-literal carrier; retained hits document the internal source-literal domain, not emitted or runtime width.",
             "follow_up": ""
         },
         {
@@ -575,8 +575,8 @@
             ],
             "line_text": "Int_Value : Wide_Integer := 0;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_model.ads uses Wide_Integer as the compiler check-model integer-literal carrier; retained hits document the internal source-literal domain, not emitted or runtime width.",
             "follow_up": ""
         },
         {
@@ -591,8 +591,8 @@
             ],
             "line_text": "Inner_Value : CM.Wide_Integer := 0;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -606,8 +606,8 @@
             ],
             "line_text": "Value : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -621,8 +621,8 @@
             ],
             "line_text": "Bound : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -637,8 +637,8 @@
             ],
             "line_text": "Width : constant CM.Wide_Integer :=",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -652,8 +652,8 @@
             ],
             "line_text": "Modulus : constant CM.Wide_Integer := Binary_Modulus (Bit_Width);",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -667,8 +667,8 @@
             ],
             "line_text": "Left_Value : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -682,8 +682,8 @@
             ],
             "line_text": "Right_Value : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -697,8 +697,8 @@
             ],
             "line_text": "Left_Wrapped : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -712,8 +712,8 @@
             ],
             "line_text": "Right_Wrapped : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -728,8 +728,8 @@
             ],
             "line_text": "Width : CM.Wide_Integer := 0;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -743,8 +743,8 @@
             ],
             "line_text": "Low_Value : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -758,8 +758,8 @@
             ],
             "line_text": "High_Value : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -773,8 +773,8 @@
             ],
             "line_text": "Static_Int : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {
@@ -788,8 +788,8 @@
             ],
             "line_text": "Literal_Value : CM.Wide_Integer := 0;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: check_resolve uses CM.Wide_Integer as the static source-integer evaluation carrier for literal bounds, scalar constraints, binary wrap helpers, static lengths, and shift-bound validation; compatibility checks gate results before they become resolved target values.",
             "follow_up": ""
         },
         {

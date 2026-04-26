@@ -710,8 +710,8 @@ Reporting baseline:
 
 - Script: `scripts/audit_arithmetic.py`.
 - Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
-- Current baseline entries: 244 hits: 61 candidates and
-  183 accepted-with-rationale hits.
+- Current baseline entries: 244 hits: 39 candidates and
+  205 accepted-with-rationale hits.
 
 Commands:
 
@@ -727,7 +727,7 @@ Baseline counts:
 | --- | ---: | --- |
 | `emitted-wide` | 19 | `candidate` |
 | `host-wide-arithmetic` | 0 | none |
-| `model-domain` | 70 | 33 `candidate`, 37 `accepted-with-rationale` |
+| `model-domain` | 70 | 11 `candidate`, 59 `accepted-with-rationale` |
 | `overflow-check-path` | 50 | `accepted-with-rationale` |
 | `stdlib-length` | 9 | `candidate` |
 | `target-bits` | 96 | `accepted-with-rationale` |
@@ -798,6 +798,20 @@ MIR interval classification rules:
   fall back to the baseline sampled analysis when scaling cannot stay within the
   signed-64 model.
 
+Non-emitter model-domain classification rules:
+
+- `safe_frontend-check_model.ads` uses `Wide_Integer` as the check-model
+  integer-literal carrier. These hits are accepted as the intentional internal
+  source-literal domain, not emitted or runtime width.
+- `safe_frontend-check_lower.adb` hits are accepted when they preserve resolved
+  target integer bounds for typed/static loop ranges. `INT64_LOW`/`INT64_HIGH`
+  sentinels are fallback source-integer literals for otherwise unbounded
+  internal lowered ranges, not hidden target-width selection.
+- `safe_frontend-check_resolve.adb` hits are accepted when they are static
+  source-integer checks for literal bounds, scalar constraints, binary wrap
+  helpers, static lengths, or shift-bound validation, with compatibility checks
+  gating results before they become resolved target values.
+
 Promotion criteria:
 
 - A false positive is a scanner hit reviewed and classified as
@@ -814,9 +828,8 @@ Follow-up work queue:
 
 | Proposed PR | Category | Files | Evidence | Acceptance test |
 | --- | --- | --- | --- | --- |
-| Phase 1C lowering/domain triage | `model-domain` | `safe_frontend-check_lower.adb` | 6 model-domain entries around lowered literal and static-loop bounds | Confirm lowering preserves source integer text/range semantics without hidden clamping defects |
-| Phase 1C emitted-wide triage | `emitted-wide` | `safe_frontend-ada_emit*.adb`, `safe_frontend-ada_emit*.ads` | 19 emitted-wide entries in emitter paths; target-bits emitter baseline hits are already classified | Behavior-changing fixes follow Phase 1B artifact manifest conventions: pre/post emitted Ada with `compiler_hash` normalized |
-| Phase 1C stdlib length-contract triage | `stdlib-length` | `compiler_impl/stdlib/ada/safe_array*_rt.ads`, `safe_string_rt.ads` | 9 stdlib length entries using `Long_Long_Integer` | Classify length/concat contracts as accepted or promote contract drift to a follow-up issue |
+| Phase 1C emitter model-domain and emitted-wide triage | `model-domain`, `emitted-wide` | `safe_frontend-ada_emit*.adb`, `safe_frontend-ada_emit*.ads` | 10 model-domain entries in `safe_frontend-ada_emit-statements.adb`; 19 emitted-wide entries in emitter paths; target-bits emitter baseline hits are already classified | Behavior-changing fixes follow Phase 1B artifact manifest conventions: pre/post emitted Ada with `compiler_hash` normalized |
+| Phase 1C stdlib/runtime length-contract triage | `model-domain`, `stdlib-length` | `compiler_impl/stdlib/ada/safe_runtime.ads`, `safe_array*_rt.ads`, `safe_string_rt.ads` | 1 runtime model-domain entry and 9 stdlib length entries using `Long_Long_Integer` | Classify runtime integer carrier and length/concat contracts as accepted or promote contract drift to a follow-up issue |
 
 Findings:
 
@@ -831,9 +844,13 @@ Findings:
   default constructor.
 - MIR interval arithmetic triage classified all 50 `overflow-check-path`
   entries as accepted MIR analysis plumbing.
-- The MIR-resident portion of `model-domain` is triaged: 37 entries are
-  accepted. The remaining 33 non-MIR `model-domain` entries stay `candidate`
-  for future triage.
+- The MIR-resident and non-emitter compiler portions of `model-domain` are
+  triaged: 59 entries are accepted. The remaining 11 `model-domain` candidates
+  are 10 emitter-side entries in `safe_frontend-ada_emit-statements.adb` and 1
+  runtime entry in `safe_runtime.ads`.
+- The remaining Phase 1C candidates are 11 `model-domain`, 19 `emitted-wide`,
+  and 9 `stdlib-length` entries. They are concentrated in emitter and
+  stdlib/runtime slices for subsequent triage.
 - The `host-wide-arithmetic` category is fully resolved: the previous
   division-bound scaling hit was replaced by fail-closed scaling in the MIR
   analyzer.
