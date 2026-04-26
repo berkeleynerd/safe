@@ -710,8 +710,8 @@ Reporting baseline:
 
 - Script: `scripts/audit_arithmetic.py`.
 - Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
-- Current baseline entries: 228 hits: 132 candidates and 96 accepted
-  target-bits propagation hits.
+- Current baseline entries: 228 hits: 61 candidates, 2 needs-repro, and
+  165 accepted-with-rationale hits.
 
 Commands:
 
@@ -726,9 +726,9 @@ Baseline counts:
 | Category | Entries | Current classification |
 | --- | ---: | --- |
 | `emitted-wide` | 19 | `candidate` |
-| `host-wide-arithmetic` | 1 | `candidate` |
-| `model-domain` | 60 | `candidate` |
-| `overflow-check-path` | 43 | `candidate` |
+| `host-wide-arithmetic` | 1 | `needs-repro` |
+| `model-domain` | 60 | 33 `candidate`, 1 `needs-repro`, 26 `accepted-with-rationale` |
+| `overflow-check-path` | 43 | `accepted-with-rationale` |
 | `stdlib-length` | 9 | `candidate` |
 | `target-bits` | 96 | `accepted-with-rationale` |
 
@@ -782,6 +782,16 @@ Target-bits classification rules:
   resolves the entries while leaving scanner coverage in place as a regression
   guard.
 
+MIR interval classification rules:
+
+- `Wide_Integer`, `INT64_LOW`/`INT64_HIGH`, interval helpers, sentinel
+  full-range intervals, and overflow-check plumbing are accepted as the
+  intentional MIR analysis domain.
+- Arithmetic routed through `Overflow_Checked` is accepted when `Wide_Integer`
+  is the checked intermediate domain.
+- Suspected MIR arithmetic defects are classified and queued, not fixed in the
+  same triage PR.
+
 Promotion criteria:
 
 - A false positive is a scanner hit reviewed and classified as
@@ -798,7 +808,7 @@ Follow-up work queue:
 
 | Proposed PR | Category | Files | Evidence | Acceptance test |
 | --- | --- | --- | --- | --- |
-| Phase 1C MIR interval arithmetic triage | `overflow-check-path`, `host-wide-arithmetic`, `model-domain` | `safe_frontend-mir_analyze.adb` | 43 overflow-check-path entries, 27 model-domain entries, and the single host-wide arithmetic hit | Confirm endpoint arithmetic around `INT64_LOW`, `INT64_HIGH`, division, modulo, and multiplication; fix confirmed defects in one cluster per PR |
+| Phase 1C MIR division-bound scaling repro/fix | `host-wide-arithmetic`, `model-domain` | `safe_frontend-mir_analyze.adb` | 2 needs-repro entries: `return Factor * Wide_Integer (Expr.Right.Int_Value);` near line 3646 and `Max_Value : constant Wide_Integer := Bound * Factor;` near line 3726 | Demonstrate or rule out compiler `Constraint_Error`, over-approximation, or under-approximation in division-bound scaling; fix confirmed defects in one cluster |
 | Phase 1C lowering/domain triage | `model-domain` | `safe_frontend-check_lower.adb` | 6 model-domain entries around lowered literal and static-loop bounds | Confirm lowering preserves source integer text/range semantics without hidden clamping defects |
 | Phase 1C emitted-wide triage | `emitted-wide` | `safe_frontend-ada_emit*.adb`, `safe_frontend-ada_emit*.ads` | 19 emitted-wide entries in emitter paths; target-bits emitter baseline hits are already classified | Behavior-changing fixes follow Phase 1B artifact manifest conventions: pre/post emitted Ada with `compiler_hash` normalized |
 | Phase 1C stdlib length-contract triage | `stdlib-length` | `compiler_impl/stdlib/ada/safe_array*_rt.ads`, `safe_string_rt.ads` | 9 stdlib length entries using `Long_Long_Integer` | Classify length/concat contracts as accepted or promote contract drift to a follow-up issue |
@@ -814,6 +824,15 @@ Findings:
   `Document.Target_Bits`; the legacy `long_long_integer` fallbacks use explicit
   `64` to preserve their Ada `Long_Long_Integer` width without relying on the
   default constructor.
+- MIR interval arithmetic triage classified all 43 `overflow-check-path`
+  entries as accepted MIR analysis plumbing.
+- The MIR-resident portion of `model-domain` is triaged: 26 entries are
+  accepted, and the division-bound scaling entry is `needs-repro`. The
+  remaining 33 non-MIR `model-domain` entries stay `candidate` for future
+  triage.
+- The `host-wide-arithmetic` category is fully triaged: its single hit is
+  queued with the related `model-domain` multiplication under
+  `Phase 1C MIR division-bound scaling repro/fix`.
 
 ## Phase 1D - GNATprove Trust Boundaries
 

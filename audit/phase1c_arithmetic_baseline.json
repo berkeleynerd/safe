@@ -300,9 +300,9 @@
         },
         {
             "category": "host-wide-arithmetic",
-            "classification": "candidate",
+            "classification": "needs-repro",
             "fingerprint": "e336518ee4364acb",
-            "follow_up": "",
+            "follow_up": "Phase 1C MIR division-bound scaling repro/fix",
             "line": 3646,
             "line_numbers": [
                 3646
@@ -311,7 +311,7 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "host-wide-expression",
-            "rationale": ""
+            "rationale": "Division-bound scaling multiplies MIR analysis bounds in the host-wide domain outside Overflow_Checked; needs a minimized repro to demonstrate or rule out compiler Constraint_Error, over-approximation, or under-approximation."
         },
         {
             "category": "model-domain",
@@ -802,7 +802,7 @@
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "ec10f582b71cb19c",
             "follow_up": "",
             "line": 22,
@@ -813,11 +813,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c6569a53dfa5faeb",
             "follow_up": "",
             "line": 41,
@@ -828,11 +828,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "91344e0602f12843",
             "follow_up": "",
             "line": 42,
@@ -843,11 +843,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "fc9d18c8c63894b9",
             "follow_up": "",
             "line": 187,
@@ -858,11 +858,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f13432ff414b00f8",
             "follow_up": "",
             "line": 188,
@@ -873,11 +873,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "54e3087ea5e46dde",
             "follow_up": "",
             "line": 966,
@@ -897,11 +897,11 @@
             "multiplicity": 20,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "7bd04b9f22bdcc24",
             "follow_up": "",
             "line": 1057,
@@ -912,11 +912,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "fa5abef957b1786d",
             "follow_up": "",
             "line": 1159,
@@ -927,11 +927,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "5235aedfa77fcf50",
             "follow_up": "",
             "line": 1160,
@@ -942,11 +942,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "19e19d7a5eabb04f",
             "follow_up": "",
             "line": 1176,
@@ -957,11 +957,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9afbe66a6b13bc49",
             "follow_up": "",
             "line": 1177,
@@ -972,11 +972,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "fe45ce375bf0c109",
             "follow_up": "",
             "line": 1202,
@@ -987,11 +987,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "88abdf9206d2d16b",
             "follow_up": "",
             "line": 1827,
@@ -1002,11 +1002,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "789f569239997708",
             "follow_up": "",
             "line": 2134,
@@ -1017,11 +1017,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "bbf6b98c82fa9441",
             "follow_up": "",
             "line": 2136,
@@ -1032,11 +1032,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c9bd95ca5cbd985c",
             "follow_up": "",
             "line": 3643,
@@ -1047,11 +1047,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "57ff65bc4aae11ef",
             "follow_up": "",
             "line": 3695,
@@ -1062,13 +1062,13 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "needs-repro",
             "fingerprint": "450363bed496f7fc",
-            "follow_up": "",
+            "follow_up": "Phase 1C MIR division-bound scaling repro/fix",
             "line": 3726,
             "line_numbers": [
                 3726
@@ -1077,11 +1077,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Division-bound scaling multiplies MIR analysis bounds in the host-wide domain outside Overflow_Checked; needs a minimized repro to demonstrate or rule out compiler Constraint_Error, over-approximation, or under-approximation."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "ef8dc14922336de7",
             "follow_up": "",
             "line": 3727,
@@ -1092,11 +1092,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "cd70c4ccdabeff38",
             "follow_up": "",
             "line": 3759,
@@ -1107,11 +1107,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "1c80f4fab1658ec1",
             "follow_up": "",
             "line": 3760,
@@ -1122,11 +1122,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "5f628a2e050d1e42",
             "follow_up": "",
             "line": 3781,
@@ -1137,11 +1137,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "7bcb800213ee93ab",
             "follow_up": "",
             "line": 3826,
@@ -1152,11 +1152,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "96c85331e9fdeeb9",
             "follow_up": "",
             "line": 3842,
@@ -1167,11 +1167,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "a6168ebe1b1d43a9",
             "follow_up": "",
             "line": 3914,
@@ -1182,11 +1182,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "87f0c8f7a13d8906",
             "follow_up": "",
             "line": 3992,
@@ -1197,11 +1197,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "1a391e2e6e6a5add",
             "follow_up": "",
             "line": 4224,
@@ -1212,7 +1212,7 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "wide-domain-definition",
-            "rationale": ""
+            "rationale": "Wide_Integer, INT64_LOW/HIGH, interval helpers, and full-range sentinels are the intentional MIR analysis domain; retained hit documents the analysis model rather than a source-width defect."
         },
         {
             "category": "model-domain",
@@ -1231,7 +1231,7 @@
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "fbf12c2b8bd42ed6",
             "follow_up": "",
             "line": 187,
@@ -1242,11 +1242,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "ce209d6a49959a27",
             "follow_up": "",
             "line": 188,
@@ -1257,11 +1257,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9a110b4854b72690",
             "follow_up": "",
             "line": 276,
@@ -1273,11 +1273,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "41c4e9109451f15a",
             "follow_up": "",
             "line": 300,
@@ -1289,11 +1289,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f52a4a459db6eb9f",
             "follow_up": "",
             "line": 499,
@@ -1305,11 +1305,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "533d8011082a3813",
             "follow_up": "",
             "line": 505,
@@ -1321,11 +1321,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "69493e8778299aa0",
             "follow_up": "",
             "line": 521,
@@ -1337,11 +1337,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "5f9036af77c5b8b9",
             "follow_up": "",
             "line": 526,
@@ -1353,11 +1353,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "650e89f1ef231792",
             "follow_up": "",
             "line": 966,
@@ -1377,11 +1377,11 @@
             "multiplicity": 20,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "b1109532d61cc632",
             "follow_up": "",
             "line": 1057,
@@ -1392,11 +1392,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "0bf0c8d4ea079f7e",
             "follow_up": "",
             "line": 1154,
@@ -1407,11 +1407,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9e95ee8492107324",
             "follow_up": "",
             "line": 1202,
@@ -1422,11 +1422,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "5132fcc66509ac9a",
             "follow_up": "",
             "line": 1292,
@@ -1437,11 +1437,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "781345465f4e2851",
             "follow_up": "",
             "line": 1609,
@@ -1452,11 +1452,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "475ab2fc06d10adc",
             "follow_up": "",
             "line": 2134,
@@ -1467,11 +1467,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "e96c779c523b9c5e",
             "follow_up": "",
             "line": 2136,
@@ -1482,11 +1482,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "b12762ae0473b3f5",
             "follow_up": "",
             "line": 2802,
@@ -1498,11 +1498,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "ad9a9598df6685ae",
             "follow_up": "",
             "line": 2803,
@@ -1514,11 +1514,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "db7a265904a291e4",
             "follow_up": "",
             "line": 3143,
@@ -1529,11 +1529,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "2ebaf00cd088acff",
             "follow_up": "",
             "line": 3593,
@@ -1544,11 +1544,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "2a23216a348cc712",
             "follow_up": "",
             "line": 3695,
@@ -1559,11 +1559,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "a3e540bdebe2a29d",
             "follow_up": "",
             "line": 3768,
@@ -1574,11 +1574,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "8b5da40824726948",
             "follow_up": "",
             "line": 3781,
@@ -1589,11 +1589,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "20aa9dbd4e0dd3d8",
             "follow_up": "",
             "line": 3795,
@@ -1604,11 +1604,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "a33630b5d3d22e42",
             "follow_up": "",
             "line": 3914,
@@ -1619,11 +1619,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "1f77a776abde2594",
             "follow_up": "",
             "line": 3936,
@@ -1635,11 +1635,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "ddf5c3d76a72e93b",
             "follow_up": "",
             "line": 3942,
@@ -1650,11 +1650,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "8c3d9165e09824ba",
             "follow_up": "",
             "line": 3970,
@@ -1665,11 +1665,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "f08bc18f84871644",
             "follow_up": "",
             "line": 3972,
@@ -1680,11 +1680,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "dcd1ab1dfc1d1c4e",
             "follow_up": "",
             "line": 3981,
@@ -1695,11 +1695,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "37d0e343bb568835",
             "follow_up": "",
             "line": 3982,
@@ -1710,11 +1710,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "11f0ae69de8c8733",
             "follow_up": "",
             "line": 4026,
@@ -1725,11 +1725,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "9af20a875d112515",
             "follow_up": "",
             "line": 4028,
@@ -1740,11 +1740,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "4a11f43c23515206",
             "follow_up": "",
             "line": 4035,
@@ -1755,11 +1755,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "ccf8c0fda43680fa",
             "follow_up": "",
             "line": 4057,
@@ -1770,11 +1770,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "c288603ffee6d13b",
             "follow_up": "",
             "line": 4089,
@@ -1785,11 +1785,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "da7a967e6e2416d1",
             "follow_up": "",
             "line": 4105,
@@ -1800,11 +1800,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "4330b439d530462d",
             "follow_up": "",
             "line": 4115,
@@ -1815,11 +1815,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "22f8d0a14d556359",
             "follow_up": "",
             "line": 4134,
@@ -1830,11 +1830,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "42bc4bac0473d196",
             "follow_up": "",
             "line": 4224,
@@ -1845,11 +1845,11 @@
             "multiplicity": 2,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "faddceb6443e47f6",
             "follow_up": "",
             "line": 5316,
@@ -1863,11 +1863,11 @@
             "multiplicity": 4,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "18929d48e6aa6eb1",
             "follow_up": "",
             "line": 5507,
@@ -1878,11 +1878,11 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "overflow-check-path",
-            "classification": "candidate",
+            "classification": "accepted-with-rationale",
             "fingerprint": "509394b3ca8f5853",
             "follow_up": "",
             "line": 6067,
@@ -1893,7 +1893,7 @@
             "multiplicity": 1,
             "path": "compiler_impl/src/safe_frontend-mir_analyze.adb",
             "pattern": "mir-overflow-analysis",
-            "rationale": ""
+            "rationale": "MIR overflow-check plumbing intentionally routes integer range evaluation through interval helpers and Overflow_Checked; retained hit is part of the checked analysis surface, not an untriaged wide-arithmetic defect."
         },
         {
             "category": "stdlib-length",
