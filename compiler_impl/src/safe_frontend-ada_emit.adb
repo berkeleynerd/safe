@@ -963,6 +963,7 @@ package body Safe_Frontend.Ada_Emit is
                end if;
             exception
                when others =>
+                  --  when-others-ok: convert lookup failure to existing internal diagnostic
                   Raise_Internal
                     ("synthetic dependency resolution failed for '"
                      & Name_Text
@@ -1028,6 +1029,7 @@ package body Safe_Frontend.Ada_Emit is
                return Info_Has_Unemitted_Growable_Dependency (Resolved_Info, Seen);
             exception
                when others =>
+                  --  when-others-ok: convert dependency probe failure to existing internal diagnostic
                   Raise_Internal
                     ("growable dependency check failed for '"
                      & Name_Text

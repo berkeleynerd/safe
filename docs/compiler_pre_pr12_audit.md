@@ -620,6 +620,72 @@ JSON/MIR helper slice:
 - Phase 1B is complete when the operational unaudited count reaches 0;
   retained marked sites remain as documented residual syntax.
 
+Final Ada-emitter utility slice:
+
+- Status: complete for `compiler_impl/src/safe_frontend-ada_emit.adb` and
+  `compiler_impl/src/safe_frontend-ada_emit-internal.adb`; Phase 1B operational
+  closeout is complete.
+- Starting baseline at this pass: 3 target-file syntactic catch-alls; 29
+  syntactic bare-or-named catch-alls compiler-wide under `compiler_impl/src/`;
+  26 raw historical `when others =>` hits under `compiler_impl/src/`.
+- Outcome: 2 retained bare Ada-emitter exception handlers annotated with
+  `when-others-ok:` rationale markers; 1 closed-enum `Expr_Kind` dispatch
+  converted to explicit arms.
+- Preserved utility behavior: synthetic dependency resolution failures still
+  raise the existing internal diagnostic; growable dependency probe failures
+  still raise the existing internal diagnostic; `Root_Name` still returns the
+  resolved root for identifiers, selects, resolved indexes, and annotations,
+  and returns the empty string for all other expression kinds.
+- Gate: `scripts/_lib/test_static_audit.py`, run by `scripts/run_tests.py`,
+  now fails any unmarked syntactic `when others =>` arm in these files.
+  `safe_frontend-ada_emit-internal.adb` has zero retained markers and is
+  included as a future-regression guard.
+- Raw historical baseline after this slice: 25 `when others =>` hits under
+  `compiler_impl/src/`. The syntactic bare-or-named count is 28, and the
+  operational bare-or-named unaudited count is 0.
+- Pre/post emitted-Ada artifact manifest comparison is required for this slice
+  because both target files are emitter-adjacent and the standard snapshot
+  checker may skip when the compiler hash does not match the committed
+  snapshot.
+
+### Phase 1B Conventions
+
+#### Artifact-Grounded Manifest Diffs
+
+Any pass whose direct or downstream output lands in a serialized artifact
+captured by the standard manifest requires pre/post artifact diff with
+`compiler_hash` normalized. `snapshot_emitted_ada.py --check` may skip when
+the local compiler hash does not match the committed snapshot, so the per-slice
+manifest diff is the authoritative regression guard for emitter-adjacent
+slices.
+
+#### Local Level-2 Skip Rule
+
+Local `--no-cache --level 2` is required when a slice changes executable Ada
+or proof inputs. Comment-only marker slices and audit-script-only slices may
+rely on CI's no-cache level-2 Prove gate after local cached proofs pass.
+
+#### Slice Taxonomy
+
+Conversion slices replace closed-enum catch-alls with explicit arms. Marker
+slices annotate defensive, cleanup, or broad-domain catch-alls with a
+`--  when-others-ok:` rationale. Hybrid slices mix both actions only when the
+file set is small and each per-file action is obvious from the enum or site
+shape.
+
+#### Hybrid Eligibility
+
+Hybrid slices are allowed when the file set is no more than three files and
+each file has an unambiguous action. Larger or ambiguous sets split into
+marker-only and conversion-only PRs.
+
+#### End State
+
+Phase 1B is complete when the operational unaudited count reaches zero.
+Retained marked sites remain as documented residual syntax; raw historical and
+syntactic bare-or-named counts stabilize at the residual marker and
+generated-string counts.
+
 PR12.1 overlap evidence:
 
 - Expression-kind walkers and classifiers in the resolver no longer silently

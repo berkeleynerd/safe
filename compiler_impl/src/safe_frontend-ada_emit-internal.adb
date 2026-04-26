@@ -162,7 +162,26 @@ package body Safe_Frontend.Ada_Emit.Internal is
             return Root_Name (Expr.Prefix);
          when CM.Expr_Annotated =>
             return Root_Name (Expr.Inner);
-         when others =>
+         when CM.Expr_Unknown
+            | CM.Expr_Int
+            | CM.Expr_Real
+            | CM.Expr_String
+            | CM.Expr_Bool
+            | CM.Expr_Enum_Literal
+            | CM.Expr_Null
+            | CM.Expr_Apply
+            | CM.Expr_Conversion
+            | CM.Expr_Call
+            | CM.Expr_Allocator
+            | CM.Expr_Aggregate
+            | CM.Expr_Array_Literal
+            | CM.Expr_Tuple
+            | CM.Expr_Some
+            | CM.Expr_None
+            | CM.Expr_Try
+            | CM.Expr_Unary
+            | CM.Expr_Binary
+            | CM.Expr_Subtype_Indication =>
             return "";
       end case;
    end Root_Name;
