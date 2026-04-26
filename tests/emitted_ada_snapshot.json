@@ -1,5 +1,5 @@
 {
-  "compiler_hash": "ccac691b081354179af601011a129b4bca060e75b900496bbc27ed091035706c",
+  "compiler_hash": "f1e735986178392d986b9ac1edf86937483cbbca30a5f559433b2f4c8d629112",
   "fixtures": {
     "tests/build/pr1110a_optional_growable_build.safe": {
       "pr1110a_optional_growable_build.adb": "edea57f7f04c1890732b861d79740c6b86dbea49247d4148e722aaf4c447f102",
@@ -1275,6 +1275,11 @@
       "pr362_named_arguments.adb": "ae1e6bda5343afe319ab45221eae245f7ab2816a829388db77ebae7fa401524f",
       "pr362_named_arguments.ads": "29908449238ae0054327e4839a3574dbe54d789a216d8c9eaedd33a55a2a6d0d",
       "pr362_named_arguments_line_map.json": "5e1b01a26f5f7eaa7e75c1c4ec16d7bf0e0896361fa66b4848176389422dd765"
+    },
+    "tests/positive/pr376_match_arm_type_walk.safe": {
+      "pr376_match_arm_type_walk.adb": "3322c8970571c80f7e06ecdc0dd14358b077925dadc72597d41408ae86b7ad9e",
+      "pr376_match_arm_type_walk.ads": "cffa5ce511a4aaab421a5807111959653a782c6b9dfb136bb1e6223a50bbf57f",
+      "pr376_match_arm_type_walk_line_map.json": "2f2fbfaa46f2a6c7cfa4ea4385987b0f3b68de1b8a39a3a871781353b9b5be6f"
     },
     "tests/positive/result_equality_check.safe": {
       "result_equality_check.adb": "70c3bf493506a2a3275e90b9788679a55a1b90ca8f97a00e3984ca219c02d45a",

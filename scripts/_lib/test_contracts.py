@@ -47,6 +47,7 @@ OUTPUT_CONTRACT_CASES = [
     REPO_ROOT / "tests" / "interfaces" / "provider_shared_ceiling.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_shared_helper_prefix.safe",
     REPO_ROOT / "tests" / "interfaces" / "provider_transitive_shared.safe",
+    REPO_ROOT / "tests" / "positive" / "pr376_match_arm_type_walk.safe",
 ]
 
 OUTPUT_CONTRACT_REJECT_CASES = [

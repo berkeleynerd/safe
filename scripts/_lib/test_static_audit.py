@@ -370,6 +370,30 @@ WHEN_OTHERS_MARKER_AUDIT_PATHS: tuple[Path, ...] = (
     SRC / "safe_frontend-mir_write.adb",
 )
 
+ADA_EMIT_TYPES_MATCH_ARM_TRAVERSAL_CASES: tuple[AuditedCase, ...] = (
+    AuditedCase(
+        "ada-emit-types.lookup-local-object-type.match-arms",
+        SRC / "safe_frontend-ada_emit-types.adb",
+        "function Lookup_Local_Object_Type",
+        "end Lookup_Local_Object_Type;",
+        "Item.Kind",
+    ),
+    AuditedCase(
+        "ada-emit-types.find-local-synthetic-type.match-arms",
+        SRC / "safe_frontend-ada_emit-types.adb",
+        "function Find_Local_Synthetic_Type",
+        "end Find_Local_Synthetic_Type;",
+        "Item.Kind",
+    ),
+    AuditedCase(
+        "ada-emit-types.collect-synthetic-types.match-arms",
+        SRC / "safe_frontend-ada_emit-types.adb",
+        "procedure Add_From_Statements",
+        "end Add_From_Statements;",
+        "Item.Kind",
+    ),
+)
+
 
 def _strip_comment(line: str) -> str:
     return line.split("--", 1)[0]
@@ -609,6 +633,33 @@ def run_check_emit_unknown_type_guard() -> tuple[bool, str]:
     return True, ""
 
 
+def run_match_arm_traversal_case(entry: AuditedCase) -> tuple[bool, str]:
+    try:
+        _case_line, block_lines = _find_case_block(entry)
+    except ValueError as exc:
+        return False, str(exc)
+
+    arm_re = re.compile(r"^\s*when\s+CM\.Stmt_Match\s*=>", re.IGNORECASE)
+    segment = ""
+    for index, line in enumerate(block_lines):
+        if not arm_re.search(_strip_comment(line)):
+            continue
+        parts = [_strip_comment(line)]
+        for next_line in block_lines[index + 1 :]:
+            code = _strip_comment(next_line)
+            if WHEN_RE.search(code) or END_CASE_RE.search(code):
+                break
+            parts.append(code)
+        segment = "\n".join(parts)
+        break
+
+    if not segment:
+        return False, f"{entry.label} lacks explicit Stmt_Match traversal arm"
+    if "Item.Match_Arms" not in segment or "Arm.Statements" not in segment:
+        return False, f"{entry.label} Stmt_Match arm must traverse Item.Match_Arms statements"
+    return True, ""
+
+
 def run_static_audit_checks() -> RunCounts:
     passed = 0
     failures = []
@@ -638,6 +689,12 @@ def run_static_audit_checks() -> RunCounts:
         "static-audit:check-emit-unknown-type",
         run_check_emit_unknown_type_guard(),
     )
+    for entry in ADA_EMIT_TYPES_MATCH_ARM_TRAVERSAL_CASES:
+        passed += record_result(
+            failures,
+            f"static-audit:{entry.label}",
+            run_match_arm_traversal_case(entry),
+        )
     for path in WHEN_OTHERS_MARKER_AUDIT_PATHS:
         if not path.exists():
             passed += record_result(

@@ -657,6 +657,13 @@ package body Safe_Frontend.Ada_Emit.Types is
                            end case;
                         end loop;
                         return False;
+                     when CM.Stmt_Match =>
+                        for Arm of Item.Match_Arms loop
+                           if Lookup_In_Statements (Arm.Statements) then
+                              return True;
+                           end if;
+                        end loop;
+                        return False;
                      when CM.Stmt_Unknown
                         | CM.Stmt_Destructure_Decl
                         | CM.Stmt_Assign
@@ -667,7 +674,6 @@ package body Safe_Frontend.Ada_Emit.Types is
                         | CM.Stmt_Receive
                         | CM.Stmt_Try_Send
                         | CM.Stmt_Try_Receive
-                        | CM.Stmt_Match
                         | CM.Stmt_Delay =>
                         return False;
                   end case;
@@ -1694,6 +1700,12 @@ package body Safe_Frontend.Ada_Emit.Types is
                                  null;
                            end case;
                         end loop;
+                     when CM.Stmt_Match =>
+                        Check_Expr (Item.Match_Expr);
+                        for Arm of Item.Match_Arms loop
+                           exit when Found;
+                           Check_Statements (Arm.Statements);
+                        end loop;
                      when CM.Stmt_Unknown
                         | CM.Stmt_Assign
                         | CM.Stmt_Call
@@ -1703,7 +1715,6 @@ package body Safe_Frontend.Ada_Emit.Types is
                         | CM.Stmt_Receive
                         | CM.Stmt_Try_Send
                         | CM.Stmt_Try_Receive
-                        | CM.Stmt_Match
                         | CM.Stmt_Delay =>
                         Check_Expr (Item.Target);
                         Check_Expr (Item.Value);
@@ -2714,6 +2725,10 @@ package body Safe_Frontend.Ada_Emit.Types is
                               null;
                         end case;
                      end loop;
+                  when CM.Stmt_Match =>
+                     for Arm of Item.Match_Arms loop
+                        Add_From_Statements (Arm.Statements);
+                     end loop;
                   when CM.Stmt_Unknown
                      | CM.Stmt_Assign
                      | CM.Stmt_Call
@@ -2723,7 +2738,6 @@ package body Safe_Frontend.Ada_Emit.Types is
                      | CM.Stmt_Receive
                      | CM.Stmt_Try_Send
                      | CM.Stmt_Try_Receive
-                     | CM.Stmt_Match
                      | CM.Stmt_Delay =>
                      null;
                end case;
