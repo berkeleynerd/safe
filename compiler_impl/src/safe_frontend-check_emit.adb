@@ -1697,23 +1697,7 @@ package body Safe_Frontend.Check_Emit is
               & JS.Span_Object (Decl.Span)
               & "}";
          when CM.Type_Decl_Unknown =>
-            return
-              "{""node_type"":""TypeDeclaration"",""is_public"":"
-              & JS.Bool_Literal (Decl.Is_Public)
-              & ",""name"":"
-              & JS.Quote (Decl.Name)
-              & Generic_Formals_Field (Decl.Generic_Formals)
-              & ",""discriminant_part"":"
-              & Discriminant_Part_Node (Decl)
-              & ",""type_definition"":{""node_type"":""SignedIntegerTypeDefinition"",""low_bound"":"
-              & Expression_Node (Decl.Low_Expr)
-              & ",""high_bound"":"
-              & Expression_Node (Decl.High_Expr)
-              & ",""span"":"
-              & JS.Span_Object (Decl.Span)
-              & "},""span"":"
-              & JS.Span_Object (Decl.Span)
-              & "}";
+            raise Program_Error with "unknown type declaration during check JSON emission";
       end case;
    end Type_Definition_Node;
 

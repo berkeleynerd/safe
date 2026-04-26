@@ -561,6 +561,54 @@ def run_when_others_regex_self_check() -> tuple[bool, str]:
     return True, ""
 
 
+def run_check_emit_unknown_type_guard() -> tuple[bool, str]:
+    """Guard the known #374 dummy type-emission regression pattern.
+
+    This targeted check prevents Type_Decl_Unknown from silently fabricating
+    the old signed-integer JSON shape. Broader dummy-emission patterns should
+    get their own guards if that concern generalizes.
+    """
+    entry = AuditedCase(
+        "check-emit.type-decl-unknown-fail-closed",
+        SRC / "safe_frontend-check_emit.adb",
+        "function Type_Definition_Node",
+        "end Type_Definition_Node;",
+        "Decl.Kind",
+    )
+    try:
+        _case_line, block_lines = _find_case_block(entry)
+    except ValueError as exc:
+        return False, str(exc)
+
+    arm_re = re.compile(r"^\s*when\s+CM\.Type_Decl_Unknown\s*=>", re.IGNORECASE)
+    segment = ""
+    for index, line in enumerate(block_lines):
+        if not arm_re.search(_strip_comment(line)):
+            continue
+        parts = [_strip_comment(line)]
+        for next_line in block_lines[index + 1 :]:
+            code = _strip_comment(next_line)
+            if WHEN_RE.search(code) or END_CASE_RE.search(code):
+                break
+            parts.append(code)
+        segment = "\n".join(parts)
+        break
+
+    if not segment:
+        return False, "missing Type_Decl_Unknown arm in Type_Definition_Node"
+
+    expected = 'raise Program_Error with "unknown type declaration during check JSON emission";'
+    if expected not in segment:
+        return False, "Type_Decl_Unknown arm must fail closed with Program_Error"
+
+    forbidden = ["SignedIntegerTypeDefinition", "Low_Expr", "High_Expr"]
+    found = [item for item in forbidden if item in segment]
+    if found:
+        return False, "Type_Decl_Unknown arm still fabricates JSON from: " + ", ".join(found)
+
+    return True, ""
+
+
 def run_static_audit_checks() -> RunCounts:
     passed = 0
     failures = []
@@ -584,6 +632,11 @@ def run_static_audit_checks() -> RunCounts:
         failures,
         "static-audit:when-others-regex",
         run_when_others_regex_self_check(),
+    )
+    passed += record_result(
+        failures,
+        "static-audit:check-emit-unknown-type",
+        run_check_emit_unknown_type_guard(),
     )
     for path in WHEN_OTHERS_MARKER_AUDIT_PATHS:
         if not path.exists():
