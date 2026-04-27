@@ -112,6 +112,12 @@ def compare_live_scan_to_baseline(
     live_payload: dict[str, object],
     baseline_payload: dict[str, object],
 ) -> tuple[bool, str]:
+    ok, message = validate_entries(live_payload, "live scan")
+    if not ok:
+        return False, message
+    ok, message = validate_entries(baseline_payload, "baseline")
+    if not ok:
+        return False, message
     live = fingerprint_map(live_payload)
     baseline = fingerprint_map(baseline_payload)
     new_fingerprints = sorted(set(live) - set(baseline))
