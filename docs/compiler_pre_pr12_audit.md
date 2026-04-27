@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1E - SPARK Mode Off triage.
+Next action: Phase 1E - SPARK Mode Off closeout/gate promotion.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1021,16 +1021,17 @@ Findings:
 
 ## Phase 1E - SPARK Mode Off Islands
 
-Status: inventory established; reporting-only baseline active.
+Status: triage complete; reporting-only baseline active pending closeout.
 
-Enforcement default: reporting first. Promote only after triage/classification.
+Enforcement default: reporting first. Promote during closeout if the live scan
+remains stable.
 
 Reporting baseline:
 
 - Script: `scripts/audit_spark_mode_off.py`.
 - Machine baseline: `audit/phase1e_spark_mode_off_baseline.json`.
 - Current baseline entries: 12 fingerprints covering 39 raw source hits: 12
-  candidates.
+  `accepted-with-rationale`.
 
 Commands:
 
@@ -1046,10 +1047,10 @@ Baseline counts:
 | --- | ---: | ---: | --- |
 | `compiler-spark-off-aspect` | 0 | 0 | none |
 | `compiler-spark-off-pragma` | 0 | 0 | none |
-| `emitted-spark-off-aspect` | 1 | 4 | `candidate` |
-| `emitted-spark-off-pragma` | 3 | 27 | `candidate` |
-| `runtime-spark-off-aspect` | 1 | 1 | `candidate` |
-| `runtime-spark-off-pragma` | 7 | 7 | `candidate` |
+| `emitted-spark-off-aspect` | 1 | 4 | `accepted-with-rationale` |
+| `emitted-spark-off-pragma` | 3 | 27 | `accepted-with-rationale` |
+| `runtime-spark-off-aspect` | 1 | 1 | `accepted-with-rationale` |
+| `runtime-spark-off-pragma` | 7 | 7 | `accepted-with-rationale` |
 
 Scanner notes:
 
@@ -1074,25 +1075,48 @@ Scanner notes:
   earlier 36-hit seed to 39 raw hits because the seed counted only
   `SPARK_Mode (Off)`, while this inventory also scans `with SPARK_Mode => Off`
   aspects.
-- Even small-surface phases keep inventory and triage separate. This inventory
-  PR records the candidates; the next Phase 1E PR classifies them.
+- Even small-surface phases keep inventory and triage separate. The inventory
+  PR recorded the candidates; the triage PR classified them without changing
+  compiler behavior.
+
+Classification rules:
+
+- Generated shared heap, copy, free, protected-wrapper, and nested-setter
+  helpers are accepted when the SPARK-off island is confined to generated
+  state-management code over heap-backed shared/container/string
+  representations outside the current SPARK proof model.
+- Generated timing-event and select-delay helpers are accepted when they wrap
+  Ada real-time timing event operations and the SPARK-off body is limited to
+  compiler-generated runtime integration glue.
+- Generated package elaboration helpers are accepted when they sequence
+  compiler-generated package initialization or dispatcher timer setup rather
+  than user-authored logic.
+- Runtime IO islands are accepted when they wrap external side-effecting Ada
+  runtime services such as `Ada.Text_IO`.
+- Runtime array, string, and ownership islands are accepted when the SPARK-off
+  body or private representation contains access types, heap allocation,
+  unchecked deallocation, or manually checked runtime helpers while public
+  specs retain contracts where practical.
 
 Follow-up work queue:
 
 | Work item | Entries | Evidence | Acceptance |
 | --- | ---: | --- | --- |
-| Phase 1E SPARK Mode Off island triage | 12 | Generated channel/helper SPARK-off islands in `safe_frontend-ada_emit-channels.adb` and `safe_frontend-ada_emit.adb`, plus runtime/stdlib SPARK-off units under `compiler_impl/stdlib/ada/` | Classify each baseline entry as accepted-with-rationale, needs-repro, or confirmed-defect; decide whether a future closeout should promote a baseline gate. |
+| Phase 1E SPARK Mode Off closeout/gate promotion | 12 | All current Phase 1E fingerprints are classified as `accepted-with-rationale`; live scan reports 0 new and 0 missing fingerprints | Promote the scanner to the active baseline-allowlist gate model used by Phases 1C/1D if the live scan remains stable. |
 
 Findings:
 
-- Inventory found 12 candidate SPARK-off island fingerprints covering 39 raw
-  source hits: 31 emitted hits and 8 runtime/stdlib hits.
+- Triage accepted 12 SPARK-off island fingerprints covering 39 raw source
+  hits: 31 emitted hits and 8 runtime/stdlib hits.
 - `safe_frontend-ada_emit-channels.adb` remains the dominant cluster, with 30
   raw hits. Its four generated `with SPARK_Mode => Off` aspect hits are now
   included alongside the earlier `pragma SPARK_Mode (Off)` seed surface.
 - No companion Ada source matched the Phase 1E scanner during inventory.
-- Phase 1E is expected to follow the small-surface cadence: inventory, triage,
-  optional fix if triage confirms a defect, and closeout/gate decision.
+- No Phase 1E `candidate`, `needs-repro`, or `confirmed-defect` entries remain
+  after triage.
+- Phase 1E follows the small-surface cadence: inventory, triage, optional fix
+  if triage confirms a defect, and closeout/gate decision. Since triage found
+  no defects, closeout/gate promotion is the next PR.
 
 ## Phase 1F - Dead Code After Unconditional Raise
 

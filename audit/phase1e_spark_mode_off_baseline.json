@@ -8,7 +8,7 @@
   "entries": [
     {
       "category": "emitted-spark-off-aspect",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "47326b974795ba68",
       "first_line_text": "Append_Line (Buffer, \" with SPARK_Mode => Off\", Depth);",
       "follow_up": "",
@@ -22,11 +22,11 @@
       "multiplicity": 4,
       "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
       "pattern": "spark-mode-off-aspect",
-      "rationale": ""
+      "rationale": "Accepted: generated select-delay/timing-event helpers call Ada.Real_Time and Ada.Real_Time.Timing_Events integration routines that are outside the pure Safe proof model. The SPARK-off island is confined to compiler-generated runtime glue."
     },
     {
       "category": "emitted-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "66d4c7875abc1f64",
       "first_line_text": "Append_Line (Buffer, \"pragma SPARK_Mode (Off);\", 2);",
       "follow_up": "",
@@ -48,11 +48,11 @@
       "multiplicity": 12,
       "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: generated shared-state wrapper helpers bridge protected shared/container state and heap-backed runtime helpers. The bodies perform copy/free/get/set operations over private heap-backed representations outside the current SPARK proof model while public specs retain contracts where practical."
     },
     {
       "category": "emitted-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "14b4b21818e87b24",
       "first_line_text": "Append_Line (Buffer, \"pragma SPARK_Mode (Off);\", 3);",
       "follow_up": "",
@@ -76,11 +76,11 @@
       "multiplicity": 14,
       "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: generated protected shared-object bodies manipulate heap-backed nested, container, and string state and call runtime copy/free helpers. SPARK-off is confined to generated state-management methods outside the current proof model."
     },
     {
       "category": "emitted-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "3d1b21846a55e846",
       "first_line_text": "Append_Line (Context.Body_Inner, \"pragma SPARK_Mode (Off);\", 2);",
       "follow_up": "",
@@ -91,11 +91,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-ada_emit.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: generated package elaboration helper sequences package initialization and dispatcher timer setup. SPARK-off is confined to compiler-generated elaboration infrastructure, not user-authored logic."
     },
     {
       "category": "runtime-spark-off-aspect",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "1dd2625a8ed5d3e1",
       "first_line_text": "with SPARK_Mode => Off",
       "follow_up": "",
@@ -106,11 +106,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/io.adb",
       "pattern": "spark-mode-off-aspect",
-      "rationale": ""
+      "rationale": "Accepted: IO wraps Ada.Text_IO.Put_Line, an external side-effecting operation outside the pure SPARK proof model."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "d09de67d15a1f831",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -121,11 +121,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_identity_rt.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: runtime array body allocates, clones, and frees heap-backed arrays through access values and Ada.Unchecked_Deallocation. Public specs retain contracts where practical; the body remains an intentional runtime island."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "f9802aeca2cd4326",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -136,11 +136,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_identity_rt.ads",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: private runtime array representation exposes access-backed storage and the empty value. SPARK-off is limited to the private representation while public operations retain contracts."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "b871b72c572765ad",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -151,11 +151,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_rt.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: runtime array body allocates, clones, and frees heap-backed arrays through access values and Ada.Unchecked_Deallocation. Public specs retain contracts where practical; the body remains an intentional runtime island."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "799dfded3da1bb59",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -166,11 +166,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_rt.ads",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: private runtime array representation exposes access-backed storage and the empty value. SPARK-off is limited to the private representation while public operations retain contracts."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "2d17d02046d2b839",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -181,11 +181,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_ownership_rt.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: ownership runtime body allocates and frees access values with Ada.Unchecked_Deallocation. SPARK-off documents heap ownership machinery outside the current proof model."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "c09bd875abd0c7d7",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -196,11 +196,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_string_rt.adb",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: runtime string body allocates, clones, frees, and converts access-backed strings. Public contracts, including manually checked equality, remain the proof boundary where practical."
     },
     {
       "category": "runtime-spark-off-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "e8d08ca4d29af5ed",
       "first_line_text": "pragma SPARK_Mode (Off);",
       "follow_up": "",
@@ -211,7 +211,7 @@
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_string_rt.ads",
       "pattern": "spark-mode-off-pragma",
-      "rationale": ""
+      "rationale": "Accepted: private string representation uses access-backed storage and the empty value. SPARK-off is limited to the private representation while public operations retain contracts."
     }
   ],
   "generated_by": "python3 scripts/audit_spark_mode_off.py --json",
