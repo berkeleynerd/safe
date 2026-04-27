@@ -1,0 +1,111 @@
+{
+  "classifications": [
+    "candidate",
+    "needs-repro",
+    "confirmed-defect",
+    "accepted-with-rationale"
+  ],
+  "entries": [
+    {
+      "category": "assume-pragma",
+      "classification": "candidate",
+      "fingerprint": "122689d7ea3dee71",
+      "first_line_text": "pragma Assume (\"",
+      "follow_up": "",
+      "line": 1540,
+      "line_numbers": [
+        1540,
+        1541,
+        1542,
+        1543,
+        1544,
+        1545
+      ],
+      "line_text": "pragma Assume (\" & Channel_Length_Image (Unit, Document, State, Channel_Item, Value_Name) & \" = \" & Length_Name & \");",
+      "multiplicity": 1,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
+      "pattern": "pragma-assume",
+      "rationale": ""
+    },
+    {
+      "category": "gnatprove-annotate",
+      "classification": "candidate",
+      "fingerprint": "9f5b390e04c62b05",
+      "first_line_text": "pragma Annotate",
+      "follow_up": "",
+      "line": 221,
+      "line_numbers": [
+        221,
+        222,
+        223,
+        224,
+        225,
+        226
+      ],
+      "line_text": "pragma Annotate (GNATprove, Intentional, \"float overflow check might fail\", \"A-05: The compiler ensures the result is finite at \" & \"narrowing points via range analysis. See \" & \"companion/assumptions.yaml A-05.\")",
+      "multiplicity": 1,
+      "path": "companion/spark/safe_po.adb",
+      "pattern": "gnatprove-annotate",
+      "rationale": ""
+    },
+    {
+      "category": "gnatprove-warning-suppression",
+      "classification": "candidate",
+      "fingerprint": "592fa796db9f21e8",
+      "first_line_text": "pragma Warnings (GNATprove, Off, \"\"\"",
+      "follow_up": "",
+      "line": 934,
+      "line_numbers": [
+        934,
+        935,
+        936,
+        937,
+        938
+      ],
+      "line_text": "pragma Warnings (GNATprove, Off, \"\"\" & Pattern & \"\"\", Reason => \"\"\" & Reason & \"\"\");",
+      "multiplicity": 1,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
+      "pattern": "gnatprove-warning-off",
+      "rationale": ""
+    },
+    {
+      "category": "gnatprove-warning-suppression",
+      "classification": "candidate",
+      "fingerprint": "1b41fd92e232f401",
+      "first_line_text": "pragma Warnings (GNATprove, Off, \"\"is set by\"\", Reason => \"\"generated timer cancel result is intentionally ignored\"\");",
+      "follow_up": "",
+      "line": 8794,
+      "line_numbers": [
+        8794
+      ],
+      "line_text": "pragma Warnings (GNATprove, Off, \"\"is set by\"\", Reason => \"\"generated timer cancel result is intentionally ignored\"\");",
+      "multiplicity": 1,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
+      "pattern": "gnatprove-warning-off",
+      "rationale": ""
+    },
+    {
+      "category": "gnatprove-warning-suppression",
+      "classification": "candidate",
+      "fingerprint": "ceecb93df4f33b2c",
+      "first_line_text": "pragma Warnings (GNATprove, Off, \"\"is set by\"\", Reason => \"\"generated dispatcher wake result is intentionally ignored on no-delay select paths\"\");",
+      "follow_up": "",
+      "line": 9065,
+      "line_numbers": [
+        9065
+      ],
+      "line_text": "pragma Warnings (GNATprove, Off, \"\"is set by\"\", Reason => \"\"generated dispatcher wake result is intentionally ignored on no-delay select paths\"\");",
+      "multiplicity": 1,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
+      "pattern": "gnatprove-warning-off",
+      "rationale": ""
+    }
+  ],
+  "generated_by": "python3 scripts/audit_gnatprove_trust.py --json",
+  "scope": [
+    "compiler_impl/src",
+    "compiler_impl/stdlib/ada",
+    "companion"
+  ],
+  "version": 1
+}

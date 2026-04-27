@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1D - GNATprove trust boundaries.
+Next action: Phase 1D - GNATprove trust-boundary triage.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -916,11 +916,74 @@ Findings:
 
 ## Phase 1D - GNATprove Trust Boundaries
 
-Enforcement default: decide during sweep.
+Status: inventory established; reporting-only baseline active.
+
+Enforcement default: reporting first. Promote only after triage/classification.
+
+Reporting baseline:
+
+- Script: `scripts/audit_gnatprove_trust.py`.
+- Machine baseline: `audit/phase1d_gnatprove_trust_baseline.json`.
+- Current baseline entries: 5 hits: 5 candidates.
+
+Commands:
+
+```bash
+python3 scripts/audit_gnatprove_trust.py
+python3 scripts/audit_gnatprove_trust.py --json
+python3 scripts/audit_gnatprove_trust.py --summary
+```
+
+Baseline counts:
+
+| Category | Entries | Current classification |
+| --- | ---: | --- |
+| `assume-pragma` | 1 | `candidate` |
+| `gnatprove-annotate` | 1 | `candidate` |
+| `gnatprove-warning-suppression` | 3 | `candidate` |
+| `skip-proof-marker` | 0 | none |
+
+Scanner notes:
+
+- Scope: Ada sources under `compiler_impl/src/`,
+  `compiler_impl/stdlib/ada/`, and `companion/`. `SPARK_Mode (Off)` islands
+  remain Phase 1E and are intentionally out of scope here.
+- The scanner strips Ada `--` comments outside string literals but scans inside
+  string literals. This differs from scanners where generated strings are noise:
+  Phase 1D targets trust-boundary pragmas, and several current entries are
+  generated as string literals in the Ada emitter.
+- `gnatprove-annotate` uses a multi-line regex
+  `pragma\s+Annotate\s*\([^)]*GNATprove[^)]*\)` with `re.DOTALL`. Pragmas with
+  nested parentheses or string-literal parentheses may need scanner refinement
+  if they appear.
+- Baseline fingerprints are derived from category, path, pattern name, and the
+  normalized matched text. For multi-line entries, the matched text is joined
+  with whitespace collapsed; `line` records the first source line and
+  `first_line_text` provides a display anchor.
+- `pragma Warnings (GNATprove, On, ...)` restore lines are excluded by the
+  warning-suppression pattern, which only matches `Off`.
+- Phase 1D's scanner deliberately follows Phase 1C's standalone scanner shape.
+  Cross-scanner abstraction is deferred until at least Phase 1E provides a
+  third use case and clearer shared boundaries.
+- Even small-surface phases keep inventory and triage separate. This inventory
+  PR records the five candidates; the next Phase 1D PR classifies them.
+
+Follow-up work queue:
+
+| Work item | Entries | Evidence | Acceptance |
+| --- | ---: | --- | --- |
+| Phase 1D GNATprove trust-boundary triage | 5 | Generated `Assume` in `safe_frontend-ada_emit-statements.adb`, generated `Warnings (GNATprove, Off, ...)` in `safe_frontend-ada_emit-statements.adb` and `safe_frontend-ada_emit-internal.adb`, and companion `Annotate (GNATprove, Intentional, ...)` in `companion/spark/safe_po.adb` | Classify each baseline entry as accepted-with-rationale, needs-repro, or confirmed-defect; decide whether a future closeout should promote a baseline gate. |
 
 Findings:
 
-None yet.
+- Inventory found 5 candidate GNATprove trust-boundary entries: one generated
+  `Assume`, one companion `Annotate (GNATprove, Intentional, ...)`, and three
+  generated warning suppressions.
+- No `Skip_Proof` or `False_Positive` markers were found. The category remains
+  in the scanner as a regression guard.
+- Phase 1D's surface is small relative to Phase 1C's 244 arithmetic entries, so
+  the expected cadence is shorter: inventory, triage, optional fix if triage
+  confirms a defect, and closeout/gate decision.
 
 ## Phase 1E - SPARK Mode Off Islands
 
