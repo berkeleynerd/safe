@@ -288,7 +288,7 @@ def no_return_trigger(
             pattern="direct-raise-nested-block" if nested_block else "direct-raise-statement",
         )
     for name_re in no_return_name_patterns:
-        if name_re.search(text):
+        if name_re.match(text):
             return NoReturnTrigger(
                 category="no-return-helper-fallthrough",
                 pattern=(
@@ -340,6 +340,9 @@ def simple_nested_block_is_no_return(
     end_text = statements[end_index].code_text.lower()
     if not re.fullmatch(r"end\s*;", end_text):
         return None
+    # This inventory heuristic intentionally covers anonymous nested blocks only.
+    # Named blocks such as "Label : begin ... end Label;" are left for triage if
+    # they ever appear in the Phase 1F surface.
     block_start = None
     for index in range(no_return_index - 1, -1, -1):
         if statements[index].code_text.lower() == "begin":
