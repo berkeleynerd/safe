@@ -217,19 +217,27 @@ def iter_statements(lines: list[str]) -> Iterable[Statement]:
             display_parts = []
 
 
+NO_RETURN_PRAGMA_RE = re.compile(
+    r"\bpragma\s+No_Return\s*\(([^)]*)\)",
+    re.IGNORECASE,
+)
+IDENTIFIER_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9_]*\b")
+
+
+def no_return_names_from_line(raw_line: str) -> set[str]:
+    line = strip_comments_and_strings(raw_line)
+    names: set[str] = set()
+    for match in NO_RETURN_PRAGMA_RE.finditer(line):
+        names.update(IDENTIFIER_RE.findall(match.group(1)))
+    return names
+
+
 def collect_no_return_names() -> set[str]:
     names: set[str] = set()
-    pragma_re = re.compile(
-        r"\bpragma\s+No_Return\s*\(\s*([A-Za-z][A-Za-z0-9_]*)\s*\)",
-        re.IGNORECASE,
-    )
     for root in SCAN_ROOTS:
         for path in iter_sources(root, suffixes={".adb", ".ads"}):
             for raw_line in path.read_text(encoding="utf-8").splitlines():
-                line = strip_comments_and_strings(raw_line)
-                match = pragma_re.search(line)
-                if match:
-                    names.add(match.group(1))
+                names.update(no_return_names_from_line(raw_line))
     return names
 
 

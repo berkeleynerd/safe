@@ -24,6 +24,7 @@ REQUIRED_FIELDS = (
     "first_line_text",
     "line_text",
     "fallthrough_line",
+    "fallthrough_line_number",
     "multiplicity",
     "classification",
     "rationale",
@@ -111,22 +112,14 @@ def run_baseline_case() -> tuple[bool, str]:
     payload, message = read_baseline_payload()
     if payload is None:
         return False, message
-    ok, message = validate_entries(payload, "baseline")
-    if not ok:
-        return False, message
-    entries = payload.get("entries", [])
-    if not isinstance(entries, list):
-        return False, "baseline entries field is not a list"
-    for entry in entries:
-        if isinstance(entry, dict) and entry.get("classification") != "candidate":
-            return False, "Phase 1F inventory baseline should contain candidates only"
-    return True, ""
+    return validate_entries(payload, "baseline")
 
 
 def synthetic_entry(
     fingerprint: str,
     *,
-    classification: str = "candidate",
+    classification: str = baseline_audit_gate.ACCEPTED,
+    rationale: str = "Accepted: synthetic Phase 1F test entry.",
 ) -> dict[str, object]:
     return {
         "fingerprint": fingerprint,
@@ -138,25 +131,32 @@ def synthetic_entry(
         "first_line_text": "Raise_Diag (Diag);",
         "line_text": "Raise_Diag (Diag);",
         "fallthrough_line": "return Default_Integer;",
+        "fallthrough_line_number": 2,
         "multiplicity": 1,
         "classification": classification,
-        "rationale": "",
+        "rationale": rationale,
         "follow_up": "Phase 1F resolver fallback cleanup PR",
     }
 
 
 def run_inventory_gate_self_check_case() -> tuple[bool, str]:
-    known_entry = synthetic_entry("known")
-    baseline = {"entries": [known_entry]}
-    new_entry = synthetic_entry("new")
-    live_with_new = {"entries": [known_entry, new_entry]}
-    ok, message = compare_live_scan_to_baseline(live_with_new, baseline)
-    if ok or baseline_audit_gate.describe_entry(new_entry) not in message:
-        return False, "new live fingerprint outside inventory baseline did not fail gate"
+    return baseline_audit_gate.run_gate_self_check(
+        phase_label=PHASE_LABEL,
+        synthetic_entry=synthetic_entry,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_dead_raise.CATEGORIES,
+        valid_patterns=audit_dead_raise.PATTERNS,
+    )
 
-    ok, message = compare_live_scan_to_baseline({"entries": []}, baseline)
-    if not ok or baseline_audit_gate.describe_entry(known_entry) not in message:
-        return False, f"missing inventory fingerprint should be report-only, got: {message}"
+
+def run_no_return_pragma_parsing_case() -> tuple[bool, str]:
+    names = audit_dead_raise.no_return_names_from_line("pragma No_Return (Raise_A, Raise_B);")
+    if names != {"Raise_A", "Raise_B"}:
+        return False, f"multi-name No_Return pragma parsed as {sorted(names)!r}"
+    commented = audit_dead_raise.no_return_names_from_line("-- pragma No_Return (Ignored);")
+    literal = audit_dead_raise.no_return_names_from_line('Text := "pragma No_Return (Ignored);";')
+    if commented or literal:
+        return False, "No_Return pragma parser should ignore comments and string literals"
     return True, ""
 
 
@@ -289,6 +289,11 @@ def run_dead_raise_audit_checks() -> RunCounts:
         failures,
         "phase1f-dead-raise-audit:gate-self-check",
         run_inventory_gate_self_check_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1f-dead-raise-audit:no-return-pragma-parsing",
+        run_no_return_pragma_parsing_case(),
     )
     passed += record_result(
         failures,
