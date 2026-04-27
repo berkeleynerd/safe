@@ -121,18 +121,32 @@ def compare_live_scan_to_baseline(
     live = fingerprint_map(live_payload)
     baseline = fingerprint_map(baseline_payload)
     new_fingerprints = sorted(set(live) - set(baseline))
+    missing_fingerprints = sorted(set(baseline) - set(live))
     if new_fingerprints:
         examples = "; ".join(
             describe_entry(live[fingerprint]) for fingerprint in new_fingerprints[:5]
         )
         suffix = "" if len(new_fingerprints) <= 5 else f"; ... {len(new_fingerprints) - 5} more"
-        return (
-            False,
+        message = (
             "Phase 1D GNATprove trust audit found "
             f"{len(new_fingerprints)} new fingerprint(s) outside the baseline: "
-            f"{examples}{suffix}",
+            f"{examples}{suffix}"
         )
-    missing_fingerprints = sorted(set(baseline) - set(live))
+        if missing_fingerprints:
+            missing_examples = "; ".join(
+                describe_entry(baseline[fingerprint]) for fingerprint in missing_fingerprints[:5]
+            )
+            missing_suffix = (
+                ""
+                if len(missing_fingerprints) <= 5
+                else f"; ... {len(missing_fingerprints) - 5} more"
+            )
+            message += (
+                ". Baseline drift also found "
+                f"{len(missing_fingerprints)} fingerprint(s) no longer in live scan "
+                f"(report-only): {missing_examples}{missing_suffix}"
+            )
+        return False, message
     if missing_fingerprints:
         examples = "; ".join(
             describe_entry(baseline[fingerprint]) for fingerprint in missing_fingerprints[:5]
@@ -241,6 +255,13 @@ def run_gate_self_check_case() -> tuple[bool, str]:
     ok, message = compare_live_scan_to_baseline(live_missing, baseline)
     if not ok or describe_entry(known_entry) not in message:
         return False, f"missing live fingerprint should be reported only, got: {message}"
+
+    gone_entry = synthetic_entry("gone")
+    mixed_baseline = {"entries": [known_entry, gone_entry]}
+    mixed_live = {"entries": [known_entry, new_entry]}
+    ok, message = compare_live_scan_to_baseline(mixed_live, mixed_baseline)
+    if ok or describe_entry(new_entry) not in message or describe_entry(gone_entry) not in message:
+        return False, f"mixed new/missing fingerprints should both be reported, got: {message}"
 
     open_baseline = {"entries": [synthetic_entry("known", classification="candidate")]}
     ok, message = validate_closed_baseline(open_baseline)
