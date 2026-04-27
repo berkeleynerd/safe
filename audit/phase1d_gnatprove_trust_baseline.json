@@ -8,7 +8,7 @@
   "entries": [
     {
       "category": "assume-pragma",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "122689d7ea3dee71",
       "first_line_text": "pragma Assume (\"",
       "follow_up": "",
@@ -25,11 +25,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
       "pattern": "pragma-assume",
-      "rationale": ""
+      "rationale": "Generated channel-length reconciliation assumption ties the compiler-generated scalar channel length model to the emitted length formal under the non-sequential scalar ghost-model path. Accepted as an internal proof bridge, not a user-authored proof bypass."
     },
     {
       "category": "gnatprove-annotate",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "54edb173ab3f8b45",
       "first_line_text": "pragma Annotate",
       "follow_up": "",
@@ -46,11 +46,11 @@
       "multiplicity": 1,
       "path": "companion/spark/safe_po.adb",
       "pattern": "gnatprove-annotate",
-      "rationale": ""
+      "rationale": "Companion SPARK floating-division annotation is tied to assumption A-05 and documents a low-level runtime floating-point assumption outside emitted Safe source. It is not a compiler-generated proof exemption."
     },
     {
       "category": "gnatprove-warning-suppression",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "592fa796db9f21e8",
       "first_line_text": "pragma Warnings (GNATprove, Off, \"\"\"",
       "follow_up": "",
@@ -66,11 +66,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
       "pattern": "gnatprove-warning-off",
-      "rationale": ""
+      "rationale": "Centralized emitter helper for scoped GNATprove warning suppressions. Accepted because call sites supply explicit pattern and reason text and pair suppressions with matching restores; the baseline keeps this helper as the trust-boundary generator."
     },
     {
       "category": "gnatprove-warning-suppression",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "1b41fd92e232f401",
       "first_line_text": "pragma Warnings (GNATprove, Off, \"\"is set by\"\", Reason => \"\"generated timer cancel result is intentionally ignored\"\");",
       "follow_up": "",
@@ -82,11 +82,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
       "pattern": "gnatprove-warning-off",
-      "rationale": ""
+      "rationale": "Generated timer-cancel cleanup intentionally ignores an out/result object that is not used on this cleanup path. The suppression is tightly scoped around the generated call and immediately restored with Warnings On."
     },
     {
       "category": "gnatprove-warning-suppression",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "fingerprint": "ceecb93df4f33b2c",
       "first_line_text": "pragma Warnings (GNATprove, Off, \"\"is set by\"\", Reason => \"\"generated dispatcher wake result is intentionally ignored on no-delay select paths\"\");",
       "follow_up": "",
@@ -98,7 +98,7 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-ada_emit-statements.adb",
       "pattern": "gnatprove-warning-off",
-      "rationale": ""
+      "rationale": "Generated dispatcher wake on the no-delay select path intentionally ignores an out/result object. The suppression is tightly scoped around the await call and immediately restored with Warnings On."
     }
   ],
   "generated_by": "python3 scripts/audit_gnatprove_trust.py --json",

@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1D - GNATprove trust-boundary triage.
+Next action: Phase 1D - GNATprove trust-boundary closeout.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -916,15 +916,16 @@ Findings:
 
 ## Phase 1D - GNATprove Trust Boundaries
 
-Status: inventory established; reporting-only baseline active.
+Status: triage complete; reporting-only baseline active.
 
-Enforcement default: reporting first. Promote only after triage/classification.
+Enforcement default: reporting first. Promote only after closeout confirms the
+classified baseline is stable.
 
 Reporting baseline:
 
 - Script: `scripts/audit_gnatprove_trust.py`.
 - Machine baseline: `audit/phase1d_gnatprove_trust_baseline.json`.
-- Current baseline entries: 5 hits: 5 candidates.
+- Current baseline entries: 5 hits: 5 `accepted-with-rationale`.
 
 Commands:
 
@@ -938,9 +939,9 @@ Baseline counts:
 
 | Category | Entries | Current classification |
 | --- | ---: | --- |
-| `assume-pragma` | 1 | `candidate` |
-| `gnatprove-annotate` | 1 | `candidate` |
-| `gnatprove-warning-suppression` | 3 | `candidate` |
+| `assume-pragma` | 1 | `accepted-with-rationale` |
+| `gnatprove-annotate` | 1 | `accepted-with-rationale` |
+| `gnatprove-warning-suppression` | 3 | `accepted-with-rationale` |
 | `skip-proof-marker` | 0 | none |
 
 Scanner notes:
@@ -966,25 +967,49 @@ Scanner notes:
 - Phase 1D's scanner deliberately follows Phase 1C's standalone scanner shape.
   Cross-scanner abstraction is deferred until at least Phase 1E provides a
   third use case and clearer shared boundaries.
-- Even small-surface phases keep inventory and triage separate. This inventory
-  PR records the five candidates; the next Phase 1D PR classifies them.
+- Even small-surface phases keep inventory and triage separate. The inventory
+  PR recorded the five candidates; the triage PR classified them without
+  changing compiler behavior.
+
+Classification rules:
+
+- Generated `pragma Assume` entries are accepted only when they tie
+  compiler-generated model state to emitted runtime/formal values and are
+  justified by surrounding emitter model construction. They are not a blanket
+  substitute for user-facing proof obligations.
+- `pragma Annotate (GNATprove, Intentional, ...)` entries are accepted when they
+  cite a concrete companion/runtime assumption and document a proof boundary
+  outside emitted Safe source.
+- `pragma Warnings (GNATprove, Off, ...)` entries are accepted only when tightly
+  scoped, paired with a matching `Warnings On` restore in the same generated
+  block or helper policy, and justified by an intentionally ignored generated
+  result or control-flow path.
+- The three current warning-suppression entries form one trust-boundary
+  pattern: a centralized suppression helper plus two generated use-sites.
+  Future use-sites of that helper may cite this rule with a local rationale;
+  new suppression patterns require fresh triage.
+- `Skip_Proof` and `False_Positive` markers have zero current entries. Future
+  entries require triage before acceptance.
 
 Follow-up work queue:
 
 | Work item | Entries | Evidence | Acceptance |
 | --- | ---: | --- | --- |
-| Phase 1D GNATprove trust-boundary triage | 5 | Generated `Assume` in `safe_frontend-ada_emit-statements.adb`, generated `Warnings (GNATprove, Off, ...)` in `safe_frontend-ada_emit-statements.adb` and `safe_frontend-ada_emit-internal.adb`, and companion `Annotate (GNATprove, Intentional, ...)` in `companion/spark/safe_po.adb` | Classify each baseline entry as accepted-with-rationale, needs-repro, or confirmed-defect; decide whether a future closeout should promote a baseline gate. |
+| Phase 1D closeout and gate decision | 5 | All current GNATprove trust-boundary entries are classified as `accepted-with-rationale`; live scan reports no new or missing fingerprints. | If the live scan remains stable, extend `scripts/_lib/test_gnatprove_trust_audit.py` so `validate_entries()` rejects `accepted-with-rationale` entries with missing or empty rationales, promote the baseline gate, mark Phase 1D complete, and update the top-level next action to Phase 1E. |
 
 Findings:
 
-- Inventory found 5 candidate GNATprove trust-boundary entries: one generated
-  `Assume`, one companion `Annotate (GNATprove, Intentional, ...)`, and three
-  generated warning suppressions.
+- Triage classified all 5 GNATprove trust-boundary entries as
+  `accepted-with-rationale`: one generated `Assume`, one companion
+  `Annotate (GNATprove, Intentional, ...)`, and three generated warning
+  suppressions.
+- No Phase 1D `candidate`, `needs-repro`, or `confirmed-defect` entries remain
+  in the baseline.
 - No `Skip_Proof` or `False_Positive` markers were found. The category remains
   in the scanner as a regression guard.
 - Phase 1D's surface is small relative to Phase 1C's 244 arithmetic entries, so
-  the expected cadence is shorter: inventory, triage, optional fix if triage
-  confirms a defect, and closeout/gate decision.
+  the expected cadence is shorter: inventory, triage, and closeout/gate
+  decision. Triage found no defects requiring a fix PR.
 
 ## Phase 1E - SPARK Mode Off Islands
 
