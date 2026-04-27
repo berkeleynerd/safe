@@ -49,6 +49,9 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
         if fingerprint in fingerprints:
             return False, f"duplicate {label} fingerprint {fingerprint}"
         fingerprints.add(fingerprint)
+        classification = entry.get("classification")
+        if classification not in VALID_CLASSIFICATIONS:
+            return False, f"invalid {label} classification {classification!r}"
     return True, ""
 
 
@@ -70,7 +73,26 @@ def run_live_scan_case() -> tuple[bool, str]:
     if not ok:
         return False, message
     # Match Phase 1C audit behavior: run_tests.py emits audit summaries visibly.
-    audit_gnatprove_trust.print_summary(payload)
+    audit_gnatprove_trust.print_summary(
+        payload,
+        baseline_entries=audit_gnatprove_trust.existing_classifications(),
+    )
+    return True, ""
+
+
+def run_statement_scanner_case() -> tuple[bool, str]:
+    source = (
+        'pragma Annotate (GNATprove, Intentional, "overflow (see A-05); safe");\n'
+        "Afterward;"
+    )
+    end = audit_gnatprove_trust.statement_end(source, 0)
+    if end is None:
+        return False, "statement scanner did not find pragma terminator"
+    matched = source[:end]
+    if '"overflow (see A-05); safe"' not in matched:
+        return False, "statement scanner truncated string-literal punctuation"
+    if matched.endswith("Afterward;"):
+        return False, "statement scanner consumed the following statement"
     return True, ""
 
 
@@ -84,11 +106,6 @@ def run_baseline_case() -> tuple[bool, str]:
     ok, message = validate_entries(payload, "baseline")
     if not ok:
         return False, message
-    entries = payload["entries"]
-    for entry in entries:
-        classification = entry.get("classification")
-        if classification not in VALID_CLASSIFICATIONS:
-            return False, f"invalid baseline classification {classification!r}"
     return True, ""
 
 
@@ -96,6 +113,11 @@ def run_gnatprove_trust_audit_checks() -> RunCounts:
     passed = 0
     failures = []
     passed += record_result(failures, "phase1d-gnatprove-trust-audit:scan", run_live_scan_case())
+    passed += record_result(
+        failures,
+        "phase1d-gnatprove-trust-audit:statement-scanner",
+        run_statement_scanner_case(),
+    )
     passed += record_result(
         failures,
         "phase1d-gnatprove-trust-audit:baseline",

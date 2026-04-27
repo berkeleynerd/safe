@@ -30,7 +30,7 @@
     {
       "category": "gnatprove-annotate",
       "classification": "candidate",
-      "fingerprint": "9f5b390e04c62b05",
+      "fingerprint": "54edb173ab3f8b45",
       "first_line_text": "pragma Annotate",
       "follow_up": "",
       "line": 221,
@@ -42,7 +42,7 @@
         225,
         226
       ],
-      "line_text": "pragma Annotate (GNATprove, Intentional, \"float overflow check might fail\", \"A-05: The compiler ensures the result is finite at \" & \"narrowing points via range analysis. See \" & \"companion/assumptions.yaml A-05.\")",
+      "line_text": "pragma Annotate (GNATprove, Intentional, \"float overflow check might fail\", \"A-05: The compiler ensures the result is finite at \" & \"narrowing points via range analysis. See \" & \"companion/assumptions.yaml A-05.\");",
       "multiplicity": 1,
       "path": "companion/spark/safe_po.adb",
       "pattern": "gnatprove-annotate",

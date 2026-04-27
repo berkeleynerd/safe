@@ -38,29 +38,30 @@ class Pattern:
     name: str
     regex: re.Pattern[str]
     roots: tuple[Path, ...] = SCAN_ROOTS
+    statement: bool = False
 
 
 PATTERNS: tuple[Pattern, ...] = (
     Pattern(
         "assume-pragma",
         "pragma-assume",
-        re.compile(r"pragma\s+Assume\s*\(.*?;", re.IGNORECASE | re.DOTALL),
+        re.compile(r"pragma\s+Assume\s*\(", re.IGNORECASE),
+        statement=True,
     ),
     Pattern(
         "gnatprove-annotate",
         "gnatprove-annotate",
-        re.compile(
-            r"pragma\s+Annotate\s*\([^)]*GNATprove[^)]*\)",
-            re.IGNORECASE | re.DOTALL,
-        ),
+        re.compile(r"pragma\s+Annotate\s*\(", re.IGNORECASE),
+        statement=True,
     ),
     Pattern(
         "gnatprove-warning-suppression",
         "gnatprove-warning-off",
         re.compile(
-            r"pragma\s+Warnings\s*\(\s*GNATprove\s*,\s*Off\b.*?;",
-            re.IGNORECASE | re.DOTALL,
+            r"pragma\s+Warnings\s*\(\s*GNATprove\s*,\s*Off\b",
+            re.IGNORECASE,
         ),
+        statement=True,
     ),
     Pattern(
         "skip-proof-marker",
@@ -123,6 +124,25 @@ def first_line_text(text: str) -> str:
         if normalized:
             return normalized
     return ""
+
+
+def statement_end(text: str, start: int) -> int | None:
+    """Return the offset after a statement semicolon, ignoring string content."""
+
+    in_string = False
+    index = start
+    while index < len(text):
+        char = text[index]
+        nxt = text[index + 1] if index + 1 < len(text) else ""
+        if char == '"':
+            if in_string and nxt == '"':
+                index += 2
+                continue
+            in_string = not in_string
+        elif char == ";" and not in_string:
+            return index + 1
+        index += 1
+    return None
 
 
 def line_starts(text: str) -> list[int]:
@@ -197,12 +217,25 @@ def scan() -> dict[str, object]:
         for path in sources_for(pattern.roots):
             text, starts = text_for(path)
             for match in pattern.regex.finditer(text):
-                matched_text = match.group(0)
+                if pattern.statement:
+                    end = statement_end(text, match.start())
+                    if end is None:
+                        continue
+                    matched_text = text[match.start() : end]
+                    match_end = end
+                    if (
+                        pattern.category == "gnatprove-annotate"
+                        and not re.search(r"\bGNATprove\b", matched_text, re.IGNORECASE)
+                    ):
+                        continue
+                else:
+                    matched_text = match.group(0)
+                    match_end = match.end()
                 normalized = normalized_text(matched_text)
                 if not normalized:
                     continue
                 first_line = line_number_for(match.start(), starts)
-                last_line = line_number_for(match.end(), starts)
+                last_line = line_number_for(match_end, starts)
                 fingerprint = fingerprint_for(pattern.category, path, pattern.name, normalized)
                 prior_entry = prior.get(fingerprint, {})
                 entry = entries.setdefault(
@@ -263,12 +296,18 @@ def counts_by_category(payload: dict[str, object]) -> dict[str, int]:
     return counts
 
 
-def print_summary(payload: dict[str, object]) -> None:
+def print_summary(
+    payload: dict[str, object],
+    baseline_entries: dict[str, dict[str, object]] | None = None,
+) -> None:
+    """Print live counts against the provided or on-disk baseline entries."""
+
     counts = counts_by_category(payload)
     for category in sorted(counts):
         print(f"[Phase 1D] {category}: {counts[category]}")
     entries = payload.get("entries", [])
-    baseline_entries = existing_classifications()
+    if baseline_entries is None:
+        baseline_entries = existing_classifications()
     current = {
         str(entry.get("fingerprint"))
         for entry in entries

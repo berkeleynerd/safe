@@ -952,15 +952,11 @@ Scanner notes:
   string literals. This differs from scanners where generated strings are noise:
   Phase 1D targets trust-boundary pragmas, and several current entries are
   generated as string literals in the Ada emitter.
-- `gnatprove-annotate` uses a multi-line regex
-  `pragma\s+Annotate\s*\([^)]*GNATprove[^)]*\)` with `re.DOTALL`. Pragmas with
-  nested parentheses or string-literal parentheses may need scanner refinement
-  if they appear. These cases can produce a truncated fingerprint rather than
-  a clean miss because the regex stops at the first closing parenthesis.
-- `pragma Assume` and `pragma Warnings (GNATprove, Off, ...)` matching stops
-  at the first semicolon in the matched text. Generated pragma strings that
-  include semicolons inside arguments may need scanner refinement if they
-  appear.
+- `pragma Assume`, `pragma Annotate`, and `pragma Warnings (GNATprove, Off,
+  ...)` entries are matched from their pragma start through the statement
+  semicolon with string-aware scanning. Semicolons or parentheses inside string
+  literal arguments are part of the fingerprint instead of truncating the
+  matched text.
 - Baseline fingerprints are derived from category, path, pattern name, and the
   normalized matched text. For multi-line entries, the matched text is joined
   with whitespace collapsed; `line` records the first source line and
