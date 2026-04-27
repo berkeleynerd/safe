@@ -2291,6 +2291,21 @@
             "follow_up": ""
         },
         {
+            "fingerprint": "a428f15f4b258f8b",
+            "category": "target-bits",
+            "pattern": "target-bits-propagation",
+            "path": "compiler_impl/src/safe_frontend-ada_emit-expressions.adb",
+            "line": 1387,
+            "line_numbers": [
+                1387
+            ],
+            "line_text": "elsif Is_Wide_Integer_Type (Unit, Document, Target_Info)",
+            "multiplicity": 1,
+            "classification": "accepted-with-rationale",
+            "rationale": "Emitter/proof integer-family predicate only: the check selects the wide->target narrowing branch in Render_Expr_For_Target_Type based on resolved type descriptors; target-specific bounds come from resolver/lowering metadata, not this hit.",
+            "follow_up": ""
+        },
+        {
             "fingerprint": "c6a29542ad6f4a53",
             "category": "target-bits",
             "pattern": "target-bits-propagation",
