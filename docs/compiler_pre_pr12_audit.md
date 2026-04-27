@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1D - GNATprove trust-boundary closeout.
+Next action: Phase 1E - SPARK Mode Off Islands.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -916,16 +916,17 @@ Findings:
 
 ## Phase 1D - GNATprove Trust Boundaries
 
-Status: triage complete; reporting-only baseline active.
+Status: complete; active baseline-allowlist gate.
 
-Enforcement default: reporting first. Promote only after closeout confirms the
-classified baseline is stable.
+Enforcement default: yes. Active baseline gate.
 
 Reporting baseline:
 
 - Script: `scripts/audit_gnatprove_trust.py`.
 - Machine baseline: `audit/phase1d_gnatprove_trust_baseline.json`.
 - Current baseline entries: 5 hits: 5 `accepted-with-rationale`.
+- Gate semantics: new live fingerprints fail; missing baseline fingerprints are
+  reported only. Accepted entries require non-empty rationales.
 
 Commands:
 
@@ -966,7 +967,12 @@ Scanner notes:
   warning-suppression pattern, which only matches `Off`.
 - Phase 1D's scanner deliberately follows Phase 1C's standalone scanner shape.
   Cross-scanner abstraction is deferred until at least Phase 1E provides a
-  third use case and clearer shared boundaries.
+  third use case and clearer shared boundaries. After Phase 1E closeout, a
+  refactor PR may consolidate shared baseline-gate mechanics.
+- Phase 1D follows the existing "Working with the baseline" operational rules:
+  future local obvious additions may cite existing rules with concrete
+  rationale, while broader surfaces or novel rules use a scan-extension/triage
+  cycle.
 - Even small-surface phases keep inventory and triage separate. The inventory
   PR recorded the five candidates; the triage PR classified them without
   changing compiler behavior.
@@ -993,9 +999,7 @@ Classification rules:
 
 Follow-up work queue:
 
-| Work item | Entries | Evidence | Acceptance |
-| --- | ---: | --- | --- |
-| Phase 1D closeout and gate decision | 5 | All current GNATprove trust-boundary entries are classified as `accepted-with-rationale`; live scan reports no new or missing fingerprints. | If the live scan remains stable, extend `scripts/_lib/test_gnatprove_trust_audit.py` so `validate_entries()` rejects `accepted-with-rationale` entries with missing or empty rationales, promote the baseline gate, mark Phase 1D complete, and update the top-level next action to Phase 1E. |
+No open Phase 1D follow-up work remains after gate promotion.
 
 Findings:
 
@@ -1010,6 +1014,10 @@ Findings:
 - Phase 1D's surface is small relative to Phase 1C's 244 arithmetic entries, so
   the expected cadence is shorter: inventory, triage, and closeout/gate
   decision. Triage found no defects requiring a fix PR.
+- Phase 1D closeout promoted the scanner from reporting-only to an active
+  baseline-allowlist gate. The live scanner now blocks new unclassified
+  GNATprove trust-boundary fingerprints, reports missing fingerprints as
+  non-failing drift, and requires non-empty rationales for accepted entries.
 
 ## Phase 1E - SPARK Mode Off Islands
 
