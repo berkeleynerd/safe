@@ -817,7 +817,9 @@ Emitter classification rules:
 - `ada_emit` `emitted-wide` hits are accepted when they render already-resolved
   static, proof, runtime, or source-integer values into Ada text through
   `Trim_Wide_Image` or `Safe_Runtime.Wide_Integer`; these sites do not select
-  target width.
+  target width. The scanner also matches `Trim_Wide_Image` declarations,
+  renames, and `end` lines; those infrastructure hits are accepted as scanner
+  false positives, not render sites.
 - `ada_emit` `model-domain` hits are accepted when statement helpers use
   `CM.Wide_Integer` as a static source-integer or proof/invariant arithmetic
   domain. Those values must come from resolved bounds/literals or fail-closed
