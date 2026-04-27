@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1E - SPARK Mode Off Islands.
+Next action: Phase 1E - SPARK Mode Off triage.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1021,17 +1021,78 @@ Findings:
 
 ## Phase 1E - SPARK Mode Off Islands
 
-Enforcement default: likely yes.
+Status: inventory established; reporting-only baseline active.
 
-Seed notes for sweep:
+Enforcement default: reporting first. Promote only after triage/classification.
 
-- `compiler_impl/src/safe_frontend-ada_emit-channels.adb` contributes 26 of
-  the 36 `SPARK_Mode (Off)` hits and also has a `when others =>` arm. Join
-  this with Phase 1B findings before the Phase 2 channels deep dive.
+Reporting baseline:
+
+- Script: `scripts/audit_spark_mode_off.py`.
+- Machine baseline: `audit/phase1e_spark_mode_off_baseline.json`.
+- Current baseline entries: 12 fingerprints covering 39 raw source hits: 12
+  candidates.
+
+Commands:
+
+```bash
+python3 scripts/audit_spark_mode_off.py
+python3 scripts/audit_spark_mode_off.py --json
+python3 scripts/audit_spark_mode_off.py --summary
+```
+
+Baseline counts:
+
+| Category | Fingerprints | Raw hits | Current classification |
+| --- | ---: | ---: | --- |
+| `compiler-spark-off-aspect` | 0 | 0 | none |
+| `compiler-spark-off-pragma` | 0 | 0 | none |
+| `emitted-spark-off-aspect` | 1 | 4 | `candidate` |
+| `emitted-spark-off-pragma` | 3 | 27 | `candidate` |
+| `runtime-spark-off-aspect` | 1 | 1 | `candidate` |
+| `runtime-spark-off-pragma` | 7 | 7 | `candidate` |
+
+Scanner notes:
+
+- Scope: Ada sources under `compiler_impl/src/`,
+  `compiler_impl/stdlib/ada/`, and `companion/`.
+- The scanner strips Ada `--` comments outside string literals but scans inside
+  string literals. Phase 1E targets emitted `SPARK_Mode Off` islands, and most
+  current entries are generated as string literals in the Ada emitter.
+- Category assignment is path-based for compiler/emitted/runtime domains and
+  pattern-based for pragma versus aspect. Paths under
+  `compiler_impl/src/safe_frontend-ada_emit*` are `emitted-*`; other paths under
+  `compiler_impl/src/` are `compiler-*`; paths under `compiler_impl/stdlib/ada/`
+  or `companion/` are `runtime-*`.
+- The pragma pattern matches `SPARK_Mode (Off)`; the aspect pattern matches
+  `SPARK_Mode => Off`. The aspect pattern intentionally omits a required `with`
+  prefix so inventory captures broad SPARK-off aspect surface. Triage classifies
+  false positives rather than refining the regex during inventory.
+- Baseline fingerprints are derived from category, path, pattern name, and the
+  normalized matched line. Repeated generated lines collapse into one
+  fingerprint with `multiplicity` and `line_numbers` recording all source hits.
+- Seed counts are directional, not authoritative. Phase 1E canonicalized the
+  earlier 36-hit seed to 39 raw hits because the seed counted only
+  `SPARK_Mode (Off)`, while this inventory also scans `with SPARK_Mode => Off`
+  aspects.
+- Even small-surface phases keep inventory and triage separate. This inventory
+  PR records the candidates; the next Phase 1E PR classifies them.
+
+Follow-up work queue:
+
+| Work item | Entries | Evidence | Acceptance |
+| --- | ---: | --- | --- |
+| Phase 1E SPARK Mode Off island triage | 12 | Generated channel/helper SPARK-off islands in `safe_frontend-ada_emit-channels.adb` and `safe_frontend-ada_emit.adb`, plus runtime/stdlib SPARK-off units under `compiler_impl/stdlib/ada/` | Classify each baseline entry as accepted-with-rationale, needs-repro, or confirmed-defect; decide whether a future closeout should promote a baseline gate. |
 
 Findings:
 
-None yet.
+- Inventory found 12 candidate SPARK-off island fingerprints covering 39 raw
+  source hits: 31 emitted hits and 8 runtime/stdlib hits.
+- `safe_frontend-ada_emit-channels.adb` remains the dominant cluster, with 30
+  raw hits. Its four generated `with SPARK_Mode => Off` aspect hits are now
+  included alongside the earlier `pragma SPARK_Mode (Off)` seed surface.
+- No companion Ada source matched the Phase 1E scanner during inventory.
+- Phase 1E is expected to follow the small-surface cadence: inventory, triage,
+  optional fix if triage confirms a defect, and closeout/gate decision.
 
 ## Phase 1F - Dead Code After Unconditional Raise
 

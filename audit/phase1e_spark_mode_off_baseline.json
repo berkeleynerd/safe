@@ -1,0 +1,224 @@
+{
+  "classifications": [
+    "candidate",
+    "needs-repro",
+    "confirmed-defect",
+    "accepted-with-rationale"
+  ],
+  "entries": [
+    {
+      "category": "emitted-spark-off-aspect",
+      "classification": "candidate",
+      "fingerprint": "47326b974795ba68",
+      "first_line_text": "Append_Line (Buffer, \" with SPARK_Mode => Off\", Depth);",
+      "follow_up": "",
+      "line": 2199,
+      "line_numbers": [
+        2199,
+        2220,
+        2242,
+        2261
+      ],
+      "multiplicity": 4,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
+      "pattern": "spark-mode-off-aspect",
+      "rationale": ""
+    },
+    {
+      "category": "emitted-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "66d4c7875abc1f64",
+      "first_line_text": "Append_Line (Buffer, \"pragma SPARK_Mode (Off);\", 2);",
+      "follow_up": "",
+      "line": 629,
+      "line_numbers": [
+        629,
+        663,
+        724,
+        753,
+        1075,
+        1103,
+        1137,
+        1156,
+        1176,
+        1289,
+        1339,
+        1453
+      ],
+      "multiplicity": 12,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "emitted-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "14b4b21818e87b24",
+      "first_line_text": "Append_Line (Buffer, \"pragma SPARK_Mode (Off);\", 3);",
+      "follow_up": "",
+      "line": 801,
+      "line_numbers": [
+        801,
+        827,
+        1388,
+        1420,
+        1692,
+        1710,
+        1733,
+        1802,
+        1829,
+        1854,
+        1927,
+        1956,
+        1977,
+        1999
+      ],
+      "multiplicity": 14,
+      "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "emitted-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "3d1b21846a55e846",
+      "first_line_text": "Append_Line (Context.Body_Inner, \"pragma SPARK_Mode (Off);\", 2);",
+      "follow_up": "",
+      "line": 1898,
+      "line_numbers": [
+        1898
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/src/safe_frontend-ada_emit.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-aspect",
+      "classification": "candidate",
+      "fingerprint": "1dd2625a8ed5d3e1",
+      "first_line_text": "with SPARK_Mode => Off",
+      "follow_up": "",
+      "line": 4,
+      "line_numbers": [
+        4
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/io.adb",
+      "pattern": "spark-mode-off-aspect",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "d09de67d15a1f831",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 4,
+      "line_numbers": [
+        4
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_array_identity_rt.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "f9802aeca2cd4326",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 107,
+      "line_numbers": [
+        107
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_array_identity_rt.ads",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "b871b72c572765ad",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 4,
+      "line_numbers": [
+        4
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_array_rt.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "799dfded3da1bb59",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 77,
+      "line_numbers": [
+        77
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_array_rt.ads",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "2d17d02046d2b839",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 4,
+      "line_numbers": [
+        4
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_ownership_rt.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "c09bd875abd0c7d7",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 4,
+      "line_numbers": [
+        4
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_string_rt.adb",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    },
+    {
+      "category": "runtime-spark-off-pragma",
+      "classification": "candidate",
+      "fingerprint": "e8d08ca4d29af5ed",
+      "first_line_text": "pragma SPARK_Mode (Off);",
+      "follow_up": "",
+      "line": 58,
+      "line_numbers": [
+        58
+      ],
+      "multiplicity": 1,
+      "path": "compiler_impl/stdlib/ada/safe_string_rt.ads",
+      "pattern": "spark-mode-off-pragma",
+      "rationale": ""
+    }
+  ],
+  "generated_by": "python3 scripts/audit_spark_mode_off.py --json",
+  "scope": [
+    "compiler_impl/src",
+    "compiler_impl/stdlib/ada",
+    "companion"
+  ],
+  "version": 1
+}
