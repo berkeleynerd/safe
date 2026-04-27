@@ -1,0 +1,23 @@
+-- Regression fixture for issue #402.
+-- A let-style integer declaration whose initializer is wide-arithmetic on
+-- guard-narrowed operands previously emitted as a Safe_Runtime.Wide_Integer
+-- local. When that local fed a `list of integer` runtime call (Concat /
+-- From_Array), the emitter omitted the narrowing back to Long_Long_Integer
+-- and GNAT rejected the emitted Ada with
+-- "expected type Element_Type ... found type Wide_Integer".
+
+package issue402_wide_narrow_list_append_build
+
+   function compute returns integer
+      var scores : list of integer = [0]
+      a : integer = 0
+      b : integer = 0
+
+      if a >= 0 and then a <= 500 and then b >= 0 and then b <= 500
+         sum_ab : integer = a + b
+         scores.append (sum_ab)
+
+      return scores.length
+
+   total : integer = compute ()
+   print (total)

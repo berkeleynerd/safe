@@ -1384,6 +1384,20 @@ package body Safe_Frontend.Ada_Emit.Expressions is
         and then Is_Bounded_String_Type (Source_Type_Info)
       then
          return Render_String_Expr (Unit, Document, Expr, State);
+      elsif Is_Wide_Integer_Type (Unit, Document, Target_Info)
+        and then Uses_Wide_Value (Unit, Document, State, Expr)
+      then
+         --  Narrow wide-arithmetic-derived sources back to the target's
+         --  declared integer type at component/parameter positions, matching
+         --  the channel-send and return-statement narrowing paths. Without
+         --  this, list-element aggregates like `(1 => sum_ab)` carry a
+         --  Safe_Runtime.Wide_Integer value into a slot whose Element_Type is
+         --  Long_Long_Integer, and GNAT rejects the emitted Ada.
+         return
+           Render_Type_Name (Target_Info)
+           & " ("
+           & Render_Wide_Expr (Unit, Document, Expr, State)
+           & ")";
       end if;
 
       return Render_Expr (Unit, Document, Expr, State);

@@ -164,6 +164,11 @@ BUILD_SUCCESS_CASES = [
         False,
     ),
     (
+        REPO_ROOT / "tests" / "build" / "issue402_wide_narrow_list_append_build.safe",
+        "2\n",
+        False,
+    ),
+    (
         REPO_ROOT / "tests" / "build" / "pr1110c_map_build.safe",
         "15\n20\n1\n2\n",
         False,

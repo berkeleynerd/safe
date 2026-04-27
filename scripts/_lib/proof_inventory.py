@@ -433,6 +433,7 @@ EMITTED_PROOF_REGRESSION_FIXTURES = [
     "tests/interfaces/pr119a_select_delay_receive.safe",
     "tests/interfaces/pr119a_select_delay_timeout.safe",
     "tests/interfaces/pr119a_select_zero_delay_ready.safe",
+    "tests/build/issue402_wide_narrow_list_append_build.safe",
 ]
 
 
