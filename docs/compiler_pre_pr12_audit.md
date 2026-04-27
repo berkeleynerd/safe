@@ -1130,6 +1130,21 @@ Findings:
 
 Enforcement default: likely yes.
 
+Prep notes:
+
+- `Raise_Diag` in `safe_frontend-check_parse.adb` and
+  `safe_frontend-mir_analyze.adb` now have explicit `pragma No_Return`
+  pragmas,
+  matching existing no-return helper contracts in the resolver, MIR bronze, and
+  Ada emitter.
+- Adding the MIR analyzer pragma alone is not buildable under `-gnatwe`:
+  GNAT reports three unreachable fallback returns as errors. The prep change
+  therefore removes those three fallback returns in the same PR. It also removes
+  the parser fallback returns after the newly contracted parser diagnostic helper.
+  All removals preserve the diagnostic raises that precede them.
+- The remaining Phase 1F inventory should scan all direct raises and
+  `pragma No_Return` helper calls, not only `Raise_Unsupported`.
+
 Findings:
 
 None yet.
