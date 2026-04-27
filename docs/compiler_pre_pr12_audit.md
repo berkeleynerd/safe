@@ -956,6 +956,10 @@ Scanner notes:
   `pragma\s+Annotate\s*\([^)]*GNATprove[^)]*\)` with `re.DOTALL`. Pragmas with
   nested parentheses or string-literal parentheses may need scanner refinement
   if they appear.
+- `pragma Assume` and `pragma Warnings (GNATprove, Off, ...)` matching stops
+  at the first semicolon in the matched text. Generated pragma strings that
+  include semicolons inside arguments may need scanner refinement if they
+  appear.
 - Baseline fingerprints are derived from category, path, pattern name, and the
   normalized matched text. For multi-line entries, the matched text is joined
   with whitespace collapsed; `line` records the first source line and

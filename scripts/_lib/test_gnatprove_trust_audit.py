@@ -69,6 +69,7 @@ def run_live_scan_case() -> tuple[bool, str]:
     ok, message = validate_entries(payload, "scanner JSON")
     if not ok:
         return False, message
+    # Match Phase 1C audit behavior: run_tests.py emits audit summaries visibly.
     audit_gnatprove_trust.print_summary(payload)
     return True, ""
 
