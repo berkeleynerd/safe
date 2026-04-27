@@ -24,8 +24,8 @@
             ],
             "line_text": "function Trim_Wide_Image (Value : CM.Wide_Integer) return String renames AI.Trim_Wide_Image;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -39,8 +39,8 @@
             ],
             "line_text": "return \"Long_Long_Integer (\" & Trim_Wide_Image (CM.Wide_Integer (Static_Length)) & \")\";",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -54,8 +54,8 @@
             ],
             "line_text": "return Trim_Wide_Image (CM.Wide_Integer (Static_Length));",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -69,8 +69,8 @@
             ],
             "line_text": "return Trim_Wide_Image (Expr.Int_Value);",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -85,8 +85,8 @@
             ],
             "line_text": "return \"Safe_Runtime.Wide_Integer (\" & Trim_Wide_Image (CM.Wide_Integer (Static_Value)) & \")\";",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -100,8 +100,8 @@
             ],
             "line_text": "& Trim_Wide_Image (CM.Wide_Integer (Static_Element))",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -115,8 +115,8 @@
             ],
             "line_text": "function Trim_Wide_Image (Value : CM.Wide_Integer) return String is",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -130,8 +130,8 @@
             ],
             "line_text": "end Trim_Wide_Image;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -145,8 +145,8 @@
             ],
             "line_text": "function Trim_Wide_Image (Value : CM.Wide_Integer) return String;",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -160,8 +160,8 @@
             ],
             "line_text": "& Trim_Wide_Image (Step_Limit);",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -175,8 +175,8 @@
             ],
             "line_text": "function Trim_Wide_Image (Value : CM.Wide_Integer) return String renames AI.Trim_Wide_Image;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -195,8 +195,8 @@
             ],
             "line_text": "& Trim_Wide_Image (Prefix_Sum)",
             "multiplicity": 6,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -210,8 +210,8 @@
             ],
             "line_text": "& Trim_Wide_Image (CM.Wide_Integer (Element_Length))",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -225,8 +225,8 @@
             ],
             "line_text": "Trim_Wide_Image (Final_Static_Value);",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -241,8 +241,8 @@
             ],
             "line_text": "& Trim_Wide_Image (CM.Wide_Integer (Static_Value))",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -256,8 +256,8 @@
             ],
             "line_text": "& Trim_Wide_Image (CM.Wide_Integer (Static_Target_Value))",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -271,8 +271,8 @@
             ],
             "line_text": "function Trim_Wide_Image (Value : CM.Wide_Integer) return String renames AI.Trim_Wide_Image;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -286,8 +286,8 @@
             ],
             "line_text": "& Trim_Wide_Image (CM.Wide_Integer (Static_Value))",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -301,8 +301,8 @@
             ],
             "line_text": "& Trim_Wide_Image (CM.Wide_Integer (Static_Length));",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit renders already-resolved static, proof, runtime, or source-integer values into Ada text through Trim_Wide_Image/Safe_Runtime.Wide_Integer; these sites do not select target width.",
             "follow_up": ""
         },
         {
@@ -316,8 +316,8 @@
             ],
             "line_text": "Wide_Product : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -331,8 +331,8 @@
             ],
             "line_text": "Wide_Sum : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -346,8 +346,8 @@
             ],
             "line_text": "High_Value : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -361,8 +361,8 @@
             ],
             "line_text": "Low_Value : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -377,8 +377,8 @@
             ],
             "line_text": "Runtime_Wide_Last : constant CM.Wide_Integer :=",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -392,8 +392,8 @@
             ],
             "line_text": "Range_Width : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -408,8 +408,8 @@
             ],
             "line_text": "Max_Delta_Wide : constant CM.Wide_Integer :=",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -423,8 +423,8 @@
             ],
             "line_text": "Required_Headroom : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -439,8 +439,8 @@
             ],
             "line_text": "Prefix_Sum : CM.Wide_Integer := 0;",
             "multiplicity": 2,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {
@@ -454,8 +454,8 @@
             ],
             "line_text": "Final_Static_Value : constant CM.Wide_Integer :=",
             "multiplicity": 1,
-            "classification": "candidate",
-            "rationale": "",
+            "classification": "accepted-with-rationale",
+            "rationale": "Accepted: ada_emit statement helpers use CM.Wide_Integer for static source-integer and proof/invariant arithmetic; values are derived from resolved bounds/literals or fail-closed helper paths before narrowing or emitting runtime facts.",
             "follow_up": ""
         },
         {

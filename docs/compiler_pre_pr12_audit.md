@@ -710,8 +710,8 @@ Reporting baseline:
 
 - Script: `scripts/audit_arithmetic.py`.
 - Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
-- Current baseline entries: 244 hits: 39 candidates and
-  205 accepted-with-rationale hits.
+- Current baseline entries: 244 hits: 10 candidates and
+  234 accepted-with-rationale hits.
 
 Commands:
 
@@ -725,9 +725,9 @@ Baseline counts:
 
 | Category | Entries | Current classification |
 | --- | ---: | --- |
-| `emitted-wide` | 19 | `candidate` |
+| `emitted-wide` | 19 | `accepted-with-rationale` |
 | `host-wide-arithmetic` | 0 | none |
-| `model-domain` | 70 | 11 `candidate`, 59 `accepted-with-rationale` |
+| `model-domain` | 70 | 1 `candidate`, 69 `accepted-with-rationale` |
 | `overflow-check-path` | 50 | `accepted-with-rationale` |
 | `stdlib-length` | 9 | `candidate` |
 | `target-bits` | 96 | `accepted-with-rationale` |
@@ -812,6 +812,17 @@ Non-emitter model-domain classification rules:
   helpers, static lengths, or shift-bound validation, with compatibility checks
   gating results before they become resolved target values.
 
+Emitter classification rules:
+
+- `ada_emit` `emitted-wide` hits are accepted when they render already-resolved
+  static, proof, runtime, or source-integer values into Ada text through
+  `Trim_Wide_Image` or `Safe_Runtime.Wide_Integer`; these sites do not select
+  target width.
+- `ada_emit` `model-domain` hits are accepted when statement helpers use
+  `CM.Wide_Integer` as a static source-integer or proof/invariant arithmetic
+  domain. Those values must come from resolved bounds/literals or fail-closed
+  helper paths before narrowing or emitting runtime facts.
+
 Promotion criteria:
 
 - A false positive is a scanner hit reviewed and classified as
@@ -828,7 +839,6 @@ Follow-up work queue:
 
 | Proposed PR | Category | Files | Evidence | Acceptance test |
 | --- | --- | --- | --- | --- |
-| Phase 1C emitter model-domain and emitted-wide triage | `model-domain`, `emitted-wide` | `safe_frontend-ada_emit*.adb`, `safe_frontend-ada_emit*.ads` | 10 model-domain entries in `safe_frontend-ada_emit-statements.adb`; 19 emitted-wide entries in emitter paths; target-bits emitter baseline hits are already classified | Behavior-changing fixes follow Phase 1B artifact manifest conventions: pre/post emitted Ada with `compiler_hash` normalized |
 | Phase 1C stdlib/runtime length-contract triage | `model-domain`, `stdlib-length` | `compiler_impl/stdlib/ada/safe_runtime.ads`, `safe_array*_rt.ads`, `safe_string_rt.ads` | 1 runtime model-domain entry and 9 stdlib length entries using `Long_Long_Integer` | Classify runtime integer carrier and length/concat contracts as accepted or promote contract drift to a follow-up issue |
 
 Findings:
@@ -844,13 +854,15 @@ Findings:
   default constructor.
 - MIR interval arithmetic triage classified all 50 `overflow-check-path`
   entries as accepted MIR analysis plumbing.
-- The MIR-resident and non-emitter compiler portions of `model-domain` are
-  triaged: 59 entries are accepted. The remaining 11 `model-domain` candidates
-  are 10 emitter-side entries in `safe_frontend-ada_emit-statements.adb` and 1
-  runtime entry in `safe_runtime.ads`.
-- The remaining Phase 1C candidates are 11 `model-domain`, 19 `emitted-wide`,
-  and 9 `stdlib-length` entries. They are concentrated in emitter and
-  stdlib/runtime slices for subsequent triage.
+- The MIR-resident, non-emitter compiler, and emitter portions of `model-domain`
+  are triaged: 69 entries are accepted. The remaining `model-domain` candidate
+  is the runtime entry in `safe_runtime.ads`.
+- The `emitted-wide` category is fully triaged: all 19 entries are accepted as
+  intentional emitter rendering of resolved static, proof, runtime, or
+  source-integer values.
+- The remaining Phase 1C candidates are 1 `model-domain` runtime entry and 9
+  `stdlib-length` entries. They are concentrated in the stdlib/runtime slice for
+  subsequent triage.
 - The `host-wide-arithmetic` category is fully resolved: the previous
   division-bound scaling hit was replaced by fail-closed scaling in the MIR
   analyzer.
