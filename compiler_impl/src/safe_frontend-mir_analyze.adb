@@ -232,6 +232,7 @@ package body Safe_Frontend.Mir_Analyze is
       Item        : MD.Diagnostic;
       Sequence    : in out Natural);
    procedure Raise_Diag (Diagnostic : MD.Diagnostic);
+   pragma No_Return (Raise_Diag);
 
    function Override_Reason (Basename : String) return String;
    function UString_Value (Value : FT.UString) return String;
@@ -1012,7 +1013,6 @@ package body Safe_Frontend.Mir_Analyze is
          Diag.Message := FT.To_UString ("unknown enum literal '" & Literal_Name & "'");
          Raise_Diag (Diag);
       end;
-      return 0;
    end Enum_Literal_Ordinal;
 
    function Is_Integer_Type
@@ -3406,7 +3406,6 @@ package body Safe_Frontend.Mir_Analyze is
          Diag.Span := Expr.Span;
          Raise_Diag (Diag);
       end;
-      return Float_Interval_For (Resolve_Type ("long_float", Type_Env));
    end Eval_Float_Expr;
 
    function While_Variant_Derivable
@@ -4139,7 +4138,6 @@ package body Safe_Frontend.Mir_Analyze is
          Diag.Span := Expr.Span;
          Raise_Diag (Diag);
       end;
-      return (Low => INT64_LOW, High => INT64_HIGH, Excludes_Zero => False);
    end Eval_Int_Expr;
 
    function Eval_Int_Expr_With_Diag

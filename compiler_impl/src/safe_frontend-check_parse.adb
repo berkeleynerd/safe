@@ -97,6 +97,9 @@ package body Safe_Frontend.Check_Parse is
       end if;
    end Advance;
 
+   procedure Raise_Diag (Item : CM.MD.Diagnostic);
+   pragma No_Return (Raise_Diag);
+
    procedure Raise_Diag (Item : CM.MD.Diagnostic) is
    begin
       Raised_Diag := Item;
