@@ -1044,6 +1044,8 @@ Baseline counts:
 
 | Category | Fingerprints | Raw hits | Current classification |
 | --- | ---: | ---: | --- |
+| `compiler-spark-off-aspect` | 0 | 0 | none |
+| `compiler-spark-off-pragma` | 0 | 0 | none |
 | `emitted-spark-off-aspect` | 1 | 4 | `candidate` |
 | `emitted-spark-off-pragma` | 3 | 27 | `candidate` |
 | `runtime-spark-off-aspect` | 1 | 1 | `candidate` |
@@ -1056,10 +1058,11 @@ Scanner notes:
 - The scanner strips Ada `--` comments outside string literals but scans inside
   string literals. Phase 1E targets emitted `SPARK_Mode Off` islands, and most
   current entries are generated as string literals in the Ada emitter.
-- Category assignment is path-based for emitted versus runtime and
+- Category assignment is path-based for compiler/emitted/runtime domains and
   pattern-based for pragma versus aspect. Paths under
-  `compiler_impl/src/safe_frontend-ada_emit*` are `emitted-*`; paths under
-  `compiler_impl/stdlib/ada/` or `companion/` are `runtime-*`.
+  `compiler_impl/src/safe_frontend-ada_emit*` are `emitted-*`; other paths under
+  `compiler_impl/src/` are `compiler-*`; paths under `compiler_impl/stdlib/ada/`
+  or `companion/` are `runtime-*`.
 - The pragma pattern matches `SPARK_Mode (Off)`; the aspect pattern matches
   `SPARK_Mode => Off`. The aspect pattern intentionally omits a required `with`
   prefix so inventory captures broad SPARK-off aspect surface. Triage classifies

@@ -112,10 +112,13 @@ def run_comment_scanner_case() -> tuple[bool, str]:
 
 def run_category_assignment_case() -> tuple[bool, str]:
     emitted = REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-ada_emit.adb"
+    compiler = REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-mir_analyze.adb"
     runtime = REPO_ROOT / "compiler_impl" / "stdlib" / "ada" / "io.adb"
     pragma_pattern = audit_spark_mode_off.PATTERNS[0]
     aspect_pattern = audit_spark_mode_off.PATTERNS[1]
     cases = {
+        "compiler-spark-off-pragma": audit_spark_mode_off.category_for(compiler, pragma_pattern),
+        "compiler-spark-off-aspect": audit_spark_mode_off.category_for(compiler, aspect_pattern),
         "emitted-spark-off-pragma": audit_spark_mode_off.category_for(emitted, pragma_pattern),
         "emitted-spark-off-aspect": audit_spark_mode_off.category_for(emitted, aspect_pattern),
         "runtime-spark-off-pragma": audit_spark_mode_off.category_for(runtime, pragma_pattern),
@@ -124,13 +127,13 @@ def run_category_assignment_case() -> tuple[bool, str]:
     for expected, actual in cases.items():
         if actual != expected:
             return False, f"expected {expected}, got {actual}"
-    unsupported = REPO_ROOT / "compiler_impl" / "src" / "safe_frontend-mir_analyze.adb"
+    unsupported = REPO_ROOT / "README.md"
     try:
         audit_spark_mode_off.category_for(unsupported, pragma_pattern)
     except ValueError:
         pass
     else:
-        return False, "unsupported compiler source path did not fail loud"
+        return False, "unsupported non-scan path did not fail loud"
     return True, ""
 
 

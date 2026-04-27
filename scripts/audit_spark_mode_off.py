@@ -21,6 +21,8 @@ SCAN_ROOTS = (
 )
 BASELINE_PATH = REPO_ROOT / "audit" / "phase1e_spark_mode_off_baseline.json"
 CATEGORIES = (
+    "compiler-spark-off-aspect",
+    "compiler-spark-off-pragma",
     "emitted-spark-off-aspect",
     "emitted-spark-off-pragma",
     "runtime-spark-off-aspect",
@@ -110,6 +112,8 @@ def domain_for(path: Path) -> str:
     rel = repo_rel(path)
     if rel.startswith("compiler_impl/src/safe_frontend-ada_emit"):
         return "emitted"
+    if rel.startswith("compiler_impl/src/"):
+        return "compiler"
     if rel.startswith("compiler_impl/stdlib/ada/") or rel.startswith("companion/"):
         return "runtime"
     raise ValueError(f"unsupported Phase 1E SPARK_Mode Off path: {rel}")
