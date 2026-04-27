@@ -126,6 +126,18 @@ def compare_live_scan_to_baseline(
             f"{len(new_fingerprints)} new fingerprint(s) outside the baseline: "
             f"{examples}{suffix}",
         )
+    missing_fingerprints = sorted(set(baseline) - set(live))
+    if missing_fingerprints:
+        examples = "; ".join(
+            describe_entry(baseline[fingerprint]) for fingerprint in missing_fingerprints[:5]
+        )
+        suffix = "" if len(missing_fingerprints) <= 5 else f"; ... {len(missing_fingerprints) - 5} more"
+        return (
+            True,
+            "Phase 1D GNATprove trust audit baseline drift: "
+            f"{len(missing_fingerprints)} fingerprint(s) no longer in live scan "
+            f"(report-only): {examples}{suffix}",
+        )
     return True, ""
 
 
@@ -209,7 +221,8 @@ def synthetic_entry(
 
 
 def run_gate_self_check_case() -> tuple[bool, str]:
-    baseline = {"entries": [synthetic_entry("known")]}
+    known_entry = synthetic_entry("known")
+    baseline = {"entries": [known_entry]}
     new_entry = synthetic_entry("new")
     live_with_new = {"entries": [synthetic_entry("known"), new_entry]}
     ok, message = compare_live_scan_to_baseline(live_with_new, baseline)
@@ -218,8 +231,8 @@ def run_gate_self_check_case() -> tuple[bool, str]:
 
     live_missing = {"entries": []}
     ok, message = compare_live_scan_to_baseline(live_missing, baseline)
-    if not ok:
-        return False, f"missing live fingerprint should be report-only, got failure: {message}"
+    if not ok or describe_entry(known_entry) not in message:
+        return False, f"missing live fingerprint should be reported only, got: {message}"
 
     open_baseline = {"entries": [synthetic_entry("known", classification="candidate")]}
     ok, message = validate_closed_baseline(open_baseline)
