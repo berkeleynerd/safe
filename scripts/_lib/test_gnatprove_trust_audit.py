@@ -95,8 +95,6 @@ def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
         return False, message
     for entry in entries_for(payload):
         classification = entry.get("classification")
-        if classification not in VALID_CLASSIFICATIONS:
-            return False, f"invalid baseline classification {classification!r}"
         if classification != ACCEPTED:
             return (
                 False,
