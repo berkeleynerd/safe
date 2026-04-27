@@ -19,7 +19,6 @@
         2242,
         2261
       ],
-      "line_text": "Append_Line (Buffer, \" with SPARK_Mode => Off\", Depth);",
       "multiplicity": 4,
       "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
       "pattern": "spark-mode-off-aspect",
@@ -46,7 +45,6 @@
         1339,
         1453
       ],
-      "line_text": "Append_Line (Buffer, \"pragma SPARK_Mode (Off);\", 2);",
       "multiplicity": 12,
       "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
       "pattern": "spark-mode-off-pragma",
@@ -75,7 +73,6 @@
         1977,
         1999
       ],
-      "line_text": "Append_Line (Buffer, \"pragma SPARK_Mode (Off);\", 3);",
       "multiplicity": 14,
       "path": "compiler_impl/src/safe_frontend-ada_emit-channels.adb",
       "pattern": "spark-mode-off-pragma",
@@ -91,7 +88,6 @@
       "line_numbers": [
         1898
       ],
-      "line_text": "Append_Line (Context.Body_Inner, \"pragma SPARK_Mode (Off);\", 2);",
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-ada_emit.adb",
       "pattern": "spark-mode-off-pragma",
@@ -107,7 +103,6 @@
       "line_numbers": [
         4
       ],
-      "line_text": "with SPARK_Mode => Off",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/io.adb",
       "pattern": "spark-mode-off-aspect",
@@ -123,7 +118,6 @@
       "line_numbers": [
         4
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_identity_rt.adb",
       "pattern": "spark-mode-off-pragma",
@@ -139,7 +133,6 @@
       "line_numbers": [
         107
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_identity_rt.ads",
       "pattern": "spark-mode-off-pragma",
@@ -155,7 +148,6 @@
       "line_numbers": [
         4
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_rt.adb",
       "pattern": "spark-mode-off-pragma",
@@ -171,7 +163,6 @@
       "line_numbers": [
         77
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_array_rt.ads",
       "pattern": "spark-mode-off-pragma",
@@ -187,7 +178,6 @@
       "line_numbers": [
         4
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_ownership_rt.adb",
       "pattern": "spark-mode-off-pragma",
@@ -203,7 +193,6 @@
       "line_numbers": [
         4
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_string_rt.adb",
       "pattern": "spark-mode-off-pragma",
@@ -219,7 +208,6 @@
       "line_numbers": [
         58
       ],
-      "line_text": "pragma SPARK_Mode (Off);",
       "multiplicity": 1,
       "path": "compiler_impl/stdlib/ada/safe_string_rt.ads",
       "pattern": "spark-mode-off-pragma",

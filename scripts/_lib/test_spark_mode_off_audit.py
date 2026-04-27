@@ -38,7 +38,6 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
             "line",
             "line_numbers",
             "first_line_text",
-            "line_text",
             "multiplicity",
             "classification",
             "rationale",

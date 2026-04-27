@@ -185,7 +185,6 @@ def scan() -> dict[str, object]:
                         "line": line_number,
                         "line_numbers": [],
                         "first_line_text": norm,
-                        "line_text": norm,
                         "multiplicity": 0,
                         "classification": prior_entry.get("classification", "candidate"),
                         "rationale": prior_entry.get("rationale", ""),
