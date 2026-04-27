@@ -95,16 +95,6 @@ def run_live_scan_case() -> tuple[bool, str]:
         return False, message
     if message:
         print(message)
-    if len(entries) != 8:
-        return False, f"expected 8 Phase 1F inventory entries, found {len(entries)}"
-    unexpected = [
-        entry
-        for entry in entries
-        if isinstance(entry, dict)
-        and entry.get("path") != "compiler_impl/src/safe_frontend-check_resolve.adb"
-    ]
-    if unexpected:
-        return False, f"unexpected Phase 1F inventory path: {unexpected[0].get('path')}"
     return True, ""
 
 

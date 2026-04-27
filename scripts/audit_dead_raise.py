@@ -78,6 +78,21 @@ def iter_sources(root: Path, *, suffixes: set[str]) -> Iterable[Path]:
                 yield path
 
 
+def read_utf8_text_or_none(path: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def iter_source_texts(*, suffixes: set[str]) -> Iterable[tuple[Path, str]]:
+    for root in SCAN_ROOTS:
+        for path in iter_sources(root, suffixes=suffixes):
+            text = read_utf8_text_or_none(path)
+            if text is not None:
+                yield path, text
+
+
 def strip_comments_keep_strings(line: str) -> str:
     """Return an Ada line without comments, preserving string contents."""
 
@@ -232,13 +247,16 @@ def no_return_names_from_line(raw_line: str) -> set[str]:
     return names
 
 
-def collect_no_return_names() -> set[str]:
+def collect_no_return_names_from_sources(sources: Iterable[tuple[Path, str]]) -> set[str]:
     names: set[str] = set()
-    for root in SCAN_ROOTS:
-        for path in iter_sources(root, suffixes={".adb", ".ads"}):
-            for raw_line in path.read_text(encoding="utf-8").splitlines():
-                names.update(no_return_names_from_line(raw_line))
+    for _path, text in sources:
+        for raw_line in text.splitlines():
+            names.update(no_return_names_from_line(raw_line))
     return names
+
+
+def collect_no_return_names() -> set[str]:
+    return collect_no_return_names_from_sources(iter_source_texts(suffixes={".adb", ".ads"}))
 
 
 def no_return_patterns(no_return_names: set[str]) -> tuple[re.Pattern[str], ...]:
@@ -438,13 +456,15 @@ def scan_source(
     path: Path,
     text: str,
     *,
-    no_return_names: set[str],
+    no_return_names: set[str] | None = None,
+    no_return_name_patterns: tuple[re.Pattern[str], ...] | None = None,
     prior: dict[str, dict[str, object]] | None = None,
 ) -> dict[str, dict[str, object]]:
     if prior is None:
         prior = {}
     statements = list(iter_statements(text.splitlines()))
-    no_return_name_patterns = no_return_patterns(no_return_names)
+    if no_return_name_patterns is None:
+        no_return_name_patterns = no_return_patterns(no_return_names or set())
     entries: dict[str, dict[str, object]] = {}
     for index, statement in enumerate(statements):
         trigger = no_return_trigger(statement, no_return_name_patterns)
@@ -487,17 +507,20 @@ def scan_source(
 
 def scan() -> dict[str, object]:
     prior = existing_classifications()
-    no_return_names = collect_no_return_names()
+    sources = list(iter_source_texts(suffixes={".adb", ".ads"}))
+    no_return_names = collect_no_return_names_from_sources(sources)
+    compiled_no_return_patterns = no_return_patterns(no_return_names)
     entries: dict[str, dict[str, object]] = {}
-    for root in SCAN_ROOTS:
-        for path in iter_sources(root, suffixes={".adb"}):
-            source_entries = scan_source(
-                path,
-                path.read_text(encoding="utf-8"),
-                no_return_names=no_return_names,
-                prior=prior,
-            )
-            entries.update(source_entries)
+    for path, text in sources:
+        if path.suffix.lower() != ".adb":
+            continue
+        source_entries = scan_source(
+            path,
+            text,
+            no_return_name_patterns=compiled_no_return_patterns,
+            prior=prior,
+        )
+        entries.update(source_entries)
 
     sorted_entries = sorted(
         entries.values(),
