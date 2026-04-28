@@ -259,10 +259,6 @@ def collect_no_return_names_from_sources(sources: Iterable[tuple[Path, str]]) ->
     return names
 
 
-def collect_no_return_names() -> set[str]:
-    return collect_no_return_names_from_sources(iter_source_texts(suffixes={".adb", ".ads"}))
-
-
 def no_return_patterns(no_return_names: set[str]) -> tuple[re.Pattern[str], ...]:
     return tuple(
         re.compile(
@@ -487,7 +483,7 @@ def scan_source(
                 )
             continue
 
-        if (
+        elif (
             statement.code_text.lower().startswith("end")
             and index >= 1
             and index + 1 < len(statements)
