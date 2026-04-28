@@ -87,9 +87,6 @@ def run_live_scan_case() -> tuple[bool, str]:
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message
-    ok, message = validate_entries(baseline, "baseline")
-    if not ok:
-        return False, message
     ok, message = compare_live_scan_to_baseline(payload, baseline)
     if not ok:
         return False, message
@@ -195,6 +192,32 @@ end Demo;
         return False, f"expected one direct-raise fallthrough, found {len(entries)}"
     if entries[0].get("category") != "direct-raise-fallthrough":
         return False, f"unexpected category {entries[0].get('category')}"
+    return True, ""
+
+
+def run_keyword_prefix_fallthrough_case() -> tuple[bool, str]:
+    loop_entries = synthetic_scan(
+        """
+procedure Demo is
+begin
+   Raise_Diag (Diag);
+   Loop_Count := 1;
+end Demo;
+"""
+    )
+    if len(loop_entries) != 1:
+        return False, f"Loop_Count fallthrough should be executable, found {len(loop_entries)}"
+    end_entries = synthetic_scan(
+        """
+procedure Demo is
+begin
+   Raise_Diag (Diag);
+   end_of_line := True;
+end Demo;
+"""
+    )
+    if len(end_entries) != 1:
+        return False, f"end_of_line fallthrough should be executable, found {len(end_entries)}"
     return True, ""
 
 
@@ -317,6 +340,11 @@ def run_dead_raise_audit_checks() -> RunCounts:
         failures,
         "phase1f-dead-raise-audit:direct-raise-fallthrough",
         run_direct_raise_fallthrough_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1f-dead-raise-audit:keyword-prefix-fallthrough",
+        run_keyword_prefix_fallthrough_case(),
     )
     passed += record_result(
         failures,

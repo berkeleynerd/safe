@@ -156,12 +156,17 @@ def has_statement_semicolon(line: str) -> bool:
     return ";" in line
 
 
+def starts_with_keyword(text: str, keyword: str) -> bool:
+    return text == keyword or text.startswith((f"{keyword} ", f"{keyword};"))
+
+
 def is_statement_header(line: str) -> bool:
     text = normalized_text(line).lower()
     return (
         text in {"begin", "declare", "else"}
         or text.endswith(" is")
         or text.endswith("=>")
+        or starts_with_keyword(text, "loop")
         or text.startswith(
             (
                 "case ",
@@ -169,7 +174,6 @@ def is_statement_header(line: str) -> bool:
                 "for ",
                 "function ",
                 "if ",
-                "loop",
                 "package ",
                 "procedure ",
                 "type ",
@@ -305,17 +309,11 @@ def is_delimiter(statement: Statement) -> bool:
     return text.startswith(
         (
             "and ",
-            "begin",
             "case ",
-            "declare",
-            "else",
             "elsif ",
-            "end",
-            "exception",
             "for ",
             "function ",
             "if ",
-            "loop",
             "or ",
             "package ",
             "procedure ",
@@ -324,6 +322,9 @@ def is_delimiter(statement: Statement) -> bool:
             "when ",
             "while ",
         )
+    ) or any(
+        starts_with_keyword(text, keyword)
+        for keyword in ("begin", "declare", "else", "end", "exception", "loop")
     )
 
 
@@ -370,9 +371,7 @@ def simple_nested_block_is_no_return(
             branch_depth += 1
         elif text.startswith(("end if", "end case", "end loop")) and branch_depth:
             branch_depth -= 1
-    if branch_depth:
-        return None
-    return trigger
+    return None
 
 
 def fingerprint_for(
