@@ -16,6 +16,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCAN_ROOT = REPO_ROOT / "compiler_impl" / "stdlib" / "ada"
 BASELINE_PATH = REPO_ROOT / "audit" / "phase1h_stdlib_contract_baseline.json"
 ASPECT_NAMES = ("Global", "Depends", "Pre", "Post", "Always_Terminates")
+ADA_NAME = r"[A-Za-z][A-Za-z0-9_]*"
+DOTTED_ADA_NAME = rf"{ADA_NAME}(?:\.{ADA_NAME})*"
 CATEGORIES = (
     "stdlib-generic-formal-contract",
     "stdlib-io-contract",
@@ -177,7 +179,7 @@ def collect_contract_declarations(path: Path, text: str) -> list[ContractDecl]:
     while index < len(lines):
         line = strip_comment(lines[index])
         end_match = re.match(
-            r"^\s*end(?:\s+([A-Za-z][A-Za-z0-9_]*))?\s*;",
+            rf"^\s*end(?:\s+({DOTTED_ADA_NAME}))?\s*;",
             line,
             re.IGNORECASE,
         )
@@ -198,7 +200,7 @@ def collect_contract_declarations(path: Path, text: str) -> list[ContractDecl]:
             continue
 
         package_match = re.match(
-            r"^\s*package\s+(?!body\b)([A-Za-z][A-Za-z0-9_]*)\b",
+            rf"^\s*package\s+(?!body\b)({DOTTED_ADA_NAME})\b",
             line,
             re.IGNORECASE,
         )

@@ -258,6 +258,29 @@ end Visible;
     return True, ""
 
 
+def run_dotted_child_unit_case() -> tuple[bool, str]:
+    path = REPO_ROOT / "compiler_impl" / "stdlib" / "ada" / "synthetic.ads"
+    decls = audit_stdlib_contracts.collect_contract_declarations(
+        path,
+        """
+package Outer.Inner is
+   procedure A
+     with Global => null;
+end Outer.Inner;
+
+package Sibling is
+   procedure B
+     with Global => null;
+end Sibling;
+""",
+    )
+    packages = [(decl.package, decl.subprogram) for decl in decls]
+    expected = [("Outer.Inner", "A"), ("Sibling", "B")]
+    if packages != expected:
+        return False, f"dotted child-unit package mismatch: expected {expected!r}, got {packages!r}"
+    return True, ""
+
+
 def run_expression_function_case() -> tuple[bool, str]:
     names = audit_stdlib_contracts.collect_expression_functions(
         """
@@ -331,6 +354,11 @@ def run_stdlib_contract_audit_checks() -> RunCounts:
         failures,
         "phase1h-stdlib-contract-audit:package-body-keyword",
         run_package_body_keyword_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1h-stdlib-contract-audit:dotted-child-unit",
+        run_dotted_child_unit_case(),
     )
     passed += record_result(
         failures,
