@@ -367,7 +367,10 @@ def simple_nested_block_is_no_return(
         text = statement.code_text.lower()
         if statement is statements[no_return_index]:
             return None if branch_depth else trigger
-        if text.startswith(("if ", "case ", "for ", "while ", "loop")):
+        if any(
+            starts_with_keyword(text, keyword)
+            for keyword in ("if", "case", "for", "while", "loop")
+        ):
             branch_depth += 1
         elif text.startswith(("end if", "end case", "end loop")) and branch_depth:
             branch_depth -= 1
