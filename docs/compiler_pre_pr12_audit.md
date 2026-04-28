@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1G - Spec Body Contract Drift.
+Next action: Phase 1H - Stdlib Runtime Trust Boundaries.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -760,8 +760,8 @@ Scanner notes:
 
 Working with the baseline:
 
-- New live fingerprints fail the gate because they may indicate untriaged
-  arithmetic safety risk.
+- New live fingerprints fail the gate because they may indicate untriaged audit
+  risk.
 - Missing baseline fingerprints are reported by the scanner summary but do not
   fail the gate. Missing entries usually mean code was refactored or removed;
   this is benign baseline drift that can be cleaned up in a dedicated
@@ -772,10 +772,15 @@ Working with the baseline:
   baseline.
 - Broader pattern surfaces, novel classification rules, or hits in unrelated
   code use a scan-extension/triage cycle before any behavior-changing fix.
-- Phase 1C, Phase 1D, and Phase 1E baseline gates share common test-layer
-  mechanics in `scripts/_lib/baseline_audit_gate.py`: structural validation,
-  closed-baseline validation, live-vs-baseline comparison, report-only missing
-  drift, and synthetic self-check coverage.
+- Phase 1C, Phase 1D, Phase 1E, Phase 1F, and Phase 1G baseline gates share
+  common test-layer mechanics in `scripts/_lib/baseline_audit_gate.py`:
+  structural validation, closed-baseline validation, live-vs-baseline
+  comparison, report-only missing drift, and synthetic self-check coverage.
+- Cross-file scanners keep the primary surface in the fingerprint and validate
+  secondary metadata separately. For example, Phase 1G fingerprints the
+  spec-side `pragma No_Return` contract, while `body_status` drift is checked
+  as related metadata; drift in either dimension fails with distinct
+  diagnostics.
 - Cross-scanner consolidation pattern: extract shared logic into a helper,
   migrate per scanner in separate commits, preserve domain-specific scanner
   behavior locally, and defer scanner-script or JSON-shape normalization to
@@ -1176,9 +1181,9 @@ Findings:
 
 ## Phase 1G - Spec Body Contract Drift
 
-Status: triaged; closeout pending.
+Status: complete; active baseline-allowlist gate.
 
-Enforcement default: decide during closeout.
+Enforcement default: active baseline gate.
 
 Seed notes for sweep:
 
@@ -1218,14 +1223,23 @@ Findings:
   `Raise_Unsupported` records unsupported-emission context before raising.
 - No confirmed contract/body drift defects surfaced in Phase 1G triage.
 - No Phase 1G `candidate`, `needs-repro`, or `confirmed-defect` entries remain.
-- Next Phase 1G step: closeout/gate promotion for the accepted non-empty
-  baseline.
+- Closeout promoted the accepted two-entry baseline to an active gate. The gate
+  rejects new fingerprints, reports missing fingerprints, requires closed
+  accepted entries with non-empty rationale, and fails matching fingerprints
+  whose `body_status` drifts from the baseline.
+- Phase 1G closed in three PRs: inventory, triage, and closeout/gate promotion.
+  It established the first cross-file scanner convention for future phases.
 
 ## Phase 1H - Stdlib Runtime Trust Boundaries
 
 Enforcement default: decide during sweep.
 
 Baseline: `docs/pr1122h-stdlib-contract-audit.md`.
+
+Seed readiness: Phase 1H starts from the existing PR11.22h stdlib contract
+audit and inherits the consolidated baseline-gate infrastructure, so its first
+plan should classify from that prior-audit baseline rather than rediscovering
+the surface from scratch.
 
 Findings:
 

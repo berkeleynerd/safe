@@ -35,6 +35,14 @@ REQUIRED_FIELDS = (
 )
 
 
+def validate_body_statuses(payload: dict[str, object], label: str) -> tuple[bool, str]:
+    for entry in baseline_audit_gate.entries_for(payload):
+        body_status = entry.get("body_status")
+        if body_status not in audit_spec_body_contract.BODY_STATUSES:
+            return False, f"invalid {label} body_status {body_status!r}"
+    return True, ""
+
+
 def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     ok, message = baseline_audit_gate.validate_entries(
         payload,
@@ -46,11 +54,20 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     if not ok:
         return False, message
     assert isinstance(payload, dict)
-    for entry in baseline_audit_gate.entries_for(payload):
-        body_status = entry.get("body_status")
-        if body_status not in audit_spec_body_contract.BODY_STATUSES:
-            return False, f"invalid {label} body_status {body_status!r}"
-    return True, ""
+    return validate_body_statuses(payload, label)
+
+
+def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
+    ok, message = baseline_audit_gate.validate_closed_baseline(
+        payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_spec_body_contract.CATEGORIES,
+        valid_patterns=audit_spec_body_contract.PATTERNS,
+    )
+    if not ok:
+        return False, message
+    return validate_body_statuses(payload, "baseline")
 
 
 def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
@@ -117,7 +134,7 @@ def run_live_scan_case() -> tuple[bool, str]:
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message
-    ok, message = validate_entries(baseline, "baseline")
+    ok, message = validate_closed_baseline(baseline)
     if not ok:
         return False, message
     ok, message = compare_live_scan_to_baseline(payload, baseline)
@@ -136,7 +153,7 @@ def run_baseline_case() -> tuple[bool, str]:
     payload, message = read_baseline_payload()
     if payload is None:
         return False, message
-    return validate_entries(payload, "baseline")
+    return validate_closed_baseline(payload)
 
 
 def synthetic_entry(
@@ -167,6 +184,13 @@ def synthetic_entry(
 
 
 def run_gate_self_check_case() -> tuple[bool, str]:
+    known_entry = synthetic_entry("known")
+    ok, message = compare_live_scan_to_baseline(
+        {"entries": [known_entry]},
+        {"entries": [synthetic_entry("known")]},
+    )
+    if not ok or message:
+        return False, f"known live fingerprint should pass silently, got: {message}"
     return baseline_audit_gate.run_gate_self_check(
         phase_label=PHASE_LABEL,
         synthetic_entry=synthetic_entry,
@@ -368,10 +392,15 @@ def run_missing_body_file_case() -> tuple[bool, str]:
 
 def run_body_status_drift_case() -> tuple[bool, str]:
     baseline = {"entries": [synthetic_entry("same", body_status="raises")]}
-    live = {"entries": [synthetic_entry("same", body_status="returns")]}
-    ok, message = compare_body_status_to_baseline(live, baseline)
-    if ok or "raises" not in message or "returns" not in message:
-        return False, f"body_status drift should fail with both statuses, got: {message}"
+    for drift_status in ("returns", "missing", "unknown"):
+        live = {"entries": [synthetic_entry("same", body_status=drift_status)]}
+        ok, message = compare_body_status_to_baseline(live, baseline)
+        if ok or "raises" not in message or drift_status not in message:
+            return (
+                False,
+                "body_status drift should fail with both statuses for "
+                f"drift_status={drift_status!r}, got: {message}",
+            )
     return True, ""
 
 
