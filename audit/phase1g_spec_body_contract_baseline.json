@@ -13,7 +13,7 @@
   ],
   "entries": [
     {
-      "body_line": 14,
+      "body_line": 15,
       "body_path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
       "body_status": "raises",
       "category": "spec-no-return-contract",
@@ -33,7 +33,7 @@
       "rationale": ""
     },
     {
-      "body_line": 19,
+      "body_line": 20,
       "body_path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
       "body_status": "raises",
       "category": "spec-no-return-contract",

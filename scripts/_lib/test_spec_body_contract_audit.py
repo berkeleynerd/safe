@@ -317,6 +317,23 @@ end Synthetic;
     return True, ""
 
 
+def run_body_line_case() -> tuple[bool, str]:
+    status, line = audit_spec_body_contract.body_status_for_source(
+        "Raise_Diag",
+        """
+
+procedure Raise_Diag is
+begin
+   raise Program_Error;
+end Raise_Diag;
+""",
+        known_no_return_names=set(),
+    )
+    if status != "raises" or line != 3:
+        return False, f"expected body line 3 with raises status, got line={line}, status={status}"
+    return True, ""
+
+
 def run_missing_body_file_case() -> tuple[bool, str]:
     body = audit_spec_body_contract.body_evidence_for(
         REPO_ROOT / "compiler_impl" / "src" / "synthetic_missing.ads",
@@ -370,6 +387,11 @@ def run_spec_body_contract_audit_checks() -> RunCounts:
         failures,
         "phase1g-spec-body-contract-audit:body-status",
         run_body_status_cases(),
+    )
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:body-line",
+        run_body_line_case(),
     )
     passed += record_result(
         failures,
