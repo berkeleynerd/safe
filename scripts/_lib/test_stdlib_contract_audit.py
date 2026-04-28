@@ -1,4 +1,4 @@
-"""Inventory checks for the Phase 1H stdlib contract-boundary scanner."""
+"""Baseline-gated checks for the Phase 1H stdlib contract-boundary scanner."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from _lib.test_harness import REPO_ROOT, RunCounts, first_message, record_result
 AUDIT_SCRIPT = REPO_ROOT / "scripts" / "audit_stdlib_contracts.py"
 BASELINE_PATH = audit_stdlib_contracts.BASELINE_PATH
 PHASE_LABEL = "Phase 1H stdlib contracts"
+ACCEPTED = baseline_audit_gate.ACCEPTED
 REQUIRED_FIELDS = (
     "fingerprint",
     "category",
@@ -72,46 +73,63 @@ def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
     return baseline_audit_gate.read_baseline_payload(BASELINE_PATH, repo_root=REPO_ROOT)
 
 
-def compare_inventory_scan_to_baseline(
+def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
+    ok, message = baseline_audit_gate.validate_closed_baseline(
+        payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_stdlib_contracts.CATEGORIES,
+        valid_patterns=audit_stdlib_contracts.PATTERNS,
+    )
+    if not ok:
+        return False, message
+    for entry in baseline_audit_gate.entries_for(payload):
+        surface = entry.get("implementation_surface")
+        if surface not in audit_stdlib_contracts.IMPLEMENTATION_SURFACES:
+            return False, f"invalid baseline implementation_surface {surface!r}"
+        if surface in {"missing", "unknown"}:
+            return (
+                False,
+                f"closed {PHASE_LABEL} baseline cannot accept "
+                f"implementation_surface {surface!r} at {baseline_audit_gate.describe_entry(entry)}",
+            )
+    return True, ""
+
+
+def compare_live_scan_to_baseline(
     live_payload: dict[str, object],
     baseline_payload: dict[str, object],
 ) -> tuple[bool, str]:
-    ok, message = validate_entries(live_payload, "live scan")
-    if not ok:
-        return False, message
-    ok, message = validate_entries(baseline_payload, "baseline")
-    if not ok:
-        return False, message
-    if live_payload != baseline_payload:
-        live = baseline_audit_gate.fingerprint_map(live_payload)
-        baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
-        new_fingerprints = sorted(set(live) - set(baseline))
-        missing_fingerprints = sorted(set(baseline) - set(live))
-        if new_fingerprints or missing_fingerprints:
+    return baseline_audit_gate.compare_live_scan_to_baseline(
+        live_payload,
+        baseline_payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_stdlib_contracts.CATEGORIES,
+        valid_patterns=audit_stdlib_contracts.PATTERNS,
+    )
+
+
+def compare_implementation_surface_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    """Validate cross-file implementation metadata separately from the fingerprint."""
+
+    live = baseline_audit_gate.fingerprint_map(live_payload)
+    baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
+    for fingerprint in sorted(set(live) & set(baseline)):
+        live_surface = live[fingerprint].get("implementation_surface")
+        baseline_surface = baseline[fingerprint].get("implementation_surface")
+        if live_surface != baseline_surface:
+            package = live[fingerprint].get("package")
+            subprogram = live[fingerprint].get("subprogram")
             return (
                 False,
-                f"{PHASE_LABEL} live scan differs from inventory baseline: "
-                f"{len(new_fingerprints)} new, {len(missing_fingerprints)} missing",
+                f"{PHASE_LABEL} implementation_surface drift for "
+                f"{package}.{subprogram}: {baseline_surface!r} -> {live_surface!r} at "
+                f"{baseline_audit_gate.describe_entry(live[fingerprint])}",
             )
-        changed: list[tuple[str, list[str]]] = []
-        for fingerprint in sorted(set(live) & set(baseline)):
-            if live[fingerprint] == baseline[fingerprint]:
-                continue
-            fields = sorted(
-                field
-                for field in set(live[fingerprint]) | set(baseline[fingerprint])
-                if live[fingerprint].get(field) != baseline[fingerprint].get(field)
-            )
-            changed.append((fingerprint, fields))
-        if changed:
-            fingerprint, fields = changed[0]
-            return (
-                False,
-                f"{PHASE_LABEL} live scan entries differ from committed baseline: "
-                f"{len(changed)} changed "
-                f"(e.g. fingerprint {fingerprint!r}, fields {fields!r})",
-            )
-        return False, f"{PHASE_LABEL} live scan top-level fields differ from committed baseline"
     return True, ""
 
 
@@ -139,14 +157,90 @@ def run_live_scan_case() -> tuple[bool, str]:
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message
-    return compare_inventory_scan_to_baseline(payload, baseline)
+    ok, message = validate_closed_baseline(baseline)
+    if not ok:
+        return False, message
+    ok, message = compare_live_scan_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    if message:
+        print(message)
+    ok, message = compare_implementation_surface_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    return True, ""
 
 
 def run_baseline_case() -> tuple[bool, str]:
     payload, message = read_baseline_payload()
     if payload is None:
         return False, message
-    return validate_entries(payload, "baseline")
+    return validate_closed_baseline(payload)
+
+
+def synthetic_entry(
+    fingerprint: str,
+    *,
+    classification: str = ACCEPTED,
+    rationale: str = "Accepted: synthetic Phase 1H stdlib contract entry.",
+    implementation_surface: str = "spark-off-body",
+) -> dict[str, object]:
+    return {
+        "fingerprint": fingerprint,
+        "category": "stdlib-spark-off-runtime-contract",
+        "pattern": "stdlib-contract-subprogram",
+        "path": "compiler_impl/stdlib/ada/synthetic.ads",
+        "line": 1,
+        "line_numbers": [1],
+        "first_line_text": "function Clone (Source : Item) return Item",
+        "line_text": "function Clone (Source : Item) return Item with Global => null;",
+        "package": "Safe_Array_RT",
+        "subprogram": "Clone",
+        "subprogram_kind": "function",
+        "implementation_path": "compiler_impl/stdlib/ada/synthetic.adb",
+        "implementation_surface": implementation_surface,
+        "classification": classification,
+        "rationale": rationale,
+        "follow_up": "",
+    }
+
+
+def run_gate_self_check_case() -> tuple[bool, str]:
+    return baseline_audit_gate.run_gate_self_check(
+        phase_label=PHASE_LABEL,
+        synthetic_entry=synthetic_entry,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_stdlib_contracts.CATEGORIES,
+        valid_patterns=audit_stdlib_contracts.PATTERNS,
+    )
+
+
+def run_gate_implementation_surface_drift_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", implementation_surface="spark-off-body")]}
+    for drift_surface in ("spark-on-body", "expression-function", "missing", "unknown"):
+        live = {"entries": [synthetic_entry("same", implementation_surface=drift_surface)]}
+        ok, message = compare_implementation_surface_to_baseline(live, baseline)
+        if ok or "spark-off-body" not in message or drift_surface not in message:
+            return (
+                False,
+                "implementation_surface drift should fail with both surfaces for "
+                f"drift_surface={drift_surface!r}, got: {message}",
+            )
+    return True, ""
+
+
+def run_gate_stop_surface_closed_baseline_case() -> tuple[bool, str]:
+    for stop_surface in ("missing", "unknown"):
+        ok, message = validate_closed_baseline(
+            {"entries": [synthetic_entry("known", implementation_surface=stop_surface)]}
+        )
+        if ok or stop_surface not in message:
+            return (
+                False,
+                "closed baseline should reject stop-signal implementation_surface "
+                f"{stop_surface!r}, got: {message}",
+            )
+    return True, ""
 
 
 def run_multiline_declaration_case() -> tuple[bool, str]:
@@ -421,6 +515,21 @@ def run_stdlib_contract_audit_checks() -> RunCounts:
         failures,
         "phase1h-stdlib-contract-audit:baseline",
         run_baseline_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1h-stdlib-contract-audit:gate-self-check",
+        run_gate_self_check_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1h-stdlib-contract-audit:gate-implementation-surface-drift",
+        run_gate_implementation_surface_drift_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1h-stdlib-contract-audit:gate-stop-surface-baseline",
+        run_gate_stop_surface_closed_baseline_case(),
     )
     passed += record_result(
         failures,

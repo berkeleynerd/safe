@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1H closeout - Stdlib Runtime Trust Boundaries.
+Next action: Phase 1I - Docs And Fixture Drift.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -772,15 +772,21 @@ Working with the baseline:
   baseline.
 - Broader pattern surfaces, novel classification rules, or hits in unrelated
   code use a scan-extension/triage cycle before any behavior-changing fix.
-- Phase 1C, Phase 1D, Phase 1E, Phase 1F, and Phase 1G baseline gates share
-  common test-layer mechanics in `scripts/_lib/baseline_audit_gate.py`:
+- Phase 1C, Phase 1D, Phase 1E, Phase 1F, Phase 1G, and Phase 1H baseline
+  gates share common test-layer mechanics in `scripts/_lib/baseline_audit_gate.py`:
   structural validation, closed-baseline validation, live-vs-baseline
   comparison, report-only missing drift, and synthetic self-check coverage.
 - Cross-file scanners keep the primary surface in the fingerprint and validate
   secondary metadata separately. For example, Phase 1G fingerprints the
   spec-side `pragma No_Return` contract, while `body_status` drift is checked
-  as related metadata; drift in either dimension fails with distinct
-  diagnostics.
+  as related metadata; Phase 1H fingerprints the public stdlib spec contract,
+  while `implementation_surface` drift is checked as related metadata. Drift in
+  either dimension fails with distinct diagnostics.
+- Cross-file drift detection logic remains local to each phase-specific test
+  module for now: Phase 1G validates `body_status`, and Phase 1H validates
+  `implementation_surface`. Consolidation into `baseline_audit_gate.py` is
+  deferred until at least a third cross-file scanner supplies more design
+  constraints, matching the cross-scanner consolidation pattern.
 - Cross-scanner consolidation pattern: extract shared logic into a helper,
   migrate per scanner in separate commits, preserve domain-specific scanner
   behavior locally, and defer scanner-script or JSON-shape normalization to
@@ -1232,10 +1238,9 @@ Findings:
 
 ## Phase 1H - Stdlib Runtime Trust Boundaries
 
-Status: triage complete; closeout pending.
+Status: complete; active baseline-allowlist gate.
 
-Enforcement default: inventory exact-baseline check until triage/closeout
-decides whether to promote an active baseline gate.
+Enforcement default: active baseline gate.
 
 Baseline: `docs/pr1122h-stdlib-contract-audit.md`.
 
@@ -1254,8 +1259,11 @@ Inventory:
   Renames without explicit aspects, such as `Dispose`, are excluded. Private
   completions are excluded as primary entries and instead recorded through
   implementation metadata where relevant.
-- The live scanner must exactly match the committed triage baseline until
-  closeout decides whether to promote an active baseline gate.
+- The active gate rejects new fingerprints, reports missing fingerprints,
+  requires a closed accepted baseline with non-empty rationales, rejects
+  `missing`/`unknown` implementation surfaces in the closed baseline, and fails
+  matching fingerprints whose `implementation_surface` drifts from the
+  baseline.
 
 Commands:
 
@@ -1357,8 +1365,14 @@ Findings:
   accepted A-06 ownership heap-runtime boundaries. Their omitted
   `Global`/`Depends` aspects are part of the current trusted boundary: the
   SPARK-off allocation/deallocation wrapper.
-- Phase 1H has no fix queue after triage. The next PR should perform the
-  closeout/gate-promotion step if the live scan remains stable.
+- Phase 1H has no fix queue after triage.
+- Closeout promoted the accepted 39-entry baseline to an active gate. The gate
+  rejects new fingerprints, reports missing fingerprints, requires closed
+  accepted entries with non-empty rationale, rejects closed-baseline
+  `missing`/`unknown` implementation surfaces, and fails matching fingerprints
+  whose `implementation_surface` drifts from the baseline.
+- Phase 1H closed in three PRs: inventory, triage, and closeout/gate
+  promotion. It is the second cross-file scanner instance after Phase 1G.
 
 ## Phase 1I - Docs And Fixture Drift
 
