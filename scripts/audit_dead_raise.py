@@ -442,7 +442,7 @@ def record_entry(
             "rationale": prior_entry.get("rationale", ""),
             "follow_up": prior_entry.get(
                 "follow_up",
-                "Phase 1F resolver fallback cleanup PR",
+                "Phase 1F dead-raise cleanup PR",
             ),
         },
     )
