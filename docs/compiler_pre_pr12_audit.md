@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1I - Docs And Fixture Drift.
+Next action: Phase 1I.B - Code Snippet Drift Inventory.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -783,10 +783,14 @@ Working with the baseline:
   while `implementation_surface` drift is checked as related metadata. Drift in
   either dimension fails with distinct diagnostics.
 - Cross-file drift detection logic remains local to each phase-specific test
-  module for now: Phase 1G validates `body_status`, and Phase 1H validates
-  `implementation_surface`. Consolidation into `baseline_audit_gate.py` is
-  deferred until at least a third cross-file scanner supplies more design
-  constraints, matching the cross-scanner consolidation pattern.
+  module for now: Phase 1G validates `body_status`, Phase 1H validates
+  `implementation_surface`, and Phase 1I.A records `target_status` plus
+  `target_digest` for documentation references to concrete fixture artifacts.
+  Phase 1I.A is the third cross-file scanner instance, so the deferred
+  consolidation trigger is now met. Queue consolidation after full Phase 1I
+  closeout so the 1I.B/1I.C scanners can supply any remaining design
+  constraints before moving secondary-metadata validation into
+  `baseline_audit_gate.py`.
 - Cross-scanner consolidation pattern: extract shared logic into a helper,
   migrate per scanner in separate commits, preserve domain-specific scanner
   behavior locally, and defer scanner-script or JSON-shape normalization to
@@ -1376,11 +1380,74 @@ Findings:
 
 ## Phase 1I - Docs And Fixture Drift
 
-Enforcement default: decide during sweep.
+Status: in progress.
+Enforcement default: inventory first; gate promotion after the Phase 1I.A/B/C
+inventories and combined triage are complete.
 
-Findings:
+Phase split:
 
-None yet.
+- Phase 1I.A: documentation path references to concrete fixture artifacts
+  (this inventory).
+- Phase 1I.B: code-snippet drift in docs. Historical proposal material such as
+  `docs/syntax_proposals.md` may need explicit carve-outs during inventory.
+- Phase 1I.C: schema-vs-doc alignment for documented JSON/baseline/artifact
+  shapes.
+
+Keep the three inventories separate before triage. This preserves the planned
+A/B/C Phase 1I scope while keeping each scanner reviewable.
+
+### Phase 1I.A - Doc Path Reference Inventory
+
+Scanner: `scripts/audit_docs_fixture_drift.py`
+
+Baseline: `audit/phase1i_docs_fixture_drift_baseline.json`
+
+Scope:
+
+- `README.md`
+- `docs/**/*.md`
+- `docs/**/*.csv`
+- Concrete fixture references under `tests/`, `samples/`, and
+  `compiler_impl/tests/`
+
+Out of scope for 1I.A: wildcard references, broad non-fixture repo paths, code
+snippets, and schema/documentation alignment. Those move to 1I.B or 1I.C.
+
+Inventory counts:
+
+| Category | Entries | Current classification |
+| --- | ---: | --- |
+| `emitted-matrix-path-reference` | 185 | `candidate` |
+| `prose-path-reference` | 33 | `candidate` |
+| `traceability-matrix-path-reference` | 89 | `candidate` |
+| **Total** | **307** | `candidate` |
+
+Target status:
+
+| Status | Entries |
+| --- | ---: |
+| `present` | 307 |
+| `missing` | 0 |
+
+Notes:
+
+- The scanner found 493 raw references collapsed into 307 fingerprints. The
+  prose bucket includes the PR10 MIR parity reference at
+  `compiler_impl/tests/mir_analysis/pr102_fp_unsupported_expression_parity.json`;
+  that fixture exists in the current tree.
+- Earlier exploratory counts that reported fewer references did not include all
+  CSV documentation, golden-directory references, and `compiler_impl/tests`
+  JSON fixtures. The inventory scanner is the canonical count source.
+- Fingerprints identify the documentation reference: category, doc path,
+  normalized target path, and pattern name. Line numbers and text are display
+  fields.
+- Secondary metadata records `target_status` and `target_digest`. Planned
+  closeout policy: `target_status` drift (`present`/`missing`) fails the gate,
+  while digest drift is report-only. This keeps fixture-content edits visible
+  without making every intentional fixture edit a Phase 1I gate failure.
+
+Findings: no classifications yet. All 307 entries remain `candidate` pending
+the combined Phase 1I triage after 1I.B and 1I.C inventories land.
 
 ## Phase 2 - Large-File Deep Dives
 
