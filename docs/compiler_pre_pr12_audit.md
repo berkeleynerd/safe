@@ -1176,7 +1176,9 @@ Findings:
 
 ## Phase 1G - Spec Body Contract Drift
 
-Enforcement default: decide during sweep.
+Status: triaged; closeout pending.
+
+Enforcement default: decide during closeout.
 
 Seed notes for sweep:
 
@@ -1185,15 +1187,12 @@ Seed notes for sweep:
   contract-drift candidates rather than only as Phase 1F
   dead-code-after-raise body findings.
 
-Findings:
-
 - Inventory script: `scripts/audit_spec_body_contract.py`.
 - Inventory baseline: `audit/phase1g_spec_body_contract_baseline.json`.
-- Current inventory: two `candidate` fingerprints in
+- Current baseline: two `accepted-with-rationale` fingerprints in
   `safe_frontend-ada_emit-internal.ads`: `Raise_Internal` and
   `Raise_Unsupported`. Both matching bodies are in
-  `safe_frontend-ada_emit-internal.adb` and currently scan with
-  `body_status: raises`.
+  `safe_frontend-ada_emit-internal.adb` and scan with `body_status: raises`.
 - Phase 1G is the first cross-file scanner in this audit sequence. The
   fingerprint identifies the spec-side surface (`category`, spec path, pattern,
   helper name, normalized `pragma No_Return` text). Body metadata is validated
@@ -1204,8 +1203,23 @@ Findings:
   to a known no-return helper; `returns` means a normal final executable
   statement remains; `missing` means no matching body was found; `unknown`
   means the heuristic found control flow it does not analyze.
-- Next Phase 1G step: triage the two candidates as accepted-with-rationale or
-  queue any confirmed contract/body drift for cleanup.
+
+Classification rules:
+
+- Spec-side `pragma No_Return` entries are accepted when the matching body has
+  `body_status: raises` and the helper is an explicit diagnostic or failure
+  boundary. Future `returns`, `missing`, or unexplained `unknown` body statuses
+  require triage before acceptance.
+
+Findings:
+
+- Triage classified both Phase 1G entries as `accepted-with-rationale`:
+  `Raise_Internal` is the internal emitter-failure boundary, and
+  `Raise_Unsupported` records unsupported-emission context before raising.
+- No confirmed contract/body drift defects surfaced in Phase 1G triage.
+- No Phase 1G `candidate`, `needs-repro`, or `confirmed-defect` entries remain.
+- Next Phase 1G step: closeout/gate promotion for the accepted non-empty
+  baseline.
 
 ## Phase 1H - Stdlib Runtime Trust Boundaries
 

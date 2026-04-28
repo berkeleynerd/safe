@@ -17,11 +17,11 @@
       "body_path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
       "body_status": "raises",
       "category": "spec-no-return-contract",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "declaration_line": 142,
       "fingerprint": "7d303fdac6f2171c",
       "first_line_text": "pragma No_Return (Raise_Internal);",
-      "follow_up": "Phase 1G spec/body contract triage PR",
+      "follow_up": "",
       "helper_name": "Raise_Internal",
       "line": 143,
       "line_numbers": [
@@ -30,18 +30,18 @@
       "line_text": "pragma No_Return (Raise_Internal);",
       "path": "compiler_impl/src/safe_frontend-ada_emit-internal.ads",
       "pattern": "spec-no-return-pragma",
-      "rationale": ""
+      "rationale": "Accepted: spec No_Return matches a body that always raises Emitter_Internal with the supplied message. This helper is the internal emitter-failure boundary; body_status drift is validated separately from the spec fingerprint."
     },
     {
       "body_line": 20,
       "body_path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
       "body_status": "raises",
       "category": "spec-no-return-contract",
-      "classification": "candidate",
+      "classification": "accepted-with-rationale",
       "declaration_line": 144,
       "fingerprint": "e02e37a28836a658",
       "first_line_text": "pragma No_Return (Raise_Unsupported);",
-      "follow_up": "Phase 1G spec/body contract triage PR",
+      "follow_up": "",
       "helper_name": "Raise_Unsupported",
       "line": 148,
       "line_numbers": [
@@ -50,7 +50,7 @@
       "line_text": "pragma No_Return (Raise_Unsupported);",
       "path": "compiler_impl/src/safe_frontend-ada_emit-internal.ads",
       "pattern": "spec-no-return-pragma",
-      "rationale": ""
+      "rationale": "Accepted: spec No_Return matches a body that records the unsupported span/message and always raises Emitter_Unsupported. This helper is the unsupported-emission boundary; body_status drift is validated separately from the spec fingerprint."
     }
   ],
   "generated_by": "python3 scripts/audit_spec_body_contract.py --json",
