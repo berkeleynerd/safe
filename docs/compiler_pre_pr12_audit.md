@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1H - Stdlib Runtime Trust Boundaries.
+Next action: Phase 1H triage - Stdlib Runtime Trust Boundaries.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1232,7 +1232,10 @@ Findings:
 
 ## Phase 1H - Stdlib Runtime Trust Boundaries
 
-Enforcement default: decide during sweep.
+Status: inventory complete; triage pending.
+
+Enforcement default: inventory exact-baseline check until triage/closeout
+decides whether to promote an active baseline gate.
 
 Baseline: `docs/pr1122h-stdlib-contract-audit.md`.
 
@@ -1241,9 +1244,77 @@ audit and inherits the consolidated baseline-gate infrastructure, so its first
 plan should classify from that prior-audit baseline rather than rediscovering
 the surface from scratch.
 
+Inventory:
+
+- Script: `scripts/audit_stdlib_contracts.py`.
+- Machine baseline: `audit/phase1h_stdlib_contract_baseline.json`.
+- Current baseline entries: 39 `candidate` fingerprints.
+- Scope: public declarations with explicit `Global`, `Depends`, `Pre`, `Post`,
+  or `Always_Terminates` aspects under `compiler_impl/stdlib/ada/*.ads`.
+  Renames without explicit aspects, such as `Dispose`, are excluded. Private
+  completions are excluded as primary entries and instead recorded through
+  implementation metadata where relevant.
+- The live scanner must exactly match the committed inventory baseline during
+  this phase. Triage will replace `candidate` entries with accepted or
+  follow-up classifications before closeout decides whether to promote an
+  active baseline gate.
+
+Commands:
+
+```bash
+python3 scripts/audit_stdlib_contracts.py
+python3 scripts/audit_stdlib_contracts.py --json
+python3 scripts/audit_stdlib_contracts.py --summary
+```
+
+Baseline counts:
+
+| Category | Entries | Current classification |
+| --- | ---: | --- |
+| `stdlib-spark-off-runtime-contract` | 29 | `candidate` |
+| `stdlib-generic-formal-contract` | 3 | `candidate` |
+| `stdlib-spark-on-runtime-contract` | 6 | `candidate` |
+| `stdlib-io-contract` | 1 | `candidate` |
+
+SPARK-off package split:
+
+| Package | Entries |
+| --- | ---: |
+| `Safe_Array_RT` | 9 |
+| `Safe_Array_Identity_RT` | 9 |
+| `Safe_String_RT` | 9 |
+| `Safe_Ownership_RT` | 2 |
+
+Scanner notes:
+
+- Phase 1H is a cross-file scanner. The fingerprint identifies the public spec
+  contract surface: category, spec path, pattern name, package, subprogram, and
+  normalized public declaration text. `implementation_surface` is recorded as
+  secondary metadata and is intentionally excluded from the fingerprint, reusing
+  the Phase 1G cross-file convention.
+- `implementation_surface` values are: `spark-off-body`,
+  `spark-on-body`, `expression-function`, `generic-stub`, `io-boundary`,
+  `missing`, and `unknown`. The inventory expects only the first five values;
+  `missing` or `unknown` is a stop signal for triage planning.
+- Initial inventory surface counts are: 27 `spark-off-body`, 2
+  `spark-on-body`, 6 `expression-function`, 3 `generic-stub`, 1
+  `io-boundary`, and 0 `missing`/`unknown`.
+- `Safe_Ownership_RT` and `IO` are included beyond PR11.22h's covered package
+  set because A-06 in `docs/traceability_matrix.md` identifies ownership
+  runtime contracts as part of the heap-runtime trust boundary, and
+  `docs/emitted_output_verification_matrix.md#spark_mode-off-boundary-inventory`
+  records both `safe_ownership_rt.adb` and `io.adb` as SPARK-off boundary
+  islands.
+- The inventory starts from the PR11.22h stdlib contract audit and the A-06
+  boundary notes instead of rediscovering scope from scratch. Triage should
+  classify each candidate against those prior audit findings and record any
+  needed repro/fix work explicitly.
+
 Findings:
 
-None yet.
+- Inventory found 39 public stdlib contract-bearing declarations across four
+  trust-boundary categories. All entries remain `candidate` until the Phase 1H
+  triage PR.
 
 ## Phase 1I - Docs And Fixture Drift
 
