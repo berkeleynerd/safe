@@ -1154,8 +1154,11 @@ Findings:
 
 - Inventory script: `scripts/audit_dead_raise.py`.
 - Inventory baseline: `audit/phase1f_dead_raise_baseline.json`.
-- Current inventory: eight `candidate` entries, all
-  `no-return-helper-fallthrough` sites in `safe_frontend-check_resolve.adb`.
+- Current inventory: seven `candidate` fingerprints covering eight source sites,
+  all `no-return-helper-fallthrough` fallbacks in
+  `safe_frontend-check_resolve.adb`. Two identical resolver fallback shapes share
+  one fingerprint with `multiplicity: 2`; diagnostic string contents are excluded
+  from the fingerprint seed so typo-only message edits do not churn the baseline.
 - Candidate functions/sites: `Optional_Payload_Type`,
   `Growable_Array_Element_Type`, `Resolve_Type`, `Literal_Value`, two
   `Resolve_Type_Spec` paths, optional-expression type fallback, and

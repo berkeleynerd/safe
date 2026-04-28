@@ -312,6 +312,34 @@ end Demo;
     return True, ""
 
 
+def run_diagnostic_text_fingerprint_case() -> tuple[bool, str]:
+    first = synthetic_scan(
+        """
+function Demo return Integer is
+begin
+   Raise_Diag (Message => "first diagnostic text");
+   return Default_Integer;
+end Demo;
+"""
+    )
+    second = synthetic_scan(
+        """
+function Demo return Integer is
+begin
+   Raise_Diag (Message => "edited diagnostic text");
+   return Default_Integer;
+end Demo;
+"""
+    )
+    if len(first) != 1 or len(second) != 1:
+        return False, f"expected one entry per diagnostic fixture, found {len(first)} and {len(second)}"
+    if first[0].get("fingerprint") != second[0].get("fingerprint"):
+        return False, "diagnostic string text should not affect dead-raise fingerprints"
+    if first[0].get("line_text") == second[0].get("line_text"):
+        return False, "display text should preserve diagnostic strings for reviewer context"
+    return True, ""
+
+
 def run_dead_raise_audit_checks() -> RunCounts:
     passed = 0
     failures = []
@@ -370,5 +398,10 @@ def run_dead_raise_audit_checks() -> RunCounts:
         failures,
         "phase1f-dead-raise-audit:comment-and-string",
         run_comment_and_string_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1f-dead-raise-audit:diagnostic-text-fingerprint",
+        run_diagnostic_text_fingerprint_case(),
     )
     return passed, 0, failures

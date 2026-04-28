@@ -378,12 +378,13 @@ def fingerprint_for(
     category: str,
     path: Path,
     pattern_name: str,
-    line_text: str,
-    fallthrough_line: str,
+    line_fingerprint_text: str,
+    fallthrough_fingerprint_text: str,
 ) -> str:
     seed = (
         f"{category}\0{repo_rel(path)}\0{pattern_name}\0"
-        f"{normalized_text(line_text)}\0{normalized_text(fallthrough_line)}"
+        f"{normalized_text(line_fingerprint_text)}\0"
+        f"{normalized_text(fallthrough_fingerprint_text)}"
     )
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
 
@@ -420,8 +421,8 @@ def record_entry(
         trigger.category,
         path,
         trigger.pattern,
-        raise_statement.display_text,
-        fallthrough_statement.display_text,
+        raise_statement.code_text,
+        fallthrough_statement.code_text,
     )
     prior_entry = prior.get(fingerprint, {})
     entry = entries.setdefault(
