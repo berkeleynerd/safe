@@ -8,7 +8,7 @@
   "entries": [
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return Default_Integer;",
       "fallthrough_line_number": 1738,
       "fingerprint": "5828a523c46d9c93",
@@ -22,11 +22,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     },
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return Default_Integer;",
       "fallthrough_line_number": 2823,
       "fingerprint": "8f8faf887a11f845",
@@ -40,11 +40,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     },
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return Default_Integer;",
       "fallthrough_line_number": 4416,
       "fingerprint": "04a22ef6af06d8fe",
@@ -58,11 +58,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     },
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return 0;",
       "fallthrough_line_number": 4438,
       "fingerprint": "187069be500e73ea",
@@ -76,11 +76,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     },
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return Default_Integer;",
       "fallthrough_line_number": 4939,
       "fingerprint": "f4302263a959d7a7",
@@ -95,11 +95,11 @@
       "multiplicity": 2,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     },
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return Default_Integer;",
       "fallthrough_line_number": 5476,
       "fingerprint": "fed989f656844640",
@@ -113,11 +113,11 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     },
     {
       "category": "no-return-helper-fallthrough",
-      "classification": "candidate",
+      "classification": "confirmed-defect",
       "fallthrough_line": "return Expr;",
       "fallthrough_line_number": 9576,
       "fingerprint": "fca5299028e37554",
@@ -131,7 +131,7 @@
       "multiplicity": 1,
       "path": "compiler_impl/src/safe_frontend-check_resolve.adb",
       "pattern": "no-return-helper-statement",
-      "rationale": ""
+      "rationale": "Confirmed unreachable fallback after resolver Raise_Diag, which has pragma No_Return; cleanup PR removes the fallback while preserving the diagnostic raise."
     }
   ],
   "generated_by": "python3 scripts/audit_dead_raise.py --json",
