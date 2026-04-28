@@ -57,15 +57,6 @@ def normalized_text(text: str) -> str:
     return " ".join(text.strip().split())
 
 
-def is_double_quote_character_literal(line: str, index: int) -> bool:
-    return (
-        index > 0
-        and index + 1 < len(line)
-        and line[index - 1] == "'"
-        and line[index + 1] == "'"
-    )
-
-
 def is_character_literal_content(line: str, index: int) -> bool:
     return (
         index > 0
@@ -85,7 +76,7 @@ def strip_comment(line: str) -> str:
         if not in_string and char == "-" and nxt == "-":
             break
         result.append(char)
-        if not in_string and char == '"' and is_double_quote_character_literal(line, index):
+        if not in_string and char == '"' and is_character_literal_content(line, index):
             index += 1
             continue
         if char == '"':
@@ -118,12 +109,6 @@ def statement_end(lines: list[str], start: int) -> int:
                 char_index += 1
                 continue
             if char == '"':
-                if (
-                    not in_string
-                    and is_double_quote_character_literal(line, char_index)
-                ):
-                    char_index += 1
-                    continue
                 if in_string and nxt == '"':
                     char_index += 2
                     continue
@@ -165,8 +150,8 @@ def close_package_scope(package_stack: list[str], ended: str | None) -> None:
             return
 
 
-def collect_expression_functions(text: str) -> set[str]:
-    names: set[str] = set()
+def collect_expression_functions(text: str) -> set[tuple[str, str]]:
+    names: set[tuple[str, str]] = set()
     lines = text.splitlines()
     package_stack: list[str] = []
     private_depth: int | None = None
@@ -212,7 +197,8 @@ def collect_expression_functions(text: str) -> set[str]:
         end = statement_end(lines, index)
         block = "\n".join(strip_comment(line) for line in lines[index : end + 1])
         if re.search(r"\bis\s*\(", normalized_text(block), re.IGNORECASE):
-            names.add(match.group(1))
+            package = ".".join(package_stack)
+            names.add((package, match.group(1)))
         index = end + 1
     return names
 
@@ -321,13 +307,13 @@ def category_for(decl: ContractDecl) -> str:
 def implementation_surface_for(
     decl: ContractDecl,
     *,
-    expression_functions: set[str],
+    expression_functions: set[tuple[str, str]],
 ) -> tuple[str, Path]:
     if decl.package == "IO":
         return "io-boundary", body_path_for(decl.path)
     if decl.package == "Safe_Array_Identity_Ops":
         return "generic-stub", body_path_for(decl.path)
-    if decl.subprogram in expression_functions:
+    if (decl.package, decl.subprogram) in expression_functions:
         return "expression-function", decl.path
     return body_spark_surface(body_path_for(decl.path)), body_path_for(decl.path)
 

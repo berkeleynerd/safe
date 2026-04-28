@@ -306,7 +306,8 @@ private
 end Synthetic;
 """,
     )
-    if names != {"Length"}:
+    expected = {("Synthetic", "Length")}
+    if names != expected:
         return False, f"unexpected private expression completions {sorted(names)!r}"
     return True, ""
 
@@ -326,7 +327,8 @@ package Second is
 end Second;
 """,
     )
-    if names != {"Hidden"}:
+    expected = {("First", "Hidden")}
+    if names != expected:
         return False, f"private expression scope leaked across packages: {sorted(names)!r}"
     return True, ""
 
