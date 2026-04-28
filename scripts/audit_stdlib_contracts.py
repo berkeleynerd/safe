@@ -154,7 +154,7 @@ def collect_expression_functions(text: str) -> set[tuple[str, str]]:
     names: set[tuple[str, str]] = set()
     lines = text.splitlines()
     package_stack: list[str] = []
-    private_depth: int | None = None
+    private_scopes: list[bool] = []
     index = 0
     while index < len(lines):
         line = strip_comment(lines[index])
@@ -165,8 +165,7 @@ def collect_expression_functions(text: str) -> set[tuple[str, str]]:
         )
         if end_match:
             close_package_scope(package_stack, end_match.group(1))
-            if private_depth is not None and len(package_stack) < private_depth:
-                private_depth = None
+            del private_scopes[len(package_stack) :]
             index += 1
             continue
 
@@ -179,11 +178,13 @@ def collect_expression_functions(text: str) -> set[tuple[str, str]]:
             name = package_match.group(1)
             if not package_stack or package_stack[-1] != name:
                 package_stack.append(name)
+                private_scopes.append(False)
         if re.match(r"^\s*private\s*$", line, re.IGNORECASE):
-            private_depth = len(package_stack)
+            if private_scopes:
+                private_scopes[-1] = True
             index += 1
             continue
-        if private_depth is None or len(package_stack) < private_depth:
+        if not any(private_scopes):
             index += 1
             continue
         match = re.match(
@@ -207,7 +208,7 @@ def collect_contract_declarations(path: Path, text: str) -> list[ContractDecl]:
     lines = text.splitlines()
     declarations: list[ContractDecl] = []
     package_stack: list[str] = []
-    private_depth: int | None = None
+    private_scopes: list[bool] = []
     index = 0
     while index < len(lines):
         line = strip_comment(lines[index])
@@ -218,8 +219,7 @@ def collect_contract_declarations(path: Path, text: str) -> list[ContractDecl]:
         )
         if end_match:
             close_package_scope(package_stack, end_match.group(1))
-            if private_depth is not None and len(package_stack) < private_depth:
-                private_depth = None
+            del private_scopes[len(package_stack) :]
             index += 1
             continue
 
@@ -232,11 +232,13 @@ def collect_contract_declarations(path: Path, text: str) -> list[ContractDecl]:
             name = package_match.group(1)
             if not package_stack or package_stack[-1] != name:
                 package_stack.append(name)
+                private_scopes.append(False)
         if re.match(r"^\s*private\s*$", line, re.IGNORECASE):
-            private_depth = len(package_stack)
+            if private_scopes:
+                private_scopes[-1] = True
             index += 1
             continue
-        if private_depth is not None and len(package_stack) >= private_depth:
+        if any(private_scopes):
             index += 1
             continue
 

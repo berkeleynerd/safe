@@ -285,6 +285,34 @@ end Outer;
     return True, ""
 
 
+def run_nested_package_private_scope_case() -> tuple[bool, str]:
+    path = REPO_ROOT / "compiler_impl" / "stdlib" / "ada" / "synthetic.ads"
+    text = """
+package Outer is
+   function Length (Value : Item) return Natural
+      with Global => null;
+private
+   package Inner is
+      procedure Hidden_Inner
+        with Global => null;
+   end Inner;
+
+   function Length (Value : Item) return Natural is
+     (Value.Length);
+   procedure Hidden_After_Inner
+     with Global => null;
+end Outer;
+"""
+    decls = audit_stdlib_contracts.collect_contract_declarations(path, text)
+    packages = [(decl.package, decl.subprogram) for decl in decls]
+    if packages != [("Outer", "Length")]:
+        return False, f"private declarations leaked after nested package close: {packages!r}"
+    names = audit_stdlib_contracts.collect_expression_functions(text)
+    if names != {("Outer", "Length")}:
+        return False, f"private expression function missed after nested package close: {names!r}"
+    return True, ""
+
+
 def run_package_body_keyword_case() -> tuple[bool, str]:
     path = REPO_ROOT / "compiler_impl" / "stdlib" / "ada" / "synthetic.ads"
     decls = audit_stdlib_contracts.collect_contract_declarations(
@@ -428,6 +456,11 @@ def run_stdlib_contract_audit_checks() -> RunCounts:
         failures,
         "phase1h-stdlib-contract-audit:sibling-package",
         run_sibling_package_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1h-stdlib-contract-audit:nested-package-private-scope",
+        run_nested_package_private_scope_case(),
     )
     passed += record_result(
         failures,
