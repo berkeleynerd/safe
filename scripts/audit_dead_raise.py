@@ -599,7 +599,7 @@ def print_markdown(payload: dict[str, object]) -> None:
             f"- `{entry.get('category')}` `{entry.get('path')}:{entry.get('line')}` "
             f"`{entry.get('pattern')}` `{entry.get('classification')}`"
         )
-        print(f"  - no-return: {entry.get('first_line_text')}")
+        print(f"  - trigger: {entry.get('first_line_text')}")
         print(f"  - fallthrough: {entry.get('fallthrough_line')}")
 
 
