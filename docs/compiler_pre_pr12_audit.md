@@ -1154,18 +1154,26 @@ Findings:
 
 - Inventory script: `scripts/audit_dead_raise.py`.
 - Inventory baseline: `audit/phase1f_dead_raise_baseline.json`.
-- Current inventory: seven `candidate` fingerprints covering eight source sites,
-  all `no-return-helper-fallthrough` fallbacks in
+- Current inventory: seven `confirmed-defect` fingerprints covering eight source
+  sites, all `no-return-helper-fallthrough` fallbacks in
   `safe_frontend-check_resolve.adb`. Two identical resolver fallback shapes share
   one fingerprint with `multiplicity: 2`; diagnostic string contents are excluded
   from the fingerprint seed so typo-only message edits do not churn the baseline.
-- Candidate functions/sites: `Optional_Payload_Type`,
+- Affected functions/sites: `Optional_Payload_Type`,
   `Growable_Array_Element_Type`, `Resolve_Type`, `Literal_Value`, two
   `Resolve_Type_Spec` paths, optional-expression type fallback, and
   `Normalize_Procedure_Call`.
-- Next Phase 1F PR: remove the eight resolver fallbacks and update the
-  baseline to zero entries. Expected artifact diffs: emitted Ada and MIR JSON
-  unchanged over existing fixtures.
+- Triage result: every Phase 1F entry is confirmed unreachable fallback code
+  after resolver `Raise_Diag`, which has `pragma No_Return`.
+- Next Phase 1F PR: remove the eight resolver fallbacks and close Phase 1F by
+  updating the baseline to zero entries. Expected artifact diffs: emitted Ada
+  and MIR JSON unchanged over existing fixtures.
+- The next PR may combine cleanup and closeout only because the cleanup drains
+  the Phase 1F baseline to empty, leaving no residual accepted entries for a
+  separate closeout stability check. Future phases may combine fix and closeout
+  only under the same baseline-drains-to-empty condition; partial cleanup that
+  leaves a non-empty accepted baseline still follows the separate closeout
+  precedent from Phase 1C, Phase 1D, and Phase 1E.
 
 ## Phase 1G - Spec Body Contract Drift
 
