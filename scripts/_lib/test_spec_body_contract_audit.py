@@ -1,0 +1,315 @@
+"""Baseline checks for the Phase 1G spec/body contract scanner."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+
+import audit_spec_body_contract
+from _lib import baseline_audit_gate
+from _lib.test_harness import REPO_ROOT, RunCounts, first_message, record_result
+
+
+AUDIT_SCRIPT = REPO_ROOT / "scripts" / "audit_spec_body_contract.py"
+BASELINE_PATH = audit_spec_body_contract.BASELINE_PATH
+PHASE_LABEL = "Phase 1G spec/body contract"
+ACCEPTED = baseline_audit_gate.ACCEPTED
+REQUIRED_FIELDS = (
+    "fingerprint",
+    "category",
+    "pattern",
+    "path",
+    "line",
+    "line_numbers",
+    "first_line_text",
+    "line_text",
+    "helper_name",
+    "declaration_line",
+    "body_path",
+    "body_line",
+    "body_status",
+    "classification",
+    "rationale",
+    "follow_up",
+)
+
+
+def validate_entries(payload: object, label: str) -> tuple[bool, str]:
+    ok, message = baseline_audit_gate.validate_entries(
+        payload,
+        label,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_spec_body_contract.CATEGORIES,
+        valid_patterns=audit_spec_body_contract.PATTERNS,
+    )
+    if not ok:
+        return False, message
+    assert isinstance(payload, dict)
+    for entry in baseline_audit_gate.entries_for(payload):
+        body_status = entry.get("body_status")
+        if body_status not in audit_spec_body_contract.BODY_STATUSES:
+            return False, f"invalid {label} body_status {body_status!r}"
+    return True, ""
+
+
+def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
+    return baseline_audit_gate.read_baseline_payload(BASELINE_PATH, repo_root=REPO_ROOT)
+
+
+def compare_live_scan_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    return baseline_audit_gate.compare_live_scan_to_baseline(
+        live_payload,
+        baseline_payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_spec_body_contract.CATEGORIES,
+        valid_patterns=audit_spec_body_contract.PATTERNS,
+    )
+
+
+def compare_body_status_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    """Validate cross-file body metadata separately from the spec fingerprint."""
+
+    live = baseline_audit_gate.fingerprint_map(live_payload)
+    baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
+    for fingerprint in sorted(set(live) & set(baseline)):
+        live_status = live[fingerprint].get("body_status")
+        baseline_status = baseline[fingerprint].get("body_status")
+        if live_status != baseline_status:
+            helper = live[fingerprint].get("helper_name")
+            return (
+                False,
+                f"{PHASE_LABEL} body_status drift for {helper}: "
+                f"{baseline_status!r} -> {live_status!r} at "
+                f"{baseline_audit_gate.describe_entry(live[fingerprint])}",
+            )
+    return True, ""
+
+
+def run_live_scan_case() -> tuple[bool, str]:
+    completed = subprocess.run(
+        [sys.executable, str(AUDIT_SCRIPT), "--json"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return False, first_message(completed)
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        return False, f"invalid scanner JSON: {exc}"
+    ok, message = validate_entries(payload, "scanner JSON")
+    if not ok:
+        return False, message
+    audit_spec_body_contract.print_summary(
+        payload,
+        baseline_entries=audit_spec_body_contract.existing_classifications(),
+    )
+    baseline, message = read_baseline_payload()
+    if baseline is None:
+        return False, message
+    ok, message = validate_entries(baseline, "baseline")
+    if not ok:
+        return False, message
+    ok, message = compare_live_scan_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    if message:
+        print(message)
+    ok, message = compare_body_status_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    return True, ""
+
+
+def run_baseline_case() -> tuple[bool, str]:
+    payload, message = read_baseline_payload()
+    if payload is None:
+        return False, message
+    return validate_entries(payload, "baseline")
+
+
+def synthetic_entry(
+    fingerprint: str,
+    *,
+    classification: str = ACCEPTED,
+    rationale: str = "Accepted: synthetic Phase 1G test entry.",
+    body_status: str = "raises",
+) -> dict[str, object]:
+    return {
+        "fingerprint": fingerprint,
+        "category": "spec-no-return-contract",
+        "pattern": "spec-no-return-pragma",
+        "path": "compiler_impl/src/synthetic.ads",
+        "line": 1,
+        "line_numbers": [1],
+        "first_line_text": "pragma No_Return (Raise_Diag);",
+        "line_text": "pragma No_Return (Raise_Diag);",
+        "helper_name": "Raise_Diag",
+        "declaration_line": 1,
+        "body_path": "compiler_impl/src/synthetic.adb",
+        "body_line": 1,
+        "body_status": body_status,
+        "classification": classification,
+        "rationale": rationale,
+        "follow_up": "Phase 1G spec/body contract triage PR",
+    }
+
+
+def run_gate_self_check_case() -> tuple[bool, str]:
+    return baseline_audit_gate.run_gate_self_check(
+        phase_label=PHASE_LABEL,
+        synthetic_entry=synthetic_entry,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_spec_body_contract.CATEGORIES,
+        valid_patterns=audit_spec_body_contract.PATTERNS,
+    )
+
+
+def run_spec_contract_parsing_case() -> tuple[bool, str]:
+    path = REPO_ROOT / "compiler_impl" / "src" / "synthetic.ads"
+    contracts = audit_spec_body_contract.collect_spec_contracts(
+        path,
+        """
+package Synthetic is
+   procedure Raise_Diag (Message : String);
+   pragma No_Return (Raise_Diag);
+end Synthetic;
+""",
+    )
+    if len(contracts) != 1:
+        return False, f"expected one No_Return contract, found {len(contracts)}"
+    contract = contracts[0]
+    if contract.helper_name != "Raise_Diag" or contract.declaration_line != 3:
+        return False, f"unexpected contract {contract!r}"
+    return True, ""
+
+
+def run_comment_and_string_case() -> tuple[bool, str]:
+    path = REPO_ROOT / "compiler_impl" / "src" / "synthetic.ads"
+    contracts = audit_spec_body_contract.collect_spec_contracts(
+        path,
+        """
+package Synthetic is
+   Message : constant String := "pragma No_Return (Ignored);";
+   -- pragma No_Return (Ignored);
+   procedure Raise_Diag;
+   pragma No_Return (Raise_Diag);
+end Synthetic;
+""",
+    )
+    names = [contract.helper_name for contract in contracts]
+    if names != ["Raise_Diag"]:
+        return False, f"comment/string No_Return text should be ignored, got {names!r}"
+    return True, ""
+
+
+def body_status_fixture(source: str, *, helper_name: str = "Raise_Diag") -> str:
+    status, _line = audit_spec_body_contract.body_status_for_source(
+        helper_name,
+        source,
+        known_no_return_names={"Raise_Internal"},
+    )
+    return status
+
+
+def run_body_status_cases() -> tuple[bool, str]:
+    cases = {
+        "raises": """
+procedure Raise_Diag is
+begin
+   raise Program_Error;
+end Raise_Diag;
+""",
+        "helper-call-raises": """
+procedure Raise_Diag is
+begin
+   Raise_Internal ("failed");
+end Raise_Diag;
+""",
+        "returns": """
+procedure Raise_Diag is
+begin
+   Result := 1;
+end Raise_Diag;
+""",
+        "unknown": """
+procedure Raise_Diag is
+begin
+   if Failed then
+      raise Program_Error;
+   end if;
+end Raise_Diag;
+""",
+        "missing": """
+package body Synthetic is
+end Synthetic;
+""",
+    }
+    expected = {
+        "raises": "raises",
+        "helper-call-raises": "raises",
+        "returns": "returns",
+        "unknown": "unknown",
+        "missing": "missing",
+    }
+    for name, source in cases.items():
+        actual = body_status_fixture(source)
+        if actual != expected[name]:
+            return False, f"{name} body_status expected {expected[name]!r}, got {actual!r}"
+    return True, ""
+
+
+def run_body_status_drift_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", body_status="raises")]}
+    live = {"entries": [synthetic_entry("same", body_status="returns")]}
+    ok, message = compare_body_status_to_baseline(live, baseline)
+    if ok or "raises" not in message or "returns" not in message:
+        return False, f"body_status drift should fail with both statuses, got: {message}"
+    return True, ""
+
+
+def run_spec_body_contract_audit_checks() -> RunCounts:
+    passed = 0
+    failures = []
+    passed += record_result(failures, "phase1g-spec-body-contract-audit:scan", run_live_scan_case())
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:baseline",
+        run_baseline_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:gate-self-check",
+        run_gate_self_check_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:spec-contract-parsing",
+        run_spec_contract_parsing_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:comment-and-string",
+        run_comment_and_string_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:body-status",
+        run_body_status_cases(),
+    )
+    passed += record_result(
+        failures,
+        "phase1g-spec-body-contract-audit:body-status-drift",
+        run_body_status_drift_case(),
+    )
+    return passed, 0, failures

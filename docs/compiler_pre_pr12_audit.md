@@ -1181,12 +1181,31 @@ Enforcement default: decide during sweep.
 Seed notes for sweep:
 
 - `compiler_impl/src/safe_frontend-ada_emit-internal.ads` contributes two
-  `Raise_Unsupported` hits. Treat spec-file raises as contract-drift candidates
-  rather than only as Phase 1F dead-code-after-raise body findings.
+  spec-side `pragma No_Return` contracts. Treat spec-file contracts as
+  contract-drift candidates rather than only as Phase 1F
+  dead-code-after-raise body findings.
 
 Findings:
 
-None yet.
+- Inventory script: `scripts/audit_spec_body_contract.py`.
+- Inventory baseline: `audit/phase1g_spec_body_contract_baseline.json`.
+- Current inventory: two `candidate` fingerprints in
+  `safe_frontend-ada_emit-internal.ads`: `Raise_Internal` and
+  `Raise_Unsupported`. Both matching bodies are in
+  `safe_frontend-ada_emit-internal.adb` and currently scan with
+  `body_status: raises`.
+- Phase 1G is the first cross-file scanner in this audit sequence. The
+  fingerprint identifies the spec-side surface (`category`, spec path, pattern,
+  helper name, normalized `pragma No_Return` text). Body metadata is validated
+  separately: for matching live/baseline fingerprints, `body_status` drift
+  fails the test even when the spec fingerprint is unchanged.
+- Body-status determination reuses the Phase 1F no-return heuristic:
+  `raises` means the final executable statement is a direct `raise` or a call
+  to a known no-return helper; `returns` means a normal final executable
+  statement remains; `missing` means no matching body was found; `unknown`
+  means the heuristic found control flow it does not analyze.
+- Next Phase 1G step: triage the two candidates as accepted-with-rationale or
+  queue any confirmed contract/body drift for cleanup.
 
 ## Phase 1H - Stdlib Runtime Trust Boundaries
 

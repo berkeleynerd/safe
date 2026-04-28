@@ -1,0 +1,63 @@
+{
+  "body_statuses": [
+    "raises",
+    "returns",
+    "missing",
+    "unknown"
+  ],
+  "classifications": [
+    "candidate",
+    "needs-repro",
+    "confirmed-defect",
+    "accepted-with-rationale"
+  ],
+  "entries": [
+    {
+      "body_line": 14,
+      "body_path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
+      "body_status": "raises",
+      "category": "spec-no-return-contract",
+      "classification": "candidate",
+      "declaration_line": 142,
+      "fingerprint": "7d303fdac6f2171c",
+      "first_line_text": "pragma No_Return (Raise_Internal);",
+      "follow_up": "Phase 1G spec/body contract triage PR",
+      "helper_name": "Raise_Internal",
+      "line": 143,
+      "line_numbers": [
+        143
+      ],
+      "line_text": "pragma No_Return (Raise_Internal);",
+      "path": "compiler_impl/src/safe_frontend-ada_emit-internal.ads",
+      "pattern": "spec-no-return-pragma",
+      "rationale": ""
+    },
+    {
+      "body_line": 19,
+      "body_path": "compiler_impl/src/safe_frontend-ada_emit-internal.adb",
+      "body_status": "raises",
+      "category": "spec-no-return-contract",
+      "classification": "candidate",
+      "declaration_line": 144,
+      "fingerprint": "e02e37a28836a658",
+      "first_line_text": "pragma No_Return (Raise_Unsupported);",
+      "follow_up": "Phase 1G spec/body contract triage PR",
+      "helper_name": "Raise_Unsupported",
+      "line": 148,
+      "line_numbers": [
+        148
+      ],
+      "line_text": "pragma No_Return (Raise_Unsupported);",
+      "path": "compiler_impl/src/safe_frontend-ada_emit-internal.ads",
+      "pattern": "spec-no-return-pragma",
+      "rationale": ""
+    }
+  ],
+  "generated_by": "python3 scripts/audit_spec_body_contract.py --json",
+  "scope": [
+    "compiler_impl/src",
+    "compiler_impl/stdlib/ada",
+    "companion"
+  ],
+  "version": 1
+}

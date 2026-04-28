@@ -22,6 +22,7 @@ from _lib import (
     test_proof_diagnostics,
     test_rosetta_inventory,
     test_spark_mode_off_audit,
+    test_spec_body_contract_audit,
     test_static_audit,
 )
 from _lib.test_harness import (
@@ -61,6 +62,7 @@ def main() -> int:
     add_counts(test_gnatprove_trust_audit.run_gnatprove_trust_audit_checks())
     add_counts(test_spark_mode_off_audit.run_spark_mode_off_audit_checks())
     add_counts(test_dead_raise_audit.run_dead_raise_audit_checks())
+    add_counts(test_spec_body_contract_audit.run_spec_body_contract_audit_checks())
     add_counts(test_proof_cli.run_internal_proof_checks())
     add_counts(test_proof_diagnostics.run_proof_diagnostic_checks())
     add_counts(test_rosetta_inventory.run_rosetta_inventory_checks())
