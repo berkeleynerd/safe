@@ -250,6 +250,12 @@ begin
    Raise_Internal ("failed");
 end Raise_Diag;
 """,
+        "anonymous-end-raises": """
+procedure Raise_Diag is
+begin
+   raise Program_Error;
+end;
+""",
         "nested-block-raises": """
 procedure Raise_Diag is
 begin
@@ -282,6 +288,12 @@ exception
       raise Program_Error;
 end Raise_Diag;
 """,
+        "self-recursive-unknown": """
+procedure Raise_Diag is
+begin
+   Raise_Diag;
+end Raise_Diag;
+""",
         "missing": """
 package body Synthetic is
 end Synthetic;
@@ -290,10 +302,12 @@ end Synthetic;
     expected = {
         "raises": "raises",
         "helper-call-raises": "raises",
+        "anonymous-end-raises": "raises",
         "nested-block-raises": "raises",
         "returns": "returns",
         "unknown": "unknown",
         "exception-handler-only": "unknown",
+        "self-recursive-unknown": "unknown",
         "missing": "missing",
     }
     for name, source in cases.items():

@@ -286,10 +286,17 @@ def expected_body_path(spec_path: Path) -> Path:
 
 
 def procedure_body_match(helper_name: str, text: str) -> re.Match[str] | None:
-    pattern = re.compile(
+    named_end_pattern = re.compile(
         rf"(?ims)^\s*procedure\s+{re.escape(helper_name)}\b.*?\bis\b(?P<body>.*?)^\s*end\s+{re.escape(helper_name)}\s*;",
     )
-    return pattern.search(sanitized_source(text))
+    source = sanitized_source(text)
+    match = named_end_pattern.search(source)
+    if match is not None:
+        return match
+    anonymous_end_pattern = re.compile(
+        rf"(?ims)^\s*procedure\s+{re.escape(helper_name)}\b.*?\bis\b(?P<body>.*?)^\s*end\s*;",
+    )
+    return anonymous_end_pattern.search(source)
 
 
 def executable_statements(text: str) -> list[Statement]:
@@ -341,7 +348,12 @@ def body_status_for_source(
     final = statements[-1].code_text
     if re.match(r"^raise\b", final, re.IGNORECASE):
         return "raises", body_line
-    if starts_with_no_return_call(final, known_no_return_names | {helper_name}):
+    if starts_with_no_return_call(final, {helper_name}):
+        return "unknown", body_line
+    other_no_return_names = {
+        name for name in known_no_return_names if name.lower() != helper_name.lower()
+    }
+    if starts_with_no_return_call(final, other_no_return_names):
         return "raises", body_line
     return ("unknown" if has_exception_handler else "returns"), body_line
 
