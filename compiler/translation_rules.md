@@ -53,7 +53,7 @@ The following table maps each Safe construct to its Ada/SPARK emission pattern. 
 | `new t` (allocator, default init) | `new T` | SAFE@468cf72:spec/02-restrictions.md#2.4.2.p116 | AST: `Allocator` with `kind=SubtypeOnly`. Direct pass-through |
 | `type t is range l to h;` | `subtype T is Long_Long_Integer range L .. H;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `SignedIntegerTypeDefinition`. Normalized to a constrained integer subtype |
 | `type t is binary (8);` | `type T is mod 2 ** 8;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `BinaryTypeDefinition`. Named fixed-width binary type |
-| `type t is access t2;` | `type T is access T2;` | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | AST: `AccessToObjectDefinition`. Direct pass-through |
+| `type t is access t2;` | No Ada emission (rejected by parser) | SAFE@468cf72:spec/08-syntax-summary.md#8.4 | Removed source construct: named access type definitions are rejected as `access_type_definition`; PR11.8e infers references from recursive record types instead. Not represented in the AST. |
 | `subtype t_ref is not null t_ptr;` | `subtype T_Ref is not null T_Ptr;` | SAFE@468cf72:spec/02-restrictions.md#2.3.1.p95 | AST: `SubtypeDeclaration`. Direct pass-through |
 | Integer arithmetic `A + B` | `Long_Long_Integer(A) + Long_Long_Integer(B)` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p126 | AST: `Expression`. Direct 64-bit integer arithmetic |
 | Narrowing: `return Expr` | `return T(Expr_64);` | SAFE@468cf72:spec/02-restrictions.md#2.8.1.p127 | AST: `SimpleReturnStatement`. Range check at narrowing point |

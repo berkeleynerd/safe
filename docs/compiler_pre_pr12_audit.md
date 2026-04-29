@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1I fix PR for confirmed schema-doc drift.
+Next action: Phase 1I closeout/gate promotion.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -712,8 +712,8 @@ Gate baseline:
 
 - Script: `scripts/audit_arithmetic.py`.
 - Machine baseline: `audit/phase1c_arithmetic_baseline.json`.
-- Current baseline entries: 244 hits: 0 candidates and
-  244 accepted-with-rationale hits.
+- Current baseline entries: 245 hits: 0 candidates and
+  245 accepted-with-rationale hits.
 
 Commands:
 
@@ -732,7 +732,7 @@ Baseline counts:
 | `model-domain` | 70 | `accepted-with-rationale` |
 | `overflow-check-path` | 50 | `accepted-with-rationale` |
 | `stdlib-length` | 9 | `accepted-with-rationale` |
-| `target-bits` | 96 | `accepted-with-rationale` |
+| `target-bits` | 97 | `accepted-with-rationale` |
 
 Scanner notes:
 
@@ -1380,7 +1380,7 @@ Findings:
 
 ## Phase 1I - Docs And Fixture Drift
 
-Status: triage complete; fixes pending.
+Status: fixes complete; closeout pending.
 Enforcement default: inventory and triage first; gate promotion after the
 Phase 1I fixes and closeout are complete.
 
@@ -1572,19 +1572,19 @@ Inventory counts:
 | Category | Entries | Current classification |
 | --- | ---: | --- |
 | `artifact-contract-shape` | 15 | `accepted-with-rationale` |
-| `audit-doc-baseline-count` | 35 | `accepted-with-rationale:33, confirmed-defect:2` |
-| `audit-doc-baseline-status` | 35 | `accepted-with-rationale:34, confirmed-defect:1` |
+| `audit-doc-baseline-count` | 35 | `accepted-with-rationale` |
+| `audit-doc-baseline-status` | 35 | `accepted-with-rationale` |
 | `frozen-commit-freshness` | 3 | `accepted-with-rationale` |
-| `schema-ast-reference` | 31 | `accepted-with-rationale:30, confirmed-defect:1` |
-| **Total** | **119** | `accepted-with-rationale:115, confirmed-defect:4` |
+| `schema-ast-reference` | 30 | `accepted-with-rationale` |
+| **Total** | **118** | `accepted-with-rationale` |
 
 Alignment status:
 
 | Status | Entries |
 | --- | ---: |
-| `aligned` | 115 |
-| `mismatch` | 3 |
-| `missing-target` | 1 |
+| `aligned` | 118 |
+| `mismatch` | 0 |
+| `missing-target` | 0 |
 | `unknown` | 0 |
 
 Notes:
@@ -1608,26 +1608,20 @@ Notes:
   alignment as secondary metadata (`alignment_status`) while keeping the claim
   identity separate from line-only display metadata.
 
-Findings: 115 entries are `accepted-with-rationale`; 4 entries are
-`confirmed-defect`. Confirmed defects are:
+Findings: all 118 entries are `accepted-with-rationale`. The four confirmed
+schema-doc drift findings from triage are resolved:
 
-- Phase 1C arithmetic baseline count drift: the audit doc records 244 total
-  entries and 96 `target-bits` entries, while the live
-  `audit/phase1c_arithmetic_baseline.json` contains 245 total entries and 97
-  `target-bits` entries.
-- The Phase 1C prose summary also records
-  `accepted-with-rationale:244, candidate:0`; the live baseline now contains
-  `accepted-with-rationale:245`.
-- `compiler/translation_rules.md` references AST node
-  `AccessToObjectDefinition`, but `compiler/ast_schema.json` has no matching
-  node.
+- The stale Phase 1C arithmetic baseline prose and `target-bits` counts now
+  match `audit/phase1c_arithmetic_baseline.json`: 245 total entries, 245
+  accepted entries, and 97 `target-bits` entries.
+- The stale translation-rule mapping for named access type definitions now
+  documents that the parser rejects the removed source construct before Ada
+  emission rather than referencing a non-existent AST node.
 
 Phase 1I fix queue:
 
-| Follow-up | Entries | Acceptance target |
-| --- | ---: | --- |
-| Phase 1I.C audit doc count reconciliation | 3 | Update the stale Phase 1C audit-doc count/status claims to match `audit/phase1c_arithmetic_baseline.json`. |
-| Phase 1I.C AccessToObjectDefinition schema/reference reconciliation | 1 | Decide whether the AST node should exist or the translation-rule reference should be updated/removed, then make the schema/doc pair consistent. |
+No open Phase 1I.C fix work remains. Phase 1I closeout should promote the
+three Phase 1I gates after confirming live-scan stability.
 
 ## Phase 2 - Large-File Deep Dives
 

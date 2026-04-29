@@ -114,7 +114,7 @@ def run_baseline_case() -> tuple[bool, str]:
     classifications = Counter(
         entry.get("classification") for entry in baseline_audit_gate.entries_for(payload)
     )
-    expected = Counter({"accepted-with-rationale": 115, "confirmed-defect": 4})
+    expected = Counter({"accepted-with-rationale": 118})
     if classifications != expected:
         return False, f"unexpected Phase 1I.C triage distribution {classifications}"
     confirmed_keys = sorted(
@@ -122,42 +122,24 @@ def run_baseline_case() -> tuple[bool, str]:
         for entry in baseline_audit_gate.entries_for(payload)
         if entry.get("classification") == "confirmed-defect"
     )
-    expected_confirmed = sorted(
-        [
-            "1C:Baseline counts:target-bits",
-            "1C:prose-summary:classification",
-            "1C:prose-summary:total",
-            "ast-node:AccessToObjectDefinition",
-        ]
-    )
-    if confirmed_keys != expected_confirmed:
+    if confirmed_keys:
         return False, f"unexpected Phase 1I.C confirmed-defect keys {confirmed_keys}"
     return True, ""
 
 
 def run_ast_reference_case() -> tuple[bool, str]:
     claims = list(audit_docs_schema_alignment.iter_ast_reference_claims())
-    # This inventory intentionally pins the current single documented reference
-    # to the missing schema node. If docs add/remove that reference, the scanner
-    # baseline should be reviewed during the combined Phase 1I triage.
-    missing = [claim for claim in claims if claim.claim_key == "ast-node:AccessToObjectDefinition"]
-    if len(missing) != 1:
-        return False, f"expected one AccessToObjectDefinition claim, got {len(missing)}"
-    claim = missing[0]
-    if claim.category != "schema-ast-reference" or claim.alignment_status != "missing-target":
-        return False, "AccessToObjectDefinition should be a missing schema reference"
-    if claim.actual_value != "missing" or claim.doc_value != "AccessToObjectDefinition":
-        return False, "AccessToObjectDefinition claim has unexpected values"
-    aligned = [claim for claim in claims if claim.alignment_status == "aligned"]
-    if len(aligned) < 20:
-        return False, "AST reference scanner found too few aligned references"
+    stale = [claim for claim in claims if claim.claim_key == "ast-node:AccessToObjectDefinition"]
+    if stale:
+        return False, "AccessToObjectDefinition should no longer be documented as an AST node"
+    if len(claims) != 30:
+        return False, f"expected 30 AST reference claims, got {len(claims)}"
+    if any(claim.alignment_status != "aligned" for claim in claims):
+        return False, "AST reference scanner should find only aligned references"
     return True, ""
 
 
-def run_baseline_count_mismatch_case() -> tuple[bool, str]:
-    # This locks the known Phase 1C count drift as triage input. When the
-    # combined Phase 1I triage/fix reconciles the drift, delete or update this
-    # case rather than loosening the numeric assertions.
+def run_baseline_count_alignment_case() -> tuple[bool, str]:
     payload = audit_docs_schema_alignment.scan()
     entries = baseline_audit_gate.entries_for(payload)
     by_key = {entry["claim_key"]: entry for entry in entries}
@@ -165,20 +147,41 @@ def run_baseline_count_mismatch_case() -> tuple[bool, str]:
     if target_bits is None:
         return False, "missing Phase 1C target-bits count claim"
     if (
-        target_bits.get("doc_value") != 96
+        target_bits.get("doc_value") != 97
         or target_bits.get("actual_value") != 97
-        or target_bits.get("alignment_status") != "mismatch"
+        or target_bits.get("alignment_status") != "aligned"
     ):
         return False, f"unexpected target-bits count claim {target_bits!r}"
+    target_bits_classification = by_key.get("1C:Baseline counts:target-bits:classification")
+    if target_bits_classification is None:
+        return False, "missing Phase 1C target-bits classification claim"
+    if (
+        target_bits_classification.get("doc_value") != "accepted-with-rationale"
+        or target_bits_classification.get("actual_value") != "accepted-with-rationale"
+        or target_bits_classification.get("alignment_status") != "aligned"
+    ):
+        return (
+            False,
+            f"unexpected target-bits classification claim {target_bits_classification!r}",
+        )
     prose_total = by_key.get("1C:prose-summary:total")
     if prose_total is None:
         return False, "missing Phase 1C prose total claim"
     if (
-        prose_total.get("doc_value") != 244
+        prose_total.get("doc_value") != 245
         or prose_total.get("actual_value") != 245
-        or prose_total.get("alignment_status") != "mismatch"
+        or prose_total.get("alignment_status") != "aligned"
     ):
         return False, f"unexpected Phase 1C prose total claim {prose_total!r}"
+    prose_classification = by_key.get("1C:prose-summary:classification")
+    if prose_classification is None:
+        return False, "missing Phase 1C prose classification claim"
+    if (
+        prose_classification.get("doc_value") != "accepted-with-rationale:245, candidate:0"
+        or prose_classification.get("actual_value") != "accepted-with-rationale:245, candidate:0"
+        or prose_classification.get("alignment_status") != "aligned"
+    ):
+        return False, f"unexpected Phase 1C prose classification claim {prose_classification!r}"
     return True, ""
 
 
@@ -271,8 +274,8 @@ def run_docs_schema_alignment_audit_checks() -> RunCounts:
     )
     passed += record_result(
         failures,
-        "phase1i-schema-doc-alignment:baseline-count-mismatch",
-        run_baseline_count_mismatch_case(),
+        "phase1i-schema-doc-alignment:baseline-count-alignment",
+        run_baseline_count_alignment_case(),
     )
     passed += record_result(
         failures,
