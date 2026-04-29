@@ -43,6 +43,11 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     )
     if not ok:
         return False, message
+    assert isinstance(payload, dict)
+    return validate_snippet_digests(payload, label)
+
+
+def validate_snippet_digests(payload: dict[str, object], label: str) -> tuple[bool, str]:
     for entry in baseline_audit_gate.entries_for(payload):
         digest = entry.get("snippet_digest")
         if not isinstance(digest, str) or len(digest) != 64:
@@ -55,13 +60,16 @@ def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
 
 
 def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
-    return baseline_audit_gate.validate_closed_baseline(
+    ok, message = baseline_audit_gate.validate_closed_baseline(
         payload,
         phase_label=PHASE_LABEL,
         required_fields=REQUIRED_FIELDS,
         valid_categories=audit_docs_code_snippet_drift.CATEGORIES,
         valid_patterns=audit_docs_code_snippet_drift.PATTERNS,
     )
+    if not ok:
+        return False, message
+    return validate_snippet_digests(payload, "baseline")
 
 
 def compare_live_scan_to_baseline(
@@ -199,6 +207,15 @@ def run_snippet_digest_drift_gate_case() -> tuple[bool, str]:
     ok, message = compare_snippet_digest_to_baseline(live, baseline)
     if ok or "snippet_digest" not in message:
         return False, f"snippet_digest drift should fail, got: {message}"
+    return True, ""
+
+
+def run_closed_baseline_rejects_bad_digest_case() -> tuple[bool, str]:
+    ok, message = validate_closed_baseline(
+        {"entries": [synthetic_entry("known", snippet_digest="not-a-sha256")]}
+    )
+    if ok or "snippet_digest" not in message:
+        return False, f"malformed baseline snippet_digest should fail, got: {message}"
     return True, ""
 
 
@@ -349,6 +366,11 @@ def run_docs_code_snippet_drift_audit_checks() -> RunCounts:
         failures,
         "phase1i-code-snippet-drift:snippet-digest-drift-gate",
         run_snippet_digest_drift_gate_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-code-snippet-drift:bad-baseline-digest-gate",
+        run_closed_baseline_rejects_bad_digest_case(),
     )
     passed += record_result(
         failures,

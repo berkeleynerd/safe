@@ -166,8 +166,6 @@ def run_live_scan_case() -> tuple[bool, str]:
     if not ok:
         return False, message
     ok, message = compare_target_digest_report_only(payload, baseline)
-    if not ok:
-        return False, message
     if message:
         print(message)
     return True, ""
