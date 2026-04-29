@@ -903,7 +903,7 @@
       "verification_target": "audit/phase1c_arithmetic_baseline.json:target-bits:classification"
     },
     {
-      "actual_value": "accepted-with-rationale:245",
+      "actual_value": "accepted-with-rationale:245, candidate:0",
       "alignment_status": "mismatch",
       "category": "audit-doc-baseline-status",
       "claim_key": "1C:prose-summary:classification",

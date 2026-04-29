@@ -86,10 +86,6 @@ def run_live_scan_case() -> tuple[bool, str]:
     ok, message = validate_entries(payload, "scanner JSON")
     if not ok:
         return False, message
-    audit_docs_schema_alignment.print_summary(
-        payload,
-        prior_classifications=audit_docs_schema_alignment.existing_classifications(),
-    )
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message

@@ -320,11 +320,14 @@ def prose_summary_claims(
     ):
         status_counts[classification] = int(count_text)
     if status_counts:
-        doc_value = ", ".join(f"{key}:{status_counts[key]}" for key in sorted(status_counts))
         actual_counts = baseline_state[phase]["classifications"]
         assert isinstance(actual_counts, dict)
+        summary_keys = sorted(set(status_counts) | set(actual_counts))
+        doc_value = ", ".join(
+            f"{key}:{int(status_counts.get(key, 0))}" for key in summary_keys
+        )
         actual_value = ", ".join(
-            f"{key}:{int(actual_counts[key])}" for key in sorted(actual_counts)
+            f"{key}:{int(actual_counts.get(key, 0))}" for key in summary_keys
         )
         claims.append(
             Claim(
