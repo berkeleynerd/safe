@@ -5,8 +5,8 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: continue Phase 2 statement-emitter checkpoint 3 from `Stmt_Loop`
-and the remaining statement-emitter helpers.
+Next action: begin Phase 2 check/resolve deep dive for
+`safe_frontend-check_resolve.adb`.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1747,11 +1747,43 @@ Checkpoint 2 permutation coverage:
 | Cleanup and fall-through | snapshot cleanup, loop-item cleanup, heap-backed element cleanup, body fall-through cleanup | cleanup frame absent vs present; loop body falls through vs exits/returns; plain string/growable/composite element cleanup vs scalar element | Covered: cleanup setup at lines 7483, 7487, 7557, 7559, 7572, 7585, 8304, 8306, 8312, and 8318; `Statements_Fall_Through` checks at lines 7681 and 8348; cleanup rendering and pops at lines 7697, 7713, 8372, 8388, 8395, and 8396. No finding: cleanup frames are pushed only for paths that need ownership cleanup and rendered only after fall-through checks, so early non-fall-through exits do not gain spurious cleanup statements. |
 | `Raise_Unsupported` path | checkpoint 2 `Stmt_For` arm | verified absence of direct unsupported raises in the covered range | Covered by an empty `Raise_Unsupported` grep over lines 4950-8413. No finding: checkpoint 2 introduces no direct raise-after-dead-code surface; later unsupported paths remain checkpoint 3 work. |
 
+Checkpoint 3 covers lines 8414-10873, closing the statement-emitter deep dive.
+It covers the remaining `Render_Statements` arms from `Stmt_Loop` through the
+unsupported `Stmt_Unknown | Stmt_Match` fallback, plus post-`Render_Statements`
+helpers through `Append_Move_Null`.
+
+Checkpoint 3 permutation coverage:
+
+| Matrix row | Families considered | Permutations simulated | Coverage / rationale |
+| --- | --- | --- | --- |
+| Remaining loop/exit/channel arms | `Stmt_Loop`; conditional and unconditional `Stmt_Exit`; blocking send/receive; try-send/try-receive resolver boundary | loop body fall-through vs early exit; shared-condition exit snapshots vs direct exit; heap-backed receive staging vs scalar receive; unreachable try-send vs reachable try-receive | Covered: `Stmt_Loop` lines 8414-8418, `Stmt_Exit` lines 8419-8445, `Stmt_Send` lines 8446-8453, `Stmt_Receive` lines 8454-8549, `Stmt_Try_Send` lines 8550-8551, and `Stmt_Try_Receive` lines 8552-8662. No source change: channel receives use staged declarations/length reconcile/adoption for heap payloads and leave unsupported try-send as an internal resolver-boundary failure. |
+| Select/delay/unsupported arms | `Stmt_Select`; channel and delay select arms; no-delay select; `Stmt_Delay`; unsupported `Stmt_Unknown | Stmt_Match` fallback | one vs multiple channel arms; delay arm absent vs present; task-body timing path vs non-task delay; unsupported arm diagnostic with source span | Covered: `Stmt_Select` lines 8663-9078, `Stmt_Delay` lines 9079-9084, and the full unsupported fallback at lines 9085-9091. Finding: the unsupported arm preserves source context in its diagnostic, but the arm label at line 9085 is misindented and is recorded as CPA-002. |
+| Post-render helper bridge | required statement-suite rendering; channel ghost/runtime helper selection; object static initializer lookup; discrete range rendering | empty statement suite vs non-empty body; sequential scalar ghost channel vs heap channel helper; named range vs low/high range | Covered: `Render_Required_Statement_Suite` lines 9097-9112, channel/runtime helpers lines 9114-9251, and `Render_Discrete_Range` lines 9230-9251. No finding: helpers preserve existing fail-closed routes and shared runtime requirements without changing statement dispatch semantics. |
+| Assignment renderer | scalar assignment; shared/global target replacement; static integer assignment; float/narrowing assignment path; unsupported target/value shapes | local vs shared target; stable replacement available vs missing; static integer assignment vs rendered expression; unsupported assignment target/value diagnostics | Covered: `Append_Assignment` lines 9253-9840, including direct `Raise_Unsupported` calls at lines 9390, 9418, and 9461. No source change: unsupported assignment shapes fail closed with diagnostics; checkpoint 3 only records the deferred assignment coverage. |
+| Return, cleanup, and loop invariants | float/integer loop invariants; plain and cleanup-aware returns; block declarations | loop invariant emitted vs absent; return with no cleanup vs cleanup frame return; direct expression return vs staged cleanup return | Covered: `Append_Float_Loop_Invariant` lines 9842-9881, `Append_Integer_Loop_Invariant` lines 9883-9918, `Append_Return` lines 9920-10004, and `Append_Return_With_Cleanup` lines 10006-10112. No finding: cleanup-aware returns preserve required cleanup rendering before returning. |
+| Post-render scanners and narrowing helpers | select detection; name assignment/overwrite scans; static array lengths; stable float interpolation; wide locals; float narrowing; move-null cleanup | select present vs absent; immediate overwrite vs later assignment; static length known vs unknown; float interpolation stable vs unsupported; narrowing checks around assignment/return | Covered: select/name scanners lines 10159-10360, static length and float interpolation helpers lines 10362-10619, wide-local collection and narrowing helpers lines 10621-10849, and `Append_Move_Null` lines 10851-10871. No finding: post-render helper scans remain conservative and feed existing assignment/return safety paths. |
+| `Raise_Unsupported` path | select precheck failures; unsupported select arity; unsupported statement fallback; post-render helper failures | invalid select arm; missing select channel arm; select without channel arm; multi-delay select; unsupported statement kind; unsupported assignment/static-length helper paths | Covered: direct raises at lines 8866, 8873, 8953, 8961, 9086-9091, 9246, 9390, 9418, and 9461. No dead-code-after-raise issue found; each direct raise is a fail-closed branch or helper exit. The line 9085 formatting issue is non-behavioral and recorded as CPA-002. |
+
 Findings:
 
-None for checkpoints 1 and 2. The audit value for these PRs is the recorded
-permutation coverage above; no CPA entries were created because no covered
-checkpoint-1 or checkpoint-2 path produced a candidate finding.
+Checkpoint 3 recorded one hygiene ledger entry. No source edits were made, and
+no soundness or correctness CPA entries were created across checkpoints 1-3.
+
+### CPA-002 - Misindented unsupported statement arm
+- Area: statement emitter dispatcher formatting
+- Location: compiler_impl/src/safe_frontend-ada_emit-statements.adb:9085@AUDIT_SHA
+- Severity: hygiene
+- Urgency: whenever
+- Confidence: confirmed
+- Outcome: ledger
+- Enforcement proposal: no
+- Evidence: line 9085 is indented 15 spaces while peer top-level dispatcher
+  arms at lines 4259, 4950, 8414, 8419, 8446, and 9079, plus `end case` at
+  line 9092, use 12 spaces.
+- Counterfactual: Ada accepts the formatting, and the full unsupported
+  diagnostic body spans lines 9085-9091, so this is not behavioral.
+- Target: consider formatting-only cleanup in a later hygiene PR.
+- Links: PR #431 and PR #432 checkpoint context.
 
 ### safe_frontend-check_resolve.adb
 
