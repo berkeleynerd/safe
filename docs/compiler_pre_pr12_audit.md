@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1I closeout/gate promotion.
+Next action: cross-file secondary-metadata consolidation, then Phase 2.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -772,25 +772,36 @@ Working with the baseline:
   baseline.
 - Broader pattern surfaces, novel classification rules, or hits in unrelated
   code use a scan-extension/triage cycle before any behavior-changing fix.
-- Phase 1C, Phase 1D, Phase 1E, Phase 1F, Phase 1G, and Phase 1H baseline
-  gates share common test-layer mechanics in `scripts/_lib/baseline_audit_gate.py`:
-  structural validation, closed-baseline validation, live-vs-baseline
-  comparison, report-only missing drift, and synthetic self-check coverage.
+- Phase 1C, Phase 1D, Phase 1E, Phase 1F, Phase 1G, Phase 1H, and Phase 1I
+  baseline gates share common test-layer mechanics in
+  `scripts/_lib/baseline_audit_gate.py`: structural validation,
+  closed-baseline validation, live-vs-baseline comparison, report-only missing
+  drift, and synthetic self-check coverage.
 - Cross-file scanners keep the primary surface in the fingerprint and validate
   secondary metadata separately. For example, Phase 1G fingerprints the
   spec-side `pragma No_Return` contract, while `body_status` drift is checked
   as related metadata; Phase 1H fingerprints the public stdlib spec contract,
   while `implementation_surface` drift is checked as related metadata. Drift in
   either dimension fails with distinct diagnostics.
+- Cross-file scanner drift-policy choice depends on what the secondary
+  metadata represents. Reference-existence policy, used by Phase 1I.A, fails
+  when `target_status` changes but reports `target_digest` changes only; this
+  keeps legitimate fixture-content edits visible without making every fixture
+  edit a gate failure. Content-as-audit-target policy, used by Phase 1I.B,
+  fails on `snippet_digest` drift because the snippet body is the audited
+  surface. Claim-against-state policy, used by Phase 1G, Phase 1H, and
+  Phase 1I.C, fails when categorical or alignment metadata drifts because that
+  metadata records whether the claim still matches machine state.
 - Cross-file drift detection logic remains local to each phase-specific test
   module for now: Phase 1G validates `body_status`, Phase 1H validates
-  `implementation_surface`, and Phase 1I.A records `target_status` plus
-  `target_digest` for documentation references to concrete fixture artifacts.
-  Phase 1I.A is the third cross-file scanner instance, so the deferred
-  consolidation trigger is now met. Queue consolidation after full Phase 1I
-  closeout so the 1I.B/1I.C scanners can supply any remaining design
-  constraints before moving secondary-metadata validation into
-  `baseline_audit_gate.py`.
+  `implementation_surface`, and Phase 1I validates `target_status`,
+  `target_digest`, `snippet_digest`, and `alignment_status` under the
+  field-specific policies above. Phase 1I is the third cross-file scanner
+  instance and supplies the first mixed fail/report-only content-hash policies,
+  so the deferred consolidation trigger is now met. The next PR should plan a
+  shared `baseline_audit_gate.py` API that accepts per-metadata-field drift
+  policy parameters; the API shape is deliberately left to that dedicated
+  consolidation PR.
 - Cross-scanner consolidation pattern: extract shared logic into a helper,
   migrate per scanner in separate commits, preserve domain-specific scanner
   behavior locally, and defer scanner-script or JSON-shape normalization to
@@ -1380,14 +1391,12 @@ Findings:
 
 ## Phase 1I - Docs And Fixture Drift
 
-Status: fixes complete; closeout pending.
-Enforcement default: inventory and triage first; gate promotion after the
-Phase 1I fixes and closeout are complete.
+Status: complete.
+Enforcement default: active baseline gates for all three Phase 1I scanners.
 
 Phase split:
 
-- Phase 1I.A: documentation path references to concrete fixture artifacts
-  (this inventory).
+- Phase 1I.A: documentation path references to concrete fixture artifacts.
 - Phase 1I.B: code-snippet drift in docs. Historical proposal material such as
   `docs/syntax_proposals.md` may need explicit carve-outs during inventory.
 - Phase 1I.C: schema-vs-doc alignment for documented JSON/baseline/artifact
@@ -1410,6 +1419,16 @@ Triage rules:
 - 1I.C aligned claims are accepted. Mismatches and missing targets are
   confirmed defects when they identify stale audit-doc counts/status or a
   missing schema/reference relationship.
+
+Closeout summary:
+
+- Phase 1I protects 716 accepted baseline entries: 307 path references,
+  291 code snippets, and 118 schema/documentation alignment claims.
+- All three scanners now run closed-baseline gates. New fingerprints fail,
+  missing fingerprints report only, and each scanner applies its
+  phase-specific secondary-metadata drift policy.
+- Phase 1I closed in six PRs: 1I.A inventory, 1I.B inventory, 1I.C inventory,
+  combined triage, schema-doc fix, and closeout/gate promotion.
 
 ### Phase 1I.A - Doc Path Reference Inventory
 
@@ -1456,10 +1475,11 @@ Notes:
 - Fingerprints identify the documentation reference: category, doc path,
   normalized target path, and pattern name. Line numbers and text are display
   fields.
-- Secondary metadata records `target_status` and `target_digest`. Planned
-  closeout policy: `target_status` drift (`present`/`missing`) fails the gate,
-  while digest drift is report-only. This keeps fixture-content edits visible
-  without making every intentional fixture edit a Phase 1I gate failure.
+- Secondary metadata records `target_status` and `target_digest`.
+  Closed-gate policy: `target_status` drift (`present`/`missing`) fails the
+  gate, while digest drift is report-only. This keeps fixture-content edits
+  visible without making every intentional fixture edit a Phase 1I gate
+  failure.
 
 Findings: all 307 entries are `accepted-with-rationale`. No 1I.A fix work is
 queued.
@@ -1532,8 +1552,8 @@ Notes:
   visible through `snippet_digest` drift instead of being absorbed into the
   identity key.
 - Secondary metadata records `snippet_digest`, the SHA-256 of the fenced block
-  body. Digest drift already fails the inventory check because snippet content
-  is the audited surface.
+  body. Closed-gate policy: digest drift fails because snippet content is the
+  audited surface.
 - `docs/syntax_proposals.md` remains in scope but isolated under
   `historical-proposal-snippet`, so triage can accept or carve out historical
   proposal material explicitly rather than hiding it from inventory.
@@ -1606,7 +1626,8 @@ Notes:
 - Phase 1I.C extends the cross-file scanner pattern from categorical metadata
   to document-to-schema/document-to-artifact validation. It records claim
   alignment as secondary metadata (`alignment_status`) while keeping the claim
-  identity separate from line-only display metadata.
+  identity separate from line-only display metadata. Closed-gate policy:
+  `alignment_status` drift fails, while line-only display drift is ignored.
 
 Findings: all 118 entries are `accepted-with-rationale`. The four confirmed
 schema-doc drift findings from triage are resolved:
@@ -1621,8 +1642,7 @@ schema-doc drift findings from triage are resolved:
 
 Phase 1I fix queue:
 
-No open Phase 1I.C fix work remains. Phase 1I closeout should promote the
-three Phase 1I gates after confirming live-scan stability.
+No open Phase 1I fix work remains. The three Phase 1I gates are active.
 
 ## Phase 2 - Large-File Deep Dives
 

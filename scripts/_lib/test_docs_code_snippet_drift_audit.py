@@ -1,4 +1,4 @@
-"""Inventory-mode checks for the Phase 1I.B docs code-snippet drift scanner."""
+"""Baseline-gated checks for the Phase 1I.B docs code-snippet drift scanner."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from _lib.test_harness import REPO_ROOT, RunCounts, first_message, record_result
 
 AUDIT_SCRIPT = REPO_ROOT / "scripts" / "audit_docs_code_snippet_drift.py"
 BASELINE_PATH = audit_docs_code_snippet_drift.BASELINE_PATH
+PHASE_LABEL = "Phase 1I.B docs code-snippet drift"
+ACCEPTED = baseline_audit_gate.ACCEPTED
 REQUIRED_FIELDS = (
     "fingerprint",
     "category",
@@ -50,20 +52,48 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
 
 def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
     return baseline_audit_gate.read_baseline_payload(BASELINE_PATH, repo_root=REPO_ROOT)
-def payload_without_line_positions(payload: dict[str, object]) -> dict[str, object]:
-    normalized = dict(payload)
-    entries = payload.get("entries", [])
-    if isinstance(entries, list):
-        normalized["entries"] = [
-            {
-                key: value
-                for key, value in entry.items()
-                if key not in {"start_line", "end_line"}
-            }
-            for entry in entries
-            if isinstance(entry, dict)
-        ]
-    return normalized
+
+
+def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
+    return baseline_audit_gate.validate_closed_baseline(
+        payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_code_snippet_drift.CATEGORIES,
+        valid_patterns=audit_docs_code_snippet_drift.PATTERNS,
+    )
+
+
+def compare_live_scan_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    return baseline_audit_gate.compare_live_scan_to_baseline(
+        live_payload,
+        baseline_payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_code_snippet_drift.CATEGORIES,
+        valid_patterns=audit_docs_code_snippet_drift.PATTERNS,
+    )
+
+
+def compare_snippet_digest_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    live = baseline_audit_gate.fingerprint_map(live_payload)
+    baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
+    for fingerprint in sorted(set(live) & set(baseline)):
+        live_digest = live[fingerprint].get("snippet_digest")
+        baseline_digest = baseline[fingerprint].get("snippet_digest")
+        if live_digest != baseline_digest:
+            return (
+                False,
+                f"{PHASE_LABEL} snippet_digest drift: {baseline_digest!r} -> "
+                f"{live_digest!r} at {baseline_audit_gate.describe_entry(live[fingerprint])}",
+            )
+    return True, ""
 
 
 def run_live_scan_case() -> tuple[bool, str]:
@@ -90,11 +120,17 @@ def run_live_scan_case() -> tuple[bool, str]:
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message
-    ok, message = validate_entries(baseline, "baseline")
+    ok, message = validate_closed_baseline(baseline)
     if not ok:
         return False, message
-    if payload_without_line_positions(payload) != payload_without_line_positions(baseline):
-        return False, "Phase 1I.B live scanner JSON differs from committed baseline"
+    ok, message = compare_live_scan_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    if message:
+        print(message)
+    ok, message = compare_snippet_digest_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
     return True, ""
 
 
@@ -102,7 +138,7 @@ def run_baseline_case() -> tuple[bool, str]:
     payload, message = read_baseline_payload()
     if payload is None:
         return False, message
-    ok, message = validate_entries(payload, "baseline")
+    ok, message = validate_closed_baseline(payload)
     if not ok:
         return False, message
     classifications = Counter(
@@ -111,6 +147,70 @@ def run_baseline_case() -> tuple[bool, str]:
     expected = Counter({"accepted-with-rationale": 291})
     if classifications != expected:
         return False, f"unexpected Phase 1I.B triage distribution {classifications}"
+    return True, ""
+
+
+def synthetic_entry(
+    fingerprint: str,
+    *,
+    classification: str = ACCEPTED,
+    rationale: str = "Accepted: synthetic Phase 1I.B code-snippet entry.",
+    snippet_digest: str = "0" * 64,
+    start_line: int = 1,
+    end_line: int = 3,
+) -> dict[str, object]:
+    return {
+        "fingerprint": fingerprint,
+        "category": "current-safe-snippet",
+        "pattern": "fenced-code-block",
+        "path": "docs/synthetic.md",
+        "block_index": 1,
+        "start_line": start_line,
+        "end_line": end_line,
+        "language": "safe",
+        "first_line_text": "package Demo is",
+        "snippet_line_count": 1,
+        "snippet_digest": snippet_digest,
+        "classification": classification,
+        "rationale": rationale,
+        "follow_up": "",
+    }
+
+
+def run_gate_self_check_case() -> tuple[bool, str]:
+    ok, message = compare_live_scan_to_baseline(
+        {"entries": [synthetic_entry("known")]},
+        {"entries": [synthetic_entry("known")]},
+    )
+    if not ok or message:
+        return False, f"known live fingerprint should pass silently, got: {message}"
+    return baseline_audit_gate.run_gate_self_check(
+        phase_label=PHASE_LABEL,
+        synthetic_entry=synthetic_entry,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_code_snippet_drift.CATEGORIES,
+        valid_patterns=audit_docs_code_snippet_drift.PATTERNS,
+    )
+
+
+def run_snippet_digest_drift_gate_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", snippet_digest="0" * 64)]}
+    live = {"entries": [synthetic_entry("same", snippet_digest="1" * 64)]}
+    ok, message = compare_snippet_digest_to_baseline(live, baseline)
+    if ok or "snippet_digest" not in message:
+        return False, f"snippet_digest drift should fail, got: {message}"
+    return True, ""
+
+
+def run_line_only_drift_gate_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", start_line=1, end_line=3)]}
+    live = {"entries": [synthetic_entry("same", start_line=9, end_line=11)]}
+    ok, message = compare_live_scan_to_baseline(live, baseline)
+    if not ok or message:
+        return False, f"line-only drift should not fail fingerprint gate, got: {message}"
+    ok, message = compare_snippet_digest_to_baseline(live, baseline)
+    if not ok or message:
+        return False, f"line-only drift should not fail digest gate, got: {message}"
     return True, ""
 
 
@@ -239,6 +339,21 @@ def run_docs_code_snippet_drift_audit_checks() -> RunCounts:
         failures,
         "phase1i-code-snippet-drift:baseline",
         run_baseline_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-code-snippet-drift:gate-self-check",
+        run_gate_self_check_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-code-snippet-drift:snippet-digest-drift-gate",
+        run_snippet_digest_drift_gate_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-code-snippet-drift:line-only-drift-gate",
+        run_line_only_drift_gate_case(),
     )
     passed += record_result(
         failures,

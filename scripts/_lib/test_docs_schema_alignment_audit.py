@@ -1,4 +1,4 @@
-"""Inventory-mode checks for the Phase 1I.C schema-vs-doc alignment scanner."""
+"""Baseline-gated checks for the Phase 1I.C schema-vs-doc alignment scanner."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import json
 import subprocess
 import sys
 from collections import Counter
-from copy import deepcopy
 
 import audit_docs_schema_alignment
 from _lib import baseline_audit_gate
@@ -15,6 +14,8 @@ from _lib.test_harness import REPO_ROOT, RunCounts, first_message, record_result
 
 AUDIT_SCRIPT = REPO_ROOT / "scripts" / "audit_docs_schema_alignment.py"
 BASELINE_PATH = audit_docs_schema_alignment.BASELINE_PATH
+PHASE_LABEL = "Phase 1I.C schema-doc alignment"
+ACCEPTED = baseline_audit_gate.ACCEPTED
 REQUIRED_FIELDS = (
     "fingerprint",
     "category",
@@ -31,16 +32,6 @@ REQUIRED_FIELDS = (
     "rationale",
     "follow_up",
 )
-
-
-def payload_without_line_positions(payload: dict[str, object]) -> dict[str, object]:
-    normalized = deepcopy(payload)
-    entries = normalized.get("entries")
-    if isinstance(entries, list):
-        for entry in entries:
-            if isinstance(entry, dict):
-                entry.pop("line", None)
-    return normalized
 
 
 def validate_alignment_statuses(payload: dict[str, object], label: str) -> tuple[bool, str]:
@@ -66,8 +57,57 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     return validate_alignment_statuses(payload, label)
 
 
+def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
+    ok, message = baseline_audit_gate.validate_closed_baseline(
+        payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_schema_alignment.CATEGORIES,
+        valid_patterns=audit_docs_schema_alignment.PATTERNS,
+    )
+    if not ok:
+        return False, message
+    return validate_alignment_statuses(payload, "baseline")
+
+
 def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
     return baseline_audit_gate.read_baseline_payload(BASELINE_PATH, repo_root=REPO_ROOT)
+
+
+def compare_live_scan_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    return baseline_audit_gate.compare_live_scan_to_baseline(
+        live_payload,
+        baseline_payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_schema_alignment.CATEGORIES,
+        valid_patterns=audit_docs_schema_alignment.PATTERNS,
+    )
+
+
+def compare_alignment_metadata_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    """Validate content-derived claim metadata separately from line display drift."""
+
+    live = baseline_audit_gate.fingerprint_map(live_payload)
+    baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
+    fields = ("doc_value", "actual_value", "alignment_status")
+    for fingerprint in sorted(set(live) & set(baseline)):
+        for field in fields:
+            live_value = live[fingerprint].get(field)
+            baseline_value = baseline[fingerprint].get(field)
+            if live_value != baseline_value:
+                return (
+                    False,
+                    f"{PHASE_LABEL} {field} drift: {baseline_value!r} -> "
+                    f"{live_value!r} at {baseline_audit_gate.describe_entry(live[fingerprint])}",
+                )
+    return True, ""
 
 
 def run_live_scan_case() -> tuple[bool, str]:
@@ -90,17 +130,17 @@ def run_live_scan_case() -> tuple[bool, str]:
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message
-    ok, message = validate_entries(baseline, "baseline")
+    ok, message = validate_closed_baseline(baseline)
     if not ok:
         return False, message
-    # Schema/documentation claims are content-anchored; line-only display
-    # metadata may drift when nearby prose changes.
-    if payload_without_line_positions(payload) != payload_without_line_positions(baseline):
-        return (
-            False,
-            "Phase 1I.C live scanner JSON differs from committed baseline "
-            "outside line-only display metadata",
-        )
+    ok, message = compare_live_scan_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    if message:
+        print(message)
+    ok, message = compare_alignment_metadata_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
     return True, ""
 
 
@@ -108,7 +148,7 @@ def run_baseline_case() -> tuple[bool, str]:
     payload, message = read_baseline_payload()
     if payload is None:
         return False, message
-    ok, message = validate_entries(payload, "baseline")
+    ok, message = validate_closed_baseline(payload)
     if not ok:
         return False, message
     classifications = Counter(
@@ -124,6 +164,72 @@ def run_baseline_case() -> tuple[bool, str]:
     )
     if confirmed_keys:
         return False, f"unexpected Phase 1I.C confirmed-defect keys {confirmed_keys}"
+    return True, ""
+
+
+def synthetic_entry(
+    fingerprint: str,
+    *,
+    classification: str = ACCEPTED,
+    rationale: str = "Accepted: synthetic Phase 1I.C schema-doc entry.",
+    line: int = 1,
+    alignment_status: str = "aligned",
+    doc_value: object = "Example",
+    actual_value: object = "present",
+) -> dict[str, object]:
+    return {
+        "fingerprint": fingerprint,
+        "category": "schema-ast-reference",
+        "pattern": "translation-rules-ast-node",
+        "path": "compiler/translation_rules.md",
+        "line": line,
+        "claim_key": "ast-node:Example",
+        "claim_text": "AST: `Example`",
+        "verification_target": "compiler/ast_schema.json:nodes.Example",
+        "doc_value": doc_value,
+        "actual_value": actual_value,
+        "alignment_status": alignment_status,
+        "classification": classification,
+        "rationale": rationale,
+        "follow_up": "",
+    }
+
+
+def run_gate_self_check_case() -> tuple[bool, str]:
+    ok, message = compare_live_scan_to_baseline(
+        {"entries": [synthetic_entry("known")]},
+        {"entries": [synthetic_entry("known")]},
+    )
+    if not ok or message:
+        return False, f"known live fingerprint should pass silently, got: {message}"
+    return baseline_audit_gate.run_gate_self_check(
+        phase_label=PHASE_LABEL,
+        synthetic_entry=synthetic_entry,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_schema_alignment.CATEGORIES,
+        valid_patterns=audit_docs_schema_alignment.PATTERNS,
+    )
+
+
+def run_alignment_status_drift_gate_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", alignment_status="aligned")]}
+    for drift_status in ("mismatch", "missing-target"):
+        live = {"entries": [synthetic_entry("same", alignment_status=drift_status)]}
+        ok, message = compare_alignment_metadata_to_baseline(live, baseline)
+        if ok or "alignment_status" not in message or drift_status not in message:
+            return False, f"alignment_status drift should fail, got: {message}"
+    return True, ""
+
+
+def run_line_only_drift_gate_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", line=1)]}
+    live = {"entries": [synthetic_entry("same", line=99)]}
+    ok, message = compare_live_scan_to_baseline(live, baseline)
+    if not ok or message:
+        return False, f"line-only drift should not fail fingerprint gate, got: {message}"
+    ok, message = compare_alignment_metadata_to_baseline(live, baseline)
+    if not ok or message:
+        return False, f"line-only drift should not fail metadata gate, got: {message}"
     return True, ""
 
 
@@ -266,6 +372,21 @@ def run_docs_schema_alignment_audit_checks() -> RunCounts:
         failures,
         "phase1i-schema-doc-alignment:baseline",
         run_baseline_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-schema-doc-alignment:gate-self-check",
+        run_gate_self_check_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-schema-doc-alignment:alignment-status-drift-gate",
+        run_alignment_status_drift_gate_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-schema-doc-alignment:line-only-drift-gate",
+        run_line_only_drift_gate_case(),
     )
     passed += record_result(
         failures,

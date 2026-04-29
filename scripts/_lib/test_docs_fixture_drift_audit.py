@@ -1,4 +1,4 @@
-"""Inventory-mode checks for the Phase 1I.A docs fixture-drift scanner."""
+"""Baseline-gated checks for the Phase 1I.A docs fixture-drift scanner."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
-from copy import deepcopy
 from pathlib import Path
 
 import audit_docs_fixture_drift
@@ -18,6 +17,8 @@ from _lib.test_harness import REPO_ROOT, RunCounts, first_message, record_result
 
 AUDIT_SCRIPT = REPO_ROOT / "scripts" / "audit_docs_fixture_drift.py"
 BASELINE_PATH = audit_docs_fixture_drift.BASELINE_PATH
+PHASE_LABEL = "Phase 1I.A docs fixture drift"
+ACCEPTED = baseline_audit_gate.ACCEPTED
 REQUIRED_FIELDS = (
     "fingerprint",
     "category",
@@ -35,23 +36,6 @@ REQUIRED_FIELDS = (
     "rationale",
     "follow_up",
 )
-
-
-def payload_without_report_only_digest(payload: dict[str, object]) -> dict[str, object]:
-    """Normalize Phase 1I.A inventory JSON for comparison.
-
-    Inventory mode keeps display and schema metadata in lockstep with the
-    committed baseline. Only target_digest is report-only because routine
-    fixture-content edits should not force a docs-reference re-baseline.
-    """
-
-    comparable = deepcopy(payload)
-    entries = comparable.get("entries")
-    if isinstance(entries, list):
-        for entry in entries:
-            if isinstance(entry, dict):
-                entry.pop("target_digest", None)
-    return comparable
 
 
 def validate_target_statuses(payload: dict[str, object], label: str) -> tuple[bool, str]:
@@ -77,8 +61,73 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     return validate_target_statuses(payload, label)
 
 
+def validate_closed_baseline(payload: dict[str, object]) -> tuple[bool, str]:
+    ok, message = baseline_audit_gate.validate_closed_baseline(
+        payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_fixture_drift.CATEGORIES,
+        valid_patterns=audit_docs_fixture_drift.PATTERNS,
+    )
+    if not ok:
+        return False, message
+    return validate_target_statuses(payload, "baseline")
+
+
 def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
     return baseline_audit_gate.read_baseline_payload(BASELINE_PATH, repo_root=REPO_ROOT)
+
+
+def compare_live_scan_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    return baseline_audit_gate.compare_live_scan_to_baseline(
+        live_payload,
+        baseline_payload,
+        phase_label=PHASE_LABEL,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_fixture_drift.CATEGORIES,
+        valid_patterns=audit_docs_fixture_drift.PATTERNS,
+    )
+
+
+def compare_target_status_to_baseline(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    live = baseline_audit_gate.fingerprint_map(live_payload)
+    baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
+    for fingerprint in sorted(set(live) & set(baseline)):
+        live_status = live[fingerprint].get("target_status")
+        baseline_status = baseline[fingerprint].get("target_status")
+        if live_status != baseline_status:
+            return (
+                False,
+                f"{PHASE_LABEL} target_status drift: {baseline_status!r} -> "
+                f"{live_status!r} at {baseline_audit_gate.describe_entry(live[fingerprint])}",
+            )
+    return True, ""
+
+
+def compare_target_digest_report_only(
+    live_payload: dict[str, object],
+    baseline_payload: dict[str, object],
+) -> tuple[bool, str]:
+    live = baseline_audit_gate.fingerprint_map(live_payload)
+    baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
+    drifts = []
+    for fingerprint in sorted(set(live) & set(baseline)):
+        if live[fingerprint].get("target_digest") != baseline[fingerprint].get("target_digest"):
+            drifts.append(baseline_audit_gate.describe_entry(live[fingerprint]))
+    if not drifts:
+        return True, ""
+    examples = "; ".join(drifts[:5])
+    suffix = "" if len(drifts) <= 5 else f"; ... {len(drifts) - 5} more"
+    return (
+        True,
+        f"{PHASE_LABEL} target_digest drift (report-only): {examples}{suffix}",
+    )
 
 
 def run_live_scan_case() -> tuple[bool, str]:
@@ -105,17 +154,22 @@ def run_live_scan_case() -> tuple[bool, str]:
     baseline, message = read_baseline_payload()
     if baseline is None:
         return False, message
-    ok, message = validate_entries(baseline, "baseline")
+    ok, message = validate_closed_baseline(baseline)
     if not ok:
         return False, message
-    # Inventory mode is intentionally stricter than closed baseline gates:
-    # every field except target_digest must match the committed baseline.
-    if payload_without_report_only_digest(payload) != payload_without_report_only_digest(baseline):
-        return (
-            False,
-            "Phase 1I.A live scanner JSON differs from committed baseline "
-            "outside report-only target_digest metadata",
-        )
+    ok, message = compare_live_scan_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    if message:
+        print(message)
+    ok, message = compare_target_status_to_baseline(payload, baseline)
+    if not ok:
+        return False, message
+    ok, message = compare_target_digest_report_only(payload, baseline)
+    if not ok:
+        return False, message
+    if message:
+        print(message)
     return True, ""
 
 
@@ -123,7 +177,7 @@ def run_baseline_case() -> tuple[bool, str]:
     payload, message = read_baseline_payload()
     if payload is None:
         return False, message
-    ok, message = validate_entries(payload, "baseline")
+    ok, message = validate_closed_baseline(payload)
     if not ok:
         return False, message
     classifications = Counter(
@@ -132,6 +186,68 @@ def run_baseline_case() -> tuple[bool, str]:
     expected = Counter({"accepted-with-rationale": 307})
     if classifications != expected:
         return False, f"unexpected Phase 1I.A triage distribution {classifications}"
+    return True, ""
+
+
+def synthetic_entry(
+    fingerprint: str,
+    *,
+    classification: str = ACCEPTED,
+    rationale: str = "Accepted: synthetic Phase 1I.A docs fixture entry.",
+    target_status: str = "present",
+    target_digest: str = "0" * 64,
+    line: int = 1,
+) -> dict[str, object]:
+    return {
+        "fingerprint": fingerprint,
+        "category": "prose-path-reference",
+        "pattern": "safe-fixture-path",
+        "path": "docs/synthetic.md",
+        "line": line,
+        "line_numbers": [line],
+        "first_line_text": "`tests/positive/rule1_accumulate.safe`",
+        "target_path": "tests/positive/rule1_accumulate.safe",
+        "target_kind": "safe-source",
+        "target_status": target_status,
+        "target_digest": target_digest,
+        "multiplicity": 1,
+        "classification": classification,
+        "rationale": rationale,
+        "follow_up": "",
+    }
+
+
+def run_gate_self_check_case() -> tuple[bool, str]:
+    ok, message = compare_live_scan_to_baseline(
+        {"entries": [synthetic_entry("known")]},
+        {"entries": [synthetic_entry("known")]},
+    )
+    if not ok or message:
+        return False, f"known live fingerprint should pass silently, got: {message}"
+    return baseline_audit_gate.run_gate_self_check(
+        phase_label=PHASE_LABEL,
+        synthetic_entry=synthetic_entry,
+        required_fields=REQUIRED_FIELDS,
+        valid_categories=audit_docs_fixture_drift.CATEGORIES,
+        valid_patterns=audit_docs_fixture_drift.PATTERNS,
+    )
+
+
+def run_target_status_drift_gate_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", target_status="present")]}
+    live = {"entries": [synthetic_entry("same", target_status="missing", target_digest="")]}
+    ok, message = compare_target_status_to_baseline(live, baseline)
+    if ok or "present" not in message or "missing" not in message:
+        return False, f"target_status drift should fail with both statuses, got: {message}"
+    return True, ""
+
+
+def run_target_digest_report_only_gate_case() -> tuple[bool, str]:
+    baseline = {"entries": [synthetic_entry("same", target_digest="0" * 64)]}
+    live = {"entries": [synthetic_entry("same", target_digest="1" * 64)]}
+    ok, message = compare_target_digest_report_only(live, baseline)
+    if not ok or "report-only" not in message:
+        return False, f"target_digest drift should report without failing, got: {message}"
     return True, ""
 
 
@@ -269,28 +385,6 @@ def run_target_metadata_case() -> tuple[bool, str]:
     return True, ""
 
 
-def run_digest_report_only_case() -> tuple[bool, str]:
-    baseline = {
-        "entries": [
-            {
-                "fingerprint": "same",
-                "target_digest": "old",
-            }
-        ]
-    }
-    live = {
-        "entries": [
-            {
-                "fingerprint": "same",
-                "target_digest": "new",
-            }
-        ]
-    }
-    if payload_without_report_only_digest(baseline) != payload_without_report_only_digest(live):
-        return False, "target_digest should be ignored by inventory-mode comparison"
-    return True, ""
-
-
 def run_fingerprint_case() -> tuple[bool, str]:
     doc_path = REPO_ROOT / "docs" / "synthetic.md"
     first = audit_docs_fixture_drift.fingerprint_for(
@@ -329,6 +423,21 @@ def run_docs_fixture_drift_audit_checks() -> RunCounts:
     )
     passed += record_result(
         failures,
+        "phase1i-docs-fixture-drift:gate-self-check",
+        run_gate_self_check_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-docs-fixture-drift:target-status-drift-gate",
+        run_target_status_drift_gate_case(),
+    )
+    passed += record_result(
+        failures,
+        "phase1i-docs-fixture-drift:target-digest-report-only-gate",
+        run_target_digest_report_only_gate_case(),
+    )
+    passed += record_result(
+        failures,
         "phase1i-docs-fixture-drift:path-extraction",
         run_path_extraction_case(),
     )
@@ -341,11 +450,6 @@ def run_docs_fixture_drift_audit_checks() -> RunCounts:
         failures,
         "phase1i-docs-fixture-drift:target-metadata",
         run_target_metadata_case(),
-    )
-    passed += record_result(
-        failures,
-        "phase1i-docs-fixture-drift:digest-report-only",
-        run_digest_report_only_case(),
     )
     passed += record_result(
         failures,
