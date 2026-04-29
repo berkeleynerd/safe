@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: Phase 1I.B - Code Snippet Drift Inventory.
+Next action: Phase 1I.C - Schema-Vs-Doc Alignment Inventory.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1448,6 +1448,83 @@ Notes:
 
 Findings: no classifications yet. All 307 entries remain `candidate` pending
 the combined Phase 1I triage after 1I.B and 1I.C inventories land.
+
+### Phase 1I.B - Code Snippet Drift Inventory
+
+Scanner: `scripts/audit_docs_code_snippet_drift.py`
+
+Baseline: `audit/phase1i_code_snippet_drift_baseline.json`
+
+Scope:
+
+- `README.md`
+- `CLAUDE.md`
+- `docs/**/*.md`
+- `spec/**/*.md`
+- Backtick-fenced Markdown code blocks using at least three backticks,
+  including Markdown's allowed indentation of up to three leading spaces
+
+Out of scope for 1I.B: inline code spans, `~~~` fences, archive trees,
+compiler workspace docs, CSV docs, path-reference existence/digest checks, and
+schema/documentation alignment. Path references stay in 1I.A; schema alignment
+moves to 1I.C. Preflight confirmed no `~~~` fences under the 1I.B scope.
+
+Inventory counts:
+
+| Category | Entries | Current classification |
+| --- | ---: | --- |
+| `current-ada-snippet` | 37 | `candidate` |
+| `current-prose-or-data-snippet` | 49 | `candidate` |
+| `current-safe-snippet` | 32 | `candidate` |
+| `current-shell-snippet` | 35 | `candidate` |
+| `historical-proposal-snippet` | 138 | `candidate` |
+| **Total** | **291** | `candidate` |
+
+Language counts:
+
+| Language | Entries |
+| --- | ---: |
+| `<none>` | 153 |
+| `ada` | 41 |
+| `bash` | 35 |
+| `go` | 2 |
+| `md` | 2 |
+| `mermaid` | 2 |
+| `safe` | 43 |
+| `text` | 10 |
+| `toml` | 3 |
+
+Per-file distribution highlights:
+
+- `docs/syntax_proposals.md`: 138 historical snippets.
+- `docs/tutorial.md`: 22 Safe snippets, the largest current Safe snippet
+  contributor.
+- `spec/**/*.md`: 68 snippets total, including 8 Safe snippets and 36 Ada
+  snippets. Spec examples are included because they are load-bearing current
+  documentation.
+- `CLAUDE.md`: 6 shell snippets covering repo workflow commands.
+
+Notes:
+
+- Fingerprints identify the snippet position: category, doc path, per-file
+  block index, and language. Start/end lines and display text are diagnostic
+  fields. The inventory check ignores line-only drift in `start_line` and
+  `end_line` so prose edits before an unchanged fence do not force a baseline
+  update.
+- Positional fingerprints mean inserting a fenced block before an existing
+  block in the same document produces new/missing baseline drift for later
+  blocks. That is an explicit v1 tradeoff so snippet content changes remain
+  visible through `snippet_digest` drift instead of being absorbed into the
+  identity key.
+- Secondary metadata records `snippet_digest`, the SHA-256 of the fenced block
+  body. Digest drift already fails the inventory check because snippet content
+  is the audited surface.
+- `docs/syntax_proposals.md` remains in scope but isolated under
+  `historical-proposal-snippet`, so triage can accept or carve out historical
+  proposal material explicitly rather than hiding it from inventory.
+
+Findings: no classifications yet. All 291 entries remain `candidate` pending
+the combined Phase 1I triage after 1I.C inventory lands.
 
 ## Phase 2 - Large-File Deep Dives
 
