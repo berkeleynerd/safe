@@ -5,8 +5,8 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: continue Phase 2 check/resolve checkpoint 2 for
-`safe_frontend-check_resolve.adb`.
+Next action: start Phase 2 mir-analyze deep dive for
+`safe_frontend-mir_analyze.adb`.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1815,11 +1815,75 @@ Checkpoint 1 permutation coverage:
 | Operator/try/static narrowing boundary | tuple/index bounds; boolean/binary/string/array operators; nominal arithmetic/comparison; non-executable `try`; binary modulus; static growable-to-fixed narrowing | tuple selector valid vs invalid; one-index vs slice; boolean vs binary operators; same-width vs mixed-width binary operands; executable vs non-executable `try`; static length known vs unknown | Covered: `Validate_Pr112_Expr_Boundaries` lines 8256-8583, `Reject_Non_Executable_Try` lines 8585-8637, `Binary_Modulus` line 8660, and `Static_Growable_To_Fixed_Narrowing_OK` lines 9000-9128. No finding: boundary checks reject invalid expression forms before later compatibility and statement normalization work. |
 | Fail-closed diagnostics | source diagnostics; internal resolver diagnostics; unsupported fallback policy | source error vs internal resolver error; no direct statement-emitter-style unsupported raise path | Covered: `Raise_Diag`/`Raise_Internal` wrappers at lines 616-635. `Raise_Unsupported` has no hits in this file. No finding: checkpoint 1 fail-closed paths use the resolver diagnostic wrappers rather than a separate unsupported-raise helper. |
 
+Checkpoint 2 covers `compiler_impl/src/safe_frontend-check_resolve.adb` lines
+9130-18198, starting at the deferred `Compatible_Source_To_Target_Type` body and
+closing the file at `end Safe_Frontend.Check_Resolve`. The two-checkpoint split
+is 50.2% / 49.8% by line count and keeps both sides on top-level function
+boundaries.
+
+Forward specs from the front matter are accounted for explicitly. Specs for
+`Register_Function` (line 906), `Instantiate_Generic_Type` (line 974),
+`Specialize_Generic_Call` (line 981), `Specialize_Interface_Call` (line 988),
+`Interface_Has_Member` (line 996), `Validate_Interface_Method_Syntax`
+(line 1000), `Compatible_Source_To_Target_Type` (line 1500),
+`Compatible_Source_Expr_To_Target_Type` (line 1505), `Is_Assignable_Target`
+(line 1192), and `Validate_Mut_Call_Arguments` (line 1194) were covered in
+checkpoint 1, while their bodies land in checkpoint 2. The `Normalize_Statement`
+spec at line 12075 and body at line 12185 both fall inside checkpoint 2.
+
+Checkpoint 2 forward spec/body deltas:
+
+| Function | Spec | Body | Delta |
+| --- | --- | --- | --- |
+| `Register_Function` | 906 | 15767 | 14861 |
+| `Instantiate_Generic_Type` | 974 | 15619 | 14645 |
+| `Specialize_Generic_Call` | 981 | 10221 | 9240 |
+| `Specialize_Interface_Call` | 988 | 10080 | 9092 |
+| `Interface_Has_Member` | 996 | 15839 | 14843 |
+| `Validate_Interface_Method_Syntax` | 1000 | 15855 | 14855 |
+| `Is_Assignable_Target` | 1192 | 9340 | 8148 |
+| `Validate_Mut_Call_Arguments` | 1194 | 9374 | 8180 |
+| `Compatible_Source_To_Target_Type` | 1500 | 9130 | 7630 |
+| `Compatible_Source_Expr_To_Target_Type` | 1505 | 9177 | 7672 |
+| `Normalize_Statement` | 12075 | 12185 | 110 |
+
+Checkpoint 2 permutation coverage:
+
+| Matrix row | Families considered | Permutations simulated | Coverage / rationale |
+| --- | --- | --- | --- |
+| Compatibility and static-boundary helpers | growable vs fixed arrays; nominal integer literals; shift counts; binary-to-integer conversions; writable `mut` arguments; object declaration type admission | fixed-to-growable vs growable-to-fixed; static count in range vs out of range; conversion to bounded scalar vs invalid value; tuple/selector/index targets vs read-only forms | Covered: `Compatible_Source_To_Target_Type` lines 9130-9175, `Compatible_Source_Expr_To_Target_Type` lines 9177-9208, `Validate_Static_Binary_Boundaries` lines 9210-9338, `Is_Assignable_Target` lines 9340-9372, `Validate_Mut_Call_Arguments` lines 9374-9414, and `Resolve_Decl_Type` lines 9416-9447. No finding: mismatches remain source diagnostics or conservative false compatibility, and no path silently widens growable-to-fixed assignment. |
+| Declaration, call, channel, and object helpers | no-result procedure calls; shared pop/remove helpers; named statement labels; shared declarations; static growable-to-fixed initializers; imported/local constant assignment targets | call expression vs bare procedure name; local shared helper vs public helper; missing/duplicate channel contract; shared scalar root vs shared container root; static slice equal length vs incompatible length | Covered: `Normalize_Procedure_Call` lines 9449-9569, `Normalize_Procedure_Call_Checked` lines 9571-9603, `Channel_Element_Type` lines 9605-9629, `Append_Task_Channel_Contract` lines 9631-9665, `Looks_Like_Unsupported_Statement_Label` lines 9667-9685, `Normalize_Object_Decl` lines 9687-9903, `Is_Read_Only_Imported_Target` lines 9905-9945, `Is_Local_Constant_Target` lines 9947-9994, and `Ensure_Writable_Target` lines 9996-10041. No finding: helper validation either stamps a compatible normalized initializer or fails closed through source diagnostics before statement emission. |
+| Interface/generic specialization and synthetic prelude | interface-constrained calls; generic function calls; default initializers; synthetic object/assignment/call/return/if/loop/exit nodes | receiver interface vs parameter interface; explicit generic args vs missing/invalid args; cached specialization vs new clone; optional/result/record/array default initializer forms | Covered: `Specialize_Interface_Call` lines 10080-10219, `Specialize_Generic_Call` lines 10221-10333, synthetic append/expression/statement constructors lines 10335-10623, and `Default_Initializer_Expr` lines 10406-10498. No finding: specialization validates arity and constraints before synthetic clone registration, while synthetic nodes preserve source spans and explicit type names. |
+| Executable expression desugaring | `try` expressions; shared `pop_last`/`remove`; list/map `contains` and `get`; append/set used as expressions; aggregate/tuple/array preludes; short-circuit operands | result carrier vs non-result carrier; enclosing result function present vs absent; shared helper expression vs statement-only mutation; right operand of `and then`/`or else` with `try`; nested prelude order across calls, indexes, aggregates, and tuples | Covered: `Desugar_Executable_Expr` lines 10625-12063, including `try` handling at lines 10651-10726, call/apply desugaring at lines 10773-11960, `pop_last` lines 10930-11059, `contains` line 11060, `get` line 11285, `remove` line 11527, statement-only `append`/`set` diagnostics at lines 11919 and 11926, and short-circuit right-operand propagation at lines 11977-12005. No finding: generated preludes precede the rewritten expression, and invalid expression-level mutators remain explicit diagnostics. |
+| Statement normalization dispatcher | object/destructure declarations; assignments; returns; if/while/for/loop/exit; calls; send/receive/delay; case/match/select; unknown statements | initializer with prelude vs none; shared-root assignment vs ordinary assignment; guard-derived exact length fact vs no fact; blocking vs try send/receive; result match vs sum match; select channel vs delay arms | Covered: `Resolver_Env` lines 12065-12073, `Normalize_Statement` spec/body at lines 12075 and 12185-14831, plus `Normalize_Statement_List` lines 12083-12183. Statement arm anchors: object/destructure lines 12329 and 12359, assignment line 12428, return line 12777, if/while/for lines 12795, 12871, and 12938, call line 13060, send/receive lines 13968 and 14033, case/match/select lines 14109, 14183, and 14685, and unknown line 14825. No finding: local type/static/exact-length environments are threaded through recursive normalization, and unsupported shapes remain source diagnostics rather than optimistic rewrites. |
+| Type, generic, function, and interface validators | type declarations; recursive record families; generic type instantiation; function registration; interface method syntax | interface vs concrete fields/returns; sum variants complete vs duplicated/missing; self-referential generic instantiation; receiver parameters vs ordinary parameters; method syntax vs free-function interface call | Covered: `Resolve_Type_Declaration` lines 14833-15617, `Instantiate_Generic_Type` lines 15619-15765, `Register_Function` lines 15767-15837, `Interface_Has_Member` lines 15839-15853, and `Validate_Interface_Method_Syntax` lines 15855-16090. Finding: receiver-parameter metadata assignments in `Register_Function` are misindented at lines 15790-15793 and recorded as CPA-003. No source change: this is formatting-only; validation behavior stays fail-closed through existing diagnostics. |
+| Channel, task, unit, and top-level resolver validators | channel declarations; task nontermination; unit-scope statement admissibility; public item detection; package-level name collision and recursive type-family analysis | definite vs reference-bearing channel element; positive vs invalid capacity; return/exit inside task body; local declaration at unit scope; enum/sum/shared wrapper name collision; cyclic type family admitted vs rejected | Covered: `Resolve_Channel_Declaration` lines 16092-16138, `Validate_Task_Nontermination` lines 16140-16212, `Item_Is_Public` lines 16214-16232, `Validate_Unit_Statements` lines 16234-16298, `Resolve` setup line 16300, collision helpers lines 16323-16523, and recursive family analysis lines 16525-16762. No finding: validator recursion rejects invalid task/unit scopes and name collisions before normalized units are emitted. |
+| Resolve orchestration and replay | imported package metadata; first-pass local registration; second-pass statement normalization; interface/generic specialization replay; synthetic type append and final success/diagnostic result | imported package success vs diagnostic failure; local type/subtype/channel/object/task/subprogram items; unit statements vs subprogram/task bodies; pending interface specialization vs generic specialization; specialization context cleanup on exception | Covered: import/local setup lines 16791-17138, first-pass item dispatcher lines 17142-17535, unit statement normalization lines 17564-17572, second-pass item normalization lines 17575-17880, interface specialization replay lines 17882-18014, generic specialization replay lines 18016-18175, final synthetic type append lines 18177-18191, and success/failure return lines 18193-18197. `Raise_Unsupported` has no hits in this file. No finding: orchestration updates visibility maps before recursive normalization, restores select/task context state on exception paths, and returns resolver diagnostics without adding emitter-style unsupported raises. |
+
 Findings:
 
-Checkpoint 1 recorded no CPA findings. The `Compatible_Source_To_Target_Type`
-body at line 9130 and all statement normalization/resolution bodies after that
-seam remain checkpoint 2 work.
+Checkpoint 1 recorded no CPA findings. Checkpoint 2 recorded one hygiene ledger
+entry. No source edits were made, and no soundness or correctness CPA entries
+were created across checkpoints 1-2.
+
+### CPA-003 - Misindented receiver parameter metadata
+- Area: resolver function registration formatting
+- Location: compiler_impl/src/safe_frontend-check_resolve.adb:15790@AUDIT_SHA
+- Severity: hygiene
+- Urgency: whenever
+- Confidence: confirmed
+- Outcome: ledger
+- Enforcement proposal: no
+- Evidence: in `Register_Function`, the receiver branch assigns `Symbol.Name`
+  and `Symbol.Kind` at the peer statement indentation, but `Symbol.Mode`,
+  `Symbol.Span`, `Symbol.Type_Info`, and `Result.Params.Append` at lines
+  15790-15793 are indented three extra spaces. The ordinary parameter branch at
+  lines 15813-15818 uses the peer indentation consistently.
+- Counterfactual: Ada semantics are unchanged because the same receiver
+  parameter metadata statements execute in the same block; the issue is
+  formatting-only.
+- Target: consider formatting-only cleanup in a later hygiene PR.
+- Links: Phase 2 check/resolve checkpoint 2 PR context.
 
 ### safe_frontend-mir_analyze.adb
 
