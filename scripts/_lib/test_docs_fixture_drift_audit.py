@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from copy import deepcopy
 from pathlib import Path
 
@@ -125,12 +126,12 @@ def run_baseline_case() -> tuple[bool, str]:
     ok, message = validate_entries(payload, "baseline")
     if not ok:
         return False, message
-    classifications = {
+    classifications = Counter(
         entry.get("classification") for entry in baseline_audit_gate.entries_for(payload)
-    }
-    # The first triage PR relaxes this candidate-only inventory invariant.
-    if classifications != {"candidate"}:
-        return False, f"inventory baseline should contain only candidates, got {classifications}"
+    )
+    expected = Counter({"accepted-with-rationale": 307})
+    if classifications != expected:
+        return False, f"unexpected Phase 1I.A triage distribution {classifications}"
     return True, ""
 
 

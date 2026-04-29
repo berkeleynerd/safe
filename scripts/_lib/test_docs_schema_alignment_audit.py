@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from collections import Counter
 from copy import deepcopy
 
 import audit_docs_schema_alignment
@@ -110,12 +111,27 @@ def run_baseline_case() -> tuple[bool, str]:
     ok, message = validate_entries(payload, "baseline")
     if not ok:
         return False, message
-    classifications = {
+    classifications = Counter(
         entry.get("classification") for entry in baseline_audit_gate.entries_for(payload)
-    }
-    # The combined Phase 1I triage PR relaxes this candidate-only invariant.
-    if classifications != {"candidate"}:
-        return False, f"inventory baseline should contain only candidates, got {classifications}"
+    )
+    expected = Counter({"accepted-with-rationale": 115, "confirmed-defect": 4})
+    if classifications != expected:
+        return False, f"unexpected Phase 1I.C triage distribution {classifications}"
+    confirmed_keys = sorted(
+        str(entry.get("claim_key", ""))
+        for entry in baseline_audit_gate.entries_for(payload)
+        if entry.get("classification") == "confirmed-defect"
+    )
+    expected_confirmed = sorted(
+        [
+            "1C:Baseline counts:target-bits",
+            "1C:prose-summary:classification",
+            "1C:prose-summary:total",
+            "ast-node:AccessToObjectDefinition",
+        ]
+    )
+    if confirmed_keys != expected_confirmed:
+        return False, f"unexpected Phase 1I.C confirmed-defect keys {confirmed_keys}"
     return True, ""
 
 

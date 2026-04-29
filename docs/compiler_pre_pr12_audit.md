@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: combined Phase 1I triage across 1I.A/B/C inventories.
+Next action: Phase 1I fix PR for confirmed schema-doc drift.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1380,9 +1380,9 @@ Findings:
 
 ## Phase 1I - Docs And Fixture Drift
 
-Status: in progress.
-Enforcement default: inventory first; gate promotion after the Phase 1I.A/B/C
-inventories and combined triage are complete.
+Status: triage complete; fixes pending.
+Enforcement default: inventory and triage first; gate promotion after the
+Phase 1I fixes and closeout are complete.
 
 Phase split:
 
@@ -1393,8 +1393,23 @@ Phase split:
 - Phase 1I.C: schema-vs-doc alignment for documented JSON/baseline/artifact
   shapes.
 
-Keep the three inventories separate before triage. This preserves the planned
-A/B/C Phase 1I scope while keeping each scanner reviewable.
+The three inventories stayed separate through inventory and were triaged
+together. This preserved the planned A/B/C Phase 1I scope while keeping each
+scanner reviewable.
+
+Triage rules:
+
+- 1I.A path references are accepted when the referenced target is present at
+  triage time. The category-specific rationale distinguishes emitted-Ada
+  verification matrix claims, spec-to-fixture traceability links, and prose
+  example references.
+- 1I.B snippets are accepted as digest-pinned documentation baselines. The
+  category-specific rationale distinguishes archived proposal material, current
+  Safe examples, Ada/spec translation examples, shell workflow commands, and
+  prose/data examples.
+- 1I.C aligned claims are accepted. Mismatches and missing targets are
+  confirmed defects when they identify stale audit-doc counts/status or a
+  missing schema/reference relationship.
 
 ### Phase 1I.A - Doc Path Reference Inventory
 
@@ -1417,10 +1432,10 @@ Inventory counts:
 
 | Category | Entries | Current classification |
 | --- | ---: | --- |
-| `emitted-matrix-path-reference` | 185 | `candidate` |
-| `prose-path-reference` | 33 | `candidate` |
-| `traceability-matrix-path-reference` | 89 | `candidate` |
-| **Total** | **307** | `candidate` |
+| `emitted-matrix-path-reference` | 185 | `accepted-with-rationale` |
+| `prose-path-reference` | 33 | `accepted-with-rationale` |
+| `traceability-matrix-path-reference` | 89 | `accepted-with-rationale` |
+| **Total** | **307** | `accepted-with-rationale` |
 
 Target status:
 
@@ -1446,8 +1461,8 @@ Notes:
   while digest drift is report-only. This keeps fixture-content edits visible
   without making every intentional fixture edit a Phase 1I gate failure.
 
-Findings: no classifications yet. All 307 entries remain `candidate` pending
-the combined Phase 1I triage after 1I.B and 1I.C inventories land.
+Findings: all 307 entries are `accepted-with-rationale`. No 1I.A fix work is
+queued.
 
 ### Phase 1I.B - Code Snippet Drift Inventory
 
@@ -1473,12 +1488,12 @@ Inventory counts:
 
 | Category | Entries | Current classification |
 | --- | ---: | --- |
-| `current-ada-snippet` | 37 | `candidate` |
-| `current-prose-or-data-snippet` | 49 | `candidate` |
-| `current-safe-snippet` | 32 | `candidate` |
-| `current-shell-snippet` | 35 | `candidate` |
-| `historical-proposal-snippet` | 138 | `candidate` |
-| **Total** | **291** | `candidate` |
+| `current-ada-snippet` | 37 | `accepted-with-rationale` |
+| `current-prose-or-data-snippet` | 49 | `accepted-with-rationale` |
+| `current-safe-snippet` | 32 | `accepted-with-rationale` |
+| `current-shell-snippet` | 35 | `accepted-with-rationale` |
+| `historical-proposal-snippet` | 138 | `accepted-with-rationale` |
+| **Total** | **291** | `accepted-with-rationale` |
 
 Language counts:
 
@@ -1523,8 +1538,8 @@ Notes:
   `historical-proposal-snippet`, so triage can accept or carve out historical
   proposal material explicitly rather than hiding it from inventory.
 
-Findings: no classifications yet. All 291 entries remain `candidate` pending
-the combined Phase 1I triage after 1I.C inventory lands.
+Findings: all 291 entries are `accepted-with-rationale`. No 1I.B fix work is
+queued.
 
 ### Phase 1I.C - Schema-Vs-Doc Alignment Inventory
 
@@ -1556,12 +1571,12 @@ Inventory counts:
 
 | Category | Entries | Current classification |
 | --- | ---: | --- |
-| `artifact-contract-shape` | 15 | `candidate` |
-| `audit-doc-baseline-count` | 35 | `candidate` |
-| `audit-doc-baseline-status` | 35 | `candidate` |
-| `frozen-commit-freshness` | 3 | `candidate` |
-| `schema-ast-reference` | 31 | `candidate` |
-| **Total** | **119** | `candidate` |
+| `artifact-contract-shape` | 15 | `accepted-with-rationale` |
+| `audit-doc-baseline-count` | 35 | `accepted-with-rationale:33, confirmed-defect:2` |
+| `audit-doc-baseline-status` | 35 | `accepted-with-rationale:34, confirmed-defect:1` |
+| `frozen-commit-freshness` | 3 | `accepted-with-rationale` |
+| `schema-ast-reference` | 31 | `accepted-with-rationale:30, confirmed-defect:1` |
+| **Total** | **119** | `accepted-with-rationale:115, confirmed-defect:4` |
 
 Alignment status:
 
@@ -1593,8 +1608,8 @@ Notes:
   alignment as secondary metadata (`alignment_status`) while keeping the claim
   identity separate from line-only display metadata.
 
-Findings: no classifications yet. All 119 entries remain `candidate` pending
-combined Phase 1I triage. Known triage inputs are:
+Findings: 115 entries are `accepted-with-rationale`; 4 entries are
+`confirmed-defect`. Confirmed defects are:
 
 - Phase 1C arithmetic baseline count drift: the audit doc records 244 total
   entries and 96 `target-bits` entries, while the live
@@ -1606,6 +1621,13 @@ combined Phase 1I triage. Known triage inputs are:
 - `compiler/translation_rules.md` references AST node
   `AccessToObjectDefinition`, but `compiler/ast_schema.json` has no matching
   node.
+
+Phase 1I fix queue:
+
+| Follow-up | Entries | Acceptance target |
+| --- | ---: | --- |
+| Phase 1I.C audit doc count reconciliation | 3 | Update the stale Phase 1C audit-doc count/status claims to match `audit/phase1c_arithmetic_baseline.json`. |
+| Phase 1I.C AccessToObjectDefinition schema/reference reconciliation | 1 | Decide whether the AST node should exist or the translation-rule reference should be updated/removed, then make the schema/doc pair consistent. |
 
 ## Phase 2 - Large-File Deep Dives
 
