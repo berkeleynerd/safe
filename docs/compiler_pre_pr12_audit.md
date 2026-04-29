@@ -5,7 +5,7 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: begin Phase 2 check/resolve deep dive for
+Next action: continue Phase 2 check/resolve checkpoint 2 for
 `safe_frontend-check_resolve.adb`.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
@@ -1787,11 +1787,39 @@ no soundness or correctness CPA entries were created across checkpoints 1-3.
 
 ### safe_frontend-check_resolve.adb
 
-Owner: TBD.
+Owner: Codex.
+
+Checkpoint 1 covers `compiler_impl/src/safe_frontend-check_resolve.adb` lines
+1-9129, ending at the clean top-level function seam before the
+`Compatible_Source_To_Target_Type` body starts at line 9130. That is 50.2% by
+line count and keeps the checkpoint on a reviewer-useful function boundary
+rather than inside the compatibility helper.
+
+Forward specs in the covered front matter are accounted for explicitly. The
+`Contextualize_Expr_To_Target_Type` spec at line 1048 and body at line 7903,
+`Validate_And_Contextualize_Value` spec at line 1082 and body at line 8092,
+`Expr_Type` spec at line 1182 and body at line 5163, and
+`Resolve_Target_Type` spec at line 1188 and body at line 5585 are fully covered
+in checkpoint 1. The `Compatible_Source_To_Target_Type` spec at line 1500 is
+covered, but its body at line 9130 is deferred to checkpoint 2.
+
+Checkpoint 1 permutation coverage:
+
+| Matrix row | Families considered | Permutations simulated | Coverage / rationale |
+| --- | --- | --- | --- |
+| Front matter/env/shared/generic helpers | diagnostic exits; canonical names; synthetic type names; recursive record families; bounded strings; growable arrays; generic declarations | source diagnostic vs internal diagnostic; canonical vs synthetic names; admitted vs rejected recursive family; bounded string vs growable array helper registration; generic template vs specialization handoff | Covered: `Raise_Diag` lines 616-623, `Raise_Internal` lines 625-635, `Canonical_Name` line 241, `Synthetic_Type_Tail_Name` spec/body at lines 246 and 2586, `Family_Index_Of` line 358, `Recursive_Family_Diagnostic_Message` line 393, `Make_Bounded_String_Type` body at line 2570, `Make_Growable_Array_Type` body at line 2715, `Instantiate_Generic_Type` spec at line 974, and `Specialize_Generic_Call` spec at line 981. No finding: helpers either build descriptor metadata or fail closed through the shared diagnostic wrappers. |
+| Type-spec dispatcher | names and subtypes; constrained strings; discriminated records; binary widths; tuples; lists/growable arrays/maps/optionals; anonymous access types; unknown specs | generic args present vs missing; range low/high in bounds vs out of bounds; positional vs named discriminants; empty vs populated tuple/list/map/optional specs; supported vs deferred element/key types | Covered: `Resolve_Type_Spec` lines 4597-5104. This is intentionally a focused expansion of the helper cluster, not duplicate unclaimed coverage. No finding: unsupported or invalid type-spec shapes route to source diagnostics before descriptor construction. |
+| Expression typing and target resolution | typed literals; identifiers/selectors; resolved indexes; conversions/annotations; calls; optionals; try expressions; allocators; print call contexts | direct type name vs flattened target; contextual target vs inferred expression type; print call accepted vs rejected contexts; optional payload vs uncontextualized `none` | Covered: `Expr_Type` spec/body at lines 1182 and 5163, `Resolve_Target_Type` spec/body at lines 1188 and 5585, and print validation lines 5631-5770. No finding: expression type lookup and print validation preserve source diagnostics for unsupported contexts. |
+| Method/interface/apply resolution | built-in method classification; interface member matching; method application rewrite; generic function calls; sum constructors; array/string indexing; nominal conversions | method call vs index vs conversion; explicit generic args vs missing args; sum constructor vs method call; shared-root selector vs ordinary selector | Covered: method/interface helpers lines 5772-6883 and `Resolve_Apply` lines 6885-7051. No finding: ambiguous apply forms are rewritten to calls, indexes, or conversions, and deferred sum/shared operations fail closed with source diagnostics. |
+| Expression normalization/contextualization | shared container rewrites; sum constructors; aggregates; tuples/arrays; annotated expressions; optional `some`/`none`; contextual value stamping | shared root snapshot vs live helper call; named vs positional sum constructor args; aggregate field context; array/tuple element context; optional ascription present vs absent | Covered: `Normalize_Expr` lines 7084-7901, `Contextualize_Expr_To_Target_Type` lines 7903-8037, and `Validate_And_Contextualize_Value` lines 8092-8145. No finding: normalization either stamps/checks expected types or emits an explicit source diagnostic for unresolved optional and mismatch paths. |
+| Operator/try/static narrowing boundary | tuple/index bounds; boolean/binary/string/array operators; nominal arithmetic/comparison; non-executable `try`; binary modulus; static growable-to-fixed narrowing | tuple selector valid vs invalid; one-index vs slice; boolean vs binary operators; same-width vs mixed-width binary operands; executable vs non-executable `try`; static length known vs unknown | Covered: `Validate_Pr112_Expr_Boundaries` lines 8256-8583, `Reject_Non_Executable_Try` lines 8585-8637, `Binary_Modulus` line 8660, and `Static_Growable_To_Fixed_Narrowing_OK` lines 9000-9128. No finding: boundary checks reject invalid expression forms before later compatibility and statement normalization work. |
+| Fail-closed diagnostics | source diagnostics; internal resolver diagnostics; unsupported fallback policy | source error vs internal resolver error; no direct statement-emitter-style unsupported raise path | Covered: `Raise_Diag`/`Raise_Internal` wrappers at lines 616-635. `Raise_Unsupported` has no hits in this file. No finding: checkpoint 1 fail-closed paths use the resolver diagnostic wrappers rather than a separate unsupported-raise helper. |
 
 Findings:
 
-None yet.
+Checkpoint 1 recorded no CPA findings. The `Compatible_Source_To_Target_Type`
+body at line 9130 and all statement normalization/resolution bodies after that
+seam remain checkpoint 2 work.
 
 ### safe_frontend-mir_analyze.adb
 
