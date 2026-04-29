@@ -33,6 +33,8 @@ REQUIRED_FIELDS = (
     "rationale",
     "follow_up",
 )
+
+
 def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     ok, message = baseline_audit_gate.validate_entries(
         payload,

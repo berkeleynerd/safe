@@ -43,8 +43,6 @@ def validate_alignment_statuses(payload: dict[str, object], label: str) -> tuple
 
 
 def validate_entries(payload: object, label: str) -> tuple[bool, str]:
-    if not isinstance(payload, dict):
-        return False, f"{label} is not a dict"
     ok, message = baseline_audit_gate.validate_entries(
         payload,
         label,
