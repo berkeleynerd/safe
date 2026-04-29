@@ -56,8 +56,6 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     )
     if not ok:
         return False, message
-    if not isinstance(payload, dict):
-        return False, f"{label} is not a dict"
     return validate_target_statuses(payload, label)
 
 
