@@ -211,13 +211,30 @@ def run_gate_self_check_case() -> tuple[bool, str]:
     )
 
 
-def run_alignment_status_drift_gate_case() -> tuple[bool, str]:
-    baseline = {"entries": [synthetic_entry("same", alignment_status="aligned")]}
+def run_alignment_metadata_drift_gate_case() -> tuple[bool, str]:
+    baseline = {
+        "entries": [
+            synthetic_entry(
+                "same",
+                alignment_status="aligned",
+                doc_value="Example",
+                actual_value="present",
+            )
+        ]
+    }
     for drift_status in ("mismatch", "missing-target"):
         live = {"entries": [synthetic_entry("same", alignment_status=drift_status)]}
         ok, message = compare_alignment_metadata_to_baseline(live, baseline)
         if ok or "alignment_status" not in message or drift_status not in message:
             return False, f"alignment_status drift should fail, got: {message}"
+    drift_cases = {
+        "doc_value": synthetic_entry("same", doc_value="Other"),
+        "actual_value": synthetic_entry("same", actual_value="missing"),
+    }
+    for field, entry in drift_cases.items():
+        ok, message = compare_alignment_metadata_to_baseline({"entries": [entry]}, baseline)
+        if ok or field not in message:
+            return False, f"{field} drift should fail, got: {message}"
     return True, ""
 
 
@@ -380,8 +397,8 @@ def run_docs_schema_alignment_audit_checks() -> RunCounts:
     )
     passed += record_result(
         failures,
-        "phase1i-schema-doc-alignment:alignment-status-drift-gate",
-        run_alignment_status_drift_gate_case(),
+        "phase1i-schema-doc-alignment:alignment-metadata-drift-gate",
+        run_alignment_metadata_drift_gate_case(),
     )
     passed += record_result(
         failures,

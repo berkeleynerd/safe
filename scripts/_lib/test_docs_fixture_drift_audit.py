@@ -110,10 +110,10 @@ def compare_target_status_to_baseline(
     return True, ""
 
 
-def compare_target_digest_report_only(
+def target_digest_report_only_message(
     live_payload: dict[str, object],
     baseline_payload: dict[str, object],
-) -> tuple[bool, str]:
+) -> str:
     live = baseline_audit_gate.fingerprint_map(live_payload)
     baseline = baseline_audit_gate.fingerprint_map(baseline_payload)
     drifts = []
@@ -121,13 +121,10 @@ def compare_target_digest_report_only(
         if live[fingerprint].get("target_digest") != baseline[fingerprint].get("target_digest"):
             drifts.append(baseline_audit_gate.describe_entry(live[fingerprint]))
     if not drifts:
-        return True, ""
+        return ""
     examples = "; ".join(drifts[:5])
     suffix = "" if len(drifts) <= 5 else f"; ... {len(drifts) - 5} more"
-    return (
-        True,
-        f"{PHASE_LABEL} target_digest drift (report-only): {examples}{suffix}",
-    )
+    return f"{PHASE_LABEL} target_digest drift (report-only): {examples}{suffix}"
 
 
 def run_live_scan_case() -> tuple[bool, str]:
@@ -165,7 +162,7 @@ def run_live_scan_case() -> tuple[bool, str]:
     ok, message = compare_target_status_to_baseline(payload, baseline)
     if not ok:
         return False, message
-    ok, message = compare_target_digest_report_only(payload, baseline)
+    message = target_digest_report_only_message(payload, baseline)
     if message:
         print(message)
     return True, ""
@@ -243,8 +240,8 @@ def run_target_status_drift_gate_case() -> tuple[bool, str]:
 def run_target_digest_report_only_gate_case() -> tuple[bool, str]:
     baseline = {"entries": [synthetic_entry("same", target_digest="0" * 64)]}
     live = {"entries": [synthetic_entry("same", target_digest="1" * 64)]}
-    ok, message = compare_target_digest_report_only(live, baseline)
-    if not ok or "report-only" not in message:
+    message = target_digest_report_only_message(live, baseline)
+    if "report-only" not in message:
         return False, f"target_digest drift should report without failing, got: {message}"
     return True, ""
 
