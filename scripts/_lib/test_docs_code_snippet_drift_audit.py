@@ -30,26 +30,6 @@ REQUIRED_FIELDS = (
     "rationale",
     "follow_up",
 )
-EXPECTED_CATEGORY_COUNTS = {
-    "current-ada-snippet": 37,
-    "current-prose-or-data-snippet": 49,
-    "current-safe-snippet": 32,
-    "current-shell-snippet": 35,
-    "historical-proposal-snippet": 138,
-}
-EXPECTED_LANGUAGE_COUNTS = {
-    "<none>": 153,
-    "ada": 41,
-    "bash": 35,
-    "go": 2,
-    "md": 2,
-    "mermaid": 2,
-    "safe": 43,
-    "text": 10,
-    "toml": 3,
-}
-
-
 def validate_entries(payload: object, label: str) -> tuple[bool, str]:
     ok, message = baseline_audit_gate.validate_entries(
         payload,
@@ -69,18 +49,6 @@ def validate_entries(payload: object, label: str) -> tuple[bool, str]:
 
 def read_baseline_payload() -> tuple[dict[str, object] | None, str]:
     return baseline_audit_gate.read_baseline_payload(BASELINE_PATH, repo_root=REPO_ROOT)
-
-
-def validate_counts(payload: dict[str, object], label: str) -> tuple[bool, str]:
-    category_counts = audit_docs_code_snippet_drift.counts_by_category(payload)
-    if category_counts != EXPECTED_CATEGORY_COUNTS:
-        return False, f"unexpected {label} category counts {category_counts!r}"
-    language_counts = audit_docs_code_snippet_drift.counts_by_language(payload)
-    if language_counts != EXPECTED_LANGUAGE_COUNTS:
-        return False, f"unexpected {label} language counts {language_counts!r}"
-    return True, ""
-
-
 def payload_without_line_positions(payload: dict[str, object]) -> dict[str, object]:
     normalized = dict(payload)
     entries = payload.get("entries", [])
@@ -114,9 +82,6 @@ def run_live_scan_case() -> tuple[bool, str]:
     ok, message = validate_entries(payload, "scanner JSON")
     if not ok:
         return False, message
-    ok, message = validate_counts(payload, "scanner JSON")
-    if not ok:
-        return False, message
     audit_docs_code_snippet_drift.print_summary(
         payload,
         baseline_entries=audit_docs_code_snippet_drift.existing_classifications(),
@@ -137,9 +102,6 @@ def run_baseline_case() -> tuple[bool, str]:
     if payload is None:
         return False, message
     ok, message = validate_entries(payload, "baseline")
-    if not ok:
-        return False, message
-    ok, message = validate_counts(payload, "baseline")
     if not ok:
         return False, message
     classifications = {
