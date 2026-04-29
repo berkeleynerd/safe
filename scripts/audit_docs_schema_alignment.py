@@ -445,9 +445,13 @@ def iter_ast_reference_claims() -> Iterable[Claim]:
             segments.append(line.split("AST:", 1)[1])
         if "**AST node:**" in line:
             segments.append(line.split("**AST node:**", 1)[1])
+        seen_on_line: set[str] = set()
         for segment in segments:
             for match in re.finditer(r"`([A-Z][A-Za-z0-9_]+)`", segment):
                 node_name = match.group(1)
+                if node_name in seen_on_line:
+                    continue
+                seen_on_line.add(node_name)
                 present = node_name in nodes
                 yield Claim(
                     category="schema-ast-reference",
@@ -477,15 +481,26 @@ def actual_value_when_present(path: Path, needle: str, value: str) -> tuple[str,
 
 def actual_target_bits_values() -> tuple[str, str]:
     text = OUTPUT_CONTRACT_VALIDATOR.read_text(encoding="utf-8")
-    present = "{32, 64}" in text and "must be 32 or 64" in text
+    present = (
+        re.search(r"bits\s+not\s+in\s+\{\s*32\s*,\s*64\s*\}", text) is not None
+        and re.search(r"must\s+be\s+32\s+or\s+64", text) is not None
+    )
     return ("32|64" if present else "missing", repo_rel(OUTPUT_CONTRACT_VALIDATOR))
 
 
 def actual_target_bits_equality() -> tuple[str, str]:
     text = OUTPUT_CONTRACT_VALIDATOR.read_text(encoding="utf-8")
     present = (
-        'typed_payload["target_bits"] != mir_payload["target_bits"]' in text
-        and 'typed_payload["target_bits"] != safei_payload["target_bits"]' in text
+        re.search(
+            r'typed_payload\[\s*"target_bits"\s*\]\s*!=\s*mir_payload\[\s*"target_bits"\s*\]',
+            text,
+        )
+        is not None
+        and re.search(
+            r'typed_payload\[\s*"target_bits"\s*\]\s*!=\s*safei_payload\[\s*"target_bits"\s*\]',
+            text,
+        )
+        is not None
     )
     return ("typed=mir=safei" if present else "missing", repo_rel(OUTPUT_CONTRACT_VALIDATOR))
 
@@ -612,17 +627,32 @@ def artifact_claims() -> list[ArtifactClaim]:
     ]
 
 
-def find_line(path: Path, marker: str) -> tuple[int, str]:
+def find_line(path: Path, marker: str) -> tuple[int, str] | None:
     lines = path.read_text(encoding="utf-8").splitlines()
     for index, line in enumerate(lines, start=1):
         if marker in line:
             return index, normalized_text(line)
-    raise ValueError(f"artifact-contract marker not found in {repo_rel(path)}: {marker}")
+    return None
 
 
 def iter_artifact_contract_claims() -> Iterable[Claim]:
     for item in artifact_claims():
-        line, claim_text = find_line(ARTIFACT_CONTRACT_DOC, item.marker)
+        location = find_line(ARTIFACT_CONTRACT_DOC, item.marker)
+        if location is None:
+            yield Claim(
+                category="artifact-contract-shape",
+                pattern=item.pattern,
+                path=ARTIFACT_CONTRACT_DOC,
+                line=0,
+                claim_key=item.claim_key,
+                claim_text="",
+                verification_target=f"{repo_rel(ARTIFACT_CONTRACT_DOC)}:marker.{item.claim_key}",
+                doc_value=item.doc_value,
+                actual_value="missing",
+                alignment_status="missing-target",
+            )
+            continue
+        line, claim_text = location
         actual_value, target = item.actual()
         status = "aligned" if actual_value == item.doc_value else "mismatch"
         if actual_value == "missing":
