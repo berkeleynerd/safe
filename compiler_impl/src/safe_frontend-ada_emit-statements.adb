@@ -9082,13 +9082,13 @@ package body Safe_Frontend.Ada_Emit.Statements is
                  (Buffer,
                   "delay " & Render_Expr (Unit, Document, Item.Value, State) & ";",
                   Depth);
-               when CM.Stmt_Unknown | CM.Stmt_Match =>
-                  Raise_Unsupported
-                    (State,
-                     Item.Span,
-                     "PR09 emitter does not yet support statement kind '"
-                     & Item.Kind'Image
-                     & "'");
+            when CM.Stmt_Unknown | CM.Stmt_Match =>
+               Raise_Unsupported
+                 (State,
+                  Item.Span,
+                  "PR09 emitter does not yet support statement kind '"
+                  & Item.Kind'Image
+                  & "'");
             end case;
          end;
       end loop;

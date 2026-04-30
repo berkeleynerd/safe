@@ -853,9 +853,9 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                  & Render_Heap_String_Expr (Unit, Document, Expr.Prefix, State)
                  & ", "
                  & Low_Image
-                  & ", "
-                  & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index + 1), State)
-                  & ")";
+                 & ", "
+                 & Render_Expr (Unit, Document, Expr.Args (Expr.Args.First_Index + 1), State)
+                 & ")";
             elsif Is_Bounded_String_Type (Prefix_Info) then
                Register_Bounded_String_Type (State, Prefix_Info);
                if Natural (Expr.Args.Length) = 1 then
@@ -3290,6 +3290,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
       end loop;
       return SU.To_String (Result);
    end Apply_Name_Replacements;
+
    function Shared_Call_Formal_Type
      (Unit          : CM.Resolved_Unit;
       Document      : GM.Mir_Document;
@@ -3335,7 +3336,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
                  Flat_Callee (Flat_Callee'First .. Dot_Index - 1);
                Prefix_Key : constant String := FT.Lowercase (Prefix_Name);
                Selector_Text : constant String :=
-                  Flat_Callee (Dot_Index + 1 .. Flat_Callee'Last);
+                 Flat_Callee (Dot_Index + 1 .. Flat_Callee'Last);
             begin
                for Decl of Unit.Objects loop
                   if Decl.Is_Shared and then not Decl.Names.Is_Empty then
@@ -4049,6 +4050,7 @@ package body Safe_Frontend.Ada_Emit.Expressions is
         & Right_Image
         & "))";
    end Render_Binary_Operation_Image;
+
    function Is_Plain_Shared_Nested_Record
      (Unit     : CM.Resolved_Unit;
       Document : GM.Mir_Document;

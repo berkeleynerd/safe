@@ -2884,7 +2884,7 @@ package body Safe_Frontend.Mir_Analyze is
             Result.Has_Highlight_Span := True;
             Result.Highlight_Span := Expr.Span;
             Result.Notes := Index_Notes (Expr, Prefix_Type, Expr.Indices (Expr.Indices.First_Index), Var_Types, Type_Env, Functions);
-                  Result.Suggestions := Index_Suggestions (UString_Value (Prefix_Name), Prefix_Type, Expr.Indices (Expr.Indices.First_Index), Type_Env);
+            Result.Suggestions := Index_Suggestions (UString_Value (Prefix_Name), Prefix_Type, Expr.Indices (Expr.Indices.First_Index), Type_Env);
             Raise_Diag (Result);
          end;
       end if;

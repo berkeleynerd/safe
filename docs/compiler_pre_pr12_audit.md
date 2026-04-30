@@ -1765,8 +1765,9 @@ Checkpoint 3 permutation coverage:
 
 Findings:
 
-Checkpoint 3 recorded one hygiene ledger entry. No source edits were made, and
-no soundness or correctness CPA entries were created across checkpoints 1-3.
+Checkpoint 3 recorded one hygiene finding, later fixed by the Phase 2 CPA
+hygiene burndown PR. No soundness or correctness CPA entries were created
+across checkpoints 1-3.
 
 ### CPA-002 - Misindented unsupported statement arm
 - Area: statement emitter dispatcher formatting
@@ -1774,14 +1775,14 @@ no soundness or correctness CPA entries were created across checkpoints 1-3.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: line 9085 is indented 15 spaces while peer top-level dispatcher
   arms at lines 4259, 4950, 8414, 8419, 8446, and 9079, plus `end case` at
   line 9092, use 12 spaces.
 - Counterfactual: Ada accepts the formatting, and the full unsupported
   diagnostic body spans lines 9085-9091, so this is not behavioral.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: PR #431 and PR #432 checkpoint context.
 
 ### safe_frontend-check_resolve.adb
@@ -1861,9 +1862,9 @@ Checkpoint 2 permutation coverage:
 
 Findings:
 
-Checkpoint 1 recorded no CPA findings. Checkpoint 2 recorded one hygiene ledger
-entry. No source edits were made, and no soundness or correctness CPA entries
-were created across checkpoints 1-2.
+Checkpoint 1 recorded no CPA findings. Checkpoint 2 recorded one hygiene
+finding, later fixed by the Phase 2 CPA hygiene burndown PR. No soundness or
+correctness CPA entries were created across checkpoints 1-2.
 
 ### CPA-003 - Misindented receiver parameter metadata
 - Area: resolver function registration formatting
@@ -1871,7 +1872,7 @@ were created across checkpoints 1-2.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in `Register_Function`, the receiver branch assigns `Symbol.Name`
   and `Symbol.Kind` at the peer statement indentation, but `Symbol.Mode`,
@@ -1881,7 +1882,7 @@ were created across checkpoints 1-2.
 - Counterfactual: Ada semantics are unchanged because the same receiver
   parameter metadata statements execute in the same block; the issue is
   formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 check/resolve checkpoint 2 PR context.
 
 ### safe_frontend-mir_analyze.adb
@@ -1927,8 +1928,8 @@ Permutation coverage:
 
 Findings:
 
-This deep dive recorded one hygiene ledger entry. No source edits were made,
-and no soundness or correctness CPA entries were created.
+This deep dive recorded one hygiene finding, later fixed by the Phase 2 CPA
+hygiene burndown PR. No soundness or correctness CPA entries were created.
 
 ### CPA-004 - Misindented index suggestion assignment
 - Area: MIR analyzer diagnostic formatting
@@ -1936,7 +1937,7 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: line 2887 assigns `Result.Suggestions` in the
   index-out-of-bounds diagnostic branch, but it is indented deeper than the
@@ -1945,7 +1946,7 @@ and no soundness or correctness CPA entries were created.
 - Counterfactual: Ada semantics are unchanged because the same diagnostic
   suggestion assignment executes in the same block; the issue is
   formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 MIR analyze deep dive PR context.
 
 ### safe_frontend-ada_emit-types.adb
@@ -1973,8 +1974,8 @@ Permutation coverage:
 
 Findings:
 
-This deep dive recorded one hygiene ledger entry. No source edits were made,
-and no soundness or correctness CPA entries were created.
+This deep dive recorded one hygiene finding, later fixed by the Phase 2 CPA
+hygiene burndown PR. No soundness or correctness CPA entries were created.
 
 ### CPA-005 - Misindented subtype indication parameters
 - Area: Ada type emitter formatting
@@ -1982,7 +1983,7 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in `Render_Subtype_Indication`, the continuation parameters
   `Document` and `Info` at lines 2064-2065 are indented one space shallower
@@ -1990,7 +1991,7 @@ and no soundness or correctness CPA entries were created.
   `Render_Param_Type_Name` immediately below.
 - Counterfactual: Ada semantics are unchanged because the parameter list still
   denotes the same function signature; the issue is formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 Ada emit types deep dive PR context.
 
 ### safe_frontend-ada_emit-expressions.adb
@@ -2019,8 +2020,8 @@ Permutation coverage:
 
 Findings:
 
-This deep dive recorded two hygiene ledger entries. No source edits were made,
-and no soundness or correctness CPA entries were created.
+This deep dive recorded two hygiene findings, later fixed by the Phase 2 CPA
+hygiene burndown PR. No soundness or correctness CPA entries were created.
 
 ### CPA-006 - Misindented expression-emitter continuations
 - Area: Ada expression emitter formatting
@@ -2028,7 +2029,7 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in `Render_Heap_String_Expr`, continuation lines 856-858 in the
   high-bound heap-string slice path are indented one space deeper than the peer
@@ -2038,7 +2039,7 @@ and no soundness or correctness CPA entries were created.
 - Counterfactual: Ada semantics are unchanged because the same string
   concatenation and selector-text expressions execute in the same blocks; the
   issue is formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 Ada emit expressions deep dive PR context.
 
 ### CPA-007 - Missing expression helper separators
@@ -2047,7 +2048,7 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: `Shared_Call_Formal_Type` starts immediately after
   `end Apply_Name_Replacements;` at lines 3292-3293, and
@@ -2056,7 +2057,7 @@ and no soundness or correctness CPA entries were created.
   top-level helpers in this file are separated by a blank line.
 - Counterfactual: Ada semantics are unchanged because declaration separation
   whitespace does not affect parsing or emitted code.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 Ada emit expressions deep dive PR context.
 
 ### safe_frontend-check_emit.adb
@@ -2084,8 +2085,8 @@ Permutation coverage:
 
 Findings:
 
-This deep dive recorded three hygiene ledger entries. No source edits were made,
-and no soundness or correctness CPA entries were created.
+This deep dive recorded three hygiene findings, later fixed by the Phase 2 CPA
+hygiene burndown PR. No soundness or correctness CPA entries were created.
 
 ### CPA-008 - Misindented parameter-association JSON continuations
 - Area: check-emitter JSON formatting
@@ -2093,13 +2094,13 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in `Parameter_Associations`, JSON continuation lines 400-402 are
   indented two spaces shallower than peer concatenation lines 397-399.
 - Counterfactual: Ada semantics are unchanged because the same JSON string
   concatenation executes in the same block; the issue is formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 check emit deep dive PR context.
 
 ### CPA-009 - Misindented fallback subprogram aggregate component
@@ -2108,14 +2109,14 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in the `Package_Item_Node` fallback resolved-subprogram aggregate,
   `Statements => Item.Subp_Data.Statements` at line 2568 is indented one space
   shallower than peer aggregate components at lines 2555-2567.
 - Counterfactual: Ada semantics are unchanged because the same aggregate
   component value is passed to `Subprogram_Node`; the issue is formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 check emit deep dive PR context.
 
 ### CPA-010 - Misindented public-channel JSON continuations
@@ -2124,14 +2125,14 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in `Public_Channels_Json`, continuation lines 3146-3147 and
   3150-3151 are indented three spaces shallower than the surrounding channel
   JSON field continuations at lines 3144-3145 and 3152.
 - Counterfactual: Ada semantics are unchanged because the same JSON string
   concatenations execute in the same block; the issue is formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 check emit deep dive PR context.
 
 ### safe_frontend-ada_emit-channels.adb
@@ -2159,8 +2160,8 @@ Permutation coverage:
 
 Findings:
 
-This deep dive recorded one hygiene ledger entry. No source edits were made,
-and no soundness or correctness CPA entries were created.
+This deep dive recorded one hygiene finding, later fixed by the Phase 2 CPA
+hygiene burndown PR. No soundness or correctness CPA entries were created.
 
 ### CPA-011 - Misindented channel Try_Send guard continuation
 - Area: Ada channel emitter formatting
@@ -2168,7 +2169,7 @@ and no soundness or correctness CPA entries were created.
 - Severity: hygiene
 - Urgency: whenever
 - Confidence: confirmed
-- Outcome: ledger
+- Outcome: fixed
 - Enforcement proposal: no
 - Evidence: in `Render_Channel_Body`, the `Try_Send` generated guard string
   at line 3129 is indented one space shallower than peer `Append_Line`
@@ -2176,7 +2177,7 @@ and no soundness or correctness CPA entries were created.
 - Counterfactual: Ada semantics are unchanged because the same generated
   guard string concatenation executes in the same block; the issue is
   formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
+- Target: fixed by Phase 2 CPA hygiene burndown PR.
 - Links: Phase 2 Ada emit channels deep dive PR context.
 
 ### safe_frontend-ada_emit-proofs.adb

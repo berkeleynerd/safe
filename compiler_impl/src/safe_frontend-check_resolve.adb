@@ -15787,10 +15787,10 @@ package body Safe_Frontend.Check_Resolve is
          begin
             Symbol.Name := Decl.Spec.Receiver.Names (Decl.Spec.Receiver.Names.First_Index);
             Symbol.Kind := FT.To_UString ("param");
-               Symbol.Mode := Decl.Spec.Receiver.Mode;
-               Symbol.Span := Decl.Spec.Receiver.Span;
-               Symbol.Type_Info := Param_Type;
-               Result.Params.Append (Symbol);
+            Symbol.Mode := Decl.Spec.Receiver.Mode;
+            Symbol.Span := Decl.Spec.Receiver.Span;
+            Symbol.Type_Info := Param_Type;
+            Result.Params.Append (Symbol);
          end;
       end if;
       for Param of Decl.Spec.Params loop

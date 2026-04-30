@@ -397,9 +397,9 @@ package body Safe_Frontend.Check_Emit is
                   & Formal_Name
                   & ",""actual"":"
                   & Expression_Node (Item)
-                & ",""span"":"
-                & JS.Span_Object (Item.Span)
-                & "}");
+                  & ",""span"":"
+                  & JS.Span_Object (Item.Span)
+                  & "}");
             end;
          end loop;
       end if;
@@ -2565,7 +2565,7 @@ package body Safe_Frontend.Check_Emit is
                      Return_Is_Access_Def => False,
                      Span => Item.Subp_Data.Span,
                      Declarations => <>,
-                    Statements => Item.Subp_Data.Statements)))
+                     Statements => Item.Subp_Data.Statements)))
               & ",""span"":"
               & JS.Span_Object (Item.Subp_Data.Span)
               & "}";
@@ -3143,12 +3143,12 @@ package body Safe_Frontend.Check_Emit is
                      & ",""element_type"":"
                      & Type_Json (Channel_Item.Element_Type)
                      & ",""capacity"":"
-                  & Long_Long_Integer'Image (Channel_Item.Capacity)
-                  & (if Ceiling > 0
-                     then ",""required_ceiling"":" & Long_Long_Integer'Image (Ceiling)
-                     else "")
-                  & ",""span"":"
-                  & JS.Span_Object (Channel_Item.Span)
+                     & Long_Long_Integer'Image (Channel_Item.Capacity)
+                     & (if Ceiling > 0
+                        then ",""required_ceiling"":" & Long_Long_Integer'Image (Ceiling)
+                        else "")
+                     & ",""span"":"
+                     & JS.Span_Object (Channel_Item.Span)
                      & "}");
                end;
             end if;

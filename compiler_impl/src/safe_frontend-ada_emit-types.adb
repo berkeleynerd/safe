@@ -2061,8 +2061,8 @@ package body Safe_Frontend.Ada_Emit.Types is
 
    function Render_Subtype_Indication
      (Unit     : CM.Resolved_Unit;
-     Document : GM.Mir_Document;
-     Info     : GM.Type_Descriptor) return String
+      Document : GM.Mir_Document;
+      Info     : GM.Type_Descriptor) return String
    is
       Preferred_Info : constant GM.Type_Descriptor :=
         Preferred_Imported_Synthetic_Type (Unit, Info);

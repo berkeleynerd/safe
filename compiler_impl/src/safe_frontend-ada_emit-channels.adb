@@ -3126,7 +3126,7 @@ package body Safe_Frontend.Ada_Emit.Channels is
       Append_Line (Buffer, "begin", 2);
       Append_Line
         (Buffer,
-        "if Count < "
+         "if Count < "
          & Capacity
          & " then",
          3);
