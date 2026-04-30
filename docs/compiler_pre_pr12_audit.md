@@ -5,8 +5,8 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: start Phase 2 mir-analyze deep dive for
-`safe_frontend-mir_analyze.adb`.
+Next action: start Phase 2 Ada emit types deep dive for
+`safe_frontend-ada_emit-types.adb`.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1887,11 +1887,67 @@ were created across checkpoints 1-2.
 
 ### safe_frontend-mir_analyze.adb
 
-Owner: TBD.
+Owner: Codex.
+
+This deep dive covers `compiler_impl/src/safe_frontend-mir_analyze.adb` lines
+1-6691 in one PR. The file is smaller than the two files that require an
+interim checkpoint, so the audit keeps the full MIR analyzer in one
+reviewable unit. Coverage includes MIR type/env helpers, interval and constant
+evaluation, access/index/float/integer evaluation, condition refinement,
+graph-state joins, MIR transfer, and public orchestration.
+
+Forward specs in the front matter are accounted for explicitly.
+
+| Function | Spec | Body | Delta |
+| --- | --- | --- | --- |
+| `Eval_Access_Expr` | 455 | 2591 | 2136 |
+| `Eval_Index_Expr` | 468 | 2782 | 2314 |
+| `Eval_Float_Expr` | 474 | 2924 | 2450 |
+| `Eval_Float_Expr_With_Diag` | 494 | 3624 | 3130 |
+| `Eval_Int_Expr` | 503 | 3850 | 3347 |
+| `Eval_Int_Expr_With_Diag` | 509 | 4143 | 3634 |
+| `Apply_Comparison_Refinement` | 536 | 4188 | 3652 |
+| `Initialize_Graph_Entry_State` | 581 | 4715 | 4134 |
+| `Transfer_Mir_Op` | 658 | 6135 | 5477 |
+| `Build_Type_Env` | 670 | 6311 | 5641 |
+| `Build_Functions` | 672 | 6323 | 5651 |
+| `Analyze_Graph` | 674 | 6405 | 5731 |
+
+Permutation coverage:
+
+| Matrix row | Families considered | Permutations simulated | Coverage / rationale |
+| --- | --- | --- | --- |
+| Type/env helpers | builtin scalar/environment descriptors; named type lookup; tuple and growable descriptors; range and enum helpers; access roles and field lookup | builtin vs user type; tuple vs growable array; integer range vs enum ordinal; direct field vs inherited type-env lookup | Covered: `Add_Builtins` lines 833-842, `Resolve_Type` overloads at lines 876-907 and 909-918, tuple/growable/range helpers lines 923-1108, access-role and field helpers lines 1109-1150. No finding: helper paths either return conservative descriptors or preserve unknown/empty results for later diagnostics. |
+| Interval, constants, and arithmetic evaluation | integer intervals; float intervals; constant probes; arithmetic/shift/division/modulus; diagnostic wrappers | known constant vs unknown expression; integer vs float arithmetic; division by zero excluded vs unknown; overflow checked vs unbounded interval fallback | Covered: interval helpers lines 1152-1327, constant probes lines 1842-2000, `Eval_Float_Expr` lines 2924-3409, `Eval_Int_Expr` lines 3850-4141, and diagnostic wrappers at lines 3624 and 4143. No finding: arithmetic evaluation fails closed to broad intervals or explicit diagnostics when bounds, zero exclusion, or static constants are not provable. |
+| Names, aliases, and access ownership | flattened names; root names; alias paths; borrow/observe freezes; pending move tracking; access/null facts | local vs global root; direct access vs selected access; owner move vs borrow/observe alias; pending move retained vs cleared | Covered: name/path helpers lines 1424-1688, ownership diagnostics and notes lines 2082-2527, `Eval_Access_Expr` lines 2591-2728, and `Ensure_Access_Safe` lines 2730-2780. No finding: ownership paths preserve lender/freeze metadata and use explicit diagnostics for null, dangling, double-move, or write-conflict cases. |
+| Index, float narrowing, and division diagnostics | array index ranges; access-backed indexes; float narrowing; numerator/denominator inference; division interval checks | in-range vs out-of-range index; fixed vs access-backed array; finite/non-NaN float vs unknown float; denominator known nonzero vs unknown | Covered: `Eval_Index_Expr` lines 2782-2922, float narrowing lines 3584-3624, numerator/denominator helpers lines 3648-3696, `Division_Interval` lines 3698-3821, and `Overflow_Checked` lines 3823-3848. Finding: the index diagnostic suggestion assignment is formatting-only misindented at line 2887 and recorded as CPA-004. |
+| Condition and discriminant refinement | comparison refinements; scalar values; variant discriminants; boolean discriminant tests; recursive condition flow | equality vs inequality; truthy vs falsy branch; integer vs float refinement; direct discriminant compare vs boolean discriminant field | Covered: `Apply_Comparison_Refinement` lines 4188-4402, scalar/discriminant helpers lines 4404-4578, and `Refine_Condition` lines 4579-4650. No finding: refinement narrows facts only when the compared surface and constants are known, otherwise preserving the incoming state. |
+| Graph state and joins | symbol initialization; graph locals; owner sets; scope exit invalidation; fact joins; diagnostic ordering | parameter/global vs local fact initialization; exiting owner vs retained owner; matching facts vs divergent facts; loop header convergence vs ordinary join | Covered: `Initialize_Graph_Entry_State` lines 4715-4750, scope invalidation lines 4752-4794, `Join_Two_States` lines 4796-5038, `Join_State_Into` lines 5046-5063, and diagnostic ranking lines 5065-5078. No finding: state joins widen divergent facts and loop convergence is bounded by the later graph analyzer rather than trusting a single path. |
+| MIR transfer | assignment targets; access alias assignment; calls; channel send/receive; runtime expression checks; returns; operation dispatch | declaration init vs normal write; owner move vs borrow/observe alias; call actual by role; blocking vs try channel operations; expression vs return narrowing | Covered: assignment target validation lines 5133-5221, alias assignment lines 5245-5313, `Apply_Mir_Assignment` lines 5315-5483, call/runtime/return checks lines 5485-6133, and `Transfer_Mir_Op` lines 6135-6309 with `case Op.Kind` at line 6162. No finding: transfer paths append diagnostics and keep conservative state updates when checks fail. |
+| Orchestration and public entrypoints | type/function map construction; graph worklist analysis; loop-header convergence; terminator dispatch; top-level analyze and file loading | valid vs unsupported MIR format; bronze diagnostics present vs absent; return/jump/branch/select terminators; loop-header requeue vs fixed point; loaded file validation success vs failure | Covered: `Build_Type_Env` line 6311, `Build_Functions` line 6323, `Sort_Diagnostics` line 6358, `Analyze_Graph` lines 6405-6600 with terminator dispatch at line 6489, `Analyze` line 6602, and `Analyze_File` line 6670. `Raise_Unsupported` has no hits in this file. No finding: orchestration validates format/version, sorts diagnostics deterministically, and exposes only the first ordered diagnostic. |
 
 Findings:
 
-None yet.
+This deep dive recorded one hygiene ledger entry. No source edits were made,
+and no soundness or correctness CPA entries were created.
+
+### CPA-004 - Misindented index suggestion assignment
+- Area: MIR analyzer diagnostic formatting
+- Location: compiler_impl/src/safe_frontend-mir_analyze.adb:2887@AUDIT_SHA
+- Severity: hygiene
+- Urgency: whenever
+- Confidence: confirmed
+- Outcome: ledger
+- Enforcement proposal: no
+- Evidence: line 2887 assigns `Result.Suggestions` in the
+  index-out-of-bounds diagnostic branch, but it is indented deeper than the
+  peer `Result.Notes` assignment at line 2886 and `Raise_Diag` call at line
+  2888.
+- Counterfactual: Ada semantics are unchanged because the same diagnostic
+  suggestion assignment executes in the same block; the issue is
+  formatting-only.
+- Target: consider formatting-only cleanup in a later hygiene PR.
+- Links: Phase 2 MIR analyze deep dive PR context.
 
 ### safe_frontend-ada_emit-types.adb
 
