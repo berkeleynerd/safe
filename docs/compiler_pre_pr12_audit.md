@@ -5,8 +5,8 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: start Phase 2 Ada emit types deep dive for
-`safe_frontend-ada_emit-types.adb`.
+Next action: start Phase 2 Ada emit expressions deep dive for
+`safe_frontend-ada_emit-expressions.adb`.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -1951,11 +1951,48 @@ and no soundness or correctness CPA entries were created.
 
 ### safe_frontend-ada_emit-types.adb
 
-Owner: TBD.
+Owner: Codex.
+
+This deep dive covers `compiler_impl/src/safe_frontend-ada_emit-types.adb`
+lines 1-4759 in one PR. The file is smaller than the already-single
+`safe_frontend-mir_analyze.adb` deep dive, and the Phase 2 checkpoint rule only
+requires interim checkpoints for `safe_frontend-ada_emit-statements.adb` and
+`safe_frontend-check_resolve.adb`.
+
+Permutation coverage:
+
+| Matrix row | Families considered | Permutations simulated | Coverage / rationale |
+| --- | --- | --- | --- |
+| Name/type lookup helpers | Safe/Ada name mapping; aspect names; record selectors; local, imported, MIR, and print-context type lookup | builtin vs synthetic names; qualified vs unqualified names; record field vs access dereference; local object vs MIR local vs bound state lookup | Covered: `Ada_Safe_Name` line 146, `Normalize_Aspect_Name` line 232, `Selector_Is_Record_Field` line 264, `Lookup_Type` line 344, `Lookup_Selected_Type` line 712, and `Resolve_Print_Type` line 789. No finding: lookup helpers either return explicit descriptors or conservative false/empty results for later diagnostics. |
+| Type predicates and bounded/growable helpers | integer, binary, float, boolean, access, string, growable array, map-entry, and bounded-string families | builtin vs declared type; subtype/nominal base walk; bounded vs plain string; growable list vs key/value map shape; owner vs borrow/observe access | Covered: type predicates and runtime helpers lines 933-1344, bounded string helpers lines 1183-1277, and growable/map helpers lines 1288-1343. No finding: helper paths preserve base-type classification and fail closed through internal diagnostics when required metadata is absent. |
+| Heap copy/free and type-name rendering | string/growable/generated heap copy; heap free; heap-value detection; fixed-array cardinality; rendered type/subtype names | plain string vs growable array vs generated helper; fixed array with static bounds vs unknown bounds; anonymous access vs named subtype; bounded string type rendering | Covered: `Append_Heap_Copy_Value` line 1459, `Append_Heap_Free_Value` line 1502, `Has_Heap_Value_Type` line 1884, `Fixed_Array_Cardinality` line 1937, `Render_Type_Name` line 1976, and `Render_Subtype_Indication` line 2062. Finding: `Render_Subtype_Indication` parameter continuations at lines 2064-2065 are underindented and recorded as CPA-005. |
+| Default values and synthetic type collection | scalar, string, access, array, result, record, tuple, optional, and synthetic growable/bounded types | explicit default vs aggregate default; constrained/discriminated record default; tuple field default; optional synthetic type; statement-tree synthetic type discovery | Covered: `Default_Value_Expr` overloads at lines 2113, 2135, and 2371, `Needs_Explicit_Default_Initializer` line 2485, `Collect_Synthetic_Types` line 2544, and `Add_From_Statements` line 2711. No finding: default generation and synthetic collection recurse through declarations/statements without source changes. |
+| Generated helper bodies and instantiations | for-of heap helpers; owner access helpers; bounded string instantiations; growable array runtime helper bodies | generated vs identity helper; owner access allocation/free/dispose; bounded string capacity instances; heap-backed vs scalar growable elements | Covered: `Render_For_Of_Helper_Bodies` line 2843, owner access helper spec/body lines 3012 and 3120, bounded string instantiations line 3190, and `Render_Growable_Array_Helper_Body` line 3275. No finding: generated helpers mark runtime dependencies and preserve fail-closed helper recursion before emitting bodies. |
+| Imported/synthetic dependency helpers | synthetic tail matching; builtin integer/binary/float names; local/free/runtime helper names; heap runtime dependencies; generated heap copy/free bodies | imported synthetic type vs local synthetic type; identity array runtime vs full runtime; array, record, tuple heap copy/free recursion | Covered: `Is_Attribute_Selector` line 3394, `Preferred_Imported_Synthetic_Type` line 3474, `Mark_Heap_Runtime_Dependencies` line 3563, `Append_Generated_Heap_Copy_Body` line 3618, and `Append_Generated_Heap_Free_Body` line 3729. No finding: dependency marking recurses through heap-bearing fields/elements and generated bodies copy/free only heap-bearing surfaces. |
+| Type declaration renderers | integer, enum, binary, subtype, nominal, array, tuple, result, record, access, and float declarations | fixed vs growable array; identity vs full array runtime; discriminated record vs ordinary record; variant choices vs null others branch; unsupported type kind | Covered: `Render_Type_Decl` line 3235, the direct `Raise_Unsupported` path at line 3269, and declaration renderers from `Render_Integer_Type_Decl` line 3864 through `Render_Float_Type_Decl` line 4489, including `Render_Array_Type_Decl` line 4003. No finding: unsupported type kinds fail closed and nominal missing-base/bounds paths use No_Return internal diagnostics. |
+| Record heap assignment/free renderers and runtime names | ordinary fields, variant fields, heap-backed fields, null variant arms, and array runtime naming | no heap field vs heap field; discriminant case with emitted statements vs null branch; identity runtime vs Safe_Array_RT | Covered: `Append_Record_Heap_Copy_Assignments` line 4528, `Append_Record_Heap_Free_Statements` line 4629, `Array_Runtime_Generic_Name` line 4730, `Array_Runtime_Identity_Ops_Name` line 4742, and `Same_Variant_Choice` line 4748. No finding: record helpers emit variant case arms conservatively and leave scalar-only branches as explicit null statements. |
 
 Findings:
 
-None yet.
+This deep dive recorded one hygiene ledger entry. No source edits were made,
+and no soundness or correctness CPA entries were created.
+
+### CPA-005 - Misindented subtype indication parameters
+- Area: Ada type emitter formatting
+- Location: compiler_impl/src/safe_frontend-ada_emit-types.adb:2064@AUDIT_SHA
+- Severity: hygiene
+- Urgency: whenever
+- Confidence: confirmed
+- Outcome: ledger
+- Enforcement proposal: no
+- Evidence: in `Render_Subtype_Indication`, the continuation parameters
+  `Document` and `Info` at lines 2064-2065 are indented one space shallower
+  than peer multi-line parameter lists in this file, such as
+  `Render_Param_Type_Name` immediately below.
+- Counterfactual: Ada semantics are unchanged because the parameter list still
+  denotes the same function signature; the issue is formatting-only.
+- Target: consider formatting-only cleanup in a later hygiene PR.
+- Links: Phase 2 Ada emit types deep dive PR context.
 
 ### safe_frontend-ada_emit-expressions.adb
 
