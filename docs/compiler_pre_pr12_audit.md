@@ -5,8 +5,8 @@ Project board: https://github.com/users/berkeleynerd/projects/4/views/1
 Audit SHA: `5450c30406e5535cab772e511e1ec326217f16f1`
 Audit doc ref: `main`
 Ripgrep: `ripgrep 15.1.0 (rev af60c2de9d)`
-Next action: start Phase 2 Ada emit channels deep dive for
-`safe_frontend-ada_emit-channels.adb`.
+Next action: start Phase 2 Ada emit proofs deep dive for
+`safe_frontend-ada_emit-proofs.adb`.
 
 This is the canonical working record for the pre-PR12.1 Safe compiler audit.
 The code under audit is pinned at `Audit SHA`; this document remains a living
@@ -2137,11 +2137,48 @@ and no soundness or correctness CPA entries were created.
 
 ### safe_frontend-ada_emit-channels.adb
 
-Owner: TBD.
+Owner: Codex.
+
+This deep dive covers `compiler_impl/src/safe_frontend-ada_emit-channels.adb`
+lines 1-3209 in one PR. The file is smaller than the already-single MIR,
+type-emitter, expression-emitter, and check-emitter deep dives, and the Phase 2
+checkpoint rule only requires interim checkpoints for
+`safe_frontend-ada_emit-statements.adb` and `safe_frontend-check_resolve.adb`.
+
+Permutation coverage:
+
+| Audit row | Families/permutations | Coverage | Notes |
+| --- | --- | --- | --- |
+| Task and ceiling helpers | channel vs shared roots; environment task use vs explicit task priority; public object fallback vs bronze ceiling metadata; nested shared record shape | Covered: helper cluster lines 14-132, including `Channel_Uses_Environment_Task` lines 14-37, `Channel_Uses_Unspecified_Task_Priority` lines 38-60, `Shared_Uses_Environment_Task` lines 61-81, `Shared_Uses_Unspecified_Task_Priority` lines 82-104, `Shared_Required_Ceiling` lines 105-117, and `Is_Plain_Shared_Nested_Record` lines 118-132. | No finding: empty graph/ceiling vectors return conservative defaults, while public or environment-rooted shared/channel surfaces still select `System.Any_Priority'Last` in later renderers. |
+| Shared object spec | public shared helper surface; protected private wrapper surface; scalar, heap-backed, string, map/list, and nested record fields | Covered: `Render_Shared_Object_Spec` lines 133-463, including public helper specs, protected type specs, nested setter specs, map/list operation specs, and priority selection. | No finding: spec emission separates public helper declarations from private protected wrappers and threads runtime dependencies through `State` when string setters require `Safe_String_RT`. |
+| Shared object body | heap copy/free helpers; optional, array, record, tuple, map/list, and nested setter bodies; public helper bodies vs protected wrapper bodies | Covered: `Render_Shared_Object_Body` lines 464-2024, including `Render_Shared_Value_Helpers` line 566, `Append_Nested_Setter_Bodies` line 772, `Append_Private_Wrapper_Declarations` line 849, and protected body generation at line 1381. | No finding: generated heap helpers recurse through contained value types before wrapper bodies use them, and public shared helpers preserve explicit copy/free behavior for heap-backed roots. |
+| Channel model helpers | scalar sequential ghost model eligibility; single-slot capacity; heap/non-heap element classes; private model name generation | Covered: channel model helper cluster lines 2025-2048, including `Channel_Model_Has_Value_Name` lines 2025-2029, `Channel_Model_Length_Name` lines 2030-2034, and `Channel_Uses_Sequential_Scalar_Ghost_Model` lines 2035-2048. | No finding: ghost-model eligibility is restricted to non-heap scalar channels with capacity 1, while length-carrying string/growable channels fall back to explicit runtime length storage. |
+| Select dispatcher generation | dispatcher type names; object declarations; ready flag bodies; delay helper package state; signal fanout for channel send paths | Covered: select dispatcher generation lines 2053-2296, including `Render_Select_Dispatcher_Spec` lines 2053-2078, `Render_Select_Dispatcher_Object_Decl` lines 2079-2092, `Render_Select_Dispatcher_Body` lines 2093-2132, `Render_Select_Dispatcher_Delay_Helpers` lines 2133-2273, and `Append_Select_Dispatcher_Signals` lines 2274-2296. | No finding: generated dispatcher state initializes each signal to false, delay helper bodies isolate timeout bookkeeping, and signal fanout walks resolved select dispatchers without introducing unsupported fallback paths. |
+| Generated channel value helpers | optional payload helpers; generated heap copy/free helpers; channel helper deduplication; channel root vs contained value helper selection | Covered: `Render_Channel_Generated_Value_Helpers` lines 2297-2512. | No finding: optional payload helpers and general heap helpers share the existing Ada emit heap-helper APIs, and generated helper names are deduplicated before recursive contained-type traversal. |
+| Channel spec | scalar ghost channel records; protected ring-buffer channel specs; length helper specs; string/growable runtime length buffers; send/receive/try contracts | Covered: `Render_Channel_Spec` lines 2513-2898. | No finding: ghost-model, single-slot length, and runtime length-buffer paths are separated explicitly, with send/receive postconditions preserving stored-length and success/failure semantics. |
+| Channel body | helper body generation; ghost fast path; protected ring-buffer send/receive/try body paths; heap element reset; head/tail/count updates | Covered: `Render_Channel_Body` lines 2899-3208, including the ghost fast path lines 2959-3024, protected body generation at line 3027, and send/receive/try paths lines 3035-3205. | Finding: the `Try_Send` guard string continuation at line 3129 is indented one space shallower than peer `Append_Line` string-argument continuations at lines 3045, 3088, and 3121; recorded as CPA-011. No Raise_Unsupported, Program_Error, or Constraint_Error hits were found in this file. |
 
 Findings:
 
-None yet.
+This deep dive recorded one hygiene ledger entry. No source edits were made,
+and no soundness or correctness CPA entries were created.
+
+### CPA-011 - Misindented channel Try_Send guard continuation
+- Area: Ada channel emitter formatting
+- Location: compiler_impl/src/safe_frontend-ada_emit-channels.adb:3129@AUDIT_SHA
+- Severity: hygiene
+- Urgency: whenever
+- Confidence: confirmed
+- Outcome: ledger
+- Enforcement proposal: no
+- Evidence: in `Render_Channel_Body`, the `Try_Send` generated guard string
+  at line 3129 is indented one space shallower than peer `Append_Line`
+  string-argument continuations at lines 3045, 3088, and 3121.
+- Counterfactual: Ada semantics are unchanged because the same generated
+  guard string concatenation executes in the same block; the issue is
+  formatting-only.
+- Target: consider formatting-only cleanup in a later hygiene PR.
+- Links: Phase 2 Ada emit channels deep dive PR context.
 
 ### safe_frontend-ada_emit-proofs.adb
 
