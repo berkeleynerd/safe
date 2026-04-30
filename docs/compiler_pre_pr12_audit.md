@@ -2078,9 +2078,9 @@ Permutation coverage:
 | Name/type/expression hierarchy | direct/selected names; type targets; subtype marks; constraints; object/access definitions; expression precedence; primary forms | attributes vs selected fields; binary type shortcuts vs ordinary names; range vs discriminant constraints; logical/relational/shift/arithmetic precedence; literals, names, allocators, aggregates, try/some/none forms | Covered: `Name_Node` line 414, `Type_Target_Node` line 503, `Type_Spec_Name` line 551, `Constraint_Node` line 616, `Object_Type_Node` line 711, `Expression_Node` line 901, and `Primary_Node` line 1266. No finding: expression lowering preserves the typed JSON shape and routes unsupported expression leaves into conservative name/paren-expression nodes rather than unchecked schema expansion. |
 | Type declaration rendering | integer, binary, float, nominal, enum, arrays, interfaces, sums, records, access types, discriminants, variants, and discrete subtypes | complete vs incomplete types; constrained vs unconstrained arrays; named vs positional discriminants; boolean vs expression variant choices; subtype vs explicit range loop bounds | Covered: `Real_Range_Constraint_Node` line 1048, `Discriminant_Part_Node` line 1060, `Variant_Part_Node` line 1102, `Component_List_Node` line 1173, `Sum_Type_Definition_Node` line 1247, `Discrete_Subtype_Node` line 1405, and `Type_Definition_Node` line 1436. No behavioral finding: unknown type declarations raise `Program_Error` at line 1700 instead of producing a plausible but wrong type node. |
 | Statement and sequence rendering | object/destructure declarations; assignment/call/return; if/case/loops/exit/for; channel send/receive/try/delay; match/select; unknown statements | parsed vs resolved statement alignment; synthetic statements skipped; match lowered to if/case; for-of vs for-in; channel and delay select arms; unknown statement fail-closed path | Covered: `Sequence_Node` line 1735, `Select_Arm_Node` line 1803, and `Statement_Node` line 1848. Direct fail-closed surfaces are `Program_Error` at lines 1864 and 2275 plus the match/case assertion at line 2193. No soundness finding: parsed/resolved mismatch handling either falls back to parsed nodes or fails closed for structurally invalid statement kinds. |
-| Subprogram/task/package rendering | parameter specs; function/procedure specs; signatures; subprogram bodies; tasks; channels; package item dispatcher | function vs procedure; receiver present vs absent; parsed declaration initializer vs resolved initializer; task body vs subprogram body; public item vs fallback parsed item | Covered: `Parameter_Spec_Node` line 2279, `Subprogram_Spec_Node` line 2318, `Signature_For` lines 2362 and 2391, `Subprogram_Node` line 2396, `Task_Node` line 2450, `Channel_Node` line 2489, and `Package_Item_Node` line 2505. Finding: fallback resolved-subprogram aggregate indentation drift is recorded as CPA-010. No behavior change: package item indexing remains guarded when resolved vectors are empty or shorter than parsed items. |
+| Subprogram/task/package rendering | parameter specs; function/procedure specs; signatures; subprogram bodies; tasks; channels; package item dispatcher | function vs procedure; receiver present vs absent; parsed declaration initializer vs resolved initializer; task body vs subprogram body; public item vs fallback parsed item | Covered: `Parameter_Spec_Node` line 2279, `Subprogram_Spec_Node` line 2318, `Signature_For` lines 2362 and 2391, `Subprogram_Node` line 2396, `Task_Node` line 2450, `Channel_Node` line 2489, and `Package_Item_Node` line 2505. Finding: fallback resolved-subprogram aggregate indentation drift is recorded as CPA-009. No behavior change: package item indexing remains guarded when resolved vectors are empty or shorter than parsed items. |
 | Typed/interface summary surfaces | public declarations; statement lists; executables; channels; tasks; dependencies; public and synthetic types | public vs private items; subprogram/task executable lists; duplicate dependency elimination; subtype-only vs full type export; hidden reference target and synthetic optional helper inclusion | Covered: `Public_Declarations` line 2611, `Statement_List_Json` line 2679, `Executables` line 2704, `Channels_Json` line 2741, `Tasks_Json` line 2766, `Dependencies_Json` line 2786, and `Public_Types_Json` line 2819. No finding: summary emission preserves resolver order while deduplicating public/synthetic surfaces by explicit seen-name tracking. |
-| Public API/effect metadata | public channel ceilings; public shared/object metadata; public subprogram iteration; template source capture; graph effect summaries; channel access summaries | channel ceiling present vs absent; shared object ceiling present vs absent; generic template vs ordinary public subprogram; shared effects qualified vs already-qualified; sends/receives/channels empty vs populated | Covered: `Public_Channels_Json` line 3126, `Public_Objects_Json` line 3160, `For_Each_Public_Subprogram` spec/body at lines 3241 and 3245, `Public_Subprograms_Json` line 3283, `Effect_Summaries_Json` line 3396, and `Channel_Access_Summaries_Json` line 3489. Finding: public-channel JSON continuation indentation drift is recorded as CPA-009. No soundness finding: the subprogram-order assertion at line 3260 keeps parsed/resolved public subprogram traversal fail-loud in validation builds while retaining release guards. |
+| Public API/effect metadata | public channel ceilings; public shared/object metadata; public subprogram iteration; template source capture; graph effect summaries; channel access summaries | channel ceiling present vs absent; shared object ceiling present vs absent; generic template vs ordinary public subprogram; shared effects qualified vs already-qualified; sends/receives/channels empty vs populated | Covered: `Public_Channels_Json` line 3126, `Public_Objects_Json` line 3160, `For_Each_Public_Subprogram` spec/body at lines 3241 and 3245, `Public_Subprograms_Json` line 3283, `Effect_Summaries_Json` line 3396, and `Channel_Access_Summaries_Json` line 3489. Finding: public-channel JSON continuation indentation drift is recorded as CPA-010. No soundness finding: the subprogram-order assertion at line 3260 keeps parsed/resolved public subprogram traversal fail-loud in validation builds while retaining release guards. |
 | Type JSON and public entrypoints | scalar values; type descriptors; interface members; discriminants/variants/sum variants; typed JSON; interface JSON | builtin vs declared/imported types; access type kind remapping; scalar default kinds; discriminant constraints; typed-v6 vs safei-v5 top-level payloads | Covered: `Type_Json` line 3537, `Types_Json` line 3849, `Ast_Json` line 3865, `Typed_Json` line 3951, and `Interface_Json` line 3991. `Raise_Unsupported` has zero hits in this file. No finding: public entrypoints compose existing JSON fragments and append the expected line feed without adding emitter-style unsupported fallbacks. |
 
 Findings:
@@ -2103,23 +2103,7 @@ and no soundness or correctness CPA entries were created.
 - Target: consider formatting-only cleanup in a later hygiene PR.
 - Links: Phase 2 check emit deep dive PR context.
 
-### CPA-009 - Misindented public-channel JSON continuations
-- Area: check-emitter public API metadata formatting
-- Location: compiler_impl/src/safe_frontend-check_emit.adb:3146@AUDIT_SHA
-- Severity: hygiene
-- Urgency: whenever
-- Confidence: confirmed
-- Outcome: ledger
-- Enforcement proposal: no
-- Evidence: in `Public_Channels_Json`, continuation lines 3146-3147 and
-  3150-3151 are indented three spaces shallower than the surrounding channel
-  JSON field continuations at lines 3144-3145 and 3152.
-- Counterfactual: Ada semantics are unchanged because the same JSON string
-  concatenations execute in the same block; the issue is formatting-only.
-- Target: consider formatting-only cleanup in a later hygiene PR.
-- Links: Phase 2 check emit deep dive PR context.
-
-### CPA-010 - Misindented fallback subprogram aggregate component
+### CPA-009 - Misindented fallback subprogram aggregate component
 - Area: check-emitter package item formatting
 - Location: compiler_impl/src/safe_frontend-check_emit.adb:2568@AUDIT_SHA
 - Severity: hygiene
@@ -2132,6 +2116,22 @@ and no soundness or correctness CPA entries were created.
   shallower than peer aggregate components at lines 2555-2567.
 - Counterfactual: Ada semantics are unchanged because the same aggregate
   component value is passed to `Subprogram_Node`; the issue is formatting-only.
+- Target: consider formatting-only cleanup in a later hygiene PR.
+- Links: Phase 2 check emit deep dive PR context.
+
+### CPA-010 - Misindented public-channel JSON continuations
+- Area: check-emitter public API metadata formatting
+- Location: compiler_impl/src/safe_frontend-check_emit.adb:3146@AUDIT_SHA
+- Severity: hygiene
+- Urgency: whenever
+- Confidence: confirmed
+- Outcome: ledger
+- Enforcement proposal: no
+- Evidence: in `Public_Channels_Json`, continuation lines 3146-3147 and
+  3150-3151 are indented three spaces shallower than the surrounding channel
+  JSON field continuations at lines 3144-3145 and 3152.
+- Counterfactual: Ada semantics are unchanged because the same JSON string
+  concatenations execute in the same block; the issue is formatting-only.
 - Target: consider formatting-only cleanup in a later hygiene PR.
 - Links: Phase 2 check emit deep dive PR context.
 
